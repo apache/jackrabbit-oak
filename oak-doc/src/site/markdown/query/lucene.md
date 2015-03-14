@@ -207,6 +207,7 @@ structure
       - isRegexp (boolean) = false
       - type (string) = 'undefined'
       - propertyIndex (boolean) = false
+      - nullCheckEnabled (boolean) = false
 
 Following are the details about the above mentioned config options which can be
 defined at the property definition level
@@ -271,6 +272,19 @@ type
 propertyIndex
 : Whether the index for this property is used for equality conditions, ordering, 
   and is not null conditions.
+
+nullCheckEnabled
+: Since 1.0.12
+: If the property is checked for _is null_ then this should be set to true. This
+  should only be enabled for nodeTypes which are not generic as it leads to index
+  entry for all nodes of that type where this property is not set.
+    * _//element(*, app:Asset)[not(jcr:content/@excludeFromSearch)]
+
+  It would be better to use a query which checks for property existence or property
+  being set to specific values as such queries can make use of index without any
+  extra storage cost.
+
+  Refer to [IS NULL support][OAK-2517] for more details
 
 **Property Names**
 
@@ -683,6 +697,7 @@ from property index in following aspects
 [OAK-1737]: https://issues.apache.org/jira/browse/OAK-1737 
 [OAK-2306]: https://issues.apache.org/jira/browse/OAK-2306
 [OAK-2268]: https://issues.apache.org/jira/browse/OAK-2268
+[OAK-2517]: https://issues.apache.org/jira/browse/OAK-2517
 [luke]: https://code.google.com/p/luke/
 [oak-console]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run#console
 [JCR-2989]: https://issues.apache.org/jira/browse/JCR-2989?focusedCommentId=13051101
