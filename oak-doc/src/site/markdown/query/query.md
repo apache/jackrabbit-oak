@@ -277,7 +277,7 @@ The cost for this index is the sum of the costs of the `PropertyIndexLookup` for
 
 ### Temporarily Disabling an Index
 
-To temporarily disable an index (for example for testing), set the index type to "undefined".
+To temporarily disable an index (for example for testing), set the index type to `disabled`.
 Please note that while the index type is not set, the index is not updated, so if you enable it again,
 it might not be correct. This is specially important for synchronous indexes.
 
