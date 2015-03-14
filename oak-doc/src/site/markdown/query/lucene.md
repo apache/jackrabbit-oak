@@ -89,12 +89,14 @@ Below is the canonical index definition structure
       - type (string) = 'lucene' mandatory
       - async (string) = 'async' mandatory
       - blobSize (long) = 32768
+      - maxFieldLength (long) = 10000
       - evaluatePathRestrictions (boolean) = false
       - name (string)
       - compatVersion (long) = 2
       + indexRules (nt:unstructured)
       + aggregates (nt:unstructured)
       + analyzers (nt:unstructured)
+      + tika (nt:unstructured)
 
 Following are the config options which can be defined at the index definition
 level
@@ -125,6 +127,9 @@ compatMode
 : By default Oak uses older Lucene index implementation which does not
   supports property restrictions, index time aggregation etc. To make use of
   this feature set it to 2
+
+[maxFieldLength][OAK-2469]
+: Numbers of terms indexed per field. Defaults to 10000
 
 #### Indexing Rules
 
@@ -513,6 +518,25 @@ debug
 : Boolean value. Defaults to `false`
 : If enabled then Lucene logging would be integrated with Slf4j
 
+### Tika Config (1.0.12)
+
+Oak Lucene uses [Apache Tika][tika] to extract the text from binary content
+
+    + tika
+        - maxExtractLength (long) = -10
+        + config.xml  (nt:file)
+          + jcr:content
+            - jcr:data = //config xml binary content
+
+Oak uses a [default config][default-config]. To use a custom config specify
+the config file via `tika/config.xml` node in index config. 
+
+[maxExtractLength][OAK-2470]
+: Limits the number of characters that are extracted by the Tika parse. A negative
+  value indicates a multiple of `maxFieldLength` and a positive value is used as is
+    * maxExtractLength = -10, maxFieldLength = 10000 -> Actual value = 100000
+    * maxExtractLength = 1000 -> Actual value = 1000
+
 <a name="non-root-index"></a>
 ### Non Root Index Definitions
 
@@ -698,7 +722,12 @@ from property index in following aspects
 [OAK-2306]: https://issues.apache.org/jira/browse/OAK-2306
 [OAK-2268]: https://issues.apache.org/jira/browse/OAK-2268
 [OAK-2517]: https://issues.apache.org/jira/browse/OAK-2517
+[OAK-2469]: https://issues.apache.org/jira/browse/OAK-2469
+[OAK-2470]: https://issues.apache.org/jira/browse/OAK-2470
+[OAK-2463]: https://issues.apache.org/jira/browse/OAK-2463
 [luke]: https://code.google.com/p/luke/
+[tika]: http://tika.apache.org/
 [oak-console]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run#console
 [JCR-2989]: https://issues.apache.org/jira/browse/JCR-2989?focusedCommentId=13051101
 [solr-analyzer]: https://wiki.apache.org/solr/AnalyzersTokenizersTokenFilters#Specifying_an_Analyzer_in_the_schema
+[default-config]: https://github.com/apache/jackrabbit-oak/blob/trunk/oak-lucene/src/main/resources/org/apache/jackrabbit/oak/plugins/index/lucene/tika-config.xml
