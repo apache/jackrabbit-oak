@@ -305,6 +305,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
         dirty |= indexAggregates(path, fields, state);
         dirty |= indexNullCheckEnabledProps(path, fields, state);
+        dirty |= indexNotNullCheckEnabledProps(path, fields, state);
 
         if (isUpdate && !dirty) {
             // updated the state but had no relevant changes
@@ -521,6 +522,17 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
     //~-------------------------------------------------------< NullCheck Support >
 
+    private boolean indexNotNullCheckEnabledProps(String path, List<Field> fields, NodeState state) {
+        boolean fieldAdded = false;
+        for (PropertyDefinition pd : indexingRule.getNotNullCheckEnabledProperties()) {
+            if (isPropertyNotNull(state, pd)) {
+                fields.add(new StringField(FieldNames.NOT_NULL_PROPS, pd.name, Field.Store.NO));
+                fieldAdded = true;
+            }
+        }
+        return fieldAdded;
+    }
+
     private boolean indexNullCheckEnabledProps(String path, List<Field> fields, NodeState state) {
         boolean fieldAdded = false;
         for (PropertyDefinition pd : indexingRule.getNullCheckEnabledProperties()) {
@@ -546,6 +558,22 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
             return false;
         }
         return !propertyNode.hasProperty(pd.nonRelativeName);
+    }
+
+    /**
+     * Determine if the property as defined by PropertyDefinition exists or not.
+     *
+     * <p>For relative property if the intermediate nodes do not exist then property is
+     * considered to be null</p>
+     *
+     * @return true if the property exists
+     */
+    private boolean isPropertyNotNull(NodeState state, PropertyDefinition pd){
+        NodeState propertyNode = getPropertyNode(state, pd);
+        if (!propertyNode.exists()){
+            return false;
+        }
+        return propertyNode.hasProperty(pd.nonRelativeName);
     }
 
     private static NodeState getPropertyNode(NodeState nodeState, PropertyDefinition pd) {

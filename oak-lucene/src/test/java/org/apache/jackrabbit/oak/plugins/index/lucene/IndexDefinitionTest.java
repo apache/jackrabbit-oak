@@ -574,6 +574,17 @@ public class IndexDefinitionTest {
         assertTrue(!idxDefn.getApplicableIndexingRule(TestUtil.NT_TEST).getNullCheckEnabledProperties().isEmpty());
     }
 
+    @Test
+    public void notNullCheckEnabledWithTestNode() throws Exception{
+        NodeBuilder rules = builder.child(INDEX_RULES);
+        TestUtil.child(rules, "oak:TestNode/properties/prop2")
+                .setProperty(LuceneIndexConstants.PROP_NAME, "foo")
+                .setProperty(LuceneIndexConstants.PROP_NOT_NULL_CHECK_ENABLED, true);
+        root = registerTestNodeType(builder).getNodeState();
+        IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState());
+        assertTrue(!idxDefn.getApplicableIndexingRule(TestUtil.NT_TEST).getNotNullCheckEnabledProperties().isEmpty());
+    }
+
     //TODO indexesAllNodesOfMatchingType - with nullCheckEnabled
 
     private static IndexingRule getRule(IndexDefinition defn, String typeName){
