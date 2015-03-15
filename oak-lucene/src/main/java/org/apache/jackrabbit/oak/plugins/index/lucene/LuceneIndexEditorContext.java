@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Calendar;
+import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -43,6 +44,7 @@ import org.apache.lucene.index.SerialMergeScheduler;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.tika.config.TikaConfig;
+import org.apache.tika.mime.MediaType;
 import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.Parser;
 import org.slf4j.Logger;
@@ -111,6 +113,11 @@ public class LuceneIndexEditorContext {
     private boolean reindex;
 
     private Parser parser;
+
+    /**
+     * The media types supported by the parser used.
+     */
+    private Set<MediaType> supportedMediaTypes;
 
     LuceneIndexEditorContext(NodeState root, NodeBuilder definition, IndexUpdateCallback updateCallback) {
         this.definitionBuilder = definition;
@@ -207,6 +214,13 @@ public class LuceneIndexEditorContext {
 
     public long getIndexedNodes() {
         return indexedNodes;
+    }
+
+    public boolean isSupportedMediaType(String type) {
+        if (supportedMediaTypes == null) {
+            supportedMediaTypes = getParser().getSupportedTypes(null);
+        }
+        return supportedMediaTypes.contains(MediaType.parse(type));
     }
 
     void indexUpdate() throws CommitFailedException {
