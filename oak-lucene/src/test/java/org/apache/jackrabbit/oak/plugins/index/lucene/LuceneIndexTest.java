@@ -260,6 +260,38 @@ public class LuceneIndexTest {
     }
 
     @Test
+    public void testPropertyExistence() throws Exception {
+        root = TestUtil.registerTestNodeType(builder).getNodeState();
+
+        NodeBuilder index = newLucenePropertyIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "lucene", ImmutableSet.of("foo"), null);
+        NodeBuilder rules = index.child(INDEX_RULES);
+        NodeBuilder propNode = rules.child(NT_TEST).child(LuceneIndexConstants.PROP_NODE);
+
+        NodeBuilder fooProp = propNode.child("foo");
+        fooProp.setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true);
+        fooProp.setProperty(LuceneIndexConstants.PROP_NOT_NULL_CHECK_ENABLED, true);
+
+        NodeState before = builder.getNodeState();
+        createNodeWithType(builder, "a", NT_TEST).setProperty("foo", "bar");
+        createNodeWithType(builder, "b", NT_TEST).setProperty("foo", "bar");
+        createNodeWithType(builder, "c", NT_TEST);
+
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
+
+        IndexTracker tracker = new IndexTracker();
+        tracker.update(indexed);
+        AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker);
+
+        FilterImpl filter = createFilter(NT_TEST);
+        filter.restrictProperty("foo", Operator.NOT_EQUAL, null);
+        assertFilter(filter, queryIndex, indexed, ImmutableList.of("/a","/b"));
+    }
+
+
+    @Test
     public void testRelativePropertyNonExistence() throws Exception {
         root = TestUtil.registerTestNodeType(builder).getNodeState();
 

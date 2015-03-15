@@ -723,6 +723,12 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             return new TermQuery(new Term(FieldNames.NULL_PROPS, defn.name));
         }
 
+        //If notNullCheckEnabled explicitly enabled use the simple TermQuery
+        //otherwise later fallback to range query
+        if (pr.isNotNullRestriction() && defn.notNullCheckEnabled){
+            return new TermQuery(new Term(FieldNames.NOT_NULL_PROPS, defn.name));
+        }
+
         switch (propType) {
             case PropertyType.DATE: {
                 Long first = pr.first != null ? FieldFactory.dateToLong(pr.first.getValue(Type.DATE)) : null;
