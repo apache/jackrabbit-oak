@@ -16,6 +16,7 @@
  */
 
 package org.apache.jackrabbit.oak.blob.cloud.aws.s3;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,13 +32,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
+import com.amazonaws.services.s3.model.ListObjectsRequest;
 import org.apache.jackrabbit.core.data.AsyncTouchCallback;
 import org.apache.jackrabbit.core.data.AsyncTouchResult;
 import org.apache.jackrabbit.core.data.AsyncUploadCallback;
 import org.apache.jackrabbit.core.data.AsyncUploadResult;
-import org.apache.jackrabbit.core.data.Backend;
 import org.apache.jackrabbit.core.data.CachingDataStore;
 import org.apache.jackrabbit.core.data.DataIdentifier;
+import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
 import org.slf4j.Logger;
@@ -64,7 +67,7 @@ import com.amazonaws.services.s3.transfer.Upload;
 /**
  * A data store backend that stores data on Amazon S3.
  */
-public class S3Backend implements Backend {
+public class S3Backend implements SharedS3Backend {
 
     /**
      * Logger instance.
@@ -72,6 +75,8 @@ public class S3Backend implements Backend {
     private static final Logger LOG = LoggerFactory.getLogger(S3Backend.class);
 
     private static final String KEY_PREFIX = "dataStore_";
+
+    private static final String META_KEY_PREFIX = "META/";
 
     private AmazonS3Client s3service;
 
@@ -400,7 +405,7 @@ public class S3Backend implements Backend {
             while (true) {
                 for (S3ObjectSummary s3ObjSumm : prevObjectListing.getObjectSummaries()) {
                     String id = getIdentifierName(s3ObjSumm.getKey());
-                    if (id != null) {
+                    if (id != null && !id.startsWith(META_KEY_PREFIX)) {
                         ids.add(new DataIdentifier(id));
                     }
                 }
@@ -511,23 +516,21 @@ public class S3Backend implements Backend {
             while (true) {
                 List<DeleteObjectsRequest.KeyVersion> deleteList = new ArrayList<DeleteObjectsRequest.KeyVersion>();
                 for (S3ObjectSummary s3ObjSumm : prevObjectListing.getObjectSummaries()) {
-                    DataIdentifier identifier = new DataIdentifier(
-                        getIdentifierName(s3ObjSumm.getKey()));
-                    long lastModified = s3ObjSumm.getLastModified().getTime();
-                    LOG.debug("Identifier [{}]'s lastModified = [{}]", identifier, lastModified);
-                    if (lastModified < min
-                        && store.confirmDelete(identifier)
-                         // confirm once more that record's lastModified < min
-                        //  order is important here
-                        && s3service.getObjectMetadata(bucket,
-                            s3ObjSumm.getKey()).getLastModified().getTime() < min) {
+                    if (!s3ObjSumm.getKey().startsWith(META_KEY_PREFIX)) {
+                        DataIdentifier identifier = new DataIdentifier(getIdentifierName(s3ObjSumm.getKey()));
+                        long lastModified = s3ObjSumm.getLastModified().getTime();
+                        LOG.debug("Identifier [{}]'s lastModified = [{}]", identifier, lastModified);
+                        if (lastModified < min && store.confirmDelete(identifier)
+                            // confirm once more that record's lastModified < min
+                            //  order is important here
+                            && s3service.getObjectMetadata(bucket, s3ObjSumm.getKey()).getLastModified().getTime() <
+                            min) {
 
 
-                        LOG.debug("add id [{}] to delete lists",
-                            s3ObjSumm.getKey());
-                        deleteList.add(new DeleteObjectsRequest.KeyVersion(
-                            s3ObjSumm.getKey()));
-                        deleteIdSet.add(identifier);
+                            LOG.debug("add id [{}] to delete lists", s3ObjSumm.getKey());
+                            deleteList.add(new DeleteObjectsRequest.KeyVersion(s3ObjSumm.getKey()));
+                            deleteIdSet.add(identifier);
+                        }
                     }
                 }
                 if (deleteList.size() > 0) {
@@ -590,6 +593,155 @@ public class S3Backend implements Backend {
      */
     public void setProperties(Properties properties) {
         this.properties = properties;
+    }
+
+    public void addMetadataRecord(final InputStream input, final String name) throws DataStoreException {
+        ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+
+        try {
+            Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
+
+            Upload upload = tmx.upload(s3ReqDecorator
+                .decorate(new PutObjectRequest(bucket, addMetaKeyPrefix(name), input, new ObjectMetadata())));
+            upload.waitForUploadResult();
+        } catch (InterruptedException e) {
+            LOG.error("Error in uploading", e);
+            throw new DataStoreException("Error in uploading", e);
+        } finally {
+            if (contextClassLoader != null) {
+                Thread.currentThread().setContextClassLoader(contextClassLoader);
+            }
+        }
+    }
+
+    public DataRecord getMetadataRecord(String name) {
+        ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+        try {
+            Thread.currentThread().setContextClassLoader(
+                getClass().getClassLoader());
+            ObjectMetadata meta = s3service.getObjectMetadata(bucket, addMetaKeyPrefix(name));
+            return new S3DataRecord(s3service, bucket, name,
+                meta.getLastModified().getTime(), meta.getContentLength());
+        } finally {
+            if (contextClassLoader != null) {
+                Thread.currentThread().setContextClassLoader(contextClassLoader);
+            }
+        }
+    }
+
+    public List<DataRecord> getAllMetadataRecords(String prefix) {
+        List<DataRecord> metadataList = new ArrayList<DataRecord>();
+        ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+        try {
+            Thread.currentThread().setContextClassLoader(
+                getClass().getClassLoader());
+            ListObjectsRequest listObjectsRequest =
+                new ListObjectsRequest().withBucketName(bucket).withPrefix(addMetaKeyPrefix(prefix));
+            ObjectListing prevObjectListing = s3service.listObjects(listObjectsRequest);
+            for (final S3ObjectSummary s3ObjSumm : prevObjectListing.getObjectSummaries()) {
+                metadataList.add(new S3DataRecord(s3service, bucket, stripMetaKeyPrefix(s3ObjSumm.getKey()),
+                    s3ObjSumm.getLastModified().getTime(), s3ObjSumm.getSize()));
+            }
+        } finally {
+            if (contextClassLoader != null) {
+                Thread.currentThread().setContextClassLoader(contextClassLoader);
+            }
+        }
+        return metadataList;
+    }
+
+    public boolean deleteMetadataRecord(String name) {
+        ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+        try {
+            Thread.currentThread().setContextClassLoader(
+                getClass().getClassLoader());
+            s3service.deleteObject(bucket, addMetaKeyPrefix(name));
+        } finally {
+            if (contextClassLoader != null) {
+                Thread.currentThread().setContextClassLoader(contextClassLoader);
+            }
+        }
+        return true;
+    }
+
+    public void deleteAllMetadataRecords(String prefix) {
+        ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+        try {
+            Thread.currentThread().setContextClassLoader(
+                getClass().getClassLoader());
+
+            ListObjectsRequest listObjectsRequest =
+                new ListObjectsRequest().withBucketName(bucket).withPrefix(addMetaKeyPrefix(prefix));
+            ObjectListing metaList = s3service.listObjects(listObjectsRequest);
+            List<DeleteObjectsRequest.KeyVersion> deleteList = new ArrayList<DeleteObjectsRequest.KeyVersion>();
+            for (S3ObjectSummary s3ObjSumm : metaList.getObjectSummaries()) {
+                deleteList.add(new DeleteObjectsRequest.KeyVersion(s3ObjSumm.getKey()));
+            }
+            if (deleteList.size() > 0) {
+                DeleteObjectsRequest delObjsReq = new DeleteObjectsRequest(bucket);
+                delObjsReq.setKeys(deleteList);
+                DeleteObjectsResult dobjs = s3service.deleteObjects(delObjsReq);
+            }
+        } finally {
+            if (contextClassLoader != null) {
+                Thread.currentThread().setContextClassLoader(contextClassLoader);
+            }
+        }
+    }
+
+    private static String addMetaKeyPrefix(String key) {
+        return META_KEY_PREFIX + key;
+    }
+
+    private static String stripMetaKeyPrefix(String name) {
+        if (name.startsWith(META_KEY_PREFIX)) {
+            return name.substring(META_KEY_PREFIX.length());
+        }
+        return name;
+    }
+
+    /**
+     * S3DataRecord which lazily retrieves the input stream of the record.
+     */
+    static class S3DataRecord implements DataRecord {
+        private AmazonS3Client s3service;
+        private DataIdentifier identifier;
+        private long length;
+        private long lastModified;
+        private String bucket;
+
+        public S3DataRecord(AmazonS3Client s3service, String bucket, String key, long lastModified, long length) {
+            this.s3service = s3service;
+            this.identifier = new DataIdentifier(key);
+            this.lastModified = lastModified;
+            this.length = length;
+            this.bucket = bucket;
+        }
+
+        @Override
+        public DataIdentifier getIdentifier() {
+            return identifier;
+        }
+
+        @Override
+        public String getReference() {
+            return identifier.toString();
+        }
+
+        @Override
+        public long getLength() throws DataStoreException {
+            return length;
+        }
+
+        @Override
+        public InputStream getStream() throws DataStoreException {
+            return s3service.getObject(bucket, addMetaKeyPrefix(identifier.toString())).getObjectContent();
+        }
+
+        @Override
+        public long getLastModified() {
+            return lastModified;
+        }
     }
 
     private void write(DataIdentifier identifier, File file,
@@ -785,6 +937,8 @@ public class S3Backend implements Backend {
     private static String getIdentifierName(String key) {
         if (!key.contains(Utils.DASH)) {
             return null;
+        } else if (key.contains(META_KEY_PREFIX)) {
+            return key;
         }
         return key.substring(0, 4) + key.substring(5);
     }

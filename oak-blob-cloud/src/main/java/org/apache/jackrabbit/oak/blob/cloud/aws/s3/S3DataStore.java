@@ -25,7 +25,7 @@ import org.apache.jackrabbit.core.data.CachingDataStore;
  * An Amazon S3 data store.
  */
 public class S3DataStore extends CachingDataStore {
-    private Properties properties;
+    protected Properties properties;
 
     @Override
     protected Backend createBackend() {
