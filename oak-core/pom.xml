@@ -209,7 +209,12 @@
       <artifactId>oak-blob</artifactId>
       <version>${project.version}</version>
     </dependency>
-
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-blob-cloud</artifactId>
+      <version>${project.version}</version>
+      <optional>true</optional>
+    </dependency>
     <!-- General utility libraries -->
     <dependency>
       <groupId>com.google.guava</groupId>
