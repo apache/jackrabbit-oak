@@ -29,6 +29,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -82,6 +83,14 @@ public class MemoryDocumentStore implements DocumentStore {
     private WriteConcern writeConcern;
 
     private Object lastReadWriteMode;
+
+    private final Map<String, String> metadata;
+
+    public MemoryDocumentStore() {
+        metadata = ImmutableMap.<String,String>builder()
+                        .put("type", "memory")
+                        .build();
+    }
 
     @Override
     public <T extends Document> T find(Collection<T> collection, String key, int maxCacheAge) {
@@ -347,6 +356,11 @@ public class MemoryDocumentStore implements DocumentStore {
     @Override
     public CacheStats getCacheStats() {
         return null;
+    }
+
+    @Override
+    public Map<String, String> getMetadata() {
+        return metadata;
     }
 
 }

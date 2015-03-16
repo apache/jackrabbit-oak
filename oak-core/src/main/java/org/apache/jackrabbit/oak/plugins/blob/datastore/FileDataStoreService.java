@@ -34,4 +34,9 @@ public class FileDataStoreService extends AbstractDataStoreService{
     protected DataStore createDataStore(ComponentContext context, Map<String, Object> config) {
         return new OakFileDataStore();
     }
+
+    @Override
+    protected String[] getDescription() {
+        return new String[] {"type=filesystem"};
+    }
 }

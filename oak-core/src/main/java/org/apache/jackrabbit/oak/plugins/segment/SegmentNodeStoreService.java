@@ -171,13 +171,13 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
     public void registerNodeStore() throws IOException {
         if (registerSegmentStore()) {
-            Dictionary<String, String> props = new Hashtable<String, String>();
-            props.put(Constants.SERVICE_PID, SegmentNodeStore.class.getName());
-
             boolean standby = toBoolean(lookup(context, STANDBY), false);
             providerRegistration = context.getBundleContext().registerService(
-                    SegmentStoreProvider.class.getName(), this, props);
+                    SegmentStoreProvider.class.getName(), this, null);
             if (!standby) {
+                Dictionary<String, Object> props = new Hashtable<String, Object>();
+                props.put(Constants.SERVICE_PID, SegmentNodeStore.class.getName());
+                props.put("oak.nodestore.description", new String[]{"nodeStoreType=segment"});
                 storeRegistration = context.getBundleContext().registerService(
                         NodeStore.class.getName(), this, props);
             }
