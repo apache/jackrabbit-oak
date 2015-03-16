@@ -42,4 +42,9 @@ public class S3DataStoreService extends AbstractDataStoreService{
         dataStore.setProperties(properties);
         return dataStore;
     }
+
+    @Override
+    protected String[] getDescription() {
+        return new String[] {"type=S3"};
+    }
 }

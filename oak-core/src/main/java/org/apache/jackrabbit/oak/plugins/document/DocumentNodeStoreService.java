@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Dictionary;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -88,6 +89,7 @@ public class DocumentNodeStoreService {
     private static final String DEFAULT_DB = "oak";
     private static final String DEFAULT_PERSISTENT_CACHE = "";
     private static final String PREFIX = "oak.documentstore.";
+    private static final String DESCRIPTION = "oak.nodestore.description";
 
     /**
      * Name of framework property to configure Mongo Connection URI
@@ -333,8 +335,11 @@ public class DocumentNodeStoreService {
 
         observerTracker.start(context.getBundleContext());
 
-        Dictionary<String, String> props = new Hashtable<String, String>();
+        DocumentStore ds = mk.getDocumentStore();
+
+        Dictionary<String, Object> props = new Hashtable<String, Object>();
         props.put(Constants.SERVICE_PID, DocumentNodeStore.class.getName());
+        props.put(DESCRIPTION, getMetadata(ds));
         reg = context.getBundleContext().registerService(NodeStore.class.getName(), store, props);
     }
 
@@ -517,5 +522,16 @@ public class DocumentNodeStoreService {
 
         //Fallback to one from config
         return context.getProperties().get(propName);
+    }
+
+    private static String[] getMetadata(DocumentStore ds) {
+        Map<String, String> meta = new HashMap<String, String>(ds.getMetadata());
+        meta.put("nodeStoreType", "document");
+        String[] result = new String[meta.size()];
+        int i = 0;
+        for (Map.Entry<String, String> e : meta.entrySet()) {
+            result[i++] = e.getKey() + "=" + e.getValue();
+        }
+        return result;
     }
 }

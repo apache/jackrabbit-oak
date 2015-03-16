@@ -981,4 +981,10 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             stmt.setString(idx, id);
         }
     }
+
+    @Test
+    public void description() throws Exception{
+        Map<String, String> desc = ds.getMetadata();
+        assertNotNull(desc.get("type"));
+    }
 }

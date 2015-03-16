@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document.util;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 
 import javax.annotation.Nonnull;
@@ -295,6 +296,11 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
             logException(e);
             throw convert(e);
         }
+    }
+
+    @Override
+    public Map<String, String> getMetadata() {
+        return store.getMetadata();
     }
 
     private void logMethod(String methodName, Object... args) {
