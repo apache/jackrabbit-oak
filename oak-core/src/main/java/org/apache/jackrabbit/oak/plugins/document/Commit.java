@@ -514,9 +514,13 @@ public class Commit {
                 }
             }
             if (conflictMessage != null) {
-                conflictMessage += ", before\n" + revision +
-                        "; document:\n" + (before == null ? "" : before.format()) +
-                        ",\nrevision order:\n" + nodeStore.getRevisionComparator();
+                conflictMessage += ", before\n" + revision;
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug(conflictMessage  + "; document:\n" +
+                            (before == null ? "" : before.format()) +
+                            ",\nrevision order:\n" +
+                            nodeStore.getRevisionComparator());
+                }
                 throw new DocumentStoreException(conflictMessage);
             }
         }
