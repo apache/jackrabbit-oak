@@ -109,7 +109,7 @@ public final class PerfLogger {
      */
     public final void end(long start, long logAtDebugIfSlowerThanMs,
             String logMessagePrefix, Object arg1) {
-        if (!delegate.isTraceEnabled()) {
+        if (!delegate.isDebugEnabled()) {
             return;
         }
         end(start, logAtDebugIfSlowerThanMs, logMessagePrefix,
@@ -135,7 +135,7 @@ public final class PerfLogger {
      */
     public final void end(long start, long logAtDebugIfSlowerThanMs,
             String logMessagePrefix, Object arg1, Object arg2) {
-        if (!delegate.isTraceEnabled()) {
+        if (!delegate.isDebugEnabled()) {
             return;
         }
         end(start, logAtDebugIfSlowerThanMs, logMessagePrefix, new Object[] {
