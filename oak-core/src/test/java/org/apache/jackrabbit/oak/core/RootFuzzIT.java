@@ -60,7 +60,6 @@ public class RootFuzzIT {
     @Parameters
     public static Collection<Object[]> fixtures() {
         Object[][] fixtures = new Object[][] {
-                {NodeStoreFixture.MONGO_MK},
                 {NodeStoreFixture.MONGO_NS},
                 {NodeStoreFixture.SEGMENT_MK},
         };

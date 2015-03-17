@@ -64,7 +64,7 @@
    <!-- specifies on which fixture to run the integration testing tests. 
       override in profiles or provide from command line to change behaviour. Provide 
       more fixtures space separated. See org.apache.jackrabbit.oak.jcr.FixturesHelper#AVAILABLE_FIXTURES 
-      for the possible values: SEGMENT_MK DOCUMENT_MK DOCUMENT_NS DOCUMENT_RDB -->
+      for the possible values: SEGMENT_MK DOCUMENT_NS DOCUMENT_RDB -->
     <fixtures>SEGMENT_MK</fixtures>
 
    <!-- whether skip the surefire unit testing during the integration testing. 

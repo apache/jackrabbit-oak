@@ -74,9 +74,6 @@ public abstract class AbstractRepositoryTest {
     @Parameterized.Parameters
     public static Collection<Object[]> fixtures() {
         Collection<Object[]> result = new ArrayList<Object[]>();
-        if (FIXTURES.contains(Fixture.DOCUMENT_MK)) {
-            result.add(new Object[] { NodeStoreFixture.DOCUMENT_MK });
-        }
         if (FIXTURES.contains(Fixture.DOCUMENT_NS)) {
             result.add(new Object[] { NodeStoreFixture.DOCUMENT_NS });
         }
