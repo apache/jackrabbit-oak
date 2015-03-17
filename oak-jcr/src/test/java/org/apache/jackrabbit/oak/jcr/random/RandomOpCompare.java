@@ -143,6 +143,7 @@ public class RandomOpCompare {
                 return new DocumentMK.Builder().
                             memoryCacheSize(0).
                             setMongoDB(mongoDB, 1, 16).
+                            setPersistentCache("target/persistentCache,time").
                             getNodeStore();
             }
     
