@@ -83,7 +83,10 @@ public abstract class NodeStoreFixture {
         public NodeStore createNodeStore() {
             String id = UUID.randomUUID().toString();
             this.ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:file:./" + fname + id, "sa", "");
-            return new DocumentMK.Builder().setRDBConnection(this.ds).getNodeStore();
+            return new DocumentMK.Builder().
+                    setRDBConnection(this.ds).
+                    setPersistentCache("target/persistentCache,time").                        
+                    getNodeStore();
         }
 
         @Override
