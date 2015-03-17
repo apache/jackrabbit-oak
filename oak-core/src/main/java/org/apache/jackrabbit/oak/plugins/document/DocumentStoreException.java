@@ -38,7 +38,7 @@ public class DocumentStoreException extends RuntimeException {
     }
 
     public static DocumentStoreException convert(Throwable t) {
-        return convert(t, null);
+        return convert(t, t.getMessage());
     }
 
     public static DocumentStoreException convert(Throwable t, String msg) {
