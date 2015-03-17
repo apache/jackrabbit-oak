@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuite failures="0" time="0" errors="0" skipped="0" tests="1" name="org.apache.jackrabbit.oak.Dummy">
+  <testcase time="0" classname="org.apache.jackrabbit.oak.Dummy" name="dummyTestReportToPreventJenkinsToFailWhenThereAreNoOtherTests"/>
+</testsuite>
