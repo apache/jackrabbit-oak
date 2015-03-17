@@ -55,9 +55,10 @@ public abstract class NodeStoreFixture {
             MongoConnection connection;
             try {
                 connection = new MongoConnection("mongodb://localhost:27017/oak");
-                return new DocumentMK.Builder()
-                        .setMongoDB(connection.getDB())
-                        .getNodeStore();
+                return new DocumentMK.Builder().
+                        setMongoDB(connection.getDB()).
+                        setPersistentCache("target/persistentCache,time").
+                        getNodeStore();
             } catch (Exception e) {
                 return null;
             }
@@ -89,7 +90,10 @@ public abstract class NodeStoreFixture {
         public NodeStore createNodeStore(int clusterNodeId) {
             try {
                 this.ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:file:./" + fname + "oaknodes-" + clusterNodeId, "sa", "");
-                return new DocumentMK.Builder().setRDBConnection(this.ds).getNodeStore();
+                return new DocumentMK.Builder().
+                        setRDBConnection(this.ds).
+                        setPersistentCache("target/persistentCache,time").                        
+                        getNodeStore();
             } catch (Exception e) {
                 return null;
             }
@@ -190,6 +194,7 @@ public abstract class NodeStoreFixture {
                 if(blobStore != null){
                     builder.setBlobStore(blobStore);
                 }
+                builder.setPersistentCache("target/persistentCache,time");
                 builder.setMongoDB(mongoDB);
                 return builder.getNodeStore();
             } catch (Exception e) {

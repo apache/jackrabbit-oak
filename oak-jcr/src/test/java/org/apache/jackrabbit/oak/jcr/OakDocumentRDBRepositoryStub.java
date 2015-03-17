@@ -72,11 +72,12 @@ public class OakDocumentRDBRepositoryStub extends OakRepositoryStub {
     }
 
     protected Repository createRepository(String url, String username, String password) {
-        DocumentNodeStore m = new DocumentMK.Builder()
-                .setClusterId(1)
-                .memoryCacheSize(64 * 1024 * 1024)
-                .setRDBConnection(RDBDataSourceFactory.forJdbcUrl(url, username, password))
-                .getNodeStore();
+        DocumentNodeStore m = new DocumentMK.Builder().
+                setClusterId(1).
+                memoryCacheSize(64 * 1024 * 1024).
+                setPersistentCache("target/persistentCache,time").
+                setRDBConnection(RDBDataSourceFactory.forJdbcUrl(url, username, password)).
+                getNodeStore();
         QueryEngineSettings qs = new QueryEngineSettings();
         qs.setFullTextComparisonWithoutIndex(true);
         return new Jcr(m).with(qs).createRepository();

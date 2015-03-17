@@ -107,9 +107,11 @@ public class OrderedIndexConcurrentClusterIT {
 
     private static void initRepository() throws Exception {
         MongoConnection con = createConnection();
-        DocumentMK mk = new DocumentMK.Builder()
-                .setMongoDB(con.getDB())
-                .setClusterId(1).open();
+        DocumentMK mk = new DocumentMK.Builder().
+                setMongoDB(con.getDB()).
+                setClusterId(1).
+                setPersistentCache("target/persistentCache,time").
+                open();
         Repository repository = new Jcr(mk.getNodeStore()).createRepository();
         Session session = repository.login(ADMIN);
         ensureIndex(session);
@@ -238,10 +240,12 @@ public class OrderedIndexConcurrentClusterIT {
 
         // creating instances
         for (int i = 1; i <= clusters; i++) {
-            DocumentMK mk = new DocumentMK.Builder()
-                    .memoryCacheSize(CACHE_SIZE)
-                    .setMongoDB(createConnection().getDB())
-                    .setClusterId(i).open();
+            DocumentMK mk = new DocumentMK.Builder().
+                    memoryCacheSize(CACHE_SIZE).
+                    setPersistentCache("target/persistentCache,time").
+                    setMongoDB(createConnection().getDB()).
+                    setClusterId(i).
+                    open();
             mks.add(mk);
         }
 
