@@ -165,6 +165,7 @@ public abstract class OakFixture {
                 DocumentMK.Builder mkBuilder = new DocumentMK.Builder().
                         setMongoDB(mongo.getDB()).
                         memoryCacheSize(cacheSize).
+                        setPersistentCache("target/persistentCache,time").
                         setLogging(false);
                 setupBlobStore(mkBuilder);
                 return mkBuilder.open();
@@ -176,7 +177,9 @@ public abstract class OakFixture {
                 DocumentMK.Builder mkBuilder = new DocumentMK.Builder().
                         setMongoDB(mongo.getDB()).
                         memoryCacheSize(cacheSize).
-                        setClusterId(clusterId).setLogging(false);
+                        setPersistentCache("target/persistentCache,time").
+                        setClusterId(clusterId).
+                        setLogging(false);
                 setupBlobStore(mkBuilder);
                 DocumentMK dmk = mkBuilder.open();
                 return new Oak(dmk.getNodeStore());
@@ -191,7 +194,9 @@ public abstract class OakFixture {
                     DocumentMK.Builder mkBuilder = new DocumentMK.Builder().
                             setMongoDB(mongo.getDB()).
                             memoryCacheSize(cacheSize).
-                            setClusterId(i).setLogging(false);
+                            setPersistentCache("target/persistentCache,time").
+                            setClusterId(i).
+                            setLogging(false);
                     setupBlobStore(mkBuilder);
                     kernels[i] = mkBuilder.open();
                     cluster[i] = new Oak(kernels[i].getNodeStore());
@@ -251,9 +256,11 @@ public abstract class OakFixture {
             @Override
             public MicroKernel getMicroKernel() {
                 DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcuri, jdbcuser, jdbcpasswd);
-                DocumentMK.Builder mkBuilder = new DocumentMK.Builder()
-                        .setRDBConnection(ds, getOptions(dropDBAfterTest, tablePrefix)).memoryCacheSize(cacheSize)
-                        .setLogging(false);
+                DocumentMK.Builder mkBuilder = new DocumentMK.Builder().
+                        setRDBConnection(ds, getOptions(dropDBAfterTest, tablePrefix)).
+                        memoryCacheSize(cacheSize).
+                        setPersistentCache("target/persistentCache,time").
+                        setLogging(false);
                 BlobStore blobStore = getBlobStore();
                 if (blobStore != null) {
                     mkBuilder.setBlobStore(blobStore);
