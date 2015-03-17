@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 import java.util.List;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
@@ -58,7 +59,7 @@ public class SharedDataStoreUtils {
                 new Function<DataRecord, Long>() {
                     @Override
                     @Nullable
-                    public Long apply(@Nullable DataRecord input) {
+                    public Long apply(@Nonnull DataRecord input) {
                         return input.getLastModified();
                     }
                 }).min(recs);
@@ -77,7 +78,7 @@ public class SharedDataStoreUtils {
                 new Function<DataRecord, String>() {
                     @Override
                     @Nullable
-                    public String apply(@Nullable DataRecord input) {
+                    public String apply(@Nonnull DataRecord input) {
                         return SharedStoreRecordType.REPOSITORY.getIdFromName(input.getIdentifier().toString());
                     }
                 }).keySet(),
@@ -85,7 +86,7 @@ public class SharedDataStoreUtils {
                         new Function<DataRecord, String>() {
                             @Override
                             @Nullable
-                            public String apply(@Nullable DataRecord input) {
+                            public String apply(@Nonnull DataRecord input) {
                                 return SharedStoreRecordType.REFERENCES.getIdFromName(input.getIdentifier().toString());
                             }
                         }).keySet());
