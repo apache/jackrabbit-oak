@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak;
 
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_MK;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_NS;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.MEMORY_NS;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_MK;
@@ -48,9 +47,6 @@ public abstract class OakBaseTest {
     @Parameterized.Parameters
     public static Collection<Object[]> fixtures() {
         Collection<Object[]> result = new ArrayList<Object[]>();
-        if (FIXTURES.contains(DOCUMENT_MK)) {
-            result.add(new Object[] { NodeStoreFixture.MONGO_MK });
-        }
         if (FIXTURES.contains(DOCUMENT_NS)) {
             result.add(new Object[] { NodeStoreFixture.MONGO_NS });
         }

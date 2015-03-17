@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr.cluster;
 
+import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
+import static org.junit.Assert.assertEquals;
+
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -31,16 +34,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
-import static org.junit.Assert.assertEquals;
-
 /**
  * A simple, temporary benchmark for many child nodes.
  */
 public class ManyChildrenTest {
 
     NodeStoreFixture fixture = NodeStoreFixture.DOCUMENT_NS;
-//    NodeStoreFixture fixture = NodeStoreFixture.DOCUMENT_MK;
 //    NodeStoreFixture fixture = NodeStoreFixture.SEGMENT_MK;
     
     Repository repository;
