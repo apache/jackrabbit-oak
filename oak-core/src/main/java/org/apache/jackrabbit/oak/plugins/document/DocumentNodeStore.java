@@ -460,42 +460,51 @@ public final class DocumentNodeStore
     }
 
     public void dispose() {
-        runBackgroundOperations();
-        if (!isDisposed.getAndSet(true)) {
-            synchronized (isDisposed) {
-                isDisposed.notifyAll();
-            }
+        if (isDisposed.getAndSet(true)) {
+            // only dispose once
+            return;
+        }
+        // notify background threads waiting on isDisposed
+        synchronized (isDisposed) {
+            isDisposed.notifyAll();
+        }
+        try {
+            backgroundThread.join();
+        } catch (InterruptedException e) {
+            // ignore
+        }
+
+        // do a final round of background operations after
+        // the background thread stopped
+        internalRunBackgroundOperations();
+
+        if (leaseUpdateThread != null) {
             try {
-                backgroundThread.join();
+                leaseUpdateThread.join();
             } catch (InterruptedException e) {
                 // ignore
             }
-            if (leaseUpdateThread != null) {
-                try {
-                    leaseUpdateThread.join();
-                } catch (InterruptedException e) {
-                    // ignore
-                }
-            }
-            if (clusterNodeInfo != null) {
-                clusterNodeInfo.dispose();
-            }
-            store.dispose();
-            unsavedLastRevisions.close();
+        }
 
-            LOG.info("Disposed DocumentNodeStore with clusterNodeId: {}", clusterId);
+        // now mark this cluster node as inactive by
+        // disposing the clusterNodeInfo
+        if (clusterNodeInfo != null) {
+            clusterNodeInfo.dispose();
+        }
+        store.dispose();
+        unsavedLastRevisions.close();
 
-            if (blobStore instanceof Closeable) {
-                try {
-                    ((Closeable) blobStore).close();
-                } catch (IOException ex) {
-                    LOG.debug("Error closing blob store " + blobStore, ex);
-                }
+        if (blobStore instanceof Closeable) {
+            try {
+                ((Closeable) blobStore).close();
+            } catch (IOException ex) {
+                LOG.debug("Error closing blob store " + blobStore, ex);
             }
         }
         if (persistentCache != null) {
             persistentCache.close();
         }
+        LOG.info("Disposed DocumentNodeStore with clusterNodeId: {}", clusterId);
     }
 
     Revision setHeadRevision(@Nonnull Revision newHead) {
@@ -547,6 +556,7 @@ public final class DocumentNodeStore
             base = headRevision;
         }
         backgroundOperationLock.readLock().lock();
+        checkOpen();
         boolean success = false;
         Commit c;
         try {
@@ -576,6 +586,7 @@ public final class DocumentNodeStore
             base = headRevision;
         }
         backgroundOperationLock.readLock().lock();
+        checkOpen();
         boolean success = false;
         MergeCommit c;
         try {
@@ -1469,48 +1480,49 @@ public final class DocumentNodeStore
 
     //----------------------< background operations >---------------------------
 
-    public synchronized void runBackgroundOperations() {
+    public void runBackgroundOperations() {
         if (isDisposed.get()) {
-            return;
-        }
-        if (simpleRevisionCounter != null) {
-            // only when using timestamp
             return;
         }
         if (!ENABLE_BACKGROUND_OPS) {
             return;
         }
         try {
-            long start = clock.getTime();
-            long time = start;
-            // clean orphaned branches and collisions
-            cleanOrphanedBranches();
-            cleanCollisions();
-            long cleanTime = clock.getTime() - time;
-            time = clock.getTime();
-            // split documents (does not create new revisions)
-            backgroundSplit();
-            long splitTime = clock.getTime() - time;
-            time = clock.getTime();
-            // write back pending updates to _lastRev
-            backgroundWrite();
-            long writeTime = clock.getTime() - time;
-            time = clock.getTime();
-            // pull in changes from other cluster nodes
-            BackgroundReadStats readStats = backgroundRead(true);
-            long readTime = clock.getTime() - time;
-            String msg = "Background operations stats (clean:{}, split:{}, write:{}, read:{} {})";
-            if (clock.getTime() - start > TimeUnit.SECONDS.toMillis(10)) {
-                // log as info if it took more than 10 seconds
-                LOG.info(msg, cleanTime, splitTime, writeTime, readTime, readStats);
-            } else {
-                LOG.debug(msg, cleanTime, splitTime, writeTime, readTime, readStats);
-            }
+            internalRunBackgroundOperations();
         } catch (RuntimeException e) {
             if (isDisposed.get()) {
+                LOG.warn("Background operation failed: " + e.toString(), e);
                 return;
             }
             throw e;
+        }
+    }
+
+    private synchronized void internalRunBackgroundOperations() {
+        long start = clock.getTime();
+        long time = start;
+        // clean orphaned branches and collisions
+        cleanOrphanedBranches();
+        cleanCollisions();
+        long cleanTime = clock.getTime() - time;
+        time = clock.getTime();
+        // split documents (does not create new revisions)
+        backgroundSplit();
+        long splitTime = clock.getTime() - time;
+        time = clock.getTime();
+        // write back pending updates to _lastRev
+        backgroundWrite();
+        long writeTime = clock.getTime() - time;
+        time = clock.getTime();
+        // pull in changes from other cluster nodes
+        BackgroundReadStats readStats = backgroundRead(true);
+        long readTime = clock.getTime() - time;
+        String msg = "Background operations stats (clean:{}, split:{}, write:{}, read:{} {})";
+        if (clock.getTime() - start > TimeUnit.SECONDS.toMillis(10)) {
+            // log as info if it took more than 10 seconds
+            LOG.info(msg, cleanTime, splitTime, writeTime, readTime, readStats);
+        } else {
+            LOG.debug(msg, cleanTime, splitTime, writeTime, readTime, readStats);
         }
     }
 
@@ -1738,6 +1750,19 @@ public final class DocumentNodeStore
     }
 
     //-----------------------------< internal >---------------------------------
+
+    /**
+     * Checks if this store is still open and throws an
+     * {@link IllegalStateException} if it is already disposed (or a dispose
+     * is in progress).
+     *
+     * @throws IllegalStateException if this store is disposed.
+     */
+    private void checkOpen() throws IllegalStateException {
+        if (isDisposed.get()) {
+            throw new IllegalStateException("This DocumentNodeStore is disposed");
+        }
+    }
 
     /**
      * Search for presence of child node as denoted by path in the children cache of parent
