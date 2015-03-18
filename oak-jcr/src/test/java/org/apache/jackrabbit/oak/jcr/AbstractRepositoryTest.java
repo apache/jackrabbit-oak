@@ -50,9 +50,9 @@ import org.junit.runners.Parameterized;
 public abstract class AbstractRepositoryTest {
 
     protected NodeStoreFixture fixture;
-    private NodeStore nodeStore;
-    private Repository repository;
-    private Session adminSession;
+    private volatile NodeStore nodeStore;
+    private volatile Repository repository;
+    private volatile Session adminSession;
 
     /**
      * The system property "ns-fixtures" can be used to provide a
