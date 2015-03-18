@@ -56,9 +56,9 @@ public abstract class AbstractRepositoryTest {
 
     protected final NodeStoreFixture fixture;
 
-    private NodeStore nodeStore;
-    private Repository repository;
-    private Session adminSession;
+    private volatile NodeStore nodeStore;
+    private volatile Repository repository;
+    private volatile Session adminSession;
 
     /**
      * The system property "nsfixtures" can be used to provide a
