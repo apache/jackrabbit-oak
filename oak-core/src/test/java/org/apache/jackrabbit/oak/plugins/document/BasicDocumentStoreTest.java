@@ -37,8 +37,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
-import org.junit.Assume;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,8 +78,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     private int testMaxId(boolean ascii) {
-        // TODO see OAK-1589
-        Assume.assumeTrue(!(super.ds instanceof MongoDocumentStore));
         int min = 0;
         int max = 32768;
         int test = 0;
