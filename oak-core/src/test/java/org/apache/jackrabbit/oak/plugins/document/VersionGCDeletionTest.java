@@ -22,20 +22,31 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Future;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
+import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static java.util.concurrent.TimeUnit.HOURS;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
@@ -140,7 +151,7 @@ public class VersionGCDeletionTest {
         VersionGarbageCollector gc = store.getVersionGarbageCollector();
         gc.setOverflowToDiskThreshold(100);
 
-        VersionGarbageCollector.VersionGCStats stats = gc.gc(maxAge * 2, HOURS);
+        VersionGCStats stats = gc.gc(maxAge * 2, HOURS);
         assertEquals(noOfDocsToDelete * 2 + 1, stats.deletedDocGCCount);
 
 
@@ -150,6 +161,88 @@ public class VersionGCDeletionTest {
             assertNull(ts.find(Collection.NODES, "2:/a"+i+"/b"+i));
             assertNull(ts.find(Collection.NODES, "1:/a"+i));
         }
+    }
+
+    // OAK-2420
+    @Ignore
+    @Test
+    public void queryWhileDocsAreRemoved() throws Exception {
+        //Baseline the clock
+        clock.waitUntil(Revision.getCurrentTimestamp());
+
+        final Thread currentThread = Thread.currentThread();
+        final Semaphore queries = new Semaphore(0);
+        final CountDownLatch ready = new CountDownLatch(1);
+        MemoryDocumentStore ms = new MemoryDocumentStore() {
+            @Override
+            public <T extends Document> T find(Collection<T> collection,
+                                               String key) {
+                if (Thread.currentThread() != currentThread) {
+                    ready.countDown();
+                    queries.acquireUninterruptibly();
+                }
+                return super.find(collection, key);
+            }
+        };
+        store = new DocumentMK.Builder().clock(clock)
+                .setDocumentStore(ms).setAsyncDelay(0).getNodeStore();
+
+        // create nodes
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder node = builder.child("node");
+        for (int i = 0; i < 100; i++) {
+            node.child("c-" + i);
+        }
+        merge(store, builder);
+
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(1));
+
+        // remove nodes
+        builder = store.getRoot().builder();
+        node = builder.child("node");
+        for (int i = 0; i < 90; i++) {
+            node.getChildNode("c-" + i).remove();
+        }
+        merge(store, builder);
+
+        store.runBackgroundOperations();
+
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(1));
+
+        // fill caches
+        NodeState n = store.getRoot().getChildNode("node");
+        for (ChildNodeEntry entry : n.getChildNodeEntries()) {
+            entry.getName();
+        }
+
+        // invalidate the nodeChildren cache only
+        store.invalidateNodeChildrenCache();
+
+        Future f = newSingleThreadExecutor().submit(new Callable<Object>() {
+            @Override
+            public Object call() throws Exception {
+                NodeState n = store.getRoot().getChildNode("node");
+                for (ChildNodeEntry entry : n.getChildNodeEntries()) {
+                    entry.getName();
+                }
+                return null;
+            }
+        });
+
+        // run GC once the reader thread is collecting documents
+        ready.await();
+        VersionGarbageCollector gc = store.getVersionGarbageCollector();
+        VersionGCStats stats = gc.gc(30, MINUTES);
+        assertEquals(90, stats.deletedDocGCCount);
+
+        queries.release(100);
+
+        f.get();
+    }
+
+    private void merge(DocumentNodeStore store, NodeBuilder builder)
+            throws CommitFailedException {
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
     private static class TestDocumentStore extends MemoryDocumentStore {
