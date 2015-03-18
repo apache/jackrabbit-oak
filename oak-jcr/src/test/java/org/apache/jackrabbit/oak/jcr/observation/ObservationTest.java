@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.jcr.observation;
 import static com.google.common.base.Objects.equal;
 import static java.util.Collections.synchronizedList;
 import static java.util.Collections.synchronizedSet;
+import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static javax.jcr.observation.Event.NODE_ADDED;
 import static javax.jcr.observation.Event.NODE_MOVED;
 import static javax.jcr.observation.Event.NODE_REMOVED;
@@ -45,6 +46,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -499,14 +501,16 @@ public class ObservationTest extends AbstractRepositoryTest {
 
         observationManager.addEventListener(listener, ALL_EVENTS, "/", true, null, null, false);
 
+        final Session s = getAdminSession();
         // Generate events
-        Executors.newSingleThreadScheduledExecutor().scheduleWithFixedDelay(new Runnable() {
+        ScheduledExecutorService service = newSingleThreadScheduledExecutor();
+        service.scheduleWithFixedDelay(new Runnable() {
             private int c;
 
             @Override
             public void run() {
                 try {
-                    getNode(TEST_PATH)
+                    s.getNode(TEST_PATH)
                             .addNode("c" + c++)
                             .getSession()
                             .save();
@@ -532,6 +536,9 @@ public class ObservationTest extends AbstractRepositoryTest {
 
         // Make sure we see no more events
         assertFalse(noEvents.wait(4, TimeUnit.SECONDS));
+
+        service.shutdown();
+        service.awaitTermination(10, TimeUnit.SECONDS);
     }
 
     @Test
