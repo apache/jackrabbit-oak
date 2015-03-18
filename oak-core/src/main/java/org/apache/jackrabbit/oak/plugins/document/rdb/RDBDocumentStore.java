@@ -364,6 +364,15 @@ public class RDBDocumentStore implements DocumentStore {
 
     enum FETCHFIRSTSYNTAX { FETCHFIRST, LIMIT, TOP};
 
+
+    private static void versionCheck(DatabaseMetaData md, int xmaj, int xmin, String description) throws SQLException {
+        int maj = md.getDatabaseMajorVersion();
+        int min = md.getDatabaseMinorVersion();
+        if (maj < xmaj || (maj == xmaj && min < xmin)) {
+            LOG.info("Unsupported " + description + " version: " + maj + "." + min + ", expected at least " + xmaj + "." + xmin);
+        }
+    }
+
     /**
      * Defines variation in the capabilities of different RDBs.
      */
@@ -371,18 +380,38 @@ public class RDBDocumentStore implements DocumentStore {
         DEFAULT("default") {
         },
 
-        H2("H2"),
+        H2("H2") {
+            @Override
+            public void checkVersion(DatabaseMetaData md) throws SQLException {
+                versionCheck(md, 1, 4, description);
+            }
+        },
 
         POSTGRES("PostgreSQL") {
+            @Override
+            public void checkVersion(DatabaseMetaData md) throws SQLException {
+                versionCheck(md, 9, 3, description);
+            }
+
             @Override
             public String getTableCreationStatement(String tableName) {
                 return ("create table " + tableName + " (ID varchar(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA bytea)");
             }
         },
 
-        DB2("DB2"),
+        DB2("DB2") {
+            @Override
+            public void checkVersion(DatabaseMetaData md) throws SQLException {
+                versionCheck(md, 10, 5, description);
+            }
+        },
 
         ORACLE("Oracle") {
+            @Override
+            public void checkVersion(DatabaseMetaData md) throws SQLException {
+                versionCheck(md, 12, 1, description);
+            }
+
             @Override
             public String getInitializationStatement() {
                 // see https://issues.apache.org/jira/browse/OAK-1914
@@ -398,6 +427,11 @@ public class RDBDocumentStore implements DocumentStore {
         },
 
         MYSQL("MySQL") {
+            @Override
+            public void checkVersion(DatabaseMetaData md) throws SQLException {
+                versionCheck(md, 5, 5, description);
+            }
+
             @Override
             public boolean isPrimaryColumnByteEncoded() {
                 // TODO: we should dynamically detect this
@@ -422,6 +456,11 @@ public class RDBDocumentStore implements DocumentStore {
         },
 
         MSSQL("Microsoft SQL Server") {
+            @Override
+            public void checkVersion(DatabaseMetaData md) throws SQLException {
+                versionCheck(md, 11, 0, description);
+            }
+
             @Override
             public boolean isPrimaryColumnByteEncoded() {
                 // TODO: we should dynamically detect this
@@ -455,6 +494,13 @@ public class RDBDocumentStore implements DocumentStore {
                 return "(select MAX(mod) from (VALUES (" + column + "), (?)) AS ALLMOD(mod))";
             }
         };
+
+        /**
+         * Check the database brand and version
+         */
+        public void checkVersion(DatabaseMetaData md) throws SQLException {
+            LOG.info("Unknown database type: " + md.getDatabaseProductName());
+        }
 
         /**
          * If the primary column is encoded in bytes.
@@ -527,7 +573,7 @@ public class RDBDocumentStore implements DocumentStore {
                     + 1024 * 1024 * 1024 + "))";
         }
 
-        private String description;
+        protected String description;
 
         private DB(String description) {
             this.description = description;
@@ -623,6 +669,7 @@ public class RDBDocumentStore implements DocumentStore {
         DatabaseMetaData md = con.getMetaData();
         String dbDesc = md.getDatabaseProductName() + " " + md.getDatabaseProductVersion();
         String driverDesc = md.getDriverName() + " " + md.getDriverVersion();
+        String dbUrl = md.getURL();
 
         this.db = DB.getValue(md.getDatabaseProductName());
         this.metadata = ImmutableMap.<String,String>builder()
@@ -630,6 +677,7 @@ public class RDBDocumentStore implements DocumentStore {
                 .put("db", md.getDatabaseProductName())
                 .put("version", md.getDatabaseProductVersion())
                 .build();
+        db.checkVersion(md);
 
         if (! "".equals(db.getInitializationStatement())) {
             Statement stmt = con.createStatement();
@@ -647,10 +695,14 @@ public class RDBDocumentStore implements DocumentStore {
             con.close();
         }
 
-        LOG.info("RDBDocumentStore instantiated for database " + dbDesc + ", using driver: " + driverDesc);
+        LOG.info("RDBDocumentStore instantiated for database " + dbDesc + ", using driver: " + driverDesc + ", connecting to: " + dbUrl);
     }
 
     private void createTableFor(Connection con, Collection<? extends Document> col, boolean dropTablesOnClose) throws SQLException {
+        String dbname = this.db.toString();
+        if (con.getMetaData().getURL() != null) {
+            dbname += " (" + con.getMetaData().getURL() + ")";
+        }
         String tableName = getTable(col);
         try {
             PreparedStatement stmt = con.prepareStatement("select DATA from " + tableName + " where ID = ?");
@@ -662,28 +714,36 @@ public class RDBDocumentStore implements DocumentStore {
                 ResultSetMetaData met = rs.getMetaData();
                 this.dataLimitInOctets = met.getPrecision(1);
             }
+
+            LOG.info("Table " + tableName + " already present in " + dbname);
         } catch (SQLException ex) {
             // table does not appear to exist
             con.rollback();
 
-            LOG.info("Attempting to create table " + tableName + " in " + this.db);
+            try {
+                Statement stmt = con.createStatement();
+                stmt.execute(this.db.getTableCreationStatement(tableName));
+                stmt.close();
 
-            Statement stmt = con.createStatement();
-            stmt.execute(this.db.getTableCreationStatement(tableName));
-            stmt.close();
+                con.commit();
 
-            con.commit();
+                LOG.info("Created table " + tableName + " in " + dbname);
 
-            if (col.equals(Collection.NODES)) {
-                PreparedStatement pstmt = con.prepareStatement("select DATA from " + tableName + " where ID = ?");
-                pstmt.setString(1, "0:/");
-                ResultSet rs = pstmt.executeQuery();
-                ResultSetMetaData met = rs.getMetaData();
-                this.dataLimitInOctets = met.getPrecision(1);
+                if (col.equals(Collection.NODES)) {
+                    PreparedStatement pstmt = con.prepareStatement("select DATA from " + tableName + " where ID = ?");
+                    pstmt.setString(1, "0:/");
+                    ResultSet rs = pstmt.executeQuery();
+                    ResultSetMetaData met = rs.getMetaData();
+                    this.dataLimitInOctets = met.getPrecision(1);
+                }
+
+                if (dropTablesOnClose) {
+                    tablesToBeDropped.add(tableName);
+                }
             }
-
-            if (dropTablesOnClose) {
-                tablesToBeDropped.add(tableName);
+            catch (SQLException ex2) {
+                LOG.error("Failed to create table " + tableName + " in " + dbname, ex2);
+                throw ex2;
             }
         }
     }
