@@ -77,7 +77,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class DocumentNodeStoreTest {
@@ -1123,7 +1122,6 @@ public class DocumentNodeStoreTest {
     }
 
     // OAK-2642
-    @Ignore
     @Test
     public void dispose() throws CommitFailedException, InterruptedException {
         final BlockingQueue<String> updates = new ArrayBlockingQueue<String>(1);
@@ -1179,8 +1177,9 @@ public class DocumentNodeStoreTest {
             builder = store.getRoot().builder();
             builder.child("test").child("node").child("child-2");
             merge(store, builder);
-        } catch (Exception e) {
-            // ignore
+            fail("Merge must fail with CommitFailedException");
+        } catch (CommitFailedException e) {
+            // expected
         }
 
         // drain updates until dispose finished
@@ -1208,8 +1207,6 @@ public class DocumentNodeStoreTest {
             node.child("child-2");
             merge(store2, builder);
         }
-
-        store2.dispose();
     }
 
     private void doSomeChange(NodeStore ns) throws CommitFailedException {
