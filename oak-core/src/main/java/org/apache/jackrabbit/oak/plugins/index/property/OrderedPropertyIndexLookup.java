@@ -266,24 +266,19 @@ public class OrderedPropertyIndexLookup {
         String propertyName = PathUtils.getName(pr.propertyName);
         NodeState definition = getIndexNode(root, propertyName, filter);
         if (definition != null) {
-            PropertyValue value = null;
             boolean createPlan = false;
-            if (pr.isNotNullRestriction()) {
+            if (pr.isNotNullRestriction() || pr.list != null) {
                 // open query: [property] is not null
-                value = null;
                 createPlan = true;
             } else if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding
                     && pr.lastIncluding) {
                 // [property]=[value]
-                value = pr.first;
                 createPlan = true;
             } else if (pr.first != null && !pr.first.equals(pr.last)) {
                 // '>' & '>=' use cases
-                value = pr.first;
                 createPlan = true;
             } else if (pr.last != null && !pr.last.equals(pr.first)) {
                 // '<' & '<='
-                value = pr.last;
                 createPlan = true;
             }
             if (createPlan) {
