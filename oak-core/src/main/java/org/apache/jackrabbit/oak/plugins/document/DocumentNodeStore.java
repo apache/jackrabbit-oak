@@ -197,6 +197,13 @@ public final class DocumentNodeStore
             = new ConcurrentHashMap<Integer, Long>();
 
     /**
+     * Map of active cluster nodes and when the cluster node's lease ends.
+     * Key: clusterId, value: leaseEndTimeInMillis
+     */
+    private final ConcurrentMap<Integer, Long> activeClusterNodes
+            = new ConcurrentHashMap<Integer, Long>();
+
+    /**
      * The comparator for revisions.
      */
     private final Revision.RevisionComparator revisionComparator;
@@ -1567,8 +1574,8 @@ public final class DocumentNodeStore
     }
 
     /**
-     * Updates the info about inactive cluster nodes in
-     * {@link #inactiveClusterNodes}.
+     * Updates the state about cluster nodes in {@link #activeClusterNodes}
+     * and {@link #inactiveClusterNodes}.
      */
     void updateClusterState() {
         long now = clock.getTime();
@@ -1577,8 +1584,11 @@ public final class DocumentNodeStore
             int cId = doc.getClusterId();
             if (cId != this.clusterId && !doc.isActive()) {
                 inactive.add(cId);
+            } else {
+                activeClusterNodes.put(cId, doc.getLeaseEndTime());
             }
         }
+        activeClusterNodes.keySet().removeAll(inactive);
         inactiveClusterNodes.keySet().retainAll(inactive);
         for (Integer clusterId : inactive) {
             inactiveClusterNodes.putIfAbsent(clusterId, now);
@@ -1593,6 +1603,16 @@ public final class DocumentNodeStore
      */
     Map<Integer, Long> getInactiveClusterNodes() {
         return new HashMap<Integer, Long>(inactiveClusterNodes);
+    }
+
+    /**
+     * Returns the cluster nodes currently known as active.
+     *
+     * @return a map with the cluster id as key and the time in millis when the
+     *          lease ends.
+     */
+    Map<Integer, Long> getActiveClusterNodes() {
+        return new HashMap<Integer, Long>(activeClusterNodes);
     }
 
     /**
@@ -2203,6 +2223,17 @@ public final class DocumentNodeStore
         @Override
         public String[] getInactiveClusterNodes() {
             return toArray(transform(inactiveClusterNodes.entrySet(),
+                    new Function<Map.Entry<Integer, Long>, String>() {
+                        @Override
+                        public String apply(Map.Entry<Integer, Long> input) {
+                            return input.toString();
+                        }
+                    }), String.class);
+        }
+
+        @Override
+        public String[] getActiveClusterNodes() {
+            return toArray(transform(activeClusterNodes.entrySet(),
                     new Function<Map.Entry<Integer, Long>, String>() {
                         @Override
                         public String apply(Map.Entry<Integer, Long> input) {
