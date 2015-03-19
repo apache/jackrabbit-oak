@@ -297,3 +297,10 @@ Workspaces
 ----------
 
 An Oak repository only has one default workspace.
+
+Node Name Length Limit
+----------------------
+
+With the document storage backend (MongoDB, RDBMS), there is currently 
+a limit of 150 UTF-8 bytes on the length of the node names.
+See also OAK-2644.
