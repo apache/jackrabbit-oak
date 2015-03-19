@@ -43,6 +43,7 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.IN
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class IndexCopierTest {
     private Random rnd = new Random();
@@ -150,6 +151,34 @@ public class IndexCopierTest {
         //Now read would be done from remote
         readAndAssert(wrapped3, "t1", t1);
         assertEquals(1, remote.openedFiles.size());
+    }
+
+    @Test
+    public void deleteCorruptedFile() throws Exception{
+        Directory baseDir = new RAMDirectory();
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+        RAMIndexCopier c1 = new RAMIndexCopier(baseDir, sameThreadExecutor(), getWorkDir());
+
+        Directory remote = new RAMDirectory(){
+            @Override
+            public IndexInput openInput(String name, IOContext context) throws IOException {
+                throw new IllegalStateException("boom");
+            }
+        };
+
+        String fileName = "failed.txt";
+        Directory wrapped = c1.wrap("/foo" , defn, remote);
+
+        byte[] t1 = writeFile(remote , fileName);
+
+        try {
+            readAndAssert(wrapped, fileName, t1);
+            fail("Read of file should have failed");
+        } catch (IllegalStateException ignore){
+
+        }
+
+        assertFalse(c1.baseDir.fileExists(fileName));
     }
 
     @Test
