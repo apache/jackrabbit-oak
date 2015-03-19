@@ -615,16 +615,24 @@ public class DocumentNodeStoreTest {
         DocumentNodeStore ns2 = new DocumentMK.Builder().setAsyncDelay(0)
                 .setDocumentStore(docStore).getNodeStore();
 
+        ns1.updateClusterState();
+        ns2.updateClusterState();
+
         assertEquals(0, ns1.getInactiveClusterNodes().size());
         assertEquals(0, ns2.getInactiveClusterNodes().size());
+        assertEquals(2, ns1.getActiveClusterNodes().size());
+        assertEquals(2, ns2.getActiveClusterNodes().size());
 
         ns1.dispose();
 
         ns2.updateClusterState();
 
         Map<Integer, Long> inactive = ns2.getInactiveClusterNodes();
+        Map<Integer, Long> active = ns2.getActiveClusterNodes();
         assertEquals(1, inactive.size());
         assertEquals(1, (int) inactive.keySet().iterator().next());
+        assertEquals(1, active.size());
+        assertEquals(2, (int) active.keySet().iterator().next());
 
         ns2.dispose();
     }
