@@ -188,9 +188,12 @@ class IndexCopier implements CopyOnReadStatsMBean {
                 @Override
                 public void run() {
                     String name = reference.name;
+                    boolean success = false;
+                    boolean copyAttempted = false;
                     try {
                         if (!local.fileExists(name)) {
                             long start = System.currentTimeMillis();
+                            copyAttempted = true;
                             remote.copy(local, name, name, IOContext.READ);
                             reference.markValid();
                             downloadTime.addAndGet(System.currentTimeMillis() - start);
@@ -210,11 +213,22 @@ class IndexCopier implements CopyOnReadStatsMBean {
                                 reference.markValid();
                             }
                         }
+                        success = true;
                     } catch (IOException e) {
                         //TODO In case of exception there would not be any other attempt
                         //to download the file. Look into support for retry
                         log.warn("Error occurred while copying file [{}] " +
                                 "from {} to {}", name, remote, local, e);
+                    } finally {
+                        if (copyAttempted && !success){
+                            try {
+                                if (local.fileExists(name)) {
+                                    local.deleteFile(name);
+                                }
+                            } catch (IOException e) {
+                                log.warn("Error occurred while deleting corrupted file [{}] from [{}]", name, local, e);
+                            }
+                        }
                     }
                 }
             });
