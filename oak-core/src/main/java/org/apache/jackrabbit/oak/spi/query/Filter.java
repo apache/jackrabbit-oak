@@ -219,11 +219,11 @@ public interface Filter {
         public int propertyType = PropertyType.UNDEFINED;
         
         public boolean isNullRestriction() {
-            return first == null && last == null && lastIncluding && firstIncluding;
+            return first == null && last == null && list == null && lastIncluding && firstIncluding;
         }
         
         public boolean isNotNullRestriction() {
-            return first == null && last == null && !lastIncluding && !firstIncluding;
+            return first == null && last == null && list == null && !lastIncluding && !firstIncluding;
         }
 
         @Override
