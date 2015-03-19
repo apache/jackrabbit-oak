@@ -130,7 +130,7 @@ public class OrderedPropertyIndex extends PropertyIndex implements AdvancedQuery
                 if (lookup.isIndexed(propertyName, "/", filter)) {
                     PropertyValue value = null;
                     boolean createPlan = false;
-                    if (pr.isNotNullRestriction()) {
+                    if (pr.isNotNullRestriction() || pr.list != null) {
                         // open query: [property] is not null
                         value = null;
                         createPlan = true;
