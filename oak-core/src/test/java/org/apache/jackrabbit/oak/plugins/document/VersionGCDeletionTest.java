@@ -30,6 +30,8 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.Lists;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
@@ -41,7 +43,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
@@ -164,7 +165,6 @@ public class VersionGCDeletionTest {
     }
 
     // OAK-2420
-    @Ignore
     @Test
     public void queryWhileDocsAreRemoved() throws Exception {
         //Baseline the clock
@@ -190,7 +190,7 @@ public class VersionGCDeletionTest {
         // create nodes
         NodeBuilder builder = store.getRoot().builder();
         NodeBuilder node = builder.child("node");
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 200; i++) {
             node.child("c-" + i);
         }
         merge(store, builder);
@@ -209,23 +209,27 @@ public class VersionGCDeletionTest {
 
         clock.waitUntil(clock.getTime() + HOURS.toMillis(1));
 
+        List<String> expected = Lists.newArrayList();
         // fill caches
         NodeState n = store.getRoot().getChildNode("node");
         for (ChildNodeEntry entry : n.getChildNodeEntries()) {
-            entry.getName();
+            expected.add(entry.getName());
         }
+        assertEquals(110, expected.size());
 
         // invalidate the nodeChildren cache only
         store.invalidateNodeChildrenCache();
 
-        Future f = newSingleThreadExecutor().submit(new Callable<Object>() {
+        Future<List<String>> f = newSingleThreadExecutor().submit(
+                new Callable<List<String>>() {
             @Override
-            public Object call() throws Exception {
+            public List<String> call() throws Exception {
+                List<String> names = Lists.newArrayList();
                 NodeState n = store.getRoot().getChildNode("node");
                 for (ChildNodeEntry entry : n.getChildNodeEntries()) {
-                    entry.getName();
+                    names.add(entry.getName());
                 }
-                return null;
+                return names;
             }
         });
 
@@ -235,9 +239,10 @@ public class VersionGCDeletionTest {
         VersionGCStats stats = gc.gc(30, MINUTES);
         assertEquals(90, stats.deletedDocGCCount);
 
-        queries.release(100);
+        queries.release(200);
 
-        f.get();
+        List<String> names = f.get();
+        assertEquals(expected, names);
     }
 
     private void merge(DocumentNodeStore store, NodeBuilder builder)

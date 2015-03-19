@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.toArray;
 import static com.google.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.MERGE;
@@ -27,6 +28,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.FAST_DIFF;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.MANY_CHILDREN_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.unshareString;
 
 import java.io.Closeable;
@@ -60,6 +62,7 @@ import javax.annotation.Nullable;
 import javax.management.NotCompliantMBeanException;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicates;
 import com.google.common.cache.Cache;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -866,11 +869,11 @@ public final class DocumentNodeStore
      * @return the child documents.
      */
     @Nonnull
-    Iterable<NodeDocument> readChildDocs(@Nonnull final String path,
-                                         @Nullable String name,
-                                         int limit) {
-        String to = Utils.getKeyUpperLimit(checkNotNull(path));
-        String from;
+    private Iterable<NodeDocument> readChildDocs(@Nonnull final String path,
+                                                 @Nullable String name,
+                                                 final int limit) {
+        final String to = Utils.getKeyUpperLimit(checkNotNull(path));
+        final String from;
         if (name != null) {
             from = Utils.getIdFromPath(concat(path, name));
         } else {
@@ -881,7 +884,7 @@ public final class DocumentNodeStore
             // or more than 16k child docs are requested
             return store.query(Collection.NODES, from, to, limit);
         }
-        StringValue key = new StringValue(path);
+        final StringValue key = new StringValue(path);
         // check cache
         NodeDocument.Children c = docChildrenCache.getIfPresent(key);
         if (c == null) {
@@ -898,10 +901,10 @@ public final class DocumentNodeStore
             // fetch more and update cache
             String lastName = c.childNames.get(c.childNames.size() - 1);
             String lastPath = concat(path, lastName);
-            from = Utils.getIdFromPath(lastPath);
+            String low = Utils.getIdFromPath(lastPath);
             int remainingLimit = limit - c.childNames.size();
             List<NodeDocument> docs = store.query(Collection.NODES,
-                    from, to, remainingLimit);
+                    low, to, remainingLimit);
             NodeDocument.Children clone = c.clone();
             for (NodeDocument doc : docs) {
                 String p = doc.getPath();
@@ -911,22 +914,36 @@ public final class DocumentNodeStore
             docChildrenCache.put(key, clone);
             c = clone;
         }
-        Iterable<NodeDocument> it = transform(c.childNames, new Function<String, NodeDocument>() {
+        Iterable<NodeDocument> head = filter(transform(c.childNames,
+                new Function<String, NodeDocument>() {
             @Override
             public NodeDocument apply(String name) {
                 String p = concat(path, name);
                 NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath(p));
                 if (doc == null) {
-                    docChildrenCache.invalidateAll();
-                    throw new NullPointerException("Document " + p + " not found");
+                    docChildrenCache.invalidate(key);
                 }
                 return doc;
             }
-        });
-        if (c.childNames.size() > limit * 2) {
-            it = Iterables.limit(it, limit * 2);
+        }), Predicates.notNull());
+        Iterable<NodeDocument> it;
+        if (c.isComplete) {
+            it = head;
+        } else {
+            // OAK-2420: 'head' may have null documents when documents are
+            // concurrently removed from the store. concat 'tail' to fetch
+            // more documents if necessary
+            final String last = getIdFromPath(concat(
+                    path, c.childNames.get(c.childNames.size() - 1)));
+            Iterable<NodeDocument> tail = new Iterable<NodeDocument>() {
+                @Override
+                public Iterator<NodeDocument> iterator() {
+                    return store.query(NODES, last, to, limit).iterator();
+                }
+            };
+            it = Iterables.concat(head, tail);
         }
-        return it;
+        return Iterables.limit(it, limit);
     }
 
     /**
