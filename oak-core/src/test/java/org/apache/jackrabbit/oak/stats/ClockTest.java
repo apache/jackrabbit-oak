@@ -50,7 +50,7 @@ public class ClockTest {
 
     @Test
     public void testClockDriftAccurate() throws InterruptedException {
-        testClockDrift(Clock.SIMPLE);
+        testClockDrift(Clock.ACCURATE);
     }
 
     @Test
