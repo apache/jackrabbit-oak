@@ -22,6 +22,7 @@ import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Maps.newTreeMap;
+import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.newHashSetWithExpectedSize;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
@@ -54,6 +55,8 @@ class TarReader {
 
     /** Logger instance */
     private static final Logger log = LoggerFactory.getLogger(TarReader.class);
+
+    private static final Logger GC_LOG = LoggerFactory.getLogger(TarReader.class.getName() + "-GC");
 
     /** Magic byte sequence at the end of the index block. */
     private static final int INDEX_MAGIC = TarWriter.INDEX_MAGIC;
@@ -210,18 +213,18 @@ class TarReader {
                                 return new TarReader(file, mapped, index);
                             } catch (IOException e) {
                                 log.warn("Failed to mmap tar file " + name
-                                        + ". Falling back to normal file IO,"
-                                        + " which will negatively impact"
-                                        + " repository performance. This"
-                                        + " problem may have been caused by"
-                                        + " restrictions on the amount of"
-                                        + " virtual memory available to the"
-                                        + " JVM. Please make sure that a"
-                                        + " 64-bit JVM is being used and"
-                                        + " that the process has access to"
-                                        + " unlimited virtual memory"
-                                        + " (ulimit option -v).",
-                                        e);
+                                                 + ". Falling back to normal file IO,"
+                                                 + " which will negatively impact"
+                                                 + " repository performance. This"
+                                                 + " problem may have been caused by"
+                                                 + " restrictions on the amount of"
+                                                 + " virtual memory available to the"
+                                                 + " JVM. Please make sure that a"
+                                                 + " 64-bit JVM is being used and"
+                                                 + " that the process has access to"
+                                                 + " unlimited virtual memory"
+                                                 + " (ulimit option -v).",
+                                         e);
                             }
                         }
 
@@ -366,7 +369,7 @@ class TarReader {
             for (int i = 0; i < checkbytes.length; i++) {
                 if (checkbytes[i] != header[148 + i]) {
                     log.warn("Invalid entry checksum at offset {} in tar file {}, skipping...",
-                            access.getFilePointer() - BLOCK_SIZE, file);
+                             access.getFilePointer() - BLOCK_SIZE, file);
                     continue;
                 }
             }
@@ -403,7 +406,7 @@ class TarReader {
                         crc.update(data);
                         if (crc.getValue() != Long.parseLong(checksum, 16)) {
                             log.warn("Checksum mismatch in entry {} of tar file {}, skipping...",
-                                    name, file);
+                                     name, file);
                             continue;
                         }
                     }
@@ -412,7 +415,7 @@ class TarReader {
                 }
             } else if (!name.equals(file.getName() + ".idx")) {
                 log.warn("Unexpected entry {} in tar file {}, skipping...",
-                        name, file);
+                         name, file);
                 long position = access.getFilePointer() + size;
                 long remainder = position % BLOCK_SIZE;
                 if (remainder != 0) {
@@ -618,10 +621,7 @@ class TarReader {
      *         null if the file is fully garbage
      */
     synchronized TarReader cleanup(Set<UUID> referencedIds, CompactionMap cm) throws IOException {
-        if (referencedIds.isEmpty()) {
-            return null;
-        }
-
+        Set<UUID> cleaned = newHashSet();
         Map<UUID, List<UUID>> graph = null;
         if (this.graph != null) {
             graph = parseGraph();
@@ -645,6 +645,7 @@ class TarReader {
             UUID id = new UUID(entry.msb(), entry.lsb());
             if (!referencedIds.remove(id)) {
                 // this segment is not referenced anywhere
+                cleaned.add(id);
                 sorted[i] = null;
             } else {
                 if (isDataSegmentId(entry.lsb())) {
@@ -653,8 +654,7 @@ class TarReader {
 
                     // this is a referenced data segment, so follow the graph
                     if (graph != null) {
-                        List<UUID> refids = graph.get(
-                                new UUID(entry.msb(), entry.lsb()));
+                        List<UUID> refids = graph.get(id);
                         if (refids != null) {
                             for (UUID r : refids) {
                                 if (isDataSegmentId(r.getLeastSignificantBits())) {
@@ -695,6 +695,7 @@ class TarReader {
                 } else {
                     // bulk segments compaction check
                     if (cm != null && cm.wasCompacted(id)) {
+                        cleaned.add(id);
                         sorted[i] = null;
                     } else {
                         size += getEntrySize(entry.size());
@@ -708,6 +709,7 @@ class TarReader {
 
         if (count == 0) {
             // none of the entries within this tar file are referenceable
+            logCleanedSegments(cleaned);
             return null;
         } else if (size >= access.length() * 3 / 4 && graph != null) {
             // the space savings are not worth it at less than 25%,
@@ -743,11 +745,30 @@ class TarReader {
         TarReader reader = openFirstFileWithValidIndex(
                 singletonList(newFile), access.isMemoryMapped());
         if (reader != null) {
+            logCleanedSegments(cleaned);
             return reader;
         } else {
             log.warn("Failed to open cleaned up tar file {}", file);
             return this;
         }
+    }
+
+    private void logCleanedSegments(Set<UUID> cleaned) {
+        StringBuilder uuids = new StringBuilder();
+        String newLine = System.getProperty("line.separator", "\n") + "        ";
+
+        int c = 0;
+        String sep = "";
+        for (UUID uuid : cleaned) {
+            uuids.append(sep);
+            if (c++ % 4 == 0) {
+                uuids.append(newLine);
+            }
+            uuids.append(uuid);
+            sep = ", ";
+        }
+
+        GC_LOG.info("Cleaned segments from {}: {}", file.getName(), uuids);
     }
 
     File close() throws IOException {
