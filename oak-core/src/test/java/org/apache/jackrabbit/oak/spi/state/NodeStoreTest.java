@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.spi.state;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -29,6 +30,7 @@ import static org.junit.Assume.assumeTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -77,7 +79,7 @@ public class NodeStoreTest extends OakBaseTest {
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         fixture.dispose(store);
     }
 
@@ -115,6 +117,55 @@ public class NodeStoreTest extends OakBaseTest {
             b1.setChildNode("n" + k);
             b2.setChildNode("m" + k);
         }
+
+        b1.setChildNode("conflict");
+        b2.setChildNode("conflict");
+
+        store.merge(b1, hook, CommitInfo.EMPTY);
+        store.merge(b2, hook, CommitInfo.EMPTY);
+    }
+
+    @Test
+    public void addExistingNodeJCRLastModified() throws CommitFailedException {
+        CommitHook hook = new CompositeHook(
+            new ConflictHook(JcrConflictHandler.createJcrConflictHandler()),
+            new EditorHook(new ConflictValidatorProvider())
+        );
+
+        NodeBuilder b1 = store.getRoot().builder();
+        NodeBuilder b2 = store.getRoot().builder();
+
+        Calendar calendar = Calendar.getInstance();
+        b1.setChildNode("addExistingNodeJCRLastModified").setProperty(JCR_LASTMODIFIED, calendar);
+        calendar.add(Calendar.MINUTE, 1);
+        b2.setChildNode("addExistingNodeJCRLastModified").setProperty(JCR_LASTMODIFIED, calendar);
+
+        b1.setChildNode("conflict");
+        b2.setChildNode("conflict");
+
+        store.merge(b1, hook, CommitInfo.EMPTY);
+        store.merge(b2, hook, CommitInfo.EMPTY);
+    }
+
+    @Test
+    public void addChangeChangedJCRLastModified() throws CommitFailedException {
+        CommitHook hook = new CompositeHook(
+            new ConflictHook(JcrConflictHandler.createJcrConflictHandler()),
+            new EditorHook(new ConflictValidatorProvider())
+        );
+
+        NodeBuilder b = store.getRoot().builder();
+        Calendar calendar = Calendar.getInstance();
+        b.setChildNode("addExistingNodeJCRLastModified").setProperty(JCR_LASTMODIFIED, calendar);
+        store.merge(b, hook, CommitInfo.EMPTY);
+
+        NodeBuilder b1 = store.getRoot().builder();
+        NodeBuilder b2 = store.getRoot().builder();
+
+        calendar.add(Calendar.MINUTE, 1);
+        b1.setChildNode("addExistingNodeJCRLastModified").setProperty(JCR_LASTMODIFIED, calendar);
+        calendar.add(Calendar.MINUTE, 1);
+        b2.setChildNode("addExistingNodeJCRLastModified").setProperty(JCR_LASTMODIFIED, calendar);
 
         b1.setChildNode("conflict");
         b2.setChildNode("conflict");
@@ -307,7 +358,7 @@ public class NodeStoreTest extends OakBaseTest {
     }
 
     @Test
-    public void move() throws CommitFailedException {
+    public void move() {
         NodeBuilder test = store.getRoot().builder().getChildNode("test");
         NodeBuilder x = test.getChildNode("x");
         NodeBuilder y = test.getChildNode("y");
@@ -319,7 +370,7 @@ public class NodeStoreTest extends OakBaseTest {
     }
 
     @Test
-    public void moveNonExisting() throws CommitFailedException {
+    public void moveNonExisting() {
         NodeBuilder test = store.getRoot().builder().getChildNode("test");
         NodeBuilder any = test.getChildNode("any");
         NodeBuilder y = test.getChildNode("y");
@@ -330,7 +381,7 @@ public class NodeStoreTest extends OakBaseTest {
     }
 
     @Test
-    public void moveToExisting() throws CommitFailedException {
+    public void moveToExisting() {
         NodeBuilder test = store.getRoot().builder().getChildNode("test");
         NodeBuilder x = test.getChildNode("x");
         assertFalse(x.moveTo(test, "y"));
@@ -340,7 +391,7 @@ public class NodeStoreTest extends OakBaseTest {
     }
 
     @Test
-    public void rename() throws CommitFailedException {
+    public void rename() {
         NodeBuilder test = store.getRoot().builder().getChildNode("test");
         NodeBuilder x = test.getChildNode("x");
         assertTrue(x.moveTo(test, "xx"));
@@ -350,7 +401,7 @@ public class NodeStoreTest extends OakBaseTest {
     }
 
     @Test
-    public void renameNonExisting() throws CommitFailedException {
+    public void renameNonExisting() {
         NodeBuilder test = store.getRoot().builder().getChildNode("test");
         NodeBuilder any = test.getChildNode("any");
         assertFalse(any.moveTo(test, "xx"));
@@ -359,7 +410,7 @@ public class NodeStoreTest extends OakBaseTest {
     }
 
     @Test
-    public void renameToExisting() throws CommitFailedException {
+    public void renameToExisting() {
         NodeBuilder test = store.getRoot().builder().getChildNode("test");
         NodeBuilder x = test.getChildNode("x");
         assertFalse(x.moveTo(test, "y"));
@@ -369,7 +420,7 @@ public class NodeStoreTest extends OakBaseTest {
     }
 
     @Test
-    public void moveToSelf() throws CommitFailedException {
+    public void moveToSelf() {
         NodeBuilder test = store.getRoot().builder().getChildNode("test");
         NodeBuilder x = test.getChildNode("x");
         assertFalse(x.moveTo(test, "x"));
@@ -378,7 +429,7 @@ public class NodeStoreTest extends OakBaseTest {
     }
 
     @Test
-    public void moveToSelfNonExisting() throws CommitFailedException {
+    public void moveToSelfNonExisting() {
         NodeBuilder test = store.getRoot().builder().getChildNode("test");
         NodeBuilder any = test.getChildNode("any");
         assertFalse(any.moveTo(test, "any"));
@@ -387,7 +438,7 @@ public class NodeStoreTest extends OakBaseTest {
     }
 
     @Test
-    public void moveToDescendant() throws CommitFailedException {
+    public void moveToDescendant() {
         NodeBuilder test = store.getRoot().builder().getChildNode("test");
         NodeBuilder x = test.getChildNode("x");
         if (fixture == NodeStoreFixture.SEGMENT_MK || fixture == NodeStoreFixture.MEMORY_NS) {
@@ -506,10 +557,9 @@ public class NodeStoreTest extends OakBaseTest {
     }
 
     private static class Diff extends DefaultNodeStateDiff {
-
-        List<String> addedProperties = new ArrayList<String>();
-        List<String> added = new ArrayList<String>();
-        List<String> removed = new ArrayList<String>();
+        final List<String> addedProperties = new ArrayList<String>();
+        final List<String> added = new ArrayList<String>();
+        final List<String> removed = new ArrayList<String>();
 
         @Override
         public boolean childNodeAdded(String name, NodeState after) {
