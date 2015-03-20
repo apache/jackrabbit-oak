@@ -185,6 +185,8 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
     private final Analyzer analyzer;
 
+    private final String scorerProviderName;
+
     private final Map<String, Analyzer> analyzers;
 
     private final boolean hasCustomTikaConfig;
@@ -254,6 +256,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         this.hasCustomTikaConfig = getTikaConfigNode().exists();
         this.maxExtractLength = determineMaxExtractLength();
         this.suggesterUpdateFrequencyMinutes = getOptionalValue(defn, LuceneIndexConstants.SUGGEST_UPDATE_FREQUENCY_MINUTES, 60);
+        this.scorerProviderName = getOptionalValue(defn, LuceneIndexConstants.PROP_SCORER_PROVIDER, null);
     }
 
     public boolean isFullTextEnabled() {
@@ -352,6 +355,10 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
     public int getMaxExtractLength() {
         return maxExtractLength;
+    }
+
+    public String getScorerProviderName() {
+        return scorerProviderName;
     }
 
     @Override

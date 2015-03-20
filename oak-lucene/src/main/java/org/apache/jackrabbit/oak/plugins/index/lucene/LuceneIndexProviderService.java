@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
+import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
@@ -109,6 +110,9 @@ public class LuceneIndexProviderService {
 
     private BackgroundObserver backgroundObserver;
 
+    @Reference
+    ScorerProviderFactory scorerFactory;
+
     @Activate
     private void activate(BundleContext bundleContext, Map<String, ?> config)
             throws NotCompliantMBeanException {
@@ -117,7 +121,7 @@ public class LuceneIndexProviderService {
         executor = new WhiteboardExecutor();
         executor.start(whiteboard);
 
-        indexProvider = new LuceneIndexProvider(createTracker(bundleContext, config));
+        indexProvider = new LuceneIndexProvider(createTracker(bundleContext, config), scorerFactory);
         initializeLogging(config);
         initialize();
 
