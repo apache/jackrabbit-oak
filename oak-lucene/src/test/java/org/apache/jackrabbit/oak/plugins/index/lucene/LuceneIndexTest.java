@@ -17,8 +17,10 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -31,6 +33,7 @@ import static com.google.common.collect.Iterators.transform;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
+import static java.util.Arrays.asList;
 import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
@@ -50,6 +53,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.NT_TEST;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.createNodeWithType;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.useV2;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
@@ -58,10 +62,13 @@ import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.ast.Operator;
@@ -81,6 +88,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.index.AtomicReader;
+import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.queries.CustomScoreProvider;
+import org.apache.lucene.queries.CustomScoreQuery;
+import org.apache.lucene.search.Query;
 import org.junit.After;
 import org.junit.Test;
 
@@ -426,6 +439,71 @@ public class LuceneIndexTest {
     }
 
     @Test
+    public void customScoreQuery() throws Exception{
+        NodeBuilder nb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "lucene",
+                of(TYPENAME_STRING));
+        TestUtil.useV2(nb);
+        nb.setProperty(LuceneIndexConstants.PROP_SCORER_PROVIDER, "testScorer");
+
+        NodeState before = builder.getNodeState();
+        builder.child("a").setProperty("jcr:createdBy", "bar bar");
+        builder.child("b").setProperty("jcr:createdBy", "foo bar");
+        NodeState after = builder.getNodeState();
+        NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
+        IndexTracker tracker = new IndexTracker();
+        tracker.update(indexed);
+
+        SimpleScorerFactory factory = new SimpleScorerFactory();
+        ScorerProvider provider = new ScorerProvider() {
+
+            String scorerName = "testScorer";
+            @Override
+            public String getName() {
+                return scorerName;
+            }
+            @Override
+            public CustomScoreQuery createCustomScoreQuery(Query query) {
+                return new ModifiedCustomScoreQuery(query);
+            }
+
+            class ModifiedCustomScoreQuery extends CustomScoreQuery {
+                private Query query;
+                public ModifiedCustomScoreQuery(Query query) {
+                    super(query);
+                    this.query = query;
+                }
+
+                @Override
+                public CustomScoreProvider getCustomScoreProvider(AtomicReaderContext context) {
+                    return new CustomScoreProvider(context) {
+                        public float customScore(int doc, float subQueryScore, float valSrcScore) {
+                            AtomicReader atomicReader = context.reader();
+                            try {
+                                Document document = atomicReader.document(doc);
+                                // boosting docs created by foo
+                                String fieldValue = document.get("full:jcr:createdBy");
+                                if (fieldValue != null && fieldValue.contains("foo")) {
+                                    valSrcScore *= 2.0;
+                                }
+                            } catch (IOException e) {
+                                return subQueryScore * valSrcScore;
+                            }
+                            return subQueryScore * valSrcScore;
+                        }
+                    };
+                }
+            }
+        };
+
+        factory.providers.put(provider.getName(), provider);
+        AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker, factory);
+
+        FilterImpl filter = createFilter(NT_BASE);
+        filter.setFullTextConstraint(new FullTextTerm(null, "bar", false, false, null));
+        assertFilter(filter, queryIndex, indexed, asList("/b", "/a"), true);
+    }
+
+    @Test
     public void testTokens() {
         Analyzer analyzer = LuceneIndexConstants.ANALYZER;
         assertEquals(ImmutableList.of("parent", "child"),
@@ -608,9 +686,37 @@ public class LuceneIndexTest {
         return paths;
     }
 
+    private static List<String> assertFilter(Filter filter, AdvancedQueryIndex queryIndex,
+                                             NodeState indexed, List<String> expected, boolean ordered) {
+        if (!ordered) {
+            return assertFilter(filter, queryIndex, indexed, expected);
+        }
+
+        List<IndexPlan> plans = queryIndex.getPlans(filter, null, indexed);
+        Cursor cursor = queryIndex.query(plans.get(0), indexed);
+
+        List<String> paths = newArrayList();
+        while (cursor.hasNext()) {
+            paths.add(cursor.next().getPath());
+        }
+        for (String p : expected) {
+            assertTrue("Expected path " + p + " not found", paths.contains(p));
+        }
+        assertEquals("Result set size is different", expected.size(), paths.size());
+        return paths;
+    }
+
     private String getIndexDir(){
         File dir = new File("target", "indexdir"+System.nanoTime());
         dirs.add(dir);
         return dir.getAbsolutePath();
+    }
+
+    private static class SimpleScorerFactory implements ScorerProviderFactory {
+        final Map<String,ScorerProvider> providers = Maps.newHashMap();
+        @Override
+        public ScorerProvider getScorerProvider(String name) {
+            return providers.get(name);
+        }
     }
 }

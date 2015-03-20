@@ -106,9 +106,13 @@
               org.apache.lucene.*;version=${lucene.version}
             </_exportcontents>
             <Export-Package>
-              org.apache.jackrabbit.oak.plugins.index.lucene,
-              org.apache.jackrabbit.oak.plugins.index.lucene.util
+                org.apache.jackrabbit.oak.plugins.index.lucene,
+                org.apache.jackrabbit.oak.plugins.index.lucene.util,
+                org.apache.jackrabbit.oak.plugins.index.lucene.score,
             </Export-Package>
+            <_exportcontents>
+                org.apache.lucene.*;version=${lucene.version}
+            </_exportcontents>
             <Import-Package>
                 org.apache.lucene.sandbox.*;resolution:=optional,
                 !org.apache.lucene.*,

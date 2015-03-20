@@ -23,6 +23,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.plugins.index.aggregate.AggregateIndex;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
+import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
@@ -42,12 +43,19 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closea
 
     protected volatile NodeAggregator aggregator = null;
 
+    ScorerProviderFactory scorerFactory;
+
     public LuceneIndexProvider() {
         this(new IndexTracker());
     }
 
     public LuceneIndexProvider(IndexTracker tracker) {
+        this(tracker, ScorerProviderFactory.DEFAULT);
+    }
+
+    public LuceneIndexProvider(IndexTracker tracker, ScorerProviderFactory scorerFactory) {
         this.tracker = tracker;
+        this.scorerFactory = scorerFactory;
     }
 
     public void close() {
@@ -73,7 +81,7 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closea
     }
 
     protected LucenePropertyIndex newLucenePropertyIndex() {
-        return new LucenePropertyIndex(tracker);
+        return new LucenePropertyIndex(tracker, scorerFactory);
     }
 
     /**
