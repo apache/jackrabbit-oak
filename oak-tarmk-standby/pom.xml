@@ -96,6 +96,15 @@
           </excludes>
         </configuration>
       </plugin>
+      <plugin>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <standby.server.port>${standby.server.port}</standby.server.port>
+            <standby.proxy.port>${standby.poxy.port}</standby.proxy.port>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
     </plugins>
     <pluginManagement>
         <plugins>
