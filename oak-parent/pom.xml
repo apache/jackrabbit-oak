@@ -494,7 +494,9 @@
            <plugin>
              <artifactId>maven-surefire-plugin</artifactId>
              <configuration>
-               <skipTests>true</skipTests>
+               <!-- run a test to prevent Jenkins from failing because no test ran -->
+               <test>PathUtilsTest</test>
+               <failIfNoSpecifiedTests>false</failIfNoSpecifiedTests>
              </configuration>
            </plugin>
           <plugin>
