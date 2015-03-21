@@ -65,6 +65,7 @@ public class SegmentIdTable {
     synchronized SegmentId getSegmentId(long msb, long lsb) {
         int first = getIndex(lsb);
         int index = first;
+        boolean shouldRefresh = false;
 
         WeakReference<SegmentId> reference = references.get(index);
         while (reference != null) {
@@ -74,13 +75,14 @@ public class SegmentIdTable {
                     && id.getLeastSignificantBits() == lsb) {
                 return id;
             }
+            shouldRefresh = shouldRefresh || id == null;
             index = (index + 1) % references.size();
             reference = references.get(index);
         }
 
         SegmentId id = new SegmentId(tracker, msb, lsb);
         references.set(index, new WeakReference<SegmentId>(id));
-        if (index != first) {
+        if (shouldRefresh) {
             refresh();
         }
         return id;
