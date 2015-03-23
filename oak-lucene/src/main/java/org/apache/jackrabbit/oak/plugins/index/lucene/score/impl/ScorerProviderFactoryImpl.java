@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.score.impl;
 
-import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
@@ -42,11 +41,6 @@ public class ScorerProviderFactoryImpl implements ScorerProviderFactory {
 
     private Map<String, ScorerProvider> scorerProviderMap =
             new ConcurrentHashMap<String, ScorerProvider>();
-
-    @Activate
-    private void activate() {
-        scorerProviderMap.clear();
-    }
 
     @Deactivate
     private void deactivate() {
