@@ -99,7 +99,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
     }
 
     @Override
-    public void finalize() {
+    protected void finalize() {
         if (this.ch != null && this.callStack != null) {
             LOG.debug("finalizing RDBDocumentStore that was not disposed", this.callStack);
         }
