@@ -155,6 +155,13 @@ public class MongoDocumentStore implements DocumentStore {
             Long.getLong("oak.mongo.maxDeltaForModTimeIdxSecs",-1);
 
     /**
+     * Disables the index hint sent to MongoDB.
+     * This overrides {@link #maxDeltaForModTimeIdxSecs}.
+     */
+    private final boolean disableIndexHint =
+            Boolean.getBoolean("oak.mongo.disableIndexHint");
+
+    /**
      * Duration in milliseconds after which a mongo query will be terminated.
      * <p>
      * If this value is -1 no timeout is being set at all, if it is 1 or greater
@@ -228,7 +235,8 @@ public class MongoDocumentStore implements DocumentStore {
         cacheStats = new CacheStats(nodesCache, "Document-Documents", builder.getWeigher(),
                 builder.getDocumentCacheSize());
         LOG.info("Configuration maxReplicationLagMillis {}, " +
-                "maxDeltaForModTimeIdxSecs {}",maxReplicationLagMillis, maxDeltaForModTimeIdxSecs);
+                "maxDeltaForModTimeIdxSecs {}, disableIndexHint {}",
+                maxReplicationLagMillis, maxDeltaForModTimeIdxSecs, disableIndexHint);
     }
 
     private static String checkVersion(DB db) {
@@ -513,7 +521,10 @@ public class MongoDocumentStore implements DocumentStore {
         TreeLock lock = acquireExclusive(parentId != null ? parentId : "");
         final long start = PERFLOG.start();
         try {
-            DBCursor cursor = dbCollection.find(query).sort(BY_ID_ASC).hint(hint);
+            DBCursor cursor = dbCollection.find(query).sort(BY_ID_ASC);
+            if (!disableIndexHint) {
+                cursor.hint(hint);
+            }
             if (maxQueryTimeMS > 0) {
                 // OAK-2614: set maxTime if maxQueryTimeMS > 0
                 cursor.maxTime(maxQueryTimeMS, TimeUnit.MILLISECONDS);
@@ -957,6 +968,10 @@ public class MongoDocumentStore implements DocumentStore {
 
     long getMaxDeltaForModTimeIdxSecs() {
         return maxDeltaForModTimeIdxSecs;
+    }
+
+    boolean getDisableIndexHint() {
+        return disableIndexHint;
     }
 
     Iterable<? extends Map.Entry<CacheValue, ? extends CachedNodeDocument>> getCacheEntries() {
