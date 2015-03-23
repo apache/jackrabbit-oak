@@ -171,32 +171,38 @@ public class LuceneIndexEditorContext {
         }
     }
 
+    /**
+     * eventually update suggest dictionary
+     * @throws IOException if suggest dictionary update fails
+     */
     private void updateSuggester() throws IOException {
 
-        // eventually update suggest dictionary
-        boolean updateSuggester = false;
-        NodeBuilder suggesterStatus = definitionBuilder.child(":suggesterStatus");
-        if (suggesterStatus.hasProperty("lastUpdated")) {
-            PropertyState suggesterLastUpdatedValue = suggesterStatus.getProperty("lastUpdated");
-            Calendar suggesterLastUpdatedTime = ISO8601.parse(suggesterLastUpdatedValue.getValue(Type.DATE));
-            int updateFrequency = definition.getSuggesterUpdateFrequencyMinutes();
-            suggesterLastUpdatedTime.add(Calendar.MINUTE, updateFrequency);
-            if (Calendar.getInstance().after(suggesterLastUpdatedTime)) {
+        if (definition.isSuggestEnabled()) {
+
+            boolean updateSuggester = false;
+            NodeBuilder suggesterStatus = definitionBuilder.child(":suggesterStatus");
+            if (suggesterStatus.hasProperty("lastUpdated")) {
+                PropertyState suggesterLastUpdatedValue = suggesterStatus.getProperty("lastUpdated");
+                Calendar suggesterLastUpdatedTime = ISO8601.parse(suggesterLastUpdatedValue.getValue(Type.DATE));
+                int updateFrequency = definition.getSuggesterUpdateFrequencyMinutes();
+                suggesterLastUpdatedTime.add(Calendar.MINUTE, updateFrequency);
+                if (Calendar.getInstance().after(suggesterLastUpdatedTime)) {
+                    updateSuggester = true;
+                }
+            } else {
                 updateSuggester = true;
             }
-        } else {
-            updateSuggester = true;
-        }
 
-        if (updateSuggester) {
-            DirectoryReader reader = DirectoryReader.open(writer, false);
-            try {
-                SuggestHelper.updateSuggester(reader);
-                suggesterStatus.setProperty("lastUpdated", ISO8601.format(Calendar.getInstance()), Type.DATE);
-            } catch (Throwable e) {
-                log.warn("could not update suggester", e);
-            } finally {
-                reader.close();
+            if (updateSuggester) {
+                DirectoryReader reader = DirectoryReader.open(writer, false);
+                try {
+                    SuggestHelper.updateSuggester(reader);
+                    suggesterStatus.setProperty("lastUpdated", ISO8601.format(Calendar.getInstance()), Type.DATE);
+                } catch (Throwable e) {
+                    log.warn("could not update suggester", e);
+                } finally {
+                    reader.close();
+                }
             }
         }
     }

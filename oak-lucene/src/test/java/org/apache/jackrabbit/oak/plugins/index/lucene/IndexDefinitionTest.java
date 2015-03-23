@@ -585,6 +585,40 @@ public class IndexDefinitionTest {
         assertTrue(!idxDefn.getApplicableIndexingRule(TestUtil.NT_TEST).getNotNullCheckEnabledProperties().isEmpty());
     }
 
+    @Test
+    public void testSuggestEnabledOnNamedProp() throws Exception {
+        NodeBuilder rules = builder.child(INDEX_RULES);
+        TestUtil.child(rules, "oak:TestNode/properties/prop2")
+                .setProperty(LuceneIndexConstants.PROP_NAME, "foo")
+                .setProperty(LuceneIndexConstants.PROP_USE_IN_SUGGEST, true);
+        root = registerTestNodeType(builder).getNodeState();
+        IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState());
+        assertTrue(idxDefn.isSuggestEnabled());
+    }
+
+    @Test
+    public void testSuggestEnabledOnRegexProp() throws Exception {
+        NodeBuilder rules = builder.child(INDEX_RULES);
+        rules.child(TestUtil.NT_TEST);
+        TestUtil.child(rules, "oak:TestNode/properties/prop2")
+                .setProperty(LuceneIndexConstants.PROP_NAME, ".*")
+                .setProperty(LuceneIndexConstants.PROP_IS_REGEX, true)
+                .setProperty(LuceneIndexConstants.PROP_USE_IN_SUGGEST, true);
+        root = registerTestNodeType(builder).getNodeState();
+        IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState());
+        assertTrue(idxDefn.isSuggestEnabled());
+    }
+
+    @Test
+    public void testSuggestDisabled() throws Exception {
+        NodeBuilder rules = builder.child(INDEX_RULES);
+        TestUtil.child(rules, "oak:TestNode/properties/prop2")
+                .setProperty(LuceneIndexConstants.PROP_NAME, "foo");
+        root = registerTestNodeType(builder).getNodeState();
+        IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState());
+        assertFalse(idxDefn.isSuggestEnabled());
+    }
+
     //TODO indexesAllNodesOfMatchingType - with nullCheckEnabled
 
     private static IndexingRule getRule(IndexDefinition defn, String typeName){
