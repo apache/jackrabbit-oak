@@ -93,7 +93,7 @@ public class FileStore implements SegmentStore {
 
     private static final String JOURNAL_FILE_NAME = "journal.log";
 
-    private static final String LOCK_FILE_NAME = "lock";
+    private static final String LOCK_FILE_NAME = "repo.lock";
 
     static final boolean MEMORY_MAPPING_DEFAULT =
             "64".equals(System.getProperty("sun.arch.data.model", "32"));
