@@ -14,7 +14,7 @@
 # limitations under the License.
 
 install:  true
-script:   mvn verify -Ppedantic,integrationTesting -Dnsfixtures=DOCUMENT_NS
+script:   'mvn verify -Ppedantic,integrationTesting -Dnsfixtures=DOCUMENT_NS -pl \!:oak-tarmk-standby'
 language: java
 jdk:
   - oraclejdk7
