@@ -886,7 +886,13 @@ public class RDBDocumentStore implements DocumentStore {
                 return internalUpdate(collection, update, oldDoc, checkConditions, RETRIES);
             }
         } else {
-            return internalUpdate(collection, update, oldDoc, checkConditions, RETRIES);
+            T result = internalUpdate(collection, update, oldDoc, checkConditions, RETRIES);
+            if (allowCreate && result == null) {
+                // TODO OAK-2655 need to implement some kind of retry
+                LOG.error("update of " + update.getId() + " failed, race condition?");
+                throw new DocumentStoreException("update of " + update.getId() + " failed, race condition?");
+            }
+            return result;
         }
     }
 
@@ -923,7 +929,7 @@ public class RDBDocumentStore implements DocumentStore {
 
                         if (oldDoc == null) {
                             // document was there but is now gone
-                            LOG.error("failed to apply update because document is gone in the meantime: " + update.getId());
+                            LOG.debug("failed to apply update because document is gone in the meantime: " + update.getId(), new Exception("call stack"));
                             return null;
                         }
 
