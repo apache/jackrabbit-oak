@@ -87,12 +87,14 @@ public class ComparisonImpl extends ConstraintImpl {
             return false;
         }
         // "the value of operand2 is converted to the
-        // property type of the value of operand1"
-        try {
-            p2 = convertValueToType(p2, p1);
-        } catch (IllegalArgumentException ex) {
-            // unable to convert, just skip this node
-            return false;
+        // property type of the value of operand1" if possible
+        p2 = convertValueToType(p2, p1);
+        // if not possible, convert to the same type
+        if (p1.getType().tag() != p2.getType().tag()) {
+            // conversion failed: convert both to binary or string
+            int targetType = getCommonType(p1, p2);
+            p1 = convertToType(p1, targetType);
+            p2 = convertToType(p2, targetType);
         }
         if (p1.isArray()) {
             // JCR 2.0 spec, 6.7.16 Comparison:
@@ -110,6 +112,22 @@ public class ComparisonImpl extends ConstraintImpl {
         } else {
             return operator.evaluate(p1, p2);
         }
+    }
+    
+    private static int getCommonType(PropertyValue p1, PropertyValue p2) {
+        if (p1.getType().tag() == PropertyType.BINARY || p2.getType().tag() == PropertyType.BINARY) {
+            return PropertyType.BINARY;
+        }
+        return PropertyType.STRING;
+    }
+    
+    private PropertyValue convertToType(PropertyValue v, int targetType) {
+        try {
+            return PropertyValues.convert(v, targetType, query.getNamePathMapper());
+        } catch (IllegalArgumentException e) {
+            // not possible to convert
+            return v;
+        }        
     }
 
     @Override

@@ -69,6 +69,25 @@ public class QueryTest extends AbstractRepositoryTest {
     }
     
     @Test
+    public void typeConversion() throws Exception {
+        Session session = getAdminSession();
+        Node root = session.getRootNode();
+        
+        Node test = root.addNode("test");
+        test.addNode("a", "oak:Unstructured").setProperty("time", "2001-01-01T00:00:00.000Z", PropertyType.DATE);
+        test.addNode("b", "oak:Unstructured").setProperty("time", "2010-01-01T00:00:00.000Z", PropertyType.DATE);
+        test.addNode("c", "oak:Unstructured").setProperty("time", "2020-01-01T00:00:00.000Z", PropertyType.DATE);
+        session.save();
+        
+        assertEquals("/test/c",
+                getNodeList(session, 
+                "select [jcr:path] " +
+                "from [nt:base] " + 
+                "where [time] > '2011-01-01T00:00:00.000z'", Query.JCR_SQL2));
+
+    }
+    
+    @Test
     public void twoSelectors() throws Exception {
         Session session = getAdminSession();
         Node root = session.getRootNode();
