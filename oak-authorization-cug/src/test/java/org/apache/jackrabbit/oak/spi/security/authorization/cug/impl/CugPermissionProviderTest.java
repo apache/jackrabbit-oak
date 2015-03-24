@@ -74,7 +74,7 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
         root.commit();
 
         Set<Principal> principals = ImmutableSet.of(getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
-        String[] supportedPaths = new String[] {SUPPORTED_PATH};
+        Set<String> supportedPaths = ImmutableSet.of(SUPPORTED_PATH);
 
         cugPermProvider = new CugPermissionProvider(root, principals, supportedPaths, CugContext.INSTANCE);
     }
@@ -213,7 +213,7 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
 
     @Test
     public void testGetPrivilegesAtCug2() {
-        PermissionProvider pp = new CugPermissionProvider(root, ImmutableSet.of(testGroupPrincipal), new String[] {SUPPORTED_PATH}, CugContext.INSTANCE);
+        PermissionProvider pp = new CugPermissionProvider(root, ImmutableSet.of(testGroupPrincipal), ImmutableSet.of(SUPPORTED_PATH), CugContext.INSTANCE);
 
         Set<String> expected = ImmutableSet.of(
                 PrivilegeConstants.JCR_READ,
