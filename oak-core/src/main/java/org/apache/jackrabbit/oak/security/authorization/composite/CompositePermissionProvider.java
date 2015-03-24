@@ -47,6 +47,8 @@ import org.apache.jackrabbit.util.Text;
  * provider implementations. Note, that the implementations *must* implement
  * the {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider}
  * interface.
+ *
+ * TODO This is work in progress (OAK-1268)
  */
 class CompositePermissionProvider implements PermissionProvider {
 

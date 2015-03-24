@@ -24,6 +24,8 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 /**
  * Extension of the {@link PermissionProvider} interface that allows it to be
  * used in combination with other provider implementations.
+ *
+ * TODO This is work in progress (OAK-1268)
  */
 public interface AggregatedPermissionProvider extends PermissionProvider {
 
