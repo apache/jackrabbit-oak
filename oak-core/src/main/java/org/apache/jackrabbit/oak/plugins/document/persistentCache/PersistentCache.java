@@ -20,6 +20,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -43,6 +44,7 @@ public class PersistentCache {
    
     private static final String FILE_PREFIX = "cache-";
     private static final String FILE_SUFFIX = ".data";
+    private static final AtomicInteger COUNTER = new AtomicInteger();
     
     private boolean cacheNodes = true;
     private boolean cacheChildren = true;
@@ -87,7 +89,7 @@ public class PersistentCache {
             } else if (p.equals("-compress")) {
                 compress = false;
             } else if (p.endsWith("time")) {
-                dir += "-" + System.currentTimeMillis();
+                dir += "-" + System.currentTimeMillis() + "-" + COUNTER.getAndIncrement();
             } else if (p.startsWith("size=")) {
                 maxSizeMB = Integer.parseInt(p.split("=")[1]);
             } else if (p.startsWith("binary=")) {
