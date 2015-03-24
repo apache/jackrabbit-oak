@@ -281,52 +281,17 @@ To temporarily disable an index (for example for testing), set the index type to
 Please note that while the index type is not set, the index is not updated, so if you enable it again,
 it might not be correct. This is specially important for synchronous indexes.
 
-### The Ordered Index
+### The Ordered Index (deprecated since 1.1.8)
 
-NOTE: This index type has been deprecated. 
-Please use the Lucene Property Index instead, which offers the same features.
+This index has been deprecated in favour of Lucene Property
+index. Please refer to [Lucene Index documentation](lucene.html) for
+details.
 
-Extension of the Property index will keep the order of the indexed
-property persisted in the repository.
+For help on migrating to a Lucece index please refer to:
+[Migrate ordered index](ordered-index-migrate.html)
 
-Used to speed-up queries with `ORDER BY` clause, _equality_ and
-_range_ ones.
-
-    SELECT * FROM [nt:base] ORDER BY jcr:lastModified
-    
-    SELECT * FROM [nt:base] WHERE jcr:lastModified > $date
-    
-    SELECT * FROM [nt:base] WHERE jcr:lastModified < $date
-    
-    SELECT * FROM [nt:base]
-    WHERE jcr:lastModified > $date1 AND jcr:lastModified < $date2
-
-    SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id
-
-To define a property index on a subtree you have to add an index
-definition node that:
-
-* must be of type `oak:QueryIndexDefinition`
-* must have the `type` property set to __`ordered`__
-* contains the `propertyNames` property that indicates what properties
-  will be stored in the index.  `propertyNames` has to be a single
-  value list of type `Name[]`
-
-_Optionally_ you can specify
-
-* the `reindex` flag which when set to `true`, triggers a full content
-  re-index.
-* The direction of the sorting by specifying a `direction` property of
-  type `String` of value `ascending` or `descending`. If not provided
-  `ascending` is the default.
-* The index can be defined as asynchronous by providing the property
-  `async=async`
-
-_Caveats_
-
-* In case deploying on the index on a clustered mongodb you have to
-  define it as asynchronous by providing `async=async` in the index
-  definition. This is to avoid cluster merges.
+For historical information around the index please refer to:
+[Ordered Index](ordered-index.html).
 
 ### Cost Calculation
 
