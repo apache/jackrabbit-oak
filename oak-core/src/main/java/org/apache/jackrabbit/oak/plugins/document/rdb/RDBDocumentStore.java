@@ -1457,7 +1457,7 @@ public class RDBDocumentStore implements DocumentStore {
             stmt.setObject(si++, hasBinary ? 1 : 0, Types.SMALLINT);
             stmt.setObject(si++, deletedOnce ? 1 : 0, Types.SMALLINT);
             stmt.setObject(si++, modcount, Types.BIGINT);
-            stmt.setObject(si++, cmodcount == null ? 0 : cmodcount, Types.BIGINT);
+            stmt.setObject(si++, cmodcount == null ? Long.valueOf(0) : cmodcount, Types.BIGINT);
             stmt.setObject(si++, data.length(), Types.BIGINT);
 
             if (data.length() < this.dataLimitInOctets / CHAR2OCTETRATIO) {
@@ -1501,7 +1501,7 @@ public class RDBDocumentStore implements DocumentStore {
             stmt.setObject(si++, hasBinary ? 1 : 0, Types.SMALLINT);
             stmt.setObject(si++, deletedOnce ? 1 : 0, Types.SMALLINT);
             stmt.setObject(si++, modcount, Types.BIGINT);
-            stmt.setObject(si++, cmodcount == null ? 0 : cmodcount, Types.BIGINT);
+            stmt.setObject(si++, cmodcount == null ? Long.valueOf(0) : cmodcount, Types.BIGINT);
             stmt.setObject(si++, 1 + appendData.length(), Types.BIGINT);
             stmt.setString(si++, "," + appendData);
             setIdInStatement(stmt, si++, id);
@@ -1564,7 +1564,7 @@ public class RDBDocumentStore implements DocumentStore {
             stmt.setObject(si++, hasBinary ? 1 : 0, Types.SMALLINT);
             stmt.setObject(si++, deletedOnce ? 1 : 0, Types.SMALLINT);
             stmt.setObject(si++, modcount, Types.BIGINT);
-            stmt.setObject(si++, cmodcount == null ? 0 : cmodcount, Types.BIGINT);
+            stmt.setObject(si++, cmodcount == null ? Long.valueOf(0) : cmodcount, Types.BIGINT);
             stmt.setObject(si++, data.length(), Types.BIGINT);
             if (data.length() < this.dataLimitInOctets / CHAR2OCTETRATIO) {
                 stmt.setString(si++, data);
