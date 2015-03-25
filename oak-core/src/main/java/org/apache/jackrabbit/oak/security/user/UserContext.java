@@ -76,18 +76,14 @@ final class UserContext implements Context, UserConstants {
         } else {
             String path = location.getPath();
             String name = Text.getName(path);
-            if (USER_PROPERTY_NAMES.contains(name)
+            // NOTE: if none of the conditions below match, we are not able to
+            // reliably determine if the specified location defines a user or
+            // group node (missing node type information on non-existing location)
+            return USER_PROPERTY_NAMES.contains(name)
                     || GROUP_PROPERTY_NAMES.contains(name)
                     || path.contains(REP_MEMBERS)
                     || path.contains(REP_MEMBERS_LIST)
-                    || path.contains(REP_PWD)) {
-                return true;
-            } else {
-                // undefined: unable to determine if the specified location
-                // defines a user or group node (missing node type information
-                // on non-existing location
-                return false;
-            }
+                    || path.contains(REP_PWD);
         }
     }
 

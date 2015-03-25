@@ -360,7 +360,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
     /**
      * Iterator that provides member references based on the rep:members properties of a underlying tree iterator.
      */
-    private static class MemberReferenceIterator extends AbstractLazyIterator<String> {
+    private static final class MemberReferenceIterator extends AbstractLazyIterator<String> {
 
         private final Set<String> processedRefs;
 
