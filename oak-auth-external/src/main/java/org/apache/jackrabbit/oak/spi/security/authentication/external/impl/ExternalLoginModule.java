@@ -43,6 +43,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.PreAuthenticatedLog
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
@@ -183,18 +184,19 @@ public class ExternalLoginModule extends AbstractLoginModule {
 
         try {
             SyncedIdentity sId = null;
-            if (userId != null) {
-                sId = syncHandler.findIdentity(getUserManager(), userId);
-                // if there exists an authorizable with the given userid but is not an external one or if it belongs to
-                // another IDP, we just ignore it.
+            UserManager userMgr = getUserManager();
+            if (userId != null && userMgr != null) {
+                sId = syncHandler.findIdentity(userMgr, userId);
+                // if there exists an authorizable with the given userid but is
+                // not an external one or if it belongs to another IDP, we just ignore it.
                 if (sId != null) {
-                    if (sId.getExternalIdRef() == null) {
+                    ExternalIdentityRef externalIdRef = sId.getExternalIdRef();
+                    if (externalIdRef == null) {
                         log.debug("ignoring local user: {}", sId.getId());
                         return false;
-                    }
-                    if (!sId.getExternalIdRef().getProviderName().equals(idp.getName())) {
+                    } else if (!idp.getName().equals(externalIdRef.getProviderName())) {
                         if (log.isDebugEnabled()) {
-                            log.debug("ignoring foreign identity: {} (idp={})", sId.getExternalIdRef().getString(), idp.getName());
+                            log.debug("ignoring foreign identity: {} (idp={})", externalIdRef.getString(), idp.getName());
                         }
                         return false;
                     }
@@ -357,7 +359,8 @@ public class ExternalLoginModule extends AbstractLoginModule {
 
     }
 
-    private AuthInfo createAuthInfo(String userId, Set<? extends Principal> principals) {
+    @Nonnull
+    private AuthInfo createAuthInfo(@Nonnull String userId, @Nonnull Set<? extends Principal> principals) {
         Credentials creds;
         if (credentials instanceof ImpersonationCredentials) {
             creds = ((ImpersonationCredentials) credentials).getBaseCredentials();
