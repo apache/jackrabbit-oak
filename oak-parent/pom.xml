@@ -129,9 +129,10 @@
                 <goal>baseline</goal>
               </goals>
               <configuration>
+                <comparisonVersion>1.0.0</comparisonVersion>
                 <logResults>false</logResults>
                 <failOnWarning>false</failOnWarning>
-                <failOnError>false</failOnError>
+                <failOnError>true</failOnError>
               </configuration>
             </execution>
           </executions>
