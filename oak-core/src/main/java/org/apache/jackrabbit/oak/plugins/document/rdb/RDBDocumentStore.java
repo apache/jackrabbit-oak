@@ -314,25 +314,22 @@ public class RDBDocumentStore implements DocumentStore {
                 Connection con = null;
                 try {
                     con = this.ch.getRWConnection();
+                    Statement stmt = null;
                     try {
-                        Statement stmt = con.createStatement();
+                        stmt = con.createStatement();
                         stmt.execute("drop table " + tname);
                         stmt.close();
                         con.commit();
                         dropped += tname + " ";
                     } catch (SQLException ex) {
-                        LOG.debug("attempting to drop: " + tname);
+                        LOG.debug("attempting to drop: " + tname, ex);
+                    } finally {
+                        close(stmt);
                     }
                 } catch (SQLException ex) {
-                    LOG.debug("attempting to drop: " + tname);
+                    LOG.debug("attempting to drop: " + tname, ex);
                 } finally {
-                    try {
-                        if (con != null) {
-                            con.close();
-                        }
-                    } catch (SQLException ex) {
-                        LOG.debug("on close ", ex);
-                    }
+                    this.ch.closeConnection(con);
                 }
             }
             this.droppedTables = dropped.trim();
@@ -680,54 +677,77 @@ public class RDBDocumentStore implements DocumentStore {
         db.checkVersion(md);
 
         if (! "".equals(db.getInitializationStatement())) {
-            Statement stmt = con.createStatement();
-            stmt.execute(db.getInitializationStatement());
-            stmt.close();
-            con.commit();
+            Statement stmt = null;
+            try {
+                stmt = con.createStatement();
+                stmt.execute(db.getInitializationStatement());
+                stmt.close();
+                con.commit();
+            }
+            finally {
+                close(stmt);
+            }
         }
 
+        List<String> tablesCreated = new ArrayList<String>();
+        List<String> tablesPresent = new ArrayList<String>();
         try {
-            createTableFor(con, Collection.CLUSTER_NODES, options.isDropTablesOnClose());
-            createTableFor(con, Collection.NODES, options.isDropTablesOnClose());
-            createTableFor(con, Collection.SETTINGS, options.isDropTablesOnClose());
+            createTableFor(con, Collection.CLUSTER_NODES, tablesCreated, tablesPresent);
+            createTableFor(con, Collection.NODES, tablesCreated, tablesPresent);
+            createTableFor(con, Collection.SETTINGS, tablesCreated, tablesPresent);
         } finally {
             con.commit();
             con.close();
         }
 
-        LOG.info("RDBDocumentStore instantiated for database " + dbDesc + ", using driver: " + driverDesc + ", connecting to: " + dbUrl);
+        if (options.isDropTablesOnClose()) {
+            tablesToBeDropped.addAll(tablesCreated);
+        }
+
+        LOG.info("RDBDocumentStore instantiated for database " + dbDesc + ", using driver: " + driverDesc + ", connecting to: "
+                + dbUrl);
+        if (!tablesPresent.isEmpty()) {
+            LOG.info("Tables present upon startup: " + tablesPresent);
+        }
+        if (!tablesCreated.isEmpty()) {
+            LOG.info("Tables created upon startup: " + tablesCreated
+                    + (options.isDropTablesOnClose() ? " (will be dropped on exit)" : ""));
+        }
     }
 
-    private void createTableFor(Connection con, Collection<? extends Document> col, boolean dropTablesOnClose) throws SQLException {
+    private void createTableFor(Connection con, Collection<? extends Document> col, List<String> tablesCreated, List<String> tablesPresent) throws SQLException {
         String dbname = this.db.toString();
         if (con.getMetaData().getURL() != null) {
             dbname += " (" + con.getMetaData().getURL() + ")";
         }
         String tableName = getTable(col);
+
+        PreparedStatement checkStatement = null;
+        ResultSet checkResultSet = null;
+        Statement creatStatement = null;
         try {
-            PreparedStatement stmt = con.prepareStatement("select DATA from " + tableName + " where ID = ?");
-            stmt.setString(1, "0:/");
-            ResultSet rs = stmt.executeQuery();
+            checkStatement = con.prepareStatement("select DATA from " + tableName + " where ID = ?");
+            checkStatement.setString(1, "0:/");
+            checkResultSet = checkStatement.executeQuery();
 
             if (col.equals(Collection.NODES)) {
                 // try to discover size of DATA column
-                ResultSetMetaData met = rs.getMetaData();
+                ResultSetMetaData met = checkResultSet.getMetaData();
                 this.dataLimitInOctets = met.getPrecision(1);
             }
-
-            LOG.info("Table " + tableName + " already present in " + dbname);
+            tablesPresent.add(tableName);
         } catch (SQLException ex) {
             // table does not appear to exist
             con.rollback();
 
             try {
-                Statement stmt = con.createStatement();
-                stmt.execute(this.db.getTableCreationStatement(tableName));
-                stmt.close();
+                creatStatement = con.createStatement();
+                creatStatement.execute(this.db.getTableCreationStatement(tableName));
+                creatStatement.close();
 
                 con.commit();
 
-                LOG.info("Created table " + tableName + " in " + dbname);
+                tablesCreated.add(tableName);
 
                 if (col.equals(Collection.NODES)) {
                     PreparedStatement pstmt = con.prepareStatement("select DATA from " + tableName + " where ID = ?");
@@ -736,15 +756,16 @@ public class RDBDocumentStore implements DocumentStore {
                     ResultSetMetaData met = rs.getMetaData();
                     this.dataLimitInOctets = met.getPrecision(1);
                 }
-
-                if (dropTablesOnClose) {
-                    tablesToBeDropped.add(tableName);
-                }
             }
             catch (SQLException ex2) {
                 LOG.error("Failed to create table " + tableName + " in " + dbname, ex2);
                 throw ex2;
             }
+        }
+        finally {
+            close(checkResultSet);
+            close(checkStatement);
+            close(creatStatement);
         }
     }
 
@@ -1664,6 +1685,30 @@ public class RDBDocumentStore implements DocumentStore {
     private static long modcountOf(@Nonnull Document doc) {
         Number n = doc.getModCount();
         return n != null ? n.longValue() : -1;
+    }
+
+    private static <T extends Statement> T close(@CheckForNull T stmt) {
+        if (stmt != null) {
+            try {
+                stmt.close();
+            } catch (SQLException ex) {
+                LOG.debug("Closing statement", ex);
+            }
+        }
+
+        return null;
+    }
+
+    private static ResultSet close(@CheckForNull ResultSet rs) {
+        if (rs != null) {
+            try {
+                rs.close();
+            } catch (SQLException ex) {
+                LOG.debug("Closing result set", ex);
+            }
+        }
+
+        return null;
     }
 
     /**
