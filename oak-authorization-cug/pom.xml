@@ -43,17 +43,6 @@
             </Export-Package>
           </instructions>
         </configuration>
-        <executions>
-          <execution>
-            <id>baseline</id>
-            <goals>
-              <goal>baseline</goal>
-            </goals>
-            <configuration>
-              <skip>true</skip>
-            </configuration>
-          </execution>
-        </executions>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
