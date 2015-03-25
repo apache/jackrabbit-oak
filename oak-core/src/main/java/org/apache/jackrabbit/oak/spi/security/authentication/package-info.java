@@ -14,7 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@Version("2.0")
+@Version("1.0")
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
 import aQute.bnd.annotation.Version;
+import aQute.bnd.annotation.Export;

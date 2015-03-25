@@ -55,17 +55,6 @@
             <Export-Package>!org.apache.jackrabbit.oak.plugins.segment.standby.*</Export-Package>
           </instructions>
         </configuration>
-        <executions>
-          <execution>
-            <id>baseline</id>
-            <goals>
-              <goal>baseline</goal>
-            </goals>
-            <configuration>
-              <skip>true</skip>
-            </configuration>
-          </execution>
-        </executions>
       </plugin>
       <plugin>
         <groupId>org.apache.felix</groupId>
