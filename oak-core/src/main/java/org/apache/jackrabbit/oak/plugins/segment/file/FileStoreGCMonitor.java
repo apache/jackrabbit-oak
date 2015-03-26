@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.plugins.segment.file;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.text.DateFormat.getDateTimeInstance;
-import static org.apache.jackrabbit.oak.stats.TimeSeriesStatsUtil.asCompositeData;
+import static org.apache.jackrabbit.stats.TimeSeriesStatsUtil.asCompositeData;
 import static org.slf4j.helpers.MessageFormatter.arrayFormat;
 
 import java.io.PrintWriter;

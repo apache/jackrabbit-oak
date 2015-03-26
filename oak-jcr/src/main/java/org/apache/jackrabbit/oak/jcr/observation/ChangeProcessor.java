@@ -24,6 +24,7 @@ import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.OBSERVAT
 import static org.apache.jackrabbit.oak.plugins.observation.filter.VisibleFilter.VISIBLE_FILTER;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerObserver;
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -54,7 +55,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
-import org.apache.jackrabbit.oak.stats.TimeSeriesMax;
+import org.apache.jackrabbit.stats.TimeSeriesMax;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -148,7 +149,14 @@ class ChangeProcessor implements Observer {
                 public void unregister() {
                     executor.stop();
                 }
-        });
+            },
+            scheduleWithFixedDelay(whiteboard, new Runnable() {
+                @Override
+                public void run() {
+                    tracker.recordOneSecond();
+                }
+            }, 1)
+        );
     }
 
     private BackgroundObserver createObserver(final WhiteboardExecutor executor) {
@@ -159,6 +167,7 @@ class ChangeProcessor implements Observer {
             @Override
             protected void added(int queueSize) {
                 maxQueueLength.recordValue(queueSize);
+                tracker.recordQueueLength(queueSize);
 
                 if (queueSize == queueLength) {
                     if (commitRateLimiter != null) {

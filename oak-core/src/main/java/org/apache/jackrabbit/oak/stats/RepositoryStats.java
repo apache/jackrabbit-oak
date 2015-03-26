@@ -40,6 +40,7 @@ import javax.management.openmbean.CompositeData;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.api.jmx.RepositoryStatsMBean;
+import org.apache.jackrabbit.stats.TimeSeriesStatsUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
