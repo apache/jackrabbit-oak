@@ -85,55 +85,18 @@ public class UserQueryManager {
             return Iterators.emptyIterator();
         }
 
-        Value bound = builder.getBound();
-        Condition condition = builder.getCondition();
-        String sortCol = builder.getSortProperty();
-        QueryBuilder.Direction sortDir = builder.getSortDirection();
-        if (bound != null) {
-            if (sortCol == null) {
-                log.warn("Ignoring bound {} since no sort order is specified");
-            } else {
-                Condition boundCondition = builder.property(sortCol, QueryUtil.getCollation(sortDir), bound);
-                if (condition == null) {
-                    condition = boundCondition;
-                } else {
-                    condition = builder.and(condition, boundCondition);
-                }
-            }
-        }
-
-        StringBuilder statement = new StringBuilder();
-        ConditionVisitor visitor = new XPathConditionVisitor(statement, namePathMapper, userManager);
-
-        String searchRoot = namePathMapper.getJcrPath(QueryUtil.getSearchRoot(builder.getSelectorType(), config));
-        String ntName = namePathMapper.getJcrName(QueryUtil.getNodeTypeName(builder.getSelectorType()));
-        statement.append(searchRoot).append("//element(*,").append(ntName).append(')');
-
-        if (condition != null) {
-            statement.append('[');
-            condition.accept(visitor);
-            statement.append(']');
-        }
-
-        if (sortCol != null) {
-            boolean ignoreCase = builder.getSortIgnoreCase();
-            statement.append(" order by ");
-            if (ignoreCase) {
-                statement.append("fn:lower-case(").append(sortCol).append(')');
-            } else {
-                statement.append(sortCol);
-            }
-            statement.append(' ').append(sortDir.getDirection());
-        }
+        String statement = buildXPathStatement(builder);
 
         final String groupId = builder.getGroupID();
         if (groupId == null || EveryonePrincipal.NAME.equals(groupId)) {
             long offset = builder.getOffset();
+            Value bound = builder.getBound();
+
             if (bound != null && offset > 0) {
-                log.warn("Found bound {} and offset {} in limit. Discarding offset.", bound, offset);
+                log.warn("Found bound {} and offset {} in limit. Discarding offset.", builder.getBound(), offset);
                 offset = 0;
             }
-            Iterator<Authorizable> result = findAuthorizables(statement.toString(), builder.getMaxCount(), offset, null);
+            Iterator<Authorizable> result = findAuthorizables(statement, builder.getMaxCount(), offset, null);
             if (groupId == null) {
                 return result;
             } else {
@@ -151,7 +114,7 @@ public class UserQueryManager {
         } else {
             // filtering by group name included in query -> enforce offset
             // and limit on the result set.
-            Iterator<Authorizable> result = findAuthorizables(statement.toString(), Long.MAX_VALUE, 0, null);
+            Iterator<Authorizable> result = findAuthorizables(statement, Long.MAX_VALUE, 0, null);
             Predicate groupFilter = new GroupPredicate(userManager,
                     groupId,
                     builder.isDeclaredMembersOnly());
@@ -274,6 +237,53 @@ public class UserQueryManager {
             stmt.append(']');
         }
         return stmt.toString();
+    }
+
+    @Nonnull
+    private String buildXPathStatement(@Nonnull XPathQueryBuilder builder) throws RepositoryException {
+        Condition condition = builder.getCondition();
+        String sortCol = builder.getSortProperty();
+        QueryBuilder.Direction sortDir = builder.getSortDirection();
+        Value bound = builder.getBound();
+
+        if (bound != null) {
+            if (sortCol == null) {
+                log.warn("Ignoring bound {} since no sort order is specified");
+            } else {
+                Condition boundCondition = builder.property(sortCol, QueryUtil.getCollation(sortDir), bound);
+                if (condition == null) {
+                    condition = boundCondition;
+                } else {
+                    condition = builder.and(condition, boundCondition);
+                }
+            }
+        }
+
+        StringBuilder statement = new StringBuilder();
+        ConditionVisitor visitor = new XPathConditionVisitor(statement, namePathMapper, userManager);
+
+        String searchRoot = namePathMapper.getJcrPath(QueryUtil.getSearchRoot(builder.getSelectorType(), config));
+        String ntName = namePathMapper.getJcrName(QueryUtil.getNodeTypeName(builder.getSelectorType()));
+        statement.append(searchRoot).append("//element(*,").append(ntName).append(')');
+
+        if (condition != null) {
+            statement.append('[');
+            condition.accept(visitor);
+            statement.append(']');
+        }
+
+        if (sortCol != null) {
+            boolean ignoreCase = builder.getSortIgnoreCase();
+            statement.append(" order by ");
+            if (ignoreCase) {
+                statement.append("fn:lower-case(").append(sortCol).append(')');
+            } else {
+                statement.append(sortCol);
+            }
+            statement.append(' ').append(sortDir.getDirection());
+        }
+
+        return statement.toString();
     }
 
     @Nonnull

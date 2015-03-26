@@ -26,14 +26,23 @@ import org.apache.jackrabbit.api.security.user.Group;
 
 class AuthorizableImpl implements Authorizable {
 
-    final Authorizable dlg;
-    final AutoSaveEnabledManager mgr;
+    private final Authorizable dlg;
+    private final AutoSaveEnabledManager mgr;
 
     AuthorizableImpl(Authorizable dlg, AutoSaveEnabledManager mgr) {
         this.dlg = dlg;
         this.mgr = mgr;
     }
 
+    Authorizable getDlg() {
+        return dlg;
+    }
+
+    AutoSaveEnabledManager getMgr() {
+        return mgr;
+    }
+
+    //-------------------------------------------------------< Authorizable >---
     @Override
     public String getID() throws RepositoryException {
         return dlg.getID();

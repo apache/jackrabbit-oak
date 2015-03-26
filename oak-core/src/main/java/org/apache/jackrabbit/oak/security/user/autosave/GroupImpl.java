@@ -28,24 +28,24 @@ class GroupImpl extends AuthorizableImpl implements Group {
         super(dlg, mgr);
     }
 
-    private Group getDelegate() {
-        return (Group) dlg;
+    Group getDelegate() {
+        return (Group) getDlg();
     }
 
     @Override
     public Iterator<Authorizable> getDeclaredMembers() throws RepositoryException {
-        return AuthorizableWrapper.createIterator(getDelegate().getDeclaredMembers(), mgr);
+        return AuthorizableWrapper.createIterator(getDelegate().getDeclaredMembers(), getMgr());
     }
 
     @Override
     public Iterator<Authorizable> getMembers() throws RepositoryException {
-        return AuthorizableWrapper.createIterator(getDelegate().getMembers(), mgr);
+        return AuthorizableWrapper.createIterator(getDelegate().getMembers(), getMgr());
     }
 
     @Override
     public boolean isDeclaredMember(Authorizable authorizable) throws RepositoryException {
         if (isValid(authorizable)) {
-            return getDelegate().isDeclaredMember(((AuthorizableImpl) authorizable).dlg);
+            return getDelegate().isDeclaredMember(((AuthorizableImpl) authorizable).getDlg());
         } else {
             return false;
         }
@@ -54,7 +54,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
     @Override
     public boolean isMember(Authorizable authorizable) throws RepositoryException {
         if (isValid(authorizable)) {
-            return getDelegate().isMember(((AuthorizableImpl) authorizable).dlg);
+            return getDelegate().isMember(((AuthorizableImpl) authorizable).getDlg());
         } else {
             return false;
         }
@@ -64,12 +64,12 @@ class GroupImpl extends AuthorizableImpl implements Group {
     public boolean addMember(Authorizable authorizable) throws RepositoryException {
         try {
             if (isValid(authorizable)) {
-                return getDelegate().addMember(((AuthorizableImpl) authorizable).dlg);
+                return getDelegate().addMember(((AuthorizableImpl) authorizable).getDlg());
             } else {
                 return false;
             }
         } finally {
-            mgr.autosave();
+            getMgr().autosave();
         }
     }
 
@@ -77,12 +77,12 @@ class GroupImpl extends AuthorizableImpl implements Group {
     public boolean removeMember(Authorizable authorizable) throws RepositoryException {
         try {
             if (isValid(authorizable)) {
-                return getDelegate().removeMember(((AuthorizableImpl) authorizable).dlg);
+                return getDelegate().removeMember(((AuthorizableImpl) authorizable).getDlg());
             } else {
                 return false;
             }
         } finally {
-            mgr.autosave();
+            getMgr().autosave();
         }
     }
 
