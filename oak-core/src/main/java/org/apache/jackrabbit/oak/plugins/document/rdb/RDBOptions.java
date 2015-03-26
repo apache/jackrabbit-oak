@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import javax.annotation.Nonnull;
+
 /**
  * Options applicable to RDB persistence
  */
@@ -38,12 +40,12 @@ public class RDBOptions {
     /**
      * Prefix for table names.
      */
-    public RDBOptions tablePrefix(String tablePrefix) {
+    public RDBOptions tablePrefix(@Nonnull String tablePrefix) {
         this.tablePrefix = tablePrefix;
         return this;
     }
 
-    public String getTablePrefix() {
+    public @Nonnull String getTablePrefix() {
         return this.tablePrefix;
     }
 
