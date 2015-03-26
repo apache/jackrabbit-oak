@@ -319,7 +319,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     }
 
     @Override
-    public void propertiesCompleted(@Nonnull Tree protectedParent) throws IllegalStateException, ConstraintViolationException, RepositoryException {
+    public void propertiesCompleted(@Nonnull Tree protectedParent) throws RepositoryException {
         Authorizable a = userManager.getAuthorizable(protectedParent);
         if (a == null) {
             // not an authorizable
