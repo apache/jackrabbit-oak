@@ -494,7 +494,7 @@ public abstract class AbstractLoginModule implements LoginModule {
         }
     }
 
-    static protected void setAuthInfo(@Nonnull AuthInfo authInfo, @Nonnull Subject subject) {
+    protected static void setAuthInfo(@Nonnull AuthInfo authInfo, @Nonnull Subject subject) {
         Set<AuthInfo> ais = subject.getPublicCredentials(AuthInfo.class);
         if (!ais.isEmpty()) {
             subject.getPublicCredentials().removeAll(ais);

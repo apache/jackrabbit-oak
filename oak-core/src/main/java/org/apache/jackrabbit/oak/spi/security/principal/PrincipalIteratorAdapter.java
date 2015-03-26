@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.principal;
 import java.security.Principal;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.NoSuchElementException;
 
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
@@ -61,10 +60,9 @@ public class PrincipalIteratorAdapter extends RangeIteratorDecorator implements 
      * Returns the next policy.
      *
      * @return next policy.
-     * @throws java.util.NoSuchElementException if there is no next policy.
      */
     @Override
-    public Principal nextPrincipal() throws NoSuchElementException {
+    public Principal nextPrincipal() {
         return (Principal) next();
     }
 }
