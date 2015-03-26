@@ -107,15 +107,19 @@ class LoginContextProviderImpl implements LoginContextProvider {
         if (configuration == null) {
             Configuration loginConfig = null;
 
-            //Default value cannot be set to null so using a sentinel to determine
-            //case when its not set
-            String configSpiName = params.getConfigValue(PARAM_CONFIG_SPI_NAME, "NA");
-            if(!"NA".equals(configSpiName)){
+            String configSpiName = params.getConfigValue(PARAM_CONFIG_SPI_NAME, null, String.class);
+            if (configSpiName != null) {
                 try {
+                    /*
+                     Create a configuration instance with the following characteristics
+                     - Algorithm name : "JavaLoginConfig"
+                     - Extra parameters : 'null' for this impl
+                     - Name of the config provider : 'configSpiName' as retrieved from the PARAM_CONFIG_SPI_NAME configuration (default: null)
+                     */
                     loginConfig = Configuration.getInstance(
-                            "JavaLoginConfig",      //Algorithm name
-                            null,                   //Extra params to be passed. For this impl its null
-                            configSpiName     //Name of the config provider
+                            "JavaLoginConfig",
+                            null,
+                            configSpiName
                     );
                     if (loginConfig.getAppConfigurationEntry(appName) == null) {
                         log.warn("No configuration found for application {} though fetching JAAS " +
@@ -128,7 +132,7 @@ class LoginContextProviderImpl implements LoginContextProvider {
                 }
             }
 
-            if(loginConfig == null) {
+            if (loginConfig == null) {
                 try {
                     loginConfig = Configuration.getConfiguration();
                     // NOTE: workaround for Java7 behavior (see OAK-497)
