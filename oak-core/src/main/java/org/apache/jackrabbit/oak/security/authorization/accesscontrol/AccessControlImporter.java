@@ -197,39 +197,39 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
     private JackrabbitAccessControlList getACL(Tree tree) throws RepositoryException {
         String nodeName = tree.getName();
 
-        JackrabbitAccessControlList acl = null;
+        JackrabbitAccessControlList acList = null;
         if (!tree.isRoot()) {
             Tree parent = tree.getParent();
             if (AccessControlConstants.REP_POLICY.equals(nodeName)
                     && ntMgr.isNodeType(tree, AccessControlConstants.NT_REP_ACL)) {
-                acl = getACL(parent.getPath());
+                acList = getACL(parent.getPath());
             } else if (AccessControlConstants.REP_REPO_POLICY.equals(nodeName)
                     && ntMgr.isNodeType(tree, AccessControlConstants.NT_REP_ACL)
                     && parent.isRoot()) {
-                acl = getACL((String) null);
+                acList = getACL((String) null);
             }
         }
 
-        if (acl != null) {
+        if (acList != null) {
             // clear all existing entries
-            for (AccessControlEntry ace: acl.getAccessControlEntries()) {
-                acl.removeAccessControlEntry(ace);
+            for (AccessControlEntry ace: acList.getAccessControlEntries()) {
+                acList.removeAccessControlEntry(ace);
             }
         }
 
-        return acl;
+        return acList;
     }
 
     @CheckForNull
     private JackrabbitAccessControlList getACL(String path) throws RepositoryException {
-        JackrabbitAccessControlList acl = null;
+        JackrabbitAccessControlList acList = null;
         for (AccessControlPolicy p : acMgr.getPolicies(path)) {
             if (p instanceof JackrabbitAccessControlList) {
-                acl = (JackrabbitAccessControlList) p;
+                acList = (JackrabbitAccessControlList) p;
                 break;
             }
         }
-        return acl;
+        return acList;
     }
 
     //--------------------------------------------------------------------------
