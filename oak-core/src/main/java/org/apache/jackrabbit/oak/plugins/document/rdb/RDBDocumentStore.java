@@ -49,8 +49,6 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.sql.DataSource;
 
-import com.google.common.collect.ImmutableMap;
-
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -73,6 +71,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Objects;
 import com.google.common.cache.Cache;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Striped;
 
@@ -616,8 +615,10 @@ public class RDBDocumentStore implements DocumentStore {
     private RDBConnectionHandler ch;
 
     // from options
-    private String tablePrefix = "";
     private Set<String> tablesToBeDropped = new HashSet<String>();
+
+    // table names
+    private String tnNodes, tnClusterNodes, tnSettings; 
 
     // ratio between Java characters and UTF-8 encoding
     // a) single characters will fit into 3 bytes
@@ -651,10 +652,9 @@ public class RDBDocumentStore implements DocumentStore {
 
     private void initialize(DataSource ds, DocumentMK.Builder builder, RDBOptions options) throws Exception {
 
-        this.tablePrefix = options.getTablePrefix();
-        if (tablePrefix.length() > 0 && !tablePrefix.endsWith("_")) {
-            tablePrefix += "_";
-        }
+        this.tnNodes = RDBJDBCTools.createTableName(options.getTablePrefix(), "NODES");
+        this.tnClusterNodes = RDBJDBCTools.createTableName(options.getTablePrefix(), "CLUSTERNODES");
+        this.tnSettings = RDBJDBCTools.createTableName(options.getTablePrefix(), "SETTINGS");
 
         this.ch = new RDBConnectionHandler(ds);
         this.callStack = LOG.isDebugEnabled() ? new Exception("call stack of RDBDocumentStore creation") : null;
@@ -1085,11 +1085,11 @@ public class RDBDocumentStore implements DocumentStore {
 
     private <T extends Document> String getTable(Collection<T> collection) {
         if (collection == Collection.CLUSTER_NODES) {
-            return this.tablePrefix + "CLUSTERNODES";
+            return this.tnClusterNodes;
         } else if (collection == Collection.NODES) {
-            return this.tablePrefix + "NODES";
+            return this.tnNodes;
         } else if (collection == Collection.SETTINGS) {
-            return this.tablePrefix + "SETTINGS";
+            return this.tnSettings;
         } else {
             throw new IllegalArgumentException("Unknown collection: " + collection.toString());
         }
