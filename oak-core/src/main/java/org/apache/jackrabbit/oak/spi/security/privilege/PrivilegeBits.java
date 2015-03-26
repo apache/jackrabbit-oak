@@ -508,7 +508,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
     /**
      * Base class for the internal privilege bits representation and handling.
      */
-    private static abstract class Data {
+    private abstract static class Data {
 
         abstract boolean isEmpty();
 
