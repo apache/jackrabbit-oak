@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import java.util.Locale;
 
+import javax.annotation.Nonnull;
+
 public class RDBJDBCTools {
 
     protected static String jdbctype(String jdbcurl) {
@@ -55,5 +57,31 @@ public class RDBJDBCTools {
         } else {
             return "";
         }
+    }
+
+    private static @Nonnull String checkLegalTableName(@Nonnull String tableName) throws IllegalArgumentException {
+        for (int i = 0; i < tableName.length(); i++) {
+            char c = tableName.charAt(i);
+            if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || (c == '_'))) {
+                throw new IllegalArgumentException("Invalid character '" + c + "' in table name '" + tableName + "'");
+            }
+        }
+        return tableName;
+    }
+
+    /**
+     * Creates a table name based on an optional prefix and a base name.
+     * 
+     * @throws IllegalArgumentException
+     *             upon illegal characters in name
+     */
+    protected static @Nonnull String createTableName(@Nonnull String prefix, @Nonnull String basename)
+            throws IllegalArgumentException {
+        String p = checkLegalTableName(prefix);
+        String b = checkLegalTableName(basename);
+        if (p.length() != 0 && !p.endsWith("_")) {
+            p += "_";
+        }
+        return p + b;
     }
 }
