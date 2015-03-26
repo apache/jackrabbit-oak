@@ -48,8 +48,8 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
 
     @Nonnull
     @Override
-    public AccessControlManager getAccessControlManager(final @Nonnull Root root,
-                                                        final @Nonnull NamePathMapper namePathMapper) {
+    public AccessControlManager getAccessControlManager(@Nonnull final Root root,
+                                                        @Nonnull final NamePathMapper namePathMapper) {
         List<AuthorizationConfiguration> configurations = getConfigurations();
         switch (configurations.size()) {
             case 0: throw new IllegalStateException();
@@ -81,9 +81,9 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
 
     @Nonnull
     @Override
-    public PermissionProvider getPermissionProvider(final @Nonnull Root root,
-                                                    final @Nonnull String workspaceName,
-                                                    final @Nonnull Set<Principal> principals) {
+    public PermissionProvider getPermissionProvider(@Nonnull final Root root,
+                                                    @Nonnull final String workspaceName,
+                                                    @Nonnull final Set<Principal> principals) {
         List<AuthorizationConfiguration> configurations = getConfigurations();
         switch (configurations.size()) {
             case 0: throw new IllegalStateException();
