@@ -37,8 +37,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
-import org.junit.Assume;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,9 +68,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
     @Test
     public void testMaxIdAscii() {
-        // TODO see OAK-2395
-        Assume.assumeTrue(! super.dsname.contains("MSSql"));
-
         int result = testMaxId(true);
         assertTrue("needs to support keys of 512 bytes length, but only supports " + result, result >= 512);
     }
@@ -83,8 +78,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     private int testMaxId(boolean ascii) {
-        // TODO see OAK-1589
-        Assume.assumeTrue(!(super.ds instanceof MongoDocumentStore));
         int min = 0;
         int max = 32768;
         int test = 0;
@@ -718,7 +711,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                 PreparedStatement stmt = connection.prepareStatement("insert into " + table
                         + " (ID, MODCOUNT, DATA) values (?, ?, ?)");
                 try {
-                    stmt.setString(1, key);
+                    setIdInStatement(stmt, 1, key);
                     stmt.setLong(2, 0);
                     stmt.setString(3, "X");
                     stmt.executeUpdate();
@@ -728,6 +721,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                 }
             } catch (SQLException ex) {
                 // ignored
+                // ex.printStackTrace();
             } finally {
                 if (connection != null) {
                     try {
@@ -763,7 +757,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                         PreparedStatement stmt = connection.prepareStatement("update " + table + " set MODCOUNT = ? where ID = ?");
                         try {
                             stmt.setLong(1, cnt);
-                            stmt.setString(2, key);
+                            setIdInStatement(stmt, 2, key);
                             assertEquals(1, stmt.executeUpdate());
                             connection.commit();
                         } finally {
@@ -775,7 +769,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                         try {
                             stmt.setLong(1, cnt);
                             stmt.setString(2, "JSON data " + UUID.randomUUID());
-                            stmt.setString(3, key);
+                            setIdInStatement(stmt, 3, key);
                             assertEquals(1, stmt.executeUpdate());
                             connection.commit();
                         } finally {
@@ -790,7 +784,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                             bdata[(int) cnt % bdata.length] = (byte) (cnt & 0xff);
                             stmt.setString(2, "JSON data " + UUID.randomUUID());
                             stmt.setBytes(3, bdata);
-                            stmt.setString(4, key);
+                            setIdInStatement(stmt, 4, key);
                             assertEquals(1, stmt.executeUpdate());
                             connection.commit();
                         } finally {
@@ -814,11 +808,12 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                         PreparedStatement stmt = connection.prepareStatement(t);
                         try {
                             stmt.setString(1, appendString);
-                            stmt.setString(2, key);
+                            setIdInStatement(stmt, 2, key);
                             assertEquals(1, stmt.executeUpdate());
                             connection.commit();
                             expect.append(appendString);
                         } catch (SQLException ex) {
+                            // ex.printStackTrace();
                             String state = ex.getSQLState();
                             if ("22001".equals(state) /* everybody */ || ("72000".equals(state) && 1489 == ex.getErrorCode()) /* Oracle */) {
                                 // overflow
@@ -826,11 +821,12 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                                 stmt = connection.prepareStatement("update " + table
                                         + " set MODCOUNT = MODCOUNT + 1, DATA = ? where ID = ?");
                                 stmt.setString(1, "X");
-                                stmt.setString(2, key);
+                                setIdInStatement(stmt, 2, key);
                                 assertEquals(1, stmt.executeUpdate());
                                 connection.commit();
                                 expect = new StringBuffer("X");
                             } else {
+                                // ex.printStackTrace();
                                 throw (ex);
                             }
                         } finally {
@@ -855,7 +851,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                                 stmt.setString(si++, "null");
                                 stmt.setBytes(si++, sdata.getBytes("UTF-8"));
                             }
-                            stmt.setString(si++, key);
+                            setIdInStatement(stmt, si++, key);
                             assertEquals(1, stmt.executeUpdate());
                             connection.commit();
                             sdata += appendString;
@@ -886,7 +882,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                     connection.setAutoCommit(false);
                     PreparedStatement stmt = connection.prepareStatement("select DATA, MODCOUNT from " + table + " where ID = ?");
                     try {
-                        stmt.setString(1, key);
+                        setIdInStatement(stmt, 1, key);
                         ResultSet rs = stmt.executeQuery();
                         assertTrue(rs.next());
                         String got = rs.getString(1);
@@ -965,6 +961,20 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             Number cmc3 = (Number)nd.get("_collisionsModCount");
             assertNotNull(cmc3);
             assertTrue(cmc2.longValue() == cmc3.longValue());
+        }
+    }
+
+    private void setIdInStatement(PreparedStatement stmt, int idx, String id) throws SQLException {
+        boolean binaryId = super.dsname.contains("MySQL") || super.dsname.contains("MSSql");
+        if (binaryId) {
+            try {
+                stmt.setBytes(idx, id.getBytes("UTF-8"));
+            } catch (UnsupportedEncodingException ex) {
+                LOG.error("UTF-8 not supported??", ex);
+                throw new DocumentStoreException(ex);
+            }
+        } else {
+            stmt.setString(idx, id);
         }
     }
 

@@ -32,6 +32,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
 import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
@@ -98,7 +99,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
     }
 
     @Override
-    public void finalize() {
+    protected void finalize() {
         if (this.ch != null && this.callStack != null) {
             LOG.debug("finalizing RDBDocumentStore that was not disposed", this.callStack);
         }
@@ -130,6 +131,83 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
     private String metaTable;
     private Set<String> tablesToBeDropped = new HashSet<String>();
 
+    /**
+     * Defines variation in the capabilities of different RDBs.
+     */
+    protected enum DB {
+        DB2("DB2") {
+            @Override
+            public String getDataTableCreationStatement(String tableName) {
+                return "create table " + tableName + " (ID varchar(" + IDSIZE + ") not null primary key, DATA blob(" + MINBLOB + "))";
+            }
+        },
+
+        MSSQL("Microsoft SQL Server") {
+            @Override
+            public String getDataTableCreationStatement(String tableName) {
+                return "create table " + tableName + " (ID varchar(" + IDSIZE + ") not null primary key, DATA varbinary(max))";
+            }
+        },
+
+        MYSQL("MySQL") {
+            @Override
+            public String getDataTableCreationStatement(String tableName) {
+                return "create table " + tableName + " (ID varchar(" + IDSIZE + ") not null primary key, DATA mediumblob)";
+            }
+        },
+
+        ORACLE("Oracle") {
+            @Override
+            public String getMetaTableCreationStatement(String tableName) {
+                return "create table " + tableName + " (ID varchar(" + IDSIZE + ") not null primary key, LVL number, LASTMOD number)";
+            }
+        },
+
+        POSTGRES("PostgreSQL") {
+            @Override
+            public String getDataTableCreationStatement(String tableName) {
+                return "create table " + tableName + " (ID varchar(" + IDSIZE + ") not null primary key, DATA bytea)";
+            }
+        },
+
+        DEFAULT("default") {
+        };
+
+        public String getDataTableCreationStatement(String tableName) {
+            return "create table " + tableName + " (ID varchar(" + IDSIZE + ") not null primary key, DATA blob)";
+        }
+
+        public String getMetaTableCreationStatement(String tableName) {
+            return "create table " + tableName + " (ID varchar(" + IDSIZE + ") not null primary key, LVL int, LASTMOD bigint)";
+        }
+
+        private String description;
+
+        private DB(String description) {
+            this.description = description;
+        }
+
+        @Override
+        public String toString() {
+            return this.description;
+        }
+
+        @Nonnull
+        public static DB getValue(String desc) {
+            for (DB db : DB.values()) {
+                if (db.description.equals(desc)) {
+                    return db;
+                } else if (db == DB2 && desc.startsWith("DB2/")) {
+                    return db;
+                }
+            }
+
+            LOG.error("DB type " + desc + " unknown, trying default settings");
+            DEFAULT.description = desc + " - using default settings";
+            return DEFAULT;
+        }
+    }
+
     private void initialize(DataSource ds, RDBOptions options) throws Exception {
 
         String tablePrefix = options.getTablePrefix();
@@ -154,37 +232,16 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                     // table does not appear to exist
                     con.rollback();
 
-                    String dbtype = con.getMetaData().getDatabaseProductName();
-                    LOG.info("Attempting to create table " + tableName + " in " + dbtype);
+                    DB db = DB.getValue(con.getMetaData().getDatabaseProductName());
+                    LOG.info("Attempting to create table " + tableName + " in " + db);
 
                     Statement stmt = con.createStatement();
 
                     if (baseName.equals("DATASTORE_META")) {
-                        String ct;
-                        if ("Oracle".equals(dbtype)) {
-                            ct = "create table " + tableName + " (ID varchar(" + IDSIZE
-                                    + ") not null primary key, LVL number, LASTMOD number)";
-                        } else {
-                            ct = "create table " + tableName + " (ID varchar(" + IDSIZE
-                                    + ") not null primary key, LVL int, LASTMOD bigint)";
-                        }
+                        String ct = db.getMetaTableCreationStatement(tableName);
                         stmt.execute(ct);
                     } else {
-                        String ct;
-                        if ("PostgreSQL".equals(dbtype)) {
-                            ct = "create table " + tableName + " (ID varchar(" + IDSIZE + ") not null primary key, DATA bytea)";
-                        } else if ("DB2".equals(dbtype) || (dbtype != null && dbtype.startsWith("DB2/"))) {
-                            ct = "create table " + tableName + " (ID varchar(" + IDSIZE + ") not null primary key, DATA blob("
-                                    + MINBLOB + "))";
-                        } else if ("MySQL".equals(dbtype)) {
-                            ct = "create table " + tableName + " (ID varchar(" + IDSIZE
-                                    + ") not null primary key, DATA mediumblob)";
-                        } else if ("Microsoft SQL Server".equals(dbtype)) {
-                            ct = "create table " + tableName + " (ID varchar(" + IDSIZE
-                                    + ") not null primary key, DATA varbinary(max))";
-                        } else {
-                            ct = "create table " + tableName + " (ID varchar(" + IDSIZE + ") not null primary key, DATA blob)";
-                        }
+                        String ct = db.getDataTableCreationStatement(tableName);
                         stmt.execute(ct);
                     }
 

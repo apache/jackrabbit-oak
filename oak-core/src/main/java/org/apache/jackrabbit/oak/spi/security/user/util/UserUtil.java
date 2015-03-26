@@ -93,7 +93,8 @@ public final class UserUtil implements UserConstants {
     }
 
     @CheckForNull
-    public static String getAuthorizableRootPath(ConfigurationParameters parameters, AuthorizableType type) {
+    public static String getAuthorizableRootPath(@Nonnull ConfigurationParameters parameters,
+                                                 @Nullable AuthorizableType type) {
         String path = null;
         if (type != null) {
             switch (type) {

@@ -44,33 +44,6 @@ public abstract class NodeStoreFixture {
 
     public static final NodeStoreFixture SEGMENT_MK = new SegmentFixture();
 
-    public static final NodeStoreFixture DOCUMENT_MK = new NodeStoreFixture() {
-        @Override
-        public DocumentNodeStore createNodeStore() {
-            return new DocumentMK.Builder().getNodeStore();
-        }
-
-        @Override
-        public DocumentNodeStore createNodeStore(int clusterNodeId) {
-            MongoConnection connection;
-            try {
-                connection = new MongoConnection("mongodb://localhost:27017/oak");
-                return new DocumentMK.Builder()
-                        .setMongoDB(connection.getDB())
-                        .getNodeStore();
-            } catch (Exception e) {
-                return null;
-            }
-        }
-
-        @Override
-        public void dispose(NodeStore nodeStore) {
-            if (nodeStore instanceof DocumentNodeStore) {
-                ((DocumentNodeStore) nodeStore).dispose();
-            }
-        }
-    };
-
     public static final NodeStoreFixture DOCUMENT_NS = createDocumentFixture("mongodb://localhost:27017/oak");
 
     public static final NodeStoreFixture DOCUMENT_RDB = new NodeStoreFixture() {
@@ -82,14 +55,20 @@ public abstract class NodeStoreFixture {
         public NodeStore createNodeStore() {
             String id = UUID.randomUUID().toString();
             this.ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:file:./" + fname + id, "sa", "");
-            return new DocumentMK.Builder().setRDBConnection(this.ds).getNodeStore();
+            return new DocumentMK.Builder().
+                    setRDBConnection(this.ds).
+                    setPersistentCache("target/persistentCache,time").                        
+                    getNodeStore();
         }
 
         @Override
         public NodeStore createNodeStore(int clusterNodeId) {
             try {
                 this.ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:file:./" + fname + "oaknodes-" + clusterNodeId, "sa", "");
-                return new DocumentMK.Builder().setRDBConnection(this.ds).getNodeStore();
+                return new DocumentMK.Builder().
+                        setRDBConnection(this.ds).
+                        setPersistentCache("target/persistentCache,time").                        
+                        getNodeStore();
             } catch (Exception e) {
                 return null;
             }
@@ -190,6 +169,7 @@ public abstract class NodeStoreFixture {
                 if(blobStore != null){
                     builder.setBlobStore(blobStore);
                 }
+                builder.setPersistentCache("target/persistentCache,time");
                 builder.setMongoDB(mongoDB);
                 return builder.getNodeStore();
             } catch (Exception e) {

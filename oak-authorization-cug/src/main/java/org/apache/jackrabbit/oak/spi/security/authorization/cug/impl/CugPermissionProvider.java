@@ -81,7 +81,7 @@ class CugPermissionProvider implements PermissionProvider, AggregatedPermissionP
 
     CugPermissionProvider(@Nonnull Root root,
                           @Nonnull Set<Principal> principals,
-                          @Nonnull String[] supportedPaths,
+                          @Nonnull Set<String> supportedPaths,
                           @Nonnull Context ctx) {
         this.root = root;
 

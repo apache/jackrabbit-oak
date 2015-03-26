@@ -93,6 +93,8 @@ public class FileStore implements SegmentStore {
 
     private static final String JOURNAL_FILE_NAME = "journal.log";
 
+    private static final String LOCK_FILE_NAME = "repo.lock";
+
     static final boolean MEMORY_MAPPING_DEFAULT =
             "64".equals(System.getProperty("sun.arch.data.model", "32"));
 
@@ -116,7 +118,9 @@ public class FileStore implements SegmentStore {
 
     private final RandomAccessFile journalFile;
 
-    private final FileLock journalLock;
+    private final RandomAccessFile lockFile;
+
+    private final FileLock lock;
 
     /**
      * The latest head state.
@@ -345,6 +349,7 @@ public class FileStore implements SegmentStore {
         this.gcMonitor = gcMonitor;
 
         journalFile = new RandomAccessFile(new File(directory, JOURNAL_FILE_NAME), "rw");
+        lockFile = new RandomAccessFile(new File(directory, LOCK_FILE_NAME), "rw");
 
         Map<Integer, Map<Character, File>> map = collectFiles(directory);
         this.readers = newArrayListWithCapacity(map.size());
@@ -384,7 +389,7 @@ public class FileStore implements SegmentStore {
         }
 
         journalFile.seek(journalFile.length());
-        journalLock = journalFile.getChannel().lock();
+        lock = lockFile.getChannel().lock();
 
         if (id != null) {
             head = new AtomicReference<RecordId>(id);
@@ -767,7 +772,8 @@ public class FileStore implements SegmentStore {
                     reader.close();
                 }
 
-                journalLock.release();
+                lock.release();
+                lockFile.close();
                 journalFile.close();
             } catch (IOException e) {
                 throw new RuntimeException(

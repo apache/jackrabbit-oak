@@ -428,6 +428,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
 
         /**
          * Returns a new milliseconds object from the given long value.
+         *
          * @param value the value
          * @return the milliseconds object
          */
@@ -472,18 +473,18 @@ public final class ConfigurationParameters implements Map<String, Object> {
                 String number = m.group(1);
                 String decimal = m.group(2);
                 if (decimal != null) {
-                    number+=decimal;
+                    number += decimal;
                 }
                 String unit = m.group(3);
                 double value = Double.valueOf(number);
                 if ("s".equals(unit)) {
-                    value*= 1000.0;
+                    value *= 1000.0;
                 } else if ("m".equals(unit)) {
-                    value*= 60*1000.0;
+                    value *= 60 * 1000.0;
                 } else if ("h".equals(unit)) {
-                    value*= 60*60*1000.0;
+                    value *= 60 * 60 * 1000.0;
                 } else if ("d".equals(unit)) {
-                    value*= 24*60*60*1000.0;
+                    value *= 24 * 60 * 60 * 1000.0;
                 }
                 current += value;
             }

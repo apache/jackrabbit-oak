@@ -89,6 +89,12 @@ public class TestUtil {
         prop.setProperty(LuceneIndexConstants.PROP_USE_IN_SPELLCHECK, true);
         return prop;
     }
+    
+    public static Tree enableForOrdered(Tree props, String propName) {
+        Tree prop = enablePropertyIndex(props, propName, false);
+        prop.setProperty("ordered", true);
+        return prop;
+    }
 
     public static Tree enablePropertyIndex(Tree props, String propName,  boolean regex) {
         Tree prop = props.addChild(unique("prop"));

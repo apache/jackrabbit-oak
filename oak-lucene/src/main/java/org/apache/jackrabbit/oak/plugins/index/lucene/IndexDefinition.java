@@ -185,6 +185,8 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
     private final Analyzer analyzer;
 
+    private final String scorerProviderName;
+
     private final Map<String, Analyzer> analyzers;
 
     private final boolean hasCustomTikaConfig;
@@ -254,6 +256,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         this.hasCustomTikaConfig = getTikaConfigNode().exists();
         this.maxExtractLength = determineMaxExtractLength();
         this.suggesterUpdateFrequencyMinutes = getOptionalValue(defn, LuceneIndexConstants.SUGGEST_UPDATE_FREQUENCY_MINUTES, 60);
+        this.scorerProviderName = getOptionalValue(defn, LuceneIndexConstants.PROP_SCORER_PROVIDER, null);
     }
 
     public boolean isFullTextEnabled() {
@@ -352,6 +355,10 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
     public int getMaxExtractLength() {
         return maxExtractLength;
+    }
+
+    public String getScorerProviderName() {
+        return scorerProviderName;
     }
 
     @Override
@@ -557,6 +564,25 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         return ntBaseRule != null;
     }
 
+    public boolean isSuggestEnabled() {
+        boolean suggestEnabled = false;
+        for (IndexingRule indexingRule : definedRules) {
+            for (PropertyDefinition propertyDefinition : indexingRule.propConfigs.values()) {
+                if (propertyDefinition.useInSuggest) {
+                    suggestEnabled = true;
+                    break;
+                }
+            }
+            for (NamePattern np : indexingRule.namePatterns) {
+                if (np.getConfig().useInSuggest) {
+                    suggestEnabled = true;
+                    break;
+                }
+            }
+        }
+        return suggestEnabled;
+    }
+
     public class IndexingRule {
         private final String baseNodeType;
         private final String nodeTypeName;
@@ -566,6 +592,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         private final Map<String, PropertyDefinition> propConfigs;
         private final List<NamePattern> namePatterns;
         private final List<PropertyDefinition> nullCheckEnabledProperties;
+        private final List<PropertyDefinition> notNullCheckEnabledProperties;
         private final boolean indexesAllNodesOfMatchingType;
 
         final float boost;
@@ -587,13 +614,15 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
             List<NamePattern> namePatterns = newArrayList();
             List<PropertyDefinition> nonExistentProperties = newArrayList();
+            List<PropertyDefinition> existentProperties = newArrayList();
             List<Aggregate.Include> propIncludes = newArrayList();
-            this.propConfigs = collectPropConfigs(config, namePatterns, propIncludes, nonExistentProperties);
+            this.propConfigs = collectPropConfigs(config, namePatterns, propIncludes, nonExistentProperties, existentProperties);
             this.propAggregate = new Aggregate(nodeTypeName, propIncludes);
             this.aggregate = combine(propAggregate, nodeTypeName);
 
             this.namePatterns = ImmutableList.copyOf(namePatterns);
             this.nullCheckEnabledProperties = ImmutableList.copyOf(nonExistentProperties);
+            this.notNullCheckEnabledProperties = ImmutableList.copyOf(existentProperties);
             this.fulltextEnabled = aggregate.hasNodeAggregates() || hasAnyFullTextEnabledProperty();
             this.propertyIndexEnabled = hasAnyPropertyIndexConfigured();
             this.indexesAllNodesOfMatchingType = allMatchingNodeByTypeIndexed();
@@ -618,6 +647,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
             this.propertyIndexEnabled = original.propertyIndexEnabled;
             this.propAggregate = original.propAggregate;
             this.nullCheckEnabledProperties = original.nullCheckEnabledProperties;
+            this.notNullCheckEnabledProperties = original.notNullCheckEnabledProperties;
             this.aggregate = combine(propAggregate, nodeTypeName);
             this.fulltextEnabled = aggregate.hasNodeAggregates() || original.fulltextEnabled;
             this.indexesAllNodesOfMatchingType = allMatchingNodeByTypeIndexed();
@@ -647,6 +677,10 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
         public List<PropertyDefinition> getNullCheckEnabledProperties() {
             return nullCheckEnabledProperties;
+        }
+
+        public List<PropertyDefinition> getNotNullCheckEnabledProperties() {
+            return notNullCheckEnabledProperties;
         }
 
         @Override
@@ -742,7 +776,8 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
         private Map<String, PropertyDefinition> collectPropConfigs(NodeState config, List<NamePattern> patterns,
                                                                    List<Aggregate.Include> propAggregate,
-                                                                   List<PropertyDefinition> nonExistentProperties) {
+                                                                   List<PropertyDefinition> nonExistentProperties,
+                                                                   List<PropertyDefinition> existentProperties) {
             Map<String, PropertyDefinition> propDefns = newHashMap();
             NodeState propNode = config.getChildNode(LuceneIndexConstants.PROP_NODE);
 
@@ -774,6 +809,10 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
                     if (pd.nullCheckEnabled){
                         nonExistentProperties.add(pd);
+                    }
+
+                    if (pd.notNullCheckEnabled){
+                        existentProperties.add(pd);
                     }
                 }
             }

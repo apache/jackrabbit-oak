@@ -51,6 +51,7 @@ import org.slf4j.LoggerFactory;
  * to just one change.
  */
 public class BackgroundObserver implements Observer, Closeable {
+    private static final Logger LOG = LoggerFactory.getLogger(BackgroundObserver.class);
 
     /**
      * Signal for the background thread to stop processing changes.
@@ -76,6 +77,11 @@ public class BackgroundObserver implements Observer, Closeable {
      * The queue of content changes to be processed.
      */
     private final BlockingQueue<ContentChange> queue;
+
+    /**
+     * The max queue length used for this observer's queue
+     */
+    private final int maxQueueLength;
 
     private static class ContentChange {
         private final NodeState root;
@@ -144,7 +150,8 @@ public class BackgroundObserver implements Observer, Closeable {
         this.observer = checkNotNull(observer);
         this.executor = checkNotNull(executor);
         this.exceptionHandler = checkNotNull(exceptionHandler);
-        this.queue = newArrayBlockingQueue(queueLength);
+        this.maxQueueLength = queueLength;
+        this.queue = newArrayBlockingQueue(maxQueueLength);
     }
 
     public BackgroundObserver(
@@ -170,6 +177,18 @@ public class BackgroundObserver implements Observer, Closeable {
      * @param queueSize  size of the queue
      */
     protected void added(int queueSize) { }
+
+    /**
+     * Private utility to report queue size to observers
+     * @param queueSize current size of the queue
+     */
+    private void reportAdded(int queueSize){
+        if(queueSize == maxQueueLength ){
+            LOG.warn("Revision queue for observer {} is full (max = {}). Further revisions will be compacted.",
+                    observer != null ? observer.getClass().getName(): "", maxQueueLength);
+        }
+        added(queueSize);
+    }
 
     /**
      * Clears the change queue and signals the background thread to stop
@@ -232,7 +251,7 @@ public class BackgroundObserver implements Observer, Closeable {
         // to onComplete are not a problem here since we always pass the same value.
         // Thus there is no question as to which of the handlers will effectively run.
         currentTask.onComplete(completionHandler);
-        added(queue.size());
+        reportAdded(queue.size());
     }
 
     //------------------------------------------------------------< internal >---

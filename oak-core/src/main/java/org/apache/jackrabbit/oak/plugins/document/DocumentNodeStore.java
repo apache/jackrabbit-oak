@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.toArray;
 import static com.google.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.MERGE;
@@ -27,6 +28,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.FAST_DIFF;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.MANY_CHILDREN_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.unshareString;
 
 import java.io.Closeable;
@@ -60,6 +62,7 @@ import javax.annotation.Nullable;
 import javax.management.NotCompliantMBeanException;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicates;
 import com.google.common.cache.Cache;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -197,6 +200,13 @@ public final class DocumentNodeStore
             = new ConcurrentHashMap<Integer, Long>();
 
     /**
+     * Map of active cluster nodes and when the cluster node's lease ends.
+     * Key: clusterId, value: leaseEndTimeInMillis
+     */
+    private final ConcurrentMap<Integer, Long> activeClusterNodes
+            = new ConcurrentHashMap<Integer, Long>();
+
+    /**
      * The comparator for revisions.
      */
     private final Revision.RevisionComparator revisionComparator;
@@ -235,7 +245,9 @@ public final class DocumentNodeStore
      */
     private volatile Revision headRevision;
 
-    private Thread backgroundThread;
+    private Thread backgroundReadThread;
+
+    private Thread backgroundUpdateThread;
 
     /**
      * Background thread performing the clusterId lease renew.
@@ -429,15 +441,20 @@ public final class DocumentNodeStore
         dispatcher = new ChangeDispatcher(getRoot());
         commitQueue = new CommitQueue(this, dispatcher);
         batchCommitQueue = new BatchCommitQueue(store, revisionComparator);
-        backgroundThread = new Thread(
+        backgroundReadThread = new Thread(
+                new BackgroundReadOperation(this, isDisposed),
+                "DocumentNodeStore background read thread");
+        backgroundReadThread.setDaemon(true);
+        backgroundUpdateThread = new Thread(
                 new BackgroundOperation(this, isDisposed),
-                "DocumentNodeStore background thread");
-        backgroundThread.setDaemon(true);
+                "DocumentNodeStore background update thread");
+        backgroundUpdateThread.setDaemon(true);
         checkLastRevRecovery();
         // Renew the lease because it may have been stale
         renewClusterIdLease();
 
-        backgroundThread.start();
+        backgroundReadThread.start();
+        backgroundUpdateThread.start();
 
         if (clusterNodeInfo != null) {
             leaseUpdateThread = new Thread(
@@ -459,40 +476,55 @@ public final class DocumentNodeStore
     }
 
     public void dispose() {
-        runBackgroundOperations();
-        if (!isDisposed.getAndSet(true)) {
-            synchronized (isDisposed) {
-                isDisposed.notifyAll();
-            }
+        if (isDisposed.getAndSet(true)) {
+            // only dispose once
+            return;
+        }
+        // notify background threads waiting on isDisposed
+        synchronized (isDisposed) {
+            isDisposed.notifyAll();
+        }
+        try {
+            backgroundReadThread.join();
+        } catch (InterruptedException e) {
+            // ignore
+        }
+        try {
+            backgroundUpdateThread.join();
+        } catch (InterruptedException e) {
+            // ignore
+        }
+
+        // do a final round of background operations after
+        // the background thread stopped
+        internalRunBackgroundUpdateOperations();
+
+        if (leaseUpdateThread != null) {
             try {
-                backgroundThread.join();
+                leaseUpdateThread.join();
             } catch (InterruptedException e) {
                 // ignore
             }
-            if (leaseUpdateThread != null) {
-                try {
-                    leaseUpdateThread.join();
-                } catch (InterruptedException e) {
-                    // ignore
-                }
-            }
-            if (clusterNodeInfo != null) {
-                clusterNodeInfo.dispose();
-            }
-            store.dispose();
-            LOG.info("Disposed DocumentNodeStore with clusterNodeId: {}", clusterId);
+        }
 
-            if (blobStore instanceof Closeable) {
-                try {
-                    ((Closeable) blobStore).close();
-                } catch (IOException ex) {
-                    LOG.debug("Error closing blob store " + blobStore, ex);
-                }
+        // now mark this cluster node as inactive by
+        // disposing the clusterNodeInfo
+        if (clusterNodeInfo != null) {
+            clusterNodeInfo.dispose();
+        }
+        store.dispose();
+
+        if (blobStore instanceof Closeable) {
+            try {
+                ((Closeable) blobStore).close();
+            } catch (IOException ex) {
+                LOG.debug("Error closing blob store " + blobStore, ex);
             }
         }
         if (persistentCache != null) {
             persistentCache.close();
         }
+        LOG.info("Disposed DocumentNodeStore with clusterNodeId: {}", clusterId);
     }
 
     Revision setHeadRevision(@Nonnull Revision newHead) {
@@ -544,6 +576,7 @@ public final class DocumentNodeStore
             base = headRevision;
         }
         backgroundOperationLock.readLock().lock();
+        checkOpen();
         boolean success = false;
         Commit c;
         try {
@@ -573,6 +606,7 @@ public final class DocumentNodeStore
             base = headRevision;
         }
         backgroundOperationLock.readLock().lock();
+        checkOpen();
         boolean success = false;
         MergeCommit c;
         try {
@@ -847,11 +881,11 @@ public final class DocumentNodeStore
      * @return the child documents.
      */
     @Nonnull
-    Iterable<NodeDocument> readChildDocs(@Nonnull final String path,
-                                         @Nullable String name,
-                                         int limit) {
-        String to = Utils.getKeyUpperLimit(checkNotNull(path));
-        String from;
+    private Iterable<NodeDocument> readChildDocs(@Nonnull final String path,
+                                                 @Nullable String name,
+                                                 final int limit) {
+        final String to = Utils.getKeyUpperLimit(checkNotNull(path));
+        final String from;
         if (name != null) {
             from = Utils.getIdFromPath(concat(path, name));
         } else {
@@ -862,7 +896,7 @@ public final class DocumentNodeStore
             // or more than 16k child docs are requested
             return store.query(Collection.NODES, from, to, limit);
         }
-        StringValue key = new StringValue(path);
+        final StringValue key = new StringValue(path);
         // check cache
         NodeDocument.Children c = docChildrenCache.getIfPresent(key);
         if (c == null) {
@@ -879,10 +913,10 @@ public final class DocumentNodeStore
             // fetch more and update cache
             String lastName = c.childNames.get(c.childNames.size() - 1);
             String lastPath = concat(path, lastName);
-            from = Utils.getIdFromPath(lastPath);
+            String low = Utils.getIdFromPath(lastPath);
             int remainingLimit = limit - c.childNames.size();
             List<NodeDocument> docs = store.query(Collection.NODES,
-                    from, to, remainingLimit);
+                    low, to, remainingLimit);
             NodeDocument.Children clone = c.clone();
             for (NodeDocument doc : docs) {
                 String p = doc.getPath();
@@ -892,22 +926,36 @@ public final class DocumentNodeStore
             docChildrenCache.put(key, clone);
             c = clone;
         }
-        Iterable<NodeDocument> it = transform(c.childNames, new Function<String, NodeDocument>() {
+        Iterable<NodeDocument> head = filter(transform(c.childNames,
+                new Function<String, NodeDocument>() {
             @Override
             public NodeDocument apply(String name) {
                 String p = concat(path, name);
                 NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath(p));
                 if (doc == null) {
-                    docChildrenCache.invalidateAll();
-                    throw new NullPointerException("Document " + p + " not found");
+                    docChildrenCache.invalidate(key);
                 }
                 return doc;
             }
-        });
-        if (c.childNames.size() > limit * 2) {
-            it = Iterables.limit(it, limit * 2);
+        }), Predicates.notNull());
+        Iterable<NodeDocument> it;
+        if (c.isComplete) {
+            it = head;
+        } else {
+            // OAK-2420: 'head' may have null documents when documents are
+            // concurrently removed from the store. concat 'tail' to fetch
+            // more documents if necessary
+            final String last = getIdFromPath(concat(
+                    path, c.childNames.get(c.childNames.size() - 1)));
+            Iterable<NodeDocument> tail = new Iterable<NodeDocument>() {
+                @Override
+                public Iterator<NodeDocument> iterator() {
+                    return store.query(NODES, last, to, limit).iterator();
+                }
+            };
+            it = Iterables.concat(head, tail);
         }
-        return it;
+        return Iterables.limit(it, limit);
     }
 
     /**
@@ -1502,45 +1550,80 @@ public final class DocumentNodeStore
 
     //----------------------< background operations >---------------------------
 
-    public synchronized void runBackgroundOperations() {
+    /** Used for testing only */
+    public void runBackgroundOperations() {
+        runBackgroundUpdateOperations();
+        runBackgroundReadOperations();
+    }
+
+    private void runBackgroundUpdateOperations() {
         if (isDisposed.get()) {
             return;
         }
-        if (simpleRevisionCounter != null) {
-            // only when using timestamp
-            return;
-        }
         try {
-            long start = clock.getTime();
-            long time = start;
-            // clean orphaned branches and collisions
-            cleanOrphanedBranches();
-            cleanCollisions();
-            long cleanTime = clock.getTime() - time;
-            time = clock.getTime();
-            // split documents (does not create new revisions)
-            backgroundSplit();
-            long splitTime = clock.getTime() - time;
-            time = clock.getTime();
-            // write back pending updates to _lastRev
-            backgroundWrite();
-            long writeTime = clock.getTime() - time;
-            time = clock.getTime();
-            // pull in changes from other cluster nodes
-            BackgroundReadStats readStats = backgroundRead(true);
-            long readTime = clock.getTime() - time;
-            String msg = "Background operations stats (clean:{}, split:{}, write:{}, read:{} {})";
-            if (clock.getTime() - start > TimeUnit.SECONDS.toMillis(10)) {
-                // log as info if it took more than 10 seconds
-                LOG.info(msg, cleanTime, splitTime, writeTime, readTime, readStats);
-            } else {
-                LOG.debug(msg, cleanTime, splitTime, writeTime, readTime, readStats);
-            }
+            internalRunBackgroundUpdateOperations();
         } catch (RuntimeException e) {
             if (isDisposed.get()) {
+                LOG.warn("Background update operation failed: " + e.toString(), e);
                 return;
             }
             throw e;
+        }
+    }
+
+    private synchronized void internalRunBackgroundUpdateOperations() {
+        long start = clock.getTime();
+        long time = start;
+        // clean orphaned branches and collisions
+        cleanOrphanedBranches();
+        cleanCollisions();
+        long cleanTime = clock.getTime() - time;
+        time = clock.getTime();
+        // split documents (does not create new revisions)
+        backgroundSplit();
+        long splitTime = clock.getTime() - time;
+        time = clock.getTime();
+        // write back pending updates to _lastRev
+        backgroundWrite();
+        long writeTime = clock.getTime() - time;
+        String msg = "Background operations stats (clean:{}, split:{}, write:{})";
+        if (clock.getTime() - start > TimeUnit.SECONDS.toMillis(10)) {
+            // log as info if it took more than 10 seconds
+            LOG.info(msg, cleanTime, splitTime, writeTime);
+        } else {
+            LOG.debug(msg, cleanTime, splitTime, writeTime);
+        }
+    }
+
+    //----------------------< background read operations >----------------------
+
+    private void runBackgroundReadOperations() {
+        if (isDisposed.get()) {
+            return;
+        }
+        try {
+            internalRunBackgroundReadOperations();
+        } catch (RuntimeException e) {
+            if (isDisposed.get()) {
+                LOG.warn("Background read operation failed: " + e.toString(), e);
+                return;
+            }
+            throw e;
+        }
+    }
+
+    /** OAK-2624 : background read operations are split from background update ops */
+    private synchronized void internalRunBackgroundReadOperations() {
+        long start = clock.getTime();
+        // pull in changes from other cluster nodes
+        BackgroundReadStats readStats = backgroundRead(true);
+        long readTime = clock.getTime() - start;
+        String msg = "Background read operations stats (read:{} {})";
+        if (clock.getTime() - start > TimeUnit.SECONDS.toMillis(10)) {
+            // log as info if it took more than 10 seconds
+            LOG.info(msg, readTime, readStats);
+        } else {
+            LOG.debug(msg, readTime, readStats);
         }
     }
 
@@ -1554,8 +1637,8 @@ public final class DocumentNodeStore
     }
 
     /**
-     * Updates the info about inactive cluster nodes in
-     * {@link #inactiveClusterNodes}.
+     * Updates the state about cluster nodes in {@link #activeClusterNodes}
+     * and {@link #inactiveClusterNodes}.
      */
     void updateClusterState() {
         long now = clock.getTime();
@@ -1564,8 +1647,11 @@ public final class DocumentNodeStore
             int cId = doc.getClusterId();
             if (cId != this.clusterId && !doc.isActive()) {
                 inactive.add(cId);
+            } else {
+                activeClusterNodes.put(cId, doc.getLeaseEndTime());
             }
         }
+        activeClusterNodes.keySet().removeAll(inactive);
         inactiveClusterNodes.keySet().retainAll(inactive);
         for (Integer clusterId : inactive) {
             inactiveClusterNodes.putIfAbsent(clusterId, now);
@@ -1580,6 +1666,16 @@ public final class DocumentNodeStore
      */
     Map<Integer, Long> getInactiveClusterNodes() {
         return new HashMap<Integer, Long>(inactiveClusterNodes);
+    }
+
+    /**
+     * Returns the cluster nodes currently known as active.
+     *
+     * @return a map with the cluster id as key and the time in millis when the
+     *          lease ends.
+     */
+    Map<Integer, Long> getActiveClusterNodes() {
+        return new HashMap<Integer, Long>(activeClusterNodes);
     }
 
     /**
@@ -1770,6 +1866,19 @@ public final class DocumentNodeStore
     }
 
     //-----------------------------< internal >---------------------------------
+
+    /**
+     * Checks if this store is still open and throws an
+     * {@link IllegalStateException} if it is already disposed (or a dispose
+     * is in progress).
+     *
+     * @throws IllegalStateException if this store is disposed.
+     */
+    private void checkOpen() throws IllegalStateException {
+        if (isDisposed.get()) {
+            throw new IllegalStateException("This DocumentNodeStore is disposed");
+        }
+    }
 
     private boolean dispatch(@Nonnull String jsonDiff,
                              @Nonnull DocumentNodeState node,
@@ -2186,6 +2295,17 @@ public final class DocumentNodeStore
         }
 
         @Override
+        public String[] getActiveClusterNodes() {
+            return toArray(transform(activeClusterNodes.entrySet(),
+                    new Function<Map.Entry<Integer, Long>, String>() {
+                        @Override
+                        public String apply(Map.Entry<Integer, Long> input) {
+                            return input.toString();
+                        }
+                    }), String.class);
+        }
+
+        @Override
         public String[] getLastKnownRevisions() {
             return toArray(transform(lastKnownRevision.entrySet(),
                     new Function<Map.Entry<Integer, Revision>, String>() {
@@ -2258,7 +2378,23 @@ public final class DocumentNodeStore
 
         @Override
         protected void execute(@Nonnull DocumentNodeStore nodeStore) {
-            nodeStore.runBackgroundOperations();
+            nodeStore.runBackgroundUpdateOperations();
+        }
+    }
+
+    /**
+     * Background read operations.
+     */
+    static class BackgroundReadOperation extends NodeStoreTask {
+
+        BackgroundReadOperation(DocumentNodeStore nodeStore,
+                                AtomicBoolean isDisposed) {
+            super(nodeStore, isDisposed);
+        }
+
+        @Override
+        protected void execute(@Nonnull DocumentNodeStore nodeStore) {
+            nodeStore.runBackgroundReadOperations();
         }
     }
 

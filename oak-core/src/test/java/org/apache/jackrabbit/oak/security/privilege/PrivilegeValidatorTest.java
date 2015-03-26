@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.privilege;
 import java.util.Collections;
 
 import com.google.common.collect.ImmutableList;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -27,9 +26,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
-import org.apache.jackrabbit.oak.plugins.tree.impl.AbstractTree;
-import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
@@ -194,5 +190,23 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
 
         PrivilegeValidator pv = new PrivilegeValidator(root, root);
         assertNull(pv.childNodeChanged("test", privilegeDefinition, privilegeDefinition));
+    }
+
+    @Test
+    public void testAggregatesIncludesJcrAll() throws Exception {
+        try {
+            Tree privTree = createPrivilegeTree();
+            privTree.setProperty(PropertyStates.createProperty(REP_AGGREGATES, ImmutableList.of(JCR_ALL, JCR_READ, JCR_WRITE), Type.NAMES));
+            PrivilegeBits.getInstance(bitsProvider.getBits(JCR_ALL, JCR_READ, JCR_WRITE)).writeTo(privTree);
+
+            root.commit();
+            fail("Aggregation containing jcr:all is invalid.");
+        } catch (CommitFailedException e) {
+            // success
+            assertTrue(e.isConstraintViolation());
+            assertEquals(53, e.getCode());
+        } finally {
+            root.refresh();
+        }
     }
 }

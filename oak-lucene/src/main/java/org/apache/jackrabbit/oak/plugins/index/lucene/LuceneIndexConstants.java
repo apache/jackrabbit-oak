@@ -130,6 +130,8 @@ public interface LuceneIndexConstants {
 
     String PROP_ORDERED = "ordered";
 
+    String PROP_SCORER_PROVIDER = "scorerProviderName";
+
     /**
      * Integer property indicating that LuceneIndex should be
      * used in compat mode to specific version
@@ -247,4 +249,10 @@ public interface LuceneIndexConstants {
      * enabled for this property
      */
     String PROP_NULL_CHECK_ENABLED = "nullCheckEnabled";
+
+    /**
+     * Property definition config indicating that this property would be used with
+     * 'IS NOT NULL' constraint
+     */
+    String PROP_NOT_NULL_CHECK_ENABLED = "notNullCheckEnabled";
 }

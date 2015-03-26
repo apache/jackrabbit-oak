@@ -26,6 +26,12 @@ Query Indices are defined under the `oak:index` node.
 
 ### Compatibility
 
+#### Result Size
+
+For NodeIterator.getSize(), some versions of Jackrabbit 2.x returned the estimated (raw)
+Lucene result set size, including nodes that are not accessible. 
+Oak does not do this; it either returns the correct result size, or -1.
+
 #### Quoting
 
 The query parser is now generally more strict about invalid syntax.
@@ -269,52 +275,23 @@ See [Solr Index](lucene.html) for details.
 The `NodeTypeIndex` implements a `QueryIndex` using `PropertyIndexLookup`s on `jcr:primaryType` `jcr:mixinTypes` to evaluate a node type restriction on the filter.
 The cost for this index is the sum of the costs of the `PropertyIndexLookup` for queries on `jcr:primaryType` and `jcr:mixinTypes`.
 
-### The Ordered Index
+### Temporarily Disabling an Index
 
-NOTE: This index type has been deprecated. 
-Please use the Lucene Property Index instead, which offers the same features.
+To temporarily disable an index (for example for testing), set the index type to `disabled`.
+Please note that while the index type is not set, the index is not updated, so if you enable it again,
+it might not be correct. This is specially important for synchronous indexes.
 
-Extension of the Property index will keep the order of the indexed
-property persisted in the repository.
+### The Ordered Index (deprecated since 1.1.8)
 
-Used to speed-up queries with `ORDER BY` clause, _equality_ and
-_range_ ones.
+This index has been deprecated in favour of Lucene Property
+index. Please refer to [Lucene Index documentation](lucene.html) for
+details.
 
-    SELECT * FROM [nt:base] ORDER BY jcr:lastModified
-    
-    SELECT * FROM [nt:base] WHERE jcr:lastModified > $date
-    
-    SELECT * FROM [nt:base] WHERE jcr:lastModified < $date
-    
-    SELECT * FROM [nt:base]
-    WHERE jcr:lastModified > $date1 AND jcr:lastModified < $date2
+For help on migrating to a Lucece index please refer to:
+[Migrate ordered index](ordered-index-migrate.html)
 
-    SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id
-
-To define a property index on a subtree you have to add an index
-definition node that:
-
-* must be of type `oak:QueryIndexDefinition`
-* must have the `type` property set to __`ordered`__
-* contains the `propertyNames` property that indicates what properties
-  will be stored in the index.  `propertyNames` has to be a single
-  value list of type `Name[]`
-
-_Optionally_ you can specify
-
-* the `reindex` flag which when set to `true`, triggers a full content
-  re-index.
-* The direction of the sorting by specifying a `direction` property of
-  type `String` of value `ascending` or `descending`. If not provided
-  `ascending` is the default.
-* The index can be defined as asynchronous by providing the property
-  `async=async`
-
-_Caveats_
-
-* In case deploying on the index on a clustered mongodb you have to
-  define it as asynchronous by providing `async=async` in the index
-  definition. This is to avoid cluster merges.
+For historical information around the index please refer to:
+[Ordered Index](ordered-index.html).
 
 ### Cost Calculation
 

@@ -42,7 +42,7 @@
     <project.reporting.outputEncoding>
       ${project.build.sourceEncoding}
     </project.reporting.outputEncoding>
-    <jackrabbit.version>2.9.0</jackrabbit.version>
+    <jackrabbit.version>2.9.1</jackrabbit.version>
     <mongo.host>127.0.0.1</mongo.host>
     <mongo.port>27017</mongo.port>
     <mongo.db>MongoMKDB</mongo.db>
@@ -59,11 +59,12 @@
     <slf4j.version>1.7.6</slf4j.version> <!-- sync with logback version -->
     <logback.version>1.1.0</logback.version>
     <h2.version>1.4.182</h2.version>
+    <findbugs.version>3.0.0</findbugs.version>
 
    <!-- specifies on which fixture to run the integration testing tests. 
       override in profiles or provide from command line to change behaviour. Provide 
       more fixtures space separated. See org.apache.jackrabbit.oak.jcr.FixturesHelper#AVAILABLE_FIXTURES 
-      for the possible values: SEGMENT_MK DOCUMENT_MK DOCUMENT_NS DOCUMENT_RDB -->
+      for the possible values: SEGMENT_MK DOCUMENT_NS DOCUMENT_RDB -->
     <fixtures>SEGMENT_MK</fixtures>
 
    <!-- whether skip the surefire unit testing during the integration testing. 
@@ -181,7 +182,7 @@
               <mongo.db>${mongo.db}</mongo.db>
               <mongo.db2>${mongo.db2}</mongo.db2>
               <segment.db>${segment.db}</segment.db>
-              <ns-fixtures>${fixtures}</ns-fixtures>
+              <nsfixtures>${fixtures}</nsfixtures>
             </systemPropertyVariables>
             <redirectTestOutputToFile>true</redirectTestOutputToFile>
           </configuration>
@@ -196,7 +197,7 @@
               <mongo.port>${mongo.port}</mongo.port>
               <mongo.db>${mongo.db}</mongo.db>
               <mongo.db2>${mongo.db2}</mongo.db2>
-              <ns-fixtures>${fixtures}</ns-fixtures>
+              <nsfixtures>${fixtures}</nsfixtures>
             </systemPropertyVariables>
           </configuration>
         </plugin>
@@ -207,7 +208,6 @@
           <plugin>
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>findbugs-maven-plugin</artifactId>
-            <version>2.5.3</version>
           </plugin>
         <!-- This plugin's configuration is used to store Eclipse m2e      -->
         <!-- settings only. It has no influence on the Maven build itself. -->
@@ -387,7 +387,7 @@
       <dependency>
         <groupId>org.mongodb</groupId>
         <artifactId>mongo-java-driver</artifactId>
-        <version>2.12.2</version>
+        <version>2.13.0</version>
       </dependency>
       <dependency>
         <groupId>com.google.guava</groupId>
@@ -506,7 +506,9 @@
            <plugin>
              <artifactId>maven-surefire-plugin</artifactId>
              <configuration>
-               <skipTests>true</skipTests>
+               <!-- run a test to prevent Jenkins from failing because no test ran -->
+               <test>PathUtilsTest</test>
+               <failIfNoSpecifiedTests>false</failIfNoSpecifiedTests>
              </configuration>
            </plugin>
           <plugin>
@@ -537,6 +539,7 @@
           <plugin>
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>findbugs-maven-plugin</artifactId>
+            <version>${findbugs.version}</version>
             <configuration>
               <failOnError>false</failOnError>
             </configuration>
@@ -567,7 +570,7 @@
         <dependency>
           <groupId>org.postgresql</groupId>
           <artifactId>postgresql</artifactId>
-          <version>9.3-1101-jdbc4</version>
+          <version>9.4-1201-jdbc4</version>
         </dependency>
       </dependencies>
     </profile>
@@ -646,6 +649,16 @@
       <id>coverage</id>
       <properties>
         <skip.coverage>false</skip.coverage>
+      </properties>
+    </profile>
+
+    <profile>
+      <id>findbugs-jdk6</id>
+      <activation>
+        <jdk>1.6</jdk>
+      </activation>
+      <properties>
+        <findbugs.version>2.5.5</findbugs.version>
       </properties>
     </profile>
   </profiles>

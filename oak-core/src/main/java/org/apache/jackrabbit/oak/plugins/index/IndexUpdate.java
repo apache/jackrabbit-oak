@@ -51,6 +51,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.commit.ProgressNotificationEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -119,7 +120,7 @@ public class IndexUpdate implements Editor {
 
         // no-op when reindex is empty
         CommitFailedException exception = process(
-                wrap(compose(reindex.values())), MISSING_NODE, after);
+                wrap(wrapProgress(compose(reindex.values()), "Reindexing")), MISSING_NODE, after);
         if (exception != null) {
             throw exception;
         }
@@ -303,6 +304,10 @@ public class IndexUpdate implements Editor {
             return "/" + INDEX_DEFINITIONS_NAME + "/" + indexName;
         }
         return path + "/" + INDEX_DEFINITIONS_NAME + "/" + indexName;
+    }
+
+    private static Editor wrapProgress(Editor editor, String message){
+        return ProgressNotificationEditor.wrap(editor, log, message);
     }
 
     public static class MissingIndexProviderStrategy {

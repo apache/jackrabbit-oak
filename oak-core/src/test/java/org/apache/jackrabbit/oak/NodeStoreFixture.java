@@ -46,25 +46,6 @@ public abstract class NodeStoreFixture {
         }
     };
 
-    public static final NodeStoreFixture MONGO_MK = new NodeStoreFixture() {
-        @Override
-        public String toString() {
-            return "DocumentMK Fixture";
-        }
-
-        @Override
-        public DocumentNodeStore createNodeStore() {
-            return new DocumentMK.Builder().getNodeStore();
-        }
-
-        @Override
-        public void dispose(NodeStore nodeStore) {
-            if (nodeStore instanceof DocumentNodeStore) {
-                ((DocumentNodeStore) nodeStore).dispose();
-            }
-        }
-    };
-
     public static final NodeStoreFixture MONGO_NS = new NodeStoreFixture() {
         @Override
         public String toString() {

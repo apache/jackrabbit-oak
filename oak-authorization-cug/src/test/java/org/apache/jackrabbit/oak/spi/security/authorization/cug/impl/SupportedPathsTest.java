@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,7 +28,7 @@ public class SupportedPathsTest {
 
     @Test
     public void testIncludes() {
-        SupportedPaths supportedPaths = new SupportedPaths(new String[] {"/content"});
+        SupportedPaths supportedPaths = new SupportedPaths(Collections.singleton("/content"));
 
         Map<String, Boolean> pathMap = new HashMap<String, Boolean>();
         pathMap.put("/content", true);
@@ -52,7 +53,7 @@ public class SupportedPathsTest {
 
     @Test
     public void testMayContainCug() {
-        SupportedPaths supportedPaths = new SupportedPaths(new String[] {"/content/a"});
+        SupportedPaths supportedPaths = new SupportedPaths(Collections.singleton("/content/a"));
 
         Map<String, Boolean> pathMap = new HashMap<String, Boolean>();
         pathMap.put("/", true);

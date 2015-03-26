@@ -485,6 +485,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 if (!ids.isEmpty()) {
                     blobsCount += ids.size();
                     saveBatchToFile(ids, bufferWriter);
+                    LOG.debug("retrieved {} blobs", blobsCount);
                 }
 
                 // sort the file

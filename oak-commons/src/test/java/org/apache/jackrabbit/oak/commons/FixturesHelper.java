@@ -22,8 +22,8 @@ import java.util.EnumSet;
 import java.util.Set;
 
 /**
- * helper class that return the list of available fixtures based on the {@code ns-fixtures} system
- * property ({@code -Dns-fixtures=SEGMENT_MK}).
+ * helper class that return the list of available fixtures based on the {@code nsfixtures} system
+ * property ({@code -Dnsfixtures=SEGMENT_MK}).
  * 
  * See {@link FixturesHelper.Fixture} for a list of available fixtures
  */
@@ -35,15 +35,15 @@ public final class FixturesHelper {
     /**
      * System property to be used.
      */
-    public static final String NS_FIXTURES = "ns-fixtures";
+    public static final String NS_FIXTURES = "nsfixtures";
 
     private FixturesHelper() { }
 
     /**
-     * default fixtures when no {@code ns-fixtures} is provided
+     * default fixtures when no {@code nsfixtures} is provided
      */
     public enum Fixture {
-       DOCUMENT_MK, DOCUMENT_NS, SEGMENT_MK, DOCUMENT_RDB, MEMORY_NS
+       DOCUMENT_NS, SEGMENT_MK, DOCUMENT_RDB, MEMORY_NS
     }
 
     private static final Set<Fixture> FIXTURES;

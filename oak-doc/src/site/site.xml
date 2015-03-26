@@ -59,6 +59,7 @@ under the License.
       <item href="dev_getting_started.html" name="Getting Started" />
       <item href="participating.html" name="Participating" />
       <item href="apidocs/index.html" name="API Docs" />
+      <item href="attribution.html" name="Attribution" />
     </menu>
     <menu name="Links">
       <item href="http://jackrabbit.apache.org/oak" name="Apache Jackrabbit Oak" />
