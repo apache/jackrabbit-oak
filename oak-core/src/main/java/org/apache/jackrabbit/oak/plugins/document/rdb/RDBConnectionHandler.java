@@ -17,8 +17,11 @@
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
@@ -102,5 +105,37 @@ public class RDBConnectionHandler {
                 LOG.error("exception on connection close (ignored)", ex);
             }
         }
+    }
+
+    /**
+     * Closes a {@link Statement}, logging potential problems.
+     * @return null
+     */
+    public <T extends Statement> T closeStatement(@CheckForNull T stmt) {
+        if (stmt != null) {
+            try {
+                stmt.close();
+            } catch (SQLException ex) {
+                LOG.debug("Closing statement", ex);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Closes a {@link ResultSet}, logging potential problems.
+     * 
+     * @return null
+     */
+    public ResultSet closeResultSet(@CheckForNull ResultSet rs) {
+        if (rs != null) {
+            try {
+                rs.close();
+            } catch (SQLException ex) {
+                LOG.debug("Closing result set", ex);
+            }
+        }
+
+        return null;
     }
 }
