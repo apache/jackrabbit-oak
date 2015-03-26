@@ -120,7 +120,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         return rootBuilder.getChildNode(JCR_SYSTEM).getChildNode(REP_PERMISSION_STORE).getChildNode(workspaceName);
     }
 
-    private class Diff extends DefaultNodeStateDiff {
+    private final class Diff extends DefaultNodeStateDiff {
 
         private final String parentPath;
 

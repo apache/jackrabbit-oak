@@ -235,13 +235,13 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
     //--------------------------------------------------------------------------
     private final class MutableEntry {
 
-        final boolean isAllow;
+        private final boolean isAllow;
 
-        Principal principal;
-        List<Privilege> privileges;
-        Map<String, Value> restrictions = new HashMap<String, Value>();
+        private Principal principal;
+        private List<Privilege> privileges;
+        private Map<String, Value> restrictions = new HashMap<String, Value>();
 
-        boolean ignore;
+        private boolean ignore;
 
         private MutableEntry(boolean isAllow) {
             this.isAllow = isAllow;
