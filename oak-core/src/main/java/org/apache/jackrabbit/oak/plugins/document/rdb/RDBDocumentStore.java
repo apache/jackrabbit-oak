@@ -1025,7 +1025,7 @@ public class RDBDocumentStore implements DocumentStore {
                 }
                 if (success) {
                     for (Entry<String, NodeDocument> entry : cachedDocs.entrySet()) {
-                        T oldDoc = (T) (entry.getValue());
+                        T oldDoc = castAsT(entry.getValue());
                         if (oldDoc == null) {
                             // make sure concurrently loaded document is
                             // invalidated
@@ -1113,7 +1113,7 @@ public class RDBDocumentStore implements DocumentStore {
                 if (lastmodcount == row.getModcount()) {
                     // we can re-use the cached document
                     cachedDoc.markUpToDate(System.currentTimeMillis());
-                    return (T) cachedDoc;
+                    return castAsT(cachedDoc);
                 } else {
                     return SR.fromRow(collection, row);
                 }
@@ -1790,7 +1790,7 @@ public class RDBDocumentStore implements DocumentStore {
             if (modCount.longValue() <= cachedModCount.longValue()) {
                 // we can use the cached document
                 inCache.markUpToDate(now);
-                return (T) inCache;
+                return castAsT(inCache);
             }
         }
 
@@ -1817,7 +1817,7 @@ public class RDBDocumentStore implements DocumentStore {
         } finally {
             lock.unlock();
         }
-        return (T) fresh;
+        return castAsT(fresh);
     }
 
     private boolean hasChangesToCollisions(UpdateOp update) {
