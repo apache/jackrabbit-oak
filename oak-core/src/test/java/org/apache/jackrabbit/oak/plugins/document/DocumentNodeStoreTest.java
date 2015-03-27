@@ -42,9 +42,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.CheckForNull;
@@ -612,16 +615,24 @@ public class DocumentNodeStoreTest {
         DocumentNodeStore ns2 = new DocumentMK.Builder().setAsyncDelay(0)
                 .setDocumentStore(docStore).getNodeStore();
 
+        ns1.updateClusterState();
+        ns2.updateClusterState();
+
         assertEquals(0, ns1.getInactiveClusterNodes().size());
         assertEquals(0, ns2.getInactiveClusterNodes().size());
+        assertEquals(2, ns1.getActiveClusterNodes().size());
+        assertEquals(2, ns2.getActiveClusterNodes().size());
 
         ns1.dispose();
 
         ns2.updateClusterState();
 
         Map<Integer, Long> inactive = ns2.getInactiveClusterNodes();
+        Map<Integer, Long> active = ns2.getActiveClusterNodes();
         assertEquals(1, inactive.size());
         assertEquals(1, (int) inactive.keySet().iterator().next());
+        assertEquals(1, active.size());
+        assertEquals(2, (int) active.keySet().iterator().next());
 
         ns2.dispose();
     }
@@ -1116,6 +1127,94 @@ public class DocumentNodeStoreTest {
         merge(ns, builder);
 
         ns.dispose();
+    }
+
+    // OAK-2642
+    @Test
+    public void dispose() throws CommitFailedException, InterruptedException {
+        final BlockingQueue<String> updates = new ArrayBlockingQueue<String>(1);
+        MemoryDocumentStore docStore = new MemoryDocumentStore() {
+            @Override
+            public <T extends Document> void update(Collection<T> collection,
+                                                    List<String> keys,
+                                                    UpdateOp updateOp) {
+                for (String k : keys) {
+                    try {
+                        updates.put(k);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                super.update(collection, keys, updateOp);
+            }
+        };
+        final DocumentNodeStore store = new DocumentMK.Builder()
+                .setClusterId(1).setAsyncDelay(0)
+                .setDocumentStore(docStore).getNodeStore();
+        updates.clear();
+
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("test").child("node");
+        merge(store, builder);
+
+        builder = store.getRoot().builder();
+        builder.child("test").child("node").child("child-1");
+        merge(store, builder);
+
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                store.dispose();
+            }
+        });
+        t.start();
+
+        String p = updates.take();
+        assertEquals("2:/test/node", p);
+        // background ops in dispose is still in progress
+        assertTrue(t.isAlive());
+        // wait until next update comes in
+        for (;;) {
+            if (updates.peek() != null) {
+                break;
+            }
+        }
+
+        // add child-2 while dispose is in progress
+        try {
+            builder = store.getRoot().builder();
+            builder.child("test").child("node").child("child-2");
+            merge(store, builder);
+            fail("Merge must fail with CommitFailedException");
+        } catch (CommitFailedException e) {
+            // expected
+        }
+
+        // drain updates until dispose finished
+        while (t.isAlive()) {
+            updates.poll(10, TimeUnit.MILLISECONDS);
+        }
+
+        // start new store with clusterId 2
+        DocumentNodeStore store2 = new DocumentMK.Builder()
+                .setClusterId(2).setAsyncDelay(0)
+                .setDocumentStore(docStore).getNodeStore();
+
+        // perform recovery if needed
+        LastRevRecoveryAgent agent = new LastRevRecoveryAgent(store2);
+        if (agent.isRecoveryNeeded()) {
+            agent.recover(1);
+        }
+
+        builder = store2.getRoot().builder();
+        NodeBuilder test = builder.getChildNode("test");
+        assertTrue(test.exists());
+        NodeBuilder node = test.getChildNode("node");
+        assertTrue(node.exists());
+        if (!node.hasChildNode("child-2")) {
+            node.child("child-2");
+            merge(store2, builder);
+        }
     }
 
     private void doSomeChange(NodeStore ns) throws CommitFailedException {

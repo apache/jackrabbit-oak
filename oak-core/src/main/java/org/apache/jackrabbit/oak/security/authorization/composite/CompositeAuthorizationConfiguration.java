@@ -38,7 +38,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
  * {@link CompositeAuthorizationConfiguration} that combines different
  * authorization models. This implementation has the following characteristics:
  *
- * TODO OAK-1268
+ * TODO This is work in progress (OAK-1268)
  */
 public class CompositeAuthorizationConfiguration extends CompositeConfiguration<AuthorizationConfiguration> implements AuthorizationConfiguration {
 
@@ -48,8 +48,8 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
 
     @Nonnull
     @Override
-    public AccessControlManager getAccessControlManager(final @Nonnull Root root,
-                                                        final @Nonnull NamePathMapper namePathMapper) {
+    public AccessControlManager getAccessControlManager(@Nonnull final Root root,
+                                                        @Nonnull final NamePathMapper namePathMapper) {
         List<AuthorizationConfiguration> configurations = getConfigurations();
         switch (configurations.size()) {
             case 0: throw new IllegalStateException();
@@ -81,9 +81,9 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
 
     @Nonnull
     @Override
-    public PermissionProvider getPermissionProvider(final @Nonnull Root root,
-                                                    final @Nonnull String workspaceName,
-                                                    final @Nonnull Set<Principal> principals) {
+    public PermissionProvider getPermissionProvider(@Nonnull final Root root,
+                                                    @Nonnull final String workspaceName,
+                                                    @Nonnull final Set<Principal> principals) {
         List<AuthorizationConfiguration> configurations = getConfigurations();
         switch (configurations.size()) {
             case 0: throw new IllegalStateException();

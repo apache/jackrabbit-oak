@@ -403,6 +403,29 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
+    public void propertyExistenceQuery2() throws Exception {
+        NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
+
+        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree props = TestUtil.newRulePropTree(idx, TestUtil.NT_TEST);
+        Tree prop = props.addChild(TestUtil.unique("prop"));
+        prop.setProperty(LuceneIndexConstants.PROP_NAME, "propa");
+        prop.setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true);
+        prop.setProperty(LuceneIndexConstants.PROP_NOT_NULL_CHECK_ENABLED, true);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        createNodeWithType(test, "a", "oak:TestNode").setProperty("propa", "a");
+        createNodeWithType(test, "b", "oak:TestNode").setProperty("propa", "c");
+        createNodeWithType(test, "c", "oak:TestNode").setProperty("propb", "e");
+        root.commit();
+
+        String propabQuery = "select [jcr:path] from [oak:TestNode] where [propa] is not null";
+        assertThat(explain(propabQuery), containsString("lucene:test1(/oak:index/test1) :notNullProps:propa"));
+        assertQuery(propabQuery, asList("/test/a", "/test/b"));
+    }
+
+    @Test
     public void propertyNonExistenceQuery() throws Exception {
         NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
 
@@ -1178,10 +1201,44 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertQuery("select * from [nt:base] where CONTAINS(*, 'red')", asList("/test/text/jcr:content"));
     }
 
-    private void createFileNode(Tree tree, String name, String content, String mimeType){
+    @Test
+    public void binaryNotIndexedWhenMimeTypeNull() throws Exception{
+        Tree idx = createFulltextIndex(root.getTree("/"), "test");
+        TestUtil.useV2(idx);
+
+        Tree test = root.getTree("/").addChild("test");
+        String path = createFileNode(test, "text", "red brown fox was jumping", "text/plain").getPath();
+        root.commit();
+
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'jumping')", asList("/test/text/jcr:content"));
+
+        //Remove the mimeType property. Then binary would not be indexed and result would be empty
+        root.getTree(path).removeProperty(JcrConstants.JCR_MIMETYPE);
+        root.commit();
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'jumping')", Collections.<String>emptyList());
+    }
+
+    @Test
+    public void binaryNotIndexedWhenNotSupportedMimeType() throws Exception{
+        Tree idx = createFulltextIndex(root.getTree("/"), "test");
+        TestUtil.useV2(idx);
+
+        Tree test = root.getTree("/").addChild("test");
+        String path = createFileNode(test, "text", "red brown fox was jumping", "text/plain").getPath();
+        root.commit();
+
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'jumping')", asList("/test/text/jcr:content"));
+
+        root.getTree(path).setProperty(JcrConstants.JCR_MIMETYPE, "foo/bar");
+        root.commit();
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'jumping')", Collections.<String>emptyList());
+    }
+
+    private Tree createFileNode(Tree tree, String name, String content, String mimeType){
         Tree jcrContent = tree.addChild(name).addChild(JCR_CONTENT);
         jcrContent.setProperty(JcrConstants.JCR_DATA, content.getBytes());
         jcrContent.setProperty(JcrConstants.JCR_MIMETYPE, mimeType);
+        return jcrContent;
     }
 
     private Tree usc(Tree parent, String childName){

@@ -109,7 +109,6 @@ public final class QueryUtil {
 
     @Nonnull
     public static String format(@Nonnull Value value) throws RepositoryException {
-        String s;
         switch (value.getType()) {
             case PropertyType.STRING:
             case PropertyType.BOOLEAN:

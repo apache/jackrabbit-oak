@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Calendar;
+import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -43,6 +44,7 @@ import org.apache.lucene.index.SerialMergeScheduler;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.tika.config.TikaConfig;
+import org.apache.tika.mime.MediaType;
 import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.Parser;
 import org.slf4j.Logger;
@@ -112,6 +114,11 @@ public class LuceneIndexEditorContext {
 
     private Parser parser;
 
+    /**
+     * The media types supported by the parser used.
+     */
+    private Set<MediaType> supportedMediaTypes;
+
     LuceneIndexEditorContext(NodeState root, NodeBuilder definition, IndexUpdateCallback updateCallback) {
         this.definitionBuilder = definition;
         this.definition = new IndexDefinition(root, definition);
@@ -164,32 +171,38 @@ public class LuceneIndexEditorContext {
         }
     }
 
+    /**
+     * eventually update suggest dictionary
+     * @throws IOException if suggest dictionary update fails
+     */
     private void updateSuggester() throws IOException {
 
-        // eventually update suggest dictionary
-        boolean updateSuggester = false;
-        NodeBuilder suggesterStatus = definitionBuilder.child(":suggesterStatus");
-        if (suggesterStatus.hasProperty("lastUpdated")) {
-            PropertyState suggesterLastUpdatedValue = suggesterStatus.getProperty("lastUpdated");
-            Calendar suggesterLastUpdatedTime = ISO8601.parse(suggesterLastUpdatedValue.getValue(Type.DATE));
-            int updateFrequency = definition.getSuggesterUpdateFrequencyMinutes();
-            suggesterLastUpdatedTime.add(Calendar.MINUTE, updateFrequency);
-            if (Calendar.getInstance().after(suggesterLastUpdatedTime)) {
+        if (definition.isSuggestEnabled()) {
+
+            boolean updateSuggester = false;
+            NodeBuilder suggesterStatus = definitionBuilder.child(":suggesterStatus");
+            if (suggesterStatus.hasProperty("lastUpdated")) {
+                PropertyState suggesterLastUpdatedValue = suggesterStatus.getProperty("lastUpdated");
+                Calendar suggesterLastUpdatedTime = ISO8601.parse(suggesterLastUpdatedValue.getValue(Type.DATE));
+                int updateFrequency = definition.getSuggesterUpdateFrequencyMinutes();
+                suggesterLastUpdatedTime.add(Calendar.MINUTE, updateFrequency);
+                if (Calendar.getInstance().after(suggesterLastUpdatedTime)) {
+                    updateSuggester = true;
+                }
+            } else {
                 updateSuggester = true;
             }
-        } else {
-            updateSuggester = true;
-        }
 
-        if (updateSuggester) {
-            DirectoryReader reader = DirectoryReader.open(writer, false);
-            try {
-                SuggestHelper.updateSuggester(reader);
-                suggesterStatus.setProperty("lastUpdated", ISO8601.format(Calendar.getInstance()), Type.DATE);
-            } catch (Throwable e) {
-                log.warn("could not update suggester", e);
-            } finally {
-                reader.close();
+            if (updateSuggester) {
+                DirectoryReader reader = DirectoryReader.open(writer, false);
+                try {
+                    SuggestHelper.updateSuggester(reader);
+                    suggesterStatus.setProperty("lastUpdated", ISO8601.format(Calendar.getInstance()), Type.DATE);
+                } catch (Throwable e) {
+                    log.warn("could not update suggester", e);
+                } finally {
+                    reader.close();
+                }
             }
         }
     }
@@ -207,6 +220,13 @@ public class LuceneIndexEditorContext {
 
     public long getIndexedNodes() {
         return indexedNodes;
+    }
+
+    public boolean isSupportedMediaType(String type) {
+        if (supportedMediaTypes == null) {
+            supportedMediaTypes = getParser().getSupportedTypes(null);
+        }
+        return supportedMediaTypes.contains(MediaType.parse(type));
     }
 
     void indexUpdate() throws CommitFailedException {

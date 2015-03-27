@@ -24,7 +24,6 @@ import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.User;
@@ -114,7 +113,7 @@ public class AutoSaveEnabledManager implements UserManager {
     }
 
     @Override
-    public User createSystemUser(String userID, String intermediatePath) throws AuthorizableExistsException, RepositoryException {
+    public User createSystemUser(String userID, String intermediatePath) throws RepositoryException {
         try {
             return wrap(dlg.createUser(userID, intermediatePath));
         } finally {

@@ -41,21 +41,30 @@ public class LMSEstimatorTest {
     }
 
     @Test
-    public void testMultipleUpdatesImproveAccuracy() throws Exception {
+    public void testMultipleUpdates() throws Exception {
         LMSEstimator lmsEstimator = new LMSEstimator();
         Filter filter = mock(Filter.class);
         FullTextExpression fte = new FullTextTerm("foo", "bar", false, false, "");
         when(filter.getFullTextConstraint()).thenReturn(fte);
         SolrDocumentList docs = new SolrDocumentList();
         lmsEstimator.update(filter, docs);
+
+        long actualCount = 10;
+        docs.setNumFound(actualCount);
+
         long estimate = lmsEstimator.estimate(filter);
-        docs.setNumFound(10);
+        long diff = actualCount - estimate;
+
+        // update causes weights adjustment
         lmsEstimator.update(filter, docs);
         long estimate2 = lmsEstimator.estimate(filter);
-        assertTrue(estimate2 > estimate);
+        long diff2 = actualCount - estimate2;
+        assertTrue(diff2 < diff); // new estimate is more accurate than previous one
+
+        // update doesn't cause weight adjustments therefore estimates stays unchanged
         lmsEstimator.update(filter, docs);
         long estimate3 = lmsEstimator.estimate(filter);
-        assertTrue(estimate3 > estimate2);
+        assertEquals(estimate3, estimate2);
     }
 
     @Test

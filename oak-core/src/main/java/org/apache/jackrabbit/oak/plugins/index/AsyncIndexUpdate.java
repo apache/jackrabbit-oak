@@ -63,8 +63,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.stats.TimeSeriesStatsUtil;
 import org.apache.jackrabbit.stats.TimeSeriesRecorder;
+import org.apache.jackrabbit.stats.TimeSeriesStatsUtil;
 import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -514,6 +514,7 @@ public class AsyncIndexUpdate implements Runnable {
             return ps != null ? ps.getValue(Type.STRING) : null;
         }
 
+        @Override
         public void pause() {
             log.debug("Pausing the async indexer");
             this.isPaused = true;

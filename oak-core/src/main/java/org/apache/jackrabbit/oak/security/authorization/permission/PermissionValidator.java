@@ -322,11 +322,9 @@ class PermissionValidator extends DefaultValidator {
         NodeState parentNs = getNodeState(parent);
         if (JcrConstants.JCR_UUID.equals(name) && isReferenceable.apply(parentNs)) {
             return true;
-        } else if ((JCR_CREATED.equals(name) || JCR_CREATEDBY.equals(name))
-                && isCreated.apply(parentNs)) {
-            return true;
         } else {
-            return false;
+            return (JCR_CREATED.equals(name) || JCR_CREATEDBY.equals(name))
+                    && isCreated.apply(parentNs);
         }
     }
 

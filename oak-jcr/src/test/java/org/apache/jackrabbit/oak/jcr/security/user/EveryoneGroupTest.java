@@ -24,6 +24,7 @@ import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.test.NotExecutableException;
@@ -118,5 +119,19 @@ public class EveryoneGroupTest extends AbstractUserTest {
                 superuser.save();
             }
         }
+    }
+
+    @Test
+    public void testUserMemberOfContainsEveryone() throws Exception {
+        User testUser = getTestUser(superuser);
+
+        boolean memberOfEveryone = false;
+        Iterator<Group> groups = testUser.memberOf();
+        while (groups.hasNext() && !memberOfEveryone) {
+            Group g = groups.next();
+            memberOfEveryone = (EveryonePrincipal.NAME.equals(g.getPrincipal().getName()));
+        }
+
+        assertTrue(memberOfEveryone);
     }
 }

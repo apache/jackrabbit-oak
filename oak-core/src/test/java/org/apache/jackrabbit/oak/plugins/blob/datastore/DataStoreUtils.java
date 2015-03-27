@@ -17,16 +17,28 @@
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.DeleteObjectsRequest;
+import com.amazonaws.services.s3.model.ObjectListing;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.amazonaws.services.s3.transfer.TransferManager;
 import com.google.common.collect.Maps;
+import org.apache.jackrabbit.core.data.Backend;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.FileDataStore;
+import org.apache.jackrabbit.oak.blob.cloud.aws.s3.S3Backend;
+import org.apache.jackrabbit.oak.blob.cloud.aws.s3.S3DataStore;
+import org.apache.jackrabbit.oak.blob.cloud.aws.s3.Utils;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
-import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.commons.io.FilenameUtils.concat;
 import static org.junit.Assert.assertEquals;
@@ -41,6 +53,8 @@ import static org.junit.Assert.assertEquals;
  * the system property as 'ds.minRecordLength'
  */
 public class DataStoreUtils {
+    private static final Logger log = LoggerFactory.getLogger(DataStoreUtils.class);
+
     public static final String DS_CLASS_NAME = "dataStore";
 
     private static final String DS_PROP_PREFIX = "ds.";
@@ -49,7 +63,7 @@ public class DataStoreUtils {
     /**
      * By default create a default directory. But if overridden will need to be unset
      */
-    private static long time = -1;
+    public static long time = -1;
 
     public static DataStoreBlobStore getBlobStore() throws Exception {
         String className = System.getProperty(DS_CLASS_NAME, OakFileDataStore.class.getName());
@@ -57,6 +71,12 @@ public class DataStoreUtils {
         PropertiesUtil.populate(ds, getConfig(), false);
         ds.init(getHomeDir());
         return new DataStoreBlobStore(ds);
+    }
+
+    public static boolean isS3DataStore() {
+        String dsName = System.getProperty(DS_CLASS_NAME);
+        return (dsName != null) && (dsName.equals(S3DataStore.class.getName()) || dsName
+            .equals(SharedS3DataStore.class.getName()));
     }
 
     private static Map<String, ?> getConfig() {
@@ -73,7 +93,7 @@ public class DataStoreUtils {
 
     public static String getHomeDir() {
         return concat(new File(".").getAbsolutePath(), "target/blobstore/" +
-            (time == -1 ? 0 : System.currentTimeMillis()));
+            (time == -1 ? 0 : time));
     }
 
     @Test
@@ -83,5 +103,57 @@ public class DataStoreUtils {
 
         DataStoreBlobStore dbs = getBlobStore();
         assertEquals(1000, dbs.getDataStore().getMinRecordLength());
+    }
+
+    /**
+     * S3 specific cleanup
+     *
+     * @param dataStore the underlying DataStore instance
+     * @param date the date of initialization
+     * @throws Exception
+     */
+    public static void cleanup(DataStore dataStore, Date date) throws Exception {
+        if (dataStore instanceof S3DataStore) {
+            Backend backend = ((S3DataStore) dataStore).getBackend();
+            if (backend instanceof S3Backend) {
+                String bucket = ((S3Backend) backend).getBucket();
+                deleteBucket(bucket, date);
+            }
+        }
+    }
+
+    private static void deleteBucket(String bucket, Date date) throws Exception {
+        log.info("cleaning bucket [" + bucket + "]");
+        Properties props = Utils.readConfig((String) getConfig().get("config"));
+        AmazonS3Client s3service = Utils.openService(props);
+        TransferManager tmx = new TransferManager(s3service);
+        if (s3service.doesBucketExist(bucket)) {
+            for (int i = 0; i < 4; i++) {
+                tmx.abortMultipartUploads(bucket, date);
+                ObjectListing prevObjectListing = s3service.listObjects(bucket);
+                while (prevObjectListing != null ) {
+                    List<DeleteObjectsRequest.KeyVersion>
+                        deleteList = new ArrayList<DeleteObjectsRequest.KeyVersion>();
+                    for (S3ObjectSummary s3ObjSumm : prevObjectListing.getObjectSummaries()) {
+                        deleteList.add(new DeleteObjectsRequest.KeyVersion(
+                            s3ObjSumm.getKey()));
+                    }
+                    if (deleteList.size() > 0) {
+                        DeleteObjectsRequest delObjsReq = new DeleteObjectsRequest(
+                            bucket);
+                        delObjsReq.setKeys(deleteList);
+                        s3service.deleteObjects(delObjsReq);
+                    }
+                    if (!prevObjectListing.isTruncated()) break;
+                    prevObjectListing = s3service.listNextBatchOfObjects(prevObjectListing);
+                }
+            }
+            //s3service.deleteBucket(bucket);
+            log.info("bucket [ " + bucket + "] cleaned");
+        } else {
+            log.info("bucket [" + bucket + "] doesn't exists");
+        }
+        tmx.shutdownNow();
+        s3service.shutdown();
     }
 }

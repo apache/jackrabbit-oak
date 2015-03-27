@@ -189,7 +189,7 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
 
     //----------------------------------------------------------------< SCR >---
     @Activate
-    protected void activate(BundleContext context) throws Exception {
+    protected void activate(BundleContext context) {
         whiteboard = new OsgiWhiteboard(context);
         authorizableActionProvider.start(whiteboard);
         authorizableNodeName.start(whiteboard);
@@ -200,7 +200,7 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
     }
 
     @Deactivate
-    protected void deactivate() throws Exception {
+    protected void deactivate() {
         authorizableActionProvider.stop();
         authorizableNodeName.stop();
         restrictionProvider.stop();

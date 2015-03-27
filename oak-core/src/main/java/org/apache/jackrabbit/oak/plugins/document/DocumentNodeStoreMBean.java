@@ -35,6 +35,8 @@ public interface DocumentNodeStoreMBean {
 
     String[] getInactiveClusterNodes();
 
+    String[] getActiveClusterNodes();
+
     String[] getLastKnownRevisions();
 
     String formatRevision(@Name("revision") String rev, @Name("UTC")boolean utc);

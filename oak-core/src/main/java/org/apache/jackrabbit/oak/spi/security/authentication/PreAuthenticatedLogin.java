@@ -23,7 +23,7 @@ import javax.jcr.Credentials;
  * respective user is pre authenticated on an external system. Note that is class is only used internally by the
  * login modules and cannot be "abused" from outside.
  */
-final public class PreAuthenticatedLogin {
+public final class PreAuthenticatedLogin {
 
     public static final Credentials PRE_AUTHENTICATED = new Credentials() { };
 

@@ -32,7 +32,7 @@ class UserImpl extends AuthorizableImpl implements User {
     }
 
     private User getDelegate() {
-        return (User) dlg;
+        return (User) getDlg();
     }
 
     @Override
@@ -60,7 +60,7 @@ class UserImpl extends AuthorizableImpl implements User {
         try {
             getDelegate().changePassword(pw);
         } finally {
-            mgr.autosave();
+            getMgr().autosave();
         }
 
     }
@@ -70,7 +70,7 @@ class UserImpl extends AuthorizableImpl implements User {
         try {
             getDelegate().changePassword(pw, oldPw);
         } finally {
-            mgr.autosave();
+            getMgr().autosave();
         }
     }
 
@@ -79,7 +79,7 @@ class UserImpl extends AuthorizableImpl implements User {
         try {
             getDelegate().disable(msg);
         } finally {
-            mgr.autosave();
+            getMgr().autosave();
         }
     }
 
@@ -110,7 +110,7 @@ class UserImpl extends AuthorizableImpl implements User {
             try {
                 return dlg.grantImpersonation(principal);
             } finally {
-                mgr.autosave();
+                getMgr().autosave();
             }
         }
 
@@ -119,7 +119,7 @@ class UserImpl extends AuthorizableImpl implements User {
             try {
                 return dlg.revokeImpersonation(principal);
             } finally {
-                mgr.autosave();
+                getMgr().autosave();
             }
         }
 

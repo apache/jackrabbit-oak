@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
@@ -43,6 +44,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.hash.Hashing;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.lucene.store.BaseDirectory;
@@ -186,9 +188,12 @@ class IndexCopier implements CopyOnReadStatsMBean {
                 @Override
                 public void run() {
                     String name = reference.name;
+                    boolean success = false;
+                    boolean copyAttempted = false;
                     try {
                         if (!local.fileExists(name)) {
                             long start = System.currentTimeMillis();
+                            copyAttempted = true;
                             remote.copy(local, name, name, IOContext.READ);
                             reference.markValid();
                             downloadTime.addAndGet(System.currentTimeMillis() - start);
@@ -208,11 +213,22 @@ class IndexCopier implements CopyOnReadStatsMBean {
                                 reference.markValid();
                             }
                         }
+                        success = true;
                     } catch (IOException e) {
                         //TODO In case of exception there would not be any other attempt
                         //to download the file. Look into support for retry
                         log.warn("Error occurred while copying file [{}] " +
                                 "from {} to {}", name, remote, local, e);
+                    } finally {
+                        if (copyAttempted && !success){
+                            try {
+                                if (local.fileExists(name)) {
+                                    local.deleteFile(name);
+                                }
+                            } catch (IOException e) {
+                                log.warn("Error occurred while deleting corrupted file [{}] from [{}]", name, local, e);
+                            }
+                        }
                     }
                 }
             });
@@ -270,10 +286,23 @@ class IndexCopier implements CopyOnReadStatsMBean {
                     ImmutableSet.copyOf(remote.listAll())
             );
 
-            for (String fileName : filesToBeDeleted){
-                local.deleteFile(fileName);
+            Set<String> failedToDelete = Sets.newHashSet();
+
+            for (String fileName : filesToBeDeleted) {
+                try {
+                    local.deleteFile(fileName);
+                } catch (IOException e) {
+                    failedToDelete.add(fileName);
+                    log.debug("Error occurred while removing deleted file {} from Local {} ", fileName, local, e);
+                }
             }
 
+            log.info("Error occurred while deleting following files from the local index directory [{}]. " +
+                    "This can happen on Windows based system. Attempt would be made to remove them " +
+                    "in next attempt ", local, failedToDelete);
+
+            filesToBeDeleted = new HashSet<String>(filesToBeDeleted);
+            filesToBeDeleted.removeAll(failedToDelete);
             if(!filesToBeDeleted.isEmpty()) {
                 log.debug("Following files have been removed from Lucene " +
                         "index directory [{}]", filesToBeDeleted);

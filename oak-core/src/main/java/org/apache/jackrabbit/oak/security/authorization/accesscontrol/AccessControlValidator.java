@@ -281,7 +281,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
         return new CommitFailedException(ACCESS_CONTROL, code, message);
     }
 
-    private class Entry {
+    private final class Entry {
 
         private final String principalName;
         private final PrivilegeBits privilegeBits;

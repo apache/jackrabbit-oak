@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
+import java.util.Set;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -27,9 +28,9 @@ class SupportedPaths {
 
     private final boolean includesRootPath;
 
-    SupportedPaths(@Nonnull String[] supportedPaths) {
-        this.supportedPaths = supportedPaths;
-        supportedAltPaths = new String[supportedPaths.length];
+    SupportedPaths(@Nonnull Set<String> supportedPaths) {
+        this.supportedPaths = supportedPaths.toArray(new String[supportedPaths.size()]);
+        supportedAltPaths = new String[supportedPaths.size()];
 
         boolean foundRootPath = false;
         int i = 0;

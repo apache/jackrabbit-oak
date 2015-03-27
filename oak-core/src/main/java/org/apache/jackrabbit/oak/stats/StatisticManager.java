@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.stats;
 
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
 
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
@@ -31,6 +32,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.stats.QueryStatImpl;
 import org.apache.jackrabbit.stats.RepositoryStatisticsImpl;
+import org.apache.jackrabbit.stats.TimeSeriesMax;
 import org.apache.jackrabbit.stats.jmx.QueryStatManager;
 
 /**
@@ -52,12 +54,18 @@ public class StatisticManager {
     public StatisticManager(Whiteboard whiteboard, ScheduledExecutorService executor) {
         queryStat.setEnabled(true);
         repoStats = new RepositoryStatisticsImpl(executor);
-        maxQueueLength = new TimeSeriesMax(executor);
+        maxQueueLength = new TimeSeriesMax();
         registration = new CompositeRegistration(
             registerMBean(whiteboard, QueryStatManagerMBean.class, new QueryStatManager(queryStat),
                     "QueryStat", "Oak Query Statistics"),
             registerMBean(whiteboard, RepositoryStatsMBean.class, new RepositoryStats(repoStats, maxQueueLength),
-                    RepositoryStats.TYPE, "Oak Repository Statistics"));
+                    RepositoryStats.TYPE, "Oak Repository Statistics"),
+            scheduleWithFixedDelay(whiteboard, new Runnable() {
+                    @Override
+                    public void run() {
+                        maxQueueLength.recordOneSecond();
+                    }
+                }, 1));
     }
 
     /**

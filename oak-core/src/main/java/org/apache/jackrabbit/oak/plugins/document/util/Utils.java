@@ -329,6 +329,12 @@ public class Utils {
         return id.substring(index + 1);
     }
 
+    public static int getDepthFromId(String id) {
+        int index = id.indexOf(':');
+        assert index > 0 : "Invalid id " + id;
+        return Integer.parseInt(id.substring(0, index));
+    }
+
     public static String getPreviousPathFor(String path, Revision r, int height) {
         if (!PathUtils.isAbsolute(path)) {
             throw new IllegalArgumentException("path must be absolute: " + path);

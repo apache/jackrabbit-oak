@@ -375,8 +375,8 @@ public class ReadTest extends AbstractEvaluationTest {
 
     @Test
     public void testGlobRestriction2() throws Exception {
-        Group group2 = getUserManager(superuser).createGroup("group2");
-        Group group3 = getUserManager(superuser).createGroup("group3");
+        Group group2 = getUserManager(superuser).createGroup(generateId("group2_"));
+        Group group3 = getUserManager(superuser).createGroup(generateId("group3_"));
         superuser.save();
 
         try {
@@ -402,8 +402,8 @@ public class ReadTest extends AbstractEvaluationTest {
 
     @Test
     public void testGlobRestriction3() throws Exception {
-        Group group2 = getUserManager(superuser).createGroup("group2");
-        Group group3 = getUserManager(superuser).createGroup("group3");
+        Group group2 = getUserManager(superuser).createGroup(generateId("group2_"));
+        Group group3 = getUserManager(superuser).createGroup(generateId("group3_"));
         superuser.save();
 
         try {
@@ -530,12 +530,12 @@ public class ReadTest extends AbstractEvaluationTest {
      */
     @Test
     public void testEmptyGlobRestriction3() throws Exception {
+        Group group1 = getTestGroup();
+        Group group2 = getUserManager(superuser).createGroup(generateId("group2_"));
+        group2.addMember(testUser);
+        Group group3 = getUserManager(superuser).createGroup(generateId("group3_"));
+        superuser.save();
         try {
-            Group group1 = getTestGroup();
-            Group group2 = getUserManager(superuser).createGroup("group2");
-            group2.addMember(testUser);
-            Group group3 = getUserManager(superuser).createGroup("group3");
-            superuser.save();
 
             assertTrue(group1.isDeclaredMember(testUser));
             assertTrue(group2.isDeclaredMember(testUser));
@@ -557,14 +557,9 @@ public class ReadTest extends AbstractEvaluationTest {
             assertTrue(canReadNode(userSession, childNPath));
             assertFalse(canReadNode(userSession, childNPath2));
         } finally {
-            Authorizable g2 = getUserManager(superuser).getAuthorizable("group2");
-            if (g2 != null) {
-                g2.remove();
-            }
-            Authorizable g3 = getUserManager(superuser).getAuthorizable("group3");
-            if (g3 != null) {
-                g3.remove();
-            }
+            group2.remove();
+            group3.remove();
+            superuser.save();
         }
     }
 

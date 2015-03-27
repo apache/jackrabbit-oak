@@ -85,7 +85,7 @@
         <configuration>
           <systemPropertyVariables>
             <standby.server.port>${standby.server.port}</standby.server.port>
-            <standby.proxy.port>${standby.poxy.port}</standby.proxy.port>
+            <standby.proxy.port>${standby.proxy.port}</standby.proxy.port>
           </systemPropertyVariables>
           <excludes>
             <!-- excluding long running tests -->
@@ -94,6 +94,15 @@
             <exclude>**/BulkTest.java</exclude>
             <exclude>**/MBeanTest.java</exclude>
           </excludes>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <standby.server.port>${standby.server.port}</standby.server.port>
+            <standby.proxy.port>${standby.proxy.port}</standby.proxy.port>
+          </systemPropertyVariables>
         </configuration>
       </plugin>
     </plugins>

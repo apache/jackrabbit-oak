@@ -17,16 +17,16 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.upgrade;
+package org.apache.jackrabbit.oak.spi.commit;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 
@@ -40,19 +40,23 @@ public class ProgressNotificationEditor implements Editor {
     private final String path;
     private final Function<String, Void> onProgress;
 
-    public static ProgressNotificationEditor wrap(Editor editor, final Logger logger, final String message) {
-        return new ProgressNotificationEditor(editor, "/", new Function<String, Void>() {
-            int count;
+    @CheckForNull
+    public static Editor wrap(@CheckForNull Editor editor, final Logger logger, final String message) {
+        if (editor != null && !(editor instanceof ProgressNotificationEditor)) {
+            return new ProgressNotificationEditor(editor, "/", new Function<String, Void>() {
+                int count;
 
-            @Nullable
-            @Override
-            public Void apply(String path) {
-                if (++count % 10000 == 0) {
-                    logger.info(message + ' ' + path);
+                @Nullable
+                @Override
+                public Void apply(String path) {
+                    if (++count % 10000 == 0) {
+                        logger.info(message + " Traversed #" + count + ' ' + path);
+                    }
+                    return null;
                 }
-                return null;
-            }
-        });
+            });
+        }
+        return editor;
     }
 
     private ProgressNotificationEditor(Editor editor, String path, Function<String, Void> onProgress) {

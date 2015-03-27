@@ -51,7 +51,7 @@ public class LocalNameMapper extends GlobalNameMapper {
         return local;
     }
 
-    @Override @CheckForNull
+    @Override @Nonnull
     public synchronized String getJcrName(String oakName) {
         checkNotNull(oakName);
         checkArgument(!oakName.startsWith(":"), oakName); // hidden name

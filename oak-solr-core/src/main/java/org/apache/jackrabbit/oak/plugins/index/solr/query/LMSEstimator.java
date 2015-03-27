@@ -49,15 +49,15 @@ class LMSEstimator {
         double[] updatedWeights = new double[weights.length];
         long estimate = estimate(filter);
         long numFound = docs.getNumFound();
-        long delta = numFound - estimate;
+        double delta = Math.pow(numFound - estimate, 2) / 2;
         if (Math.abs(delta) > threshold) {
             for (int i = 0; i < updatedWeights.length; i++) {
                 double errors = delta * getInput(filter, i);
                 updatedWeights[i] = weights[i] + alpha * errors;
             }
+            // weights updated
+            weights = Arrays.copyOf(updatedWeights, 5);
         }
-        // weights updated
-        weights = Arrays.copyOf(updatedWeights, 5);
     }
 
     long estimate(Filter filter) {

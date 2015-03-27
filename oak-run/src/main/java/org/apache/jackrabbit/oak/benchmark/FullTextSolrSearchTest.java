@@ -79,8 +79,7 @@ public class FullTextSolrSearchTest extends FullTextSearchTest {
                             };
                         }
                     };
-                    SolrQueryIndexProvider solrPRovider = new SolrQueryIndexProvider(serverProvider, configurationProvider);
-                    oak.with((Observer) solrPRovider)
+                    oak.with(new SolrQueryIndexProvider(serverProvider, configurationProvider))
                         .with(new NodeStateSolrServersObserver())
                         .with(new SolrIndexEditorProvider(serverProvider, configurationProvider))
                         .with(new SolrIndexInitializer(false));

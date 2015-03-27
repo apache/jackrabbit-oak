@@ -123,8 +123,8 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
         ConfigurationParameters params = getParameters();
         boolean enabled = params.getConfigValue(CugConstants.PARAM_CUG_ENABLED, false);
 
-        String[] supportedPaths = params.getConfigValue(CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[0]);
-        if (!enabled || supportedPaths.length == 0 || getExclude().isExcluded(principals)) {
+        Set<String> supportedPaths = params.getConfigValue(CugConstants.PARAM_CUG_SUPPORTED_PATHS, Collections.<String>emptySet());
+        if (!enabled || supportedPaths.isEmpty() || getExclude().isExcluded(principals)) {
             return EmptyPermissionProvider.getInstance();
         } else {
             return new CugPermissionProvider(root, principals, supportedPaths, getContext());

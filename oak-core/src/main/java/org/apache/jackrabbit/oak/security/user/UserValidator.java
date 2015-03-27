@@ -187,7 +187,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
         }
     }
 
-    private void validateAuthorizable(@Nonnull Tree tree, @Nonnull AuthorizableType type) throws CommitFailedException {
+    private void validateAuthorizable(@Nonnull Tree tree, @Nullable AuthorizableType type) throws CommitFailedException {
         boolean isSystemUser = (type == AuthorizableType.USER) && UserUtil.isSystemUser(tree);
         String authRoot = UserUtil.getAuthorizableRootPath(provider.getConfig(), type);
         if (isSystemUser) {

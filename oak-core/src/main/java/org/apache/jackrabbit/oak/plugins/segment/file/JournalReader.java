@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.util.Iterator;
 
 import com.google.common.collect.AbstractIterator;
-import org.apache.commons.io.input.ReversedLinesFileReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,4 +70,5 @@ public final class JournalReader implements Closeable, Iterable<String> {
     public void close() throws IOException {
         journal.close();
     }
+
 }

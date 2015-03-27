@@ -169,7 +169,7 @@ public class UserManagerImpl implements UserManager {
     }
 
     @Override
-    public User createSystemUser(String userID, String intermediatePath) throws AuthorizableExistsException, RepositoryException {
+    public User createSystemUser(String userID, String intermediatePath) throws RepositoryException {
         checkValidID(userID);
         Principal principal = new PrincipalImpl(userID);
         checkValidPrincipal(principal, false);

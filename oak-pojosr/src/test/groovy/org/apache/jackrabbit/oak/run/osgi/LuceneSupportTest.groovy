@@ -65,7 +65,7 @@ class LuceneSupportTest extends AbstractRepositoryFactoryTest {
         session.save()
 
         //The lucene index is set to synched mode
-        retry(10, 200) {
+        retry(30, 200) {
             String query = "SELECT * FROM [nt:base] as f WHERE CONTAINS (f.*, 'dog')"
             assert [ '/myFile/jcr:content' ] as HashSet == execute ( query )
 

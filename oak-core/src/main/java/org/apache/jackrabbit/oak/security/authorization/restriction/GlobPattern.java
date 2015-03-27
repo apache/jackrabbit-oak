@@ -119,8 +119,8 @@ final class GlobPattern implements RestrictionPattern {
     //-------------------------------------------------< RestrictionPattern >---
     @Override
     public boolean matches(@Nonnull Tree tree, @Nullable PropertyState property) {
-        String path = (property == null) ? tree.getPath() : PathUtils.concat(tree.getPath(), property.getName());
-        return matches(path);
+        String itemPath = (property == null) ? tree.getPath() : PathUtils.concat(tree.getPath(), property.getName());
+        return matches(itemPath);
     }
 
     @Override
