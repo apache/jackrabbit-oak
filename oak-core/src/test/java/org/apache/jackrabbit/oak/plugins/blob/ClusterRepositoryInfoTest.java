@@ -93,6 +93,19 @@ public class ClusterRepositoryInfoTest {
         Assert.assertEquals(repoId1, repoId2);
     }
 
+    @Test
+    public void checkGetIdWhenNotRegistered() {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ds1 = new DocumentMK.Builder()
+            .setAsyncDelay(0)
+            .setDocumentStore(store)
+            .setClusterId(1)
+            .getNodeStore();
+        // Should be null and no NPE
+        String id = ClusterRepositoryInfo.getId(ds1);
+        Assert.assertNull(id);
+    }
+
     @After
     public void close() throws IOException {
         FileUtils.cleanDirectory(new File(DataStoreUtils.getHomeDir()));
