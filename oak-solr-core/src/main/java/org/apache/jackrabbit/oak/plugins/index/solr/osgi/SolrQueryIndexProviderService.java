@@ -33,7 +33,6 @@ import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
-import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
@@ -71,6 +70,7 @@ public class SolrQueryIndexProviderService {
             description = "enable query time aggregation for Solr index")
     private static final String QUERY_TIME_AGGREGATION = "query.aggregation";
 
+    @SuppressWarnings("UnusedDeclaration")
     @Activate
     protected void activate(ComponentContext componentContext) {
         Object value = componentContext.getProperties().get(QUERY_TIME_AGGREGATION);
@@ -87,6 +87,7 @@ public class SolrQueryIndexProviderService {
         }
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     @Deactivate
     protected void deactivate() {
 

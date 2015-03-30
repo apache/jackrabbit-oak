@@ -21,9 +21,6 @@ import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.List;
 
-import javax.jcr.PropertyType;
-
-import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
