@@ -52,7 +52,6 @@ The build consists of the following main components:
   - oak-commons       - shared utility code
   - oak-mk-api        - MicroKernel API
   - oak-mk            - default MicroKernel implementation
-  - oak-mk-remote     - MicroKernel remoting
   - [oak-core][1]     - Oak repository API and implementation
   - oak-jcr           - JCR binding for the Oak repository
   - oak-sling         - integration with Apache Sling
@@ -69,6 +68,14 @@ The build consists of the following main components:
     - oak-it/osgi     - integration tests for OSGi
 
   [1]: oak-core/README.md
+
+Archive
+-------
+
+The following components have been moved to the Jackrabbit Attic:
+
+  - oak-mk-remote     - MicroKernel remoting  (see OAK-2693)
+
 
 License
 -------
