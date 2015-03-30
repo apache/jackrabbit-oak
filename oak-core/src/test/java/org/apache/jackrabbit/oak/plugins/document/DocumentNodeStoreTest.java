@@ -72,6 +72,7 @@ import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -1215,6 +1216,32 @@ public class DocumentNodeStoreTest {
             node.child("child-2");
             merge(store2, builder);
         }
+    }
+
+    // OAK-2695
+    @Test
+    public void dispatch() throws Exception {
+        DocumentNodeStore ns = new DocumentMK.Builder().getNodeStore();
+
+        Revision from = ns.getHeadRevision();
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("test");
+        merge(ns, builder);
+        Revision to = ns.getHeadRevision();
+
+        DiffCache.Entry entry = ns.getDiffCache().newEntry(from, to);
+        entry.append("/", "-\"foo\"");
+        entry.done();
+
+        ns.compare(ns.getRoot(), ns.getRoot(from), new DefaultNodeStateDiff() {
+            @Override
+            public boolean childNodeDeleted(String name, NodeState before) {
+                assertNotNull(before);
+                return true;
+            }
+        });
+
+        ns.dispose();
     }
 
     private void doSomeChange(NodeStore ns) throws CommitFailedException {
