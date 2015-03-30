@@ -237,7 +237,9 @@ public final class DocumentNodeStore
      */
     private volatile Revision headRevision;
 
-    private Thread backgroundThread;
+    private Thread backgroundReadThread;
+
+    private Thread backgroundUpdateThread;
 
     /**
      * Background thread performing the clusterId lease renew.
@@ -431,15 +433,20 @@ public final class DocumentNodeStore
         dispatcher = new ChangeDispatcher(getRoot());
         commitQueue = new CommitQueue(this, dispatcher);
         batchCommitQueue = new BatchCommitQueue(store, revisionComparator);
-        backgroundThread = new Thread(
+        backgroundReadThread = new Thread(
+                new BackgroundReadOperation(this, isDisposed),
+                "DocumentNodeStore background read thread");
+        backgroundReadThread.setDaemon(true);
+        backgroundUpdateThread = new Thread(
                 new BackgroundOperation(this, isDisposed),
-                "DocumentNodeStore background thread");
-        backgroundThread.setDaemon(true);
+                "DocumentNodeStore background update thread");
+        backgroundUpdateThread.setDaemon(true);
         checkLastRevRecovery();
         // Renew the lease because it may have been stale
         renewClusterIdLease();
 
-        backgroundThread.start();
+        backgroundReadThread.start();
+        backgroundUpdateThread.start();
 
         if (clusterNodeInfo != null) {
             leaseUpdateThread = new Thread(
@@ -469,14 +476,19 @@ public final class DocumentNodeStore
             isDisposed.notifyAll();
         }
         try {
-            backgroundThread.join();
+            backgroundReadThread.join();
+        } catch (InterruptedException e) {
+            // ignore
+        }
+        try {
+            backgroundUpdateThread.join();
         } catch (InterruptedException e) {
             // ignore
         }
 
         // do a final round of background operations after
         // the background thread stopped
-        internalRunBackgroundOperations();
+        internalRunBackgroundUpdateOperations();
 
         if (leaseUpdateThread != null) {
             try {
@@ -1480,7 +1492,13 @@ public final class DocumentNodeStore
 
     //----------------------< background operations >---------------------------
 
+    /** Used for testing only */
     public void runBackgroundOperations() {
+        runBackgroundUpdateOperations();
+        runBackgroundReadOperations();
+    }
+
+    private void runBackgroundUpdateOperations() {
         if (isDisposed.get()) {
             return;
         }
@@ -1488,17 +1506,17 @@ public final class DocumentNodeStore
             return;
         }
         try {
-            internalRunBackgroundOperations();
+            internalRunBackgroundUpdateOperations();
         } catch (RuntimeException e) {
             if (isDisposed.get()) {
-                LOG.warn("Background operation failed: " + e.toString(), e);
+                LOG.warn("Background update operation failed: " + e.toString(), e);
                 return;
             }
             throw e;
         }
     }
 
-    private synchronized void internalRunBackgroundOperations() {
+    private synchronized void internalRunBackgroundUpdateOperations() {
         long start = clock.getTime();
         long time = start;
         // clean orphaned branches and collisions
@@ -1513,16 +1531,44 @@ public final class DocumentNodeStore
         // write back pending updates to _lastRev
         backgroundWrite();
         long writeTime = clock.getTime() - time;
-        time = clock.getTime();
-        // pull in changes from other cluster nodes
-        BackgroundReadStats readStats = backgroundRead(true);
-        long readTime = clock.getTime() - time;
-        String msg = "Background operations stats (clean:{}, split:{}, write:{}, read:{} {})";
+        String msg = "Background operations stats (clean:{}, split:{}, write:{})";
         if (clock.getTime() - start > TimeUnit.SECONDS.toMillis(10)) {
             // log as info if it took more than 10 seconds
-            LOG.info(msg, cleanTime, splitTime, writeTime, readTime, readStats);
+            LOG.info(msg, cleanTime, splitTime, writeTime);
         } else {
-            LOG.debug(msg, cleanTime, splitTime, writeTime, readTime, readStats);
+            LOG.debug(msg, cleanTime, splitTime, writeTime);
+        }
+    }
+
+    //----------------------< background read operations >----------------------
+
+    private void runBackgroundReadOperations() {
+        if (isDisposed.get()) {
+            return;
+        }
+        try {
+            internalRunBackgroundReadOperations();
+        } catch (RuntimeException e) {
+            if (isDisposed.get()) {
+                LOG.warn("Background read operation failed: " + e.toString(), e);
+                return;
+            }
+            throw e;
+        }
+    }
+
+    /** OAK-2624 : background read operations are split from background update ops */
+    private synchronized void internalRunBackgroundReadOperations() {
+        long start = clock.getTime();
+        // pull in changes from other cluster nodes
+        BackgroundReadStats readStats = backgroundRead(true);
+        long readTime = clock.getTime() - start;
+        String msg = "Background read operations stats (read:{} {})";
+        if (clock.getTime() - start > TimeUnit.SECONDS.toMillis(10)) {
+            // log as info if it took more than 10 seconds
+            LOG.info(msg, readTime, readStats);
+        } else {
+            LOG.debug(msg, readTime, readStats);
         }
     }
 
@@ -2262,7 +2308,23 @@ public final class DocumentNodeStore
 
         @Override
         protected void execute(@Nonnull DocumentNodeStore nodeStore) {
-            nodeStore.runBackgroundOperations();
+            nodeStore.runBackgroundUpdateOperations();
+        }
+    }
+
+    /**
+     * Background read operations.
+     */
+    static class BackgroundReadOperation extends NodeStoreTask {
+
+        BackgroundReadOperation(DocumentNodeStore nodeStore,
+                                AtomicBoolean isDisposed) {
+            super(nodeStore, isDisposed);
+        }
+
+        @Override
+        protected void execute(@Nonnull DocumentNodeStore nodeStore) {
+            nodeStore.runBackgroundReadOperations();
         }
     }
 
