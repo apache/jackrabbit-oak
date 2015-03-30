@@ -269,7 +269,7 @@ Examples:
     $ java -jar oak-run-*.jar server http://localhost:4503 Oak-Tar --base myOak
     $ java -jar oak-run-*.jar server http://localhost:4502 Oak-Mongo --db myOak --clusterIds c1,c2,c3
 
-See the documentation in the `oak-http` components for details about the available functionality.
+See the documentation in the `oak-http` component for details about the available functionality.
 
 
 Benchmark mode
