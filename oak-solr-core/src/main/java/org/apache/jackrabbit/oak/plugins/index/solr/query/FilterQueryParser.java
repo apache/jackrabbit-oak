@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
 import java.util.Collection;
 import java.util.List;
-import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
