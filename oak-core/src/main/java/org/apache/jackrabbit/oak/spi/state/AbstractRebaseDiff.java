@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 /**
  * {@code AbstractRebaseDiff} serves as base for rebase implementations.
  * It implements a {@link NodeStateDiff}, which performs the conflict
- * handling as defined in {@link org.apache.jackrabbit.mk.api.MicroKernel#rebase(String, String)}
+ * handling as defined in {@link org.apache.jackrabbit.oak.spi.state.NodeStore#rebase(NodeBuilder)}
  * on the Oak SPI state level.
  * <p>
  * Intended use of this class is to re-base a branched version of the node state

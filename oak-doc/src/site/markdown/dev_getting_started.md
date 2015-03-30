@@ -62,8 +62,8 @@ The build consists of the following main components:
   - oak-parent        - parent POM
   - oak-doc           - Oak documentation
   - oak-commons       - shared utility code
-  - oak-mk-api        - MicroKernel API
-  - oak-mk            - default MicroKernel implementation
+  - oak-mk-api        - MicroKernel API (_deprecated_)
+  - oak-mk            - MicroKernel implementation
   - [oak-core][1]     - Oak repository API and implementation
   - oak-jcr           - JCR binding for the Oak repository
   - oak-sling         - integration with Apache Sling
