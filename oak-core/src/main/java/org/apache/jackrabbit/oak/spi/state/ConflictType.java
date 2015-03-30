@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.spi.state;
 /**
  * Enum to define various types of conflicts.
  *
- * @see org.apache.jackrabbit.mk.api.MicroKernel#rebase(String, String)
+ * @see org.apache.jackrabbit.oak.spi.state.NodeStore#rebase(NodeBuilder)
  */
 public enum ConflictType {
 
