@@ -38,7 +38,7 @@ public interface SharedS3Backend extends Backend {
      * @param name the name
      * @throws org.apache.jackrabbit.core.data.DataStoreException
      */
-    public void addMetadataRecord(final InputStream input, final String name) throws DataStoreException;
+    void addMetadataRecord(final InputStream input, final String name) throws DataStoreException;
 
     /**
      * Gets the metadata of the specified name.
@@ -46,7 +46,7 @@ public interface SharedS3Backend extends Backend {
      * @param name the name of the record
      * @return the metadata DataRecord
      */
-    public DataRecord getMetadataRecord(String name);
+    DataRecord getMetadataRecord(String name);
 
     /**
      * Gets all the metadata with a specified prefix.
@@ -54,7 +54,7 @@ public interface SharedS3Backend extends Backend {
      * @param prefix the prefix of the records to retrieve
      * @return list of all the metadata DataRecords
      */
-    public List<DataRecord> getAllMetadataRecords(String prefix);
+    List<DataRecord> getAllMetadataRecords(String prefix);
 
     /**
      * Deletes the metadata record with the specified name
@@ -62,12 +62,12 @@ public interface SharedS3Backend extends Backend {
      * @param name the name of the record
      * @return boolean to indicate success of deletion
      */
-    public boolean deleteMetadataRecord(String name);
+    boolean deleteMetadataRecord(String name);
 
     /**
      * Deletes all the metadata records with the specified prefix.
      *
      * @param prefix the prefix of the record
      */
-    public void deleteAllMetadataRecords(String prefix);
+    void deleteAllMetadataRecords(String prefix);
 }
