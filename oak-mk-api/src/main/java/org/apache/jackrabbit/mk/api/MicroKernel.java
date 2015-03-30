@@ -68,6 +68,8 @@ import javax.annotation.Nonnull;
  * <li>If the binary was stored before the last retained revision (this is to
  * keep temporary binaries, and binaries that are not yet referenced).</li>
  * </ul>
+ *
+ * @deprecated Oak 1.2
  */
 public interface MicroKernel {
 
