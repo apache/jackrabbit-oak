@@ -28,7 +28,7 @@
   </parent>
 
   <artifactId>oak-mk-api</artifactId>
-  <name>Oak MicroKernel API</name>
+  <name>Oak MicroKernel API (Deprecated)</name>
   <packaging>bundle</packaging>
 
   <build>

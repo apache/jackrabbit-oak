@@ -18,6 +18,8 @@ package org.apache.jackrabbit.mk.api;
 
 /**
  * Exception thrown by methods of the {@code MicroKernel} API
+ *
+ * @deprecated Oak 1.2
  */
 public class MicroKernelException extends RuntimeException {
 
