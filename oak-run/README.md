@@ -222,7 +222,7 @@ Oak server mode
 
 The Oak server mode starts a MicroKernel or full Oak instance with the 
 standard JCR plugins and makes it available over a simple HTTP mapping 
-defined in the `oak-http`. To start this mode, use:
+defined in the `oak-http` component. To start this mode, use:
 
     $ java -jar oak-run-*.jar server [uri] [fixture] [options]
 
