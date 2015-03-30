@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.AbstractMap;
 import java.util.AbstractSet;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -35,7 +34,6 @@ import org.apache.jackrabbit.oak.plugins.document.util.MergeSortedIterators;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 
 /**
  * A value map contains the versioned values of a property. The key into this
