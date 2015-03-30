@@ -83,13 +83,13 @@ public enum ConflictType {
         return effectsNode;
     }
 
-    public static ConflictType fromName(String name){
-        for(ConflictType t : values()){
-            if(t.getName().equals(name)){
+    public static ConflictType fromName(String name) {
+        for (ConflictType t : values()) {
+            if (t.getName().equals(name)) {
                 return t;
             }
         }
-        throw new IllegalArgumentException("Unrecognized conflictType: "+name);
+        throw new IllegalArgumentException("Unrecognized conflictType: " + name);
     }
 
     private final String name;
