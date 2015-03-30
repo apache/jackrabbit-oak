@@ -26,8 +26,6 @@ import java.util.List;
 import org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.MultiFields;
-import org.apache.lucene.index.Terms;
 import org.apache.lucene.search.suggest.DocumentDictionary;
 import org.apache.lucene.search.suggest.Lookup;
 import org.apache.lucene.search.suggest.analyzing.FreeTextSuggester;
