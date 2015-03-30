@@ -23,6 +23,9 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
 
+import org.apache.jackrabbit.oak.commons.jmx.Description;
+import org.apache.jackrabbit.oak.commons.jmx.Name;
+
 /**
  * This interface exposes repository management operations and the status
  * of such operations. This interface only provides high level functionality
@@ -134,7 +137,11 @@ public interface RepositoryManagementMBean {
      * @return  the status of the operation right after it was initiated
      */
     @Nonnull
-    CompositeData startDataStoreGC(boolean markOnly);
+    CompositeData startDataStoreGC(@Name("markOnly")
+            @Description("Set to true to only mark references and not sweep in the mark and sweep operation. " +
+                    "This mode is to be used when the underlying BlobStore is shared between multiple " +
+                    "different repositories. For all other cases set it to false to perform full garbage collection")
+                                   boolean markOnly);
 
     /**
      * Data store garbage collection status
