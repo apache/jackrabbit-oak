@@ -24,6 +24,8 @@ import org.apache.jackrabbit.oak.commons.IOUtils;
 
 /**
  * An input stream to simplify reading a blob from a {@code MicroKernel}.
+ *
+ * @deprecated Oak 1.2
  */
 public class MicroKernelInputStream extends InputStream {
 
