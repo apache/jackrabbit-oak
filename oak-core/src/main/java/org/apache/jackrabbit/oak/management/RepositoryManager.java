@@ -33,6 +33,7 @@ import javax.management.openmbean.CompositeData;
 
 import com.google.common.base.Function;
 import org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean;
+import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.plugins.backup.FileStoreBackupRestoreMBean;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGCMBean;
 import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncReindexMBean;
@@ -47,10 +48,11 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
  * garbage collections ({@link BlobGCMBean}) and revision store garbage
  * collections ({@link RevisionGCMBean}).
  */
-public class RepositoryManager implements RepositoryManagementMBean {
+public class RepositoryManager extends AnnotatedStandardMBean implements RepositoryManagementMBean {
     private final Whiteboard whiteboard;
 
     public RepositoryManager(@Nonnull Whiteboard whiteboard) {
+        super(RepositoryManagementMBean.class);
         this.whiteboard = checkNotNull(whiteboard);
     }
 
