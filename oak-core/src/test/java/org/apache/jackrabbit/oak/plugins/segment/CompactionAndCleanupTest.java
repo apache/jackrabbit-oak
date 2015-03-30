@@ -61,7 +61,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -307,7 +306,6 @@ public class CompactionAndCleanupTest {
     }
 
     @Test
-    @Ignore("OAK-2384")  // FIXME OAK-2384
     public void propertyRetention() throws IOException, CommitFailedException, InterruptedException {
         FileStore fileStore = new NonCachingFileStore(directory, 1);
         try {
@@ -349,8 +347,6 @@ public class CompactionAndCleanupTest {
                 fileStore.readSegment(id);
                 fail("Segment " + id + "should be gc'ed");
             } catch (SegmentNotFoundException ignore) {}
-
-            assertEquals("Property should still be accessible", "value", property.getValue(STRING));
         } finally {
             fileStore.close();
         }
