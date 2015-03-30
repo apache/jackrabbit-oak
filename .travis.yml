@@ -14,7 +14,7 @@
 # limitations under the License.
 
 install:  true
-script:   mvn verify -Ppedantic,integrationTesting
+script:   mvn --batch-mode verify -Ppedantic,integrationTesting
 language: java
 jdk:
   - oraclejdk7
