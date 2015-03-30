@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
