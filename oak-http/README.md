@@ -10,7 +10,7 @@ using the `oak-run` jar:
 
     $ java -jar oak-run/target/oak-run-*.jar
 
-The resulting reposistory is made available at http://localhost:8080/.
+The resulting repository is made available at http://localhost:8080/.
 The following examples use the httpie client to perform simple CRUD operations.
 The username and password (by default `admin` and `admin`) have been specified
 in the `~/.netrc` file so they are not included on the command lines.
