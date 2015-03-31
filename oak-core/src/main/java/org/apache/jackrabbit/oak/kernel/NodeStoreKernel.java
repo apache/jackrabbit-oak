@@ -674,6 +674,7 @@ public class NodeStoreKernel implements MicroKernel {
                     public long length() {
                         return b.length();
                     }
+                    @Nonnull
                     @Override
                     public InputStream getNewStream() {
                         return b.getNewStream();

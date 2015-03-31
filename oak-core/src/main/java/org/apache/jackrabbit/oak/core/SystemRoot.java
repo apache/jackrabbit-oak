@@ -64,6 +64,7 @@ public class SystemRoot extends MutableRoot {
                 new ContentSessionImpl(
                         LOGIN_CONTEXT, securityProvider, workspaceName,
                         store, hook, queryEngineSettings, indexProvider) {
+                    @Nonnull
                     @Override
                     public Root getLatestRoot() {
                         return new SystemRoot(

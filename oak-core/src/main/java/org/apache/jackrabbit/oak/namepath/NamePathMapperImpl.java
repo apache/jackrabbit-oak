@@ -54,7 +54,7 @@ public class NamePathMapperImpl implements NamePathMapper {
 
     //---------------------------------------------------------< NameMapper >---
     @Override
-    public String getOakNameOrNull(String jcrName) {
+    public String getOakNameOrNull(@Nonnull String jcrName) {
         return nameMapper.getOakNameOrNull(jcrName);
     }
 
@@ -64,8 +64,9 @@ public class NamePathMapperImpl implements NamePathMapper {
         return nameMapper.getOakName(jcrName);
     }
 
+    @Nonnull
     @Override
-    public String getJcrName(String oakName) {
+    public String getJcrName(@Nonnull String oakName) {
         return nameMapper.getJcrName(oakName);
     }
 

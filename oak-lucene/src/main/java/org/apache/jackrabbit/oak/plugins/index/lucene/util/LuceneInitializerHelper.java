@@ -22,6 +22,8 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHel
 
 import java.util.Set;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
@@ -76,7 +78,7 @@ public class LuceneInitializerHelper implements RepositoryInitializer {
     }
 
     @Override
-    public void initialize(NodeBuilder builder) {
+    public void initialize(@Nonnull NodeBuilder builder) {
         if (builder.hasChildNode(INDEX_DEFINITIONS_NAME)
                 && builder.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(name)) {
             // do nothing

@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.reference;
 
+import javax.annotation.Nonnull;
+
 import static org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants.TYPE;
 
 import org.apache.felix.scr.annotations.Component;
@@ -31,8 +33,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 public class ReferenceEditorProvider implements IndexEditorProvider {
 
     @Override
-    public Editor getIndexEditor(String type, NodeBuilder definition,
-            NodeState root, IndexUpdateCallback callback) {
+    public Editor getIndexEditor(@Nonnull String type, @Nonnull NodeBuilder definition,
+            @Nonnull NodeState root, @Nonnull IndexUpdateCallback callback) {
         if (TYPE.equals(type)) {
             return new ReferenceEditor(definition, root);
         }

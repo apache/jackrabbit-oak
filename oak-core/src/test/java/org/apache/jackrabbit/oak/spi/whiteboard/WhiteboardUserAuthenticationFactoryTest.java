@@ -100,7 +100,7 @@ public class WhiteboardUserAuthenticationFactoryTest extends AbstractSecurityTes
             if (this.userId.equals(userId)) {
                 return new Authentication() {
                     @Override
-                    public boolean authenticate(Credentials credentials) {
+                    public boolean authenticate(@Nullable Credentials credentials) {
                         return true;
                     }
                 };

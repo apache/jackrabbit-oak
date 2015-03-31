@@ -51,6 +51,7 @@ public class CompositeHook implements CommitHook {
         this(Arrays.asList(hooks));
     }
 
+    @Nonnull
     @Override
     public NodeState processCommit(
             NodeState before, NodeState after, CommitInfo info)

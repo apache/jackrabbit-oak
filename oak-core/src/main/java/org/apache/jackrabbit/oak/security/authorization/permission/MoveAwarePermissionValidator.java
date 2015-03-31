@@ -59,6 +59,7 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
         moveCtx = pv.moveCtx;
     }
 
+    @Nonnull
     @Override
     PermissionValidator createValidator(@Nullable Tree parentBefore,
                                         @Nullable Tree parentAfter,

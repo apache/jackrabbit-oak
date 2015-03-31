@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
@@ -164,6 +165,7 @@ public final class LoginModuleImpl extends AbstractLoginModule {
     }
 
     //------------------------------------------------< AbstractLoginModule >---
+    @Nonnull
     @Override
     protected Set<Class> getSupportedCredentials() {
         return SUPPORTED_CREDENTIALS;

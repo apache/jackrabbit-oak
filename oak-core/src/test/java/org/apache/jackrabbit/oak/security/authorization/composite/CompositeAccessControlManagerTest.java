@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.security.authorization.composite;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
@@ -216,7 +217,7 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
 
         //----------------------------------------------------< PolicyOwner >---
         @Override
-        public boolean defines(String absPath, AccessControlPolicy accessControlPolicy) {
+        public boolean defines(String absPath, @Nonnull AccessControlPolicy accessControlPolicy) {
             return TEST_PATH.equals(absPath) && accessControlPolicy == TestPolicy.INSTANCE;
         }
     }

@@ -52,6 +52,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
 import javax.jcr.Binary;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -202,15 +203,16 @@ class JackrabbitNodeState extends AbstractNodeState {
     }
 
     @Override
-    public boolean hasProperty(String name) {
+    public boolean hasProperty(@Nonnull String name) {
         return properties.containsKey(name);
     }
 
     @Override
-    public PropertyState getProperty(String name) {
+    public PropertyState getProperty(@Nonnull String name) {
         return properties.get(name);
     }
 
+    @Nonnull
     @Override
     public Iterable<PropertyState> getProperties() {
         return properties.values();
@@ -222,12 +224,13 @@ class JackrabbitNodeState extends AbstractNodeState {
     }
 
     @Override
-    public boolean hasChildNode(String name) {
+    public boolean hasChildNode(@Nonnull String name) {
         return nodes.containsKey(name);
     }
 
+    @Nonnull
     @Override
-    public NodeState getChildNode(String name) {
+    public NodeState getChildNode(@Nonnull String name) {
         NodeId id = nodes.get(name);
         if (id != null) {
             try {
@@ -247,6 +250,7 @@ class JackrabbitNodeState extends AbstractNodeState {
         return nodes.keySet();
     }
 
+    @Nonnull
     @Override
     public Iterable<MemoryChildNodeEntry> getChildNodeEntries() {
         List<MemoryChildNodeEntry> entries = newArrayList();
@@ -263,6 +267,7 @@ class JackrabbitNodeState extends AbstractNodeState {
         return entries;
     }
 
+    @Nonnull
     @Override
     public NodeBuilder builder() {
         return new MemoryNodeBuilder(this);
@@ -529,6 +534,7 @@ class JackrabbitNodeState extends AbstractNodeState {
                     return 0;
                 }
             }
+            @Nonnull
             @Override
             public InputStream getNewStream() {
                 try {

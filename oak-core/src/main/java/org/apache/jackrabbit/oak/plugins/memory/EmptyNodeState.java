@@ -55,17 +55,17 @@ public final class EmptyNodeState implements NodeState {
     }
 
     @Override
-    public boolean hasProperty(String name) {
+    public boolean hasProperty(@Nonnull String name) {
         return false;
     }
 
     @Override @CheckForNull
-    public PropertyState getProperty(String name) {
+    public PropertyState getProperty(@Nonnull String name) {
         return null;
     }
 
     @Override
-    public boolean getBoolean(String name) {
+    public boolean getBoolean(@Nonnull String name) {
         return false;
     }
 
@@ -79,8 +79,9 @@ public final class EmptyNodeState implements NodeState {
         return null;
     }
 
+    @Nonnull
     @Override
-    public Iterable<String> getStrings(String name) {
+    public Iterable<String> getStrings(@Nonnull String name) {
         return emptyList();
     }
 

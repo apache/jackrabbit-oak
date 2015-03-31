@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
 
 /**
@@ -32,10 +35,12 @@ public class SyncResultImpl implements SyncResult {
         this.status = status;
     }
 
+    @CheckForNull
     public SyncedIdentityImpl getIdentity() {
         return id;
     }
 
+    @Nonnull
     public Status getStatus() {
         return status;
     }

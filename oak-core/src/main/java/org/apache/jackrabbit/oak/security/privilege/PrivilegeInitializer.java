@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
+import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -45,7 +46,7 @@ class PrivilegeInitializer implements RepositoryInitializer, PrivilegeConstants 
     private static final Logger log = LoggerFactory.getLogger(PrivilegeInitializer.class);
 
     @Override
-    public void initialize(NodeBuilder builder) {
+    public void initialize(@Nonnull NodeBuilder builder) {
         NodeBuilder system = builder.child(JcrConstants.JCR_SYSTEM);
         system.setProperty(JcrConstants.JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_SYSTEM, Type.NAME);
 

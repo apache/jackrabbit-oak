@@ -369,7 +369,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
      * {@inheritDoc}
      */
     @Override
-    public void putAll(Map<? extends String, ?> m) {
+    public void putAll(@Nonnull Map<? extends String, ?> m) {
         // we rely on the immutability of the delegated map to throw the correct exceptions.
         options.putAll(m);
     }
@@ -386,6 +386,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
     /**
      * {@inheritDoc}
      */
+    @Nonnull
     @Override
     public Set<String> keySet() {
         return options.keySet();
@@ -394,6 +395,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
     /**
      * {@inheritDoc}
      */
+    @Nonnull
     @Override
     public Collection<Object> values() {
         return options.values();
@@ -402,6 +404,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
     /**
      * {@inheritDoc}
      */
+    @Nonnull
     @Override
     public Set<Entry<String,Object>> entrySet() {
         return options.entrySet();

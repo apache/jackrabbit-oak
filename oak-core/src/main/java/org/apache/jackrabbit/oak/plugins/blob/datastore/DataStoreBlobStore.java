@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
@@ -230,7 +231,7 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
     }
 
     @Override
-    public String getBlobId(String reference) {
+    public String getBlobId(@Nonnull String reference) {
         checkNotNull(reference);
         DataRecord record;
         try {
@@ -245,7 +246,7 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
     }
 
     @Override
-    public String getReference(String encodedBlobId) {
+    public String getReference(@Nonnull String encodedBlobId) {
         checkNotNull(encodedBlobId);
         String blobId = extractBlobId(encodedBlobId);
         //Reference are not created for in memory record

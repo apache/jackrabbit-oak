@@ -77,6 +77,7 @@ public class PrincipalRestrictionProvider implements RestrictionProvider, Access
         return base.createRestriction(oakPath, oakName, values);
     }
 
+    @Nonnull
     @Override
     public Set<Restriction> readRestrictions(@Nullable String oakPath, @Nonnull Tree aceTree) {
         Set<Restriction> restrictions = new HashSet<Restriction>(base.readRestrictions(oakPath, aceTree));

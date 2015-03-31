@@ -50,15 +50,17 @@ public final class EmptyPermissionProvider implements PermissionProvider {
     }
 
     @Override
-    public boolean hasPrivileges(@Nullable Tree tree, String... privilegeNames) {
+    public boolean hasPrivileges(@Nullable Tree tree, @Nonnull String... privilegeNames) {
         return false;
     }
 
+    @Nonnull
     @Override
     public RepositoryPermission getRepositoryPermission() {
         return RepositoryPermission.EMPTY;
     }
 
+    @Nonnull
     @Override
     public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
         return TreePermission.EMPTY;

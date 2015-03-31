@@ -190,6 +190,7 @@ public final class TokenLoginModule extends AbstractLoginModule {
     }
 
     //------------------------------------------------< AbstractLoginModule >---
+    @Nonnull
     @Override
     protected Set<Class> getSupportedCredentials() {
         return Collections.<Class>singleton(TokenCredentials.class);

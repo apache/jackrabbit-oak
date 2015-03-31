@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.security.user.action;
 import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
@@ -165,12 +166,12 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
         }
 
         @Override
-        public void onCreate(User user, String password, Root root, NamePathMapper namePathMapper) throws RepositoryException {
+        public void onCreate(@Nonnull User user, @Nullable String password, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
             onCreateCalled++;
         }
 
         @Override
-        public void onPasswordChange(User user, String newPassword, Root root, NamePathMapper namePathMapper) throws RepositoryException {
+        public void onPasswordChange(@Nonnull User user, @Nullable String newPassword, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
             onPasswordChangeCalled++;
         }
     }
@@ -181,6 +182,7 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
 
         private TestSecurityProvider() {
             actionProvider = new AuthorizableActionProvider() {
+                @Nonnull
                 @Override
                 public List<? extends AuthorizableAction> getAuthorizableActions(@Nonnull SecurityProvider securityProvider) {
                     return ImmutableList.of(pwAction, testAction);
@@ -188,7 +190,8 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
             };
         }
 
-        public <T> T getConfiguration(Class<T> configClass) {
+        @Nonnull
+        public <T> T getConfiguration(@Nonnull Class<T> configClass) {
             if (UserConfiguration.class == configClass) {
                 return (T) new UserConfigurationImpl(this) {
                     @Nonnull

@@ -359,6 +359,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
         return sessionContext.getWorkspace().getVersionManager();
     }
 
+    @Nonnull
     protected PropertyState createSingleState(
             String oakName, Value value, Type<?> type)
             throws RepositoryException {
@@ -372,6 +373,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
         }
     }
 
+    @Nonnull
     protected PropertyState createMultiState(
             String oakName, List<Value> values, Type<?> type)
             throws RepositoryException {

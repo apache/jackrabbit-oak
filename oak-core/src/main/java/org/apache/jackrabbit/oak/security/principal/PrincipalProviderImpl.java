@@ -65,7 +65,7 @@ class PrincipalProviderImpl implements PrincipalProvider {
 
     //--------------------------------------------------< PrincipalProvider >---
     @Override
-    public Principal getPrincipal(String principalName) {
+    public Principal getPrincipal(@Nonnull String principalName) {
         Authorizable authorizable = getAuthorizable(new PrincipalImpl(principalName));
         if (authorizable != null) {
             try {
@@ -79,8 +79,9 @@ class PrincipalProviderImpl implements PrincipalProvider {
         return (EveryonePrincipal.NAME.equals(principalName)) ? EveryonePrincipal.getInstance() : null;
     }
 
+    @Nonnull
     @Override
-    public Set<Group> getGroupMembership(Principal principal) {
+    public Set<Group> getGroupMembership(@Nonnull Principal principal) {
         Authorizable authorizable = getAuthorizable(principal);
         if (authorizable == null) {
             return Collections.emptySet();
@@ -89,8 +90,9 @@ class PrincipalProviderImpl implements PrincipalProvider {
         }
     }
 
+    @Nonnull
     @Override
-    public Set<? extends Principal> getPrincipals(String userID) {
+    public Set<? extends Principal> getPrincipals(@Nonnull String userID) {
         Set<Principal> principals = new HashSet<Principal>();
         try {
             Authorizable authorizable = userManager.getAuthorizable(userID);
@@ -104,8 +106,9 @@ class PrincipalProviderImpl implements PrincipalProvider {
         return principals;
     }
 
+    @Nonnull
     @Override
-    public Iterator<? extends Principal> findPrincipals(final String nameHint,
+    public Iterator<? extends Principal> findPrincipals(final @Nullable String nameHint,
                                                         final int searchType) {
         try {
             Iterator<Authorizable> authorizables = findAuthorizables(nameHint, searchType);

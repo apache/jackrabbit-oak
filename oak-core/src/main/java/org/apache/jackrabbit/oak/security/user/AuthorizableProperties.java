@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.security.user;
 import java.util.Iterator;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
@@ -39,7 +40,7 @@ interface AuthorizableProperties {
      * @throws RepositoryException If an error occurs.
      */
     @Nonnull
-    Iterator<String> getNames(String relPath) throws RepositoryException;
+    Iterator<String> getNames(@Nonnull String relPath) throws RepositoryException;
 
     /**
      * Returns {@code true} if there is a custom authorizable property at the
@@ -52,7 +53,7 @@ interface AuthorizableProperties {
      * @return {@code true} if a valid property exists; {@code false} otherwise.
      * @throws RepositoryException If an error occurs.
      */
-    boolean hasProperty(String relPath) throws RepositoryException;
+    boolean hasProperty(@Nonnull String relPath) throws RepositoryException;
 
     /**
      * Returns the values of the property identified by the specified
@@ -67,7 +68,7 @@ interface AuthorizableProperties {
      * @throws RepositoryException If an error occurs.
      */
     @CheckForNull
-    Value[] getProperty(String relPath) throws RepositoryException;
+    Value[] getProperty(@Nonnull String relPath) throws RepositoryException;
 
     /**
      * Creates or modifies the property at the specified {@code relPath}. If
@@ -82,7 +83,7 @@ interface AuthorizableProperties {
      * that represents protected content that cannot be modified using this API.
      * @see #setProperty(String, javax.jcr.Value[])
      */
-    void setProperty(String relPath, Value value) throws RepositoryException;
+    void setProperty(@Nonnull String relPath, @Nullable Value value) throws RepositoryException;
 
     /**
      * Creates or modifies the property at the specified {@code relPath}. If
@@ -97,7 +98,7 @@ interface AuthorizableProperties {
      * that represents protected content that cannot be modified using this API.
      * @see #setProperty(String, javax.jcr.Value)
      */
-    void setProperty(String relPath, Value[] values) throws RepositoryException;
+    void setProperty(@Nonnull String relPath, @Nullable Value[] values) throws RepositoryException;
 
     /**
      * Removes the property identified by the given {@code relPath} and returns
@@ -111,6 +112,6 @@ interface AuthorizableProperties {
      * that cannot be altered using this API because it is not associated with
      * this authorizable or is otherwise considered protected.
      */
-    boolean removeProperty(String relPath) throws RepositoryException;
+    boolean removeProperty(@Nonnull String relPath) throws RepositoryException;
 
 }

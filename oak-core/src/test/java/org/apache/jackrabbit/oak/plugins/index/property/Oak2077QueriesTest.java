@@ -149,8 +149,8 @@ public class Oak2077QueriesTest extends BasicOrderedPropertyIndexQueryTest {
         private Random rnd = new Random(1);
         
         @Override
-        public Editor getIndexEditor(String type, NodeBuilder definition, NodeState root,
-                                     IndexUpdateCallback callback) throws CommitFailedException {
+        public Editor getIndexEditor(@Nonnull String type, @Nonnull NodeBuilder definition, @Nonnull NodeState root,
+                                     @Nonnull IndexUpdateCallback callback) throws CommitFailedException {
             Editor editor = (TYPE.equals(type)) ? new SeededPropertyIndexEditor(definition, root,
                 callback, rnd) : null;
             return editor; 

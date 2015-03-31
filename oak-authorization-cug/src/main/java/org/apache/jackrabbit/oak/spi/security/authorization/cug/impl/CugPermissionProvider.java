@@ -97,17 +97,17 @@ class CugPermissionProvider implements PermissionProvider, AggregatedPermissionP
 
     //---------------------------------------< AggregatedPermissionProvider >---
     @Override
-    public boolean handles(String path, String jcrAction) {
+    public boolean handles(@Nonnull String path, @Nonnull String jcrAction) {
         return isReadAction(jcrAction) && includesCug(immutableRoot.getTree(path), path);
     }
 
     @Override
-    public boolean handles(@Nonnull Tree tree, PrivilegeBits privilegeBits) {
+    public boolean handles(@Nonnull Tree tree, @Nonnull PrivilegeBits privilegeBits) {
         return READ_PRIVILEGE_BITS.contains(privilegeBits) && includesCug(tree, tree.getPath());
     }
 
     @Override
-    public boolean handles(Tree tree, long permission) {
+    public boolean handles(@Nonnull Tree tree, long permission) {
         return isRead(permission) && includesCug(tree, tree.getPath());
     }
 
@@ -131,9 +131,10 @@ class CugPermissionProvider implements PermissionProvider, AggregatedPermissionP
         immutableRoot = RootFactory.createReadOnlyRoot(root);
     }
 
+    @Nonnull
     @Override
-    public Set<String> getPrivileges(Tree tree) {
-        if (canRead(tree)) {
+    public Set<String> getPrivileges(@Nullable Tree tree) {
+        if (tree != null && canRead(tree)) {
             return READ_PRIVILEGE_NAMES;
         } else {
             return Collections.emptySet();
@@ -141,7 +142,10 @@ class CugPermissionProvider implements PermissionProvider, AggregatedPermissionP
     }
 
     @Override
-    public boolean hasPrivileges(Tree tree, String... privilegeNames) {
+    public boolean hasPrivileges(@Nullable Tree tree, @Nonnull String... privilegeNames) {
+        if (tree == null) {
+            return false;
+        }
         for (String privilegeName : privilegeNames) {
             if (!READ_PRIVILEGE_NAMES.contains(privilegeName)) {
                 return false;
@@ -150,13 +154,15 @@ class CugPermissionProvider implements PermissionProvider, AggregatedPermissionP
         return canRead(tree);
     }
 
+    @Nonnull
     @Override
     public RepositoryPermission getRepositoryPermission() {
         throw new UnsupportedOperationException("Not supported");
     }
 
+    @Nonnull
     @Override
-    public TreePermission getTreePermission(Tree tree, TreePermission parentPermission) {
+    public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
         Tree immutableTree = getImmutableTree(tree);
         if (parentPermission == TreePermission.EMPTY && !immutableTree.isRoot() || isAcContent(immutableTree, true)) {
             return TreePermission.EMPTY;
@@ -183,7 +189,7 @@ class CugPermissionProvider implements PermissionProvider, AggregatedPermissionP
     }
 
     @Override
-    public boolean isGranted(Tree tree, PropertyState property, long permissions) {
+    public boolean isGranted(@Nonnull Tree tree, PropertyState property, long permissions) {
         if (isRead(permissions)) {
             return canRead(tree);
         } else {
@@ -192,7 +198,7 @@ class CugPermissionProvider implements PermissionProvider, AggregatedPermissionP
     }
 
     @Override
-    public boolean isGranted(String oakPath, String jcrActions) {
+    public boolean isGranted(@Nonnull String oakPath, @Nonnull String jcrActions) {
         TreeLocation location = TreeLocation.create(immutableRoot, oakPath);
         boolean isAcContent = isAcContent(location);
         long permissions = Permissions.getPermissions(jcrActions, location, isAcContent);
@@ -322,8 +328,9 @@ class CugPermissionProvider implements PermissionProvider, AggregatedPermissionP
             this.tree = tree;
         }
 
+        @Nonnull
         @Override
-        public TreePermission getChildPermission(String childName, NodeState childState) {
+        public TreePermission getChildPermission(@Nonnull String childName, @Nonnull NodeState childState) {
             return getTreePermission(tree.getChild(childName), this);
         }
 
@@ -371,8 +378,9 @@ class CugPermissionProvider implements PermissionProvider, AggregatedPermissionP
             this.allow = allow;
         }
 
+        @Nonnull
         @Override
-        public TreePermission getChildPermission(String childName, NodeState childState) {
+        public TreePermission getChildPermission(@Nonnull String childName, @Nonnull NodeState childState) {
             return getTreePermission(tree.getChild(childName), this);
         }
 

@@ -88,7 +88,7 @@ public class PropertyStateValue implements PropertyValue {
     }
 
     @Override
-    public int compareTo(PropertyValue p2) {
+    public int compareTo(@Nonnull PropertyValue p2) {
         if (getType().tag() != p2.getType().tag()) {
             return Integer.signum(p2.getType().tag() - getType().tag());
         }

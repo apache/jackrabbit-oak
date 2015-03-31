@@ -86,11 +86,13 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         return compiledPermissions.hasPrivileges(getImmutableTree(tree), privilegeNames);
     }
 
+    @Nonnull
     @Override
     public RepositoryPermission getRepositoryPermission() {
         return compiledPermissions.getRepositoryPermission();
     }
 
+    @Nonnull
     @Override
     public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
         return compiledPermissions.getTreePermission(getImmutableTree(tree), parentPermission);
@@ -125,7 +127,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     }
 
     @Override
-    public boolean handles(@Nonnull Tree tree, PrivilegeBits privilegeBits) {
+    public boolean handles(@Nonnull Tree tree, @Nonnull PrivilegeBits privilegeBits) {
         return true;
     }
 

@@ -285,7 +285,7 @@ public class SessionContext implements NamePathMapper {
 
     @Override
     @Nonnull
-    public String getOakName(String jcrName) throws RepositoryException {
+    public String getOakName(@Nonnull String jcrName) throws RepositoryException {
         return namePathMapper.getOakName(jcrName);
     }
 
@@ -295,6 +295,7 @@ public class SessionContext implements NamePathMapper {
         return namePathMapper.getOakNameOrNull(jcrName);
     }
 
+    @Nonnull
     @Override
     public String getJcrName(@Nonnull String oakName) {
         return namePathMapper.getJcrName(oakName);

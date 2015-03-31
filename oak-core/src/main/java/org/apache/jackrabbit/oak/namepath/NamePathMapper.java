@@ -37,7 +37,7 @@ public interface NamePathMapper extends NameMapper, PathMapper {
     class Default implements NamePathMapper {
 
         @Override
-        public String getOakNameOrNull(String jcrName) {
+        public String getOakNameOrNull(@Nonnull String jcrName) {
             return jcrName;
         }
 
@@ -47,13 +47,15 @@ public interface NamePathMapper extends NameMapper, PathMapper {
             return jcrName;
         }
 
+        @Nonnull
         @Override
         public Map<String, String> getSessionLocalMappings() {
             return Collections.emptyMap();
         }
 
+        @Nonnull
         @Override
-        public String getJcrName(String oakName) {
+        public String getJcrName(@Nonnull String oakName) {
             return oakName;
         }
 

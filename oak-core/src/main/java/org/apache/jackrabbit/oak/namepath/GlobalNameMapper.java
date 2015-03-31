@@ -130,6 +130,7 @@ public class GlobalNameMapper implements NameMapper {
         return oakName;
     }
 
+    @Nonnull
     @Override
     public Map<String, String> getSessionLocalMappings() {
         return Collections.emptyMap();

@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
+import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.security.auth.login.LoginException;
 
@@ -47,5 +48,5 @@ public interface Authentication {
      * implementation cannot verify their validity.
      * @throws LoginException if the authentication failed.
      */
-    boolean authenticate(Credentials credentials) throws LoginException;
+    boolean authenticate(@Nullable Credentials credentials) throws LoginException;
 }
