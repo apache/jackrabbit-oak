@@ -432,7 +432,7 @@ Via using one of the two modes below a user can tune the default settings as per
 
 #### Via Configuration
 
-In this mode the config is specified as part of the Mongo URI (See [configuration](osgi_config.html#document-node-store)). 
+In this mode the config is specified as part of the Mongo URI (See [configuration](../osgi_config.html#document-node-store)). 
 So if a user wants that reads from secondaries should prefer secondary with tag _dc:ny,rack:1_ 
 otherwise they go to other secondary then he can specify that via following mongouri
 
