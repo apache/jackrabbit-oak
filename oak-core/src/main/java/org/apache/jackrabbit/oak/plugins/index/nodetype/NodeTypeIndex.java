@@ -26,12 +26,12 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * <code>NodeTypeIndex</code> implements a {@link QueryIndex} using
- * {@link PropertyIndexLookup}s on <code>jcr:primaryType</code> and
- * <code>jcr:mixinTypes</code> to evaluate a node type restriction on
- * {@link Filter}. The cost for this index is the sum of the costs of the
- * {@link PropertyIndexLookup} for queries on <code>jcr:primaryType</code> and
- * <code>jcr:mixinTypes</code>.
+ * {@code NodeTypeIndex} implements a {@link QueryIndex} using
+ * {@link org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup}s
+ * on {@code jcr:primaryType} and {@code jcr:mixinTypes} to evaluate a node type
+ * restriction on {@link Filter}. The cost for this index is the sum of the costs
+ * of the {@link org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup}
+ * for queries on {@code jcr:primaryType} and {@code jcr:mixinTypes}.
  */
 class NodeTypeIndex implements QueryIndex, JcrConstants {
 
