@@ -91,8 +91,8 @@ public class ClockTest {
     }
 
     private static boolean onBuildbot() {
-        String user = System.getenv("USER");
-        return user != null && user.startsWith("buildslave");
+        String user = System.getenv("USERDOMAIN");
+        return user != null && user.startsWith("bb-win7");
     }
 
     private static long getGranularity(Clock clock) {
