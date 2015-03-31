@@ -102,7 +102,24 @@ blobCacheSize
   
 persistentCache
 : Default "" (an empty string, meaning disabled)
-: The persistent cache, which is stored in the local file system.
+: The [persistent cache][persistent-cache], which is stored in the local file system.
+
+<a name="cache-allocation"></a>
+nodeCachePercentage
+: Default 25
+: Percentage of `cache` allocated for `nodeCache`. See [Caching][doc-cache]
+
+childrenCachePercentage
+: Default 10
+: Percentage of `cache` allocated for `childrenCache`. See [Caching][doc-cache]
+
+diffCachePercentage
+: Default 5
+: Percentage of `cache` allocated for `diffCache`. See [Caching][doc-cache]
+
+docChildrenCachePercentage
+: Default 3
+: Percentage of `cache` allocated for `docChildrenCache`. See [Caching][doc-cache]
 
 Example config file
 
@@ -119,7 +136,7 @@ All the configuration related to Mongo can be specified via [Mongo URI][1]
         mongodb://sysop:moon@localhost
     
 * **Read Preferences and Write Concern** - These also can be spcified as part of Mongo URI. Refer to 
-  [Read Preference and Write Concern](documentmk.html#rw-preference) section for more details. For
+  [Read Preference and Write Concern](./nodestore/documentmk.html#rw-preference) section for more details. For
   e.g. following would set _readPreference_ to _secondary_ and prefer replica with tag _dc:ny,rack:1_.
   It would also specify the write timeout to 10 sec
   
@@ -242,10 +259,6 @@ in both config file and framework properties then framework property takes prece
 For example by default Sling sets **repository.home** to _${sling.home}/repository_. So this value
 need not be specified in config files
 
-[1]: http://docs.mongodb.org/manual/reference/connection-string/
-[2]: http://jackrabbit.apache.org/api/2.4/org/apache/jackrabbit/core/data/FileDataStore.html
-[OAK-1645]: https://issues.apache.org/jira/browse/OAK-1645
-
 ### Solr Server Configuration
 Solr index requires some configuration to be properly used, in OSGi environments such configurations can be performed 
 via OSGi Configuration Admin.
@@ -320,3 +333,8 @@ The following configuration items can be defined (e.g. through Apache Felix WebC
         #type of Solr server provider to be used, supported types are none, remote (RemoteSolrServerProvider) and embedded (EmbeddedSolrServerProvider)
         server.type = none
 
+[1]: http://docs.mongodb.org/manual/reference/connection-string/
+[2]: http://jackrabbit.apache.org/api/2.4/org/apache/jackrabbit/core/data/FileDataStore.html
+[OAK-1645]: https://issues.apache.org/jira/browse/OAK-1645
+[doc-cache]: ./nodestore/documentmk.html#cache
+[persistent-cache]: ./nodestore/persistent-cache.html

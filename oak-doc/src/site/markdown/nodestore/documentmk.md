@@ -367,6 +367,7 @@ of commit. For example when a node under /a/b/c is updated then the `_lastRev` p
 of all ancestors also need to be updated to the commit revision. Such changes are accumulated
 and flushed periodically through a asynchronous job.
 
+<a name="bg-read"></a>
 ### Background Reads
 
 DocumentMK periodically picks up changes from other DocumentMK instances by polling the root node
@@ -455,8 +456,102 @@ cluster nodes:
       {$set: {readWriteMode:'readPreference=primary&w=majority'}}, 
       {multi: true})    
 
+<a name="cache"></a>
+Caching
+-------
+
+`DocumentNodeStore` maintains multiple caches to provide an optimum performance. 
+By default the cached instances are kept in heap memory but some of the caches 
+can be backed by [persistent cache](persistent-cache.html).
+
+1. `documentCache` - Document cache is used for caching the `NodeDocument` 
+    instance. These are in memory representation of the persistent state. For 
+    example in case of Mongo it maps to the Mongo document in `nodes` collection 
+    and for RDB its maps to the row in `NODES` table. 
+    
+    Depending on the `DocumentStore` implementation different heuristics are 
+    applied for invalidating the cache entries based on changes in backend  
+    
+2. `docChildrenCache` - Document Children cache is used to cache the children 
+    state for a given parent node. This is invalidated completely upon every 
+    background read
+    
+3. `nodeCache` - Node cache is used to cache the `DocumentNodeState` instances.
+    These are **immutable** view of `NodeDocument` as seen at a given revision
+    hence no consistency checks are to be performed for them
+     
+4. `childrenCache` - Children cache is used to cache the children for a given
+    node. These are also **immutable** and represent the state of children for
+    a given parent at certain revision
+    
+5. `diffCache` - Caches the diff for the changes done between successive revision.
+   For local changes done the diff is add to the cache upon commit while for 
+   external changes the diff entries are added upon computation of diff as part 
+   of observation call
+   
+All the above caches are managed on heap. For the last 3 `nodeCache`, 
+`childrenCache` and `diffCache` Oak provides support for [persistent cache]
+(persistent-cache.html). By enabling the persistent cache feature Oak can manage
+a much larger cache off heap and thus avoid freeing up heap memory for application
+usage.
+
+### Cache Invalidation
+
+`documentCache` and `docChildrenCache` are containing mutable state which requires
+consistency checks to be performed to keep them in sync with the backend persisted
+state. Oak uses a MVCC model under which it maintains a consistent view of a given
+Node at a given revision. This allows using local cache instead of using a global
+clustered cache where changes made by any other cluster node need not be instantly
+reflected on all other nodes. 
+
+Each cluster node periodically performs [background reads](#bg-read) to pickup 
+changes done by other cluster nodes. At that time it performs [consistency check]
+[OAK-1156] to ensure that cached instance state reflect the state in the backend 
+persisted state. Performing the check would take some time would be proportional 
+number of entries present in the cache. 
+    
+For repository to work properly its important to ensure that such background reads 
+do not consume much time and [work is underway][OAK-2646] to improve current 
+approach. _To ensure that such background operation (which include the cache 
+invalidation checks) perform quickly one should not set a large size for 
+these caches_.
+
+All other caches consist of immutable state and hence no cache invalidation needs
+to be performed for them. For that reason those caches can be backed by persistent
+cache and even having large number of entries in such caches would not be a matter
+of concern. 
+
+### Cache Configuration
+
+In a default setup the [DocumentNodeStoreService][osgi-config]
+takes a single config for `cache` which is internally distributed among the 
+various caches above in following way
+
+1. `nodeCache` - 25%
+2. `childrenCache` - 10% 
+3. `docChildrenCache` - 3% 
+4. `diffCache` - 5% 
+5. `documentCache` - Is given the rest i.e. 57%
+
+Lately [options are provided][OAK-2546] to have a fine grained control over the 
+distribution. See [Cache Allocation][cache-allocation]
+
+While distributing ensure that cache left for `documentCache` is not very large
+i.e. prefer to keep that ~500 MB max or lower. As a large `documentCache` can 
+lead to increase in the time taken to perform cache invalidation.
+
+Further make use of the persistent cache. This reduces pressure on GC by keeping
+instances off heap with slight decrease in performance compared to keeping them
+on heap.
+
+
 [1]: http://docs.mongodb.org/manual/core/read-preference/
 [2]: http://docs.mongodb.org/manual/core/write-concern/
 [3]: http://docs.mongodb.org/manual/reference/connection-string/#read-preference-options
 [4]: http://docs.mongodb.org/manual/reference/connection-string/#write-concern-options
+[OAK-1156]: https://issues.apache.org/jira/browse/OAK-1156
+[OAK-2646]: https://issues.apache.org/jira/browse/OAK-2646
+[OAK-2546]: https://issues.apache.org/jira/browse/OAK-2546
+[osgi-config]: ../osgi_config.html#document-node-store
+[cache-allocation]: ../osgi_config.html#cache-allocation
 
