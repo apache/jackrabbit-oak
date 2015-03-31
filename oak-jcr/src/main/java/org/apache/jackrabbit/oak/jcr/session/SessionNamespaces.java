@@ -39,7 +39,7 @@ import org.apache.jackrabbit.util.XMLChar;
 import com.google.common.collect.Maps;
 
 /**
- * <code>SessionNamespaces</code> implements namespace handling on the JCR
+ * {@code SessionNamespaces} implements namespace handling on the JCR
  * Session level. That is, it maintains a map of session local namespace
  * re-mappings and takes a snapshot of the namespace registry when initialized
  * (see JCR 2.0 specification, section 3.5.1).
