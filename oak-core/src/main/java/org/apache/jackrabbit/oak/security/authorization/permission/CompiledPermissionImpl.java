@@ -136,6 +136,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         groupStore.flush();
     }
 
+    @Nonnull
     @Override
     public RepositoryPermission getRepositoryPermission() {
         return new RepositoryPermission() {
@@ -146,6 +147,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         };
     }
 
+    @Nonnull
     @Override
     public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
         if (tree.isRoot()) {
@@ -241,6 +243,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         return hasPermissions(it, permissions, path);
     }
 
+    @Nonnull
     @Override
     public Set<String> getPrivileges(@Nullable Tree tree) {
         return bitsProvider.getPrivilegeNames(internalGetPrivileges(tree));
@@ -453,8 +456,9 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         }
 
         //-------------------------------------------------< TreePermission >---
+        @Nonnull
         @Override
-        public TreePermission getChildPermission(String childName, NodeState childState) {
+        public TreePermission getChildPermission(@Nonnull String childName, @Nonnull NodeState childState) {
             Tree childTree = new ImmutableTree((ImmutableTree) tree, childName, childState);
             return getTreePermission(childTree, this);
         }

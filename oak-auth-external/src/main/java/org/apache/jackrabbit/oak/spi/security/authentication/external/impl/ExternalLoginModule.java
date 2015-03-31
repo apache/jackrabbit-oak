@@ -394,6 +394,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
     /**
      * @return An immutable set containing only the {@link SimpleCredentials} class.
      */
+    @Nonnull
     @Override
     protected Set<Class> getSupportedCredentials() {
         // TODO: maybe delegate getSupportedCredentials to IDP

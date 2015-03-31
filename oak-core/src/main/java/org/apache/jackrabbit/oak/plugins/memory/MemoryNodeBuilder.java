@@ -303,18 +303,20 @@ public class MemoryNodeBuilder implements NodeBuilder {
         return head().getCurrentNodeState().getChildNodeCount(max);
     }
 
+    @Nonnull
     @Override
     public Iterable<String> getChildNodeNames() {
         return head().getCurrentNodeState().getChildNodeNames();
     }
 
     @Override
-    public boolean hasChildNode(String name) {
+    public boolean hasChildNode(@Nonnull String name) {
         return head().getCurrentNodeState().hasChildNode(checkNotNull(name));
     }
 
+    @Nonnull
     @Override
-    public NodeBuilder child(String name) {
+    public NodeBuilder child(@Nonnull String name) {
         if (hasChildNode(name)) {
             return getChildNode(name);
         } else {
@@ -322,19 +324,22 @@ public class MemoryNodeBuilder implements NodeBuilder {
         }
     }
 
+    @Nonnull
     @Override
-    public NodeBuilder getChildNode(String name) {
+    public NodeBuilder getChildNode(@Nonnull String name) {
         checkValidName(name);
         return createChildBuilder(name);
     }
 
+    @Nonnull
     @Override
-    public NodeBuilder setChildNode(String name) {
+    public NodeBuilder setChildNode(@Nonnull String name) {
         return setChildNode(name, EMPTY_NODE);
     }
 
+    @Nonnull
     @Override
-    public NodeBuilder setChildNode(String name, NodeState state) {
+    public NodeBuilder setChildNode(@Nonnull String name, @Nonnull NodeState state) {
         checkState(exists(), "This builder does not exist: " + this.name);
         head().getMutableNodeState().setChildNode(name, checkNotNull(state));
         MemoryNodeBuilder builder = createChildBuilder(name);
@@ -371,7 +376,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
      *                                  or contains the forward slash character
      */
     @Override
-    public boolean moveTo(NodeBuilder newParent, String newName)
+    public boolean moveTo(@Nonnull NodeBuilder newParent, @Nonnull String newName)
             throws IllegalArgumentException {
         checkNotNull(newParent);
         checkValidName(newName);
@@ -459,6 +464,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
         return head().getCurrentNodeState().getPropertyCount();
     }
 
+    @Nonnull
     @Override
     public Iterable<? extends PropertyState> getProperties() {
         return head().getCurrentNodeState().getProperties();
@@ -475,7 +481,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     @Override
-    public boolean getBoolean(String name) {
+    public boolean getBoolean(@Nonnull String name) {
         return head().getCurrentNodeState().getBoolean(checkNotNull(name));
     }
 
@@ -494,26 +500,30 @@ public class MemoryNodeBuilder implements NodeBuilder {
         return head().getCurrentNodeState().getNames(checkNotNull(name));
     }
 
+    @Nonnull
     @Override
-    public NodeBuilder setProperty(PropertyState property) {
+    public NodeBuilder setProperty(@Nonnull PropertyState property) {
         checkState(exists(), "This builder does not exist: " + name);
         head().getMutableNodeState().setProperty(checkNotNull(property));
         updated();
         return this;
     }
 
+    @Nonnull
     @Override
-    public <T> NodeBuilder setProperty(String name, T value) {
+    public <T> NodeBuilder setProperty(String name, @Nonnull T value) {
         setProperty(PropertyStates.createProperty(name, value));
         return this;
     }
 
+    @Nonnull
     @Override
-    public <T> NodeBuilder setProperty(String name, T value, Type<T> type) {
+    public <T> NodeBuilder setProperty(String name, @Nonnull T value, Type<T> type) {
         setProperty(PropertyStates.createProperty(name, value, type));
         return this;
     }
 
+    @Nonnull
     @Override
     public NodeBuilder removeProperty(String name) {
         checkState(exists(), "This builder does not exist: " + name);

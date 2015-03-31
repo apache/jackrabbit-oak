@@ -52,7 +52,7 @@ public class LocalNameMapper extends GlobalNameMapper {
     }
 
     @Override @Nonnull
-    public synchronized String getJcrName(String oakName) {
+    public synchronized String getJcrName(@Nonnull String oakName) {
         checkNotNull(oakName);
         checkArgument(!oakName.startsWith(":"), oakName); // hidden name
         checkArgument(!isExpandedName(oakName), oakName); // expanded name
@@ -96,7 +96,7 @@ public class LocalNameMapper extends GlobalNameMapper {
     }
 
     @Override @CheckForNull
-    public synchronized String getOakNameOrNull(String jcrName) {
+    public synchronized String getOakNameOrNull(@Nonnull String jcrName) {
         checkNotNull(jcrName);
 
         if (jcrName.startsWith("{")) {

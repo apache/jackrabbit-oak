@@ -211,6 +211,7 @@ public class UserImportWithActionsTest extends AbstractImportTest {
         private void addAction(AuthorizableAction action) {
             actions.add(action);
         }
+        @Nonnull
         @Override
         public List<? extends AuthorizableAction> getAuthorizableActions(@Nonnull SecurityProvider securityProvider) {
             return actions;

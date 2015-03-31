@@ -22,6 +22,8 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NO
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -60,12 +62,12 @@ class MemoryNodeState extends AbstractNodeState {
     }
 
     @Override
-    public boolean hasProperty(String name) {
+    public boolean hasProperty(@Nonnull String name) {
         return properties.containsKey(name);
     }
 
     @Override
-    public PropertyState getProperty(String name) {
+    public PropertyState getProperty(@Nonnull String name) {
         return properties.get(name);
     }
 
@@ -74,18 +76,20 @@ class MemoryNodeState extends AbstractNodeState {
         return properties.size();
     }
 
+    @Nonnull
     @Override
     public Iterable<? extends PropertyState> getProperties() {
         return properties.values();
     }
 
     @Override
-    public boolean hasChildNode(String name) {
+    public boolean hasChildNode(@Nonnull String name) {
         return nodes.containsKey(name);
     }
 
+    @Nonnull
     @Override
-    public NodeState getChildNode(String name) {
+    public NodeState getChildNode(@Nonnull String name) {
         NodeState state = nodes.get(name);
         if (state == null) {
             checkValidName(name);
@@ -99,11 +103,13 @@ class MemoryNodeState extends AbstractNodeState {
         return nodes.size();
     }
 
+    @Nonnull
     @Override
     public Iterable<ChildNodeEntry> getChildNodeEntries() {
         return MemoryChildNodeEntry.iterable(nodes.entrySet());
     }
 
+    @Nonnull
     @Override
     public NodeBuilder builder() {
         return new MemoryNodeBuilder(this);

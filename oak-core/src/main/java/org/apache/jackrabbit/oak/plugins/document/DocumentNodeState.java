@@ -140,12 +140,12 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
     }
 
     @Override
-    public PropertyState getProperty(String name) {
+    public PropertyState getProperty(@Nonnull String name) {
         return properties.get(name);
     }
 
     @Override
-    public boolean hasProperty(String name) {
+    public boolean hasProperty(@Nonnull String name) {
         return properties.containsKey(name);
     }
 
@@ -156,7 +156,7 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
     }
 
     @Override
-    public boolean hasChildNode(String name) {
+    public boolean hasChildNode(@Nonnull String name) {
         if (!hasChildren || !isValidName(name)) {
             return false;
         } else {

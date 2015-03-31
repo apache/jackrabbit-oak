@@ -67,12 +67,12 @@ public class PasswordValidationAction extends AbstractAuthorizableAction {
     }
 
     @Override
-    public void onCreate(User user, String password, Root root, NamePathMapper namePathMapper) throws RepositoryException {
+    public void onCreate(@Nonnull User user, @Nullable String password, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
         validatePassword(password, false);
     }
 
     @Override
-    public void onPasswordChange(User user, String newPassword, Root root, NamePathMapper namePathMapper) throws RepositoryException {
+    public void onPasswordChange(@Nonnull User user, @Nullable String newPassword, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
         validatePassword(newPassword, true);
     }
 

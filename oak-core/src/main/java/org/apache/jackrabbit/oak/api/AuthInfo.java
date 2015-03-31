@@ -46,6 +46,7 @@ public interface AuthInfo {
             return null;
         }
 
+        @Nonnull
         @Override
         public Set<Principal> getPrincipals() {
             return Collections.emptySet();

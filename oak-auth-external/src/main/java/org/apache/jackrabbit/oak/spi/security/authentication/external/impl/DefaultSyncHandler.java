@@ -112,6 +112,7 @@ public class DefaultSyncHandler implements SyncHandler {
         this.config = config;
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     @Activate
     private void activate(Map<String, Object> properties) {
         ConfigurationParameters cfg = ConfigurationParameters.of(properties);
@@ -149,6 +150,7 @@ public class DefaultSyncHandler implements SyncHandler {
     /**
      * {@inheritDoc}
      */
+    @Nonnull
     @Override
     public Iterator<SyncedIdentity> listIdentities(@Nonnull UserManager userManager) throws RepositoryException {
         final Iterator<Authorizable> iter = userManager.findAuthorizables("jcr:primaryType", null);
@@ -244,6 +246,7 @@ public class DefaultSyncHandler implements SyncHandler {
         /**
          * {@inheritDoc}
          */
+        @Nonnull
         @Override
         public SyncContext setKeepMissing(boolean keepMissing) {
             this.keepMissing = keepMissing;
@@ -261,6 +264,7 @@ public class DefaultSyncHandler implements SyncHandler {
         /**
          * {@inheritDoc}
          */
+        @Nonnull
         @Override
         public SyncContext setForceUserSync(boolean forceUserSync) {
             this.forceUserSync = forceUserSync;
@@ -275,6 +279,7 @@ public class DefaultSyncHandler implements SyncHandler {
             return forceGroupSync;
         }
 
+        @Nonnull
         public SyncContext setForceGroupSync(boolean forceGroupSync) {
             this.forceGroupSync = forceGroupSync;
             return this;

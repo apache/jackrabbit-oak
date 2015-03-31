@@ -27,6 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -145,8 +147,9 @@ public class OakOSGiRepositoryFactoryTest {
         @Override
         protected void postProcessRegistry(PojoServiceRegistry registry) {
             registry.registerService(AuthorizableActionProvider.class.getName(), new AuthorizableActionProvider() {
+                @Nonnull
                 @Override
-                public List<? extends AuthorizableAction> getAuthorizableActions(SecurityProvider securityProvider) {
+                public List<? extends AuthorizableAction> getAuthorizableActions(@Nonnull SecurityProvider securityProvider) {
                     return Collections.singletonList(new TestAction());
                 }
             }, null);
@@ -156,8 +159,8 @@ public class OakOSGiRepositoryFactoryTest {
     private class TestAction extends AbstractAuthorizableAction {
 
         @Override
-        public void onPasswordChange(User user, String newPassword,
-                                     Root root, NamePathMapper namePathMapper) throws RepositoryException {
+        public void onPasswordChange(@Nonnull User user, @Nullable String newPassword,
+                                     @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
             OakOSGiRepositoryFactoryTest.this.newPassword = newPassword;
         }
     }

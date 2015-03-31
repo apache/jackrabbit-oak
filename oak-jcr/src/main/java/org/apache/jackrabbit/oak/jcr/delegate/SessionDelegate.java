@@ -723,7 +723,7 @@ public class SessionDelegate {
         }
 
         @Override
-        public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
+        public boolean tryLock(long time, @Nonnull TimeUnit unit) throws InterruptedException {
             if (lock.tryLock(time, unit)) {
                 holderTrace = null;
                 holderThread = null;
@@ -738,6 +738,7 @@ public class SessionDelegate {
             lock.unlock();
         }
 
+        @Nonnull
         @Override
         public Condition newCondition() {
             return lock.newCondition();

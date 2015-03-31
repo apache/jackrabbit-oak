@@ -79,6 +79,7 @@ class CompositePermissionProvider implements PermissionProvider {
         }
     }
 
+    @Nonnull
     @Override
     public Set<String> getPrivileges(@Nullable final Tree tree) {
         PrivilegeBits result = null;
@@ -119,11 +120,13 @@ class CompositePermissionProvider implements PermissionProvider {
         return true;
     }
 
+    @Nonnull
     @Override
     public RepositoryPermission getRepositoryPermission() {
         return repositoryPermission;
     }
 
+    @Nonnull
     @Override
     public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
         ImmutableTree immTree = (tree instanceof ImmutableTree) ? (ImmutableTree) tree : (ImmutableTree) immutableRoot.getTree(tree.getPath());
@@ -265,8 +268,9 @@ class CompositePermissionProvider implements PermissionProvider {
             }
         }
 
+        @Nonnull
         @Override
-        public TreePermission getChildPermission(String childName, NodeState childState) {
+        public TreePermission getChildPermission(@Nonnull String childName, @Nonnull NodeState childState) {
             ImmutableTree childTree = new ImmutableTree(tree, childName, childState);
             return new CompositeTreePermission(childTree, this);
         }

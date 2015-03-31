@@ -149,7 +149,7 @@ public class Oak {
             private final AtomicInteger counter = new AtomicInteger();
 
             @Override
-            public Thread newThread(Runnable r) {
+            public Thread newThread(@Nonnull Runnable r) {
                 Thread thread = new Thread(r, createName());
                 thread.setDaemon(true);
                 return thread;
@@ -176,7 +176,7 @@ public class Oak {
             private final AtomicInteger counter = new AtomicInteger();
 
             @Override
-            public Thread newThread(Runnable r) {
+            public Thread newThread(@Nonnull Runnable r) {
                 Thread thread = new Thread(r, createName());
                 thread.setDaemon(true);
                 thread.setPriority(Thread.MIN_PRIORITY);

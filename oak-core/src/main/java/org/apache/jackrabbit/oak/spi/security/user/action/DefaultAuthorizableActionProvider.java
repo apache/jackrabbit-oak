@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.spi.security.user.action;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nonnull;
+
 import com.google.common.collect.Lists;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -78,8 +80,9 @@ public class DefaultAuthorizableActionProvider implements AuthorizableActionProv
     }
 
     //-----------------------------------------< AuthorizableActionProvider >---
+    @Nonnull
     @Override
-    public List<? extends AuthorizableAction> getAuthorizableActions(SecurityProvider securityProvider) {
+    public List<? extends AuthorizableAction> getAuthorizableActions(@Nonnull SecurityProvider securityProvider) {
         List<AuthorizableAction> actions = Lists.newArrayList();
         for (String className : enabledActions) {
             try {

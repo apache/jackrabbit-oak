@@ -43,7 +43,7 @@ public class PasswordChangeAction extends AbstractAuthorizableAction {
 
     //-------------------------------------------------< AuthorizableAction >---
     @Override
-    public void onPasswordChange(User user, String newPassword, Root root, NamePathMapper namePathMapper) throws RepositoryException {
+    public void onPasswordChange(@Nonnull User user, String newPassword, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
         if (newPassword == null) {
             throw new ConstraintViolationException("Expected a new password that is not null.");
         }

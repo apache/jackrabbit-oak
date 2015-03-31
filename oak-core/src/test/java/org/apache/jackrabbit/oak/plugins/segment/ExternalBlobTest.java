@@ -43,6 +43,8 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Random;
 
+import javax.annotation.Nonnull;
+
 import static junit.framework.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -205,12 +207,12 @@ public class ExternalBlobTest {
         }
 
         @Override
-        public String getBlobId(String reference) {
+        public String getBlobId(@Nonnull String reference) {
             return reference;
         }
 
         @Override
-        public String getReference(String blobId) {
+        public String getReference(@Nonnull String blobId) {
             return blobId;
         }
     }

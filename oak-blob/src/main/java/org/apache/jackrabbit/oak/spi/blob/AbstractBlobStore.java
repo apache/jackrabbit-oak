@@ -38,6 +38,7 @@ import java.util.NoSuchElementException;
 import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.annotation.Nonnull;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -202,7 +203,7 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
     //--------------------------------------------< Blob Reference >
 
     @Override
-    public String getReference(String blobId) {
+    public String getReference(@Nonnull String blobId) {
         checkNotNull(blobId, "BlobId must be specified");
         try {
             Mac mac = Mac.getInstance(ALGORITHM);
@@ -219,7 +220,7 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
     }
 
     @Override
-    public String getBlobId(String reference) {
+    public String getBlobId(@Nonnull String reference) {
         checkNotNull(reference, "BlobId must be specified");
         int colon = reference.indexOf(':');
         if (colon != -1) {

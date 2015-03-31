@@ -111,7 +111,7 @@ public final class ImmutableTree extends AbstractTree {
     //-------------------------------------------------------< AbstractTree >---
     @Override
     @Nonnull
-    protected ImmutableTree createChild(String name) {
+    protected ImmutableTree createChild(@Nonnull String name) {
         return new ImmutableTree(this, name, nodeBuilder.getNodeState().getChildNode(name));
     }
 

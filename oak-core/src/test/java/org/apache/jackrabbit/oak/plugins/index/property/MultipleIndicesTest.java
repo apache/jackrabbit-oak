@@ -21,6 +21,8 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getOrCreateOakI
 
 import java.util.ArrayList;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -42,7 +44,7 @@ public class MultipleIndicesTest extends AbstractQueryTest {
                 .with(new InitialContent())
                 .with(new RepositoryInitializer() {
                     @Override
-                    public void initialize(NodeBuilder builder) {
+                    public void initialize(@Nonnull NodeBuilder builder) {
                         createIndexDefinition(
                                 getOrCreateOakIndex(builder), "pid",
                                 true, false, ImmutableList.of("pid"), null);

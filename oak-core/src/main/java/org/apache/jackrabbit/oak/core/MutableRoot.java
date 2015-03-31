@@ -174,6 +174,7 @@ class MutableRoot implements Root {
 
     //---------------------------------------------------------------< Root >---
 
+    @Nonnull
     @Override
     public ContentSession getContentSession() {
         return session;
@@ -209,6 +210,7 @@ class MutableRoot implements Root {
         return success;
     }
 
+    @Nonnull
     @Override
     public MutableTree getTree(@Nonnull String path) {
         checkLive();
@@ -237,7 +239,7 @@ class MutableRoot implements Root {
     }
 
     @Override
-    public void commit(Map<String, Object> info) throws CommitFailedException {
+    public void commit(@Nonnull Map<String, Object> info) throws CommitFailedException {
         checkLive();
         ContentSession session = getContentSession();
         CommitInfo commitInfo = new CommitInfo(
@@ -294,6 +296,7 @@ class MutableRoot implements Root {
         return modCount > 0;
     }
 
+    @Nonnull
     @Override
     public QueryEngine getQueryEngine() {
         checkLive();

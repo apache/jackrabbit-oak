@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.api;
 import java.math.BigDecimal;
 import java.util.Map;
 
+import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
 import com.google.common.base.Objects;
@@ -240,7 +241,7 @@ public final class Type<T> implements Comparable<Type<?>> {
     //--------------------------------------------------------< Comparable >--
 
     @Override
-    public int compareTo(Type<?> that) {
+    public int compareTo(@Nonnull Type<?> that) {
         return ComparisonChain.start()
                 .compare(tag, that.tag)
                 .compareFalseFirst(array, that.array)

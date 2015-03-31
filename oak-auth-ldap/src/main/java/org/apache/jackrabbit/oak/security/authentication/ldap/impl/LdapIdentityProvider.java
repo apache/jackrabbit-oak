@@ -310,6 +310,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
         }
     }
 
+    @Nonnull
     @Override
     public Iterator<ExternalUser> listUsers() throws ExternalIdentityException {
         DebugTimer timer = new DebugTimer();
@@ -348,6 +349,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
         }
     }
 
+    @Nonnull
     @Override
     public Iterator<ExternalGroup> listGroups() throws ExternalIdentityException {
         DebugTimer timer = new DebugTimer();

@@ -131,7 +131,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
      *         {@code false} otherwise.
      */
     @Override
-    public boolean doCreateToken(Credentials credentials) {
+    public boolean doCreateToken(@Nonnull Credentials credentials) {
         SimpleCredentials sc = extractSimpleCredentials(credentials);
         if (sc == null) {
             return false;
@@ -152,7 +152,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
      *         be created.
      */
     @Override
-    public TokenInfo createToken(Credentials credentials) {
+    public TokenInfo createToken(@Nonnull Credentials credentials) {
         SimpleCredentials sc = extractSimpleCredentials(credentials);
         TokenInfo tokenInfo = null;
         if (sc != null) {
@@ -184,11 +184,11 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
      *         be created.
      */
     @Override
-    public TokenInfo createToken(String userId, Map<String, ?> attributes) {
+    public TokenInfo createToken(@Nonnull String userId, @Nonnull Map<String, ?> attributes) {
         String error = "Failed to create login token. ";
         User user = getUser(userId);
         NodeUtil tokenParent = getTokenParent(user);
-        if (tokenParent != null) {
+        if (tokenParent != null && user != null) {
             try {
                 String id = user.getID();
                 long creationTime = new Date().getTime();
@@ -243,7 +243,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
      *         associated with a valid user.
      */
     @Override
-    public TokenInfo getTokenInfo(String token) {
+    public TokenInfo getTokenInfo(@Nonnull String token) {
         int pos = token.indexOf(DELIM);
         String nodeId = (pos == -1) ? token : token.substring(0, pos);
         Tree tokenTree = identifierManager.getTree(nodeId);
@@ -471,11 +471,13 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
 
         //------------------------------------------------------< TokenInfo >---
 
+        @Nonnull
         @Override
         public String getUserId() {
             return userId;
         }
 
+        @Nonnull
         @Override
         public String getToken() {
             return token;
@@ -558,11 +560,13 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
             return true;
         }
 
+        @Nonnull
         @Override
         public Map<String, String> getPrivateAttributes() {
             return Collections.unmodifiableMap(mandatoryAttributes);
         }
 
+        @Nonnull
         @Override
         public Map<String, String> getPublicAttributes() {
             return Collections.unmodifiableMap(publicAttributes);

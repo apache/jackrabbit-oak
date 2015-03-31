@@ -21,6 +21,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 
+import javax.annotation.Nonnull;
 import javax.jcr.query.Query;
 
 import com.google.common.collect.ImmutableList;
@@ -45,7 +46,7 @@ public class MultiPropertyOrTest extends AbstractQueryTest {
         return new Oak().with(new InitialContent())
                 .with(new RepositoryInitializer() {
                     @Override
-                    public void initialize(NodeBuilder builder) {
+                    public void initialize(@Nonnull NodeBuilder builder) {
                         NodeBuilder index = IndexUtils.getOrCreateOakIndex(builder);
                         IndexUtils.createIndexDefinition(
                                 index, "xyz", true, false,

@@ -104,7 +104,7 @@ public final class ImmutableRoot implements Root {
     }
 
     @Override
-    public void commit(Map<String, Object> info) {
+    public void commit(@Nonnull Map<String, Object> info) {
         throw new UnsupportedOperationException();
     }
 

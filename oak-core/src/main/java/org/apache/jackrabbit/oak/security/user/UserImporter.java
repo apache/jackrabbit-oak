@@ -166,9 +166,9 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
 
     //----------------------------------------------< ProtectedItemImporter >---
     @Override
-    public boolean init(Session session, Root root, NamePathMapper namePathMapper,
+    public boolean init(@Nonnull Session session, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper,
             boolean isWorkspaceImport, int uuidBehavior,
-            ReferenceChangeTracker referenceTracker, SecurityProvider securityProvider) {
+            @Nonnull ReferenceChangeTracker referenceTracker, @Nonnull SecurityProvider securityProvider) {
 
         if (!(session instanceof JackrabbitSession)) {
             log.debug("Importing protected user content requires a JackrabbitSession");
@@ -217,7 +217,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
 
     // -----------------------------------------< ProtectedPropertyImporter >---
     @Override
-    public boolean handlePropInfo(Tree parent, PropInfo propInfo, PropertyDefinition def) throws RepositoryException {
+    public boolean handlePropInfo(@Nonnull Tree parent, @Nonnull PropInfo propInfo, @Nonnull PropertyDefinition def) throws RepositoryException {
         checkInitialized();
 
         String propName = propInfo.getName();
@@ -375,7 +375,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
 
     // ---------------------------------------------< ProtectedNodeImporter >---
     @Override
-    public boolean start(Tree protectedParent) throws RepositoryException {
+    public boolean start(@Nonnull Tree protectedParent) throws RepositoryException {
         if (isMemberNode(protectedParent)) {
             Tree groupTree = protectedParent;
             while (isMemberNode(groupTree) && !groupTree.isRoot()) {
@@ -404,7 +404,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     }
 
     @Override
-    public void startChildInfo(NodeInfo childInfo, List<PropInfo> propInfos) throws RepositoryException {
+    public void startChildInfo(@Nonnull NodeInfo childInfo, @Nonnull List<PropInfo> propInfos) throws RepositoryException {
         checkNotNull(currentMembership);
 
         String ntName = childInfo.getPrimaryTypeName();
@@ -433,7 +433,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     }
 
     @Override
-    public void end(Tree protectedParent) throws RepositoryException {
+    public void end(@Nonnull Tree protectedParent) throws RepositoryException {
         currentMembership = null;
     }
 

@@ -186,7 +186,7 @@ final class GlobPattern implements RestrictionPattern {
         }
 
         @Override
-        boolean matches(String toMatch) {
+        boolean matches(@Nonnull String toMatch) {
             if (patternStr.isEmpty()) {
                 return path.equals(toMatch);
             } else {
@@ -211,7 +211,7 @@ final class GlobPattern implements RestrictionPattern {
         }
 
         @Override
-        boolean matches(String toMatch) {
+        boolean matches(@Nonnull String toMatch) {
             if (patternEnd != null && !toMatch.endsWith(patternEnd)) {
                 // shortcut: verify if end of pattern matches end of toMatch
                 return false;
