@@ -568,10 +568,10 @@ public final class DocumentNodeStore
             base = headRevision;
         }
         backgroundOperationLock.readLock().lock();
-        checkOpen();
         boolean success = false;
         Commit c;
         try {
+            checkOpen();
             c = new Commit(this, commitQueue.createRevision(), base, branch);
             success = true;
         } finally {
@@ -598,10 +598,10 @@ public final class DocumentNodeStore
             base = headRevision;
         }
         backgroundOperationLock.readLock().lock();
-        checkOpen();
         boolean success = false;
         MergeCommit c;
         try {
+            checkOpen();
             c = new MergeCommit(this, base, commitQueue.createRevisions(numBranchCommits));
             success = true;
         } finally {
