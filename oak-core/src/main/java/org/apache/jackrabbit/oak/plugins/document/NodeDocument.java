@@ -925,22 +925,30 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      * @param baseRevision the base revision for the update operation.
      * @param commitRevision the commit revision of the update operation.
      * @param context the revision context.
+     * @param enableConcurrentAddRemove feature flag for OAK-2673.
      * @return <code>true</code> if conflicting, <code>false</code> otherwise.
      */
     boolean isConflicting(@Nonnull UpdateOp op,
-                                 @Nonnull Revision baseRevision,
-                                 @Nonnull Revision commitRevision,
-                                 @Nonnull RevisionContext context) {
+                          @Nonnull Revision baseRevision,
+                          @Nonnull Revision commitRevision,
+                          @Nonnull RevisionContext context,
+                          boolean enableConcurrentAddRemove) {
         // did existence of node change after baseRevision?
         // only check local deleted map, which contains the most
         // recent values
         Map<Revision, String> deleted = getLocalDeleted();
+        boolean allowConflictingDeleteChange =
+                enableConcurrentAddRemove && allowConflictingDeleteChange(op);
         for (Map.Entry<Revision, String> entry : deleted.entrySet()) {
             if (entry.getKey().equals(commitRevision)) {
                 continue;
             }
+
             if (isRevisionNewer(context, entry.getKey(), baseRevision)) {
-                return true;
+                boolean newerDeleted = Boolean.parseBoolean(entry.getValue());
+                if (!allowConflictingDeleteChange || op.isDelete() != newerDeleted) {
+                    return true;
+                }
             }
         }
 
@@ -949,7 +957,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                 continue;
             }
             String name = entry.getKey().getName();
-            if (DELETED.equals(name)) {
+            if (DELETED.equals(name) && !allowConflictingDeleteChange) {
                 // existence of node changed, this always conflicts with
                 // any other concurrent change
                 return true;
@@ -968,6 +976,55 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             }
         }
         return false;
+    }
+
+    /**
+     * Utility method to check if {@code op} can be allowed to change
+     * {@link #DELETED} property. Basic idea is that a change in
+     * {@link #DELETED} property should be consistent if final value is same
+     * and there are no observation semantic change. Thus, this method tries to
+     * be very conservative and allows delete iff:
+     * <ul>
+     *     <li>{@code doc} represents and internal path</li>
+     *     <li>{@code op} represents an add or delete operation</li>
+     *     <li>{@code op} doesn't change add/delete any exposed property</li>
+     *     <li>{@code doc} doesn't have any exposed property</li>
+     * </ul>
+     * <i>
+     * Note: This method is a broad level check if we can allow such conflict
+     * resolution. Actual cases, like allow-delete-delete, allow-add-add wrt to
+     * revision are not handled here.
+     * </i>
+     * @param op {@link UpdateOp} instance having changes to check {@code doc} against
+     * @return if conflicting change in {@link #DELETED} property is allowed
+     */
+    private boolean allowConflictingDeleteChange(UpdateOp op) {
+        String path = getPath();
+        if (!Utils.isHiddenPath(path)) {
+            return false;
+        }
+
+        if (!op.isNew() && !op.isDelete()) {
+            return false;//only handle added/delete operations
+        }
+
+        for (Key opKey : op.getChanges().keySet()) {
+            String name = opKey.getName();
+            if (Utils.isPropertyName(name)) {
+                return false; //only handle changes to internal properties
+            }
+        }
+
+        // Only look at local data ...
+        // even remotely updated properties should have an entry (although invisible)
+        // by the time we are looking for conflicts
+        for (String dataKey : keySet()) {
+            if (Utils.isPropertyName(dataKey)) {
+                return false; //only handle changes to internal properties
+            }
+        }
+
+        return true;
     }
 
     /**

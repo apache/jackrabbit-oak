@@ -471,12 +471,12 @@ public class Commit {
             }
             String conflictMessage = null;
             if (newestRev == null) {
-                if (op.isDelete() || !op.isNew()) {
+                if ((op.isDelete() || !op.isNew()) && isConflicting(before, op)) {
                     conflictMessage = "The node " +
                             op.getId() + " does not exist or is already deleted";
                 }
             } else {
-                if (op.isNew()) {
+                if (op.isNew() && isConflicting(before, op)) {
                     conflictMessage = "The node " +
                             op.getId() + " was already added in revision\n" +
                             newestRev;
@@ -545,7 +545,8 @@ public class Commit {
             // or document did not exist before
             return false;
         }
-        return doc.isConflicting(op, baseRevision, revision, nodeStore);
+        return doc.isConflicting(op, baseRevision, revision, nodeStore,
+                nodeStore.getEnableConcurrentAddRemove());
     }
 
     /**
