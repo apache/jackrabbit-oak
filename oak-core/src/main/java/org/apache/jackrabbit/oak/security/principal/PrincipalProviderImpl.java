@@ -108,7 +108,7 @@ class PrincipalProviderImpl implements PrincipalProvider {
 
     @Nonnull
     @Override
-    public Iterator<? extends Principal> findPrincipals(final @Nullable String nameHint,
+    public Iterator<? extends Principal> findPrincipals(@Nullable final String nameHint,
                                                         final int searchType) {
         try {
             Iterator<Authorizable> authorizables = findAuthorizables(nameHint, searchType);
