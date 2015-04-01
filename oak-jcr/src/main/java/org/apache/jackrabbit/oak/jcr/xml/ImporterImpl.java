@@ -47,6 +47,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -82,26 +83,10 @@ public class ImporterImpl implements Importer {
     private final String userID;
     private final AccessManager accessManager;
 
-    /**
-     * There are two IdentifierManagers used.
-     *
-     * 1) currentStateIdManager - Associated with current root on which all import
-     *    operations are being performed
-     *
-     * 2) baseStateIdManager - Associated with the initial root on which
-     *    no modifications are performed
-     */
-    private final IdentifierManager currentStateIdManager;
-    private final IdentifierManager baseStateIdManager;
-
     private final EffectiveNodeTypeProvider effectiveNodeTypeProvider;
     private final DefinitionProvider definitionProvider;
 
-    /**
-     * Set of newly created uuid from nodes which are
-     * created in this import
-     */
-    private final Set<String> uuids = new HashSet<String>();
+    private final IdResolver idLookup;
 
     private final Stack<Tree> parents;
 
@@ -171,8 +156,7 @@ public class ImporterImpl implements Importer {
 
         accessManager = sessionContext.getAccessManager();
 
-        currentStateIdManager = new IdentifierManager(root);
-        baseStateIdManager = new IdentifierManager(sd.getContentSession().getLatestRoot());
+        idLookup = new IdResolver(root, sd.getContentSession());
 
         refTracker = new ReferenceChangeTracker();
 
@@ -465,24 +449,7 @@ public class ImporterImpl implements Importer {
                 }
             } else {
 
-                //1. First check from base state that tree corresponding to
-                //this id exist
-                Tree conflicting = baseStateIdManager.getTree(id);
-
-                if (conflicting == null) {
-                    //1.a. Check if id is found in newly created nodes
-                    if (uuids.contains(id)) {
-                        conflicting = currentStateIdManager.getTree(id);
-                    }
-                } else {
-                    //1.b Re obtain the conflicting tree from Id Manager
-                    //associated with current root. Such that any operation
-                    //on it gets reflected in later operations
-                    //In case a tree with same id was removed earlier then it
-                    //would return null
-                    conflicting = currentStateIdManager.getTree(id);
-                }
-
+                Tree conflicting = idLookup.getConflictingTree(id);
                 if (conflicting != null && conflicting.exists()) {
                     // resolve uuid conflict
                     tree = resolveUUIDConflict(parent, conflicting, id, nodeInfo);
@@ -522,22 +489,7 @@ public class ImporterImpl implements Importer {
             }
         }
 
-        collectUUIDs(parent);
-    }
-
-    private void collectUUIDs(Tree tree) {
-        if (tree == null) {
-            return;
-        }
-
-        String uuid = TreeUtil.getString(tree, JcrConstants.JCR_UUID);
-        if (uuid != null) {
-            uuids.add(uuid);
-        }
-
-        for (Tree child : tree.getChildren()) {
-            collectUUIDs(child);
-        }
+        idLookup.rememberImportedUUIDs(parent);
     }
 
     @Override
@@ -619,6 +571,80 @@ public class ImporterImpl implements Importer {
         private void setProperty(Iterable<String> newValues) {
             PropertyState prop = PropertyStates.createProperty(property.getName(), newValues, property.getType());
             tree.setProperty(prop);
+        }
+    }
+
+    /**
+     * Resolves 'uuid' property values to {@code Tree} objects and optionally
+     * keeps track of newly imported UUIDs.
+     */
+    private static final class IdResolver {
+        /**
+         * There are two IdentifierManagers used.
+         *
+         * 1) currentStateIdManager - Associated with current root on which all import
+         *    operations are being performed
+         *
+         * 2) baseStateIdManager - Associated with the initial root on which
+         *    no modifications are performed
+         */
+        private final IdentifierManager currentStateIdManager;
+        private final IdentifierManager baseStateIdManager;
+
+        /**
+         * Set of newly created uuid from nodes which are
+         * created in this import, which are only remembered if the editing
+         * session doesn't have any pending transient changes preventing this
+         * performance optimisation from working properly (see OAK-2246).
+         */
+        private final Set<String> importedUUIDs;
+
+        private IdResolver(@Nonnull Root root, @Nonnull ContentSession contentSession) {
+            currentStateIdManager = new IdentifierManager(root);
+            baseStateIdManager = new IdentifierManager(contentSession.getLatestRoot());
+
+            if (!root.hasPendingChanges()) {
+                importedUUIDs = new HashSet<String>();
+            } else {
+                importedUUIDs = null;
+            }
+        }
+
+
+        @CheckForNull
+        private Tree getConflictingTree(@Nonnull String id) {
+            //1. First check from base state that tree corresponding to
+            //this id exist
+            Tree conflicting = baseStateIdManager.getTree(id);
+            if (conflicting == null && importedUUIDs != null) {
+                //1.a. Check if id is found in newly created nodes
+                if (importedUUIDs.contains(id)) {
+                    conflicting = currentStateIdManager.getTree(id);
+                }
+            } else {
+                //1.b Re obtain the conflicting tree from Id Manager
+                //associated with current root. Such that any operation
+                //on it gets reflected in later operations
+                //In case a tree with same id was removed earlier then it
+                //would return null
+                conflicting = currentStateIdManager.getTree(id);
+            }
+            return conflicting;
+        }
+
+        private void rememberImportedUUIDs(@CheckForNull Tree tree) {
+            if (tree == null || importedUUIDs == null) {
+                return;
+            }
+
+            String uuid = TreeUtil.getString(tree, JcrConstants.JCR_UUID);
+            if (uuid != null) {
+                importedUUIDs.add(uuid);
+            }
+
+            for (Tree child : tree.getChildren()) {
+                rememberImportedUUIDs(child);
+            }
         }
     }
 }
