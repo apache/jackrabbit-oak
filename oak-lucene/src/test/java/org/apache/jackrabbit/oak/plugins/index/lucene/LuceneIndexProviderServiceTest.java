@@ -20,8 +20,8 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.util.HashMap;
+import java.util.Map;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -29,11 +29,16 @@ import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class LuceneIndexProviderServiceTest {
+
+    @Rule
+    public final TemporaryFolder folder = new TemporaryFolder();
+
     @Rule
     public final OsgiContext context = new OsgiContext();
 
@@ -41,10 +46,12 @@ public class LuceneIndexProviderServiceTest {
 
     @Test
     public void defaultSetup() throws Exception{
-        MockOsgi.activate(service, context.bundleContext(), new HashMap<String, Object>());
+        MockOsgi.activate(service, context.bundleContext(), getDefaultConfig());
 
         assertNotNull(context.getService(QueryIndexProvider.class));
         assertNotNull(context.getService(Observer.class));
+
+        assertNotNull("CopyOnRead should be enabled by default",context.getService(CopyOnReadStatsMBean.class));
 
         assertTrue(context.getService(Observer.class) instanceof BackgroundObserver);
 
@@ -53,10 +60,18 @@ public class LuceneIndexProviderServiceTest {
 
     @Test
     public void disableOpenIndexAsync() throws Exception{
-        MockOsgi.activate(service, context.bundleContext(), ImmutableMap.<String,Object>of("enableOpenIndexAsync", false));
+        Map<String,Object> config = getDefaultConfig();
+        config.put("enableOpenIndexAsync", false);
+        MockOsgi.activate(service, context.bundleContext(), config);
 
         assertTrue(context.getService(Observer.class) instanceof LuceneIndexProvider);
 
         MockOsgi.deactivate(service);
+    }
+
+    private Map<String,Object> getDefaultConfig(){
+        Map<String,Object> config = new HashMap<String, Object>();
+        config.put("localIndexDir", folder.getRoot().getAbsolutePath());
+        return config;
     }
 }
