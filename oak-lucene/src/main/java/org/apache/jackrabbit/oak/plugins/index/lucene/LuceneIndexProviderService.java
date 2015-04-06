@@ -84,7 +84,7 @@ public class LuceneIndexProviderService {
     private static final String PROP_DEBUG = "debug";
 
     @Property(
-            boolValue = false,
+            boolValue = true,
             label = "Enable CopyOnRead",
             description = "Enable copying of Lucene index to local file system to improve query performance"
     )
@@ -183,7 +183,7 @@ public class LuceneIndexProviderService {
     }
 
     private IndexTracker createTracker(BundleContext bundleContext, Map<String, ?> config) {
-        boolean enableCopyOnRead = PropertiesUtil.toBoolean(config.get(PROP_COPY_ON_READ), false);
+        boolean enableCopyOnRead = PropertiesUtil.toBoolean(config.get(PROP_COPY_ON_READ), true);
         if (enableCopyOnRead){
             String indexDirPath = PropertiesUtil.toString(config.get(PROP_LOCAL_INDEX_DIR), null);
             if (Strings.isNullOrEmpty(indexDirPath)) {
