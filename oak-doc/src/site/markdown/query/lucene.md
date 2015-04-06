@@ -253,6 +253,11 @@ nodeScopeIndex
   string property that contains the word foo. Example
     * _//element(*, app:Asset)[jcr:contains(., 'image')]_
 
+  In case of aggregation all properties would be indexed at node level by default
+  if the property type is part of `includePropertyTypes`. However if there is an
+  explicit property definition provided then it would only be included if
+  `nodeScopeIndex` is set to true.
+  
 analyzed
 : Set this to true if the property is used as part of `contains`. Example
     * _//element(*, app:Asset)[jcr:contains(type, 'image')]_
@@ -323,6 +328,7 @@ would only return nodes which are under _/content/app/old_.
 Enabling this feature would incur cost in terms of slight increase in index
 size. Refer to [OAK-2306][OAK-2306] for more details.
 
+<a name="aggregation"></a>
 #### Aggregation
 
 Sometimes it is useful to include the contents of descendant nodes into a single
@@ -665,35 +671,52 @@ mentioned steps
         
 From the Luke UI shown you can access various details.
 
-### Index performance
+### Design Considerations
 
-Following are some best practices to get good performance from Lucene based 
-indexes
+Lucene index provides quite a few features to meet various query requirements. 
+While defining the index definition do consider the following aspects
 
-1.  **[Non root indexes](#non-root-index)** - If your query always
+1.  If query uses different path restrictions keeping other restrictions 
+    same then make use of `evaluatePathRestrictions`
+   
+2.  If query performs sorting then have an explicit property definition for
+    the property on which sorting is being performed and set `ordered` to true 
+    for that property
+   
+3.  If the query is based on specific nodeType then define `indexRules` for that
+    nodeType
+   
+4.  Aim for a precise index configuration which indexes just the right amount of content
+    based on your query requirement. An index which is precise would be smaller and 
+    would perform better.
+   
+5.  **Make use of nodetype to achieve a _cohesive_ index**. This would allow multiple
+    queries to make use of same index and also evaluation of multiple property 
+    restrictions natively in Lucene
+
+6.  **[Non root indexes](#non-root-index)** - If your query always
     perform search under certain paths then create index definition under those
     paths only. This might be helpful in multi tenant deployment where each tenant
     data is stored under specific repository path and all queries are made under
-    those path.
-
-2.  **NodeType based indexing** - Depending on your requirement you can create
-    multiple Lucene indexes. For example if in majority of cases you are
-    querying on various properties specified under `<node>/jcr:content/metadata`
-    where node belong to certain specific nodeType then create single index
-    definition listing all such properties and restrict it that nodeType.
+    those path.   
 
     In fact its recommended to use single index if all the properties being indexed
     are related. This would enable Lucene index to evaluate as much property
     restriction as possible  natively (which is faster) and also save on storage
     cost incurred in storing the node path.
-
-3.  Use features when required - There are certain features provided by Lucene
+   
+7.  Use features when required - There are certain features provided by Lucene
     index  which incur extra cost in terms of storage space when enabled. For
     example enabling `evaluatePathRestrictions`, `ordering` etc. Enable such
     option only when you make use of those features and further enable them for
     only those properties. So `ordering`  should be enabled only when sorting is
     being performed for those properties and `evaluatePathRestrictions` should
     only be enabled if you are going to specify path restrictions.
+   
+Following analogy might be helpful to people coming from RDBMS world. Treat your
+nodetype as Table in your DB and all the direct or relative properties as columns
+in that table. Various property definitions can then be considered as index for 
+those columns. 
 
 ### Lucene Index vs Property Index
 
@@ -712,6 +735,337 @@ from property index in following aspects
 2.  Lucene index cannot enforce uniqueness constraint - By virtue of it being asynchronous
     it cannot enforce uniqueness constraint.
 
+### Examples
+
+#### A - Simple queries
+
+In many cases the query is purely based on some specific property and is not 
+restricted to any specific nodeType
+
+```
+SELECT
+  *
+FROM [nt:base] AS s
+WHERE ISDESCENDANTNODE([/content/public/platform])
+AND s.code = 'DRAFT'
+```
+
+Following index definition would allow using Lucene index for above query
+
+```
+/oak:index/assetType
+  - jcr:primaryType = "oak:QueryIndexDefinition"
+  - compatVersion = 2
+  - type = "lucene"
+  - async = "async"
+  - evaluatePathRestrictions = true
+  + indexRules
+    - jcr:primaryType = "nt:unstructured"
+    + nt:base
+      + properties
+        - jcr:primaryType = "nt:unstructured"
+        + code
+          - propertyIndex = true
+          - name = "code"
+```
+
+Above definition
+
+* Indexes `code` property present on any node
+* Supports evaluation of path restriction i.e. `ISDESCENDANTNODE([/content/public/platform])`
+  via `evaluatePathRestrictions`
+* Has a single indexRule for `nt:base` as queries do not specify any explicit
+  nodeType restriction
+  
+Now you have another query like 
+```
+SELECT
+  *
+FROM [nt:base] AS s
+WHERE 
+  s.status = 'DONE'
+```
+
+Here we can either add another property to the above definition or create a new 
+index definition altogether. By default prefer to club such indexes together
+
+```
+/oak:index/assetType
+  - jcr:primaryType = "oak:QueryIndexDefinition"
+  - compatVersion = 2
+  - type = "lucene"
+  - async = "async"
+  - evaluatePathRestrictions = true
+  + indexRules
+    - jcr:primaryType = "nt:unstructured"
+    + nt:base
+      + properties
+        - jcr:primaryType = "nt:unstructured"
+        + code
+          - propertyIndex = true
+          - name = "code"
+        + status
+          - propertyIndex = true
+          - name = "status"
+```
+
+Taking another example. Lets say you perform a range query like
+
+```
+SELECT
+  [jcr:path],
+  [jcr:score],
+  *
+FROM [nt:base] AS a
+WHERE isdescendantnode(a, '/content')
+AND [offTime] > CAST('2015-04-06T02:28:33.032-05:00' AS date)
+```
+
+This can also be clubbed in same index definition above
+
+```
+/oak:index/assetType
+  - jcr:primaryType = "oak:QueryIndexDefinition"
+  - compatVersion = 2
+  - type = "lucene"
+  - async = "async"
+  - evaluatePathRestrictions = true
+  + indexRules
+    - jcr:primaryType = "nt:unstructured"
+    + nt:base
+      + properties
+        - jcr:primaryType = "nt:unstructured"
+        + code
+          - propertyIndex = true
+          - name = "code"
+        + status
+          - propertyIndex = true
+          - name = "status"
+        + offTime
+          - propertyIndex = true
+          - name = "offTime"
+```
+
+#### B - Queries for structured content
+
+Queries in previous examples were based on mostly unstructured content where no
+nodeType restrictions were applied. However in many cases the nodes being queried
+confirm to certain structure. For example you have following content
+
+```
+/content/dam/assets/december/banner.png
+  - jcr:primaryType = "app:Asset"
+  + jcr:content
+    - jcr:primaryType = "app:AssetContent"
+    + metadata
+      - dc:format = "image/png"
+      - status = "published"
+      - jcr:lastModified = "2009-10-9T21:52:31"
+      - app:tags = ["properties:orientation/landscape", "marketing:interest/product"]
+      - size = 450
+      - comment = "Image for december launch"
+      - jcr:title = "December Banner"
+      + xmpMM:History
+        + 1
+          - softwareAgent = "Adobe Photoshop"
+          - author = "David"
+    + renditions (nt:folder)
+      + original (nt:file)
+        + jcr:content
+          - jcr:data = ...
+```
+
+Content like above is then queried in multiple ways. So lets take first query
+
+**UC1 - Find all assets which are having `status` as `published`**
+
+```
+SELECT
+  *
+FROM [app:Asset] AS a
+WHERE 
+  a.[jcr:content/metadata/status] = 'published'
+```
+
+For this following index definition would be have to be created
+
+```
+/oak:index/assetType
+  - jcr:primaryType = "oak:QueryIndexDefinition"
+  - compatVersion = 2
+  - type = "lucene"
+  - async = "async"
+  + indexRules
+    - jcr:primaryType = "nt:unstructured"
+    + app:Asset
+      + properties
+        - jcr:primaryType = "nt:unstructured"
+        + status
+          - propertyIndex = true
+          - name = "jcr:content/metadata/status"
+```
+
+Above index definition
+
+* Indexes all nodes of type `app:Asset` **only**
+* Indexes relative property `jcr:content/metadata/status` for all such nodes
+
+**UC2 - Find all assets which are having `status` as `published` sorted by last 
+modified date**
+
+```
+SELECT
+  *
+FROM [app:Asset] AS a
+WHERE 
+  a.[jcr:content/metadata/status] = 'published'
+ORDER BY
+  a.[jcr:content/metadata/jcr:lastModified] DESC
+```
+
+To enable above query the index definition needs to be updated to following
+
+```
+    + app:Asset
+      + properties
+        - jcr:primaryType = "nt:unstructured"
+        + status
+          - propertyIndex = true
+          - name = "jcr:content/metadata/status"        
+        + lastModified
+          - propertyIndex = true
+          - name = "jcr:content/metadata/jcr:lastModified"
+          - ordered = true
+          - type = Date
+```
+
+Above index definition
+
+* `jcr:content/metadata/jcr:lastModified` is marked as **`ordered`** enabling 
+  support _order by_ evaluation i.e. sorting for such properties
+* Property type is set to `Date`
+* Indexes both `status` and `jcr:lastModified`
+
+**UC3 - Find all assets where comment contains _december_**
+
+```
+SELECT
+  *
+FROM [app:Asset] 
+WHERE 
+  CONTAINS([jcr:content/metadata/comment], 'december')
+```
+
+To enable above query the index definition needs to be updated to following
+
+```
+    + app:Asset
+      + properties
+        - jcr:primaryType = "nt:unstructured"
+        + comment
+          - name = "jcr:content/metadata/comment"
+          - analyzed = true
+```
+
+Above index definition
+
+* `jcr:content/metadata/comment` is marked as **`analyzed`** enabling 
+  evaluation of `contains` i.e. fulltext search
+* `propertyIndex` is not enabled as this property is not going to be used to
+  perform equality check
+
+**UC4 - Find all assets which are created by David and refer to december **
+
+```
+SELECT
+  *
+FROM [app:Asset] 
+WHERE 
+  CONTAINS(., 'december david')
+```
+
+Here we want to create a fulltext index for all assets. It would index all the 
+properties in `app:Asset` including all relative nodes. To enable that we need to
+make use of [aggregation](#aggregation)
+
+```
+/oak:index/assetType
+  - jcr:primaryType = "oak:QueryIndexDefinition"
+  - compatVersion = 2
+  - type = "lucene"
+  - async = "async"
+  - includePropertyTypes = ["String", "Binary"]
+  + aggregates
+    + app:Asset
+      + include0
+        - path = "jcr:content"
+      + include1
+        - path = "jcr:content/metadata"      
+      + include2
+        - path = "jcr:content/metadata/*"
+      + include3
+        - path = "jcr:content/metadata/*/*"        
+      + include4
+        - path = "jcr:content/renditions"
+      + include5
+        - path = "jcr:content/renditions/original" 
+    + nt:file
+      + include0
+        - path = "jcr:content"
+  + indexRules
+    - jcr:primaryType = "nt:unstructured"
+    + app:Asset
+      + properties
+        - jcr:primaryType = "nt:unstructured"
+        + comment
+          - propertyIndex = true
+          - nodeScopeIndex = true
+          - name = "jcr:content/metadata/comment"
+```
+
+Above index definition
+
+*   Only indexes `String` and `Binary` properties as part of fulltext index via
+    **`includePropertyTypes`**
+   
+*   Has `aggregates` defined for various relative paths like _jcr:content_,
+    _jcr:content/metadata_, _jcr:content/renditions/original_ etc. 
+  
+    With these rules properties like _banner.png/metadata/comment_,
+    _banner.png/metadata/xmpMM:History/1/author_ get indexed as part for fulltext
+    index for _banner.png_ node.
+    
+*   Inclusion of _jcr:content/renditions/original_ would lead to aggregation of
+    _jcr:content/renditions/original/jcr:content/jcr:data_ property also as 
+    aggregation logic would apply rules for `nt:file` while aggregating the 
+    `original` node
+    
+*   Aggregation would include by default all properties which are part of
+    **`includePropertyTypes`**. However if any property has a explicit property
+    definition provided like `comment` then `nodeScopeIndex` would neet to be 
+    set to true
+
+Above definition would allow fulltext query to be performed. But we can do more.
+Suppose you want to give more preference to those nodes where the fulltext term
+is found in `jcr:title` compared to any other field. In such cases we can `boost` 
+such fields 
+
+```
+  + indexRules
+    - jcr:primaryType = "nt:unstructured"
+    + app:Asset
+      + properties
+        - jcr:primaryType = "nt:unstructured"
+        + comment
+          - propertyIndex = true
+          - nodeScopeIndex = true
+          - name = "jcr:content/metadata/comment"
+        + title
+          - propertyIndex = true
+          - nodeScopeIndex = true
+          - name = "jcr:content/metadata/jcr:title"
+          - boost = 2.0
+```
 
 [1]: http://www.day.com/specs/jsr170/javadocs/jcr-2.0/constant-values.html#javax.jcr.PropertyType.TYPENAME_STRING
 [OAK-2201]: https://issues.apache.org/jira/browse/OAK-2201
