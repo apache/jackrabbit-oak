@@ -28,15 +28,24 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Arrays;
 import java.util.Set;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.Appender;
+import ch.qos.logback.core.read.ListAppender;
+import ch.qos.logback.core.spi.FilterReply;
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
@@ -52,6 +61,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import org.slf4j.LoggerFactory;
 
 /**
  * Test the Property2 index mechanism.
@@ -510,4 +520,93 @@ public class PropertyIndexTest {
         HOOK.processCommit(before, after, CommitInfo.EMPTY); // should not throw
     }
 
+    @Test
+    public void traversalWarning() throws Exception {
+        ListAppender appender = createAndRegisterAppender();
+
+        int testDataSize = ContentMirrorStoreStrategy.TRAVERSING_WARN;
+        NodeState indexed = createTestData(testDataSize);
+        assertEquals(testDataSize, getResultSize(indexed, "foo", "bar"));
+        assertFalse(appender.list.isEmpty());
+
+        appender.list.clear();
+
+        testDataSize = 100;
+        indexed = createTestData(100);
+        assertEquals(testDataSize, getResultSize(indexed, "foo", "bar"));
+        assertTrue("Warning should not be logged for traversing " + testDataSize,
+                appender.list.isEmpty());
+        deregisterAppender(appender);
+    }
+
+    private int getResultSize(NodeState indexed, String name, String value){
+        FilterImpl f = createFilter(indexed, NT_BASE);
+
+        // Query the index
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        Iterable<String> result = lookup.query(f, name, PropertyValues.newString(value));
+        return Iterables.size(result);
+    }
+
+    private NodeState createTestData(int entryCount) throws CommitFailedException {
+        NodeState root = INITIAL_CONTENT;
+
+        // Add index definition
+        NodeBuilder builder = root.builder();
+        NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                true, false, ImmutableSet.of("foo"), null);
+        // disable the estimation
+        index.setProperty("entryCount", -1);
+        NodeState before = builder.getNodeState();
+
+        // Add some content and process it through the property index hook
+        int depth = ContentMirrorStoreStrategy.TRAVERSING_WARN / entryCount + 10;
+        for (int i = 0; i < entryCount; i++) {
+            NodeBuilder parentNode = builder.child("n" + i);
+            for (int j = 0; j < depth ; j++) {
+                parentNode = parentNode.child("c" + j);
+            }
+            parentNode.setProperty("foo", "bar");
+        }
+        NodeState after = builder.getNodeState();
+
+        return HOOK.processCommit(before, after, CommitInfo.EMPTY);
+    }
+
+    private ListAppender createAndRegisterAppender() {
+        TraversingWarningFilter filter = new TraversingWarningFilter();
+        filter.start();
+        ListAppender appender = new ListAppender<ILoggingEvent>();
+        appender.setContext(getContext());
+        appender.setName("TestLogCollector");
+        appender.addFilter(filter);
+        appender.start();
+        rootLogger().addAppender(appender);
+        return appender;
+    }
+
+    private void deregisterAppender(Appender<ILoggingEvent> appender){
+        rootLogger().detachAppender(appender);
+    }
+
+    private static LoggerContext getContext(){
+        return (LoggerContext) LoggerFactory.getILoggerFactory();
+    }
+
+    private static ch.qos.logback.classic.Logger rootLogger() {
+        return getContext().getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
+    }
+
+    private static class TraversingWarningFilter extends ch.qos.logback.core.filter.Filter<ILoggingEvent> {
+
+        @Override
+        public FilterReply decide(ILoggingEvent event) {
+            if (event.getLevel().isGreaterOrEqual(Level.WARN)
+                    && event.getMessage().contains("Traversed")) {
+                return FilterReply.ACCEPT;
+            } else {
+                return FilterReply.DENY;
+            }
+        }
+    }
 }
