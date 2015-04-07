@@ -30,7 +30,7 @@ following general characteristics.
 ### Token Authentication
 
 As of Oak the token based authentication is handled by a dedicated [TokenLoginModule].
-It is both responsible for issueing new login tokens and validating [TokenCredentials]
+It is both responsible for creating new login tokens and validating [TokenCredentials]
 passed to the repository login.
 
 This token specific login module implementation obtains the [TokenProvider] from
