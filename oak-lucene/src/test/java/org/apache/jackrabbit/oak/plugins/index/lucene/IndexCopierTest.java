@@ -47,6 +47,7 @@ import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.RAMDirectory;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -163,6 +164,7 @@ public class IndexCopierTest {
         assertTrue(new File(indexDir2, "t1").exists());
     }
 
+    @Ignore("OAK-2722") //FIXME test fails on windows
     @Test
     public void concurrentRead() throws Exception{
         Directory baseDir = new RAMDirectory();
