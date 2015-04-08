@@ -72,7 +72,7 @@ public class QueryPlanTest extends AbstractRepositoryTest {
         // System.out.println("plan: " + plan);
         // should use the node type index
         assertEquals("[oak:Unstructured] as [a] " + 
-                "/* Filter(query=explain select [jcr:path], [jcr:score], * " + 
+                "/* nodeType Filter(query=explain select [jcr:path], [jcr:score], * " + 
                 "from [oak:Unstructured] as a " + 
                 "where ischildnode(a, '/a/b/c/d/e/f/g/h/i/j/k') " + 
                 "/* xpath: /jcr:root/a/b/c/d/e/f/g/h/i/j/k/element(*, oak:Unstructured) */" + 
