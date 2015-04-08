@@ -31,21 +31,6 @@ public interface GCMonitor {
     GCMonitor EMPTY = new Empty();
 
     /**
-     * Log a message at the INFO level according to the specified format
-     * and arguments.
-     * <p/>
-     * <p>This form avoids superfluous string concatenation when the logger
-     * is disabled for the INFO level. However, this variant incurs the hidden
-     * (and relatively small) cost of creating an <code>Object[]</code> before invoking the method,
-     * even if this logger is disabled for INFO. The variants taking
-     * {@link #info(String, Object) one} and {@link #info(String, Object, Object) two}
-     * arguments exist solely in order to avoid this hidden cost.</p>
-     *
-     * @param format    the format string
-     * @param arguments a list of 3 or more arguments
-     */
-
-    /**
      * Informal notification on the progress of garbage collection.
      * @param message  The message with {} place holders for the {@code arguments}
      * @param arguments
