@@ -22,6 +22,8 @@ import java.util.List;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
+import org.apache.felix.scr.annotations.Property;
+import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate.NodeStateSolrServersObserver;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
@@ -32,9 +34,13 @@ import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 
 /**
- * An OSGi service for {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate.NodeStateSolrServersObserver}
+ * An OSGi service for {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate.NodeStateSolrServersObserver}.
+ * This allows correct cleanup of any persisted Solr server configurations once they get changed or deleted.
  */
-@Component(immediate = true)
+@Component(metatype = true,
+        immediate = true,
+        label = "Apache Jackrabbit Oak Solr persisted configuration observer"
+)
 public class NodeStateSolrServersObserverService {
 
     private final NodeStateSolrServersObserver nodeStateSolrServersObserver = new NodeStateSolrServersObserver();
@@ -45,19 +51,27 @@ public class NodeStateSolrServersObserverService {
 
     private List<ServiceRegistration> regs = new ArrayList<ServiceRegistration>();
 
+    @Property(boolValue = false, label = "enabled", description = "enable persisted configuration observer")
+    private static final String ENABLED = "enabled";
+
     @Activate
     protected void activate(BundleContext bundleContext) throws Exception {
 
-        Whiteboard whiteboard = new OsgiWhiteboard(bundleContext);
-        executor = new WhiteboardExecutor();
-        executor.start(whiteboard);
+        boolean enabled = PropertiesUtil.toBoolean(ENABLED, false);
 
-        backgroundObserver = new BackgroundObserver(nodeStateSolrServersObserver, executor, 5);
-        regs.add(bundleContext.registerService(Observer.class.getName(), backgroundObserver, null));
+        if (enabled) {
+            Whiteboard whiteboard = new OsgiWhiteboard(bundleContext);
+            executor = new WhiteboardExecutor();
+            executor.start(whiteboard);
+
+            backgroundObserver = new BackgroundObserver(nodeStateSolrServersObserver, executor, 5);
+            regs.add(bundleContext.registerService(Observer.class.getName(), backgroundObserver, null));
+        }
     }
 
     @Deactivate
     protected void deactivate() throws Exception {
+
         for (ServiceRegistration reg : regs) {
             reg.unregister();
         }
@@ -69,5 +83,6 @@ public class NodeStateSolrServersObserverService {
         if (executor != null) {
             executor.stop();
         }
+
     }
 }
