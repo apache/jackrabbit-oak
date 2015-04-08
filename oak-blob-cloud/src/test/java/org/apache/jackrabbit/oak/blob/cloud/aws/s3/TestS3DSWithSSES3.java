@@ -35,19 +35,18 @@ public class TestS3DSWithSSES3 extends TestS3Ds {
     protected static final Logger LOG = LoggerFactory.getLogger(TestS3DSWithSSES3.class);
 
     public TestS3DSWithSSES3() throws IOException {
-        config = System.getProperty(CONFIG);
-        memoryBackend = false;
-        noCache = true;
     }
 
+    @Override
     protected CachingDataStore createDataStore() throws RepositoryException {
         props.setProperty(S3Constants.S3_ENCRYPTION,
             S3Constants.S3_ENCRYPTION_SSE_S3);
-        ds = new S3TestDataStore(props);
-        ds.setConfig(config);
-        ds.init(dataStoreDir);
+        S3DataStore s3ds = new S3DataStore();
+        s3ds.setProperties(props);
+        s3ds.setSecret("123456");
+        s3ds.init(dataStoreDir);
         sleep(1000);
-        return ds;
+        return s3ds;
     }
 
     /**
@@ -56,34 +55,34 @@ public class TestS3DSWithSSES3 extends TestS3Ds {
     public void testDataMigration() {
         try {
             String bucket = props.getProperty(S3Constants.S3_BUCKET);
-            ds = new S3TestDataStore(props);
-            ds.setConfig(config);
-            ds.setCacheSize(0);
-            ds.init(dataStoreDir);
+            S3DataStore s3ds = new S3DataStore();
+            s3ds.setProperties(props);
+            s3ds.setCacheSize(0);
+            s3ds.init(dataStoreDir);
             byte[] data = new byte[dataLength];
             randomGen.nextBytes(data);
-            DataRecord rec = ds.addRecord(new ByteArrayInputStream(data));
+            DataRecord rec = s3ds.addRecord(new ByteArrayInputStream(data));
             assertEquals(data.length, rec.getLength());
             assertRecord(data, rec);
-            ds.close();
+            s3ds.close();
 
             // turn encryption now.
             props.setProperty(S3Constants.S3_BUCKET, bucket);
             props.setProperty(S3Constants.S3_ENCRYPTION,
                 S3Constants.S3_ENCRYPTION_SSE_S3);
             props.setProperty(S3Constants.S3_RENAME_KEYS, "true");
-            ds = new S3TestDataStore(props);
-            ds.setConfig(config);
-            ds.setCacheSize(0);
-            ds.init(dataStoreDir);
+            s3ds = new S3DataStore();
+            s3ds.setProperties(props);
+            s3ds.setCacheSize(0);
+            s3ds.init(dataStoreDir);
 
-            rec = ds.getRecord(rec.getIdentifier());
+            rec = s3ds.getRecord(rec.getIdentifier());
             assertEquals(data.length, rec.getLength());
             assertRecord(data, rec);
 
             randomGen.nextBytes(data);
-            rec = ds.addRecord(new ByteArrayInputStream(data));
-            ds.close();
+            rec = s3ds.addRecord(new ByteArrayInputStream(data));
+            s3ds.close();
 
         } catch (Exception e) {
             LOG.error("error:", e);

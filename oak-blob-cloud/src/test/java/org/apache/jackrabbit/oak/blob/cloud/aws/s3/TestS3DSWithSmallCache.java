@@ -21,31 +21,33 @@ import java.io.IOException;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.core.data.CachingDataStore;
+import org.apache.jackrabbit.core.data.LocalCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 /**
- * Test {@link org.apache.jackrabbit.core.data.CachingDataStore} with S3Backend and with very small size (@link
- * {@link org.apache.jackrabbit.core.data.LocalCache}. It requires to pass aws config file via system property.
+ * Test {@link CachingDataStore} with S3Backend and with very small size (@link
+ * {@link LocalCache}. It requires to pass aws config file via system property.
  * For e.g. -Dconfig=/opt/cq/aws.properties. Sample aws properties located at
  * src/test/resources/aws.properties
  */
 public class TestS3DSWithSmallCache extends TestS3Ds {
 
     protected static final Logger LOG = LoggerFactory.getLogger(TestS3DSWithSmallCache.class);
+
     public TestS3DSWithSmallCache() throws IOException {
-        config = System.getProperty(CONFIG);
-        memoryBackend = false;
-        noCache = false;
     }
 
+    @Override
     protected CachingDataStore createDataStore() throws RepositoryException {
-        ds = new S3TestDataStore(props);
-        ds.setConfig(config);
-        ds.setCacheSize(dataLength * 10);
-        ds.setCachePurgeTrigFactor(0.5d);
-        ds.setCachePurgeResizeFactor(0.4d);
-        ds.init(dataStoreDir);
+        S3DataStore s3ds = new S3DataStore();
+        s3ds.setProperties(props);
+        s3ds.setCacheSize(dataLength * 10);
+        s3ds.setCachePurgeTrigFactor(0.5d);
+        s3ds.setCachePurgeResizeFactor(0.4d);
+        s3ds.setSecret("123456");
+        s3ds.init(dataStoreDir);
         sleep(1000);
-        return ds;
+        return s3ds;
     }
 }
