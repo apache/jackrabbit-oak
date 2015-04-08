@@ -33,19 +33,22 @@ import org.slf4j.LoggerFactory;
 public class TestS3DSAsyncTouch extends TestS3Ds {
 
     protected static final Logger LOG = LoggerFactory.getLogger(TestS3DSAsyncTouch.class);
+
     public TestS3DSAsyncTouch() throws IOException {
-        config = System.getProperty(CONFIG);
-        memoryBackend = false;
-        noCache = false;
+
     }
 
+    @Override
     protected CachingDataStore createDataStore() throws RepositoryException {
-        ds = new S3TestDataStore(props);
-        ds.setConfig(config);
-        ds.init(dataStoreDir);
-        ds.setTouchAsync(true);
-        ds.updateModifiedDateOnAccess(System.currentTimeMillis()+ 50* 1000);
+        S3DataStore s3ds = new S3DataStore();
+        s3ds.setProperties(props);
+        s3ds.setTouchAsync(true);
+        s3ds.setSecret("123456");
+        s3ds.init(dataStoreDir);
+        s3ds.updateModifiedDateOnAccess(System.currentTimeMillis() + 50 * 1000);
         sleep(1000);
-        return ds;
+        return s3ds;
     }
 }
+
+

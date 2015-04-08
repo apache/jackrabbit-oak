@@ -18,13 +18,16 @@ package org.apache.jackrabbit.oak.blob.cloud.aws.s3;
 
 import java.io.IOException;
 
+import javax.jcr.RepositoryException;
+
+import org.apache.jackrabbit.core.data.CachingDataStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Test {@link org.apache.jackrabbit.core.data.CachingDataStore} with S3Backend and local cache Off. It requires
- * to pass aws config file via system property. For e.g.
- * -Dconfig=/opt/cq/aws.properties. Sample aws properties located at
+ * Test {@link org.apache.jackrabbit.core.data.CachingDataStore} with S3Backend
+ * and local cache Off. It requires to pass aws config file via system property.
+ * For e.g. -Dconfig=/opt/cq/aws.properties. Sample aws properties located at
  * src/test/resources/aws.properties
  */
 public class TestS3DsCacheOff extends TestS3Ds {
@@ -32,8 +35,16 @@ public class TestS3DsCacheOff extends TestS3Ds {
     protected static final Logger LOG = LoggerFactory.getLogger(TestS3DsCacheOff.class);
 
     public TestS3DsCacheOff() throws IOException {
-        config = System.getProperty(CONFIG);
-        memoryBackend = false;
-        noCache = true;
+    }
+
+    @Override
+    protected CachingDataStore createDataStore() throws RepositoryException {
+        S3DataStore s3ds = new S3DataStore();
+        s3ds.setProperties(props);
+        s3ds.setCacheSize(0);
+        s3ds.setSecret("123456");
+        s3ds.init(dataStoreDir);
+        sleep(1000);
+        return s3ds;
     }
 }
