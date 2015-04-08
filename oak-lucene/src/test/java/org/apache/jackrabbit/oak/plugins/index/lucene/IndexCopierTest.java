@@ -128,6 +128,7 @@ public class IndexCopierTest {
         assertEquals(1, td.size());
     }
 
+    @Ignore("OAK-2722") //FIXME test fails on windows
     @Test
     public void deleteOldPostReindex() throws Exception{
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
@@ -164,7 +165,6 @@ public class IndexCopierTest {
         assertTrue(new File(indexDir2, "t1").exists());
     }
 
-    @Ignore("OAK-2722") //FIXME test fails on windows
     @Test
     public void concurrentRead() throws Exception{
         Directory baseDir = new RAMDirectory();
