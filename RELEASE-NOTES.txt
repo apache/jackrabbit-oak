@@ -306,6 +306,7 @@ Improvements
   [OAK-2645] Remove DOCUMENT_MK fixture (and related)
   [OAK-2654] SegmentIdTable too eager to refresh
   [OAK-2668] Ability to disable index hints for MongoDB
+  [OAK-2669] Use Consolidated diff for local changes with persistent cache to avoid calculating diff again
   [OAK-2671] Persistent cache: use different files in tests
   [OAK-2680] Report a full observation queue situation to the logfile
   [OAK-2692] Add description annotation to RepositoryManagementMBean#startDataStoreGC 
