@@ -34,6 +34,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -121,6 +122,7 @@ import org.apache.jackrabbit.spi.commons.conversion.NamePathResolver;
 import org.apache.jackrabbit.spi.commons.value.ValueFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sun.rmi.log.LogInputStream;
 
 public class RepositoryUpgrade {
 
@@ -137,6 +139,8 @@ public class RepositoryUpgrade {
     private final NodeStore target;
 
     private boolean copyBinariesByReference = false;
+
+    private List<CommitHook> customCommitHooks = null;
 
     /**
      * Copies the contents of the repository in the given source directory
@@ -188,6 +192,26 @@ public class RepositoryUpgrade {
 
     public void setCopyBinariesByReference(boolean copyBinariesByReference) {
         this.copyBinariesByReference = copyBinariesByReference;
+    }
+
+    /**
+     * Returns the list of custom CommitHooks to be applied before the final
+     * type validation, reference and indexing hooks.
+     *
+     * @return the list of custom CommitHooks
+     */
+    public List<CommitHook> getCustomCommitHooks() {
+        return customCommitHooks;
+    }
+
+    /**
+     * Sets the list of custom CommitHooks to be applied before the final
+     * type validation, reference and indexing hooks.
+     *
+     * @param customCommitHooks the list of custom CommitHooks
+     */
+    public void setCustomCommitHooks(List<CommitHook> customCommitHooks) {
+        this.customCommitHooks = customCommitHooks;
     }
 
     /**
@@ -296,6 +320,10 @@ public class RepositoryUpgrade {
             // security-related hooks
             for (SecurityConfiguration sc : security.getConfigurations()) {
                 hooks.addAll(sc.getCommitHooks(workspaceName));
+            }
+
+            if (customCommitHooks != null) {
+                hooks.addAll(customCommitHooks);
             }
 
             // type validation, reference and indexing hooks
