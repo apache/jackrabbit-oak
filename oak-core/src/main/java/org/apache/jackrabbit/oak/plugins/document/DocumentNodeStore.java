@@ -81,6 +81,8 @@ import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobReferenceIterator;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
+import org.apache.jackrabbit.oak.plugins.observation.ContentChangeInfo;
+import org.apache.jackrabbit.oak.plugins.observation.ContentChangeInfoProvider;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
@@ -312,6 +314,8 @@ public final class DocumentNodeStore
      */
     private final DiffCache diffCache;
 
+    private final LocalDiffCache localDiffCache;
+
     /**
      * The blob store.
      */
@@ -418,6 +422,7 @@ public final class DocumentNodeStore
                 builder.getWeigher(), builder.getDocChildrenCacheSize());
 
         diffCache = builder.getDiffCache();
+        localDiffCache = builder.getLocalDiffCache();
         checkpoints = new Checkpoints(this);
 
         // check if root node exists
@@ -1324,31 +1329,60 @@ public final class DocumentNodeStore
      */
     boolean compare(@Nonnull final DocumentNodeState node,
                     @Nonnull final DocumentNodeState base,
-                    @Nonnull final NodeStateDiff diff) {
+                    @Nonnull NodeStateDiff diff) {
         if (!AbstractNodeState.comparePropertiesAgainstBaseState(node, base, diff)) {
             return false;
         }
         if (node.hasNoChildren() && base.hasNoChildren()) {
             return true;
         }
+        String jsop = getJsopDiffIfLocalChange(diff, node);
+
         boolean useReadRevision = true;
-        // first lookup with read revisions of nodes and without loader
-        String jsop = diffCache.getChanges(base.getRevision(), 
-                node.getRevision(), node.getPath(), null);
         if (jsop == null) {
-            useReadRevision = false;
-            // fall back to last revisions with loader, this
-            // guarantees we get a diff
-            jsop = diffCache.getChanges(base.getLastRevision(),
-                    node.getLastRevision(), node.getPath(),
-                    new DiffCache.Loader() {
-                        @Override
-                        public String call() {
-                            return diffImpl(base, node);
-                        }
-                    });
+            // first lookup with read revisions of nodes and without loader
+            jsop = diffCache.getChanges(base.getRevision(),
+                    node.getRevision(), node.getPath(), null);
+            if (jsop == null) {
+                useReadRevision = false;
+                // fall back to last revisions with loader, this
+                // guarantees we get a diff
+                jsop = diffCache.getChanges(base.getLastRevision(),
+                        node.getLastRevision(), node.getPath(),
+                        new DiffCache.Loader() {
+                            @Override
+                            public String call() {
+                                return diffImpl(base, node);
+                            }
+                        });
+            }
         }
         return dispatch(jsop, node, base, diff, useReadRevision);
+    }
+
+    @CheckForNull
+    private String getJsopDiffIfLocalChange(NodeStateDiff diff, DocumentNodeState nodeState) {
+        if (localDiffCache == null){
+            //Local diff cache support not enabled
+            return null;
+        }
+
+        if (diff instanceof ContentChangeInfoProvider){
+            ContentChangeInfo info = ((ContentChangeInfoProvider) diff).getChangeInfo();
+            if (info.isLocalChange() && info.getAfter() instanceof DocumentNodeState){
+                DocumentNodeState rootAfterState = (DocumentNodeState) info.getAfter();
+                DocumentNodeState rootBeforeState = (DocumentNodeState) info.getBefore();
+                String jsopDiff = localDiffCache.getChanges(rootBeforeState.getRevision(),
+                        rootAfterState.getRevision(),
+                        nodeState.getPath(),
+                        null);
+                if (jsopDiff != null){
+                    LOG.trace("Got diff from local cache for path {}", nodeState.getPath());
+                    return jsopDiff;
+                }
+            }
+        }
+        return null;
     }
 
     String diff(@Nonnull final String fromRevisionId,
@@ -2452,6 +2486,13 @@ public final class DocumentNodeStore
     }
 
     public DiffCache getDiffCache() {
+        return diffCache;
+    }
+
+    public DiffCache getLocalDiffCache(){
+        if (localDiffCache != null){
+            return localDiffCache;
+        }
         return diffCache;
     }
 

@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import com.mongodb.DB;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -69,6 +70,12 @@ public class DocumentNodeStoreDiffTest extends AbstractMongoConnectionTest {
         // must not cause cache misses
         Diff.perform(before, after);
         assertEquals(0, stats.getMissCount());
+    }
+
+    @Override
+    protected DocumentMK.Builder prepare(DocumentMK.Builder builder, DB db) {
+        builder.setDisableLocalDiffCache(true);
+        return super.prepare(builder, db);
     }
 
     @Override

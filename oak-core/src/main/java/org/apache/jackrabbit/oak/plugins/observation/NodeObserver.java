@@ -157,7 +157,8 @@ public abstract class NodeObserver implements Observer {
                     handler = handler.getChildHandler(oakName, before, after);
                 }
 
-                EventGenerator generator = new EventGenerator(before, after, handler);
+                ContentChangeInfo changeInfo = new ContentChangeInfo(before, after, info);
+                EventGenerator generator = new EventGenerator(before, after, changeInfo, handler);
                 while (!generator.isDone()) {
                     generator.generate();
                 }
