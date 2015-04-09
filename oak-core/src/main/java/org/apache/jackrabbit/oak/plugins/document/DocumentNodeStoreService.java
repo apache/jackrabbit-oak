@@ -547,6 +547,17 @@ public class DocumentNodeStoreService {
                             mcl.getDiffCacheStats().getName()));
         }
 
+        DiffCache localCache = store.getLocalDiffCache();
+        if (localCache instanceof LocalDiffCache) {
+            LocalDiffCache mcl = (LocalDiffCache) localCache;
+            registrations.add(
+                    registerMBean(whiteboard,
+                            CacheStatsMBean.class,
+                            mcl.getDiffCacheStats(),
+                            CacheStatsMBean.TYPE,
+                            mcl.getDiffCacheStats().getName()));
+        }
+
         DocumentStore ds = store.getDocumentStore();
         if (ds.getCacheStats() != null) {
             registrations.add(
