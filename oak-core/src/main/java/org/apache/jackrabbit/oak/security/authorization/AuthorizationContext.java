@@ -47,7 +47,11 @@ final class AuthorizationContext implements Context, AccessControlConstants, Per
     @Override
     public boolean definesContextRoot(@Nonnull Tree tree) {
         String name = tree.getName();
-        return POLICY_NODE_NAMES.contains(name) || REP_PERMISSION_STORE.equals(name);
+        if (POLICY_NODE_NAMES.contains(name)) {
+            return NT_REP_ACL.equals(TreeUtil.getPrimaryTypeName(tree));
+        } else {
+            return REP_PERMISSION_STORE.equals(name);
+        }
     }
 
     @Override
