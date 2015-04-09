@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.plugins.document.DiffCache;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -77,6 +78,7 @@ public class MongoDiffCacheTest {
         assertEquals("^", doMerge("^", "-", "+", "^"));
     }
 
+    @Ignore("OAK-2735")
     @Test
     public void sizeLimit() {
         assumeTrue(MONGO.isAvailable());
