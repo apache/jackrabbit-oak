@@ -1364,7 +1364,10 @@ public class SQL2Parser {
     }
 
     public static String escapeStringLiteral(String value) {
-        return '\'' + value.replace("'", "''") + '\'';
+        if (value.indexOf('\'') >= 0) {
+            value = value.replace("'", "''");
+        }
+        return '\'' + value + '\'';
     }
 
     /**
