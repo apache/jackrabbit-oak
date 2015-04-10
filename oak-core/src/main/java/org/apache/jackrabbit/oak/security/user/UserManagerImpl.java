@@ -112,6 +112,11 @@ public class UserManagerImpl implements UserManager {
     }
 
     @Override
+    public <T extends Authorizable> T getAuthorizable(String id, Class<T> authorizableClass) throws RepositoryException {
+        return UserUtil.castAuthorizable(getAuthorizable(id), authorizableClass);
+    }
+
+    @Override
     public Authorizable getAuthorizable(Principal principal) throws RepositoryException {
         return getAuthorizable(userProvider.getAuthorizableByPrincipal(principal));
     }
