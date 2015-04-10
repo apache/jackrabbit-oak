@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
+import org.apache.jackrabbit.oak.plugins.document.LocalDiffCache;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -100,6 +101,32 @@ public enum CacheType {
         public <V> V valueFromString(
                 DocumentNodeStore store, DocumentStore docStore, String value) {
             return (V) StringValue.fromString(value);
+        }
+    },
+
+    CONSOLIDATED_DIFF {
+        @Override
+        public <K> String keyToString(K key) {
+            return ((StringValue) key).asString();
+        }
+        @SuppressWarnings("unchecked")
+        @Override
+        public <K> K keyFromString(String key) {
+            return (K) StringValue.fromString(key);
+        }
+        @Override
+        public <K> int compareKeys(K a, K b) {
+            return ((StringValue) a).asString().compareTo(((StringValue) b).asString());
+        }
+        @Override
+        public <V> String valueToString(V value) {
+            return ((LocalDiffCache.ConsolidatedDiff) value).asString();
+        }
+        @SuppressWarnings("unchecked")
+        @Override
+        public <V> V valueFromString(
+                DocumentNodeStore store, DocumentStore docStore, String value) {
+            return (V) LocalDiffCache.ConsolidatedDiff.fromString(value);
         }
     },
     
