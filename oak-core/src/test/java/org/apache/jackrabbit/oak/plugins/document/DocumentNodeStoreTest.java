@@ -53,10 +53,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Throwables;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.kernel.KernelNodeState;
+import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
+import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
+import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.TimingDocumentStoreWrapper;
@@ -1138,6 +1145,430 @@ public class DocumentNodeStoreTest {
         assertTrue("Existing children should be reported as such", existingChild.exists());
 
         store.dispose();
+    }
+
+    @Test
+    public void mergeInternalDocAcrossCluster() throws Exception {
+        MemoryDocumentStore docStore = new MemoryDocumentStore();
+        final DocumentNodeStore store1 = new DocumentMK.Builder()
+                .setDocumentStore(docStore).setAsyncDelay(0)
+                .setClusterId(1)
+                .getNodeStore();
+        store1.setEnableConcurrentAddRemove(true);
+        final DocumentNodeStore store2 = new DocumentMK.Builder()
+                .setDocumentStore(docStore).setAsyncDelay(0)
+                .setClusterId(2)
+                .getNodeStore();
+        store2.setEnableConcurrentAddRemove(true);
+        try {
+
+            NodeState root;
+            NodeBuilder builder;
+
+            //Prepare repo
+            root = store1.getRoot();
+            builder = root.builder();
+            builder.child(":hidden").child("deleteDeleted");
+            builder.child(":hidden").child("deleteChanged");
+            builder.child(":hidden").child("changeDeleted");
+            merge(store1, builder);
+            store1.runBackgroundOperations();
+            store2.runBackgroundOperations();
+
+            //Changes in store1
+            root = store1.getRoot();
+            builder = root.builder();
+            builder.child("visible");
+            builder.child(":hidden").child("b");
+            builder.child(":hidden").child("deleteDeleted").remove();
+            builder.child(":hidden").child("changeDeleted").remove();
+            builder.child(":hidden").child("deleteChanged").setProperty("foo", "bar");
+            builder.child(":dynHidden").child("c");
+            builder.child(":dynHidden").child("childWithProp").setProperty("foo", "bar");
+            merge(store1, builder);
+
+            //Changes in store2
+
+            //root would hold reference to store2 root state after initial repo initialization
+            root = store2.getRoot();
+
+            //The hidden node itself should be creatable across cluster concurrently
+            builder = root.builder();
+            builder.child(":dynHidden");
+            merge(store2, builder);
+
+            //Children of hidden node should be creatable across cluster concurrently
+            builder = root.builder();
+            builder.child(":hidden").child("b");
+            builder.child(":dynHidden").child("c");
+            merge(store2, builder);
+
+            //Deleted deleted conflict of internal node should work across cluster concurrently
+            builder = root.builder();
+            builder.child(":hidden").child("deleteDeleted").remove();
+            merge(store2, builder);
+
+            //Avoid repeated merge tries ... fail early
+            store2.setMaxBackOffMillis(0);
+
+            boolean commitFailed = false;
+            try {
+                builder = root.builder();
+                builder.child("visible");
+                merge(store2, builder);
+            } catch (CommitFailedException cfe) {
+                commitFailed = true;
+            }
+            assertTrue("Concurrent creation of visible node across cluster must fail", commitFailed);
+
+            commitFailed = false;
+            try {
+                builder = root.builder();
+                builder.child(":dynHidden").child("childWithProp").setProperty("foo", "bar");
+                merge(store2, builder);
+            } catch (CommitFailedException cfe) {
+                commitFailed = true;
+            }
+            assertTrue("Concurrent creation of hidden node with properties across cluster must fail", commitFailed);
+
+            commitFailed = false;
+            try {
+                builder = root.builder();
+                builder.child(":hidden").child("deleteChanged").remove();
+                merge(store2, builder);
+            } catch (CommitFailedException cfe) {
+                commitFailed = true;
+            }
+            assertTrue("Delete changed merge across cluster must fail even under hidden tree", commitFailed);
+
+            commitFailed = false;
+            try {
+                builder = root.builder();
+                builder.child(":hidden").child("changeDeleted").setProperty("foo", "bar");
+                merge(store2, builder);
+            } catch (CommitFailedException cfe) {
+                commitFailed = true;
+            }
+            assertTrue("Change deleted merge across cluster must fail even under hidden tree", commitFailed);
+        } finally {
+            store2.dispose();
+            store1.dispose();
+        }
+    }
+
+    @Test
+    public void mergeDeleteDeleteEmptyInternalDoc() throws Exception {
+        final DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
+        store.setEnableConcurrentAddRemove(true);
+        try {
+            NodeBuilder builder = store.getRoot().builder();
+            builder.child(":a");
+            builder.child(":b");
+            merge(store, builder);
+            SingleInstanceConflictUtility.generateConflict(store,
+                    new String[]{":1"}, new String[]{":a"},
+                    new String[]{":2"}, new String[]{":b"},
+                    new String[]{":3"}, new String[]{":a", ":b"},
+                    true, "Delete-delete merge conflicts for internal docs should be resolved");
+        } finally {
+            store.dispose();
+        }
+    }
+
+    @Test
+    public void mergeDeleteDeleteNonEmptyInternalDocShouldFail() throws Exception {
+        final DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
+        store.setEnableConcurrentAddRemove(true);
+        try {
+            NodeBuilder builder = store.getRoot().builder();
+            builder.child(":a").setProperty("foo", "bar");
+            builder.child(":b");
+            merge(store, builder);
+            SingleInstanceConflictUtility.generateConflict(store,
+                    new String[]{":1"}, new String[]{":a"},
+                    new String[]{":2"}, new String[]{":b"},
+                    new String[]{":3"}, new String[]{":a", ":b"},
+                    false, "Delete-delete merge conflicts for non-empty internal docs should fail");
+        } finally {
+            store.dispose();
+        }
+    }
+
+    @Test
+    public void mergeDeleteDeleteNormalDocShouldFail() throws Exception {
+        final DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
+        store.setEnableConcurrentAddRemove(true);
+        try {
+            NodeBuilder builder = store.getRoot().builder();
+            builder.child("a");
+            builder.child("b");
+            merge(store, builder);
+            SingleInstanceConflictUtility.generateConflict(store,
+                    new String[]{":1"}, new String[]{"a"},
+                    new String[]{":2"}, new String[]{"b"},
+                    new String[]{":3"}, new String[]{"a", "b"},
+                    false, "Delete-delete merge conflicts for normal docs should fail");
+        } finally {
+            store.dispose();
+        }
+    }
+
+    @Test
+    public void mergeAddAddEmptyInternalDoc() throws Exception {
+        final DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
+        store.setEnableConcurrentAddRemove(true);
+        try {
+            SingleInstanceConflictUtility.generateConflict(store,
+                    new String[]{":1", ":a"}, new String[]{},
+                    new String[]{":2", ":b"}, new String[]{},
+                    new String[]{":3", ":a", ":b"}, new String[]{},
+                    true, "Add-add merge conflicts for internal docs should be resolvable");
+        } finally {
+            store.dispose();
+        }
+    }
+
+    @Test
+    public void mergeAddAddNonEmptyInternalDocShouldFail() throws Exception {
+        final DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
+        store.setEnableConcurrentAddRemove(true);
+        try {
+            SingleInstanceConflictUtility.generateConflict(store,
+                    new String[]{":1", ":a"}, new String[]{}, true,
+                    new String[]{":2", ":b"}, new String[]{}, true,
+                    new String[]{":3", ":a", ":b"}, new String[]{}, false,
+                    false, "Add-add merge conflicts for non empty internal docs should fail");
+        } finally {
+            store.dispose();
+        }
+    }
+
+    @Test
+    public void mergeAddAddNormalDocShouldFail() throws Exception {
+        final DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
+        store.setEnableConcurrentAddRemove(true);
+        try {
+            SingleInstanceConflictUtility.generateConflict(store,
+                    new String[]{":1", "a"}, new String[]{},
+                    new String[]{":2", "b"}, new String[]{},
+                    new String[]{":3", "a", "b"}, new String[]{},
+                    false, "Add-add merge conflicts for normal docs should fail");
+        } finally {
+            store.dispose();
+        }
+    }
+
+    @Test
+    public void mergeDeleteChangedInternalDocShouldFail() throws Exception {
+        final DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
+        store.setEnableConcurrentAddRemove(true);
+        try {
+            NodeBuilder builder = store.getRoot().builder();
+            builder.child(":a");
+            builder.child(":b");
+            merge(store, builder);
+            SingleInstanceConflictUtility.generateConflict(store,
+                    new String[]{":1", ":a"}, new String[]{}, true,
+                    new String[]{":2", ":b"}, new String[]{}, true,
+                    new String[]{":3"}, new String[]{":a", ":b"}, false,
+                    false, "Delete changed merge conflicts for internal docs should fail");
+        } finally {
+            store.dispose();
+        }
+    }
+
+    @Test
+    public void mergeChangeDeletedInternalDocShouldFail() throws Exception {
+        final DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
+        store.setEnableConcurrentAddRemove(true);
+        try {
+            NodeBuilder builder = store.getRoot().builder();
+            builder.child(":a");
+            builder.child(":b");
+            merge(store, builder);
+            SingleInstanceConflictUtility.generateConflict(store,
+                    new String[]{":1"}, new String[]{":a"}, false,
+                    new String[]{":2"}, new String[]{":b"}, false,
+                    new String[]{":3", ":a", ":b"}, new String[]{}, true,
+                    false, "Change deleted merge conflicts for internal docs should fail");
+        } finally {
+            store.dispose();
+        }
+    }
+
+    /**
+     * Utility class that eases creating single cluster id merge conflicts. The two methods:
+     * <ul>
+     *     <li>{@link #generateConflict(DocumentNodeStore, String[], String[], String[], String[], String[], String[], boolean, String)}</li>
+     *     <li>{@link #generateConflict(DocumentNodeStore, String[], String[], boolean, String[], String[], boolean, String[], String[], boolean, boolean, String)}</li>
+     * </ul>
+     * can be passed descriptions of modifications required to create conflict. These methods would also take
+     * expectation of successful/failure of resolution of merge conflict. In case of failure of that assertion, these
+     * methods would mark the test to fail.
+     */
+    private static class SingleInstanceConflictUtility {
+        /**
+         * Wrapper of {@link #generateConflict(DocumentNodeStore, String[], String[], boolean, String[], String[], boolean, String[], String[], boolean, boolean, String)}
+         * with value of {@code change1, change2, and change3} as {@code false}
+         */
+        public static void generateConflict(final DocumentNodeStore store,
+                                            String [] normalAddChildren1, String [] normalRemoveChildren1,
+                                            String [] normalAddChildren2, String [] normalRemoveChildren2,
+                                            String [] conflictingAddChildren3, String [] conflictingRemoveChildren3,
+                                            boolean shouldMerge, String assertMessage)
+                throws CommitFailedException, InterruptedException {
+            generateConflict(store,
+                    normalAddChildren1, normalRemoveChildren1, false,
+                    normalAddChildren2, normalRemoveChildren2, false,
+                    conflictingAddChildren3, conflictingRemoveChildren3, false,
+                    shouldMerge, assertMessage
+                    );
+        }
+
+        /**
+         * This method takes 3 descriptions of changes for conflict to happen. Each description has a set of
+         * {@code AddChildren}, {@code RemoveChildren}, and {@code change} parameters. {@code AddChidren} is an
+         * array of children to be added, {@code RemoveChildren} is an array of children to be removed, and
+         * {@code change} controls if a property (hard-coded to {@code @foo=bar}) needs to be set on children
+         * that are part of {@code AddChildren} array.
+         * The changes should be such that set1 changes and set2 changes should be safe. The conflict should be
+         * represented by changes in set3 -- and the conflict should exist against both set1 and set2.
+         * These 3 description are then used to create changes on 3 threads in such a way that by the time thread3
+         * gets around to persist its changes, there are more revisions which get committed. In case the conflict
+         * couldn't be resolved, thread3 would report an exception which is tested
+         * against {@code mergeable}.
+         * @throws InterruptedException
+         */
+        public static void generateConflict(final DocumentNodeStore store,
+                                            String [] normalAddChildren1, String [] normalRemoveChildren1, boolean change1,
+                                            String [] normalAddChildren2, String [] normalRemoveChildren2, boolean change2,
+                                            String [] conflictingAddChildren3, String [] conflictingRemoveChildren3, boolean change3,
+                                            boolean mergeable, String assertMessage)
+                throws InterruptedException {
+            //This would result in 0 retries... 1 rebase would happen and we'd control it :D
+            store.setMaxBackOffMillis(0);
+
+            SingleInstanceConflictUtility thread1 = new SingleInstanceConflictUtility();
+            SingleInstanceConflictUtility thread3 = new SingleInstanceConflictUtility();
+            SingleInstanceConflictUtility thread2 = new SingleInstanceConflictUtility();
+
+            thread1.startMerge(store, normalAddChildren1, normalRemoveChildren1, change1);
+            thread2.startMerge(store, conflictingAddChildren3, conflictingRemoveChildren3, change3);
+
+            thread1.join();
+            thread2.waitForNextMerge();
+
+            thread3.startMerge(store, normalAddChildren2, normalRemoveChildren2, change2);
+            thread3.join();
+
+            thread2.join();
+
+            assertNull("There shouldn't be any exception for thread1", thread1.getException());
+            assertNull("There shouldn't be any exception for thread3", thread3.getException());
+
+            CommitFailedException cfe = thread2.getException();
+            if (mergeable != (cfe == null)) {
+                StringBuffer message = new StringBuffer(assertMessage);
+                if (cfe != null) {
+                    message.append("\n");
+                    message.append(Throwables.getStackTraceAsString(cfe));
+                }
+                fail(message.toString());
+            }
+        }
+
+        private Thread merger;
+        private CommitFailedException mergeException = null;
+
+        private boolean dontBlock;
+        private final Semaphore controller = new Semaphore(0);
+        private final Semaphore controllee = new Semaphore(0);
+
+        private void startMerge(final NodeStore store,
+                                @Nonnull String [] addChildren, @Nonnull String [] removeChildren, boolean change) {
+            startMerge(store, null, addChildren, removeChildren, change);
+        }
+
+        private void startMerge(final NodeStore store, final CommitHook hook,
+                                @Nonnull String [] addChildren, @Nonnull String [] removeChildren, boolean change) {
+            setDontBlock(false);
+
+            //our controller is controllee for merge thread (and vice versa)
+            merger = createMergeThread(store, hook, controllee, controller, addChildren, removeChildren, change);
+            merger.start();
+            controllee.acquireUninterruptibly();//wait for merge thread to get to blocking hook
+        }
+
+        private void waitForNextMerge() throws InterruptedException{
+            controller.release();
+            controllee.tryAcquire(2, TimeUnit.SECONDS);
+        }
+        private void unblock() {
+            setDontBlock(true);
+            controller.release();
+        }
+        private void join() throws InterruptedException {
+            unblock();
+            merger.join();
+        }
+
+        private synchronized void setDontBlock(boolean dontBlock) {
+            this.dontBlock = dontBlock;
+        }
+        private synchronized boolean getDontBlock() {
+            return dontBlock;
+        }
+        private CommitFailedException getException() {
+            return mergeException;
+        }
+
+        private Thread createMergeThread(final NodeStore store, final CommitHook hook,
+                                         final Semaphore controller, final Semaphore controllee,
+                                         @Nonnull final String [] addChildren, @Nonnull final String [] removeChildren,
+                                         final boolean change) {
+            return new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    final CommitHook blockingHook = new CommitHook() {
+                        @Nonnull
+                        @Override
+                        public NodeState processCommit(NodeState before, NodeState after, CommitInfo info)
+                                throws CommitFailedException {
+                            controller.release();
+                            if(!getDontBlock()) {
+                                controllee.acquireUninterruptibly();
+                            }
+                            return after;
+                        }
+                    };
+
+                    try {
+                        NodeBuilder builder = store.getRoot().builder();
+                        for (String child : addChildren) {
+                            if (change) {
+                                builder.child(child).setProperty("foo", "bar");
+                            } else {
+                                builder.child(child);
+                            }
+                        }
+                        for (String child : removeChildren) {
+                            builder.child(child).remove();
+                        }
+
+                        List<CommitHook> hookList = new ArrayList<CommitHook>();
+                        if(hook != null) {
+                            hookList.add(hook);
+                        }
+                        hookList.add(blockingHook);
+                        hookList.add(new ConflictHook(new AnnotatingConflictHandler()));
+                        hookList.add(new EditorHook(new ConflictValidatorProvider()));
+                        store.merge(builder, CompositeHook.compose(hookList), CommitInfo.EMPTY);
+                    } catch (CommitFailedException cfe) {
+                        mergeException = cfe;
+                    }
+                }
+            });
+        }
     }
 
     // OAK-2642
