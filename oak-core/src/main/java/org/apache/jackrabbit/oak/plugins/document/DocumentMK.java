@@ -498,11 +498,13 @@ public class DocumentMK implements MicroKernel {
         private DocumentNodeStore nodeStore;
         private DocumentStore documentStore;
         private DiffCache diffCache;
+        private LocalDiffCache localDiffCache;
         private BlobStore blobStore;
         private int clusterId  = Integer.getInteger("oak.documentMK.clusterId", 0);
         private int asyncDelay = 1000;
         private boolean timing;
         private boolean logging;
+        private boolean disableLocalDiffCache = Boolean.getBoolean("oak.documentMK.disableLocalDiffCache");
         private Weigher<CacheValue, CacheValue> weigher = new EmpiricalWeigher();
         private long memoryCacheSize = DEFAULT_MEMORY_CACHE_SIZE;
         private int nodeCachePercentage = DEFAULT_NODE_CACHE_PERCENTAGE;
@@ -666,6 +668,18 @@ public class DocumentMK implements MicroKernel {
                 diffCache = new MemoryDiffCache(this);
             }
             return diffCache;
+        }
+
+        public LocalDiffCache getLocalDiffCache() {
+            if (localDiffCache == null && !disableLocalDiffCache) {
+                localDiffCache = new LocalDiffCache(this);
+            }
+            return localDiffCache;
+        }
+
+        public Builder setDisableLocalDiffCache(boolean disableLocalDiffCache) {
+            this.disableLocalDiffCache = disableLocalDiffCache;
+            return this;
         }
 
         public Builder setDiffCache(DiffCache diffCache) {
@@ -877,6 +891,10 @@ public class DocumentMK implements MicroKernel {
         
         public Cache<PathRev, StringValue> buildDiffCache() {
             return buildCache(CacheType.DIFF, getDiffCacheSize(), null, null);
+        }
+
+        public Cache<StringValue, LocalDiffCache.ConsolidatedDiff> buildConsolidatedDiffCache() {
+            return buildCache(CacheType.CONSOLIDATED_DIFF, getDiffCacheSize(), null, null);
         }
 
         public Cache<CacheValue, NodeDocument> buildDocumentCache(DocumentStore docStore) {

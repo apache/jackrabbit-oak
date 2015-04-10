@@ -281,6 +281,9 @@ public class PersistentCache {
         case DIFF:
             wrap = cacheDiff;
             break;
+        case CONSOLIDATED_DIFF:
+            wrap = cacheDiff;
+            break;
         case DOC_CHILDREN:
             wrap = cacheDocChildren;
             break;
