@@ -514,6 +514,9 @@ public class Oak {
             regs.add(scheduleWithFixedDelay(whiteboard, task, 5, true));
             regs.add(registerMBean(whiteboard, IndexStatsMBean.class,
                     task.getIndexStats(), IndexStatsMBean.TYPE, name));
+            // Register AsyncIndexStats for execution stats update
+            regs.add(
+                scheduleWithFixedDelay(whiteboard, task.getIndexStats(), 1, false));
 
             PropertyIndexAsyncReindex asyncPI = new PropertyIndexAsyncReindex(
                     new AsyncIndexUpdate(IndexConstants.ASYNC_REINDEX_VALUE,

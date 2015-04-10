@@ -17,6 +17,8 @@
 
 package org.apache.jackrabbit.oak.api.jmx;
 
+import javax.management.openmbean.CompositeData;
+
 public interface IndexStatsMBean {
 
     String TYPE = "IndexStats";
@@ -114,4 +116,28 @@ public interface IndexStatsMBean {
      */
     String getTemporaryCheckpoints();
 
+    /**
+     * Returns the number of executions as a {@link org.apache.jackrabbit.api.stats.TimeSeries}.
+     *
+     * @return the execution count time series
+     */
+    CompositeData getExecutionCount();
+
+    /**
+     * Returns the execution time as a {@link org.apache.jackrabbit.api.stats.TimeSeries}.
+     *
+     * @return the execution times time series
+     */
+    CompositeData getExecutionTime();
+
+    /**
+     * Returns the consolidated execution stats since last reset
+     * @return consolidated execution stats
+     */
+    CompositeData getConsolidatedExecutionStats();
+
+    /**
+     * Resets the consolidated stats.
+     */
+    void resetConsolidatedExecutionStats();
 }
