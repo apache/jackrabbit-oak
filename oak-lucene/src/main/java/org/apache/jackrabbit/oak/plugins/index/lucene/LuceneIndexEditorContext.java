@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
@@ -50,6 +51,9 @@ public class LuceneIndexEditorContext {
 
     private static final Logger log = LoggerFactory
             .getLogger(LuceneIndexEditorContext.class);
+
+    private static final PerfLogger PERF_LOGGER =
+            new PerfLogger(LoggerFactory.getLogger(LuceneIndexEditorContext.class.getName() + ".perf"));
 
     private static IndexWriterConfig getIndexWriterConfig(IndexDefinition definition) {
         // FIXME: Hack needed to make Lucene work in an OSGi environment
@@ -131,7 +135,9 @@ public class LuceneIndexEditorContext {
 
     IndexWriter getWriter() throws IOException {
         if (writer == null) {
+            final long start = PERF_LOGGER.start();
             writer = new IndexWriter(newIndexDirectory(definition, definitionBuilder), config);
+            PERF_LOGGER.end(start, -1, "Created IndexWriter for directory {}", definition);
         }
         return writer;
     }
@@ -149,6 +155,7 @@ public class LuceneIndexEditorContext {
         }
 
         if (writer != null) {
+            final long start = PERF_LOGGER.start();
             writer.close();
 
             //OAK-2029 Record the last updated status so
@@ -157,6 +164,7 @@ public class LuceneIndexEditorContext {
             NodeBuilder status = definitionBuilder.child(":status");
             status.setProperty("lastUpdated", ISO8601.format(Calendar.getInstance()), Type.DATE);
             status.setProperty("indexedNodes",indexedNodes);
+            PERF_LOGGER.end(start, -1, "Closed IndexWriter for directory {}", definition);
         }
     }
 
