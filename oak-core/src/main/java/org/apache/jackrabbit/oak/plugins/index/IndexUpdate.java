@@ -43,6 +43,7 @@ import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -384,6 +385,7 @@ public class IndexUpdate implements Editor {
         private class CountingCallback implements IndexUpdateCallback {
             final String indexName;
             final boolean reindex;
+            final Stopwatch watch = Stopwatch.createStarted();
             int count;
 
             private CountingCallback(String indexName, boolean reindex) {
@@ -395,7 +397,8 @@ public class IndexUpdate implements Editor {
             public void indexUpdate() throws CommitFailedException {
                 count++;
                 if (count % 10000 == 0){
-                    log.info("{} => Indexed {} nodes...", indexName, count);
+                    log.info("{} => Indexed {} nodes in {} ...", indexName, count, watch);
+                    watch.reset().start();
                 }
                 updateCallback.indexUpdate();
             }
