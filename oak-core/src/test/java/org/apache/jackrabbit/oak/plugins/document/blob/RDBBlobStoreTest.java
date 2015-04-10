@@ -46,7 +46,8 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
 
     private RDBBlobStore blobStore;
 
-    private static final String URL = System.getProperty("rdb.jdbc-url", "jdbc:h2:mem:oakblobs");
+    private static final String URL = System.getProperty("rdb.jdbc-url", 
+                    "jdbc:h2:file:./target/db/RDBBlobStoreTest-#time#");
 
     private static final String USERNAME = System.getProperty("rdb.jdbc-user", "sa");
 
@@ -57,7 +58,10 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
     @Before
     @Override
     public void setUp() throws Exception {
-        blobStore = new RDBBlobStore(RDBDataSourceFactory.forJdbcUrl(URL, USERNAME, PASSWD), new RDBOptions().tablePrefix("test").dropTablesOnClose(true));
+        String url = URL.replaceAll("#time#", "" + System.currentTimeMillis());
+        blobStore = new RDBBlobStore(
+                RDBDataSourceFactory.forJdbcUrl(url, USERNAME, PASSWD), 
+                new RDBOptions().tablePrefix("test").dropTablesOnClose(true));
         blobStore.setBlockSize(128);
         blobStore.setBlockSizeMin(48);
         this.store = blobStore;
