@@ -321,12 +321,17 @@ abstract class Expression {
                 return this;
             }
             // "@x = 1 or @x = 2" is converted to "@x in (1, 2)"
+            if (left instanceof InCondition) {
+                InCondition in = (InCondition) left;
+                in.list.addAll(right.getRight());
+                return in;
+            }
             ArrayList<Expression> list = new ArrayList<Expression>();
             list.addAll(left.getRight());
             list.addAll(right.getRight());
             Expression le = left.getLeft();
             InCondition in = new InCondition(le, list);
-            return in.optimize();
+            return in;
         }
         
         @Override
