@@ -136,6 +136,13 @@ public final class DocumentNodeStore
     private static final boolean ENABLE_BACKGROUND_OPS = Boolean.parseBoolean(System.getProperty("oak.documentMK.backgroundOps", "true"));
 
     /**
+     * Feature flag to enable concurrent add/remove operations of hidden empty
+     * nodes. See OAK-2673.
+     */
+    private boolean enableConcurrentAddRemove =
+            Boolean.getBoolean("oak.enableConcurrentAddRemove");
+
+    /**
      * How long to remember the relative order of old revision of all cluster
      * nodes, in milliseconds. The default is one hour.
      */
@@ -645,6 +652,14 @@ public final class DocumentNodeStore
 
     public int getMaxBackOffMillis() {
         return maxBackOffMillis;
+    }
+
+    void setEnableConcurrentAddRemove(boolean b) {
+        enableConcurrentAddRemove = b;
+    }
+
+    boolean getEnableConcurrentAddRemove() {
+        return enableConcurrentAddRemove;
     }
 
     @CheckForNull
