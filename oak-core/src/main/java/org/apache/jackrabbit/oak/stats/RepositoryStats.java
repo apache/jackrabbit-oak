@@ -35,13 +35,7 @@ import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_WRITE_COUNTER;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_WRITE_DURATION;
 
-import javax.management.openmbean.ArrayType;
 import javax.management.openmbean.CompositeData;
-import javax.management.openmbean.CompositeDataSupport;
-import javax.management.openmbean.CompositeType;
-import javax.management.openmbean.OpenDataException;
-import javax.management.openmbean.OpenType;
-import javax.management.openmbean.SimpleType;
 
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.api.stats.TimeSeries;
@@ -132,39 +126,16 @@ public class RepositoryStats implements RepositoryStatsMBean {
 
     @Override
     public CompositeData getObservationQueueMaxLength() {
-        return asCompositeData(maxQueueLength, "maximal length of observation queue");
+        return TimeSeriesStatsUtil
+            .asCompositeData(maxQueueLength, "maximal length of observation queue");
     }
-
-    public static final String[] ITEM_NAMES = new String[] {
-            "per second", "per minute", "per hour", "per week"};
 
     private TimeSeries getTimeSeries(Type type) {
         return repoStats.getTimeSeries(type);
     }
 
     private CompositeData asCompositeData(Type type) {
-        return asCompositeData(getTimeSeries(type), type.name());
-    }
-
-    private static CompositeData asCompositeData(TimeSeries timeSeries, String name) {
-        try {
-            long[][] values = new long[][] {
-                timeSeries.getValuePerSecond(),
-                timeSeries.getValuePerMinute(),
-                timeSeries.getValuePerHour(),
-                timeSeries.getValuePerWeek()};
-            return new CompositeDataSupport(getCompositeType(name), ITEM_NAMES, values);
-        } catch (Exception e) {
-            LOG.error("Error creating CompositeData instance from TimeSeries", e);
-            return null;
-        }
-    }
-
-    private static CompositeType getCompositeType(String name) throws OpenDataException {
-        ArrayType<int[]> longArrayType = new ArrayType<int[]>(SimpleType.LONG, true);
-        OpenType<?>[] itemTypes = new OpenType[] {
-                longArrayType, longArrayType, longArrayType, longArrayType};
-        return new CompositeType(name, name + " time series", ITEM_NAMES, ITEM_NAMES, itemTypes);
+        return TimeSeriesStatsUtil.asCompositeData(getTimeSeries(type), type.name());
     }
 
 }

@@ -28,9 +28,18 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NO
 import java.util.Calendar;
 import java.util.HashSet;
 import java.util.Set;
+
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.Nonnull;
+import javax.management.openmbean.CompositeData;
+import javax.management.openmbean.CompositeDataSupport;
+import javax.management.openmbean.CompositeType;
+import javax.management.openmbean.OpenDataException;
+import javax.management.openmbean.OpenType;
+import javax.management.openmbean.SimpleType;
 
 import com.google.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -52,6 +61,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.TimeSeriesStatsUtil;
+import org.apache.jackrabbit.stats.TimeSeriesRecorder;
 import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -452,7 +463,7 @@ public class AsyncIndexUpdate implements Runnable {
         return indexStats.getStatus() == STATUS_DONE;
     }
 
-    final class AsyncIndexStats implements IndexStatsMBean {
+    final class AsyncIndexStats implements IndexStatsMBean, Runnable {
 
         private String start = "";
         private String done = "";
@@ -463,17 +474,29 @@ public class AsyncIndexUpdate implements Runnable {
 
         private volatile boolean isPaused;
         private volatile long updates;
+        private final Stopwatch watch = Stopwatch.createUnstarted();
+        private final ExecutionStats execStats = new ExecutionStats();
 
         public void start(String now) {
             status = STATUS_RUNNING;
             start = now;
             done = "";
+
+            if (watch.isRunning()) {
+                watch.reset();
+            }
+            watch.start();
         }
 
         public void done(String now) {
             status = STATUS_DONE;
-            start = "";
             done = now;
+            if (watch.isRunning()) {
+                watch.stop();
+            }
+            execStats.incrementCounter();
+            execStats.recordExecution(watch.elapsed(TimeUnit.MILLISECONDS), updates);
+            watch.reset();
         }
 
         @Override
@@ -554,12 +577,106 @@ public class AsyncIndexUpdate implements Runnable {
         }
 
         @Override
+        public CompositeData getExecutionCount() {
+            return execStats.getExecutionCount();
+        }
+
+        @Override
+        public CompositeData getExecutionTime() {
+            return execStats.getExecutionTime();
+        }
+
+        @Override
+        public CompositeData getConsolidatedExecutionStats() {
+            return execStats.getConsolidatedStats();
+        }
+
+        @Override
+        public void resetConsolidatedExecutionStats() {
+            execStats.resetConsolidatedStats();
+        }
+
+        @Override
         public String toString() {
             return "AsyncIndexStats [start=" + start + ", done=" + done
                     + ", status=" + status + ", paused=" + isPaused
                     + ", updates=" + updates + ", referenceCheckpoint="
                     + referenceCp + ", processedCheckpoint=" + processedCp
                     + " ,tempCheckpoints=" + tempCps + " ]";
+        }
+
+        @Override
+        public void run() {
+            execStats.recordTick();
+        }
+
+        private class ExecutionStats {
+            private final TimeSeriesRecorder execCounter;
+            private final TimeSeriesRecorder execTimer;
+
+            /**
+             * Captures consolidated execution stats since last reset
+             */
+            private final AtomicLong consolidatedExecTime = new AtomicLong();
+            private final AtomicInteger consolidatedExecRuns = new AtomicInteger();
+            private final AtomicLong consolidatedNodes = new AtomicLong();
+            private final String[] names = {"Executions", "Execution Time", "Nodes"};
+            private CompositeType consolidatedType;
+
+            private ExecutionStats() {
+                execCounter = new TimeSeriesRecorder(true);
+                execTimer = new TimeSeriesRecorder(true);
+
+                try {
+                    consolidatedType = new CompositeType("ConsolidatedStats",
+                        "Consolidated stats", names,
+                        names,
+                        new OpenType[] {SimpleType.LONG, SimpleType.LONG, SimpleType.LONG});
+                } catch (OpenDataException e) {
+                    log.warn("Error in creating CompositeType for consolidated stats", e);
+                }
+            }
+
+            private void incrementCounter() {
+                execCounter.getCounter().incrementAndGet();
+                consolidatedExecRuns.incrementAndGet();
+            }
+
+            private void recordExecution(long time, long updates) {
+                execTimer.getCounter().addAndGet(time);
+                consolidatedExecTime.addAndGet(time);
+                consolidatedNodes.addAndGet(updates);
+            }
+
+            private CompositeData getExecutionCount() {
+                return TimeSeriesStatsUtil.asCompositeData(execCounter, "ExecutionCount");
+            }
+
+            private CompositeData getExecutionTime() {
+                return TimeSeriesStatsUtil.asCompositeData(execTimer, "ExecutionTime");
+            }
+
+            private CompositeData getConsolidatedStats() {
+                try {
+                    Long[] values = new Long[]{consolidatedExecRuns.longValue(),
+                        consolidatedExecTime.longValue(), consolidatedNodes.longValue()};
+                    return new CompositeDataSupport(consolidatedType, names, values);
+                } catch (Exception e) {
+                    log.error("Error retrieving consolidated stats", e);
+                    return null;
+                }
+            }
+
+            private void resetConsolidatedStats() {
+                consolidatedExecRuns.set(0);
+                consolidatedExecTime.set(0);
+                consolidatedNodes.set(0);
+            }
+
+            private void recordTick() {
+                execCounter.recordOneSecond();
+                execTimer.recordOneSecond();
+            }
         }
     }
 
