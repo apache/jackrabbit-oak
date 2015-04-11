@@ -31,9 +31,29 @@ public interface CopyOnReadStatsMBean {
 
     int getRemoteReadCount();
 
+    int getScheduledForCopyCount();
+
+    int getCopyInProgressCount();
+
+    int getMaxCopyInProgressCount();
+
+    int getMaxScheduledForCopyCount();
+
+    String getCopyInProgressSize();
+
+    String[] getCopyInProgressDetails();
+
     String getDownloadSize();
 
     long getDownloadTime();
 
     String getLocalIndexSize();
+
+    String[] getGarbageDetails();
+
+    String getGarbageSize();
+
+    int getDeletedFilesCount();
+
+    String getGarbageCollectedSize();
 }
