@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
 import org.apache.jackrabbit.oak.spi.commit.SubtreeEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,8 +51,9 @@ import com.google.common.collect.Iterables;
 class IndexTracker {
 
     /** Logger instance. */
-    private static final Logger log =
-            LoggerFactory.getLogger(IndexTracker.class);
+    private static final Logger log = LoggerFactory.getLogger(IndexTracker.class);
+    private static final PerfLogger PERF_LOGGER =
+            new PerfLogger(LoggerFactory.getLogger(IndexTracker.class.getName() + ".perf"));
 
     private final IndexCopier cloner;
 
@@ -92,8 +94,9 @@ class IndexTracker {
                 @Override
                 public void leave(NodeState before, NodeState after) {
                     try {
+                        long start = PERF_LOGGER.start();
                         IndexNode index = IndexNode.open(path, root, after, cloner);
-                        log.debug("Index found to be updated at [{}]. Reopening the IndexNode", path);
+                        PERF_LOGGER.end(start, -1, "Index found to be updated at [{}]. Reopening the IndexNode", path);
                         updates.put(path, index); // index can be null
                     } catch (IOException e) {
                         log.error("Failed to open Lucene index at " + path, e);
