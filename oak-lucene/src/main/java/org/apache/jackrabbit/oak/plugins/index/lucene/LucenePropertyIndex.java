@@ -62,6 +62,7 @@ import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
@@ -165,6 +166,8 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
 
     private static final Logger LOG = LoggerFactory
             .getLogger(LucenePropertyIndex.class);
+    private static final PerfLogger PERF_LOGGER =
+            new PerfLogger(LoggerFactory.getLogger(LucenePropertyIndex.class.getName() + ".perf"));
 
     static final String ATTR_PLAN_RESULT = "oak.lucene.planResult";
 
@@ -315,24 +318,23 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                     if (luceneRequestFacade.getLuceneRequest() instanceof Query) {
                         Query query = (Query) luceneRequestFacade.getLuceneRequest();
                         TopDocs docs;
-                        long time = System.currentTimeMillis();
+                        long start = PERF_LOGGER.start();
                         if (lastDoc != null) {
                             LOG.debug("loading the next {} entries for query {}", nextBatchSize, query);
                             if (sort == null) {
                                 docs = searcher.searchAfter(lastDoc, query, nextBatchSize);
                             } else {
-                                docs = searcher.searchAfter(lastDoc, query, LUCENE_QUERY_BATCH_SIZE, sort);
+                                docs = searcher.searchAfter(lastDoc, query, nextBatchSize, sort);
                             }
                         } else {
                             LOG.debug("loading the first {} entries for query {}", nextBatchSize, query);
                             if (sort == null) {
                                 docs = searcher.search(query, nextBatchSize);
                             } else {
-                                docs = searcher.search(query, LUCENE_QUERY_BATCH_SIZE, sort);
+                                docs = searcher.search(query, nextBatchSize, sort);
                             }
                         }
-                        time = System.currentTimeMillis() - time;
-                        LOG.debug("... took {} ms", time);
+                        PERF_LOGGER.end(start, -1, "...");
                         nextBatchSize = (int) Math.min(nextBatchSize * 2L, 100000);
 
                         for (ScoreDoc doc : docs.scoreDocs) {
@@ -1190,6 +1192,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 }
 
             };
+            //TODO should not use distinct
             pathCursor = new PathCursor(pathIterator, true, settings);
         }
 
