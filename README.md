@@ -71,8 +71,8 @@ Archive
 
 The following components have been moved to the Jackrabbit Attic:
 
-  - oak-mk-api        - MicroKernel API (_deprecated_)
-  - oak-mk            - MicroKernel implementation
+  - oak-mk-api        - MicroKernel API (_deprecated_, see OAK-2701)
+  - oak-mk            - MicroKernel implementation  (see OAK-2702)
   - oak-mk-remote     - MicroKernel remoting  (see OAK-2693)
   - oak-it/mk         - integration tests for MicroKernel
 
