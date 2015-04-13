@@ -16,11 +16,17 @@
  */
 package org.apache.jackrabbit.oak;
 
+import java.io.Closeable;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ScheduledExecutorService;
+
 import javax.jcr.NoSuchWorkspaceException;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -63,6 +69,44 @@ public class OakTest {
             }
         }
 
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void throwISEUponReuse() throws Exception{
+        Oak oak = new Oak().with(new OpenSecurityProvider());
+        oak.createContentRepository();
+        oak.createContentRepository();
+    }
+
+    @Test
+    public void checkExecutorShutdown() throws Exception {
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+
+            }
+        };
+        Oak oak = new Oak().with(new OpenSecurityProvider());
+        ContentRepository repo = oak.createContentRepository();
+        WhiteboardUtils.scheduleWithFixedDelay(oak.getWhiteboard(), runnable, 1);
+        ((Closeable) repo).close();
+
+        try {
+            WhiteboardUtils.scheduleWithFixedDelay(oak.getWhiteboard(), runnable, 1);
+            fail("Executor should have rejected the task");
+        } catch (RejectedExecutionException ignore) {
+
+        }
+
+        //Externally passed executor should not be shutdown upon repository close
+        ScheduledExecutorService externalExecutor = Executors.newSingleThreadScheduledExecutor();
+        Oak oak2 = new Oak().with(new OpenSecurityProvider()).with(externalExecutor);
+        ContentRepository repo2 = oak2.createContentRepository();
+        WhiteboardUtils.scheduleWithFixedDelay(oak2.getWhiteboard(), runnable, 1);
+
+        ((Closeable) repo2).close();
+        WhiteboardUtils.scheduleWithFixedDelay(oak2.getWhiteboard(), runnable, 1);
+        externalExecutor.shutdown();
     }
 
 }
