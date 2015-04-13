@@ -62,8 +62,6 @@ The build consists of the following main components:
   - oak-parent        - parent POM
   - oak-doc           - Oak documentation
   - oak-commons       - shared utility code
-  - oak-mk-api        - MicroKernel API (_deprecated_)
-  - oak-mk            - MicroKernel implementation
   - [oak-core][1]     - Oak repository API and implementation
   - oak-jcr           - JCR binding for the Oak repository
   - oak-sling         - integration with Apache Sling
@@ -75,7 +73,6 @@ The build consists of the following main components:
   - oak-run           - runnable jar packaging
   - oak-upgrade       - tooling for upgrading Jackrabbit repositories to Oak
   - oak-it            - integration tests
-    - oak-it/mk       - integration tests for MicroKernel
     - oak-it/osgi     - integration tests for OSGi
 
 
@@ -84,7 +81,11 @@ Archive
 
 The following components have been moved to the Jackrabbit Attic:
 
+  - oak-mk-api        - MicroKernel API (_deprecated_)
+  - oak-mk            - MicroKernel implementation
   - oak-mk-remote     - MicroKernel remoting  (see [OAK-2693][2])
+  - oak-it/mk         - integration tests for MicroKernel
+
 
 
   [1]: https://github.com/apache/jackrabbit-oak/blob/trunk/oak-core/README.md

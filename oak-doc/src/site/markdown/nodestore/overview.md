@@ -21,15 +21,15 @@ Oak comes with two node storage flavours: [Segment](segmentmk.html) and [Documen
 Segment storage is optimised for maximal performance in standalone deployments,
 and document storage is optimised for maximal scalability in clustered deployments.
 
-## NodeStore API and MicroKernel API
+## NodeStore API
 
-The node storage implement the `MicroKernel` or the `NodeStore` APIs.
+The node storage implement the `NodeStore` APIs.
 Those are ultimately representations of the
 [node state model](../architecture/nodestate.html). 
-A `MicroKernel` exposes its functionality through a String only (JSON) API, which is easy to remote. 
-In contrast a `NodeStore` exposes its functionality through a pure Java API, 
-which is easier to work with in Java, and has lower performance and memory overhead.
+The `NodeStore` exposes its functionality through a pure Java API,
+which is suited to work with in Java, and has lower performance and memory overhead.
 
-## See also
+## MicroKernel API
 
-* [MicroKernel integration tests](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-it/mk/README.md)
+The `MicroKernel` API was deprecated in OAK 1.2 and dropped from the project as of
+Oak 1.3.0. It used to exposes its functionality through a String only (JSON) API.

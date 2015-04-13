@@ -21,7 +21,6 @@ import java.util.Arrays;
 
 import junit.framework.Assert;
 
-import org.apache.jackrabbit.oak.commons.mk.MicroKernelInputStream;
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.junit.Test;
 
@@ -54,7 +53,7 @@ public class DocumentMKReadTest extends AbstractMongoConnectionTest {
         createAndWriteBlob(blobLength);
 
         // Complete read.
-        byte[] buffer = MicroKernelInputStream.readFully(mk, blobId);
+        byte[] buffer = readFully(mk, blobId);
         Assert.assertEquals(blob.length, buffer.length);
         Assert.assertTrue(Arrays.equals(blob, buffer));
 

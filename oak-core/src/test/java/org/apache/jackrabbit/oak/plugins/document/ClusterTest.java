@@ -29,7 +29,6 @@ import java.util.Set;
 
 import com.google.common.collect.Sets;
 import com.mongodb.DB;
-import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -299,7 +298,7 @@ public class ClusterTest {
         try {
             mk2.commit("/", "+\"test\":{}", m2r0, null);
             fail();
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
         mk1.runBackgroundOperations();
@@ -364,7 +363,7 @@ public class ClusterTest {
         try {
             mk2.commit("/", "+\"a\": {} +\"test\":{}", m2r0, null);
             fail();
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
         mk2.commit("/", "+\"a\": {}", null, null);

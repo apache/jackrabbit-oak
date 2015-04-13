@@ -37,7 +37,7 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 
 /**
- * A MicroKernel wrapper that can be used to log and also time MicroKernel
+ * A DocumentStore wrapper that can be used to log and also time DocumentStore
  * calls.
  */
 public class TimingDocumentStoreWrapper implements DocumentStore {

@@ -36,7 +36,6 @@
   </properties>
 
   <modules>
-    <module>mk</module>
     <module>osgi</module>
   </modules>
 

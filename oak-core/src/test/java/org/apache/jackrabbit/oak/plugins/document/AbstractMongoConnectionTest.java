@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import com.mongodb.DB;
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
@@ -68,8 +67,23 @@ public abstract class AbstractMongoConnectionTest extends DocumentMKTestBase {
     }
 
     @Override
-    protected MicroKernel getMicroKernel() {
+    protected DocumentMK getDocumentMK() {
         return mk;
     }
 
+    protected static byte[] readFully(DocumentMK mk, String blobId) {
+        int remaining = (int) mk.getLength(blobId);
+        byte[] bytes = new byte[remaining];
+
+        int offset = 0;
+        while (remaining > 0) {
+            int count = mk.read(blobId, offset, bytes, offset, remaining);
+            if (count < 0) {
+                break;
+            }
+            offset += count;
+            remaining -= count;
+        }
+        return bytes;
+    }
 }
