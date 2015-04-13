@@ -29,6 +29,8 @@ import static org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry.Order;
 import java.util.List;
 import java.util.Set;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -141,8 +143,9 @@ public class OrderedPropertyIndexLookup {
         return fallback;
     }
 
-    private static Set<String> getSuperTypes(Filter filter) {
-        if (filter != null && !filter.matchesAllTypes()) {
+    @CheckForNull
+    private static Set<String> getSuperTypes(@Nonnull Filter filter) {
+        if (!filter.matchesAllTypes()) {
             return filter.getSupertypes();
         }
         return null;

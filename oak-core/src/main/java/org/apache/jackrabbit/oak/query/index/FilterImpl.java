@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.query.index;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
@@ -229,17 +230,17 @@ public class FilterImpl implements Filter {
 
     @Override @Nonnull
     public Set<String> getSupertypes() {
-        return selector == null ? null : selector.getSupertypes();
+        return selector == null ? Collections.EMPTY_SET : selector.getSupertypes();
     }
 
     @Override @Nonnull
     public Set<String> getPrimaryTypes() {
-        return selector == null ? null : selector.getPrimaryTypes();
+        return selector == null ? Collections.EMPTY_SET : selector.getPrimaryTypes();
     }
 
     @Override @Nonnull
     public Set<String> getMixinTypes() {
-        return selector == null ? null : selector.getMixinTypes();
+        return selector == null ? Collections.EMPTY_SET : selector.getMixinTypes();
     }
 
     @Override
