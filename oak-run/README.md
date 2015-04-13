@@ -220,7 +220,7 @@ See the relevant documentation for more details.
 Oak server mode
 ---------------
 
-The Oak server mode starts a MicroKernel or full Oak instance with the 
+The Oak server mode starts a NodeStore or full Oak instance with the
 standard JCR plugins and makes it available over a simple HTTP mapping 
 defined in the `oak-http` component. To start this mode, use:
 
@@ -242,7 +242,6 @@ to be used. The following fixtures are currently supported:
 | Oak-Mongo     | Oak with the default Mongo backend                    |
 | Oak-Mongo-FDS | Oak with the default Mongo backend and FileDataStore  |
 | Oak-MongoNS   | Oak with the Mongo NodeStore                          |
-| Oak-MongoMK   | Oak with the Mongo MicroKernel                        |
 | Oak-Tar       | Oak with the Tar backend (aka Segment NodeStore)      |
 | Oak-Tar-FDS   | Oak with the Tar backend and FileDataStore            |
 
@@ -257,7 +256,6 @@ Depending on the fixture the following options are available:
     --clusterIds           - Cluster Ids for the Mongo setup: a comma separated list of integers
     --base <file>          - Tar: Path to the base file
     --mmap <64bit?>        - TarMK memory mapping (the default on 64 bit JVMs)
-    --mk                   - Start in MicroKernel mode exposing the MicroKernel API 
     --rdbjdbcuri           - JDBC URL for RDB persistence
     --rdbjdbcuser          - JDBC username (defaults to "")
     --rdbjdbcpasswd        - JDBC password (defaults to "")
@@ -351,7 +349,6 @@ Finally the benchmark runner supports the following repository fixtures:
 | Oak-Mongo     | Oak with the default Mongo backend                    |
 | Oak-Mongo-FDS | Oak with the default Mongo backend and FileDataStore  |
 | Oak-MongoNS   | Oak with the Mongo NodeStore                          |
-| Oak-MongoMK   | Oak with the Mongo MicroKernel                        |
 | Oak-Tar       | Oak with the Tar backend (aka Segment NodeStore)      |
 | Oak-RDB       | Oak with the DocumentMK/RDB persistence               |
 
@@ -526,7 +523,6 @@ Finally the scalability runner supports the following repository fixtures:
 | Oak-Mongo     | Oak with the default Mongo backend                    |
 | Oak-Mongo-FDS | Oak with the default Mongo backend and FileDataStore  |
 | Oak-MongoNS   | Oak with the Mongo NodeStore                          |
-| Oak-MongoMK   | Oak with the Mongo MicroKernel                        |
 | Oak-Tar       | Oak with the Tar backend (aka Segment NodeStore)      |
 | Oak-RDB       | Oak with the DocumentMK/RDB persistence               |
 

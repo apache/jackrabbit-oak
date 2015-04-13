@@ -365,7 +365,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         }
 
         /**
-         * Persist this branch to an underlying branch in the {@code MicroKernel}.
+         * Persist this branch to an underlying branch in the {@code NodeStore}.
          */
         Persisted persist() {
             Persisted p = new Persisted(base);
@@ -534,7 +534,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
 
     /**
      * Instances of this class represent a branch whose head is persisted to an
-     * underlying branch in the {@code MicroKernel}.
+     * underlying branch in the {@code NodeStore}.
      * <p>
      * Transitions to:
      * <ul>

@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import com.google.common.collect.Lists;
-import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
@@ -63,7 +62,7 @@ public class ConcurrentPropertyUpdateTest extends BaseDocumentMKTest {
             @Override
             public <T extends Document> T findAndUpdate(Collection<T> collection,
                                                         UpdateOp update)
-                    throws MicroKernelException {
+                    throws DocumentStoreException {
                 try {
                     Thread.sleep((long) (Math.random() * 10f));
                 } catch (InterruptedException e) {

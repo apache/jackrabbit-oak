@@ -19,7 +19,7 @@ Oak Document Storage
 ==============
 
 One of the plugins in Oak stores data in a document oriented format. 
-The plugin implements two low level APIs, the `MicroKernel` and `NodeStore` interface.
+The plugin implements the low level `NodeStore` interface.
 
 The document storage optionally uses the [persistent cache](persistent-cache.html) to reduce read operations on the backend storage.
 
@@ -184,7 +184,7 @@ As seen in the examples above, a revision is a String and may look like this:
 Branches
 --------
 
-MicroKernel implementations support branches, which allows a client to stage
+DocumentMK implementations support branches, which allows a client to stage
 multiple commits and make them visible with a single merge call. In DocumentMK
 a branch commit looks very similar to a regular commit, but instead of setting
 the value of an entry in `_revisions` to `c` (committed), it marks it with

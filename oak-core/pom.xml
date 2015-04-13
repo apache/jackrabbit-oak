@@ -50,7 +50,6 @@
               org.apache.jackrabbit.oak.api.jmx,
               org.apache.jackrabbit.oak.stats,
               org.apache.jackrabbit.oak.json,
-              org.apache.jackrabbit.oak.kernel,
               org.apache.jackrabbit.oak.management,
               org.apache.jackrabbit.oak.util,
               org.apache.jackrabbit.oak.namepath,
@@ -181,11 +180,6 @@
     </dependency>
 
     <!-- Dependencies to other Oak components -->
-    <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-mk-api</artifactId>
-      <version>${project.version}</version>
-    </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-commons</artifactId>

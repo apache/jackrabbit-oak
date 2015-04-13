@@ -26,7 +26,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.junit.Before;
@@ -41,7 +40,7 @@ import com.mongodb.DB;
 @Ignore("DocumentMK does not implement waitForCommit()")
 public class DocumentMKWaitForCommitTest extends AbstractMongoConnectionTest {
 
-    private MicroKernel mk2;
+    private DocumentMK mk2;
 
     @Before
     @Override
@@ -127,7 +126,7 @@ public class DocumentMKWaitForCommitTest extends AbstractMongoConnectionTest {
 
     private ScheduledFuture<String> scheduleCommit(long delay, final String revisionId) {
         ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
-        final MicroKernel mk = this.mk;
+        final DocumentMK mk = this.mk;
         ScheduledFuture<String> future = executorService.schedule(new Callable<String>(){
             @Override
             public String call() throws Exception {

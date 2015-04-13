@@ -20,7 +20,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
@@ -44,9 +43,9 @@ public class MultiTenancyTest extends AbstractMongoConnectionTest {
     private static MongoConnection mongoConnection2;
     private static MongoConnection mongoConnection3;
 
-    private static MicroKernel mk1;
-    private static MicroKernel mk2;
-    private static MicroKernel mk3;
+    private static DocumentMK mk1;
+    private static DocumentMK mk2;
+    private static DocumentMK mk3;
 
     @BeforeClass
     public static void createMongoConnections() throws Exception {

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.junit.After;
 import org.junit.Before;
 
@@ -33,7 +32,7 @@ public class BaseDocumentMKTest extends DocumentMKTestBase {
     }
 
     @Override
-    protected MicroKernel getMicroKernel() {
+    protected DocumentMK getDocumentMK() {
         return mk;
     }
 

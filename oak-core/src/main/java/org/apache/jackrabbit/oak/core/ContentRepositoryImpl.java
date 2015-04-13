@@ -105,7 +105,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.util.GenericDescriptors;
 
 /**
- * {@code MicroKernel}-based implementation of
+ * {@code NodeStore}-based implementation of
  * the {@link ContentRepository} interface.
  */
 public class ContentRepositoryImpl implements ContentRepository, Closeable {

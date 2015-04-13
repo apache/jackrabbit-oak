@@ -23,7 +23,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.google.common.base.Stopwatch;
-import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.json.simple.JSONObject;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -187,7 +186,7 @@ public class DocumentMKCommitAddTest extends BaseDocumentMKTest {
         try {
             mk.commit("/", "^\"a/key1\" : \"value3\"", rev1, null);
             fail("commit must fail with conflicting change");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
 
