@@ -113,9 +113,9 @@ public class BackgroundObserver implements Observer, Closeable {
             public Void call() throws Exception {
                 try {
                     ContentChange change = queue.poll();
-                    while (change != null && change != STOP) {
+                    if (change != null && change != STOP) {
                         observer.contentChanged(change.root, change.info);
-                        change = queue.poll();
+                        currentTask.onComplete(completionHandler);
                     }
                 } catch (Throwable t) {
                     exceptionHandler.uncaughtException(Thread.currentThread(), t);
