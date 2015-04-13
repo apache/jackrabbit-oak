@@ -27,6 +27,7 @@ import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndex.enc
 
 import java.util.Set;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -191,6 +192,7 @@ public class PropertyIndexLookup {
         return TYPE;
     }
 
+    @CheckForNull
     private static Set<String> getSuperTypes(Filter filter) {
         if (filter != null && !filter.matchesAllTypes()) {
             return filter.getSupertypes();
