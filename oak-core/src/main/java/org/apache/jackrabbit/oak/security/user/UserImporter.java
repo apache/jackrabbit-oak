@@ -157,7 +157,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     /**
      * Remember all new principals for impersonation handling.
      */
-    private Map<String, Principal> principals = new HashMap<String, Principal>();;
+    private Map<String, Principal> principals = new HashMap<String, Principal>();
 
     UserImporter(ConfigurationParameters config) {
         String importBehaviorStr = config.getConfigValue(PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_IGNORE);
