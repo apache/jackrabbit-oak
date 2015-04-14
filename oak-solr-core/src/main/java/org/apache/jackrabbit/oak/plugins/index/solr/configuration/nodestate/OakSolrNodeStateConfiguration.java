@@ -159,7 +159,7 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
                 ignoredProperties.add(ignoredProperty);
             }
         } else {
-            ignoredProperties = Arrays.asList(SolrServerConfigurationDefaults.IGNORED_PROPERTIES);
+            ignoredProperties = SolrServerConfigurationDefaults.IGNORED_PROPERTIES;
         }
         return ignoredProperties;
     }

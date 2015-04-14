@@ -67,7 +67,7 @@ public class EmbeddedSolrServerConfiguration extends SolrServerConfiguration<Emb
         return httpConfiguration;
     }
 
-    public class HttpConfiguration {
+    public static class HttpConfiguration {
         private final String context;
         private final Integer httpPort;
 
