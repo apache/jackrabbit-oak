@@ -132,7 +132,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
         }
 
         String idpName = options.getConfigValue(PARAM_IDP_NAME, "");
-        if (idpName.length() == 0) {
+        if (idpName.isEmpty()) {
             log.error("External login module needs IPD name. Will not be used for login.");
         } else {
             ExternalIdentityProviderManager idpMgr = WhiteboardUtils.getService(whiteboard, ExternalIdentityProviderManager.class);
@@ -147,7 +147,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
         }
 
         String syncHandlerName = options.getConfigValue(PARAM_SYNC_HANDLER_NAME, "");
-        if (syncHandlerName.length() == 0) {
+        if (syncHandlerName.isEmpty()) {
             log.error("External login module needs SyncHandler name. Will not be used for login.");
         } else {
             SyncManager syncMgr = WhiteboardUtils.getService(whiteboard, SyncManager.class);

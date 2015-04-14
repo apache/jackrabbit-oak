@@ -42,6 +42,7 @@ public class SyncManagerImpl extends AbstractServiceTracker<SyncHandler> impleme
     /**
      * Default constructor used by OSGi
      */
+    @SuppressWarnings("UnusedDeclaration")
     public SyncManagerImpl() {
         super(SyncHandler.class);
     }
@@ -55,11 +56,13 @@ public class SyncManagerImpl extends AbstractServiceTracker<SyncHandler> impleme
         start(whiteboard);
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     @Activate
     private void activate(ComponentContext ctx) {
         start(new OsgiWhiteboard(ctx.getBundleContext()));
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     @Deactivate
     private void deactivate() {
         stop();

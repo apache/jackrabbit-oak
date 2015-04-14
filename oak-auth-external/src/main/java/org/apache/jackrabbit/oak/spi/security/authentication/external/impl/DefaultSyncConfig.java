@@ -268,7 +268,7 @@ public class DefaultSyncConfig {
         public Authorizable setAutoMembership(String ... autoMembership) {
             this.autoMembership = new HashSet<String>();
             for (String groupName: autoMembership) {
-                if (groupName.trim().length() > 0) {
+                if (!groupName.trim().isEmpty()) {
                     this.autoMembership.add(groupName.trim());
                 }
             }
@@ -481,6 +481,7 @@ public class DefaultSyncConfig {
      * Returns the sync configuration for users.
      * @return the user sync configuration.
      */
+    @Nonnull
     public User user() {
         return user;
     }
@@ -489,6 +490,7 @@ public class DefaultSyncConfig {
      * Returns the sync configuration for groups.
      * @return the group sync configuration.
      */
+    @Nonnull
     public Group group() {
         return group;
     }
