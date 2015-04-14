@@ -50,6 +50,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
@@ -487,6 +488,13 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
 
     private static boolean importPwdNodeProperty(@Nonnull Tree parent, @Nonnull PropInfo propInfo, @Nonnull PropertyDefinition def) throws RepositoryException {
         String propName = propInfo.getName();
+        if (propName == null) {
+            propName = def.getName();
+            if (propName == null || NodeTypeConstants.RESIDUAL_NAME.equals(propName)) {
+                return false;
+            }
+        }
+
         // overwrite any properties generated underneath the rep:pwd node
         // by "UserManagerImpl#setPassword" by the properties defined by
         // the XML to be imported. see OAK-1943 for the corresponding discussion.
