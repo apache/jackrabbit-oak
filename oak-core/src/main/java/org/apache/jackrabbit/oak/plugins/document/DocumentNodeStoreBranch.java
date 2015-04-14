@@ -27,6 +27,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 
 import javax.annotation.CheckForNull;
@@ -54,6 +55,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
     private static final PerfLogger perfLogger = new PerfLogger(
             LoggerFactory.getLogger(DocumentNodeStoreBranch.class.getName()
                     + ".perf"));
+    private static final int MAX_LOCK_TRY_TIME_MULTIPLIER = Integer.getInteger("oak.maxLockTryTimeMultiplier", 3);
 
     private static final ConcurrentMap<Thread, DocumentNodeStoreBranch> BRANCHES = Maps.newConcurrentMap();
     private static final Random RANDOM = new Random();
@@ -87,7 +89,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         this.dispatcher = new ChangeDispatcher(store.getRoot());
         this.branchState = new Unmodified(checkNotNull(base));
         this.maximumBackoff = Math.max((long) store.getMaxBackOffMillis(), MIN_BACKOFF);
-        this.maxLockTryTimeMS = (long) (store.getMaxBackOffMillis() * 3);
+        this.maxLockTryTimeMS = (long) (store.getMaxBackOffMillis() * MAX_LOCK_TRY_TIME_MULTIPLIER);
         this.mergeLock = mergeLock;
     }
 
@@ -180,18 +182,17 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         // retry with exclusive lock, blocking other
         // concurrent writes
         // do not wait forever
-        boolean acquired = false;
+        Lock lock = null;
         try {
-            acquired = mergeLock.writeLock()
-                    .tryLock(maxLockTryTimeMS, MILLISECONDS);
+            lock = acquireMergeLock(true);
         } catch (InterruptedException e) {
             // ignore and proceed with shared lock used in base class
         }
         try {
             return merge0(hook, info);
         } finally {
-            if (acquired) {
-                mergeLock.writeLock().unlock();
+            if (lock != null) {
+                lock.unlock();
             }
         }
     }
@@ -228,9 +229,9 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             }
             try {
                 final long start = perfLogger.start();
-                boolean acquired = mergeLock.readLock().tryLock(maxLockTryTimeMS, MILLISECONDS);
-                perfLogger.end(start, 1, "Merge - Acquired lock");
+                Lock lock = acquireMergeLock(false);
                 try {
+                    perfLogger.end(start, 1, "Merge - Acquired lock");
                     return branchState.merge(checkNotNull(hook), checkNotNull(info));
                 } catch (CommitFailedException e) {
                     LOG.trace("Merge Error", e);
@@ -242,8 +243,8 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                         throw e;
                     }
                 } finally {
-                    if (acquired) {
-                        mergeLock.readLock().unlock();
+                    if (lock != null) {
+                        lock.unlock();
                     }
                 }
             } catch (InterruptedException e) {
@@ -256,6 +257,33 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         String msg = ex.getMessage() + " (retries " + numRetries + ", " + time + " ms)";
         throw new CommitFailedException(ex.getSource(), ex.getType(),
                 ex.getCode(), msg, ex.getCause());
+    }
+
+    /**
+     * Acquires the merge lock either exclusive or shared.
+     *
+     * @param exclusive whether to acquire the merge lock exclusive.
+     * @return the acquired merge lock or {@code null} if the operation timed
+     * out.
+     * @throws InterruptedException if the current thread is interrupted while
+     *                              acquiring the lock
+     */
+    @CheckForNull
+    private Lock acquireMergeLock(boolean exclusive)
+            throws InterruptedException {
+        Lock lock;
+        if (exclusive) {
+            lock = mergeLock.writeLock();
+        } else {
+            lock = mergeLock.readLock();
+        }
+        boolean acquired = lock.tryLock(maxLockTryTimeMS, MILLISECONDS);
+        if (!acquired) {
+            String mode = exclusive ? "exclusive" : "shared";
+            LOG.info("Time out while acquiring merge lock ({})", mode);
+            lock = null;
+        }
+        return lock;
     }
 
     private interface Changes {
