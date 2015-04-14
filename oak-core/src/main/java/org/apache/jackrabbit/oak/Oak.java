@@ -17,13 +17,11 @@
 package org.apache.jackrabbit.oak;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerObserver;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -48,7 +46,6 @@ import javax.management.ObjectName;
 import javax.security.auth.login.LoginException;
 
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.io.Closer;
@@ -141,11 +138,6 @@ public class Oak {
 
     private Executor executor;
 
-    private final Closer closer = Closer.create();
-
-    private boolean initialized;
-
-
     /**
      * Default {@code ScheduledExecutorService} used for scheduling background tasks.
      * This default spawns up to 32 background thread on an as need basis. Idle
@@ -203,16 +195,13 @@ public class Oak {
     private synchronized ScheduledExecutorService getScheduledExecutor() {
         if (scheduledExecutor == null) {
             scheduledExecutor = defaultScheduledExecutor();
-            closer.register(new ExecutorCloser(scheduledExecutor));
         }
         return scheduledExecutor;
     }
 
     private synchronized Executor getExecutor() {
         if (executor == null) {
-            ExecutorService executorService = defaultExecutorService();
-            executor = executorService;
-            closer.register(new ExecutorCloser(executorService));
+            executor = defaultExecutorService();
         }
         return executor;
     }
@@ -522,8 +511,6 @@ public class Oak {
     }
 
     public ContentRepository createContentRepository() {
-        checkState(!initialized, "Oak instance should be used only once to create the ContentRepository instance");
-        initialized = true;
         final List<Registration> regs = Lists.newArrayList();
         regs.add(whiteboard.register(Executor.class, getExecutor(), Collections.emptyMap()));
 
@@ -598,7 +585,6 @@ public class Oak {
             public void close() throws IOException {
                 super.close();
                 new CompositeRegistration(regs).unregister();
-                closer.close();
             }
         };
     }
@@ -649,19 +635,6 @@ public class Oak {
      */
     public Root createRoot() {
         return createContentSession().getLatestRoot();
-    }
-
-    private static class ExecutorCloser implements Closeable {
-        final ExecutorService executorService;
-
-        private ExecutorCloser(ExecutorService executorService) {
-            this.executorService = executorService;
-        }
-
-        @Override
-        public void close() throws IOException {
-            executorService.shutdown();
-        }
     }
 
 }
