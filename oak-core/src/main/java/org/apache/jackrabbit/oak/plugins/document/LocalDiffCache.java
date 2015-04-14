@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.Collections;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
@@ -123,6 +124,9 @@ public class LocalDiffCache implements DiffCache {
         }
 
         public static ConsolidatedDiff fromString(String value){
+            if (value.isEmpty()){
+                return new ConsolidatedDiff(Collections.<String, String>emptyMap(), 0);
+            }
             return new ConsolidatedDiff(splitter.split(value), 0);
         }
 
@@ -151,6 +155,7 @@ public class LocalDiffCache implements DiffCache {
             return changes.get(path);
         }
 
+        @SuppressWarnings("RedundantIfStatement")
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
