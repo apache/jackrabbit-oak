@@ -370,9 +370,12 @@ class SecureNodeBuilder implements NodeBuilder {
      */
     private class ReadablePropertyPredicate implements Predicate<PropertyState> {
         @Override
-        public boolean apply(@Nonnull PropertyState property) {
-            return getTreePermission().canRead(property)
-                    || isNew(property.getName());
+        public boolean apply(@Nullable PropertyState property) {
+            if (property != null) {
+                return getTreePermission().canRead(property) || isNew(property.getName());
+            } else {
+                return false;
+            }
         }
     }
 
