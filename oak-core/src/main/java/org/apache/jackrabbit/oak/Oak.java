@@ -522,7 +522,8 @@ public class Oak {
     }
 
     public ContentRepository createContentRepository() {
-        checkState(!initialized, "Oak instance should be used only once to create the ContentRepository instance");
+        //TODO FIXME OAK-2736
+        //checkState(!initialized, "Oak instance should be used only once to create the ContentRepository instance");
         initialized = true;
         final List<Registration> regs = Lists.newArrayList();
         regs.add(whiteboard.register(Executor.class, getExecutor(), Collections.emptyMap()));
