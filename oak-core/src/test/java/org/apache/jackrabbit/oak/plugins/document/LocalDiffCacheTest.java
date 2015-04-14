@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -82,6 +83,15 @@ public class LocalDiffCacheTest {
         assertEquals(1, o.changed.size());
 
         store.dispose();
+    }
+
+    @Test
+    public void emptyDiff() throws Exception{
+        Map<String, String> changes = new HashMap<String, String>();
+        ConsolidatedDiff diff = new ConsolidatedDiff(changes, 100);
+        String asString = diff.asString();
+        ConsolidatedDiff diff2 = ConsolidatedDiff.fromString(asString);
+        assertEquals(diff, diff2);
     }
 
     private LocalDiffCache getLocalDiffCache(){
