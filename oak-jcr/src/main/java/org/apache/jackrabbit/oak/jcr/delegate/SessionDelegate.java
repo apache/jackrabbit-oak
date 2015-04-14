@@ -254,7 +254,7 @@ public class SessionDelegate {
      * @throws RepositoryException
      * @see #perform(org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation)
      */
-    public void performVoid(SessionOperation sessionOperation) throws RepositoryException {
+    public void performVoid(SessionOperation<Void> sessionOperation) throws RepositoryException {
         long t0 = clock.getTime();
 
         // Acquire the exclusive lock for accessing session internals.
@@ -593,7 +593,7 @@ public class SessionDelegate {
     }
 
     //-----------------------------------------------------------< internal >---
-    private void prePerform(@Nonnull SessionOperation op, long t0) throws RepositoryException {
+    private void prePerform(@Nonnull SessionOperation<?> op, long t0) throws RepositoryException {
         if (sessionOpCount == 0) {
             // Refresh and precondition checks only for non re-entrant
             // session operations. Don't refresh if this operation is a
@@ -609,7 +609,7 @@ public class SessionDelegate {
         }
     }
 
-    private void postPerform(@Nonnull SessionOperation op, long t0) {
+    private void postPerform(@Nonnull SessionOperation<?> op, long t0) {
         sessionCounters.accessTime = t0;
         long dt = NANOSECONDS.convert(clock.getTime() - t0, MILLISECONDS);
         sessionOpCount--;
