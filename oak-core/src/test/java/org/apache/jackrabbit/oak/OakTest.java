@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -71,6 +72,7 @@ public class OakTest {
 
     }
 
+    @Ignore("OAK-2736")
     @Test(expected = IllegalStateException.class)
     public void throwISEUponReuse() throws Exception{
         Oak oak = new Oak().with(new OpenSecurityProvider());
