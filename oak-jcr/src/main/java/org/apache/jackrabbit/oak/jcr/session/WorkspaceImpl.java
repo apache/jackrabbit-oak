@@ -138,7 +138,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
             throw new UnsupportedRepositoryOperationException("Not implemented.");
         }
 
-        sessionDelegate.perform(new SessionOperation<Object>("copy", true) {
+        sessionDelegate.performVoid(new SessionOperation("copy", true) {
             @Override
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
@@ -146,14 +146,13 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
             }
 
             @Override
-            public Object perform() throws RepositoryException {
+            public void performVoid() throws RepositoryException {
                 sessionDelegate.checkProtectedNode(getParentPath(srcOakPath));
                 sessionDelegate.checkProtectedNode(getParentPath(destOakPath));
 
                 checkIndexOnName(destAbsPath);
 
                 workspaceDelegate.copy(srcOakPath, destOakPath);
-                return null;
             }
         });
 
@@ -164,7 +163,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         final String srcOakPath = getOakPathOrThrowNotFound(srcAbsPath);
         final String destOakPath = getOakPathOrThrowNotFound(destAbsPath);
 
-        sessionDelegate.perform(new SessionOperation<Object>("clone", true) {
+        sessionDelegate.performVoid(new SessionOperation("clone", true) {
 
             @Override
             public void checkPreconditions() throws RepositoryException {
@@ -173,7 +172,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
             }
 
             @Override
-            public Object perform() throws RepositoryException {
+            public void performVoid() throws RepositoryException {
                 sessionDelegate.checkProtectedNode(getParentPath(srcOakPath));
                 sessionDelegate.checkProtectedNode(getParentPath(destOakPath));
                 throw new UnsupportedRepositoryOperationException("Not implemented.");

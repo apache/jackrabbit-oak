@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.jcr.query;
 import java.util.HashMap;
 import java.util.List;
 
+import javax.annotation.Nonnull;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
@@ -80,6 +81,7 @@ public class QueryImpl implements Query {
         }
         List<String> names = sessionContext.getSessionDelegate().perform(
                 new SessionOperation<List<String>>("parse") {
+                    @Nonnull
                     @Override
                     public List<String> perform() throws RepositoryException {
                         return manager.parse(statement, language);
@@ -96,6 +98,7 @@ public class QueryImpl implements Query {
     public QueryResult execute() throws RepositoryException {
         return sessionContext.getSessionDelegate().perform(
                 new SessionOperation<QueryResult>("execute") {
+                    @Nonnull
                     @Override
                     public QueryResult perform() throws RepositoryException {
                         return manager.executeQuery(statement, language, limit,
