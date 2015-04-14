@@ -1063,10 +1063,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     @Override
     public void update(final String srcWorkspace) throws RepositoryException {
-        perform(new ItemWriteOperation<Void>("update") {
-            @Nonnull
+        sessionDelegate.performVoid(new ItemWriteOperation("update") {
             @Override
-            public Void perform() throws RepositoryException {
+            public void performVoid() throws RepositoryException {
                 checkValidWorkspace(srcWorkspace);
 
                 // check for pending changes
@@ -1079,7 +1078,6 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 if (!srcWorkspace.equals(sessionDelegate.getWorkspaceName())) {
                     throw new UnsupportedRepositoryOperationException("OAK-118: Node.update");
                 }
-                return null;
             }
         });
     }
