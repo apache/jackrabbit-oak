@@ -28,7 +28,6 @@ import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProp
 
 import java.util.List;
 
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.InvalidItemStateException;
@@ -108,22 +107,9 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
      * @return  the result of {@code op.perform()}
      * @throws RepositoryException as thrown by {@code op.perform()}.
      */
-    @CheckForNull
+    @Nonnull
     protected final <U> U perform(@Nonnull SessionOperation<U> op) throws RepositoryException {
         return sessionDelegate.perform(op);
-    }
-
-    /**
-     * Perform the passed {@link SessionOperation} assuming it does not throw an
-     * {@code RepositoryException}. If it does, wrap it into and throw it as a
-     * {@code RuntimeException}.
-     * @param op  operation to perform
-     * @param <U>  return type of the operation
-     * @return  the result of {@code op.perform()}
-     */
-    @CheckForNull
-    protected final <U> U safePerform(@Nonnull SessionOperation<U> op) {
-        return sessionDelegate.safePerform(op);
     }
 
     //---------------------------------------------------------------< Item >---
@@ -135,6 +121,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     @Nonnull
     public String getName() throws RepositoryException {
         String oakName = perform(new ItemOperation<String>(dlg, "getName") {
+            @Nonnull
             @Override
             public String perform() {
                 return item.getName();
@@ -151,6 +138,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     @Nonnull
     public String getPath() throws RepositoryException {
         return toJcrPath(perform(new ItemOperation<String>(dlg, "getPath") {
+            @Nonnull
             @Override
             public String perform() {
                 return item.getPath();
@@ -173,6 +161,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
         }
 
         ItemDelegate ancestor = perform(new ItemOperation<ItemDelegate>(dlg, "getAncestor") {
+            @Nonnull
             @Override
             public ItemDelegate perform() throws RepositoryException {
                 String path = item.getPath();
@@ -190,7 +179,12 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
                     return item;
                 }
 
-                return sessionDelegate.getNode(path.substring(0, slash));
+                NodeDelegate ndlg = sessionDelegate.getNode(path.substring(0, slash));
+                if (ndlg == null) {
+                    throw new ItemNotFoundException(getPath() + "Invalid ancestor depth " + depth);
+                } else {
+                    return ndlg;
+                }
             }
         });
 
@@ -256,11 +250,10 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     @Override
     public void save() throws RepositoryException {
         try {
-            perform(new ItemWriteOperation<Void>("save") {
+            sessionDelegate.performVoid(new ItemWriteOperation("save") {
                 @Override
-                public Void perform() throws RepositoryException {
+                public void performVoid() throws RepositoryException {
                     dlg.save();
-                    return null;
                 }
 
                 @Override
@@ -292,20 +285,21 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
         if (!keepChanges) {
             log.warn("Item#refresh invokes Session#refresh!");
         }
-        perform(new SessionOperation<Void>("refresh") {
+        sessionDelegate.performVoid(new SessionOperation("refresh") {
             @Override
-            public Void perform() throws InvalidItemStateException {
+            public void performVoid() throws InvalidItemStateException {
                 sessionDelegate.refresh(keepChanges);
                 if (!dlg.exists()) {
                     throw new InvalidItemStateException(
                             "This item no longer exists");
                 }
-                return null;
             }
+
             @Override
             public boolean isUpdate() {
                 return true;
             }
+
             @Override
             public boolean isRefresh() {
                 return true;
