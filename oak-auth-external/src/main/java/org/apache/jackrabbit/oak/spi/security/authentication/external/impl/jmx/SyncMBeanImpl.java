@@ -55,9 +55,6 @@ import org.slf4j.LoggerFactory;
  */
 public class SyncMBeanImpl implements SynchronizationMBean {
 
-    /**
-     * default logger
-     */
     private static final Logger log = LoggerFactory.getLogger(SyncMBeanImpl.class);
 
     private final Repository repository;
@@ -98,7 +95,7 @@ public class SyncMBeanImpl implements SynchronizationMBean {
         }
     }
 
-    private class Delegatee {
+    private final class Delegatee {
 
         private SyncHandler handler;
 
@@ -311,10 +308,10 @@ public class SyncMBeanImpl implements SynchronizationMBean {
         }
 
         private boolean isMyIDP(@Nonnull SyncedIdentity id) {
-            String idpName = id.getExternalIdRef() == null
+            String providerName = id.getExternalIdRef() == null
                     ? null
                     : id.getExternalIdRef().getProviderName();
-            return (idpName == null || idpName.isEmpty() || idpName.equals(idp.getName()));
+            return (providerName == null || providerName.isEmpty() || providerName.equals(idp.getName()));
         }
     }
 

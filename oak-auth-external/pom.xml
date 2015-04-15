@@ -105,6 +105,11 @@
             <artifactId>oak-core</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+          <groupId>org.apache.jackrabbit</groupId>
+          <artifactId>oak-commons</artifactId>
+          <version>${project.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>com.google.guava</groupId>
