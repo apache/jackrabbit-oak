@@ -929,7 +929,10 @@ public class FileStore implements SegmentStore {
                 for (UUID uuid : reader.getUUIDs()) {
                     graph.put(uuid, null);
                 }
-                graph.putAll(reader.getGraph());
+                Map<UUID, List<UUID>> g = reader.getGraph();
+                if (g != null) {
+                    graph.putAll(g);
+                }
                 return graph;
             }
         }
