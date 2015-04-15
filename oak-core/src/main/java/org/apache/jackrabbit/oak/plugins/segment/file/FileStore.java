@@ -655,8 +655,9 @@ public class FileStore implements SegmentStore {
 
         CompactionMap cm = tracker.getCompactionMap();
         List<TarReader> list = newArrayListWithCapacity(readers.size());
+        Set<UUID> cleanedIds = newHashSet();
         for (TarReader reader : readers) {
-            TarReader cleaned = reader.cleanup(ids, cm);
+            TarReader cleaned = reader.cleanup(ids, cm, cleanedIds);
             if (cleaned == reader) {
                 list.add(reader);
             } else {
@@ -668,6 +669,7 @@ public class FileStore implements SegmentStore {
                 toBeRemoved.addLast(file);
             }
         }
+        cm.compress(cleanedIds);
         readers = list;
         long finalSize = size();
         gcMonitor.cleaned(initialSize - finalSize, finalSize);
