@@ -73,6 +73,7 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
+import org.apache.jackrabbit.oak.query.fulltext.FullTextParser;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -111,6 +112,40 @@ public class LuceneIndexTest {
     private NodeBuilder builder = root.builder();
 
     private Set<File> dirs = newHashSet();
+
+    @Test
+    public void testLuceneV1NonExistentProperty() throws Exception {
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        newLuceneIndexDefinition(index, "lucene", ImmutableSet.of("String"));
+
+        NodeState before = builder.getNodeState();
+        builder.setProperty("foo", "value-with-dash");
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        IndexTracker tracker = new IndexTracker();
+        tracker.update(indexed);
+        AdvancedQueryIndex queryIndex = new LuceneIndex(tracker, null);
+
+        FilterImpl filter = createFilter(NT_BASE);
+        filter.restrictPath("/", Filter.PathRestriction.EXACT);
+        filter.setFullTextConstraint(FullTextParser.parse("foo", "value-with*"));
+        List<IndexPlan> plans = queryIndex.getPlans(filter, null, builder.getNodeState());
+        Cursor cursor = queryIndex.query(plans.get(0), indexed);
+        assertTrue(cursor.hasNext());
+        assertEquals("/", cursor.next().getPath());
+        assertFalse(cursor.hasNext());
+
+        //Now perform a query against a field which does not exist
+        FilterImpl filter2 = createFilter(NT_BASE);
+        filter2.restrictPath("/", Filter.PathRestriction.EXACT);
+        filter2.setFullTextConstraint(FullTextParser.parse("baz", "value-with*"));
+        List<IndexPlan> plans2 = queryIndex.getPlans(filter2, null, builder.getNodeState());
+        Cursor cursor2 = queryIndex.query(plans2.get(0), indexed);
+        assertFalse(cursor2.hasNext());
+    }
+
 
     @Test
     public void testLucene() throws Exception {
