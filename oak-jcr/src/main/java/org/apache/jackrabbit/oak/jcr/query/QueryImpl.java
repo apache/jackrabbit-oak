@@ -158,7 +158,7 @@ public class QueryImpl implements Query {
         if (parentDelegate == null) {
             throw new PathNotFoundException("The specified path does not exist: " + parent);
         }
-        Node parentNode = NodeImpl.createNodeOrNull(parentDelegate, sessionContext);
+        Node parentNode = NodeImpl.createNode(parentDelegate, sessionContext);
         if (!parentNode.isCheckedOut()) {
             throw new VersionException("Cannot store query. Node at " +
                     absPath + " is checked in.");

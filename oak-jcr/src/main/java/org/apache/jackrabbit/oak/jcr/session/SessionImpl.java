@@ -156,7 +156,7 @@ public class SessionImpl implements JackrabbitSession {
             throws RepositoryException {
         ItemDelegate item = sd.getItem(oakPath);
         if (item instanceof NodeDelegate) {
-            return NodeImpl.createNodeOrNull((NodeDelegate) item, sessionContext);
+            return NodeImpl.createNode((NodeDelegate) item, sessionContext);
         } else if (item instanceof PropertyDelegate) {
             return new PropertyImpl((PropertyDelegate) item, sessionContext);
         } else {
