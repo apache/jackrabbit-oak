@@ -247,7 +247,7 @@ public class SegmentWriter {
         int blobrefcount = blobrefs.size() + 1;
         int rootcount = roots.size() + 1;
         int refcount = segment.getRefCount();
-        Set<SegmentId> segmentIds = newIdentityHashSet();
+        Set<SegmentId> segmentIds = newHashSet();
 
         // The set of old record ids in this segment
         // that were previously root record ids, but will no longer be,
@@ -257,7 +257,7 @@ public class SegmentWriter {
         Set<RecordId> notRoots = new HashSet<RecordId>();
         for (RecordId recordId : ids) {
             SegmentId segmentId = recordId.getSegmentId();
-            if (!(segmentId.equals(segment.getSegmentId())) {
+            if (!(segmentId.equals(segment.getSegmentId()))) {
                 segmentIds.add(segmentId);
             } else if (roots.containsKey(recordId)) {
                 notRoots.add(recordId);
