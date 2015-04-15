@@ -100,6 +100,8 @@ public class VersionGarbageCollector {
 
     private void collectDeletedDocuments(VersionGCStats stats, Revision headRevision, long oldestRevTimeStamp)
             throws IOException {
+        int docsTraversed = 0;
+        final int progressBatchSize = 10000;
         StringSort docIdsToDelete = new StringSort(overflowToDiskThreshold, NodeDocumentIdComparator.INSTANCE);
         try {
             stats.collectDeletedDocs.start();
@@ -110,6 +112,10 @@ public class VersionGarbageCollector {
                     //As node is not modified since oldestRevTimeStamp then
                     //this node has not be revived again in past maxRevisionAge
                     //So deleting it is safe
+                    docsTraversed++;
+                    if (docsTraversed % progressBatchSize == 0){
+                        log.info("Iterated through {} documents so far. {} found to be deleted", docsTraversed, docIdsToDelete.getSize());
+                    }
                     if (doc.getNodeAtRevision(nodeStore, headRevision, null) == null) {
                         docIdsToDelete.add(doc.getId());
                         //Collect id of all previous docs also
@@ -133,6 +139,7 @@ public class VersionGarbageCollector {
             stats.deleteDeletedDocs.start();
             Iterator<List<String>> idListItr = partition(docIdsToDelete.getIds(), DELETE_BATCH_SIZE);
             int deletedCount = 0;
+            int lastLoggedCount = 0;
             while (idListItr.hasNext()) {
                 List<String> deletionBatch = idListItr.next();
                 deletedCount += deletionBatch.size();
@@ -143,6 +150,13 @@ public class VersionGarbageCollector {
                     log.debug(sb.toString());
                 }
                 log.debug("Deleted [{}] documents so far", deletedCount);
+
+                if (deletedCount - lastLoggedCount >= progressBatchSize){
+                    lastLoggedCount = deletedCount;
+                    double progress = deletedCount * 1.0 / docIdsToDelete.getSize() * 100;
+                    String msg = String.format("Deleted %d (%1.2f%%) documents so far", deletedCount, progress);
+                    log.info(msg);
+                }
 
                 nodeStore.getDocumentStore().remove(Collection.NODES, deletionBatch);
             }
