@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.slf4j.Logger;
@@ -202,7 +203,7 @@ public class SegmentTracker {
      * running.
      */
     public void collectBlobReferences(ReferenceCollector collector) {
-        Set<SegmentId> processed = newIdentityHashSet();
+        Set<SegmentId> processed = newHashSet();
         Queue<SegmentId> queue = newArrayDeque(getReferencedSegmentIds());
         writer.flush(); // force the current segment to have root record info
         while (!queue.isEmpty()) {

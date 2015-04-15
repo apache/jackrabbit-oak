@@ -157,7 +157,7 @@ public class SegmentStream extends InputStream {
                 }
 
                 if (id != null
-                        && id.getSegmentId() == first.getSegmentId()
+                        && id.getSegmentId().equals(first.getSegmentId())
                         && id.getOffset() == first.getOffset() + count * BLOCK_SIZE) {
                     count++;
                 } else {
