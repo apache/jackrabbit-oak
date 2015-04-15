@@ -37,7 +37,6 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PREDECESSORS;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONHISTORY;
-import static org.apache.jackrabbit.JcrConstants.MIX_REFERENCEABLE;
 import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
 import static org.apache.jackrabbit.JcrConstants.NT_FROZENNODE;
 import static org.apache.jackrabbit.JcrConstants.NT_VERSIONEDCHILD;
@@ -569,16 +568,6 @@ class VersionableState {
         }
     }
 
-    private boolean isReferenceable(NodeBuilder node)
-            throws RepositoryException {
-        if (!node.hasProperty(JCR_UUID)) {
-            // quick check without looking at type hierarchy
-            return false;
-        }
-        Tree tree = TreeFactory.createReadOnlyTree(node.getNodeState());
-        return ntMgr.isNodeType(tree, MIX_REFERENCEABLE);
-    }
-
     private static boolean isHiddenProperty(@Nonnull String propName) {
         return NodeStateUtils.isHidden(propName) && !TreeConstants.OAK_CHILD_ORDER.equals(propName);
     }
@@ -630,7 +619,7 @@ class VersionableState {
         @Override
         public int getAction(NodeBuilder src,
                              NodeBuilder dest,
-                             PropertyState prop) throws RepositoryException {
+                             PropertyState prop) {
             return COPY;
         }
     }
