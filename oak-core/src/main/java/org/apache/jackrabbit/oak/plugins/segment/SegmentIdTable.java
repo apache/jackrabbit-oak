@@ -23,9 +23,12 @@ import static java.util.Collections.nCopies;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Hash table of weak references to segment identifiers.
@@ -33,28 +36,53 @@ import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 public class SegmentIdTable {
 
     /**
-     * Hash table of weak references to segment identifiers that are
-     * currently being accessed. The size of the table is always a power
-     * of two, which optimizes the {@link #expand()} operation. The table is
-     * indexed by the random identifier bits, which guarantees uniform
-     * distribution of entries. Each table entry is either {@code null}
-     * (when there are no matching identifiers) or a list of weak references
-     * to the matching identifiers.
+     * The list of weak references to segment identifiers that are currently
+     * being accessed. This represents a hash table that uses open addressing
+     * with linear probing. It is not a hash map, to speed up read access.
+     * <p>
+     * The size of the table is always a power of two, so that we can use
+     * bitwise "and" instead of modulo.
+     * <p>
+     * The table is indexed by the random identifier bits, which guarantees
+     * uniform distribution of entries.
+     * <p>
+     * Open addressing with linear probing is used. Each table entry is either
+     * null (when there are no matching identifiers), a weak references to the
+     * matching identifier, or a weak reference to another identifier.
+     * There are no tombstone entries as there is no explicit remove operation,
+     * but a referent can become null if the entry is garbage collected.
+     * <p>
+     * The array is not sorted (we could; lookup might be faster, but adding
+     * entries would be slower).
      */
     private final ArrayList<WeakReference<SegmentId>> references =
             newArrayList(nCopies(1024, (WeakReference<SegmentId>) null));
 
     private final SegmentTracker tracker;
+    
+    private static final Logger LOG = LoggerFactory.getLogger(SegmentIdTable.class);
+
+    
+    /**
+     * The refresh count (for diagnostics and testing).
+     */
+    private int rebuildCount;
+    
+    /**
+     * The number of used entries (WeakReferences) in this table.
+     */
+    private int entryCount;
 
     SegmentIdTable(SegmentTracker tracker) {
         this.tracker = tracker;
     }
 
     /**
+     * Get the segment id, and reference it in the weak references map.
      * 
      * @param msb
      * @param lsb
-     * @return
+     * @return the segment id
      */
     synchronized SegmentId getSegmentId(long msb, long lsb) {
         int first = getIndex(lsb);
@@ -69,13 +97,20 @@ public class SegmentIdTable {
                     && id.getLeastSignificantBits() == lsb) {
                 return id;
             }
+            // shouldRefresh if we have a garbage collected entry
             shouldRefresh = shouldRefresh || id == null;
+            // open addressing / linear probing
             index = (index + 1) % references.size();
             reference = references.get(index);
         }
 
         SegmentId id = new SegmentId(tracker, msb, lsb);
         references.set(index, new WeakReference<SegmentId>(id));
+        entryCount++;
+        if (entryCount > references.size() * 0.75) {
+            // more than 75% full            
+            shouldRefresh = true;
+        }
         if (shouldRefresh) {
             refresh();
         }
@@ -85,7 +120,7 @@ public class SegmentIdTable {
     /**
      * Returns all segment identifiers that are currently referenced in memory.
      *
-     * @return referenced segment identifiers
+     * @param ids referenced segment identifiers
      */
     void collectReferencedIds(Collection<SegmentId> ids) {
         ids.addAll(refresh());
@@ -107,16 +142,33 @@ public class SegmentIdTable {
                     hashCollisions = hashCollisions || (i != getIndex(id));
                 } else {
                     references.set(i, null);
+                    entryCount--;
                     emptyReferences = true;
                 }
             }
+        }
+        
+        if (entryCount != ids.size()) {
+            // something is wrong, possibly a concurrency problem, a SegmentId
+            // hashcode or equals bug, or a problem with this hash table
+            // algorithm
+            LOG.warn("Unexpected entry count mismatch, expected " + 
+                    entryCount + " got " + ids.size());
+            // we fix the count, because having a wrong entry count would be
+            // very problematic; even worse than having a concurrency problem
+            entryCount = ids.size();
         }
 
         while (2 * ids.size() > size) {
             size *= 2;
         }
 
+        // we need to re-build the table if the new size is different,
+        // but also if we removed some of the entries (because an entry was
+        // garbage collected) and there is at least one entry at the "wrong"
+        // location (due to open addressing)
         if ((hashCollisions && emptyReferences) || size != references.size()) {
+            rebuildCount++;
             references.clear();
             references.addAll(nCopies(size, (WeakReference<SegmentId>) null));
 
@@ -150,8 +202,11 @@ public class SegmentIdTable {
                 SegmentId id = reference.get();
                 if (id != null) {
                     if (strategy.canRemove(id)) {
+                        // we clear the reference here, but we must not
+                        // remove the reference from the list, because
+                        // that could cause duplicate references
+                        // (there is a unit test for this case)
                         reference.clear();
-                        references.set(i, null);
                         dirty = true;
                     }
                 }
@@ -161,4 +216,50 @@ public class SegmentIdTable {
             refresh();
         }
     }
+    
+    /**
+     * Get the number of map rebuild operations (used for testing and diagnostics).
+     * 
+     * @return the rebuild count
+     */
+    int getMapRebuildCount() {
+        return rebuildCount;
+    }
+    
+    /**
+     * Get the entry count (used for testing and diagnostics).
+     * 
+     * @return the entry count
+     */
+    int getEntryCount() {
+        return entryCount;
+    }
+    
+    /**
+     * Get the size of the internal map (used for testing and diagnostics).
+     * 
+     * @return the map size
+     */
+    int getMapSize() {
+        return references.size();
+    }
+    
+    /**
+     * Get the raw list of segment ids (used for testing).
+     * 
+     * @return the raw list
+     */
+    List<SegmentId> getRawSegmentIdList() {
+        ArrayList<SegmentId> list = new ArrayList<SegmentId>();
+        for (WeakReference<SegmentId> ref : references) {
+            if (ref != null) {
+                SegmentId id = ref.get();
+                if (id != null) {
+                    list.add(id);
+                }
+            }
+        }
+        return list;
+    }
+
 }
