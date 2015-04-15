@@ -1008,6 +1008,11 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             List<Term> terms = new ArrayList<Term>();
             Term onTerm = newFulltextTerm(token, fieldName);
             Terms t = MultiFields.getTerms(reader, onTerm.field());
+            
+            //No existing field with given name indexed so no possible term values
+            if (t == null){
+                return new Term[0];
+            }
             Automaton a = WildcardQuery.toAutomaton(onTerm);
             CompiledAutomaton ca = new CompiledAutomaton(a);
             TermsEnum te = ca.getTermsEnum(t);
