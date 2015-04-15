@@ -143,6 +143,12 @@ public final class DocumentNodeStore
             Boolean.getBoolean("oak.enableConcurrentAddRemove");
 
     /**
+     * Use fair mode for background operation lock.
+     */
+    private boolean fairBackgroundOperationLock =
+            Boolean.getBoolean("oak.fairBackgroundOperationLock");
+
+    /**
      * How long to remember the relative order of old revision of all cluster
      * nodes, in milliseconds. The default is one hour.
      */
@@ -268,7 +274,8 @@ public final class DocumentNodeStore
      * Read/Write lock for background operations. Regular commits will acquire
      * a shared lock, while a background write acquires an exclusive lock.
      */
-    private final ReadWriteLock backgroundOperationLock = new ReentrantReadWriteLock();
+    private final ReadWriteLock backgroundOperationLock =
+            new ReentrantReadWriteLock(fairBackgroundOperationLock);
 
     /**
      * Read/Write lock to coordinate merges. In most cases merges acquire a
