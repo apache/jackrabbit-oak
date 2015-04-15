@@ -20,13 +20,13 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
-
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,18 +76,25 @@ public class NetworkErrorProxy {
 
             f = b.bind(this.inboundPort).sync();
         } catch (Exception e) {
-            log.warn("exception occurred", e);
+            log.warn(
+                    "Unable to start proxy on port " + inboundPort + ": "
+                            + e.getMessage(), e);
         }
     }
 
     public void reset() throws Exception {
+        if (f == null) {
+            throw new Exception("proxy not started");
+        }
         f.channel().disconnect();
         this.fh = new ForwardHandler(NetworkErrorProxy.this.host, NetworkErrorProxy.this.outboundPort);
         run();
     }
 
     public void close() {
-        f.channel().close();
+        if (f != null) {
+            f.channel().close();
+        }
         if (bossGroup != null && !bossGroup.isShuttingDown()) {
             bossGroup.shutdownGracefully(1, 2, TimeUnit.SECONDS).syncUninterruptibly();
         }

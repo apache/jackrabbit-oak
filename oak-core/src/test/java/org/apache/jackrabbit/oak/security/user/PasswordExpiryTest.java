@@ -21,7 +21,6 @@ import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.CredentialExpiredException;
 import javax.security.auth.login.LoginException;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -59,7 +58,7 @@ public class PasswordExpiryTest extends AbstractSecurityTest {
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         ConfigurationParameters userConfig = ConfigurationParameters.of(UserConstants.PARAM_PASSWORD_MAX_AGE, 10);
-        return ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, userConfig));
+        return ConfigurationParameters.of(UserConfiguration.NAME, userConfig);
     }
 
     @Test

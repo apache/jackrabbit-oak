@@ -41,6 +41,7 @@ public class ExternalIDPManagerImpl extends AbstractServiceTracker<ExternalIdent
     /**
      * Default constructor used by OSGi
      */
+    @SuppressWarnings("UnusedDeclaration")
     public ExternalIDPManagerImpl() {
         super(ExternalIdentityProvider.class);
     }
@@ -54,11 +55,13 @@ public class ExternalIDPManagerImpl extends AbstractServiceTracker<ExternalIdent
         start(whiteboard);
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     @Activate
     private void activate(ComponentContext ctx) {
         start(new OsgiWhiteboard(ctx.getBundleContext()));
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     @Deactivate
     private void deactivate() {
         stop();

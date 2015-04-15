@@ -112,6 +112,11 @@ public class UserManagerImpl implements UserManager {
     }
 
     @Override
+    public <T extends Authorizable> T getAuthorizable(String id, Class<T> authorizableClass) throws RepositoryException {
+        return UserUtil.castAuthorizable(getAuthorizable(id), authorizableClass);
+    }
+
+    @Override
     public Authorizable getAuthorizable(Principal principal) throws RepositoryException {
         return getAuthorizable(userProvider.getAuthorizableByPrincipal(principal));
     }
@@ -169,7 +174,7 @@ public class UserManagerImpl implements UserManager {
     }
 
     @Override
-    public User createSystemUser(String userID, String intermediatePath) throws AuthorizableExistsException, RepositoryException {
+    public User createSystemUser(String userID, String intermediatePath) throws RepositoryException {
         checkValidID(userID);
         Principal principal = new PrincipalImpl(userID);
         checkValidPrincipal(principal, false);

@@ -33,6 +33,8 @@ import static org.apache.jackrabbit.oak.spi.commit.CompositeEditor.compose;
 import static org.apache.jackrabbit.oak.spi.commit.EditorDiff.process;
 import static org.apache.jackrabbit.oak.spi.commit.VisibleEditor.wrap;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,11 +43,16 @@ import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Stopwatch;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.commit.ProgressNotificationEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -56,7 +63,7 @@ import com.google.common.base.Objects;
 
 public class IndexUpdate implements Editor {
 
-    private final Logger log = LoggerFactory.getLogger(getClass());
+    private static final Logger log = LoggerFactory.getLogger(IndexUpdate.class);
 
     private final IndexUpdateRootState rootState;
 
@@ -114,7 +121,7 @@ public class IndexUpdate implements Editor {
 
         // no-op when reindex is empty
         CommitFailedException exception = process(
-                wrap(compose(reindex.values())), MISSING_NODE, after);
+                wrap(wrapProgress(compose(reindex.values()), "Reindexing")), MISSING_NODE, after);
         if (exception != null) {
             throw exception;
         }
@@ -125,11 +132,11 @@ public class IndexUpdate implements Editor {
     }
 
     public boolean isReindexingPerformed(){
-        return !getAllReIndexedIndexes().isEmpty();
+        return !getReindexStats().isEmpty();
     }
 
-    public Set<String> getAllReIndexedIndexes(){
-        return rootState.reindexedIndexes;
+    public List<String> getReindexStats(){
+        return rootState.getReindexStats();
     }
 
     private boolean shouldReindex(NodeBuilder definition, NodeState before,
@@ -160,7 +167,8 @@ public class IndexUpdate implements Editor {
                 }
                 boolean shouldReindex = shouldReindex(definition,
                         before, name);
-                Editor editor = rootState.provider.getIndexEditor(type, definition, rootState.root, rootState.updateCallback);
+                Editor editor = rootState.provider.getIndexEditor(type, definition, rootState.root,
+                        rootState.newCallback(getIndexPath(getPath(), name), shouldReindex));
                 if (editor == null) {
                     missingProvider.onMissingIndex(type, definition);
                 } else if (shouldReindex) {
@@ -211,6 +219,14 @@ public class IndexUpdate implements Editor {
             throws CommitFailedException {
         for (Editor editor : editors) {
             editor.leave(before, after);
+        }
+
+        if (parent == null){
+            if (rootState.isReindexingPerformed()){
+                log.info(rootState.getReport());
+            } else if (log.isDebugEnabled()){
+                log.debug(rootState.getReport());
+            }
         }
     }
 
@@ -284,10 +300,26 @@ public class IndexUpdate implements Editor {
         return reindex.keySet();
     }
 
+    private static String getIndexPath(String path, String indexName) {
+        if (PathUtils.denotesRoot(path)) {
+            return "/" + INDEX_DEFINITIONS_NAME + "/" + indexName;
+        }
+        return path + "/" + INDEX_DEFINITIONS_NAME + "/" + indexName;
+    }
+
+    private static Editor wrapProgress(Editor editor, String message){
+        return ProgressNotificationEditor.wrap(editor, log, message);
+    }
+
     public static class MissingIndexProviderStrategy {
         public void onMissingIndex(String type, NodeBuilder definition)
                 throws CommitFailedException {
             // trigger reindexing when an indexer becomes available
+            PropertyState ps = definition.getProperty(REINDEX_PROPERTY_NAME);
+            if (ps != null && ps.getValue(BOOLEAN)) {
+                // already true, skip the update
+                return;
+            }
             definition.setProperty(REINDEX_PROPERTY_NAME, true);
         }
     }
@@ -307,6 +339,7 @@ public class IndexUpdate implements Editor {
          */
         final IndexUpdateCallback updateCallback;
         final Set<String> reindexedIndexes = Sets.newHashSet();
+        final Map<String, CountingCallback> callbacks = Maps.newHashMap();
 
         private IndexUpdateRootState(IndexEditorProvider provider, String async, NodeState root,
                                      IndexUpdateCallback updateCallback) {
@@ -314,6 +347,67 @@ public class IndexUpdate implements Editor {
             this.async = async;
             this.root = checkNotNull(root);
             this.updateCallback = checkNotNull(updateCallback);
+        }
+
+        public IndexUpdateCallback newCallback(String indexPath, boolean reindex) {
+            CountingCallback cb = new CountingCallback(indexPath, reindex);
+            callbacks.put(cb.indexName, cb);
+            return cb;
+        }
+
+        public String getReport() {
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            pw.println("Indexing report");
+            for (CountingCallback cb : callbacks.values()) {
+                if (!log.isDebugEnabled() && !cb.reindex) {
+                    continue;
+                }
+                pw.printf("    - %s%n", cb);
+            }
+            return sw.toString();
+        }
+
+        public List<String> getReindexStats(){
+            List<String> stats = Lists.newArrayList();
+            for (CountingCallback cb : callbacks.values()){
+                if (cb.reindex) {
+                    stats.add(cb.toString());
+                }
+            }
+            return stats;
+        }
+
+        public boolean isReindexingPerformed(){
+            return !reindexedIndexes.isEmpty();
+        }
+
+        private class CountingCallback implements IndexUpdateCallback {
+            final String indexName;
+            final boolean reindex;
+            final Stopwatch watch = Stopwatch.createStarted();
+            int count;
+
+            private CountingCallback(String indexName, boolean reindex) {
+                this.indexName = indexName;
+                this.reindex = reindex;
+            }
+
+            @Override
+            public void indexUpdate() throws CommitFailedException {
+                count++;
+                if (count % 10000 == 0){
+                    log.info("{} => Indexed {} nodes in {} ...", indexName, count, watch);
+                    watch.reset().start();
+                }
+                updateCallback.indexUpdate();
+            }
+
+            @Override
+            public String toString() {
+                String reindexMarker = reindex ? "*" : "";
+                return indexName + reindexMarker + "(" + count + ")";
+            }
         }
     }
 

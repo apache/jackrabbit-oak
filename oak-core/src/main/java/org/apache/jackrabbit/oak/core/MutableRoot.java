@@ -174,6 +174,7 @@ class MutableRoot implements Root {
 
     //---------------------------------------------------------------< Root >---
 
+    @Nonnull
     @Override
     public ContentSession getContentSession() {
         return session;
@@ -201,8 +202,6 @@ class MutableRoot implements Root {
 
         boolean success = source.moveTo(newParent, newName);
         if (success) {
-            getTree(getParentPath(sourcePath)).updateChildOrder(false);
-            getTree(getParentPath(destPath)).updateChildOrder(false);
             lastMove = lastMove.setMove(sourcePath, newParent, newName);
             updated();
             // remember all move operations for further processing in the commit hooks.
@@ -211,6 +210,7 @@ class MutableRoot implements Root {
         return success;
     }
 
+    @Nonnull
     @Override
     public MutableTree getTree(@Nonnull String path) {
         checkLive();
@@ -239,7 +239,7 @@ class MutableRoot implements Root {
     }
 
     @Override
-    public void commit(Map<String, Object> info) throws CommitFailedException {
+    public void commit(@Nonnull Map<String, Object> info) throws CommitFailedException {
         checkLive();
         ContentSession session = getContentSession();
         CommitInfo commitInfo = new CommitInfo(
@@ -296,6 +296,7 @@ class MutableRoot implements Root {
         return modCount > 0;
     }
 
+    @Nonnull
     @Override
     public QueryEngine getQueryEngine() {
         checkLive();
@@ -308,7 +309,7 @@ class MutableRoot implements Root {
                             provider, getBaseState(), getRootState());
                 }
                 return new ExecutionContext(
-                        getBaseState(), MutableRoot.this, queryEngineSettings, provider);
+                        getBaseState(), MutableRoot.this, queryEngineSettings, provider, permissionProvider.get());
             }
         };
     }

@@ -118,7 +118,7 @@ public interface QueryIndex {
      *  A marker interface which means this index supports executing native queries
      */
     public interface NativeQueryIndex {
-
+        // a marker interface
     }
 
     /**
@@ -141,7 +141,7 @@ public interface QueryIndex {
     }
 
     public interface AdvanceFulltextQueryIndex extends FulltextQueryIndex, AdvancedQueryIndex {
-
+        // a marker interface
     }
 
     /**
@@ -381,7 +381,7 @@ public interface QueryIndex {
                 return this;
             }
 
-            public Builder setAttribute(String key, Object value){
+            public Builder setAttribute(String key, Object value) {
                this.attributes.put(key, value);
                return this;
             }
@@ -414,7 +414,7 @@ public interface QueryIndex {
                             Builder.this.propRestriction;
                     private final String pathPrefix =
                             Builder.this.pathPrefix;
-                    private final Map<String,Object> attributes =
+                    private final Map<String, Object> attributes =
                             Builder.this.attributes;
 
                     @Override
@@ -514,7 +514,7 @@ public interface QueryIndex {
                     public IndexPlan copy() {
                         try {
                             return (IndexPlan) super.clone();
-                        } catch (CloneNotSupportedException e){
+                        } catch (CloneNotSupportedException e) {
                             throw new IllegalStateException(e);
                         }
                     }

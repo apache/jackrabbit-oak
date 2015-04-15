@@ -26,9 +26,10 @@ import java.io.IOException;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentBlob;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.standby.store.RemoteSegmentLoader;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -50,22 +51,25 @@ class StandbyApplyDiff implements NodeStateDiff {
 
     private final String path;
 
+    /**
+     * read-only traversal of the diff that has 2 properties: one is to log all
+     * the content changes, second is to drill down to properly level, so that
+     * missing binaries can be sync'ed if needed
+     */
+    private final boolean logOnly;
+
     public StandbyApplyDiff(NodeBuilder builder, SegmentStore store,
             RemoteSegmentLoader loader) {
-        this(builder, store, loader, "/");
+        this(builder, store, loader, "/", false);
     }
 
     private StandbyApplyDiff(NodeBuilder builder, SegmentStore store,
-            RemoteSegmentLoader loader, String path) {
+            RemoteSegmentLoader loader, String path, boolean logOnly) {
         this.builder = builder;
         this.store = store;
         this.loader = loader;
         this.path = path;
-        if (log.isTraceEnabled()) {
-            if (PathUtils.getDepth(path) < 5) {
-                log.trace("running diff on {}", path);
-            }
-        }
+        this.logOnly = logOnly;
     }
 
     @Override
@@ -73,7 +77,11 @@ class StandbyApplyDiff implements NodeStateDiff {
         if (!loader.isRunning()) {
             return false;
         }
-        builder.setProperty(binaryCheck(after));
+        if (!logOnly) {
+            builder.setProperty(binaryCheck(after));
+        } else {
+            binaryCheck(after);
+        }
         return true;
     }
 
@@ -82,7 +90,11 @@ class StandbyApplyDiff implements NodeStateDiff {
         if (!loader.isRunning()) {
             return false;
         }
-        builder.setProperty(binaryCheck(after));
+        if (!logOnly) {
+            builder.setProperty(binaryCheck(after));
+        } else {
+            binaryCheck(after);
+        }
         return true;
     }
 
@@ -91,7 +103,9 @@ class StandbyApplyDiff implements NodeStateDiff {
         if (!loader.isRunning()) {
             return false;
         }
-        builder.removeProperty(before.getName());
+        if (!logOnly) {
+            builder.removeProperty(before.getName());
+        }
         return true;
     }
 
@@ -143,13 +157,20 @@ class StandbyApplyDiff implements NodeStateDiff {
         if (!loader.isRunning()) {
             return false;
         }
-        NodeBuilder child = EmptyNodeState.EMPTY_NODE.builder();
-        boolean success = EmptyNodeState.compareAgainstEmptyState(after,
-                new StandbyApplyDiff(child, store, loader, path + name + "/"));
-        if (success) {
-            builder.setChildNode(name, child.getNodeState());
+
+        if (after instanceof SegmentNodeState) {
+            if (log.isTraceEnabled()) {
+                log.trace("childNodeAdded {}, RO:{}", path + name, logOnly);
+            }
+            if (!logOnly) {
+                RecordId id = ((SegmentNodeState) after).getRecordId();
+                builder.setChildNode(name, new SegmentNodeState(id));
+            }
+            return after.compareAgainstBaseState(EmptyNodeState.EMPTY_NODE,
+                    new StandbyApplyDiff(builder.getChildNode(name), store,
+                            loader, path + name + "/", true));
         }
-        return success;
+        return false;
     }
 
     @Override
@@ -159,8 +180,23 @@ class StandbyApplyDiff implements NodeStateDiff {
             return false;
         }
 
-        return after.compareAgainstBaseState(before, new StandbyApplyDiff(
-                builder.getChildNode(name), store, loader, path + name + "/"));
+        if (after instanceof SegmentNodeState) {
+            RecordId id = ((SegmentNodeState) after).getRecordId();
+
+            if (log.isTraceEnabled()) {
+                RecordId oldId = ((SegmentNodeState) before).getRecordId();
+                log.trace("childNodeChanged {}, {} -> {}, RO:{}", path + name,
+                        oldId, id, logOnly);
+            }
+            if (!logOnly) {
+                builder.setChildNode(name, new SegmentNodeState(id));
+            }
+
+            return after.compareAgainstBaseState(before, new StandbyApplyDiff(
+                    builder.getChildNode(name), store, loader, path + name
+                            + "/", true));
+        }
+        return false;
     }
 
     @Override
@@ -168,7 +204,10 @@ class StandbyApplyDiff implements NodeStateDiff {
         if (!loader.isRunning()) {
             return false;
         }
-        builder.getChildNode(name).remove();
+        log.trace("childNodeDeleted {}, RO:{}", path + name, logOnly);
+        if (!logOnly) {
+            builder.getChildNode(name).remove();
+        }
         return true;
     }
 }

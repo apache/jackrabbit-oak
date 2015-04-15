@@ -16,14 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
-import java.util.HashMap;
-import java.util.Map;
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -45,12 +42,11 @@ public class AccessControlActionTest extends AbstractSecurityTest {
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
-        Map<String, String[]> map = new HashMap<String, String[]>();
-        map.put(AccessControlAction.GROUP_PRIVILEGE_NAMES, new String[] {PrivilegeConstants.JCR_READ});
-        map.put(AccessControlAction.USER_PRIVILEGE_NAMES, new String[] {PrivilegeConstants.JCR_ALL});
-
-        ConfigurationParameters userConfig = ConfigurationParameters.of(map);
-        return ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, userConfig));
+        ConfigurationParameters userConfig = ConfigurationParameters.of(
+                AccessControlAction.GROUP_PRIVILEGE_NAMES, new String[] {PrivilegeConstants.JCR_READ},
+                AccessControlAction.USER_PRIVILEGE_NAMES, new String[] {PrivilegeConstants.JCR_ALL}
+        );
+        return ConfigurationParameters.of(UserConfiguration.NAME, userConfig);
     }
 
     @Test

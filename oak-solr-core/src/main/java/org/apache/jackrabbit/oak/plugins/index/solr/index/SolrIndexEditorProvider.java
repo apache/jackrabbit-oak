@@ -16,11 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.index;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate.NodeStateSolrServerConfigurationProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate.OakSolrNodeStateConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex;
+import org.apache.jackrabbit.oak.plugins.index.solr.server.OakSolrServer;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -28,8 +35,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.solr.client.solrj.SolrServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nonnull;
 
 /**
  * Solr based {@link IndexEditorProvider}
@@ -45,8 +50,8 @@ public class SolrIndexEditorProvider implements IndexEditorProvider {
     private final OakSolrConfigurationProvider oakSolrConfigurationProvider;
 
     public SolrIndexEditorProvider(
-            SolrServerProvider solrServerProvider,
-            OakSolrConfigurationProvider oakSolrConfigurationProvider) {
+            @Nonnull SolrServerProvider solrServerProvider,
+            @Nonnull OakSolrConfigurationProvider oakSolrConfigurationProvider) {
         this.solrServerProvider = solrServerProvider;
         this.oakSolrConfigurationProvider = oakSolrConfigurationProvider;
     }
@@ -55,32 +60,48 @@ public class SolrIndexEditorProvider implements IndexEditorProvider {
     public Editor getIndexEditor(
             @Nonnull String type, @Nonnull NodeBuilder definition, @Nonnull NodeState root, @Nonnull IndexUpdateCallback callback)
             throws CommitFailedException {
-
-        if (SolrQueryIndex.TYPE.equals(type)
-                && isConfigurationOk()) {
+        SolrIndexEditor editor = null;
+        if (SolrQueryIndex.TYPE.equals(type)) {
             try {
-              SolrServer solrServer = solrServerProvider.getSolrServer();
-              if (solrServer != null) {
-                  return new SolrIndexEditor(
-                        definition,
-                        solrServer,
-                        oakSolrConfigurationProvider.getConfiguration(), callback);
-              } else {
-                  if (log.isWarnEnabled()) {
-                      log.warn("null SolrServer provided, cannot index {}", definition);
-                  }
-              }
-            } catch (Exception e) {
-                if (log.isErrorEnabled()) {
-                    log.error("unable to create SolrIndexEditor", e);
+                // if index definition contains a persisted configuration, use that
+                if (isPersistedConfiguration(definition)) {
+                    NodeState nodeState = definition.getNodeState();
+                    OakSolrConfiguration configuration = new OakSolrNodeStateConfiguration(nodeState);
+                    SolrServerConfigurationProvider configurationProvider = new NodeStateSolrServerConfigurationProvider(definition.getChildNode("server").getNodeState());
+                    SolrServer solrServer = new OakSolrServer(configurationProvider);
+                    editor = getEditor(configuration, solrServer, callback);
+                } else { // otherwise use the default configuration providers (e.g. defined via code or OSGi)
+                    OakSolrConfiguration configuration = oakSolrConfigurationProvider.getConfiguration();
+                    editor = getEditor(configuration, solrServerProvider.getIndexingSolrServer(), callback);
                 }
+            } catch (Exception e) {
+                log.warn("could not get Solr index editor from {}", definition.getNodeState(), e);
             }
         }
-        return null;
+        return editor;
     }
 
-    private boolean isConfigurationOk() {
-        return solrServerProvider != null && oakSolrConfigurationProvider != null;
+    private boolean isPersistedConfiguration(NodeBuilder definition) {
+        return definition.hasChildNode("server");
+    }
+
+    private SolrIndexEditor getEditor(OakSolrConfiguration configuration, SolrServer solrServer,
+                                      IndexUpdateCallback callback) {
+        SolrIndexEditor editor = null;
+        try {
+            if (solrServer != null) {
+                editor = new SolrIndexEditor(solrServer, configuration, callback);
+            } else {
+                if (log.isWarnEnabled()) {
+                    log.warn("no SolrServer provided, cannot perform indexing");
+                }
+            }
+        } catch (Exception e) {
+            if (log.isErrorEnabled()) {
+                log.error("unable to create SolrIndexEditor", e);
+            }
+        }
+        return editor;
     }
 
 }

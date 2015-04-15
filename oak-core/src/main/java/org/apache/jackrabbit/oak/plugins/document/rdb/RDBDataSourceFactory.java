@@ -24,7 +24,6 @@ import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
-import java.util.Locale;
 import java.util.logging.Logger;
 
 import javax.sql.DataSource;
@@ -53,7 +52,7 @@ public class RDBDataSourceFactory {
             }
         } else {
             // try to determine driver from JDBC URL
-            String defaultDriver = driverForDBType(jdbctype(url));
+            String defaultDriver = RDBJDBCTools.driverForDBType(RDBJDBCTools.jdbctype(url));
             if (defaultDriver != null && !defaultDriver.isEmpty()) {
                 LOG.info("trying to load {}", defaultDriver);
 
@@ -83,41 +82,6 @@ public class RDBDataSourceFactory {
 
     public static DataSource forJdbcUrl(String url, String username, String passwd) {
         return forJdbcUrl(url, username, passwd, null);
-    }
-
-    private static String jdbctype(String jdbcurl) {
-        if (jdbcurl == null) {
-            return null;
-        } else {
-            String t = jdbcurl.toLowerCase(Locale.ENGLISH);
-            if (!t.startsWith("jdbc:")) {
-                return null;
-            } else {
-                t = t.substring("jbdc:".length());
-                int p = t.indexOf(":");
-                if (p <= 0) {
-                    return null;
-                } else {
-                    return t.substring(0, p);
-                }
-            }
-        }
-    }
-
-    private static String driverForDBType(String type) {
-        if ("h2".equals(type)) {
-            return "org.h2.Driver";
-        } else if ("postgresql".equals(type)) {
-            return "org.postgresql.Driver";
-        } else if ("db2".equals(type)) {
-            return "com.ibm.db2.jcc.DB2Driver";
-        } else if ("mysql".equals(type)) {
-            return "com.mysql.jdbc.Driver";
-        } else if ("oracle".equals(type)) {
-            return "oracle.jdbc.OracleDriver";
-        } else {
-            return "";
-        }
     }
 
     /**

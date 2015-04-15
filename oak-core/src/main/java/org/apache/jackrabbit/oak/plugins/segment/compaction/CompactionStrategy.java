@@ -66,13 +66,13 @@ public abstract class CompactionStrategy {
         CLEAN_OLD
     }
 
-    public static final boolean PAUSE_DEFAULT = true;
+    public static final boolean PAUSE_DEFAULT = false;
 
     public static final boolean CLONE_BINARIES_DEFAULT = false;
 
     public static final CleanupType CLEANUP_DEFAULT = CleanupType.CLEAN_OLD;
 
-    public static final long TIMESTAMP_DEFAULT = 1000 * 60 * 5;
+    public static final long TIMESTAMP_DEFAULT = 1000 * 60 * 60 * 10;  // 10h
 
     public static final byte MEMORY_THRESHOLD_DEFAULT = 5;
 

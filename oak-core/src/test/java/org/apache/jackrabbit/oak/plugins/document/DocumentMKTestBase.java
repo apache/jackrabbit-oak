@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -32,7 +31,7 @@ import static org.junit.Assert.assertTrue;
  */
 public abstract class DocumentMKTestBase {
 
-    protected abstract MicroKernel getMicroKernel();
+    protected abstract DocumentMK getDocumentMK();
 
     protected JSONObject getObjectArrayEntry(JSONArray array, int pos) {
         assertTrue(pos >= 0 && pos < array.size());
@@ -76,19 +75,19 @@ public abstract class DocumentMKTestBase {
     protected void assertChildNodeCount(String path,
                                         String revision,
                                         long numChildNodes) {
-        JSONObject json = parseJSONObject(getMicroKernel().getNodes(
+        JSONObject json = parseJSONObject(getDocumentMK().getNodes(
                 path, revision, 0, 0, -1, null));
         assertPropertyValue(json, ":childNodeCount", numChildNodes);
     }
 
     protected void assertPropExists(String rev, String path, String property) {
-        String nodes = getMicroKernel().getNodes(path, rev, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = getDocumentMK().getNodes(path, rev, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyExists(obj, property);
     }
 
     protected void assertPropNotExists(String rev, String path, String property) {
-        String nodes = getMicroKernel().getNodes(path, rev, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = getDocumentMK().getNodes(path, rev, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         if (nodes == null) {
             return;
         }
@@ -97,7 +96,7 @@ public abstract class DocumentMKTestBase {
     }
 
     protected void assertPropValue(String rev, String path, String property, String value) {
-        String nodes = getMicroKernel().getNodes(path, rev, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = getDocumentMK().getNodes(path, rev, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyValue(obj, property, value);
     }
@@ -154,7 +153,7 @@ public abstract class DocumentMKTestBase {
 
     private void doAssertNodes(boolean checkExists, String revision, String...paths) {
         for (String path : paths) {
-            boolean exists = getMicroKernel().nodeExists(path, revision);
+            boolean exists = getDocumentMK().nodeExists(path, revision);
             if (checkExists) {
                 assertTrue(path + " does not exist", exists);
             } else {
@@ -186,14 +185,14 @@ public abstract class DocumentMKTestBase {
     protected String addNodes(String rev, String...nodes) {
         String newRev = rev;
         for (String node : nodes) {
-            newRev = getMicroKernel().commit("", "+\"" + node + "\":{}", newRev, "");
+            newRev = getDocumentMK().commit("", "+\"" + node + "\":{}", newRev, "");
         }
         return newRev;
     }
 
     protected String removeNodes(String rev, String... nodes) {
         for (String node : nodes) {
-            rev = getMicroKernel().commit("", "-\"" + node + "\"", rev, null);
+            rev = getDocumentMK().commit("", "-\"" + node + "\"", rev, null);
         }
         return rev;
     }

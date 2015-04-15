@@ -16,15 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.commit;
 
-import java.util.List;
-
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
-import org.apache.jackrabbit.oak.spi.state.ConflictType;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-
 import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -40,6 +31,16 @@ import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_CHANGED_NO
 import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_CHANGED_PROPERTY;
 import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_DELETED_NODE;
 import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_DELETED_PROPERTY;
+
+import java.util.List;
+
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
+import org.apache.jackrabbit.oak.spi.state.ConflictType;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * This {@link ConflictHandler} implementation resolves conflicts to
@@ -129,7 +130,7 @@ public class AnnotatingConflictHandler implements ConflictHandler {
             parent.setProperty(JCR_MIXINTYPES, mixins, NAMES);
         }
         NodeBuilder repOurs = parent.child(REP_OURS);
-        repOurs.setProperty(JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_UNSTRUCTURED);
+        repOurs.setProperty(JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_UNSTRUCTURED, Type.NAME);
         return repOurs;
     }
 

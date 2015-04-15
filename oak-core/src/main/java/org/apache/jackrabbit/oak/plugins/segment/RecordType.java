@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 /**
  * The type of a record in a segment.
  */
-enum RecordType {
+public enum RecordType {
 
     /**
      * A leaf of a map (which is a HAMT tree). This contains

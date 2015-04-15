@@ -55,6 +55,7 @@ import com.google.common.collect.Maps;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.transform;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isRevisionNewer;
@@ -152,7 +153,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      * <p>
      * Key: high revision
      * <p>
-     * Value: low revision
+     * Value: low revision / height (see {@link Range#getLowValue()}
      */
     private static final String PREVIOUS = "_prev";
 
@@ -206,6 +207,13 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     public static final String PATH = "_path";
 
     public static final String HAS_BINARY_FLAG = "_bin";
+
+    /**
+     * Contains {@link #PREVIOUS} entries that are considered stale (pointing
+     * to a previous document that had been deleted) and should be removed
+     * during the next split run.
+     */
+    private static final String STALE_PREV = "_stalePrev";
 
     //~----------------------------< Split Document Types >
 
@@ -312,7 +320,8 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     final DocumentStore store;
 
     /**
-     * Parsed and sorted set of previous revisions.
+     * Parsed and sorted set of previous revisions (without stale references
+     * to removed previous documents).
      */
     private NavigableMap<Revision, Range> previous;
 
@@ -793,13 +802,18 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             if (!Utils.isPropertyName(key)) {
                 continue;
             }
+            // ignore when local map is empty (OAK-2442)
+            SortedMap<Revision, String> local = getLocalMap(key);
+            if (local.isEmpty()) {
+                continue;
+            }
             // first check local map, which contains most recent values
-            Value value = getLatestValue(nodeStore, getLocalMap(key),
+            Value value = getLatestValue(nodeStore, local,
                     min, readRevision, validRevisions, lastRevs);
 
             // check if there may be more recent values in a previous document
-            if (value != null && !getPreviousRanges().isEmpty()) {
-                Revision newest = getLocalMap(key).firstKey();
+            if (!getPreviousRanges().isEmpty()) {
+                Revision newest = local.firstKey();
                 if (isRevisionNewer(nodeStore, newest, value.revision)) {
                     // not reading the most recent value, we may need to
                     // consider previous documents as well
@@ -894,13 +908,13 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
         // check local deleted map first
         Value value = getLatestValue(context, getLocalDeleted(),
                 null, maxRev, validRevisions, lastRevs);
-        if (value == null && !getPreviousRanges().isEmpty()) {
+        if (value.value == null && !getPreviousRanges().isEmpty()) {
             // need to check complete map
             value = getLatestValue(context, getDeleted(),
                     null, maxRev, validRevisions, lastRevs);
         }
 
-        return value != null && "false".equals(value.value) ? value.revision : null;
+        return "false".equals(value.value) ? value.revision : null;
     }
 
     /**
@@ -911,22 +925,30 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      * @param baseRevision the base revision for the update operation.
      * @param commitRevision the commit revision of the update operation.
      * @param context the revision context.
+     * @param enableConcurrentAddRemove feature flag for OAK-2673.
      * @return <code>true</code> if conflicting, <code>false</code> otherwise.
      */
     boolean isConflicting(@Nonnull UpdateOp op,
-                                 @Nonnull Revision baseRevision,
-                                 @Nonnull Revision commitRevision,
-                                 @Nonnull RevisionContext context) {
+                          @Nonnull Revision baseRevision,
+                          @Nonnull Revision commitRevision,
+                          @Nonnull RevisionContext context,
+                          boolean enableConcurrentAddRemove) {
         // did existence of node change after baseRevision?
         // only check local deleted map, which contains the most
         // recent values
         Map<Revision, String> deleted = getLocalDeleted();
+        boolean allowConflictingDeleteChange =
+                enableConcurrentAddRemove && allowConflictingDeleteChange(op);
         for (Map.Entry<Revision, String> entry : deleted.entrySet()) {
             if (entry.getKey().equals(commitRevision)) {
                 continue;
             }
+
             if (isRevisionNewer(context, entry.getKey(), baseRevision)) {
-                return true;
+                boolean newerDeleted = Boolean.parseBoolean(entry.getValue());
+                if (!allowConflictingDeleteChange || op.isDelete() != newerDeleted) {
+                    return true;
+                }
             }
         }
 
@@ -935,7 +957,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                 continue;
             }
             String name = entry.getKey().getName();
-            if (DELETED.equals(name)) {
+            if (DELETED.equals(name) && !allowConflictingDeleteChange) {
                 // existence of node changed, this always conflicts with
                 // any other concurrent change
                 return true;
@@ -957,6 +979,55 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     }
 
     /**
+     * Utility method to check if {@code op} can be allowed to change
+     * {@link #DELETED} property. Basic idea is that a change in
+     * {@link #DELETED} property should be consistent if final value is same
+     * and there are no observation semantic change. Thus, this method tries to
+     * be very conservative and allows delete iff:
+     * <ul>
+     *     <li>{@code doc} represents and internal path</li>
+     *     <li>{@code op} represents an add or delete operation</li>
+     *     <li>{@code op} doesn't change add/delete any exposed property</li>
+     *     <li>{@code doc} doesn't have any exposed property</li>
+     * </ul>
+     * <i>
+     * Note: This method is a broad level check if we can allow such conflict
+     * resolution. Actual cases, like allow-delete-delete, allow-add-add wrt to
+     * revision are not handled here.
+     * </i>
+     * @param op {@link UpdateOp} instance having changes to check {@code doc} against
+     * @return if conflicting change in {@link #DELETED} property is allowed
+     */
+    private boolean allowConflictingDeleteChange(UpdateOp op) {
+        String path = getPath();
+        if (!Utils.isHiddenPath(path)) {
+            return false;
+        }
+
+        if (!op.isNew() && !op.isDelete()) {
+            return false;//only handle added/delete operations
+        }
+
+        for (Key opKey : op.getChanges().keySet()) {
+            String name = opKey.getName();
+            if (Utils.isPropertyName(name)) {
+                return false; //only handle changes to internal properties
+            }
+        }
+
+        // Only look at local data ...
+        // even remotely updated properties should have an entry (although invisible)
+        // by the time we are looking for conflicts
+        for (String dataKey : keySet()) {
+            if (Utils.isPropertyName(dataKey)) {
+                return false; //only handle changes to internal properties
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Returns update operations to split this document. The implementation may
      * decide to not return any operations if no splitting is required.
      *
@@ -970,27 +1041,67 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
 
     /**
      * Returns previous revision ranges for this document. The revision keys are
-     * sorted descending, newest first!
+     * sorted descending, newest first! The returned map does not include stale
+     * entries.
+     * This method is equivalent to calling {@link #getPreviousRanges(boolean)}
+     * with {@code includeStale} set to false.
      *
      * @return the previous ranges for this document.
      */
     @Nonnull
     NavigableMap<Revision, Range> getPreviousRanges() {
-        if (previous == null) {
-            Map<Revision, String> map = getLocalMap(PREVIOUS);
-            if (map.isEmpty()) {
-                previous = EMPTY_RANGE_MAP;
-            } else {
-                NavigableMap<Revision, Range> transformed = new TreeMap<Revision, Range>(
-                        StableRevisionComparator.REVERSE);
-                for (Map.Entry<Revision, String> entry : map.entrySet()) {
-                    Range r = Range.fromEntry(entry.getKey(), entry.getValue());
-                    transformed.put(r.high, r);
-                }
-                previous = Maps.unmodifiableNavigableMap(transformed);
+        return getPreviousRanges(false);
+    }
+
+    /**
+     * Returns previous revision ranges for this document. The revision keys are
+     * sorted descending, newest first!
+     *
+     * @param includeStale whether stale revision ranges are included or not.
+     * @return the previous ranges for this document.
+     */
+    @Nonnull
+    NavigableMap<Revision, Range> getPreviousRanges(boolean includeStale) {
+        if (includeStale) {
+            return createPreviousRanges(true);
+        } else {
+            if (previous == null) {
+                previous = createPreviousRanges(false);
             }
+            return previous;
         }
-        return previous;
+    }
+
+    /**
+     * Creates a map with previous revision ranges for this document. The
+     * revision keys are sorted descending, newest first!
+     *
+     * @param includeStale whether stale revision ranges are included or not.
+     * @return the previous ranges for this document.
+     */
+    @Nonnull
+    private NavigableMap<Revision, Range> createPreviousRanges(boolean includeStale) {
+        NavigableMap<Revision, Range> ranges;
+        Map<Revision, String> map = getLocalMap(PREVIOUS);
+        if (map.isEmpty()) {
+            ranges = EMPTY_RANGE_MAP;
+        } else {
+            Map<Revision, String> stale = Collections.emptyMap();
+            if (!includeStale) {
+                stale = getLocalMap(STALE_PREV);
+            }
+            NavigableMap<Revision, Range> transformed = new TreeMap<Revision, Range>(
+                    StableRevisionComparator.REVERSE);
+            for (Map.Entry<Revision, String> entry : map.entrySet()) {
+                Range r = Range.fromEntry(entry.getKey(), entry.getValue());
+                if (String.valueOf(r.height).equals(stale.get(r.high))) {
+                    continue;
+                }
+                transformed.put(r.high, r);
+            }
+            ranges = Maps.unmodifiableNavigableMap(transformed);
+        }
+        return ranges;
     }
 
     /**
@@ -1094,6 +1205,40 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     }
 
     /**
+     * Returns the document that contains a reference to the previous document
+     * identified by {@code revision} and {@code height}. This is either the
+     * current document or an intermediate split document. This method returns
+     * {@code null} if there is no such reference.
+     *
+     * @param revision the high revision of a range entry in {@link #PREVIOUS}.
+     * @param height the height of the entry in {@link #PREVIOUS}.
+     * @return the document with the entry or {@code null} if not found.
+     */
+    @Nullable
+    NodeDocument findPrevReferencingDoc(Revision revision, int height) {
+        for (Range range : getPreviousRanges().values()) {
+            if (range.getHeight() == height && range.high.equals(revision)) {
+                return this;
+            } else if (range.includes(revision)) {
+                String prevId = Utils.getPreviousIdFor(
+                        getMainPath(), range.high, range.height);
+                NodeDocument prev = store.find(NODES, prevId);
+                if (prev == null) {
+                    LOG.warn("Split document {} does not exist anymore. Main document is {}",
+                            prevId, Utils.getIdFromPath(getMainPath()));
+                    continue;
+                }
+                // recurse into the split hierarchy
+                NodeDocument doc = prev.findPrevReferencingDoc(revision, height);
+                if (doc != null) {
+                    return doc;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
      * Returns the local value map for the given key.
      *
      * @param key the key.
@@ -1125,6 +1270,11 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     @Nonnull
     SortedMap<Revision, String> getLocalDeleted() {
         return getLocalMap(DELETED);
+    }
+
+    @Nonnull
+    SortedMap<Revision, String> getStalePrev() {
+        return getLocalMap(STALE_PREV);
     }
 
     //-------------------------< UpdateOp modifiers >---------------------------
@@ -1223,7 +1373,24 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
 
     public static void removePrevious(@Nonnull UpdateOp op,
                                       @Nonnull Range range) {
-        checkNotNull(op).removeMapEntry(PREVIOUS, checkNotNull(range).high);
+        removePrevious(op, checkNotNull(range).high);
+    }
+
+    public static void removePrevious(@Nonnull UpdateOp op,
+                                      @Nonnull Revision revision) {
+        checkNotNull(op).removeMapEntry(PREVIOUS, checkNotNull(revision));
+    }
+
+    public static void setStalePrevious(@Nonnull UpdateOp op,
+                                        @Nonnull Revision revision,
+                                        int height) {
+        checkNotNull(op).setMapEntry(STALE_PREV,
+                checkNotNull(revision), String.valueOf(height));
+    }
+
+    public static void removeStalePrevious(@Nonnull UpdateOp op,
+                                           @Nonnull Revision revision) {
+        checkNotNull(op).removeMapEntry(STALE_PREV, checkNotNull(revision));
     }
 
     public static void setHasBinary(@Nonnull UpdateOp op) {
@@ -1435,10 +1602,12 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
 
     /**
      * Get the latest property value that is larger or equal the min revision,
-     * and smaller or equal the readRevision revision. A {@code null} return
-     * value indicates that the property was not set or removed within the given
-     * range. A non-null value means the the property was either set or removed
-     * depending on {@link Value#value}.
+     * and smaller or equal the readRevision revision. The returned value will
+     * provide the revision when the value was set between the {@code min} and
+     * {@code readRevision}. The returned value will have a {@code null} value
+     * contained if there is no valid change within the given range. In this
+     * case the associated revision is {@code min} or {@code readRevision} if
+     * no {@code min} is provided.
      *
      * @param valueMap the sorted revision-value map
      * @param min the minimum revision (null meaning unlimited)
@@ -1446,9 +1615,9 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      * @param validRevisions map of revision to commit value considered valid
      *                       against the given readRevision.
      * @param lastRevs to keep track of the most recent modification.
-     * @return the value, or null if not found
+     * @return the latest value from the {@code readRevision} point of view.
      */
-    @CheckForNull
+    @Nonnull
     private Value getLatestValue(@Nonnull RevisionContext context,
                                  @Nonnull Map<Revision, String> valueMap,
                                  @Nullable Revision min,
@@ -1486,7 +1655,9 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                 return new Value(commitRev, entry.getValue());
             }
         }
-        return null;
+
+        Revision r = min != null ? min : readRevision;
+        return new Value(r, null);
     }
 
     @Override

@@ -18,13 +18,13 @@ package org.apache.jackrabbit.oak.plugins.index.solr.server;
 
 import java.io.File;
 import java.io.IOException;
-
 import javax.annotation.CheckForNull;
 
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.RemoteSolrServerConfiguration;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.CloudSolrServer;
+import org.apache.solr.client.solrj.impl.ConcurrentUpdateSolrServer;
 import org.apache.solr.client.solrj.impl.HttpSolrServer;
 import org.apache.solr.client.solrj.request.UpdateRequest;
 import org.apache.solr.client.solrj.response.SolrPingResponse;
@@ -43,7 +43,8 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
 
     private final RemoteSolrServerConfiguration remoteSolrServerConfiguration;
 
-    private SolrServer solrServer;
+    private SolrServer searchingSolrServer;
+    private SolrServer indexingSolrServer;
 
     public RemoteSolrServerProvider(RemoteSolrServerConfiguration remoteSolrServerConfiguration) {
         this.remoteSolrServerConfiguration = remoteSolrServerConfiguration;
@@ -52,7 +53,9 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
     @CheckForNull
     @Override
     public SolrServer getSolrServer() throws Exception {
-        if (solrServer == null && remoteSolrServerConfiguration.getSolrZkHost() != null && remoteSolrServerConfiguration.getSolrZkHost().length() > 0) {
+
+        SolrServer solrServer = null;
+        if (remoteSolrServerConfiguration.getSolrZkHost() != null && remoteSolrServerConfiguration.getSolrZkHost().length() > 0) {
             try {
                 solrServer = initializeWithCloudSolrServer();
             } catch (Exception e) {
@@ -70,7 +73,26 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
         if (solrServer == null) {
             throw new IOException("could not connect to any remote Solr server");
         }
+
         return solrServer;
+    }
+
+    @CheckForNull
+    @Override
+    public SolrServer getIndexingSolrServer() throws Exception {
+        SolrServer server = getSolrServer();
+
+        if (server instanceof HttpSolrServer) {
+            String url = ((HttpSolrServer) server).getBaseURL();
+            server = new ConcurrentUpdateSolrServer(url, 1000, Runtime.getRuntime().availableProcessors());
+        }
+        return server;
+    }
+
+    @CheckForNull
+    @Override
+    public SolrServer getSearchingSolrServer() throws Exception {
+        return getSolrServer();
     }
 
     private SolrServer initializeWithExistingHttpServer() throws IOException, SolrServerException {
@@ -127,8 +149,7 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
                 i++;
             }
             throw new IOException("the found SolrCloud server is not alive");
-        }
-        else {
+        } else {
             throw new IOException("could not connect to Zookeeper hosted at " + remoteSolrServerConfiguration.getSolrZkHost());
         }
 
@@ -178,6 +199,20 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
         } catch (Exception e) {
             log.warn("could not create collection {}", solrCollection);
             throw new SolrServerException(e);
+        }
+    }
+
+    @Override
+    public void close() throws IOException {
+        try {
+            searchingSolrServer.shutdown();
+        } catch (Exception e) {
+            // do nothing
+        }
+        try {
+            indexingSolrServer.shutdown();
+        } catch (Exception e) {
+            // do nothing
         }
     }
 }

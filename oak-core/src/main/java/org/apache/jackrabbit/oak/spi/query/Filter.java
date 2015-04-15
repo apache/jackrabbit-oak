@@ -52,8 +52,10 @@ public interface Filter {
     SelectorImpl getSelector();
 
     /**
-     * Get the list of property restrictions, if any.
-     *
+     * Get the list of property restrictions, if any. Each property may contain
+     * multiple restrictions, for example x=1 and x=2. For this case, only
+     * multi-valued properties match that contain both 1 and 2.
+     * 
      * @return the conditions (an empty collection if not used)
      */
     Collection<PropertyRestriction> getPropertyRestrictions();
@@ -74,7 +76,14 @@ public interface Filter {
     FullTextExpression getFullTextConstraint();
     
     QueryEngineSettings getQueryEngineSettings();
-    
+
+    /**
+     * check whether a certain (valid) path is accessible (can be read) from the user associated with the query Session
+     * @param path a valid JCR path
+     * @return <code>true</code> if path can be read by the calling user, <code>false</code> otherwise.
+     */
+    boolean isAccessible(String path);
+
     /**
      * Whether the filter contains a native condition.
      * 
@@ -83,12 +92,22 @@ public interface Filter {
     boolean containsNativeConstraint();
 
     /**
-     * Get the property restriction for the given property, if any.
-     *
+     * Get the most restrictive property restriction for the given property, if
+     * any.
+     * 
      * @param propertyName the property name
-     * @return the restriction, or null if there is no restriction for this property
+     * @return the first restriction, or null if there is no restriction for
+     *         this property
      */
     PropertyRestriction getPropertyRestriction(String propertyName);
+    
+    /**
+     * Get the all property restriction for the given property.
+     * 
+     * @param propertyName the property name
+     * @return the list of restrictions (possibly empty, never null)
+     */
+    List<PropertyRestriction> getPropertyRestrictions(String propertyName);
 
     /**
      * Get the path restriction type.
@@ -206,6 +225,14 @@ public interface Filter {
          * If not restricted, this field is set to PropertyType.UNDEFINED.
          */
         public int propertyType = PropertyType.UNDEFINED;
+        
+        public boolean isNullRestriction() {
+            return first == null && last == null && list == null && lastIncluding && firstIncluding;
+        }
+        
+        public boolean isNotNullRestriction() {
+            return first == null && last == null && list == null && !lastIncluding && !firstIncluding;
+        }
 
         @Override
         public String toString() {
@@ -229,6 +256,11 @@ public interface Filter {
         }
         
         private String toStringFromTo() {
+            if (isNullRestriction()) {
+                return "is null";
+            } else if (isNotNullRestriction()) {
+                return "is not null";
+            }
             String f = first == null ? "" : first.toString();
             String l = last == null ? "" : last.toString();
             if (f.equals(l)) {
@@ -238,7 +270,99 @@ public interface Filter {
             String li = last == null ? "" : (lastIncluding ? "]" : ")");
             return fi + f + ".." + l + li;
         }
+        
+        /**
+         * How restrictive a condition is.
+         * 
+         * @return 0 for "is not null", 10 for equality, and 5 for everything
+         *         else
+         */
+        public int sortOrder() {
+            if (first == null && last == null) {
+                if (list == null) {
+                    return 0;
+                }
+                return 5;
+            }
+            if (first == last) {
+                return 10;
+            }
+            return 5;
+        }
 
+        @Override
+        public int hashCode() {
+            // generated code (Eclipse)
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + ((first == null) ? 0 : first.hashCode());
+            result = prime * result + (firstIncluding ? 1231 : 1237);
+            result = prime * result + (isLike ? 1231 : 1237);
+            result = prime * result + ((last == null) ? 0 : last.hashCode());
+            result = prime * result + (lastIncluding ? 1231 : 1237);
+            result = prime * result + ((list == null) ? 0 : list.hashCode());
+            result = prime * result +
+                    ((propertyName == null) ? 0 : propertyName.hashCode());
+            result = prime * result + propertyType;
+            return result;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            // generated code (Eclipse)
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            PropertyRestriction other = (PropertyRestriction) obj;
+            if (first == null) {
+                if (other.first != null) {
+                    return false;
+                }
+            } else if (!first.equals(other.first)) {
+                return false;
+            }
+            if (firstIncluding != other.firstIncluding) {
+                return false;
+            }
+            if (isLike != other.isLike) {
+                return false;
+            }
+            if (last == null) {
+                if (other.last != null) {
+                    return false;
+                }
+            } else if (!last.equals(other.last)) {
+                return false;
+            }
+            if (lastIncluding != other.lastIncluding) {
+                return false;
+            }
+            if (list == null) {
+                if (other.list != null) {
+                    return false;
+                }
+            } else if (!list.equals(other.list)) {
+                return false;
+            }
+            if (propertyName == null) {
+                if (other.propertyName != null) {
+                    return false;
+                }
+            } else if (!propertyName.equals(other.propertyName)) {
+                return false;
+            }
+            if (propertyType != other.propertyType) {
+                return false;
+            }
+            return true;
+        }
+        
     }
 
     /**

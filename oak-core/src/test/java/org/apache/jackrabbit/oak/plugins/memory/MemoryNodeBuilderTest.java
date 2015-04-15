@@ -572,7 +572,7 @@ public class MemoryNodeBuilderTest {
             }
 
             @Override
-            public boolean hasChildNode(String name) {
+            public boolean hasChildNode(@Nonnull String name) {
                 return "c".equals(name);
             }
 

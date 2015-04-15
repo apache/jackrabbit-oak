@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.server;
 
+import java.io.Closeable;
 import javax.annotation.CheckForNull;
 
 import org.apache.solr.client.solrj.SolrServer;
@@ -23,14 +24,35 @@ import org.apache.solr.client.solrj.SolrServer;
 /**
  * Provider of {@link org.apache.solr.client.solrj.SolrServer}s instances
  */
-public interface SolrServerProvider {
+public interface SolrServerProvider extends Closeable {
 
     /**
-     * provides an already initialized {@link org.apache.solr.client.solrj.SolrServer} to be used from within Oak
+     * provides an already initialized {@link org.apache.solr.client.solrj.SolrServer} to be used for either searching or
+     * indexing, or both.
      *
      * @return a {@link org.apache.solr.client.solrj.SolrServer} instance
-     * @throws Exception if anything goes wrong while providing the {@link org.apache.solr.client.solrj.SolrServer}
+     * @throws Exception if anything goes wrong while initializing the {@link org.apache.solr.client.solrj.SolrServer}
      */
     @CheckForNull
-    public SolrServer getSolrServer() throws Exception;
+    SolrServer getSolrServer() throws Exception;
+
+    /**
+     * provides an already initialized {@link org.apache.solr.client.solrj.SolrServer} specifically configured to be
+     * used for indexing.
+     *
+     * @return a {@link org.apache.solr.client.solrj.SolrServer} instance
+     * @throws Exception if anything goes wrong while initializing the {@link org.apache.solr.client.solrj.SolrServer}
+     */
+    @CheckForNull
+    SolrServer getIndexingSolrServer() throws Exception;
+
+    /**
+     * provides an already initialized {@link org.apache.solr.client.solrj.SolrServer} specifically configured to be
+     * used for searching.
+     *
+     * @return a {@link org.apache.solr.client.solrj.SolrServer} instance
+     * @throws Exception if anything goes wrong while initializing the {@link org.apache.solr.client.solrj.SolrServer}
+     */
+    @CheckForNull
+    SolrServer getSearchingSolrServer() throws Exception;
 }

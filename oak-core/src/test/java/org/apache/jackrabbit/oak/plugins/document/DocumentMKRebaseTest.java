@@ -26,7 +26,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Tests for {@code MicroKernel#rebase}
+ * Tests for {@code NodeStore#rebase}
  * FIXME: this is copied from MicroKernelImplTest. Factor out.
  */
 public class DocumentMKRebaseTest extends BaseDocumentMKTest {

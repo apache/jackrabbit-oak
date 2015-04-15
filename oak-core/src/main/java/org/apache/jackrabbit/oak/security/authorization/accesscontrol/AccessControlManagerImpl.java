@@ -379,7 +379,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
 
     //--------------------------------------------------------< PolicyOwner >---
     @Override
-    public boolean defines(String absPath, AccessControlPolicy accessControlPolicy) {
+    public boolean defines(String absPath, @Nonnull AccessControlPolicy accessControlPolicy) {
         try {
             return Util.isValidPolicy(getOakPath(absPath), accessControlPolicy);
         } catch (RepositoryException e) {

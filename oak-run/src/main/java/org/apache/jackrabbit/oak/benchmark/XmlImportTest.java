@@ -44,8 +44,6 @@ public class XmlImportTest extends AbstractTest {
 
     @Override
     protected void afterTest() throws Exception {
-        testRoot.remove();
-        adminSession.save();
         adminSession.logout();
     }
 }

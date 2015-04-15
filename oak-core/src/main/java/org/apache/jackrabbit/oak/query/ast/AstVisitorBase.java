@@ -82,6 +82,24 @@ public abstract class AstVisitorBase implements AstVisitor {
         node.getPathExpression().accept(this);
         return true;
     }
+    
+    /**
+     * Calls accept on the static operand in the spellcheck search constraint.
+     */
+    @Override
+    public boolean visit(SpellcheckImpl node) {
+        node.getExpression().accept(this);
+        return true;
+    }
+
+    /**
+     * Calls accept on the static operand in the suggest search constraint.
+     */
+    @Override
+    public boolean visit(SuggestImpl node) {
+        node.getExpression().accept(this);
+        return true;
+    }
 
     /**
      * Calls accept on the two sources and the join condition in the join node.

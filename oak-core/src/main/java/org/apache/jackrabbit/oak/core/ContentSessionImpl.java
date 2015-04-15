@@ -38,7 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * {@code MicroKernel}-based implementation of the {@link ContentSession} interface.
+ * {@code NodeStore}-based implementation of the {@link ContentSession} interface.
  */
 class ContentSessionImpl implements ContentSession {
 

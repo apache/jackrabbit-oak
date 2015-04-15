@@ -60,6 +60,8 @@ public class BenchmarkRunner {
                 .withOptionalArg().defaultsTo("");
         OptionSpec<String> rdbjdbcpasswd = parser.accepts("rdbjdbcpasswd", "RDB JDBC password")
                 .withOptionalArg().defaultsTo("");
+        OptionSpec<String> rdbjdbctableprefix = parser.accepts("rdbjdbctableprefix", "RDB JDBC table prefix")
+                .withOptionalArg().defaultsTo("");
         OptionSpec<Boolean> mmap = parser.accepts("mmap", "TarMK memory mapping")
                 .withOptionalArg().ofType(Boolean.class)
                 .defaultsTo("64".equals(System.getProperty("sun.arch.data.model")));
@@ -77,6 +79,9 @@ public class BenchmarkRunner {
         OptionSpec<Boolean> withStorage = parser
                 .accepts("storage", "Index storage enabled").withOptionalArg()
                 .ofType(Boolean.class);
+        OptionSpec<String> withServer = parser
+                .accepts("server", "Solr server host").withOptionalArg()
+                .ofType(String.class);
         OptionSpec<Boolean> runAsAdmin = parser.accepts("runAsAdmin", "Run test using admin session")
                 .withRequiredArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
         OptionSpec<String> runAsUser = parser.accepts("runAsUser", "Run test using admin, anonymous or a test user")
@@ -85,6 +90,10 @@ public class BenchmarkRunner {
                 .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
         OptionSpec<Integer> noIterations = parser.accepts("noIterations", "Change default 'passwordHashIterations' parameter.")
                 .withOptionalArg().ofType(Integer.class).defaultsTo(AbstractLoginTest.DEFAULT_ITERATIONS);
+        OptionSpec<Integer> numberOfGroups = parser.accepts("numberOfGroups", "Number of groups to create.")
+                        .withOptionalArg().ofType(Integer.class).defaultsTo(LoginWithMembershipTest.NUMBER_OF_GROUPS_DEFAULT);
+        OptionSpec<Boolean> nestedGroups = parser.accepts("nestedGroups", "Use nested groups.")
+                        .withOptionalArg().ofType(Boolean.class).defaultsTo(false);
         OptionSpec<Integer> itemsToRead = parser.accepts("itemsToRead", "Number of items to read")
                 .withRequiredArg().ofType(Integer.class).defaultsTo(1000);
         OptionSpec<Integer> concurrency = parser.accepts("concurrency", "Number of test threads.")
@@ -101,6 +110,9 @@ public class BenchmarkRunner {
                 .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
         OptionSpec<Integer> numberOfUsers = parser.accepts("numberOfUsers")
                 .withOptionalArg().ofType(Integer.class).defaultsTo(10000);
+        OptionSpec<Boolean> setScope = parser.accepts("setScope", "Whether to use include setScope in the user query.")
+                        .withOptionalArg().ofType(Boolean.class)
+                        .defaultsTo(Boolean.FALSE);
         OptionSpec<String> nonOption = parser.nonOptions();
         OptionSpec help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
         OptionSet options = parser.parse(args);
@@ -128,18 +140,13 @@ public class BenchmarkRunner {
                         host.value(options), port.value(options),
                         dbName.value(options), dropDBAfterTest.value(options),
                         cacheSize * MB),
-                OakRepositoryFixture.getMongoMK(
-                        host.value(options), port.value(options),
-                        dbName.value(options), dropDBAfterTest.value(options),
-                        cacheSize * MB),
                 OakRepositoryFixture.getTar(
                         base.value(options), 256, cacheSize, mmap.value(options)),
                 OakRepositoryFixture.getTarWithBlobStore(
                         base.value(options), 256, cacheSize, mmap.value(options)),
-                OakRepositoryFixture.getRDB(rdbjdbcuri.value(options),
-                        rdbjdbcuser.value(options), rdbjdbcpasswd.value(options),
-                        dropDBAfterTest.value(options), cacheSize * MB)
-                        };
+                OakRepositoryFixture.getRDB(rdbjdbcuri.value(options), rdbjdbcuser.value(options),
+                        rdbjdbcpasswd.value(options), rdbjdbctableprefix.value(options), 
+                        dropDBAfterTest.value(options), cacheSize * MB) };
         Benchmark[] allBenchmarks = new Benchmark[] {
             new OrderedIndexQueryOrderedIndexTest(),
             new OrderedIndexQueryStandardIndexTest(),
@@ -161,6 +168,15 @@ public class BenchmarkRunner {
                     noIterations.value(options)),
             new LoginSystemTest(),
             new LoginImpersonateTest(),
+            new LoginWithMembershipTest(
+                    runWithToken.value(options),
+                    noIterations.value(options),
+                    numberOfGroups.value(options),
+                    nestedGroups.value(options)),
+            new LoginWithMembersTest(
+                    runWithToken.value(options),
+                    noIterations.value(options),
+                    numberOfGroups.value(options)),
             new NamespaceTest(),
             new NamespaceRegistryTest(),
             new ReadPropertyTest(),
@@ -263,7 +279,12 @@ public class BenchmarkRunner {
             new FullTextSearchTest(
                     wikipedia.value(options),
                     flatStructure.value(options),
-                    report.value(options), withStorage.value(options))
+                    report.value(options), withStorage.value(options)),
+            new FullTextSolrSearchTest(
+                    wikipedia.value(options),
+                    flatStructure.value(options),
+                    report.value(options), withStorage.value(options), withServer.value(options)),
+            new FindAuthorizableWithScopeTest(numberOfUsers.value(options), setScope.value(options))
         };
 
         Set<String> argset = Sets.newHashSet(nonOption.values(options));

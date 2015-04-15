@@ -17,10 +17,9 @@
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
@@ -62,7 +61,7 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
 
         testAction.reset();
         pwAction.init(getSecurityProvider(), ConfigurationParameters.of(
-                Collections.singletonMap(PasswordValidationAction.CONSTRAINT, "^.*(?=.{8,})(?=.*[a-z])(?=.*[A-Z]).*")));
+                PasswordValidationAction.CONSTRAINT, "^.*(?=.{8,})(?=.*[a-z])(?=.*[A-Z]).*"));
 
     }
 
@@ -143,7 +142,7 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
         testUser = getUserManager(root).createUser("testuser", "testPw123456");
         root.commit();
         try {
-            pwAction.init(getSecurityProvider(), ConfigurationParameters.of(Collections.singletonMap(PasswordValidationAction.CONSTRAINT, "abc")));
+            pwAction.init(getSecurityProvider(), ConfigurationParameters.of(PasswordValidationAction.CONSTRAINT, "abc"));
 
             String hashed = PasswordUtil.buildPasswordHash("abc");
             testUser.changePassword(hashed);
@@ -167,12 +166,12 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
         }
 
         @Override
-        public void onCreate(User user, String password, Root root, NamePathMapper namePathMapper) throws RepositoryException {
+        public void onCreate(@Nonnull User user, @Nullable String password, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
             onCreateCalled++;
         }
 
         @Override
-        public void onPasswordChange(User user, String newPassword, Root root, NamePathMapper namePathMapper) throws RepositoryException {
+        public void onPasswordChange(@Nonnull User user, @Nullable String newPassword, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
             onPasswordChangeCalled++;
         }
     }
@@ -183,6 +182,7 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
 
         private TestSecurityProvider() {
             actionProvider = new AuthorizableActionProvider() {
+                @Nonnull
                 @Override
                 public List<? extends AuthorizableAction> getAuthorizableActions(@Nonnull SecurityProvider securityProvider) {
                     return ImmutableList.of(pwAction, testAction);
@@ -190,14 +190,15 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
             };
         }
 
-        public <T> T getConfiguration(Class<T> configClass) {
+        @Nonnull
+        public <T> T getConfiguration(@Nonnull Class<T> configClass) {
             if (UserConfiguration.class == configClass) {
                 return (T) new UserConfigurationImpl(this) {
                     @Nonnull
                     @Override
                     public ConfigurationParameters getParameters() {
-                        Map<String, AuthorizableActionProvider> m = Collections.singletonMap(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider);
-                        return ConfigurationParameters.of(super.getParameters(), ConfigurationParameters.of(m));
+                        return ConfigurationParameters.of(super.getParameters(),
+                                ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider));
                     }
                 };
             } else {

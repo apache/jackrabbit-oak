@@ -57,7 +57,7 @@ public class RandomAuthorizableNodeNameTest extends AbstractSecurityTest {
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         ConfigurationParameters userConfig = ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, nameGenerator);
-        return ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, userConfig));
+        return ConfigurationParameters.of(UserConfiguration.NAME, userConfig);
     }
 
     private void assertNodeName(Authorizable authorizable) throws RepositoryException {

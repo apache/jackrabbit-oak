@@ -86,11 +86,13 @@ public class ImmutableACL extends AbstractAccessControlList {
     }
 
     //------------------------------------------< AbstractAccessControlList >---
+    @Nonnull
     @Override
     public List<JackrabbitAccessControlEntry> getEntries() {
         return entries;
     }
 
+    @Nonnull
     @Override
     public RestrictionProvider getRestrictionProvider() {
         return restrictionProvider;

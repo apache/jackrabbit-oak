@@ -95,12 +95,13 @@ Further Oak ships with multiple BlobStore implementations
    chunks. Mostly used when blobs have to shared between multiple repositories. Also used by 
    default when migrating Jackrabbit 2 repositories to Oak
 4. `S3DataStore` (with wrapper) - Stores the file in Amazon S3
+5. `RDBBlobStore` - Store the file contents in chunks in a relational databases. Typically used with
+   `DocumentNodeStore`when using a relational DB persistence
 
 In addition there are some more implementations which are considered **experimental**
 
-1. `RDBBlobStore` - Stores the file chunks in database
-2. `CloudBlobStore` - Stores the file file chunks in cloud storage using the [JClouds BlobStore API][3].
-3. `MongoGridFSBlobStore` - Stores the file chunks in Mongo using GridFS support
+1. `CloudBlobStore` - Stores the file file chunks in cloud storage using the [JClouds BlobStore API][3].
+2. `MongoGridFSBlobStore` - Stores the file chunks in Mongo using GridFS support
 
 
 Depending on NodeStore type and usage requirement these can be configured to use 

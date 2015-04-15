@@ -26,6 +26,8 @@ import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.query.InvalidQueryException;
 import javax.jcr.query.Query;
+import javax.jcr.query.QueryResult;
+import javax.jcr.query.RowIterator;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
@@ -33,6 +35,15 @@ import org.apache.jackrabbit.core.query.AbstractQueryTest;
 
 public class TextExtractionQueryTest extends AbstractQueryTest {
 
+    public void testScoreWithoutFulltext() throws Exception {
+        System.out.println(Query.JCR_SQL2);
+        QueryResult r = executeSQL2Query("select [jcr:path] from [nt:base] order by [jcr:score]");
+        RowIterator it = r.getRows();
+        while (it.hasNext()) {
+            it.nextRow();
+        }
+    }
+    
     public void testFileContains() throws Exception {
         assertFileContains("test.txt", "text/plain",
                 "AE502DBEA2C411DEBD340AD156D89593");

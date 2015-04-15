@@ -39,17 +39,28 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
 
     private static final long DEFAULT_SIZE = 250;
 
+    /**
+     * The set of principal names for which this {@code PermissionEntryProvider}
+     * has been created.
+     */
     private final Set<String> principalNames;
 
+    /**
+     * The set of principal names for which the store contains any permission
+     * entries. This set is equals or just a subset of the {@code principalNames}
+     * defined above. The methods collecting the entries will shortcut in case
+     * this set is empty and thus no permission entries exist for the specified
+     * set of principal.
+     */
     private final Set<String> existingNames = new HashSet<String>();
-
-    private Map<String, Collection<PermissionEntry>> pathEntryMap;
 
     private final PermissionStore store;
 
     private final PermissionEntryCache cache;
 
     private final long maxSize;
+
+    private Map<String, Collection<PermissionEntry>> pathEntryMap;
 
     PermissionEntryProviderImpl(@Nonnull PermissionStore store, @Nonnull PermissionEntryCache cache,
                                 @Nonnull Set<String> principalNames, @Nonnull ConfigurationParameters options) {
@@ -63,17 +74,37 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
     private void init() {
         long cnt = 0;
         existingNames.clear();
-        for (String name: principalNames) {
+        for (String name : principalNames) {
             long n = cache.getNumEntries(store, name, maxSize);
-            cnt+= n;
+            /*
+            if cache.getNumEntries (n) returns a number bigger than 0, we
+            remember this principal name int the 'existingNames' set
+            */
             if (n > 0) {
                 existingNames.add(name);
             }
+            /*
+            Calculate the total number of permission entries (cnt) defined for the
+            given set of principals in order to be able to determine if the cache
+            should be loaded upfront.
+            Note however that cache.getNumEntries (n) may return Long.MAX_VALUE
+            if the underlying implementation does not know the exact value, and
+            the child node count is higher than maxSize (see OAK-2465).
+            */                        
+            if (cnt < Long.MAX_VALUE) {
+                if (Long.MAX_VALUE == n) {
+                    cnt = Long.MAX_VALUE;
+                } else {
+                    cnt = safeAdd(cnt, n);
+                }
+            }
         }
-        if (cnt < maxSize) {
-            // cache all entries of all principals
+
+        if (cnt > 0 && cnt < maxSize) {
+            // the total number of entries is smaller that maxSize, so we can
+            // cache all entries for all principals having any entries right away
             pathEntryMap = new HashMap<String, Collection<PermissionEntry>>();
-            for (String name: principalNames) {
+            for (String name : existingNames) {
                 cache.load(store, pathEntryMap, name);
             }
         } else {
@@ -124,10 +155,29 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
     @Nonnull
     private Collection<PermissionEntry> loadEntries(@Nonnull String path) {
         Collection<PermissionEntry> ret = new TreeSet<PermissionEntry>();
-        for (String name: existingNames) {
+        for (String name : existingNames) {
             cache.load(store, ret, name, path);
         }
         return ret;
+    }
+
+    /**
+     * Sums {@code a} and {@code b} and verifies that it doesn't overflow in
+     * signed long arithmetic, in which case {@link Long#MAX_VALUE} will be
+     * returned instead of the result.
+     *
+     * Note: this method is a variant of {@link com.google.common.math.LongMath#checkedAdd(long, long)}
+     * that returns {@link Long#MAX_VALUE} instead of throwing {@code ArithmeticException}.
+     *
+     * @see com.google.common.math.LongMath#checkedAdd(long, long)
+     */
+    private static long safeAdd(long a, long b) {
+        long result = a + b;
+        if ((a ^ b) < 0 | (a ^ result) >= 0) {
+            return result;
+        } else {
+            return Long.MAX_VALUE;
+        }
     }
 
     private final class EntryIterator extends AbstractLazyIterator<PermissionEntry> {

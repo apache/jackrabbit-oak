@@ -17,9 +17,11 @@
 package org.apache.jackrabbit.oak.plugins.document.blob.ds;
 
 import java.io.File;
+import java.util.Date;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.MongoBlobGCTest;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
@@ -33,6 +35,9 @@ import org.junit.BeforeClass;
  * 
  */
 public class MongoDataStoreBlobGCTest extends MongoBlobGCTest {
+    Date startDate;
+    DataStoreBlobStore blobStore;
+
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
         try {
@@ -45,16 +50,19 @@ public class MongoDataStoreBlobGCTest extends MongoBlobGCTest {
     @Before
     @Override
     public void setUpConnection() throws Exception {
+        startDate = new Date();
         mongoConnection = MongoUtils.getConnection();
         MongoUtils.dropCollections(mongoConnection.getDB());
+        blobStore = DataStoreUtils.getBlobStore();
         mk = new DocumentMK.Builder().clock(getTestClock()).setMongoDB(mongoConnection.getDB())
-                .setBlobStore(DataStoreUtils.getBlobStore()).open();
+                .setBlobStore(blobStore).open();
     }
 
     @After
     @Override
     public void tearDownConnection() throws Exception {
-        FileUtils.deleteDirectory(new File(DataStoreUtils.PATH));
+        DataStoreUtils.cleanup(blobStore.getDataStore(), startDate);
+        FileUtils.deleteDirectory(new File(DataStoreUtils.getHomeDir()));
         mk.dispose();
         // the db might already be closed
         mongoConnection.close();

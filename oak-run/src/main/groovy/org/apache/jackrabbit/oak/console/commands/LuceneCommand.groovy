@@ -21,16 +21,14 @@ package org.apache.jackrabbit.oak.console.commands
 
 import com.google.common.base.Stopwatch
 import org.apache.jackrabbit.oak.commons.PathUtils
+import org.apache.jackrabbit.oak.console.ConsoleSession
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition
 import org.apache.jackrabbit.oak.plugins.index.lucene.OakDirectory
-import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider
-import org.apache.jackrabbit.oak.Oak
-import org.apache.jackrabbit.oak.api.Tree
-import org.apache.jackrabbit.oak.api.Root
-import org.apache.jackrabbit.oak.api.ContentSession
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder
 import org.apache.jackrabbit.oak.spi.state.NodeState
 import org.apache.jackrabbit.oak.spi.state.NodeStore
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder
 import org.apache.lucene.index.DirectoryReader
 import org.apache.lucene.store.Directory
@@ -38,14 +36,18 @@ import org.apache.lucene.store.FSDirectory
 import org.apache.lucene.store.IOContext
 import org.codehaus.groovy.tools.shell.ComplexCommandSupport
 import org.codehaus.groovy.tools.shell.Groovysh
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder as OakNodeBuilder
 
+import javax.annotation.Nonnull
+
+import static com.google.common.base.Preconditions.checkNotNull
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME
 
 class LuceneCommand extends ComplexCommandSupport {
     public static final String COMMAND_NAME = 'lucene'
 
     public LuceneCommand(final Groovysh shell) {
-        super(shell, COMMAND_NAME, 'lc', ['info', 'dump','rmdata'], 'info')
+        super(shell, COMMAND_NAME, 'lc', ['info', 'rmdata', 'dump'], 'info')
     }
 
     def do_info = { args ->
@@ -69,12 +71,6 @@ class LuceneCommand extends ComplexCommandSupport {
             dir.close()
         }
     }
-
-    def do_rmdata = { args ->
-        String idxPath = args ? args[0] : '/oak:index/lucene'
-		removeIndexDataNode(idxPath)
-    }
-
 
     def do_dump = { args ->
         String idxPath = args && args.size() == 2 ? args[1] : '/oak:index/lucene'
@@ -100,6 +96,25 @@ class LuceneCommand extends ComplexCommandSupport {
         }
     }
 
+    def do_rmdata = {args ->
+        String idxPath = args && args.size() == 2 ? args[1] : '/oak:index/lucene'
+
+        NodeStore ns = getSession().getStore();
+        OakNodeBuilder nb = ns.root.builder()
+        String dataPath = idxPath + "/:data"
+        NodeBuilder data = getNode(nb, dataPath)
+
+        if (!data.exists()){
+            io.out.println("Index at [$idxPath] is empty. Nothing to remove")
+            return
+        }
+
+        data.remove()
+        ns.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY)
+
+        io.out.println("Removed the index data for [$idxPath]")
+    }
+
     private Directory getDirectory(String path) {
         NodeState definition = variables.session.getRoot();
         for (String element : PathUtils.elements(path)) {
@@ -110,34 +125,10 @@ class LuceneCommand extends ComplexCommandSupport {
             //OakDirectory is package scope but Groovy allows us
             //to use it. Good or bad but its helpful debug scripts
             //can access inner classes and prod code cannot. Win win :)
-            return new OakDirectory(new ReadOnlyBuilder(data), new IndexDefinition(new ReadOnlyBuilder(definition)));
+            return new OakDirectory(new ReadOnlyBuilder(data), new IndexDefinition(session.root, definition, path));
         }
         return null
     }
-
-    private Directory removeIndexDataNode(String path) {
-        NodeStore delegate = variables.session.getStore();
-        Oak oak = new Oak(delegate).with("default").with(new OpenSecurityProvider());
-		ContentSession csession = oak.createContentSession();
-		Root root = csession.getLatestRoot();
-		String dataPath = path+"/"+INDEX_DATA_CHILD_NAME;
-		String[] pdata = dataPath.split("/");
-		io.out.println(pdata[1]);
-		Tree data = root.getTree("/"+pdata[1]);
-        for (int i=2;i<pdata.length;i++) {
-        	data = data.getChild(pdata[i]);
-        }
-        
-        if (data.exists()) {
-        	data.remove();
-        	root.commit();
-            io.out.println("Index data node removed at path "+data.getPath())
-        } else {
-            io.out.println("No Index data node found at path "+data.getPath())
-        }
-        return null
-    }
-
 
     private static long dirSize(Directory dir) {
         dir.listAll().inject(0L, { sum, fileName -> sum + dir.fileLength(fileName) })
@@ -150,5 +141,16 @@ class LuceneCommand extends ComplexCommandSupport {
         int exp = (int) (Math.log(bytes) / Math.log(1024));
         String pre = "KMGTPE".charAt(exp - 1);
         return String.format("%.1f %sB", bytes / Math.pow(1024, exp), pre);
+    }
+
+    private ConsoleSession getSession(){
+        return (ConsoleSession)variables.session
+    }
+
+    private static NodeBuilder getNode(@Nonnull NodeBuilder node, @Nonnull String path) {
+        for (String name : PathUtils.elements(checkNotNull(path))) {
+            node = node.getChildNode(checkNotNull(name));
+        }
+        return node;
     }
 }

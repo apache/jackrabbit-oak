@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Comparator;
 
+import javax.annotation.Nonnull;
+
 /**
  * A revision context for tests.
  */
@@ -46,5 +48,11 @@ public class DummyRevisionContext implements RevisionContext {
     @Override
     public int getClusterId() {
         return 1;
+    }
+
+    @Nonnull
+    @Override
+    public Revision getHeadRevision() {
+        return Revision.newRevision(1);
     }
 }

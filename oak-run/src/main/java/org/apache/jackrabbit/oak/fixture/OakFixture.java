@@ -17,18 +17,16 @@
 package org.apache.jackrabbit.oak.fixture;
 
 import java.io.File;
-import java.net.UnknownHostException;
 
 import javax.sql.DataSource;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
-import org.apache.jackrabbit.oak.kernel.NodeStoreKernel;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -45,7 +43,6 @@ public abstract class OakFixture {
     public static final String OAK_MONGO = "Oak-Mongo";
     public static final String OAK_MONGO_FDS = "Oak-Mongo-FDS";
     public static final String OAK_MONGO_NS = "Oak-MongoNS";
-    public static final String OAK_MONGO_MK = "Oak-MongoMK";
 
     public static final String OAK_RDB = "Oak-RDB";
 
@@ -64,8 +61,6 @@ public abstract class OakFixture {
     private static String getUniqueDatabaseName(String name) {
         return String.format("%s-%d", name, System.currentTimeMillis());
     }
-
-    public abstract MicroKernel getMicroKernel() throws Exception;
 
     public abstract Oak getOak(int clusterId) throws Exception;
 
@@ -88,10 +83,6 @@ public abstract class OakFixture {
 
     public static OakFixture getMemory(String name, final long cacheSize) {
         return new OakFixture(name) {
-            @Override
-            public MicroKernel getMicroKernel() {
-                return new NodeStoreKernel(new MemoryNodeStore());
-            }
 
             @Override
             public Oak getOak(int clusterId) throws Exception {
@@ -120,23 +111,17 @@ public abstract class OakFixture {
 
     public static OakFixture getMongo(String host, int port, String database,
                                       boolean dropDBAfterTest, long cacheSize) {
-        return getMongo(OAK_MONGO, false, host, port, database,
-                dropDBAfterTest, cacheSize, false, null, 0);
-    }
-
-    public static OakFixture getMongoMK(String host, int port, String database,
-                                        boolean dropDBAfterTest, long cacheSize) {
-        return getMongo(OAK_MONGO_MK, true, host, port, database,
+        return getMongo(OAK_MONGO, host, port, database,
                 dropDBAfterTest, cacheSize, false, null, 0);
     }
 
     public static OakFixture getMongoNS(String host, int port, String database,
                                         boolean dropDBAfterTest, long cacheSize) {
-        return getMongo(OAK_MONGO_NS, false, host, port, database,
+        return getMongo(OAK_MONGO_NS, host, port, database,
                 dropDBAfterTest, cacheSize, false, null, 0);
     }
 
-    public static OakFixture getMongo(String name, final boolean useMk, final String host,
+    public static OakFixture getMongo(String name, final String host,
                                       final int port, String database,
                                       final boolean dropDBAfterTest, final long cacheSize,
                                       final boolean useFileDataStore,
@@ -146,11 +131,10 @@ public abstract class OakFixture {
             database = getUniqueDatabaseName(name);
         }
         String uri = "mongodb://" + host + ":" + port + "/" + database;
-        return getMongo(name, uri, useMk, dropDBAfterTest, cacheSize, useFileDataStore, base, fdsCacheInMB);
+        return getMongo(name, uri, dropDBAfterTest, cacheSize, useFileDataStore, base, fdsCacheInMB);
     }
 
     public static OakFixture getMongo(final String name, final String uri,
-                                      final boolean useMk,
                                       final boolean dropDBAfterTest, final long cacheSize,
                                       final boolean useFileDataStore,
                                       final File base, final int fdsCacheInMB) {
@@ -167,32 +151,17 @@ public abstract class OakFixture {
             }
 
             @Override
-            public MicroKernel getMicroKernel() throws UnknownHostException {
-                MongoConnection mongo = new MongoConnection(uri);
-                DocumentMK.Builder mkBuilder = new DocumentMK.Builder().
-                        setMongoDB(mongo.getDB()).
-                        memoryCacheSize(cacheSize).
-                        setLogging(false);
-                setupBlobStore(mkBuilder);
-                return mkBuilder.open();
-            }
-
-            @Override
             public Oak getOak(int clusterId) throws Exception {
                 MongoConnection mongo = new MongoConnection(uri);
                 DocumentMK.Builder mkBuilder = new DocumentMK.Builder().
                         setMongoDB(mongo.getDB()).
                         memoryCacheSize(cacheSize).
-                        setClusterId(clusterId).setLogging(false);
+                        setPersistentCache("target/persistentCache,time").
+                        setClusterId(clusterId).
+                        setLogging(false);
                 setupBlobStore(mkBuilder);
                 DocumentMK dmk = mkBuilder.open();
-                Oak oak;
-                if (useMk) {
-                    oak = new Oak(new KernelNodeStore(dmk, cacheSize));
-                } else {
-                    oak = new Oak(dmk.getNodeStore());
-                }
-                return oak;
+                return new Oak(dmk.getNodeStore());
             }
 
             @Override
@@ -204,16 +173,12 @@ public abstract class OakFixture {
                     DocumentMK.Builder mkBuilder = new DocumentMK.Builder().
                             setMongoDB(mongo.getDB()).
                             memoryCacheSize(cacheSize).
-                            setClusterId(i).setLogging(false);
+                            setPersistentCache("target/persistentCache,time").
+                            setClusterId(i).
+                            setLogging(false);
                     setupBlobStore(mkBuilder);
                     kernels[i] = mkBuilder.open();
-                    Oak oak;
-                    if (useMk) {
-                        oak = new Oak(new KernelNodeStore(kernels[i], cacheSize));
-                    } else {
-                        oak = new Oak(kernels[i].getNodeStore());
-                    }
-                    cluster[i] = oak;
+                    cluster[i] = new Oak(kernels[i].getNodeStore());
                 }
                 return cluster;
             }
@@ -247,15 +212,19 @@ public abstract class OakFixture {
     }
 
     public static OakFixture getRDB(final String name, final String jdbcuri, final String jdbcuser, final String jdbcpasswd,
-                                    final boolean useMk, final boolean dropDBAfterTest, final long cacheSize) {
+                                    final String tablePrefix, final boolean dropDBAfterTest, final long cacheSize) {
         return new OakFixture(name) {
             private DocumentMK[] kernels;
             private BlobStore blobStore;
 
+            private RDBOptions getOptions(boolean dropDBAFterTest, String tablePrefix) {
+                return new RDBOptions().dropTablesOnClose(dropDBAfterTest).tablePrefix(tablePrefix);
+            }
+
             private BlobStore getBlobStore() {
                 try {
                     DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcuri, jdbcuser, jdbcpasswd);
-                    blobStore = new RDBBlobStore(ds);
+                    blobStore = new RDBBlobStore(ds, getOptions(dropDBAfterTest, tablePrefix));
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
@@ -264,34 +233,17 @@ public abstract class OakFixture {
             }
 
             @Override
-            public MicroKernel getMicroKernel() {
-                DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcuri, jdbcuser, jdbcpasswd);
-                DocumentMK.Builder mkBuilder = new DocumentMK.Builder().setRDBConnection(ds).memoryCacheSize(cacheSize)
-                        .setLogging(false);
-                BlobStore blobStore = getBlobStore();
-                if (blobStore != null) {
-                    mkBuilder.setBlobStore(blobStore);
-                }
-                return mkBuilder.open();
-            }
-
-            @Override
             public Oak getOak(int clusterId) throws Exception {
                 DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcuri, jdbcuser, jdbcpasswd);
-                DocumentMK.Builder mkBuilder = new DocumentMK.Builder().setRDBConnection(ds).memoryCacheSize(cacheSize)
+                DocumentMK.Builder mkBuilder = new DocumentMK.Builder()
+                        .setRDBConnection(ds, getOptions(dropDBAfterTest, tablePrefix)).memoryCacheSize(cacheSize)
                         .setClusterId(clusterId).setLogging(false);
                 BlobStore blobStore = getBlobStore();
                 if (blobStore != null) {
                     mkBuilder.setBlobStore(blobStore);
                 }
                 DocumentMK dmk = mkBuilder.open();
-                Oak oak;
-                if (useMk) {
-                    oak = new Oak(new KernelNodeStore(dmk, cacheSize));
-                } else {
-                    oak = new Oak(dmk.getNodeStore());
-                }
-                return oak;
+                return new Oak(dmk.getNodeStore());
             }
 
             @Override
@@ -301,30 +253,31 @@ public abstract class OakFixture {
                 for (int i = 0; i < cluster.length; i++) {
                     BlobStore blobStore = getBlobStore();
                     DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcuri, jdbcuser, jdbcpasswd);
-                    DocumentMK.Builder mkBuilder = new DocumentMK.Builder().setRDBConnection(ds).memoryCacheSize(cacheSize)
+                    DocumentMK.Builder mkBuilder = new DocumentMK.Builder()
+                            .setRDBConnection(ds, getOptions(dropDBAfterTest, tablePrefix)).memoryCacheSize(cacheSize)
                             .setClusterId(i).setLogging(false);
                     if (blobStore != null) {
                         mkBuilder.setBlobStore(blobStore);
                     }
                     kernels[i] = mkBuilder.open();
-                    Oak oak;
-                    if (useMk) {
-                        oak = new Oak(new KernelNodeStore(kernels[i], cacheSize));
-                    } else {
-                        oak = new Oak(kernels[i].getNodeStore());
-                    }
-                    cluster[i] = oak;
+                    cluster[i] = new Oak(kernels[i].getNodeStore());
                 }
                 return cluster;
             }
 
             @Override
             public void tearDownCluster() {
+                String dropped = "";
                 for (DocumentMK kernel : kernels) {
                     kernel.dispose();
+                    if (kernel.getDocumentStore() instanceof RDBDocumentStore) {
+                        dropped += ((RDBDocumentStore)kernel.getDocumentStore()).getDroppedTables();
+                    }
                 }
                 if (dropDBAfterTest) {
-                    throw new RuntimeException("dropdb not supported for RDB persistence");
+                    if (dropped.isEmpty()) {
+                        throw new RuntimeException("dropdb was set, but tables have not been dropped");
+                    }
                 }
             }
         };
@@ -353,12 +306,6 @@ public abstract class OakFixture {
             this.cacheSizeMB = cacheSizeMB;
             this.memoryMapping = memoryMapping;
             this.useBlobStore = useBlobStore;
-        }
-
-        @Override
-        public MicroKernel getMicroKernel() throws Exception {
-            FileStore fs = new FileStore(base, maxFileSizeMB, cacheSizeMB, memoryMapping);
-            return new NodeStoreKernel(new SegmentNodeStore(fs));
         }
 
         @Override

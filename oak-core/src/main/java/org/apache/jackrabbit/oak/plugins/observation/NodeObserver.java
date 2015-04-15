@@ -33,13 +33,14 @@ import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.namepath.GlobalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
+import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,6 +49,10 @@ import org.slf4j.LoggerFactory;
  * by node instead of tracking them down to individual properties.
  */
 public abstract class NodeObserver implements Observer {
+
+    private static final PerfLogger PERF_LOGGER = new PerfLogger(
+            LoggerFactory.getLogger(NodeObserver.class.getName()
+                    + ".perf"));
     private static final Logger LOG = LoggerFactory.getLogger(NodeObserver.class);
 
     private final String path;
@@ -120,8 +125,9 @@ public abstract class NodeObserver implements Observer {
     public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
         if (previousRoot != null) {
             try {
+                long start = PERF_LOGGER.start();
                 NamePathMapper namePathMapper = new NamePathMapperImpl(
-                        new GlobalNameMapper(new ImmutableRoot(root)));
+                        new GlobalNameMapper(RootFactory.createReadOnlyRoot(root)));
 
                 Set<String> oakPropertyNames = Sets.newHashSet();
                 for (String name : propertyNames) {
@@ -151,10 +157,14 @@ public abstract class NodeObserver implements Observer {
                     handler = handler.getChildHandler(oakName, before, after);
                 }
 
-                EventGenerator generator = new EventGenerator(before, after, handler);
+                ContentChangeInfo changeInfo = new ContentChangeInfo(before, after, info);
+                EventGenerator generator = new EventGenerator(before, after, changeInfo, handler);
                 while (!generator.isDone()) {
                     generator.generate();
                 }
+                PERF_LOGGER.end(start, 10,
+                        "Generated events (before: {}, after: {})",
+                        previousRoot, root);
             } catch (Exception e) {
                 LOG.warn("Error while dispatching observation events", e);
             }

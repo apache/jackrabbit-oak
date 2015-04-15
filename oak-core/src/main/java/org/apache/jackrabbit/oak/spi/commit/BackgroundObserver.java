@@ -77,6 +77,11 @@ public class BackgroundObserver implements Observer, Closeable {
      */
     private final BlockingQueue<ContentChange> queue;
 
+    /**
+     * The max queue length used for this observer's queue
+     */
+    private final int maxQueueLength;
+
     private static class ContentChange {
         private final NodeState root;
         private final CommitInfo info;
@@ -113,9 +118,9 @@ public class BackgroundObserver implements Observer, Closeable {
             public Void call() throws Exception {
                 try {
                     ContentChange change = queue.poll();
-                    while (change != null && change != STOP) {
+                    if (change != null && change != STOP) {
                         observer.contentChanged(change.root, change.info);
-                        change = queue.poll();
+                        currentTask.onComplete(completionHandler);
                     }
                 } catch (Throwable t) {
                     exceptionHandler.uncaughtException(Thread.currentThread(), t);
@@ -144,7 +149,8 @@ public class BackgroundObserver implements Observer, Closeable {
         this.observer = checkNotNull(observer);
         this.executor = checkNotNull(executor);
         this.exceptionHandler = checkNotNull(exceptionHandler);
-        this.queue = newArrayBlockingQueue(queueLength);
+        this.maxQueueLength = queueLength;
+        this.queue = newArrayBlockingQueue(maxQueueLength);
     }
 
     public BackgroundObserver(
@@ -170,6 +176,13 @@ public class BackgroundObserver implements Observer, Closeable {
      * @param queueSize  size of the queue
      */
     protected void added(int queueSize) { }
+
+    /**
+     * @return  The max queue length used for this observer's queue
+     */
+    public int getMaxQueueLength() {
+        return maxQueueLength;
+    }
 
     /**
      * Clears the change queue and signals the background thread to stop

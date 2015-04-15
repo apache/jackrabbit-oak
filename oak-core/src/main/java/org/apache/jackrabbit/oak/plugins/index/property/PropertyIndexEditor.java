@@ -78,7 +78,10 @@ class PropertyIndexEditor implements IndexEditor {
     /** Index definition node builder */
     private final NodeBuilder definition;
 
-    private final Set<String> propertyNames;
+    /** Root node state */
+    private final NodeState root;
+
+     private final Set<String> propertyNames;
 
     /** Type predicate, or {@code null} if there are no type restrictions */
     private final Predicate<NodeState> typePredicate;
@@ -111,6 +114,7 @@ class PropertyIndexEditor implements IndexEditor {
         this.name = null;
         this.path = "/";
         this.definition = definition;
+        this.root = root;
 
         //initPropertyNames(definition);
 
@@ -146,6 +150,7 @@ class PropertyIndexEditor implements IndexEditor {
         this.name = name;
         this.path = null;
         this.definition = parent.definition;
+        this.root = parent.root;
         this.propertyNames = parent.getPropertyNames();
         this.typePredicate = parent.typePredicate;
         this.keysToCheckForUniqueness = parent.keysToCheckForUniqueness;
@@ -258,8 +263,9 @@ class PropertyIndexEditor implements IndexEditor {
             if (!beforeKeys.isEmpty() || !afterKeys.isEmpty()) {
                 updateCallback.indexUpdate();
                 NodeBuilder index = definition.child(INDEX_CONTENT_NODE_NAME);
+                String properties = definition.getString(PROPERTY_NAMES);
                 getStrategy(keysToCheckForUniqueness != null).update(
-                        index, getPath(), beforeKeys, afterKeys);
+                        index, getPath(), properties, definition, beforeKeys, afterKeys);
                 if (keysToCheckForUniqueness != null) {
                     keysToCheckForUniqueness.addAll(afterKeys);
                 }
@@ -276,7 +282,7 @@ class PropertyIndexEditor implements IndexEditor {
                 NodeState indexMeta = definition.getNodeState();
                 IndexStoreStrategy s = getStrategy(true);
                 for (String key : keysToCheckForUniqueness) {
-                    if (s.count(indexMeta, singleton(key), 2) > 1) {
+                    if (s.count(root, indexMeta, singleton(key), 2) > 1) {
                         String msg = String.format("Uniqueness constraint violated at path [%s] for one of the " +
                                         "property in %s having value %s", getPath(), propertyNames, key);
                         throw new CommitFailedException(

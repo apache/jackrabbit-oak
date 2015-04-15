@@ -56,6 +56,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAuthorizableActionProv
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAuthorizableNodeName;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardRestrictionProvider;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUserAuthenticationFactory;
 import org.osgi.framework.BundleContext;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -95,6 +96,7 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
     private final WhiteboardAuthorizableNodeName authorizableNodeName = new WhiteboardAuthorizableNodeName();
     private final WhiteboardAuthorizableActionProvider authorizableActionProvider = new WhiteboardAuthorizableActionProvider();
     private final WhiteboardRestrictionProvider restrictionProvider = new WhiteboardRestrictionProvider();
+    private final WhiteboardUserAuthenticationFactory userAuthenticationFactory = new WhiteboardUserAuthenticationFactory(UserConfigurationImpl.getDefaultAuthenticationFactory());
 
     private ConfigurationParameters configuration;
 
@@ -187,48 +189,54 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
 
     //----------------------------------------------------------------< SCR >---
     @Activate
-    protected void activate(BundleContext context) throws Exception {
+    protected void activate(BundleContext context) {
         whiteboard = new OsgiWhiteboard(context);
         authorizableActionProvider.start(whiteboard);
         authorizableNodeName.start(whiteboard);
         restrictionProvider.start(whiteboard);
+        userAuthenticationFactory.start(whiteboard);
 
         initializeConfigurations();
     }
 
     @Deactivate
-    protected void deactivate() throws Exception {
+    protected void deactivate() {
         authorizableActionProvider.stop();
         authorizableNodeName.stop();
         restrictionProvider.stop();
+        userAuthenticationFactory.stop();
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     protected void bindPrincipalConfiguration(@Nonnull PrincipalConfiguration reference) {
         principalConfiguration.addConfiguration(initConfiguration(reference));
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     protected void unbindPrincipalConfiguration(@Nonnull PrincipalConfiguration reference) {
         principalConfiguration.removeConfiguration(reference);
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     protected void bindTokenConfiguration(@Nonnull TokenConfiguration reference) {
         tokenConfiguration.addConfiguration(initConfiguration(reference));
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     protected void unbindTokenConfiguration(@Nonnull TokenConfiguration reference) {
         tokenConfiguration.removeConfiguration(reference);
     }
 
     //------------------------------------------------------------< private >---
     private void initializeConfigurations() {
-        Map<String, WhiteboardRestrictionProvider> authorizMap = ImmutableMap.of(
-                AccessControlConstants.PARAM_RESTRICTION_PROVIDER, restrictionProvider
+        initConfiguration(authorizationConfiguration, ConfigurationParameters.of(
+                AccessControlConstants.PARAM_RESTRICTION_PROVIDER, restrictionProvider)
         );
-        initConfiguration(authorizationConfiguration, ConfigurationParameters.of(authorizMap));
 
         Map<String, Object> userMap = ImmutableMap.<String,Object>of(
                 UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, authorizableActionProvider,
-                UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, authorizableNodeName);
+                UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, authorizableNodeName,
+                UserConstants.PARAM_USER_AUTHENTICATION_FACTORY, userAuthenticationFactory);
         initConfiguration(userConfiguration, ConfigurationParameters.of(userMap));
 
         initConfiguration(authenticationConfiguration);

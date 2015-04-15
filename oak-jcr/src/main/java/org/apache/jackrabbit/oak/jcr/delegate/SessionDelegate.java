@@ -36,6 +36,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.ItemExistsException;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
@@ -70,28 +71,15 @@ import org.slf4j.MarkerFactory;
  */
 public class SessionDelegate {
     static final Logger log = LoggerFactory.getLogger(SessionDelegate.class);
+    static final Logger auditLogger = LoggerFactory.getLogger("org.apache.jackrabbit.oak.audit");
     static final Logger readOperationLogger = LoggerFactory.getLogger("org.apache.jackrabbit.oak.jcr.operations.reads");
     static final Logger writeOperationLogger = LoggerFactory.getLogger("org.apache.jackrabbit.oak.jcr.operations.writes");
 
     private final ContentSession contentSession;
     private final SecurityProvider securityProvider;
+    private final RefreshAtNextAccess refreshAtNextAccess = new RefreshAtNextAccess();
+    private final SaveCountRefresh saveCountRefresh;
     private final RefreshStrategy refreshStrategy;
-    private boolean refreshAtNextAccess = false;
-
-    /**
-     * The repository-wide {@link ThreadLocal} that keeps track of the number
-     * of saves performed in each thread.
-     */
-    private final ThreadLocal<Long> threadSaveCount;
-
-    /**
-     * Local copy of the {@link #threadSaveCount} for the current thread.
-     * If the repository-wide counter differs from our local copy, then
-     * some other session would have done a commit or this session is
-     * being accessed from some other thread. In either case it's best to
-     * refresh this session to avoid unexpected behaviour.
-     */
-    private long sessionSaveCount;
 
     private final Root root;
     private final IdentifierManager idManager;
@@ -100,7 +88,7 @@ public class SessionDelegate {
     private final Clock clock;
 
     // access time stamps and counters for statistics about this session
-    Counters sessionCounters;
+    private final Counters sessionCounters;
 
     // repository-wide counters for statistics about all sessions
     private final AtomicLong readCounter;
@@ -146,14 +134,14 @@ public class SessionDelegate {
             @Nonnull Clock clock) {
         this.contentSession = checkNotNull(contentSession);
         this.securityProvider = checkNotNull(securityProvider);
-        this.refreshStrategy = checkNotNull(refreshStrategy);
-        this.threadSaveCount = checkNotNull(threadSaveCount);
-        this.sessionSaveCount = getThreadSaveCount();
+        this.saveCountRefresh = new SaveCountRefresh(checkNotNull(threadSaveCount));
+        this.refreshStrategy = RefreshStrategy.Composite.create(
+                checkNotNull(refreshStrategy), refreshAtNextAccess, saveCountRefresh);
         this.root = contentSession.getLatestRoot();
         this.idManager = new IdentifierManager(root);
         this.clock = checkNotNull(clock);
         this.sessionStats = new SessionStats(contentSession.toString(),
-                contentSession.getAuthInfo(), clock);
+                contentSession.getAuthInfo(), clock, refreshStrategy);
         this.sessionCounters = sessionStats.getCounters();
         checkNotNull(statisticManager);
         readCounter = statisticManager.getCounter(SESSION_READ_COUNTER);
@@ -167,15 +155,10 @@ public class SessionDelegate {
         return sessionStats;
     }
 
-    private long getThreadSaveCount() {
-        Long c = threadSaveCount.get();
-        return c == null ? 0 : c;
-    }
-
     public void refreshAtNextAccess() {
         lock.lock();
         try {
-            refreshAtNextAccess = true;
+            refreshAtNextAccess.refreshAtNextAccess(true);
         } finally {
             lock.unlock();
         }
@@ -204,8 +187,8 @@ public class SessionDelegate {
      * @throws RepositoryException
      * @see #getRoot()
      */
-    public <T> T perform(SessionOperation<T> sessionOperation)
-            throws RepositoryException {
+    @Nonnull
+    public <T> T perform(@Nonnull SessionOperation<T> sessionOperation) throws RepositoryException {
         long t0 = clock.getTime();
 
         // Acquire the exclusive lock for accessing session internals.
@@ -213,54 +196,79 @@ public class SessionDelegate {
         // message to let the user know of such cases.
         lock.lock(sessionOperation);
         try {
-            if (sessionOpCount == 0) {
-                // Refresh and precondition checks only for non re-entrant
-                // session operations. Don't refresh if this operation is a
-                // refresh operation itself or a save operation, which does an
-                // implicit refresh, or logout for obvious reasons.
-                if (!sessionOperation.isRefresh()
-                        && !sessionOperation.isSave()
-                        && !sessionOperation.isLogout()
-                        && (refreshAtNextAccess
-                        || sessionSaveCount != getThreadSaveCount()
-                        || refreshStrategy.needsRefresh(
-                        SECONDS.convert(t0 - sessionCounters.accessTime, MILLISECONDS)))) {
-                    refresh(true);
-                    refreshAtNextAccess = false;
-                    sessionSaveCount = getThreadSaveCount();
-                    updateCount++;
-                }
-                sessionOperation.checkPreconditions();
-            }
+            prePerform(sessionOperation, t0);
             try {
                 sessionOpCount++;
                 T result = sessionOperation.perform();
                 logOperationDetails(contentSession, sessionOperation);
                 return result;
             } finally {
-                sessionCounters.accessTime = t0;
-                long dt = NANOSECONDS.convert(clock.getTime() - t0, MILLISECONDS);
-                sessionOpCount--;
-                if (sessionOperation.isUpdate()) {
-                    sessionCounters.writeTime = t0;
-                    sessionCounters.writeCount++;
-                    writeCounter.incrementAndGet();
-                    writeDuration.addAndGet(dt);
-                    updateCount++;
-                } else {
-                    sessionCounters.readTime = t0;
-                    sessionCounters.readCount++;
-                    readCounter.incrementAndGet();
-                    readDuration.addAndGet(dt);
-                }
-                if (sessionOperation.isSave()) {
-                    refreshAtNextAccess = false;
-                    // Force refreshing on access through other sessions on the same thread
-                    threadSaveCount.set(sessionSaveCount = (getThreadSaveCount() + 1));
-                } else if (sessionOperation.isRefresh()) {
-                    refreshAtNextAccess = false;
-                    sessionSaveCount = getThreadSaveCount();
-                }
+                postPerform(sessionOperation, t0);
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Same as {@link #perform(org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation)}
+     * but with the option to return {@code null}; thus calling
+     * {@link org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation#performNullable()}
+     *
+     * @param sessionOperation  the {@code SessionOperation} to perform
+     * @param <T>  return type of {@code sessionOperation}
+     * @return  the result of {@code sessionOperation.performNullable()}, which
+     * might also be {@code null}.
+     * @throws RepositoryException
+     * @see #perform(org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation)
+     */
+    @Nullable
+    public <T> T performNullable(@Nonnull SessionOperation<T> sessionOperation) throws RepositoryException {
+        long t0 = clock.getTime();
+
+        // Acquire the exclusive lock for accessing session internals.
+        // No other session should be holding the lock, so we log a
+        // message to let the user know of such cases.
+        lock.lock(sessionOperation);
+        try {
+            prePerform(sessionOperation, t0);
+            try {
+                sessionOpCount++;
+                T result = sessionOperation.performNullable();
+                logOperationDetails(contentSession, sessionOperation);
+                return result;
+            } finally {
+                postPerform(sessionOperation, t0);
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Same as {@link #perform(org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation)}
+     * for calls that don't expect any return value; thus calling
+     * {@link org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation#performVoid()}.
+     *
+     * @param sessionOperation  the {@code SessionOperation} to perform.
+     * @throws RepositoryException
+     * @see #perform(org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation)
+     */
+    public void performVoid(SessionOperation<Void> sessionOperation) throws RepositoryException {
+        long t0 = clock.getTime();
+
+        // Acquire the exclusive lock for accessing session internals.
+        // No other session should be holding the lock, so we log a
+        // message to let the user know of such cases.
+        lock.lock(sessionOperation);
+        try {
+            prePerform(sessionOperation, t0);
+            try {
+                sessionOpCount++;
+                sessionOperation.performVoid();
+                logOperationDetails(contentSession, sessionOperation);
+            } finally {
+                postPerform(sessionOperation, t0);
             }
         } finally {
             lock.unlock();
@@ -282,8 +290,7 @@ public class SessionDelegate {
         try {
             return perform(sessionOperation);
         } catch (RepositoryException e) {
-            throw new RuntimeException("Unexpected exception thrown by operation " +
-                    sessionOperation, e);
+            throw new RuntimeException("Unexpected exception thrown by operation " + sessionOperation, e);
         }
     }
 
@@ -585,14 +592,62 @@ public class SessionDelegate {
         return contentSession.toString();
     }
 
-    //------------------------------------------------------------< internal >---
+    //-----------------------------------------------------------< internal >---
+    private void prePerform(@Nonnull SessionOperation<?> op, long t0) throws RepositoryException {
+        if (sessionOpCount == 0) {
+            // Refresh and precondition checks only for non re-entrant
+            // session operations. Don't refresh if this operation is a
+            // refresh operation itself or a save operation, which does an
+            // implicit refresh, or logout for obvious reasons.
+            if (!op.isRefresh() && !op.isSave() && !op.isLogout() &&
+                    refreshStrategy.needsRefresh(SECONDS.convert(t0 - sessionCounters.accessTime, MILLISECONDS))) {
+                refresh(true);
+                refreshStrategy.refreshed();
+                updateCount++;
+            }
+            op.checkPreconditions();
+        }
+    }
+
+    private void postPerform(@Nonnull SessionOperation<?> op, long t0) {
+        sessionCounters.accessTime = t0;
+        long dt = NANOSECONDS.convert(clock.getTime() - t0, MILLISECONDS);
+        sessionOpCount--;
+        if (op.isUpdate()) {
+            sessionCounters.writeTime = t0;
+            sessionCounters.writeCount++;
+            writeCounter.incrementAndGet();
+            writeDuration.addAndGet(dt);
+            updateCount++;
+        } else {
+            sessionCounters.readTime = t0;
+            sessionCounters.readCount++;
+            readCounter.incrementAndGet();
+            readDuration.addAndGet(dt);
+        }
+        if (op.isSave()) {
+            refreshAtNextAccess.refreshAtNextAccess(false);
+            // Force refreshing on access through other sessions on the same thread
+            saveCountRefresh.forceRefresh();
+        } else if (op.isRefresh()) {
+            refreshAtNextAccess.refreshAtNextAccess(false);
+            saveCountRefresh.refreshed();
+        }
+    }
+
 
     private static <T> void logOperationDetails(ContentSession session, SessionOperation<T> ops) {
         if (readOperationLogger.isTraceEnabled()
-                || writeOperationLogger.isTraceEnabled()) {
+                || writeOperationLogger.isTraceEnabled()
+                || auditLogger.isDebugEnabled()) {
             Marker sessionMarker = MarkerFactory.getMarker(session.toString());
             Logger log = ops.isUpdate() ? writeOperationLogger : readOperationLogger;
             log.trace(sessionMarker, "[{}] {}", session, ops);
+
+            //For a logout operation the auth info is not accessible
+            if (!ops.isLogout() && !ops.isRefresh() && !ops.isSave() && ops.isUpdate()) {
+                auditLogger.debug(sessionMarker, "[{}] [{}] {}", session.getAuthInfo().getUserID(), session, ops);
+            }
         }
     }
 
@@ -738,7 +793,7 @@ public class SessionDelegate {
         }
 
         @Override
-        public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
+        public boolean tryLock(long time, @Nonnull TimeUnit unit) throws InterruptedException {
             if (lock.tryLock(time, unit)) {
                 holderTrace = null;
                 holderThread = null;
@@ -753,10 +808,81 @@ public class SessionDelegate {
             lock.unlock();
         }
 
+        @Nonnull
         @Override
         public Condition newCondition() {
             return lock.newCondition();
         }
 
     }
+
+    private static class RefreshAtNextAccess implements RefreshStrategy {
+        private boolean refreshAtNextAccess;
+
+        public void refreshAtNextAccess(boolean refreshAtNextAccess) {
+            this.refreshAtNextAccess = refreshAtNextAccess;
+        }
+
+        @Override
+        public boolean needsRefresh(long secondsSinceLastAccess) {
+            return refreshAtNextAccess;
+        }
+
+        @Override
+        public void refreshed() {
+            refreshAtNextAccess = false;
+        }
+
+        @Override
+        public String toString() {
+            return "Refresh on observation event";
+        }
+    }
+
+    private static class SaveCountRefresh implements RefreshStrategy {
+        /**
+         * The repository-wide {@link ThreadLocal} that keeps track of the number
+         * of saves performed in each thread.
+         */
+        private final ThreadLocal<Long> threadSaveCount;
+
+        /**
+         * Local copy of the {@link #threadSaveCount} for the current thread.
+         * If the repository-wide counter differs from our local copy, then
+         * some other session would have done a commit or this session is
+         * being accessed from some other thread. In either case it's best to
+         * refresh this session to avoid unexpected behaviour.
+         */
+        private long sessionSaveCount;
+
+        public SaveCountRefresh(ThreadLocal<Long> threadSaveCount) {
+            this.threadSaveCount = threadSaveCount;
+            this.sessionSaveCount = getThreadSaveCount();
+        }
+
+        public void forceRefresh() {
+            threadSaveCount.set(sessionSaveCount = (getThreadSaveCount() + 1));
+        }
+
+        @Override
+        public boolean needsRefresh(long secondsSinceLastAccess) {
+            return sessionSaveCount != getThreadSaveCount();
+        }
+
+        @Override
+        public void refreshed() {
+            sessionSaveCount = getThreadSaveCount();
+        }
+
+        private long getThreadSaveCount() {
+            Long c = threadSaveCount.get();
+            return c == null ? 0 : c;
+        }
+
+        @Override
+        public String toString() {
+            return "Refresh after a save on the same thread from a different session";
+        }
+    }
+
 }

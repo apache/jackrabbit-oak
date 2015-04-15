@@ -455,6 +455,13 @@ implementation on various levels:
    login modules and their individual settings. In an OSGi-base setup is achieved
    by making the modules accessible to the framework and setting their execution
    order accordingly. In a Non-OSGi setup this is specified in the [JAAS config].
+3. The `LoginModuleImpl` uses `UserAuthentication`-implementations for performing
+   the authentication process. Which user-authentication implementation to use is
+   determined by the available `UserAuthenticationFactory`s which provide user-
+   authentication implementations if a given `UserConfiguration` is accepted.
+   Which user-authentication-factory is chosen depends on its OSGi service
+   ranking property. The default factory has a ranking of 0 (OSGi default). Services with
+   the highest ranking take precedence.
 
 ### Further Reading
 

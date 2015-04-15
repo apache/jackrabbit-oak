@@ -20,12 +20,15 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.store.Directory;
@@ -50,7 +53,7 @@ public class OakDirectoryTest {
 
     private NodeBuilder builder = root.builder();
 
-    int fileSize = OakDirectory.DEFAULT_BLOB_SIZE + rnd.nextInt(1000);
+    int fileSize = IndexDefinition.DEFAULT_BLOB_SIZE * 2 + rnd.nextInt(1000);
 
     @Test
     public void writes_DefaultSetup() throws Exception{
@@ -83,6 +86,24 @@ public class OakDirectoryTest {
         i.readBytes(result, 0, result.length);
 
         assertTrue(Arrays.equals(data, result));
+    }
+
+    @Test //OAK-2388
+    public void testOverflow() throws Exception{
+        Directory dir = createDir(builder);
+        NodeBuilder file = builder.child(INDEX_DATA_CHILD_NAME).child("test.txt");
+        int blobSize = 32768;
+        int dataSize = 90844;
+        file.setProperty(OakDirectory.PROP_BLOB_SIZE, blobSize);
+
+        List<? super Blob> blobs = new ArrayList<Blob>(dataSize);
+        for (int i = 0; i < dataSize; i++) {
+            blobs.add(new ArrayBasedBlob(new byte[0]));
+        }
+        file.setProperty(PropertyStates.createProperty("jcr:data", blobs, Type.BINARIES));
+
+        IndexInput input  = dir.openInput("test.txt", IOContext.DEFAULT);
+        assertEquals((long)blobSize * (dataSize - 1), input.length());
     }
 
     byte[] assertWrites(Directory dir, int blobSize) throws IOException {

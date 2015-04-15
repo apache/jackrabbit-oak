@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.authentication.token;
 
 import java.util.Date;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.security.auth.login.LoginException;
 
@@ -49,7 +50,7 @@ class TokenAuthentication implements Authentication {
 
     //-----------------------------------------------------< Authentication >---
     @Override
-    public boolean authenticate(Credentials credentials) throws LoginException {
+    public boolean authenticate(@Nullable Credentials credentials) throws LoginException {
         if (tokenProvider != null && credentials instanceof TokenCredentials) {
             TokenCredentials tc = (TokenCredentials) credentials;
             if (!validateCredentials(tc)) {

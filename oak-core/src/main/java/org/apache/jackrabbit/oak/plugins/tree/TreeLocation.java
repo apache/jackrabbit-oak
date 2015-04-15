@@ -247,6 +247,7 @@ public abstract class TreeLocation {
             this.name = "";
         }
 
+        @Nonnull
         @Override
         public TreeLocation getParent() {
             return parent;
@@ -260,6 +261,7 @@ public abstract class TreeLocation {
             return false;
         }
 
+        @Nonnull
         @Override
         public String getPath() {
             return parent == this ? "" : PathUtils.concat(parent.getPath(), name);

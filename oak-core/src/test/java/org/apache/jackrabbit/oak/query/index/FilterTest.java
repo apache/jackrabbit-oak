@@ -45,56 +45,97 @@ public class FilterTest {
         FilterImpl f = new FilterImpl();
         assertTrue(null == f.getPropertyRestriction("x"));
         f.restrictProperty("x", Operator.LESS_OR_EQUAL, two);
-        assertEquals("..2]", f.getPropertyRestriction("x").toString());
+        assertEquals(
+                "Filter(, path=*, property=[x=[..2]]])", 
+                f.toString());
         f.restrictProperty("x", Operator.GREATER_OR_EQUAL, one);
-        assertEquals("[1..2]", f.getPropertyRestriction("x").toString());
-        
-        // further narrowing will not change the restriction, 
-        // to account for multi-valued properties
+        assertEquals(
+                "Filter(, path=*, property=[x=[..2], [1..]])", 
+                f.toString());
+
+        // no change, as the same restrictions already were added
+        f.restrictProperty("x", Operator.LESS_OR_EQUAL, two);
+        assertEquals(
+                "Filter(, path=*, property=[x=[..2], [1..]])", 
+                f.toString());
+        f.restrictProperty("x", Operator.GREATER_OR_EQUAL, one);
+        assertEquals(
+                "Filter(, path=*, property=[x=[..2], [1..]])", 
+                f.toString());
+
         f.restrictProperty("x", Operator.GREATER_THAN, one);
-        assertEquals("[1..2]", f.getPropertyRestriction("x").toString());
+        assertEquals(
+                "Filter(, path=*, property=[x=[..2], [1.., (1..]])", 
+                f.toString());
         f.restrictProperty("x", Operator.LESS_THAN, two);
-        assertEquals("[1..2]", f.getPropertyRestriction("x").toString());
+        assertEquals(
+                "Filter(, path=*, property=[x=[..2], [1.., (1.., ..2)]])", 
+                f.toString());
 
-        // this should replace the range with an equality
-        // (which is faster, and correct even when using multi-valued properties)
+        // TODO could replace / remove the old range conditions,
+        // if there is an overlap
         f.restrictProperty("x", Operator.EQUAL, two);
-        assertEquals("2", f.getPropertyRestriction("x").toString());
+        assertEquals(
+                "Filter(, path=*, property=[x=[..2], [1.., (1.., ..2), 2]])", 
+                f.toString());
 
         f = new FilterImpl();
         f.restrictProperty("x", Operator.EQUAL, one);
-        assertEquals("1", f.getPropertyRestriction("x").toString());
+        assertEquals(
+                "Filter(, path=*, property=[x=[1]])", 
+                f.toString());
         f.restrictProperty("x", Operator.EQUAL, one);
-        assertEquals("1", f.getPropertyRestriction("x").toString());
-        f.restrictProperty("x", Operator.GREATER_OR_EQUAL, one);
-        assertEquals("1", f.getPropertyRestriction("x").toString());
-        f.restrictProperty("x", Operator.LESS_OR_EQUAL, one);
-        assertEquals("1", f.getPropertyRestriction("x").toString());
+        assertEquals(
+                "Filter(, path=*, property=[x=[1]])", 
+                f.toString());
         
-        // further narrowing will not change the restriction, 
-        // to account for multi-valued properties
+        // TODO could replace / remove the old range conditions,
+        // if there is an overlap
+        f.restrictProperty("x", Operator.GREATER_OR_EQUAL, one);
+        assertEquals(
+                "Filter(, path=*, property=[x=[1, [1..]])", 
+                f.toString());
+        f.restrictProperty("x", Operator.LESS_OR_EQUAL, one);
+        assertEquals(
+                "Filter(, path=*, property=[x=[1, [1.., ..1]]])", 
+                f.toString());
+        
+        // TODO could replace / remove the old range conditions,
+        // if there is an overlap
         f.restrictProperty("x", Operator.GREATER_THAN, one);
-        assertEquals("1", f.getPropertyRestriction("x").toString());
+        assertEquals(
+                "Filter(, path=*, property=[x=[1, [1.., ..1], (1..]])", 
+                f.toString());
 
         f = new FilterImpl();
         f.restrictProperty("x", Operator.EQUAL, one);
-        assertEquals("1", f.getPropertyRestriction("x").toString());
+        assertEquals(
+                "Filter(, path=*, property=[x=[1]])", 
+                f.toString());
 
-        // further narrowing will not change the restriction, 
-        // to account for multi-valued properties
+        // TODO could replace / remove the old range conditions,
+        // if there is an overlap
         f.restrictProperty("x", Operator.LESS_THAN, one);
-        assertEquals("1", f.getPropertyRestriction("x").toString());
+        assertEquals(
+                "Filter(, path=*, property=[x=[1, ..1)]])", 
+                f.toString());
 
         f = new FilterImpl();
         f.restrictProperty("x", Operator.NOT_EQUAL, null);
-        assertEquals("", f.getPropertyRestriction("x").toString());
+        assertEquals(
+                "Filter(, path=*, property=[x=[is not null]])", 
+                f.toString());
         f.restrictProperty("x", Operator.LESS_THAN, one);
-        assertEquals("..1)", f.getPropertyRestriction("x").toString());
+        assertEquals(
+                "Filter(, path=*, property=[x=[is not null, ..1)]])", 
+                f.toString());
         
         // this should replace the range with an equality
         // (which is faster, and correct even when using multi-valued properties)
         f.restrictProperty("x", Operator.EQUAL, two);
-        assertEquals("2", f.getPropertyRestriction("x").toString());
+        assertEquals(
+                "Filter(, path=*, property=[x=[is not null, ..1), 2]])", 
+                f.toString());
 
     }
 

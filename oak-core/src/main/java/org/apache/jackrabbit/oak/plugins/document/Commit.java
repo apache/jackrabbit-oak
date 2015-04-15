@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
@@ -52,6 +53,7 @@ public class Commit {
     private static final Logger LOG = LoggerFactory.getLogger(Commit.class);
 
     private final DocumentNodeStore nodeStore;
+    private final DocumentNodeStoreBranch branch;
     private final Revision baseRevision;
     private final Revision revision;
     private HashMap<String, UpdateOp> operations = new LinkedHashMap<String, UpdateOp>();
@@ -70,10 +72,25 @@ public class Commit {
     /** Set of all nodes which have binary properties. **/
     private HashSet<String> nodesWithBinaries = Sets.newHashSet();
 
-    Commit(DocumentNodeStore nodeStore, Revision baseRevision, Revision revision) {
+    /**
+     * Create a new Commit.
+     *  
+     * @param nodeStore the node store.
+     * @param revision the revision for this commit.
+     * @param baseRevision the base revision for this commit or {@code null} if
+     *                     there is none.
+     * @param branch the branch associated with this commit or {@code null} if
+     *               there is none.
+     *                              
+     */
+    Commit(@Nonnull DocumentNodeStore nodeStore,
+           @Nonnull Revision revision,
+           @Nullable Revision baseRevision,
+           @Nullable DocumentNodeStoreBranch branch) {
+        this.nodeStore = checkNotNull(nodeStore);
+        this.revision = checkNotNull(revision);
         this.baseRevision = baseRevision;
-        this.revision = revision;
-        this.nodeStore = nodeStore;
+        this.branch = branch;
     }
 
     UpdateOp getUpdateOperationForNode(String path) {
@@ -162,7 +179,8 @@ public class Commit {
             Branch b = nodeStore.getBranches().getBranch(baseRev);
             if (b == null) {
                 // baseRev is marker for new branch
-                b = nodeStore.getBranches().create(baseRev.asTrunkRevision(), rev);
+                b = nodeStore.getBranches().create(
+                        baseRev.asTrunkRevision(), rev, branch);
             } else {
                 b.addCommit(rev);
             }
@@ -453,12 +471,12 @@ public class Commit {
             }
             String conflictMessage = null;
             if (newestRev == null) {
-                if (op.isDelete() || !op.isNew()) {
+                if ((op.isDelete() || !op.isNew()) && isConflicting(before, op)) {
                     conflictMessage = "The node " +
                             op.getId() + " does not exist or is already deleted";
                 }
             } else {
-                if (op.isNew()) {
+                if (op.isNew() && isConflicting(before, op)) {
                     conflictMessage = "The node " +
                             op.getId() + " was already added in revision\n" +
                             newestRev;
@@ -496,9 +514,13 @@ public class Commit {
                 }
             }
             if (conflictMessage != null) {
-                conflictMessage += ", before\n" + revision +
-                        "; document:\n" + (before == null ? "" : before.format()) +
-                        ",\nrevision order:\n" + nodeStore.getRevisionComparator();
+                conflictMessage += ", before\n" + revision;
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug(conflictMessage  + "; document:\n" +
+                            (before == null ? "" : before.format()) +
+                            ",\nrevision order:\n" +
+                            nodeStore.getRevisionComparator());
+                }
                 throw new DocumentStoreException(conflictMessage);
             }
         }
@@ -523,7 +545,8 @@ public class Commit {
             // or document did not exist before
             return false;
         }
-        return doc.isConflicting(op, baseRevision, revision, nodeStore);
+        return doc.isConflicting(op, baseRevision, revision, nodeStore,
+                nodeStore.getEnableConcurrentAddRemove());
     }
 
     /**
@@ -546,7 +569,7 @@ public class Commit {
             }
             list.add(p);
         }
-        DiffCache.Entry cacheEntry = nodeStore.getDiffCache().newEntry(before, revision);
+        DiffCache.Entry cacheEntry = nodeStore.getLocalDiffCache().newEntry(before, revision);
         LastRevTracker tracker = nodeStore.createTracker(revision, isBranchCommit);
         List<String> added = new ArrayList<String>();
         List<String> removed = new ArrayList<String>();

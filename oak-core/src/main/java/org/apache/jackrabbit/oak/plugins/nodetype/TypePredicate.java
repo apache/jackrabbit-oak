@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
@@ -48,7 +49,8 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_P
  */
 public class TypePredicate implements Predicate<NodeState> {
 
-    public static TypePredicate isOrderable(NodeState root) {
+    @Nonnull
+    public static TypePredicate isOrderable(@Nonnull NodeState root) {
         Set<String> orderable = newHashSet();
         NodeState types = checkNotNull(root)
                 .getChildNode(JCR_SYSTEM)
@@ -66,11 +68,11 @@ public class TypePredicate implements Predicate<NodeState> {
 
     private final Iterable<String> names;
 
-    private boolean initialized = false;
+    private boolean initialized;
 
-    private Set<String> primaryTypes = null;
+    private Set<String> primaryTypes;
 
-    private Set<String> mixinTypes = null;
+    private Set<String> mixinTypes;
 
     /**
      * Creates a predicate for checking whether a node state is an instance of
@@ -92,8 +94,7 @@ public class TypePredicate implements Predicate<NodeState> {
      * @param root root node state
      * @param names Oak names of the node types to check for
      */
-    public TypePredicate(
-            @Nonnull NodeState root, @Nonnull Iterable<String> names) {
+    public TypePredicate(@Nonnull NodeState root, @Nonnull Iterable<String> names) {
         this.root = root;
         this.names = names;
     }
@@ -106,8 +107,7 @@ public class TypePredicate implements Predicate<NodeState> {
      * @param root root node state
      * @param names Oak names of the node types to check for
      */
-    public TypePredicate(
-            @Nonnull NodeState root, @Nonnull String[] names) {
+    public TypePredicate(@Nonnull NodeState root, @Nonnull String[] names) {
         this(root, Arrays.asList(names));
     }
 
@@ -159,27 +159,29 @@ public class TypePredicate implements Predicate<NodeState> {
         init();
         if (primaryTypes != null && primaryTypes.contains(primary)) {
             return true;
-        } else if (mixinTypes != null && any(mixins, in(mixinTypes))) {
-            return true;
-        } else {
-            return false;
         }
+        if (mixinTypes != null && any(mixins, in(mixinTypes))) {
+            return true;
+        }
+        return false;
     }
 
     //---------------------------------------------------------< Predicate >--
 
     @Override
-    public boolean apply(NodeState input) {
-        init();
-        if (primaryTypes != null
-                && primaryTypes.contains(input.getName(JCR_PRIMARYTYPE))) {
-            return true;
-        } else if (mixinTypes != null
-                && any(input.getNames(JCR_MIXINTYPES), in(mixinTypes))) {
-            return true;
-        } else {
-            return false;
+    public boolean apply(@Nullable NodeState input) {
+        if (input != null) {
+            init();
+            if (primaryTypes != null
+                    && primaryTypes.contains(input.getName(JCR_PRIMARYTYPE))) {
+                return true;
+            }
+            if (mixinTypes != null
+                    && any(input.getNames(JCR_MIXINTYPES), in(mixinTypes))) {
+                return true;
+            }
         }
+        return false;
     }
 
     //------------------------------------------------------------< Object >--

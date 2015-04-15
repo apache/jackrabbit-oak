@@ -58,3 +58,10 @@ are *not* orderable. For orderable child nodes Oak keeps the order in an
 internal property, which will lead to a performance degradation when the list
 grows too large. For such scenarios Oak provides the ``oak:Unstructured`` node
 type, which is equivalent to ``nt:unstructured`` except that it is not orderable.
+
+### Large Multi Value Property
+
+Using nodes with large multi value property would not scale well. Depending on 
+NodeStore it might hit some size limit restriction also. For e.g. with 
+DocumentMK the MVP would be stored in the backing Document which on Mongo has a 
+16MB limit.

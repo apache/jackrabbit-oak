@@ -16,9 +16,12 @@
  */
 package org.apache.jackrabbit.oak;
 
+import static com.google.common.collect.Lists.newArrayList;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+
 import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
@@ -61,8 +64,6 @@ import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.junit.After;
 import org.junit.Before;
 
-import static com.google.common.collect.Lists.newArrayList;
-
 /**
  * AbstractOakTest is the base class for oak test execution.
  */
@@ -82,7 +83,7 @@ public abstract class AbstractSecurityTest {
     public void before() throws Exception {
         Oak oak = new Oak()
                 .with(new InitialContent())
-                .with(JcrConflictHandler.JCR_CONFLICT_HANDLER)
+                .with(JcrConflictHandler.createJcrConflictHandler())
                 .with(new NamespaceEditorProvider())
                 .with(new ReferenceEditorProvider())
                 .with(new ReferenceIndexProvider())

@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.security.privilege;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.core.ImmutableRoot;
+import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.SubtreeValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
@@ -45,6 +45,6 @@ class PrivilegeValidatorProvider extends ValidatorProvider {
     }
 
     private Root createRoot(NodeState nodeState) {
-        return new ImmutableRoot(nodeState);
+        return RootFactory.createReadOnlyRoot(nodeState);
     }
 }

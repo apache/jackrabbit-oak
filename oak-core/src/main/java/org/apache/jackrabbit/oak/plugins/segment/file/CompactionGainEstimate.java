@@ -16,27 +16,36 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.file;
 
+import static java.lang.Integer.getInteger;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 
 import java.io.File;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.UUID;
 
+import com.google.common.hash.BloomFilter;
+import com.google.common.hash.Funnel;
+import com.google.common.hash.PrimitiveSink;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.segment.RecordId;
+import org.apache.jackrabbit.oak.plugins.segment.RecordIdSet;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentPropertyState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 
-import com.google.common.hash.BloomFilter;
-import com.google.common.hash.Funnel;
-import com.google.common.hash.PrimitiveSink;
-
 class CompactionGainEstimate implements TarEntryVisitor {
+
+    /**
+     * The sampling rate of the compaction estimation process.
+     * For a value of {@code n} only a random sample containing
+     * every n-th segment is taken into account for estimating the
+     * compaction gain.
+     * <p>
+     * Defaults to 1.
+     */
+    public static final int UUID_SAMPLING_RATE =
+            getInteger("compaction.estimate.sampling.rate", 1);
 
     private static final Funnel<UUID> UUID_FUNNEL = new Funnel<UUID>() {
         @Override
@@ -54,22 +63,20 @@ class CompactionGainEstimate implements TarEntryVisitor {
 
     CompactionGainEstimate(SegmentNodeState node, int estimatedBulkCount) {
         uuids = BloomFilter.create(UUID_FUNNEL, estimatedBulkCount);
-        collectReferencedSegments(node, new HashSet<ThinRecordId>());
+        collectReferencedSegments(node, new RecordIdSet());
     }
 
-    private void collectReferencedSegments(SegmentNodeState node,
-            Set<ThinRecordId> visited) {
-        ThinRecordId tr = ThinRecordId.apply(node.getRecordId());
-        if (!visited.contains(tr)) {
-            uuids.put(asUUID(node.getRecordId().getSegmentId()));
+    private void collectReferencedSegments(SegmentNodeState node, RecordIdSet visited) {
+        if (visited.addIfNotPresent(node.getRecordId())) {
+            collectUUID(asUUID(node.getRecordId().getSegmentId()));
             for (PropertyState property : node.getProperties()) {
                 if (property instanceof SegmentPropertyState) {
-                    uuids.put(asUUID(((SegmentPropertyState) property)
+                    collectUUID(asUUID(((SegmentPropertyState) property)
                             .getRecordId().getSegmentId()));
                 }
                 for (Blob blob : property.getValue(BINARIES)) {
                     for (SegmentId id : SegmentBlob.getBulkSegmentIds(blob)) {
-                        uuids.put(asUUID(id));
+                        collectUUID(asUUID(id));
                     }
                 }
             }
@@ -77,8 +84,17 @@ class CompactionGainEstimate implements TarEntryVisitor {
                 collectReferencedSegments((SegmentNodeState) child.getNodeState(),
                         visited);
             }
-            visited.add(tr);
         }
+    }
+
+    private void collectUUID(UUID uuid) {
+        if (includeUUID(uuid)) {
+            uuids.put(uuid);
+        }
+    }
+
+    private static boolean includeUUID(UUID uuid) {
+        return uuid.getLeastSignificantBits() % UUID_SAMPLING_RATE == 0;
     }
 
     private static UUID asUUID(SegmentId id) {
@@ -111,60 +127,13 @@ class CompactionGainEstimate implements TarEntryVisitor {
 
     @Override
     public void visit(long msb, long lsb, File file, int offset, int size) {
-        int entrySize = TarReader.getEntrySize(size);
-        totalSize += entrySize;
-        if (uuids.mightContain(new UUID(msb, lsb))) {
-            reachableSize += entrySize;
-        }
-    }
-
-    private static class ThinRecordId {
-
-        static ThinRecordId apply(RecordId r) {
-            return new ThinRecordId(r.getOffset(), r.getSegmentId()
-                    .getMostSignificantBits(), r.getSegmentId()
-                    .getLeastSignificantBits());
-        }
-
-        private final int offset;
-
-        private final long msb;
-
-        private final long lsb;
-
-        public ThinRecordId(int offset, long msb, long lsb) {
-            super();
-            this.offset = offset;
-            this.msb = msb;
-            this.lsb = lsb;
-        }
-
-        @Override
-        public int hashCode() {
-            final int prime = 31;
-            int result = 1;
-            result = prime * result + (int) (lsb ^ (lsb >>> 32));
-            result = prime * result + (int) (msb ^ (msb >>> 32));
-            result = prime * result + offset;
-            return result;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj)
-                return true;
-            if (obj == null)
-                return false;
-            if (getClass() != obj.getClass())
-                return false;
-            ThinRecordId other = (ThinRecordId) obj;
-            if (lsb != other.lsb)
-                return false;
-            if (msb != other.msb)
-                return false;
-            if (offset != other.offset)
-                return false;
-            return true;
+        UUID uuid = new UUID(msb, lsb);
+        if (includeUUID(uuid)) {
+            int entrySize = TarReader.getEntrySize(size);
+            totalSize += entrySize;
+            if (uuids.mightContain(uuid)) {
+                reachableSize += entrySize;
+            }
         }
     }
 

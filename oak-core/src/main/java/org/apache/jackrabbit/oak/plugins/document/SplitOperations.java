@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -33,6 +33,8 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -53,6 +55,7 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.removePrev
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.setHasBinary;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.setPrevious;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.PROPERTY_OR_DELETED;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getPreviousIdFor;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isRevisionNewer;
 
 /**
@@ -60,6 +63,8 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isRevisionNe
  */
 class SplitOperations {
 
+    private static final Logger LOG = LoggerFactory.getLogger(SplitOperations.class);
+    private static final int GARBAGE_LIMIT = Integer.getInteger("oak.documentMK.garbage.limit", 1000);
     private static final DocumentStore STORE = new MemoryDocumentStore();
 
     private final NodeDocument doc;
@@ -70,6 +75,9 @@ class SplitOperations {
     private Revision low;
     private int numValues;
     private Map<String, NavigableMap<Revision, String>> committedChanges;
+    private Set<Revision> changes;
+    private Map<String, Set<Revision>> garbage;
+    private int garbageCount = 0;
     private Set<Revision> mostRecentRevs;
     private Set<Revision> splitRevs;
     private List<UpdateOp> splitOps;
@@ -112,7 +120,11 @@ class SplitOperations {
         splitOps = Lists.newArrayList();
         mostRecentRevs = Sets.newHashSet();
         splitRevs = Sets.newHashSet();
-        committedChanges = getCommittedLocalChanges();
+        garbage = Maps.newHashMap();
+        changes = Sets.newHashSet();
+        committedChanges = Maps.newHashMap();
+        
+        collectLocalChanges(committedChanges, changes);
 
         // revisions of the most recent committed changes on this document
         // these are kept in the main document. _revisions and _commitRoot
@@ -128,8 +140,14 @@ class SplitOperations {
         // create intermediate docs if needed
         createIntermediateDocs();
 
+        // remove stale references to previous docs
+        disconnectStalePrevDocs();
+        
+        // remove garbage
+        removeGarbage();
+
         // main document must be updated last
-        if (main != null && !splitOps.isEmpty()) {
+        if (main != null) {
             splitOps.add(main);
         }
 
@@ -142,7 +160,8 @@ class SplitOperations {
         // unless document is really big
         return doc.getLocalRevisions().size() + doc.getLocalCommitRoot().size() > NUM_REVS_THRESHOLD
                 || doc.getMemory() >= DOC_SIZE_THRESHOLD
-                || previous.size() >= PREV_SPLIT_FACTOR;
+                || previous.size() >= PREV_SPLIT_FACTOR
+                || !doc.getStalePrev().isEmpty();
     }
 
     /**
@@ -201,9 +220,15 @@ class SplitOperations {
         NavigableMap<Revision, String> commitRoot =
                 new TreeMap<Revision, String>(context.getRevisionComparator());
         for (Map.Entry<Revision, String> entry : doc.getLocalCommitRoot().entrySet()) {
-            if (splitRevs.contains(entry.getKey())) {
-                commitRoot.put(entry.getKey(), entry.getValue());
+            Revision r = entry.getKey();
+            if (splitRevs.contains(r)) {
+                commitRoot.put(r, entry.getValue());
                 numValues++;
+            } else if (r.getClusterId() == context.getClusterId() 
+                    && !changes.contains(r)) {
+                // OAK-2528: _commitRoot entry without associated
+                // change -> consider as garbage
+                addGarbage(r, COMMIT_ROOT);
             }
         }
         committedChanges.put(COMMIT_ROOT, commitRoot);
@@ -336,15 +361,15 @@ class SplitOperations {
     }
 
     /**
-     * Returns a map of all local property changes committed by the current
+     * Collects all local property changes committed by the current
      * cluster node.
      *
-     * @return local changes committed by the current cluster node.
+     * @param committedLocally local changes committed by the current cluster node.
+     * @param changes all revisions of local changes (committed and uncommitted).
      */
-    @Nonnull
-    private Map<String, NavigableMap<Revision, String>> getCommittedLocalChanges() {
-        Map<String, NavigableMap<Revision, String>> committedLocally
-                = new HashMap<String, NavigableMap<Revision, String>>();
+    private void collectLocalChanges(
+            Map<String, NavigableMap<Revision, String>> committedLocally,
+            Set<Revision> changes) {
         for (String property : filter(doc.keySet(), PROPERTY_OR_DELETED)) {
             NavigableMap<Revision, String> splitMap
                     = new TreeMap<Revision, String>(context.getRevisionComparator());
@@ -356,12 +381,91 @@ class SplitOperations {
                 if (rev.getClusterId() != context.getClusterId()) {
                     continue;
                 }
+                changes.add(rev);
                 if (doc.isCommitted(rev)) {
                     splitMap.put(rev, entry.getValue());
+                } else if (isGarbage(rev)) {
+                    addGarbage(rev, property);
                 }
             }
         }
-        return committedLocally;
+    }
+    
+    private boolean isGarbage(Revision rev) {
+        Revision head = context.getHeadRevision();
+        Comparator<Revision> comp = context.getRevisionComparator();
+        if (comp.compare(head, rev) <= 0) {
+            // this may be an in-progress commit
+            return false;
+        }
+        // garbage if not part of an active branch
+        return context.getBranches().getBranchCommit(rev) == null;
+    }
+    
+    private void addGarbage(Revision rev, String property) {
+        if (garbageCount > GARBAGE_LIMIT) {
+            return;
+        }
+        Set<Revision> revisions = garbage.get(property);
+        if (revisions == null) {
+            revisions = Sets.newHashSet();
+            garbage.put(property, revisions);
+        }
+        if (revisions.add(rev)) {
+            garbageCount++;
+        }
+    }
+
+    private void disconnectStalePrevDocs() {
+        NavigableMap<Revision, Range> ranges = doc.getPreviousRanges(true);
+        for (Map.Entry<Revision, String> entry : doc.getStalePrev().entrySet()) {
+            Revision r = entry.getKey();
+            if (r.getClusterId() != context.getClusterId()) {
+                // only process revisions of this cluster node
+                continue;
+            }
+            if (main == null) {
+                main = new UpdateOp(id, false);
+            }
+            NodeDocument.removeStalePrevious(main, r);
+
+            if (ranges.containsKey(r)
+                    && entry.getValue().equals(String.valueOf(ranges.get(r).height))) {
+                NodeDocument.removePrevious(main, r);
+            } else {
+                // reference was moved to an intermediate doc
+                // while the last GC was running
+                // -> need to locate intermediate doc and disconnect from there
+                int height = Integer.parseInt(entry.getValue());
+                NodeDocument intermediate = doc.findPrevReferencingDoc(r, height);
+                if (intermediate == null) {
+                    LOG.warn("Split document {} not referenced anymore. Main document is {}",
+                            getPreviousIdFor(doc.getPath(), r, height), id);
+                } else {
+                    UpdateOp op = new UpdateOp(intermediate.getId(), false);
+                    NodeDocument.removePrevious(op, r);
+                    splitOps.add(op);
+                }
+            }
+
+        }
+    }
+    
+    private void removeGarbage() {
+        if (garbage.isEmpty()) {
+            return;
+        } else if (main == null) {
+            main = new UpdateOp(id, false);
+        }
+        for (Map.Entry<String, Set<Revision>> entry : garbage.entrySet()) {
+            for (Revision r : entry.getValue()) {
+                main.removeMapEntry(entry.getKey(), r);
+                if (PROPERTY_OR_DELETED.apply(entry.getKey())) {
+                    NodeDocument.removeCommitRoot(main, r);
+                    NodeDocument.removeRevision(main, r);
+                }
+            }
+        }
     }
 
     private void trackHigh(Revision r) {

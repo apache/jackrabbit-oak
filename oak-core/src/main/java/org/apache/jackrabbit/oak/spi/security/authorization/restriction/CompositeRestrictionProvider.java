@@ -40,7 +40,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.Access
  * Aggregates of a collection of {@link RestrictionProvider} implementations
  * into a single provider.
  */
-public class CompositeRestrictionProvider implements RestrictionProvider {
+public final class CompositeRestrictionProvider implements RestrictionProvider {
 
     private final Collection<? extends RestrictionProvider> providers;
 

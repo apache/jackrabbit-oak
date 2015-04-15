@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
+import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -69,6 +69,11 @@ public class VersionablePathHook implements CommitHook {
             throw exceptions.get(0);
         }
         return rootBuilder.getNodeState();
+    }
+
+    @Override
+    public String toString() {
+        return "VersionablePathHook : workspaceName = " + workspaceName;
     }
 
     private final class Diff extends DefaultNodeStateDiff implements VersionConstants {

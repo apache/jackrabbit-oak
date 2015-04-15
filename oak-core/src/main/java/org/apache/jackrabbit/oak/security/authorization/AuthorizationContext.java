@@ -40,24 +40,28 @@ final class AuthorizationContext implements Context, AccessControlConstants, Per
 
     //------------------------------------------------------------< Context >---
     @Override
-    public boolean definesProperty(Tree parent, PropertyState property) {
+    public boolean definesProperty(@Nonnull Tree parent, @Nonnull PropertyState property) {
         return definesTree(parent);
     }
 
     @Override
     public boolean definesContextRoot(@Nonnull Tree tree) {
         String name = tree.getName();
-        return POLICY_NODE_NAMES.contains(name) || REP_PERMISSION_STORE.equals(name);
+        if (POLICY_NODE_NAMES.contains(name)) {
+            return NT_REP_ACL.equals(TreeUtil.getPrimaryTypeName(tree));
+        } else {
+            return REP_PERMISSION_STORE.equals(name);
+        }
     }
 
     @Override
-    public boolean definesTree(Tree tree) {
+    public boolean definesTree(@Nonnull Tree tree) {
         String ntName = TreeUtil.getPrimaryTypeName(tree);
         return AC_NODETYPE_NAMES.contains(ntName) || PERMISSION_NODETYPE_NAMES.contains(ntName);
     }
 
     @Override
-    public boolean definesLocation(TreeLocation location) {
+    public boolean definesLocation(@Nonnull TreeLocation location) {
         Tree tree = location.getTree();
         if (tree != null && location.exists()) {
             PropertyState p = location.getProperty();

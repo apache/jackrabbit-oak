@@ -59,7 +59,7 @@ public class PropertiesUtil {
         if (propValue instanceof Boolean) {
             return (Boolean) propValue;
         } else if (propValue != null) {
-            return Boolean.valueOf(String.valueOf(propValue));
+            return Boolean.parseBoolean(String.valueOf(propValue));
         }
 
         return defaultValue;
@@ -90,7 +90,7 @@ public class PropertiesUtil {
             return (Long) propValue;
         } else if (propValue != null) {
             try {
-                return Long.valueOf(String.valueOf(propValue));
+                return Long.parseLong(String.valueOf(propValue));
             } catch (NumberFormatException nfe) {
                 // don't care, fall through to default value
             }
@@ -113,7 +113,7 @@ public class PropertiesUtil {
             return (Integer) propValue;
         } else if (propValue != null) {
             try {
-                return Integer.valueOf(String.valueOf(propValue));
+                return Integer.parseInt(String.valueOf(propValue));
             } catch (NumberFormatException nfe) {
                 // don't care, fall through to default value
             }
@@ -136,7 +136,7 @@ public class PropertiesUtil {
             return (Double) propValue;
         } else if (propValue != null) {
             try {
-                return Double.valueOf(String.valueOf(propValue));
+                return Double.parseDouble(String.valueOf(propValue));
             } catch (NumberFormatException nfe) {
                 // don't care, fall through to default value
             }

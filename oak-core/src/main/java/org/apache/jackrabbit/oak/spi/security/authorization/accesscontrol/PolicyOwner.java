@@ -16,24 +16,24 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.security.AccessControlPolicy;
 
 /**
  * Interface to improve pluggability of the {@link javax.jcr.security.AccessControlManager},
  * namely the interaction of multiple managers within a
  * single repository. It provides a single method {@link #defines(String, javax.jcr.security.AccessControlPolicy)}
- * that allows to termine the responsible manager upon
+ * that allows to determine the responsible manager upon
  * {@link javax.jcr.security.AccessControlManager#setPolicy(String, javax.jcr.security.AccessControlPolicy) setPolicy}
  * and
  * {@link javax.jcr.security.AccessControlManager#removePolicy(String, javax.jcr.security.AccessControlPolicy) removePolicy}.
- *
- * @see org.apache.jackrabbit.oak.spi.security.authorization.CompositeAuthorizationConfiguration
  */
 public interface PolicyOwner {
 
     /**
      * Determines if the implementing {@code AccessManager} defines the specified
-     * {@code acceessControlPolicy} at the given {@code absPath}. If this method
+     * {@code accessControlPolicy} at the given {@code absPath}. If this method
      * returns {@code true} it is expected that the given policy is valid to be
      * {@link javax.jcr.security.AccessControlManager#setPolicy(String, javax.jcr.security.AccessControlPolicy) set}
      * or {@link javax.jcr.security.AccessControlManager#removePolicy(String, javax.jcr.security.AccessControlPolicy) removed}
@@ -44,5 +44,5 @@ public interface PolicyOwner {
      * @return {@code true} If the {@code AccessControlManager} implementing this
      * interface can handle the specified {@code accessControlPolicy} at the given {@code path}.
      */
-    boolean defines(String absPath, AccessControlPolicy accessControlPolicy);
+    boolean defines(@Nullable String absPath, @Nonnull AccessControlPolicy accessControlPolicy);
 }

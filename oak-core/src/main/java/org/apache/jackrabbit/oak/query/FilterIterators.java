@@ -205,9 +205,9 @@ public class FilterIterators {
                 list.add(x);
                 checkMemoryLimit(list.size(), settings);
                 // from time to time, sort and truncate
-                // this should results in O(n*log(2*keep)) operations,
+                // this should need less than O(n*log(3*keep)) operations,
                 // which is close to the optimum O(n*log(keep))
-                if (list.size() > max * 2) {
+                if (list.size() > (long) max * 2) {
                     // remove tail entries right now, to save memory
                     Collections.sort(list, orderBy);
                     keepFirst(list, max);

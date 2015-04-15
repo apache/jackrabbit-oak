@@ -20,26 +20,42 @@
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.io.BaseEncoding;
+import com.google.common.io.Closeables;
 import com.google.common.io.Files;
+
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
+import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.core.data.FileDataRecord;
 import org.apache.jackrabbit.core.data.FileDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *  Oak specific extension of JR2 FileDataStore which enables
  *  provisioning the signing key via OSGi config
  */
-public class OakFileDataStore extends FileDataStore {
+public class OakFileDataStore extends FileDataStore implements SharedDataStore {
+    public static final Logger LOG = LoggerFactory.getLogger(OakFileDataStore.class);
     private byte[] referenceKey;
 
     public OakFileDataStore() {
@@ -51,11 +67,12 @@ public class OakFileDataStore extends FileDataStore {
 
     @Override
     public Iterator<DataIdentifier> getAllIdentifiers() {
+        final String path = FilenameUtils.normalizeNoEndSeparator(getPath());
         return Files.fileTreeTraverser().postOrderTraversal(new File(getPath()))
                 .filter(new Predicate<File>() {
                     @Override
                     public boolean apply(File input) {
-                        return input.isFile();
+                        return input.isFile() && !input.getParent().equals(path);
                     }
                 })
                 .transform(new Function<File, DataIdentifier>() {
@@ -68,7 +85,7 @@ public class OakFileDataStore extends FileDataStore {
 
     @Override
     protected byte[] getOrCreateReferenceKey() throws DataStoreException {
-        if(referenceKey != null){
+        if (referenceKey != null) {
             return referenceKey;
         }
         return super.getOrCreateReferenceKey();
@@ -104,7 +121,7 @@ public class OakFileDataStore extends FileDataStore {
     /**
      * Noop map which eats up all the put call
      */
-    static class NoOpMap<K,V> extends AbstractMap<K,V> {
+    static class NoOpMap<K, V> extends AbstractMap<K, V> {
 
         @Override
         public V put(K key, V value) {
@@ -116,5 +133,90 @@ public class OakFileDataStore extends FileDataStore {
         public Set<Entry<K, V>> entrySet() {
             return Collections.emptySet();
         }
+    }
+
+    @Override
+    public void addMetadataRecord(InputStream input, String name)
+            throws DataStoreException {
+        try {
+            File file = new File(getPath(), name);
+            FileOutputStream os = new FileOutputStream(file);
+            try {
+                IOUtils.copyLarge(input, os);
+            } finally {
+                Closeables.close(os, true);
+                Closeables.close(input, true);
+            }
+        } catch (IOException e) {
+            LOG.error("Exception while adding root record with name {}, {}",
+                    new Object[] {name, e});
+            throw new DataStoreException("Could not add root record", e);
+        }
+    }
+
+    @Override
+    public DataRecord getMetadataRecord(String name) {
+        File root = new File(getPath());
+        for (File file : FileFilterUtils.filter(FileFilterUtils.nameFileFilter(name), root.listFiles())) {
+            if (!file.isDirectory()) {
+                return new FileDataRecord(this, new DataIdentifier(file.getName()), file);
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public List<DataRecord> getAllMetadataRecords(String prefix) {
+        File root = new File(getPath());
+        List<DataRecord> rootRecords = new ArrayList<DataRecord>();
+        for (File file : FileFilterUtils.filterList(
+                FileFilterUtils.prefixFileFilter(prefix),
+                root.listFiles())) {
+            if (!file.isDirectory()) { // skip directories which are actual data store files
+                rootRecords.add(
+                        new FileDataRecord(this, new DataIdentifier(file.getName()), file));
+            }
+        }
+        return rootRecords;
+    }
+
+    @Override
+    public boolean deleteMetadataRecord(String name) {
+        File root = new File(getPath());
+
+        for (File file : FileFilterUtils.filterList(
+                FileFilterUtils.nameFileFilter(name),
+                root.listFiles())) {
+            if (!file.isDirectory()) { // skip directories which are actual data store files
+                if (!file.delete()) {
+                    LOG.warn("Failed to delete root record {} ", new Object[] {file
+                            .getAbsolutePath()});
+                } else {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public void deleteAllMetadataRecords(String prefix) {
+        File root = new File(getPath());
+
+        for (File file : FileFilterUtils.filterList(
+                FileFilterUtils.prefixFileFilter(prefix),
+                root.listFiles())) {
+            if (!file.isDirectory()) { // skip directories which are actual data store files
+                if (!file.delete()) {
+                    LOG.warn("Failed to delete root record {} ", new Object[] {file
+                            .getAbsolutePath()});
+                }
+            }
+        }
+    }
+
+    @Override
+    public Type getType() {
+        return Type.SHARED;
     }
 }

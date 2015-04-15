@@ -16,38 +16,52 @@
  */
 package org.apache.jackrabbit.oak;
 
-import java.util.Arrays;
+import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_NS;
+import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.MEMORY_NS;
+import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_MK;
+
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.commons.FixturesHelper;
+import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public abstract class OakBaseTest {
 
+    /**
+     * The system property "nsfixtures" can be used to provide a
+     * whitespace-separated list of fixtures names for which the
+     * tests should be run (the default is to use all fixtures).
+     */
+    private static final Set<Fixture> FIXTURES = FixturesHelper.getFixtures();
+
     @Parameterized.Parameters
     public static Collection<Object[]> fixtures() {
-        Object[][] fixtures = new Object[][] {
-                {NodeStoreFixture.MONGO_MK},
-                {NodeStoreFixture.MONGO_NS},
-                {NodeStoreFixture.SEGMENT_MK},
-        };
-        return Arrays.asList(fixtures);
+        Collection<Object[]> result = new ArrayList<Object[]>();
+        if (FIXTURES.contains(DOCUMENT_NS)) {
+            result.add(new Object[] { NodeStoreFixture.MONGO_NS });
+        }
+        if (FIXTURES.contains(SEGMENT_MK)) {
+            result.add(new Object[] { NodeStoreFixture.SEGMENT_MK });
+        }
+        if (FIXTURES.contains(MEMORY_NS)) {
+            result.add(new Object[] { NodeStoreFixture.MEMORY_NS });
+        }
+        return result;
     }
 
-    protected NodeStoreFixture fixture;
-    protected NodeStore store;
 
-    @Before
-    public void setup() {
-        store = fixture.createNodeStore();
-    }
+    protected final NodeStoreFixture fixture;
+    protected final NodeStore store;
 
     @After
     public void teardown() {
@@ -56,6 +70,7 @@ public abstract class OakBaseTest {
 
     protected OakBaseTest(NodeStoreFixture fixture) {
         this.fixture = fixture;
+        this.store = fixture.createNodeStore();
     }
 
     protected ContentRepository createContentRepository() {

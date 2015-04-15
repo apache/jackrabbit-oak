@@ -18,34 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import javax.jcr.nodetype.PropertyDefinition;
-import javax.jcr.version.OnParentVersionAction;
-
-import com.google.common.collect.Lists;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
-import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
-import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
-import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import static com.google.common.base.Preconditions.checkNotNull;
 import static javax.jcr.version.OnParentVersionAction.ABORT;
 import static javax.jcr.version.OnParentVersionAction.COMPUTE;
@@ -71,6 +43,37 @@ import static org.apache.jackrabbit.JcrConstants.NT_FROZENNODE;
 import static org.apache.jackrabbit.JcrConstants.NT_VERSIONEDCHILD;
 import static org.apache.jackrabbit.oak.plugins.version.Utils.primaryTypeOf;
 import static org.apache.jackrabbit.oak.plugins.version.Utils.uuidFromNode;
+
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.nodetype.PropertyDefinition;
+import javax.jcr.version.OnParentVersionAction;
+
+import com.google.common.collect.Lists;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
+import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
+import org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * {@code VersionableState} provides methods to create a versionable state
@@ -437,7 +440,7 @@ class VersionableState {
 
     private void resetToDefaultValue(NodeBuilder dest, PropertyState p)
             throws RepositoryException {
-        ImmutableTree tree = new ImmutableTree(dest.getNodeState());
+        Tree tree = TreeFactory.createReadOnlyTree(dest.getNodeState());
         PropertyDefinition def = ntMgr.getDefinition(tree, p, true);
         Value[] values = def.getDefaultValues();
         if (values != null) {
@@ -487,7 +490,7 @@ class VersionableState {
                         "Checkin aborted due to OPV abort in " + name);
             }
             if (opv == OnParentVersionAction.VERSION) {
-                if (ntMgr.isNodeType(new ImmutableTree(child.getNodeState()), MIX_VERSIONABLE)) {
+                if (ntMgr.isNodeType(TreeFactory.createReadOnlyTree(child.getNodeState()), MIX_VERSIONABLE)) {
                     // create frozen versionable child
                     versionedChild(child, dest.child(name));
                 } else {
@@ -572,7 +575,7 @@ class VersionableState {
             // quick check without looking at type hierarchy
             return false;
         }
-        ImmutableTree tree = new ImmutableTree(node.getNodeState());
+        Tree tree = TreeFactory.createReadOnlyTree(node.getNodeState());
         return ntMgr.isNodeType(tree, MIX_REFERENCEABLE);
     }
 
@@ -597,8 +600,7 @@ class VersionableState {
         } else {
             childState = child.getNodeState();
         }
-        ImmutableTree childTree = new ImmutableTree(
-                parentTree, childName, childState);
+        ImmutableTree childTree = new ImmutableTree(parentTree, childName, childState);
         return ntMgr.getDefinition(parentTree, childTree).getOnParentVersion();
     }
 
@@ -608,7 +610,7 @@ class VersionableState {
             // FIXME: handle child order properly
             return OnParentVersionAction.COPY;
         } else {
-            return ntMgr.getDefinition(new ImmutableTree(node.getNodeState()),
+            return ntMgr.getDefinition(TreeFactory.createReadOnlyTree(node.getNodeState()),
                     property, false).getOnParentVersion();
         }
     }

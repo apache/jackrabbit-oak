@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.IOException;
@@ -26,6 +25,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import static com.google.common.collect.Iterables.size;
+import static java.util.concurrent.TimeUnit.HOURS;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT_FACTOR;
@@ -38,9 +39,11 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -71,11 +74,16 @@ public class VersionGarbageCollectorTest {
     @Parameterized.Parameters
     public static Collection<Object[]> fixtures() throws IOException {
         List<Object[]> fixtures = Lists.newArrayList();
-        fixtures.add(new Object[] {new DocumentStoreFixture.MemoryFixture()});
+        fixtures.add(new Object[] { new DocumentStoreFixture.MemoryFixture() });
 
         DocumentStoreFixture mongo = new DocumentStoreFixture.MongoFixture();
-        if(mongo.isAvailable()){
-           fixtures.add(new Object[] {mongo});
+        if (mongo.isAvailable()) {
+            fixtures.add(new Object[] { mongo });
+        }
+
+        DocumentStoreFixture rdb = new DocumentStoreFixture.RDBFixture();
+        if (rdb.isAvailable()) {
+            fixtures.add(new Object[] { rdb });
         }
         return fixtures;
     }
@@ -97,6 +105,7 @@ public class VersionGarbageCollectorTest {
     @After
     public void tearDown() throws Exception {
         store.dispose();
+        Revision.resetClockToDefault();
     }
 
     @Test
@@ -128,7 +137,7 @@ public class VersionGarbageCollectorTest {
         long delta = TimeUnit.MINUTES.toMillis(10);
         //1. Go past GC age and check no GC done as nothing deleted
         clock.waitUntil(Revision.getCurrentTimestamp() + maxAge);
-        VersionGCStats stats = gc.gc(maxAge, TimeUnit.HOURS);
+        VersionGCStats stats = gc.gc(maxAge, HOURS);
         assertEquals(0, stats.deletedDocGCCount);
 
         //Remove x/y
@@ -142,13 +151,13 @@ public class VersionGarbageCollectorTest {
         //maxAge
         //Clock cannot move back (it moved forward in #1) so double the maxAge
         clock.waitUntil(clock.getTime() + delta);
-        stats = gc.gc(maxAge*2, TimeUnit.HOURS);
+        stats = gc.gc(maxAge*2, HOURS);
         assertEquals(0, stats.deletedDocGCCount);
 
         //3. Check that deleted doc does get collected post maxAge
-        clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(maxAge*2) + delta);
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
 
-        stats = gc.gc(maxAge*2, TimeUnit.HOURS);
+        stats = gc.gc(maxAge*2, HOURS);
         assertEquals(1, stats.deletedDocGCCount);
 
         //4. Check that a revived doc (deleted and created again) does not get gc
@@ -160,8 +169,8 @@ public class VersionGarbageCollectorTest {
         b4.child("z");
         store.merge(b4, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(maxAge*2) + delta);
-        stats = gc.gc(maxAge*2, TimeUnit.HOURS);
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
+        stats = gc.gc(maxAge*2, HOURS);
         assertEquals(0, stats.deletedDocGCCount);
 
     }
@@ -178,7 +187,7 @@ public class VersionGarbageCollectorTest {
 
         //Commit on a node which has a child and where the commit root
         // is parent
-        for (int i = 0; i < NodeDocument.NUM_REVS_THRESHOLD; i++) {
+        for (int i = 0; i < NUM_REVS_THRESHOLD; i++) {
             b1 = store.getRoot().builder();
             //This updates a middle node i.e. one which has child bar
             //Should result in SplitDoc of type PROP_COMMIT_ONLY
@@ -201,8 +210,8 @@ public class VersionGarbageCollectorTest {
         assertEquals(SplitDocType.COMMIT_ROOT_ONLY, previousDocTestFoo.get(0).getSplitDocType());
         assertEquals(SplitDocType.DEFAULT_LEAF, previousDocTestFoo2.get(0).getSplitDocType());
 
-        clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(maxAge) + delta);
-        VersionGCStats stats = gc.gc(maxAge, TimeUnit.HOURS);
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge) + delta);
+        VersionGCStats stats = gc.gc(maxAge, HOURS);
         assertEquals(2, stats.splitDocGCCount);
 
         //Previous doc should be removed
@@ -258,8 +267,8 @@ public class VersionGarbageCollectorTest {
         assertTrue("Test data does not have intermediate previous docs",
                 hasIntermediateDoc);
 
-        clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(maxAge) + delta);
-        VersionGCStats stats = gc.gc(maxAge, TimeUnit.HOURS);
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge) + delta);
+        VersionGCStats stats = gc.gc(maxAge, HOURS);
         assertEquals(10, stats.splitDocGCCount);
 
         DocumentNodeState test = getDoc("/test").getNodeAtRevision(
@@ -293,9 +302,9 @@ public class VersionGarbageCollectorTest {
 
         store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(maxAge) + delta);
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge) + delta);
 
-        VersionGCStats stats = gc.gc(maxAge, TimeUnit.HOURS);
+        VersionGCStats stats = gc.gc(maxAge, HOURS);
         assertEquals(1, stats.deletedDocGCCount);
 
         Set<String> children = Sets.newHashSet();
@@ -320,9 +329,9 @@ public class VersionGarbageCollectorTest {
 
         store.runBackgroundOperations();
 
-        clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(maxAge) + delta);
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge) + delta);
 
-        VersionGCStats stats = gc.gc(maxAge, TimeUnit.HOURS);
+        VersionGCStats stats = gc.gc(maxAge, HOURS);
         assertEquals(2, stats.splitDocGCCount);
 
         NodeDocument doc = getDoc("/foo");
@@ -330,6 +339,54 @@ public class VersionGarbageCollectorTest {
         DocumentNodeState state = doc.getNodeAtRevision(
                 store, store.getHeadRevision(), null);
         assertNotNull(state);
+    }
+
+    // OAK-1791
+    @Test
+    public void gcDefaultLeafSplitDocs() throws Exception {
+        Revision.setClock(clock);
+
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("test").setProperty("prop", -1);
+        merge(store, builder);
+
+        String id = Utils.getIdFromPath("/test");
+        long start = Revision.getCurrentTimestamp();
+        // simulate continuous writes once a second for one day
+        // collect garbage older than one hour
+        int hours = 24;
+        if (fixture instanceof DocumentStoreFixture.MongoFixture) {
+            // only run for 6 hours on MongoDB to
+            // keep time to run on a reasonable level
+            hours = 6;
+        }
+        for (int i = 0; i < 3600 * hours; i++) {
+            clock.waitUntil(start + i * 1000);
+            builder = store.getRoot().builder();
+            builder.child("test").setProperty("prop", i);
+            merge(store, builder);
+            if (i % 10 == 0) {
+                store.runBackgroundOperations();
+            }
+            // trigger GC twice an hour
+            if (i % 1800 == 0) {
+                gc.gc(1, HOURS);
+                NodeDocument doc = store.getDocumentStore().find(NODES, id);
+                assertNotNull(doc);
+                int numPrevDocs = Iterators.size(doc.getAllPreviousDocs());
+                assertTrue("too many previous docs: " + numPrevDocs,
+                        numPrevDocs < 70);
+            }
+        }
+        NodeDocument doc = store.getDocumentStore().find(NODES, id);
+        assertNotNull(doc);
+        int numRevs = size(doc.getValueMap("prop").entrySet());
+        assertTrue("too many revisions: " + numRevs, numRevs < 6000);
+    }
+
+    private void merge(DocumentNodeStore store, NodeBuilder builder)
+            throws CommitFailedException {
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
     private NodeDocument getDoc(String path){

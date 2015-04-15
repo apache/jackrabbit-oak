@@ -103,9 +103,9 @@ public class TokenInfoTest extends AbstractTokenTest {
     @Test
     public void testGetAttributes() {
         Map<String, String> reserved = new HashMap<String, String>();
-        reserved.put(".token", "value");
-        reserved.put("rep:token.key", "value");
-        reserved.put("rep:token.exp", "value");
+        reserved.put(TOKEN_ATTRIBUTE, "value");
+        reserved.put(TOKEN_ATTRIBUTE_KEY, "value");
+        reserved.put(TOKEN_ATTRIBUTE_EXPIRY, "value");
 
         Map<String, String> privateAttributes = new HashMap<String, String>();
         privateAttributes.put(".token_exp", "value");
@@ -160,7 +160,7 @@ public class TokenInfoTest extends AbstractTokenTest {
         TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
 
         Tree userTree = root.getTree(getUserManager(root).getAuthorizable(userId).getPath());
-        Tree tokens = userTree.getChild(".tokens");
+        Tree tokens = userTree.getChild(TOKENS_NODE_NAME);
         String tokenNodePath = tokens.getChildren().iterator().next().getPath();
 
         info.remove();

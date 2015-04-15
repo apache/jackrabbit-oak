@@ -93,4 +93,6 @@ public interface Query {
     Tree getTree(String path);
 
     boolean isMeasureOrExplainEnabled();
+
+    void setInternal(boolean internal);
 }

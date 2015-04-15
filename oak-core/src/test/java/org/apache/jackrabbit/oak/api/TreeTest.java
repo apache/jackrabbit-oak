@@ -26,6 +26,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.List;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.NodeStoreFixture;
@@ -34,6 +35,7 @@ import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ChildOrderConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
+import org.apache.jackrabbit.oak.spi.commit.CompositeConflictHandler;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -56,19 +58,21 @@ public class TreeTest extends OakBaseTest {
     public void setUp() {
         repository = new Oak(store)
             .with(new OpenSecurityProvider())
-            .with(new ChildOrderConflictHandler(new AnnotatingConflictHandler()) {
-
-                /**
-                 * Allow deleting changed node.
-                 * See {@link TreeTest#removeWithConcurrentOrderBefore()}
-                 */
-                @Override
-                public Resolution deleteChangedNode(NodeBuilder parent,
-                        String name,
-                        NodeState theirs) {
-                    return Resolution.OURS;
-                }
-            })
+            .with(new CompositeConflictHandler(ImmutableList.of(
+                    new ChildOrderConflictHandler() {
+                        /**
+                         * Allow deleting changed node.
+                         * See {@link TreeTest#removeWithConcurrentOrderBefore()}
+                         */
+                        @Override
+                        public Resolution deleteChangedNode(NodeBuilder parent,
+                                String name,
+                                NodeState theirs) {
+                            return Resolution.OURS;
+                        }
+                    },
+                    new AnnotatingConflictHandler()
+            )))
             .with(new ConflictValidatorProvider())
             .createContentRepository();
     }

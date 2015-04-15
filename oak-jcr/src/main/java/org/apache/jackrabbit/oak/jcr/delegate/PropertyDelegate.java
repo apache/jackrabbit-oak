@@ -135,7 +135,7 @@ public class PropertyDelegate extends ItemDelegate {
         return p;
     }
 
-    public void setState(PropertyState propertyState) {
+    public void setState(@Nonnull PropertyState propertyState) {
         parent.setProperty(propertyState);
     }
 

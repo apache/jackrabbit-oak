@@ -52,7 +52,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 class ReferenceEditor extends DefaultEditor implements IndexEditor {
 
-    private static ContentMirrorStoreStrategy STORE = new ContentMirrorStoreStrategy();
+    private static final ContentMirrorStoreStrategy STORE = new ContentMirrorStoreStrategy();
 
     /** Parent editor, or {@code null} if this is the root editor. */
     private final ReferenceEditor parent;
@@ -298,7 +298,7 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
     public Editor childNodeDeleted(String name, NodeState before)
             throws CommitFailedException {
         String uuid = before.getString(JCR_UUID);
-        if (uuid != null && check(definition.getNodeState(), REF_NAME, uuid)) {
+        if (uuid != null && check(root, definition.getNodeState(), REF_NAME, uuid)) {
             rmIds.add(uuid);
         }
         return new ReferenceEditor(this, name, uuid);
@@ -338,17 +338,17 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
         NodeBuilder index = child.child(name);
         Set<String> empty = of();
         for (String p : rm) {
-            STORE.update(index, p, of(key), empty);
+            STORE.update(index, p, name, child, of(key), empty);
         }
         for (String p : add) {
             // TODO do we still need to encode the values?
-            STORE.update(index, p, empty, of(key));
+            STORE.update(index, p, name, child, empty, of(key));
         }
     }
 
-    private static boolean check(NodeState definition, String name, String key) {
+    private static boolean check(NodeState root, NodeState definition, String name, String key) {
         return definition.hasChildNode(name)
-                && STORE.count(definition, name, of(key), 1) > 0;
+                && STORE.count(root, definition, name, of(key), 1) > 0;
     }
 
 }

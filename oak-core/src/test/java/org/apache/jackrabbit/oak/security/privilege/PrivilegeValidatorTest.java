@@ -19,22 +19,26 @@ package org.apache.jackrabbit.oak.security.privilege;
 import java.util.Collections;
 
 import com.google.common.collect.ImmutableList;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.junit.Before;
 import org.junit.Test;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static junit.framework.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 public class PrivilegeValidatorTest extends AbstractSecurityTest implements PrivilegeConstants {
@@ -150,6 +154,57 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
         } catch (CommitFailedException e) {
             // success
             assertEquals("OakConstraint0050: Singular aggregation is equivalent to existing privilege.", e.getMessage());
+        } finally {
+            root.refresh();
+        }
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-2413">OAK-2413</a>
+     */
+    @Test
+    public void testChildNodeChangedWithChanges() throws CommitFailedException {
+        NodeBuilder nb = EmptyNodeState.EMPTY_NODE.builder();
+        nb.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PRIVILEGE, Type.NAME);
+
+        NodeState privilegeDefinition = nb.getNodeState();
+        assertTrue(NT_REP_PRIVILEGE.equals(NodeStateUtils.getPrimaryTypeName(privilegeDefinition)));
+
+        PrivilegeValidator pv = new PrivilegeValidator(root, root);
+        try {
+            pv.childNodeChanged("test", privilegeDefinition, EmptyNodeState.EMPTY_NODE);
+        } catch (CommitFailedException e) {
+            assertEquals(41, e.getCode());
+        }
+    }
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-2413">OAK-2413</a>
+     */
+    @Test
+    public void testChildNodeChangedWithoutChanges() throws CommitFailedException {
+        NodeBuilder nb = EmptyNodeState.EMPTY_NODE.builder();
+        nb.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PRIVILEGE, Type.NAME);
+
+        NodeState privilegeDefinition = nb.getNodeState();
+        assertTrue(NT_REP_PRIVILEGE.equals(NodeStateUtils.getPrimaryTypeName(privilegeDefinition)));
+
+        PrivilegeValidator pv = new PrivilegeValidator(root, root);
+        assertNull(pv.childNodeChanged("test", privilegeDefinition, privilegeDefinition));
+    }
+
+    @Test
+    public void testAggregatesIncludesJcrAll() throws Exception {
+        try {
+            Tree privTree = createPrivilegeTree();
+            privTree.setProperty(PropertyStates.createProperty(REP_AGGREGATES, ImmutableList.of(JCR_ALL, JCR_READ, JCR_WRITE), Type.NAMES));
+            PrivilegeBits.getInstance(bitsProvider.getBits(JCR_ALL, JCR_READ, JCR_WRITE)).writeTo(privTree);
+
+            root.commit();
+            fail("Aggregation containing jcr:all is invalid.");
+        } catch (CommitFailedException e) {
+            // success
+            assertTrue(e.isConstraintViolation());
+            assertEquals(53, e.getCode());
         } finally {
             root.refresh();
         }

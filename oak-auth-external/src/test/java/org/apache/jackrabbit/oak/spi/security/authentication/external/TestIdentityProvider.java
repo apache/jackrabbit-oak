@@ -97,11 +97,13 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
         return externalGroups.get(name.toLowerCase());
     }
 
+    @Nonnull
     @Override
     public Iterator<ExternalUser> listUsers() throws ExternalIdentityException {
         return externalUsers.values().iterator();
     }
 
+    @Nonnull
     @Override
     public Iterator<ExternalGroup> listGroups() throws ExternalIdentityException {
         return externalGroups.values().iterator();
@@ -120,11 +122,13 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
             id = new ExternalIdentityRef(userId, "test");
         }
 
+        @Nonnull
         @Override
         public String getId() {
             return userId;
         }
 
+        @Nonnull
         @Override
         public String getPrincipalName() {
             return userId;
@@ -141,11 +145,13 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
             return null;
         }
 
+        @Nonnull
         @Override
         public Iterable<ExternalIdentityRef> getDeclaredGroups() {
             return groups;
         }
 
+        @Nonnull
         @Override
         public Map<String, ?> getProperties() {
             return props;

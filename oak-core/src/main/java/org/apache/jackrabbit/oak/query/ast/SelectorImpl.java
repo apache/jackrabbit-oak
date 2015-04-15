@@ -634,6 +634,10 @@ public class SelectorImpl extends SourceImpl {
             result = currentRow.getValue(QueryImpl.JCR_SCORE);
         } else if (oakPropertyName.equals(QueryImpl.REP_EXCERPT)) {
             result = currentRow.getValue(QueryImpl.REP_EXCERPT);
+        } else if (oakPropertyName.equals(QueryImpl.REP_SPELLCHECK)) {
+            result = currentRow.getValue(QueryImpl.REP_SPELLCHECK);
+        } else if (oakPropertyName.equals(QueryImpl.REP_SUGGEST)) {
+            result = currentRow.getValue(QueryImpl.REP_SUGGEST);
         } else {
             result = PropertyValues.create(t.getProperty(oakPropertyName));
         }
@@ -742,6 +746,10 @@ public class SelectorImpl extends SourceImpl {
     @Override
     public boolean isOuterJoinRightHandSide() {
         return this.outerJoinRightHandSide;
+    }
+
+    public QueryImpl getQuery() {
+        return query;
     }
 
 }

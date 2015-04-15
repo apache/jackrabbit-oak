@@ -17,7 +17,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.1-SNAPSHOT</version>
+    <version>1.4-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -74,6 +74,7 @@
             <configuration>
               <portNames>
                 <portName>standby.server.port</portName>
+                <portName>standby.proxy.port</portName>
               </portNames>
             </configuration>
           </execution>
@@ -82,8 +83,9 @@
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
-          <systemPropertyVariables combine.children="append">
+          <systemPropertyVariables>
             <standby.server.port>${standby.server.port}</standby.server.port>
+            <standby.proxy.port>${standby.proxy.port}</standby.proxy.port>
           </systemPropertyVariables>
           <excludes>
             <!-- excluding long running tests -->
@@ -94,22 +96,27 @@
           </excludes>
         </configuration>
       </plugin>
+      <plugin>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <standby.server.port>${standby.server.port}</standby.server.port>
+            <standby.proxy.port>${standby.proxy.port}</standby.proxy.port>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.rat</groupId>
+        <artifactId>apache-rat-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>**/org.apache.jackrabbit.oak.plugins.segment.standby.store.StandbyStoreService.config</exclude>
+            <exclude>**/org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService.config</exclude>
+            <exclude>**/org.apache.jackrabbit.oak.plugins.segment.standby.store.StandbyStoreService.config</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
     </plugins>
-    <pluginManagement>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.rat</groupId>
-                <artifactId>apache-rat-plugin</artifactId>
-                <configuration>
-                    <excludes>
-                        <exclude>osgi-conf/primary/org.apache.jackrabbit.oak.plugins.segment.standby.store.StandbyStoreService.config</exclude>
-                        <exclude>osgi-conf/standby/org.apache.jackrabbit.oak.plugins.segment.standby.store.StandbyStoreService.config</exclude>
-                        <exclude>osgi-conf/standby/org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService.config</exclude>
-                    </excludes>
-                </configuration>
-            </plugin>
-        </plugins>
-    </pluginManagement>
   </build>
 
   <dependencies>
@@ -192,6 +199,13 @@
     </dependency>
 
     <!-- Test Dependencies -->
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-commons</artifactId>
+      <classifier>tests</classifier>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>

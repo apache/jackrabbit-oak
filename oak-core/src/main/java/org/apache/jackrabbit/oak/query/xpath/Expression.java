@@ -321,12 +321,17 @@ abstract class Expression {
                 return this;
             }
             // "@x = 1 or @x = 2" is converted to "@x in (1, 2)"
+            if (left instanceof InCondition) {
+                InCondition in = (InCondition) left;
+                in.list.addAll(right.getRight());
+                return in;
+            }
             ArrayList<Expression> list = new ArrayList<Expression>();
             list.addAll(left.getRight());
             list.addAll(right.getRight());
             Expression le = left.getLeft();
             InCondition in = new InCondition(le, list);
-            return in.optimize();
+            return in;
         }
         
         @Override
@@ -544,7 +549,69 @@ abstract class Expression {
             return false;
         }
     
-    } 
+    }
+
+    /**
+     * A rep:spellcheck condition.
+     */
+    static class Spellcheck extends Expression {
+
+        final Expression term;
+
+        Spellcheck(Expression term) {
+            this.term = term;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder buff = new StringBuilder("spellcheck(");
+            buff.append(term);
+            buff.append(')');
+            return buff.toString();
+        }
+
+        @Override
+        boolean isCondition() {
+            return true;
+        }
+
+        @Override
+        boolean isName() {
+            return false;
+        }
+
+    }
+
+    /**
+     * A rep:suggest condition.
+     */
+    static class Suggest extends Expression {
+
+        final Expression term;
+
+        Suggest(Expression term) {
+            this.term = term;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder buff = new StringBuilder("suggest(");
+            buff.append(term);
+            buff.append(')');
+            return buff.toString();
+        }
+
+        @Override
+        boolean isCondition() {
+            return true;
+        }
+
+        @Override
+        boolean isName() {
+            return false;
+        }
+
+    }
 
     /**
      * A function call.

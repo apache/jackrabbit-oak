@@ -194,10 +194,40 @@ public class JsopTest extends TestCase {
         test(" {\n\"x\": 1,\n\"y\": 2\n}\n", "{\"x\":1, \"y\":2}");
         test("[true, false, null]", "[true, false, null]");
         test("\"\"", "\"\"");
+        test("\"\\u0000\"", "\"\\u0000\"");
+        test("\"\\u0001\"", "\"\\u0001\"");
+        test("\"\\u0002\"", "\"\\u0002\"");
         test("\"\\u0003\"", "\"\\u0003\"");
+        test("\"\\u0004\"", "\"\\u0004\"");
+        test("\"\\u0005\"", "\"\\u0005\"");
+        test("\"\\u0006\"", "\"\\u0006\"");
+        test("\"\\u0007\"", "\"\\u0007\"");
+        test("\"\\b\"", "\"\\u0008\"");
+        test("\"\\t\"", "\"\\u0009\"");
+        test("\"\\n\"", "\"\\u000a\"");
+        test("\"\\u000b\"", "\"\\u000b\"");
+        test("\"\\f\"", "\"\\u000c\"");
+        test("\"\\r\"", "\"\\u000d\"");
+        test("\"\\u000e\"", "\"\\u000e\"");
+        test("\"\\u000f\"", "\"\\u000f\"");
+        test("\"\\u0010\"", "\"\\u0010\"");
+        test("\"\\u0011\"", "\"\\u0011\"");
         test("\"\\u0012\"", "\"\\u0012\"");
-        test("\"\\u0123\"", "\"\\u0123\"");
-        test("\"\\u1234\"", "\"\\u1234\"");
+        test("\"\\u0013\"", "\"\\u0013\"");
+        test("\"\\u0014\"", "\"\\u0014\"");
+        test("\"\\u0015\"", "\"\\u0015\"");
+        test("\"\\u0016\"", "\"\\u0016\"");
+        test("\"\\u0017\"", "\"\\u0017\"");
+        test("\"\\u0018\"", "\"\\u0018\"");
+        test("\"\\u0019\"", "\"\\u0019\"");
+        test("\"\\u001a\"", "\"\\u001a\"");
+        test("\"\\u001b\"", "\"\\u001b\"");
+        test("\"\\u001c\"", "\"\\u001c\"");
+        test("\"\\u001d\"", "\"\\u001d\"");
+        test("\"\\u001e\"", "\"\\u001e\"");
+        test("\"\\u001f\"", "\"\\u001f\"");
+        test("\"\u0123\"", "\"\\u0123\"");
+        test("\"\u1234\"", "\"\\u1234\"");
         test("\"-\\\\-\\\"-\\b-\\f-\\n-\\r-\\t\"", "\"-\\\\-\\\"-\\b-\\f-\\n-\\r-\\t\"");
         test("\"-\\b-\\f-\\n-\\r-\\t\"", "\"-\b-\f-\n-\r-\t\"");
         test("[0, 12, -1, 0.1, -0.1, -2.3e1, 1e+1, 1.e-20]", "[0,12,-1,0.1,-0.1,-2.3e1,1e+1,1.e-20]");
@@ -227,6 +257,23 @@ public class JsopTest extends TestCase {
             assertEquals("{}123[*] expected: string", e.getMessage());
         }
 
+    }
+
+    public void testSurrogates() {
+        String[][] tests = { { "surrogate-ok: \uD834\uDD1E", "surrogate-ok: \uD834\uDD1E" },
+                { "surrogate-broken: \ud800 ", "surrogate-broken: \\ud800 " },
+                { "surrogate-truncated: \ud800", "surrogate-truncated: \\ud800" } };
+
+        for (String[] test : tests) {
+            StringBuilder buff = new StringBuilder();
+            JsopBuilder.escape(test[0], buff);
+            assertEquals(test[1], buff.toString());
+            
+            String s2 = JsopBuilder.encode(test[0]);
+            assertEquals("\"" + test[1] + "\"", s2);
+            String s3 = JsopTokenizer.decodeQuoted(s2);
+            assertEquals(test[0], s3);
+        }
     }
 
     static void test(String expected, String json) {
@@ -345,7 +392,7 @@ public class JsopTest extends TestCase {
         String json = buff.toString();
         assertEquals("+{\"foo\":\"bar\",\"int\":3,\"decimal\":3.0," +
                 "\"obj\":{\"boolean\":true,\"null\":null," +
-                "\"arr\":[[1,\"\\u001f ~ \\u007f \\u0080\",\"42\"],[]]},\"some\":\"more\"}", json);
+                "\"arr\":[[1,\"\\u001f ~ \u007f \u0080\",\"42\"],[]]},\"some\":\"more\"}", json);
 
         buff.resetWriter();
         buff.array().

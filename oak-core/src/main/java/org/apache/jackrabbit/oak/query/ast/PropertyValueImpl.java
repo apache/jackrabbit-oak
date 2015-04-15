@@ -117,19 +117,17 @@ public class PropertyValueImpl extends DynamicOperandImpl {
     @Override
     public void restrict(FilterImpl f, Operator operator, PropertyValue v) {
         if (f.getSelector().equals(selector)) {
-            if (operator == Operator.NOT_EQUAL && v != null) {
-                // not supported
-                return;
-            }
             String pn = normalizePropertyName(propertyName);
             if (pn.equals(QueryImpl.JCR_PATH)) {
                 if (operator == Operator.EQUAL) {
                     f.restrictPath(v.getValue(Type.STRING), PathRestriction.EXACT);
                 }
             } else {
-                f.restrictProperty(pn, operator, v);
-                if (propertyType != PropertyType.UNDEFINED) {
-                    f.restrictPropertyType(pn, operator, propertyType);
+                if (operator == Operator.NOT_EQUAL && v != null) {
+                    // "x <> 1" also means "x is not null"
+                    f.restrictProperty(pn, Operator.NOT_EQUAL, null, propertyType);
+                } else {
+                    f.restrictProperty(pn, operator, v, propertyType);
                 }
             }
         }

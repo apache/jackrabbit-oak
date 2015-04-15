@@ -29,10 +29,8 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
-import org.apache.jackrabbit.oak.plugins.index.solr.configuration.CommitPolicy;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -47,6 +45,9 @@ import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
+import static org.apache.jackrabbit.oak.plugins.index.solr.util.SolrUtils.getSortingField;
+import static org.apache.jackrabbit.oak.plugins.index.solr.util.SolrUtils.partialEscape;
 
 /**
  * Index editor for keeping a Solr index up to date.
@@ -70,11 +71,6 @@ class SolrIndexEditor implements IndexEditor {
      */
     private String path;
 
-    /**
-     * Index definition node builder
-     */
-    private final NodeBuilder definition;
-
     private final SolrServer solrServer;
 
     private final OakSolrConfiguration configuration;
@@ -86,13 +82,12 @@ class SolrIndexEditor implements IndexEditor {
     private static final Parser parser = new AutoDetectParser();
 
     SolrIndexEditor(
-            NodeBuilder definition, SolrServer solrServer,
+            SolrServer solrServer,
             OakSolrConfiguration configuration,
             IndexUpdateCallback callback) {
         this.parent = null;
         this.name = null;
         this.path = "/";
-        this.definition = definition;
         this.solrServer = solrServer;
         this.configuration = configuration;
         this.updateCallback = callback;
@@ -102,7 +97,6 @@ class SolrIndexEditor implements IndexEditor {
         this.parent = parent;
         this.name = name;
         this.path = null;
-        this.definition = parent.definition;
         this.solrServer = parent.solrServer;
         this.configuration = parent.configuration;
         this.updateCallback = parent.updateCallback;
@@ -148,7 +142,7 @@ class SolrIndexEditor implements IndexEditor {
         }
     }
 
-    private void commitByPolicy(SolrServer solrServer, CommitPolicy commitPolicy) throws IOException, SolrServerException {
+    private void commitByPolicy(SolrServer solrServer, OakSolrConfiguration.CommitPolicy commitPolicy) throws IOException, SolrServerException {
         switch (commitPolicy) {
             case HARD: {
                 solrServer.commit();
@@ -213,44 +207,57 @@ class SolrIndexEditor implements IndexEditor {
         return null; // no need to recurse down the removed subtree
     }
 
-    private static CharSequence partialEscape(CharSequence s) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < s.length(); i++) {
-            char c = s.charAt(i);
-            if (c == '\\' || c == '!' || c == '(' || c == ')' ||
-                    c == ':' || c == '^' || c == '[' || c == ']' || c == '/' ||
-                    c == '{' || c == '}' || c == '~' || c == '*' || c == '?' ||
-                    c == '-' || c == ' ') {
-                sb.append('\\');
-            }
-            sb.append(c);
-        }
-        return sb;
-    }
-
     private SolrInputDocument docFromState(NodeState state) {
         SolrInputDocument inputDocument = new SolrInputDocument();
         String path = getPath();
         inputDocument.addField(configuration.getPathField(), path);
         for (PropertyState property : state.getProperties()) {
-            // try to get the field to use for this property from configuration
-            if (!configuration.getIgnoredProperties().contains(property.getName())) {
+            if ((configuration.getUsedProperties().size() > 0 && configuration.getUsedProperties().contains(property.getName()))
+                    || !configuration.getIgnoredProperties().contains(property.getName())) {
+                // try to get the field to use for this property from configuration
                 String fieldName = configuration.getFieldNameFor(property.getType());
+                Object fieldValue;
                 if (fieldName != null) {
-                    inputDocument.addField(
-                            fieldName, property.getValue(property.getType()));
+                    fieldValue = property.getValue(property.getType());
                 } else {
+                    fieldName = property.getName();
                     if (Type.BINARY.tag() == property.getType().tag()) {
-                        inputDocument.addField(property.getName(), extractTextValues(property, state));
-                    } else if (property.isArray()) { // or fallback to adding propertyName:stringValue(s)
-                        for (String s : property.getValue(Type.STRINGS)) {
-                            inputDocument.addField(property.getName(), s);
-                        }
+                        fieldValue = extractTextValues(property, state);
+                    } else if (property.isArray()) {
+                        fieldValue = property.getValue(Type.STRINGS);
                     } else {
-                        inputDocument.addField(
-                                property.getName(), property.getValue(Type.STRING));
+                        fieldValue = property.getValue(Type.STRING);
                     }
                 }
+                // add property field
+                inputDocument.addField(fieldName, fieldValue);
+
+                Object sortValue;
+                if (fieldValue instanceof Iterable) {
+                    Iterable values = (Iterable) fieldValue;
+                    StringBuilder builder = new StringBuilder();
+                    String stringValue = null;
+                    for (Object value : values) {
+                        builder.append(value);
+                        if (builder.length() > 1024) {
+                            stringValue = builder.substring(0, 1024);
+                            break;
+                        }
+                    }
+                    if (stringValue == null) {
+                        stringValue = builder.toString();
+                    }
+                    sortValue = stringValue;
+                } else {
+                    if (fieldValue.toString().length() > 1024) {
+                        sortValue = fieldValue.toString().substring(0, 1024);
+                    } else {
+                        sortValue = fieldValue;
+                    }
+                }
+
+                // add sort field
+                inputDocument.addField(getSortingField(property.getType().tag(), property.getName()), sortValue);
             }
         }
         return inputDocument;

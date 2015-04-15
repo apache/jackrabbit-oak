@@ -17,17 +17,19 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Properties;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.oak.plugins.index.solr.configuration.CommitPolicy;
+import org.apache.jackrabbit.oak.plugins.index.aggregate.AggregateIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate.NodeStateSolrServersObserver;
 import org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.EmbeddedSolrServerProvider;
@@ -48,14 +50,29 @@ public class SolrOakRepositoryStub extends OakTarMKRepositoryStub {
         File f = new File(path);
         final SolrServer solrServer;
         try {
-            solrServer = new EmbeddedSolrServerProvider(new EmbeddedSolrServerConfiguration(f.getPath(), "", "oak")).getSolrServer();
+            solrServer = new EmbeddedSolrServerProvider(new EmbeddedSolrServerConfiguration(f.getPath(), "oak")).getSolrServer();
         } catch (Exception e) {
             throw new RuntimeException();
         }
         SolrServerProvider solrServerProvider = new SolrServerProvider() {
+            @Override
+            public void close() throws IOException {
+
+            }
+
             @CheckForNull
             @Override
             public SolrServer getSolrServer() throws Exception {
+                return solrServer;
+            }
+
+            @Override
+            public SolrServer getIndexingSolrServer() throws Exception {
+                return solrServer;
+            }
+
+            @Override
+            public SolrServer getSearchingSolrServer() throws Exception {
                 return solrServer;
             }
         };
@@ -75,9 +92,8 @@ public class SolrOakRepositoryStub extends OakTarMKRepositoryStub {
         };
         OakSolrConfigurationProvider oakSolrConfigurationProvider = new DefaultSolrConfigurationProvider(configuration);
         jcr.with(new SolrIndexInitializer(false))
-                //FIXME OAK-2168 - Enable it again once we do support AggregateIndex and AdvanceQueryIndex
-//                .with(AggregateIndexProvider.wrap(new SolrQueryIndexProvider(solrServerProvider, oakSolrConfigurationProvider)))
-                .with(new SolrQueryIndexProvider(solrServerProvider, oakSolrConfigurationProvider))
+                .with(AggregateIndexProvider.wrap(new SolrQueryIndexProvider(solrServerProvider, oakSolrConfigurationProvider)))
+                .with(new NodeStateSolrServersObserver())
                 .with(new SolrIndexEditorProvider(solrServerProvider, oakSolrConfigurationProvider));
     }
 }

@@ -49,7 +49,7 @@ public class DebugTimer {
             if (b.length() > 0) {
                 b.append(", ");
             } else {
-                b.append("(");
+                b.append('(');
             }
             int u = 0;
             double time = t.time;
@@ -62,7 +62,7 @@ public class DebugTimer {
         return b.append(')').toString();
     }
 
-    private static class TimeStamp {
+    private static final class TimeStamp {
 
         private final long time;
 

@@ -33,11 +33,11 @@ public interface IndexEditorProvider {
 
     /**
      * Each provider knows how to produce a certain type of index. If the
-     * <code>type</code> param is of an unknown value, the provider is expected
+     * {@code type} param is of an unknown value, the provider is expected
      * to return {@code null}.
      * 
      * <p>
-     * The <code>definition</code> builder must points to the index definition
+     * The {@code definition} builder must points to the index definition
      * node under which the indexer is expected to store the index content.
      * </p>
      * 

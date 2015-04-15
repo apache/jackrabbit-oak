@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.JcrConstants.JCR_SCORE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getAncestorPath;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getDepth;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
@@ -52,7 +53,7 @@ import static org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 
 class IndexPlanner {
     private static final Logger log = LoggerFactory.getLogger(IndexPlanner.class);
-    private final IndexDefinition defn;
+    private final IndexDefinition definition;
     private final Filter filter;
     private final String indexPath;
     private final List<OrderEntry> sortOrder;
@@ -64,7 +65,7 @@ class IndexPlanner {
                         Filter filter, List<OrderEntry> sortOrder) {
         this.indexNode = indexNode;
         this.indexPath = indexPath;
-        this.defn = indexNode.getDefinition();
+        this.definition = indexNode.getDefinition();
         this.filter = filter;
         this.sortOrder = sortOrder;
     }
@@ -72,13 +73,13 @@ class IndexPlanner {
     IndexPlan getPlan() {
         IndexPlan.Builder builder = getPlanBuilder();
 
-        if (defn.isTestMode()){
+        if (definition.isTestMode()){
             if ( builder == null) {
                 if (notSupportedFeature()) {
                     return null;
                 }
                 String msg = String.format("No plan found for filter [%s] " +
-                        "while using definition [%s] and testMode is found to be enabled", filter, defn);
+                        "while using definition [%s] and testMode is found to be enabled", filter, definition);
                 throw new IllegalStateException(msg);
             } else {
                 builder.setEstimatedEntryCount(1)
@@ -100,16 +101,16 @@ class IndexPlanner {
     }
 
     private IndexPlan.Builder getPlanBuilder() {
-        log.trace("Evaluating plan with index definition {}", defn);
+        log.trace("Evaluating plan with index definition {}", definition);
         FullTextExpression ft = filter.getFullTextConstraint();
 
-        if (!defn.getVersion().isAtLeast(IndexFormatVersion.V2)){
+        if (!definition.getVersion().isAtLeast(IndexFormatVersion.V2)){
             log.trace("Index is old format. Not supported");
             return null;
         }
 
         //Query Fulltext and Index does not support fulltext
-        if (ft != null && !defn.isFullTextEnabled()) {
+        if (ft != null && !definition.isFullTextEnabled()) {
             return null;
         }
 
@@ -123,10 +124,10 @@ class IndexPlanner {
             return null;
         }
 
-        result = new PlanResult(indexPath, defn, indexingRule);
+        result = new PlanResult(indexPath, definition, indexingRule);
 
-        if (defn.hasFunctionDefined()
-                && filter.getPropertyRestriction(defn.getFunctionName()) != null) {
+        if (definition.hasFunctionDefined()
+                && filter.getPropertyRestriction(definition.getFunctionName()) != null) {
             //If native function is handled by this index then ensure
             // that lowest cost if returned
             return defaultPlan().setEstimatedEntryCount(1);
@@ -140,13 +141,17 @@ class IndexPlanner {
             for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
                 PropertyDefinition pd = indexingRule.getConfig(pr.propertyName);
                 if (pd != null && pd.propertyIndexEnabled()) {
+                    if (pr.isNullRestriction() && !pd.nullCheckEnabled){
+                        continue;
+                    }
                     indexedProps.add(pr.propertyName);
                     result.propDefns.put(pr.propertyName, pd);
                 }
             }
         }
 
-        boolean evalPathRestrictions = canEvalPathRestrictions();
+        boolean evalNodeTypeRestrictions = canEvalNodeTypeRestrictions(indexingRule);
+        boolean evalPathRestrictions = canEvalPathRestrictions(indexingRule);
         boolean canEvalAlFullText = canEvalAllFullText(indexingRule, ft);
 
         if (ft != null && !canEvalAlFullText){
@@ -156,7 +161,8 @@ class IndexPlanner {
         //Fulltext expression can also be like jcr:contains(jcr:content/metadata/@format, 'image')
 
         List<OrderEntry> sortOrder = createSortOrder(indexingRule);
-        if (!indexedProps.isEmpty() || !sortOrder.isEmpty() || ft != null || evalPathRestrictions) {
+        boolean canSort = canSortByProperty(sortOrder);
+        if (!indexedProps.isEmpty() || canSort || ft != null || evalPathRestrictions || evalNodeTypeRestrictions) {
             //TODO Need a way to have better cost estimate to indicate that
             //this index can evaluate more propertyRestrictions natively (if more props are indexed)
             //For now we reduce cost per entry
@@ -178,17 +184,31 @@ class IndexPlanner {
                 result.enableNonFullTextConstraints();
             }
 
-            return plan.setCostPerEntry(defn.getCostPerEntry() / costPerEntryFactor);
+            if (evalNodeTypeRestrictions){
+                result.enableNodeTypeEvaluation();
+            }
+
+            return plan.setCostPerEntry(definition.getCostPerEntry() / costPerEntryFactor);
         }
 
         //TODO Support for property existence queries
         //TODO support for nodeName queries
 
-        //Above logic would not return any plan for pure nodeType based query like
-        //select * from nt:unstructured. We can do that but this is better handled
-        //by NodeType index
-
         return null;
+    }
+
+    private static boolean canSortByProperty(List<OrderEntry> sortOrder) {
+        if (sortOrder.isEmpty()) {
+            return false;
+        }
+
+        // If jcr:score is the only sort order then opt out
+        if (sortOrder.size() == 1 &&
+                JCR_SCORE.equals(sortOrder.get(0).getPropertyName())) {
+            return false;
+        }
+
+        return true;
     }
 
     private boolean canEvalAllFullText(final IndexingRule indexingRule, FullTextExpression ft) {
@@ -257,7 +277,7 @@ class IndexPlanner {
             result.setParentPath(Iterables.getOnlyElement(relPaths, ""));
             //Such path translation would only work if index contains
             //all the nodes
-            return defn.indexesAllTypes();
+            return definition.indexesAllTypes();
         } else {
             result.setParentPath("");
         }
@@ -265,21 +285,33 @@ class IndexPlanner {
         return true;
     }
 
-    private boolean canEvalPathRestrictions() {
+    private boolean canEvalPathRestrictions(IndexingRule rule) {
         if (filter.getPathRestriction() == Filter.PathRestriction.NO_RESTRICTION){
             return false;
         }
-        //TODO If no other restrictions is provided and query is pure
+        //If no other restrictions is provided and query is pure
         //path restriction based then need to be sure that index definition at least
         //allows indexing all the path for given nodeType
-        return defn.evaluatePathRestrictions();
+        return definition.evaluatePathRestrictions() && rule.indexesAllNodesOfMatchingType();
+    }
+
+
+    private boolean canEvalNodeTypeRestrictions(IndexingRule rule) {
+        //No need to handle nt:base
+        if (filter.matchesAllTypes()){
+            return false;
+        }
+
+        //Only opt in if rule is not derived from nt:base otherwise it would
+        //get used when there a full text index on all nodes
+        return rule.indexesAllNodesOfMatchingType() && !rule.isBasedOnNtBase();
     }
 
     private IndexPlan.Builder defaultPlan() {
         return new IndexPlan.Builder()
-                .setCostPerExecution(defn.getCostPerExecution())
-                .setCostPerEntry(defn.getCostPerEntry())
-                .setFulltextIndex(defn.isFullTextEnabled())
+                .setCostPerExecution(definition.getCostPerExecution())
+                .setCostPerEntry(definition.getCostPerEntry())
+                .setFulltextIndex(definition.isFullTextEnabled())
                 .setIncludesNodeData(false) // we should not include node data
                 .setFilter(filter)
                 .setPathPrefix(getPathPrefix())
@@ -293,10 +325,10 @@ class IndexPlanner {
         //index return true count so as to allow multiple property indexes
         //to be compared fairly
         FullTextExpression ft = filter.getFullTextConstraint();
-        if (ft != null && defn.isFullTextEnabled()){
-            return defn.getFulltextEntryCount(getReader().numDocs());
+        if (ft != null && definition.isFullTextEnabled()){
+            return definition.getFulltextEntryCount(getReader().numDocs());
         }
-        return Math.min(defn.getEntryCount(), getReader().numDocs());
+        return Math.min(definition.getEntryCount(), getReader().numDocs());
     }
 
     private String getPathPrefix() {
@@ -336,15 +368,15 @@ class IndexPlanner {
     @CheckForNull
     private IndexingRule getApplicableRule() {
         if (filter.matchesAllTypes()){
-            return defn.getApplicableIndexingRule(JcrConstants.NT_BASE);
+            return definition.getApplicableIndexingRule(JcrConstants.NT_BASE);
         } else {
             //TODO May be better if filter.getSuperTypes returned a list which maintains
             //inheritance order and then we iterate over that
-            for (IndexingRule rule : defn.getDefinedRules()){
+            for (IndexingRule rule : definition.getDefinedRules()){
                 if (filter.getSupertypes().contains(rule.getNodeTypeName())){
                     //Theoretically there may be multiple rules for same nodeType with
                     //some condition defined. So again find a rule which applies
-                    IndexingRule matchingRule = defn.getApplicableIndexingRule(rule.getNodeTypeName());
+                    IndexingRule matchingRule = definition.getApplicableIndexingRule(rule.getNodeTypeName());
                     if (matchingRule != null){
                         log.debug("Applicable IndexingRule found {}", matchingRule);
                         return rule;
@@ -388,6 +420,7 @@ class IndexPlanner {
         private int parentDepth;
         private String parentPathSegment;
         private boolean relativize;
+        private boolean nodeTypeRestrictions;
 
         public PlanResult(String indexPath, IndexDefinition defn, IndexingRule indexingRule) {
             this.indexPath = indexPath;
@@ -433,6 +466,10 @@ class IndexPlanner {
             return nonFullTextConstraints;
         }
 
+        public boolean evaluateNodeTypeRestriction() {
+            return nodeTypeRestrictions;
+        }
+
         private void setParentPath(String relativePath){
             parentPathSegment = "/" + relativePath;
             if (relativePath.isEmpty()){
@@ -447,6 +484,10 @@ class IndexPlanner {
 
         private void enableNonFullTextConstraints(){
             nonFullTextConstraints = true;
+        }
+
+        private void enableNodeTypeEvaluation() {
+            nodeTypeRestrictions = true;
         }
     }
 }

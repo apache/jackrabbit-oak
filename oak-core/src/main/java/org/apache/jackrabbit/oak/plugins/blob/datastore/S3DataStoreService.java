@@ -28,7 +28,7 @@ import org.apache.jackrabbit.aws.ext.ds.S3DataStore;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.osgi.service.component.ComponentContext;
 
-@Component(policy = ConfigurationPolicy.REQUIRE, name=S3DataStoreService.NAME)
+@Component(policy = ConfigurationPolicy.REQUIRE, name = S3DataStoreService.NAME)
 public class S3DataStoreService extends AbstractDataStoreService{
     public static final String NAME = "org.apache.jackrabbit.oak.plugins.blob.datastore.S3DataStore";
 
@@ -41,5 +41,10 @@ public class S3DataStoreService extends AbstractDataStoreService{
 
         dataStore.setProperties(properties);
         return dataStore;
+    }
+
+    @Override
+    protected String[] getDescription() {
+        return new String[] {"type=S3"};
     }
 }

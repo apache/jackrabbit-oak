@@ -20,10 +20,11 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.core.ImmutableRoot;
-import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
+import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
+import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
@@ -39,8 +40,8 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
 
     private final MoveContext moveCtx;
 
-    MoveAwarePermissionValidator(@Nonnull ImmutableTree rootBefore,
-                                 @Nonnull ImmutableTree rootAfter,
+    MoveAwarePermissionValidator(@Nonnull NodeState rootBefore,
+                                 @Nonnull NodeState rootAfter,
                                  @Nonnull PermissionProvider permissionProvider,
                                  @Nonnull PermissionValidatorProvider provider,
                                  @Nonnull MoveTracker moveTracker) {
@@ -48,19 +49,20 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
         moveCtx = new MoveContext(moveTracker, rootBefore, rootAfter);
     }
 
-    MoveAwarePermissionValidator(@Nullable ImmutableTree parentBefore,
-                                 @Nullable ImmutableTree parentAfter,
-                                 @Nonnull TreePermission parentPermission,
-                                 @Nonnull PermissionValidator parentValidator) {
+    private MoveAwarePermissionValidator(@Nullable Tree parentBefore,
+                                         @Nullable Tree parentAfter,
+                                         @Nonnull TreePermission parentPermission,
+                                         @Nonnull PermissionValidator parentValidator) {
         super(parentBefore, parentAfter, parentPermission, parentValidator);
 
         MoveAwarePermissionValidator pv = (MoveAwarePermissionValidator) parentValidator;
         moveCtx = pv.moveCtx;
     }
 
+    @Nonnull
     @Override
-    PermissionValidator createValidator(@Nullable ImmutableTree parentBefore,
-                                        @Nullable ImmutableTree parentAfter,
+    PermissionValidator createValidator(@Nullable Tree parentBefore,
+                                        @Nullable Tree parentAfter,
                                         @Nonnull TreePermission parentPermission,
                                         @Nonnull PermissionValidator parentValidator) {
         if (moveCtx.containsMove(parentBefore, parentAfter)) {
@@ -70,10 +72,10 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
         }
     }
 
-    private Validator visibleValidator(@Nonnull ImmutableTree source,
-                                       @Nonnull ImmutableTree dest) {
+    private Validator visibleValidator(@Nonnull Tree source,
+                                       @Nonnull Tree dest) {
         // TODO improve: avoid calculating the 'before' permissions in case the current parent permissions already point to the correct tree.
-        ImmutableTree parent = moveCtx.rootBefore.getTree("/");
+        ImmutableTree parent = (ImmutableTree) moveCtx.rootBefore.getTree("/");
         TreePermission tp = getPermissionProvider().getTreePermission(parent, TreePermission.EMPTY);
         for (String n : PathUtils.elements(source.getPath())) {
             tp = tp.getChildPermission(n, parent.getChild(n).getNodeState());
@@ -106,15 +108,15 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
 
         private final MoveTracker moveTracker;
 
-        private final ImmutableRoot rootBefore;
-        private final ImmutableRoot rootAfter;
+        private final Root rootBefore;
+        private final Root rootAfter;
 
         private MoveContext(@Nonnull MoveTracker moveTracker,
-                            @Nonnull ImmutableTree before,
-                            @Nonnull ImmutableTree after) {
+                            @Nonnull NodeState before,
+                            @Nonnull NodeState after) {
             this.moveTracker = moveTracker;
-            rootBefore = new ImmutableRoot(before);
-            rootAfter = new ImmutableRoot(after);
+            rootBefore = RootFactory.createReadOnlyRoot(before);
+            rootAfter = RootFactory.createReadOnlyRoot(after);
         }
 
         private boolean containsMove(Tree parentBefore, Tree parentAfter) {
@@ -124,7 +126,7 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
         private boolean processAdd(ImmutableTree child, MoveAwarePermissionValidator validator) throws CommitFailedException {
             String sourcePath = moveTracker.getSourcePath(child.getPath());
             if (sourcePath != null) {
-                ImmutableTree source = rootBefore.getTree(sourcePath);
+                ImmutableTree source = (ImmutableTree) rootBefore.getTree(sourcePath);
                 if (source.exists()) {
                     // check permissions for adding the moved node at the target location.
                     validator.checkPermissions(child, false, Permissions.ADD_NODE | Permissions.NODE_TYPE_MANAGEMENT);
@@ -138,7 +140,7 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
         private boolean processDelete(ImmutableTree child, MoveAwarePermissionValidator validator) throws CommitFailedException {
             String destPath = moveTracker.getDestPath(child.getPath());
             if (destPath != null) {
-                ImmutableTree dest = rootAfter.getTree(destPath);
+                ImmutableTree dest = (ImmutableTree) rootAfter.getTree(destPath);
                 if (dest.exists()) {
                     // check permissions for removing that node.
                     validator.checkPermissions(child, true, Permissions.REMOVE_NODE);

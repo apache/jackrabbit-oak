@@ -24,13 +24,11 @@ import org.apache.jackrabbit.oak.plugins.index.solr.server.EmbeddedSolrServerPro
 public class EmbeddedSolrServerConfiguration extends SolrServerConfiguration<EmbeddedSolrServerProvider> {
 
     private final String solrHomePath;
-    private final String solrConfigPath;
     private final String coreName;
     private HttpConfiguration httpConfiguration;
 
-    public EmbeddedSolrServerConfiguration(String solrHomePath, String solrConfigPath, String coreName) {
+    public EmbeddedSolrServerConfiguration(String solrHomePath, String coreName) {
         this.solrHomePath = solrHomePath;
-        this.solrConfigPath = solrConfigPath;
         this.coreName = coreName;
     }
 
@@ -48,16 +46,6 @@ public class EmbeddedSolrServerConfiguration extends SolrServerConfiguration<Emb
      */
     public String getSolrHomePath() {
         return solrHomePath;
-    }
-
-    /**
-     * get the name of the main Solr configuration file (solr.xml for multicore
-     * deployments or solrconfig.xml for single core deployments).
-     *
-     * @return a <code>String</code> representing a path to the main Solr config file.
-     */
-    public String getSolrConfigPath() {
-        return solrConfigPath;
     }
 
     /**
@@ -79,7 +67,7 @@ public class EmbeddedSolrServerConfiguration extends SolrServerConfiguration<Emb
         return httpConfiguration;
     }
 
-    public class HttpConfiguration {
+    public static class HttpConfiguration {
         private final String context;
         private final Integer httpPort;
 
@@ -95,5 +83,22 @@ public class EmbeddedSolrServerConfiguration extends SolrServerConfiguration<Emb
         public Integer getHttpPort() {
             return httpPort;
         }
+
+        @Override
+        public String toString() {
+            return "HttpConfiguration{" +
+                    "context='" + context + '\'' +
+                    ", httpPort=" + httpPort +
+                    '}';
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "EmbeddedSolrServerConfiguration{" +
+                "solrHomePath='" + solrHomePath + '\'' +
+                ", coreName='" + coreName + '\'' +
+                ", httpConfiguration=" + httpConfiguration +
+                '}';
     }
 }

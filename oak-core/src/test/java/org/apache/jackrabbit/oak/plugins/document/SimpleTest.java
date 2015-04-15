@@ -25,7 +25,6 @@ import static org.junit.Assert.fail;
 
 import java.util.Random;
 
-import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
@@ -131,7 +130,7 @@ public class SimpleTest {
         try {
             mk.commit("/", "+\"b\": {}  +\"a\": {}", null, null);
             fail();
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
         // the previous commit should be rolled back now,

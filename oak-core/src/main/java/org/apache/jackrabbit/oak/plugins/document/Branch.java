@@ -20,17 +20,21 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.transform;
 
+import java.lang.ref.ReferenceQueue;
+import java.lang.ref.WeakReference;
+import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 /**
@@ -49,21 +53,40 @@ class Branch {
     private final Revision base;
 
     /**
+     * The branch reference.
+     */
+    private final BranchReference ref;
+
+    /**
      * Create a new branch instance with an initial set of commits and a given
-     * base revision.
+     * base revision. The life time of this branch can be controlled with
+     * the {@code guard} parameter. Once the {@code guard} object becomes weakly
+     * reachable, the {@link BranchReference} for this branch is appended to
+     * the passed {@code queue}. No {@link BranchReference} is appended if the
+     * passed {@code guard} is {@code null}.
      *
      * @param commits the initial branch commits.
      * @param base the base commit.
+     * @param queue a {@link BranchReference} to this branch will be appended to
+     *              this queue when {@code guard} becomes weakly reachable.
+     * @param guard controls the life time of this branch.
      * @throws IllegalArgumentException if base is a branch revision.
      */
     Branch(@Nonnull SortedSet<Revision> commits,
-           @Nonnull Revision base) {
+           @Nonnull Revision base,
+           @Nonnull ReferenceQueue<Object> queue,
+           @Nullable Object guard) {
         checkArgument(!checkNotNull(base).isBranch(), "base is not a trunk revision: %s", base);
         this.base = base;
         this.commits = new ConcurrentSkipListMap<Revision, BranchCommit>(commits.comparator());
         for (Revision r : commits) {
             this.commits.put(r.asBranchRevision(),
                     new BranchCommitImpl(base, r.asBranchRevision()));
+        }
+        if (guard != null) {
+            this.ref = new BranchReference(queue, this, guard);
+        } else {
+            this.ref = null;
         }
     }
 
@@ -161,6 +184,15 @@ class Branch {
     }
 
     /**
+     * @return the branch reference or {@code null} if no guard object was
+     *         passed to the constructor of this branch. 
+     */
+    @CheckForNull
+    BranchReference getRef() {
+        return ref;
+    }
+
+    /**
      * Removes the commit with the given revision <code>r</code>. Does nothing
      * if there is no such commit.
      *
@@ -246,6 +278,8 @@ class Branch {
         abstract boolean isModified(String path);
 
         abstract Iterable<String> getModifiedPaths();
+
+        protected abstract boolean isRebase();
     }
 
     /**
@@ -276,22 +310,32 @@ class Branch {
             return modifications;
         }
 
+        @Override
+        protected boolean isRebase() {
+            return false;
+        }
+
         //------------------< LastRevTracker >----------------------------------
 
         @Override
         public void track(String path) {
             modifications.add(path);
         }
+
+        @Override
+        public String toString() {
+            return "B (" + modifications.size() + ")";
+        }
     }
 
-    static class RebaseCommit extends BranchCommit {
+    private static class RebaseCommit extends BranchCommit {
 
         private final NavigableMap<Revision, BranchCommit> previous;
 
         RebaseCommit(Revision base, Revision commit,
                      NavigableMap<Revision, BranchCommit> previous) {
             super(base, commit);
-            this.previous = Maps.newTreeMap(previous);
+            this.previous = squash(previous);
         }
 
         @Override
@@ -312,6 +356,11 @@ class Branch {
         }
 
         @Override
+        protected boolean isRebase() {
+            return true;
+        }
+
+        @Override
         Iterable<String> getModifiedPaths() {
             Iterable<Iterable<String>> paths = transform(previous.values(),
                     new Function<BranchCommit, Iterable<String>>() {
@@ -323,11 +372,48 @@ class Branch {
             return Iterables.concat(paths);
         }
 
+        /**
+         * Filter out the RebaseCommits as they are just container of previous BranchCommit
+         *
+         * @param previous branch commit history
+         * @return filtered branch history only containing non rebase commits
+         */
+        private static NavigableMap<Revision, BranchCommit> squash(NavigableMap<Revision, BranchCommit> previous) {
+            NavigableMap<Revision, BranchCommit> result = new TreeMap<Revision, BranchCommit>(previous.comparator());
+            for (Map.Entry<Revision, BranchCommit> e : previous.entrySet()){
+                if (!e.getValue().isRebase()){
+                    result.put(e.getKey(), e.getValue());
+                }
+            }
+            return result;
+        }
+
         //------------------< LastRevTracker >----------------------------------
 
         @Override
         public void track(String path) {
             throw new UnsupportedOperationException("RebaseCommit is read-only");
+        }
+
+        @Override
+        public String toString() {
+            return "R (" + previous.size() + ")";
+        }
+    }
+
+    final static class BranchReference extends WeakReference<Object> {
+
+        private final Branch branch;
+
+        private BranchReference(@Nonnull ReferenceQueue<Object> queue,
+                                @Nonnull Branch branch,
+                                @Nonnull Object referent) {
+            super(checkNotNull(referent), queue);
+            this.branch = checkNotNull(branch);
+        }
+
+        Branch getBranch() {
+            return branch;
         }
     }
 }

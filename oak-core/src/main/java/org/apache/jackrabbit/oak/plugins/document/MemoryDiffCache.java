@@ -33,7 +33,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /**
  * An in-memory diff cache implementation.
  */
-class MemoryDiffCache implements DiffCache {
+public class MemoryDiffCache implements DiffCache {
 
     /**
      * Diff cache.
@@ -44,7 +44,7 @@ class MemoryDiffCache implements DiffCache {
     protected final CacheStats diffCacheStats;
 
 
-    MemoryDiffCache(DocumentMK.Builder builder) {
+    protected MemoryDiffCache(DocumentMK.Builder builder) {
         diffCache = builder.buildDiffCache();
         diffCacheStats = new CacheStats(diffCache, "Document-Diff",
                 builder.getWeigher(), builder.getDiffCacheSize());
@@ -104,7 +104,8 @@ class MemoryDiffCache implements DiffCache {
         }
 
         @Override
-        public void done() {
+        public boolean done() {
+            return true;
         }
     }
 

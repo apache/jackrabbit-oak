@@ -54,6 +54,7 @@ public class PrivilegeConfigurationImpl extends ConfigurationBase implements Pri
         return new PrivilegeManagerImpl(root, namePathMapper);
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     @Activate
     private void activate(Map<String, Object> properties) {
         setParameters(ConfigurationParameters.of(properties));
@@ -74,13 +75,13 @@ public class PrivilegeConfigurationImpl extends ConfigurationBase implements Pri
 
     @Nonnull
     @Override
-    public List<? extends CommitHook> getCommitHooks(String workspaceName) {
+    public List<? extends CommitHook> getCommitHooks(@Nonnull String workspaceName) {
         return Collections.singletonList(new JcrAllCommitHook());
     }
 
     @Nonnull
     @Override
-    public List<? extends ValidatorProvider> getValidators(String workspaceName, Set<Principal> principals, MoveTracker moveTracker) {
+    public List<? extends ValidatorProvider> getValidators(@Nonnull String workspaceName, @Nonnull Set<Principal> principals, @Nonnull MoveTracker moveTracker) {
         return Collections.singletonList(new PrivilegeValidatorProvider());
     }
 

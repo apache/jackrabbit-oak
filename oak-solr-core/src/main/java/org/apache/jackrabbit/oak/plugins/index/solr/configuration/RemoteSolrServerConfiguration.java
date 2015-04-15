@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
+import java.util.Arrays;
+
 import org.apache.jackrabbit.oak.plugins.index.solr.server.RemoteSolrServerProvider;
 
 /**
@@ -30,7 +32,8 @@ public class RemoteSolrServerConfiguration extends SolrServerConfiguration<Remot
     private final int solrShardsNo;
     private final int solrReplicationFactor;
 
-    public RemoteSolrServerConfiguration(String solrZkHost, String solrCollection, int solrShardsNo, int solrReplicationFactor, String solrConfDir, String... solrHttpUrls) {
+    public RemoteSolrServerConfiguration(String solrZkHost, String solrCollection, int solrShardsNo, int solrReplicationFactor,
+                                         String solrConfDir, String... solrHttpUrls) {
         this.solrHttpUrls = solrHttpUrls;
         this.solrZkHost = solrZkHost;
         this.solrCollection = solrCollection;
@@ -61,5 +64,17 @@ public class RemoteSolrServerConfiguration extends SolrServerConfiguration<Remot
 
     public String getSolrConfDir() {
         return solrConfDir;
+    }
+
+    @Override
+    public String toString() {
+        return "RemoteSolrServerConfiguration{" +
+                "solrConfDir='" + solrConfDir + '\'' +
+                ", solrHttpUrls=" + Arrays.toString(solrHttpUrls) +
+                ", solrZkHost='" + solrZkHost + '\'' +
+                ", solrCollection='" + solrCollection + '\'' +
+                ", solrShardsNo=" + solrShardsNo +
+                ", solrReplicationFactor=" + solrReplicationFactor +
+                '}';
     }
 }

@@ -26,6 +26,12 @@ Query Indices are defined under the `oak:index` node.
 
 ### Compatibility
 
+#### Result Size
+
+For NodeIterator.getSize(), some versions of Jackrabbit 2.x returned the estimated (raw)
+Lucene result set size, including nodes that are not accessible. 
+Oak does not do this; it either returns the correct result size, or -1.
+
 #### Quoting
 
 The query parser is now generally more strict about invalid syntax.
@@ -190,14 +196,26 @@ To define a property index on a subtree you have to add an index definition node
 
 * must be of type `oak:QueryIndexDefinition`
 * must have the `type` property set to __`property`__
-* contains the `propertyNames` property that indicates what properties will be stored in the index.
-  `propertyNames` can be a list of properties, and it is optional.in case it is missing, the node name will be used as a property name reference value
+* contains the `propertyNames` property.
+    This is a multi-valued property, and must not be empty.
+    It usually contains only one property name.
+    All nodes that have any of those properties are stored in this index.
+    
+It is recommended to index one property per index.
+(If multiple properties are indexed within one index, 
+then the index contains all nodes that has either one of the properties,
+which can make the query less efficient, and can make the query pick the wrong index.)
 
 _Optionally_ you can specify
 
-* a uniqueness constraint on a property index by setting the `unique` flag to `true`
-* that the property index only applies to a certain node type by setting the `declaringNodeTypes` property
-* the `entryCount` (a long), which is used for the cost estimation (a high entry count means a high cost)
+* a uniqueness constraint on a property index by setting the `unique` flag to `true`,
+* that the property index only applies to a certain node type by setting the 
+  `declaringNodeTypes` property,
+* the `entryCount` (a long), the estimated number of path entries in the index, 
+  which is used for the cost estimation (a high entry count means a high cost)
+* the `keyCount` (a long), the estimated number of keys in the index,
+  which is used for the cost estimation (a high key count means a lower cost,
+  when searching for specific keys; has no effect when searching for "is not null"),
 * the `reindex` flag which when set to `true`, triggers a full content re-index.
 
 Example:
@@ -219,15 +237,6 @@ or to simplify you can use one of the existing `IndexUtils#createIndexDefinition
       NodeBuilder index = IndexUtils.getOrCreateOakIndex(root);
       IndexUtils.createIndexDefinition(index, "myProp", true, false, ImmutableList.of("myProp"), null);
     }
-
-__Note on `propertyNames`__ Adding a property index definition that contains two or more properties  will only
-include nodes that have _all_ specified properties present. This is different than adding a dedicated property
-index for each and letting the query engine make use of them.
-
-__Note__ Is is currently not possible to add more than one property index on the same property name, even if it
-might be used in various combinations with other property names. This rule is not enforced in any way, but the
-behavior is undefined, one of the defined indexes will be updated while the others will simply be ignored by the
-indexer which can result in empty result sets at query time.
 
 #### Reindexing
 
@@ -253,172 +262,36 @@ Example:
         .setProperty("reindex", true);
     }
 
-### The Ordered Index
-
-Extension of the Property index will keep the order of the indexed
-property persisted in the repository.
-
-Used to speed-up queries with `ORDER BY` clause, _equality_ and
-_range_ ones.
-
-    SELECT * FROM [nt:base] ORDER BY jcr:lastModified
-    
-    SELECT * FROM [nt:base] WHERE jcr:lastModified > $date
-    
-    SELECT * FROM [nt:base] WHERE jcr:lastModified < $date
-    
-    SELECT * FROM [nt:base]
-    WHERE jcr:lastModified > $date1 AND jcr:lastModified < $date2
-
-    SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id
-
-To define a property index on a subtree you have to add an index
-definition node that:
-
-* must be of type `oak:QueryIndexDefinition`
-* must have the `type` property set to __`ordered`__
-* contains the `propertyNames` property that indicates what properties
-  will be stored in the index.  `propertyNames` has to be a single
-  value list of type `Name[]`
-
-_Optionally_ you can specify
-
-* the `reindex` flag which when set to `true`, triggers a full content
-  re-index.
-* The direction of the sorting by specifying a `direction` property of
-  type `String` of value `ascending` or `descending`. If not provided
-  `ascending` is the default.
-* The index can be defined as asynchronous by providing the property
-  `async=async`
-
-_Caveats_
-
-* In case deploying on the index on a clustered mongodb you have to
-  define it as asynchronous by providing `async=async` in the index
-  definition. This is to avoid cluster merges.
-
 ### The Lucene Index
 
-Refer to [Lucene Index](lucene.html) for details.
+See [Lucene Index](lucene.html) for details.
 
 ### The Solr Index
 
-The Solr index is mainly meant for full-text search (the 'contains' type of queries):
-
-    //*[jcr:contains(., 'text')]
-
-but is also able to search by path, property restrictions and primary type restrictions.
-This means the Solr index in Oak can be used for any type of JCR query.
-
-Even if it's not just a full-text index, it's recommended to use it asynchronously (see `Oak#withAsyncIndexing`)
-because, in most production scenarios, it'll be a 'remote' index, and therefore network eventual latency / errors would 
-have less impact on the repository performance.
-To set up the Solr index to be asynchronous that has to be defined inside the index definition, see [OAK-980](https://issues.apache.org/jira/browse/OAK-980)
-
-TODO Node aggregation.
-
-##### Index definition for Solr index
-<a name="solr-index-definition"></a>
-The index definition node for a Solr-based index:
-
- * must be of type `oak:QueryIndexDefinition`
- * must have the `type` property set to __`solr`__
- * must contain the `async` property set to the value `async`, this is what sends the 
-
-index update process to a background thread.
-
-_Optionally_ one can add
-
- * the `reindex` flag which when set to `true`, triggers a full content re-index.
-
-Example:
-
-    {
-      NodeBuilder index = root.child("oak:index");
-      index.child("solr")
-        .setProperty("jcr:primaryType", "oak:QueryIndexDefinition", Type.NAME)
-        .setProperty("type", "solr")
-        .setProperty("async", "async")
-        .setProperty("reindex", true);
-    }
-    
-#### Setting up the Solr server
-For the Solr index to work Oak needs to be able to communicate with a Solr instance / cluster.
-Apache Solr supports multiple deployment architectures: 
-
- * embedded Solr instance running in the same JVM the client runs into
- * single remote instance
- * master / slave architecture, eventually with multiple shards and replicas
- * SolrCloud cluster, with Zookeeper instance(s) to control a dynamic, resilient set of Solr servers for high 
- availability and fault tolerance
-
-The Oak Solr index can be configured to either use an 'embedded Solr server' or a 'remote Solr server' (being able to 
-connect to a single remote instance or to a SolrCloud cluster via Zookeeper).
-
-##### OSGi environment
-All the Solr configuration parameters are described in the 'Solr Server Configuration' section on the 
-[OSGi configuration](osgi_config.html) page.
-
-Create an index definition for the Solr index, as described [above](#solr-index-definition).
-Once the query index definition node has been created, access OSGi ConfigurationAdmin via e.g. Apache Felix WebConsole:
-
- 1. find the 'Oak Solr indexing / search configuration' item and eventually change configuration properties as needed
- 2. find either the 'Oak Solr embedded server configuration' or 'Oak Solr remote server configuration' items depending 
- on the chosen Solr architecture and eventually change configuration properties as needed
- 3. find the 'Oak Solr server provider' item and select the chosen provider ('remote' or 'embedded') 
-
-##### Solr server configurations
-Depending on the use case, different Solr server configurations are recommended.
-
-###### Embedded Solr server
-The embedded Solr server is recommended for developing and testing the Solr index for an Oak repository. With that an 
-in-memory Solr instance is started in the same JVM of the Oak repository, without HTTP bindings (for security purposes 
-as it'd allow HTTP access to repository data independently of ACLs). 
-Configuring an embedded Solr server mainly consists of providing the path to a standard [Solr home dir](https://wiki.apache.org/solr/SolrTerminology) 
-(_solr.home.path_ Oak property) to be used to start Solr; this path can be either relative or absolute, if such a path 
-would not exist then the default configuration provided with _oak-solr-core_ artifact would be put in the given path.
-To start an embedded Solr server with a custom configuration (e.g. different schema.xml / solrconfig.xml than the default
- ones) the (modified) Solr home files would have to be put in a dedicated directory, according to Solr home structure, so 
- that the solr.home.path property can be pointed to that directory.
-
-###### Single remote Solr server
-A single (remote) Solr instance is the simplest possible setup for using the Oak Solr index in a production environment. 
-Oak will communicate to such a Solr server through Solr's HTTP APIs (via [SolrJ](http://wiki.apache.org/solr/Solrj) client).
-Configuring a single remote Solr instance consists of providing the URL to connect to in order to reach the [Solr core]
-(https://wiki.apache.org/solr/SolrTerminology) that will host the Solr index for the Oak repository via the _solr.http.url_
- property which will have to contain such a URL (e.g. _http://10.10.1.101:8983/solr/oak_). 
-All the configuration and tuning of Solr, other than what's described in 'Solr Server Configuration' section of the [OSGi 
-configuration](osgi_config.html) page, will have to be performed on the Solr side; [sample Solr configuration]
- (http://svn.apache.org/viewvc/jackrabbit/oak/trunk/oak-solr-core/src/main/resources/solr/) files (schema.xml, 
- solrconfig.xml, etc.) to start with can be found in _oak-solr-core_ artifact.
-
-###### SolrCloud cluster
-A [SolrCloud](https://cwiki.apache.org/confluence/display/solr/SolrCloud) cluster is the recommended setup for an Oak 
-Solr index in production as it provides a scalable and fault tolerant architecture.
-In order to configure a SolrCloud cluster the host of the Zookeeper instance / ensemble managing the Solr servers has 
-to be provided in the _solr.zk.host_ property (e.g. _10.1.1.108:9983_) since the SolrJ client for SolrCloud communicates 
-directly with Zookeeper.
-The [Solr collection](https://wiki.apache.org/solr/SolrTerminology) to be used within Oak is named _oak_, having a replication
- factor of 2 and using 2 shards; this means in the default setup the SolrCloud cluster would have to be composed by at 
- least 4 Solr servers as the index will be split into 2 shards and each shard will have 2 replicas. Such parameters can 
- be changed, look for the 'Oak Solr remote server configuration' item on the [OSGi configuration](osgi_config.html) page.
-SolrCloud also allows the hot deploy of configuration files to be used for a certain collection so while setting up the 
- collection to be used for Oak with the needed files before starting the cluster, configuration files can also be uploaded 
- from a local directory, this is controlled by the _solr.conf.dir_ property of the 'Oak Solr remote server configuration'.
-For a detailed description of how SolrCloud works see the [Solr reference guide](https://cwiki.apache.org/confluence/display/solr/SolrCloud).
-
-#### Differences with the Lucene index
-As of Oak version 1.0.0:
-
-* Solr index doesn't support search using relative properties, see [OAK-1835](https://issues.apache.org/jira/browse/OAK-1835).
-* Solr configuration is mostly done on the Solr side via schema.xml / solrconfig.xml files.
-* Lucene can only be used for full-text queries, Solr can be used for full-text search _and_ for JCR queries involving
-path, property and primary type restrictions.
+See [Solr Index](lucene.html) for details.
 
 ### The Node Type Index
 
 The `NodeTypeIndex` implements a `QueryIndex` using `PropertyIndexLookup`s on `jcr:primaryType` `jcr:mixinTypes` to evaluate a node type restriction on the filter.
 The cost for this index is the sum of the costs of the `PropertyIndexLookup` for queries on `jcr:primaryType` and `jcr:mixinTypes`.
+
+### Temporarily Disabling an Index
+
+To temporarily disable an index (for example for testing), set the index type to `disabled`.
+Please note that while the index type is not set, the index is not updated, so if you enable it again,
+it might not be correct. This is specially important for synchronous indexes.
+
+### The Ordered Index (deprecated since 1.1.8)
+
+This index has been deprecated in favour of Lucene Property
+index. Please refer to [Lucene Index documentation](lucene.html) for
+details.
+
+For help on migrating to a Lucece index please refer to:
+[Migrate ordered index](ordered-index-migrate.html)
+
+For historical information around the index please refer to:
+[Ordered Index](ordered-index.html).
 
 ### Cost Calculation
 

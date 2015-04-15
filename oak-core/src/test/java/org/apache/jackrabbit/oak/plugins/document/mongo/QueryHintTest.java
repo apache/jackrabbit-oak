@@ -71,6 +71,8 @@ public class QueryHintTest {
 
     @Test
     public void testHints() throws Exception{
+        assertFalse(mongoDS.getDisableIndexHint());
+
         long delta = mongoDS.getMaxDeltaForModTimeIdxSecs();
         clock.waitUntil(TimeUnit.SECONDS.toMillis(delta + 10));
 

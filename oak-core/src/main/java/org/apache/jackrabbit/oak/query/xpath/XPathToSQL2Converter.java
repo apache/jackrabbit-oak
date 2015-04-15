@@ -209,6 +209,16 @@ public class XPathToSQL2Converter {
                         readExcerpt();
                         Expression.Property p = new Expression.Property(currentSelector, "rep:excerpt", false);
                         statement.addSelectColumn(p);
+                    } else if (readIf("rep:spellcheck")) {
+                        // only rep:spellcheck() is currently supported
+                        read("(");
+                        read(")");                        
+                        Expression.Property p = new Expression.Property(currentSelector, "rep:spellcheck()", false);
+                        statement.addSelectColumn(p);
+                    } else if (readIf("rep:suggest")) {
+                        readExcerpt();
+                        Expression.Property p = new Expression.Property(currentSelector, "rep:suggest()", false);
+                        statement.addSelectColumn(p);
                     }
                 } while (readIf("|"));
                 read(")");
@@ -411,10 +421,14 @@ public class XPathToSQL2Converter {
 
     private Expression parseConstraint() throws ParseException {
         Expression a = parseAnd();
+        int i = 0;
         while (readIf("or")) {
             a = new Expression.OrCondition(a, parseAnd());
+            if (++i % 100 == 0) {
+                a = a.optimize();
+            }
         }
-        return a;
+        return a.optimize();
     }
 
     private Expression parseAnd() throws ParseException {
@@ -622,12 +636,16 @@ public class XPathToSQL2Converter {
             Expression.Similar f = new Expression.Similar(property, path);
             return f;
         } else if ("rep:spellcheck".equals(functionName)) {
-            // TODO maybe support rep:spellcheck as in
-            // /jcr:root[rep:spellcheck('${query}')]/(rep:spellcheck())            
-            throw getSyntaxError("rep:spellcheck is not supported");
+            Expression term = parseExpression();
+            read(")");
+            return new Expression.Spellcheck(term);
+        } else if ("rep:suggest".equals(functionName)) {
+            Expression term = parseExpression();
+            read(")");
+            return new Expression.Suggest(term);
         } else {
             throw getSyntaxError("jcr:like | jcr:contains | jcr:score | xs:dateTime | " + 
-                    "fn:lower-case | fn:upper-case | fn:name");
+                    "fn:lower-case | fn:upper-case | fn:name | rep:similar | rep:spellcheck | rep:suggest");
         }
     }
 

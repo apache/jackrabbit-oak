@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -34,28 +36,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * store ({@link Resolution#THEIRS}). Alternatively the resolution can also indicate
  * that the changes have been successfully merged by this {@code ConflictHandler}
  * instance ({@link Resolution#MERGED}).
+ *
+ * @see ConflictHandler
  */
-public interface ConflictHandler {
-
-    /**
-     * Resolutions for conflicts
-     */
-    enum Resolution {
-        /**
-         * Use the changes from the current {@link org.apache.jackrabbit.oak.api.Root} instance
-         */
-        OURS,
-
-        /**
-         * Use the changes from the underlying persistence store
-         */
-        THEIRS,
-
-        /**
-         * Indicated changes have been merged by this {@code ConflictHandler} instance.
-         */
-        MERGED
-    }
+public interface ConflictHandler extends PartialConflictHandler {
 
     /**
      * The property {@code ours} has been added to {@code parent} which conflicts
@@ -66,6 +50,8 @@ public interface ConflictHandler {
      * @param theirs  their version of the property
      * @return  {@link Resolution} of the conflict
      */
+    @Override
+    @Nonnull
     Resolution addExistingProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs);
 
     /**
@@ -76,6 +62,8 @@ public interface ConflictHandler {
      * @param ours  our version of the property
      * @return  {@link Resolution} of the conflict
      */
+    @Override
+    @Nonnull
     Resolution changeDeletedProperty(NodeBuilder parent, PropertyState ours);
 
     /**
@@ -87,6 +75,8 @@ public interface ConflictHandler {
      * @param theirs  their version of the property
      * @return  {@link Resolution} of the conflict
      */
+    @Override
+    @Nonnull
     Resolution changeChangedProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs);
 
     /**
@@ -97,6 +87,8 @@ public interface ConflictHandler {
      * @param ours  our version of the property
      * @return  {@link Resolution} of the conflict
      */
+    @Override
+    @Nonnull
     Resolution deleteDeletedProperty(NodeBuilder parent, PropertyState ours);
 
     /**
@@ -107,6 +99,8 @@ public interface ConflictHandler {
      * @param theirs  their version of the property
      * @return  {@link Resolution} of the conflict
      */
+    @Override
+    @Nonnull
     Resolution deleteChangedProperty(NodeBuilder parent, PropertyState theirs);
 
     /**
@@ -119,6 +113,8 @@ public interface ConflictHandler {
      * @param theirs  their version of the node
      * @return  {@link Resolution} of the conflict
      */
+    @Override
+    @Nonnull
     Resolution addExistingNode(NodeBuilder parent, String name, NodeState ours, NodeState theirs);
 
     /**
@@ -130,6 +126,8 @@ public interface ConflictHandler {
      * @param ours  our version of the node
      * @return  {@link Resolution} of the conflict
      */
+    @Override
+    @Nonnull
     Resolution changeDeletedNode(NodeBuilder parent, String name, NodeState ours);
 
     /**
@@ -141,6 +139,8 @@ public interface ConflictHandler {
      * @param theirs  their version of the node
      * @return  {@link Resolution} of the conflict
      */
+    @Override
+    @Nonnull
     Resolution deleteChangedNode(NodeBuilder parent, String name, NodeState theirs);
 
     /**
@@ -151,5 +151,7 @@ public interface ConflictHandler {
      * @param name  name of the node
      * @return  {@link Resolution} of the conflict
      */
+    @Override
+    @Nonnull
     Resolution deleteDeletedNode(NodeBuilder parent, String name);
 }

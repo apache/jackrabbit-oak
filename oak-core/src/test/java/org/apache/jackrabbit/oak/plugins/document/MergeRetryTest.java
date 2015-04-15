@@ -18,11 +18,10 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import javax.annotation.CheckForNull;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
-import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
@@ -31,7 +30,6 @@ import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 
 /**
@@ -64,29 +62,12 @@ public class MergeRetryTest {
      */
     @Test
     public void retryInMemory() throws Exception {
-        retryInMemory(true);
-        retryInMemory(false);
-    }
-
-
-    private void retryInMemory(boolean useMK) throws Exception {
         MemoryDocumentStore ds = new MemoryDocumentStore();
         MemoryBlobStore bs = new MemoryBlobStore();
 
-        DocumentMK mk1 = createMK(1, 1000, ds, bs);
-        DocumentMK mk2 = createMK(2, 1000, ds, bs);
-
+        DocumentNodeStore ns1 = createMK(1, 1000, ds, bs);
+        DocumentNodeStore ns2 = createMK(2, 1000, ds, bs);
         try {
-            NodeStore ns1;
-            NodeStore ns2;
-            if (useMK) {
-                ns1 = new KernelNodeStore(mk1);
-                ns2 = new KernelNodeStore(mk2);
-            } else {
-                ns1 = mk1.getNodeStore();
-                ns2 = mk2.getNodeStore();
-            }
-
             NodeBuilder builder1 = ns1.getRoot().builder();
             builder1.child("bar");
 
@@ -96,38 +77,23 @@ public class MergeRetryTest {
             ns1.merge(builder1, HOOK, CommitInfo.EMPTY);
             ns2.merge(builder2, HOOK, CommitInfo.EMPTY);
         } finally {
-            mk1.dispose();
-            mk2.dispose();
+            ns1.dispose();
+            ns2.dispose();
         }
     }
+
 
     /**
      * Test for OAK-1202
      */
     @Test
     public void retryPersisted() throws Exception {
-        retryPersisted(true);
-        retryPersisted(false);
-    }
-
-    private void retryPersisted(boolean useMK) throws Exception {
         MemoryDocumentStore ds = new MemoryDocumentStore();
         MemoryBlobStore bs = new MemoryBlobStore();
 
-        DocumentMK mk1 = createMK(1, 1000, ds, bs);
-        DocumentMK mk2 = createMK(2, 1000, ds, bs);
-
+        DocumentNodeStore ns1 = createMK(1, 1000, ds, bs);
+        DocumentNodeStore ns2 = createMK(2, 1000, ds, bs);
         try {
-            NodeStore ns1;
-            NodeStore ns2;
-            if (useMK) {
-                ns1 = new KernelNodeStore(mk1);
-                ns2 = new KernelNodeStore(mk2);
-            } else {
-                ns1 = mk1.getNodeStore();
-                ns2 = mk2.getNodeStore();
-            }
-
             NodeBuilder builder1 = ns1.getRoot().builder();
             createTree(builder1.child("bar"), 2);
 
@@ -137,8 +103,8 @@ public class MergeRetryTest {
             ns1.merge(builder1, HOOK, CommitInfo.EMPTY);
             ns2.merge(builder2, HOOK, CommitInfo.EMPTY);
         } finally {
-            mk1.dispose();
-            mk2.dispose();
+            ns1.dispose();
+            ns2.dispose();
         }
     }
 
@@ -154,9 +120,9 @@ public class MergeRetryTest {
         }
     }
 
-    private DocumentMK createMK(int clusterId, int asyncDelay,
-                             DocumentStore ds, BlobStore bs) {
+    private DocumentNodeStore createMK(int clusterId, int asyncDelay,
+            DocumentStore ds, BlobStore bs) {
         return new DocumentMK.Builder().setDocumentStore(ds).setBlobStore(bs)
-                .setClusterId(clusterId).setAsyncDelay(asyncDelay).open();
+                .setClusterId(clusterId).setAsyncDelay(asyncDelay).getNodeStore();
     }
 }

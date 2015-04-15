@@ -58,7 +58,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A {@code ManagementOperation} is a background, which that can be
+ * A {@code ManagementOperation} is a background task, which can be
  * executed by an {@code Executor}. Its {@link Status} indicates
  * whether execution has already been started, is currently under the
  * way or has already finished.

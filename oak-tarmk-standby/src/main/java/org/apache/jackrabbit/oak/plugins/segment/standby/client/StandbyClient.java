@@ -65,6 +65,7 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
     private final String host;
     private final int port;
     private final int readTimeoutMs;
+    private final boolean autoClean;
 
     private final StandbyStore store;
     private final CommunicationObserver observer;
@@ -84,7 +85,14 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
         this(host, port, store, false, 10000);
     }
 
-    public StandbyClient(String host, int port, SegmentStore store, boolean secure, int readTimeoutMs) throws SSLException {
+    public StandbyClient(String host, int port, SegmentStore store,
+            boolean secure, int readTimeoutMs) throws SSLException {
+        this(host, port, store, secure, readTimeoutMs, false);
+    }
+
+    public StandbyClient(String host, int port, SegmentStore store,
+            boolean secure, int readTimeoutMs, boolean autoClean)
+            throws SSLException {
         this.state = STATUS_INITIALIZING;
         this.lastSuccessfulRequest = -1;
         this.failedRequests = 0;
@@ -94,6 +102,7 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
             this.sslContext = SslContext.newClientContext(InsecureTrustManagerFactory.INSTANCE);
         }
         this.readTimeoutMs = readTimeoutMs;
+        this.autoClean = autoClean;
         this.store = new StandbyStore(store);
         String s = System.getProperty(CLIENT_ID_PROPERTY_NAME);
         this.observer = new CommunicationObserver((s == null || s.length() == 0) ? UUID.randomUUID().toString() : s);
@@ -140,7 +149,7 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
             state = STATUS_STARTING;
             executor = new DefaultEventExecutorGroup(4);
             handler = new StandbyClientHandler(this.store, executor, observer,
-                    running, readTimeoutMs);
+                    running, readTimeoutMs, autoClean);
             group = new NioEventLoopGroup();
 
             b = new Bootstrap();
@@ -181,7 +190,6 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
         } catch (Exception e) {
             this.failedRequests++;
             log.error("Failed synchronizing state.", e);
-            stop();
         } finally {
             synchronized (this.sync) {
                 this.active = false;
@@ -214,6 +222,7 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
     @Override
     public void start() {
         running.set(true);
+        state = STATUS_RUNNING;
     }
 
     @Override
@@ -246,5 +255,10 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
     @Override
     public int calcSecondsSinceLastSuccess() {
         return this.getSecondsSinceLastSuccess();
+    }
+
+    @Override
+    public void cleanup() {
+        store.cleanup();
     }
 }

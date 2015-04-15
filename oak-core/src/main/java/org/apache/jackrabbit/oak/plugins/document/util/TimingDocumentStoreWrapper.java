@@ -28,14 +28,16 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
+import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 
 /**
- * A MicroKernel wrapper that can be used to log and also time MicroKernel
+ * A DocumentStore wrapper that can be used to log and also time DocumentStore
  * calls.
  */
 public class TimingDocumentStoreWrapper implements DocumentStore {
@@ -248,11 +250,12 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public void invalidateCache() {
+    public CacheInvalidationStats invalidateCache() {
         try {
             long start = now();
-            base.invalidateCache();
+            CacheInvalidationStats result = base.invalidateCache();
             updateAndLogTimes("invalidateCache", start, 0, 0);
+            return result;
         } catch (Exception e) {
             throw convert(e);
         }
@@ -301,6 +304,24 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
         } catch (Exception e) {
             throw convert(e);
         }
+    }
+
+
+    @Override
+    public CacheStats getCacheStats() {
+        try {
+            long start = now();
+            CacheStats result = base.getCacheStats();
+            updateAndLogTimes("getCacheStats", start, 0, 0);
+            return result;
+        } catch (Exception e) {
+            throw convert(e);
+        }
+    }
+
+    @Override
+    public Map<String, String> getMetadata() {
+        return base.getMetadata();
     }
 
     private void logCommonCall(long start, String key) {
@@ -433,5 +454,4 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
 
         }
     }
-
 }

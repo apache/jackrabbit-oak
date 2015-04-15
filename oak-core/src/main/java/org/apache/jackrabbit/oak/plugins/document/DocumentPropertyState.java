@@ -16,17 +16,21 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static java.util.Collections.emptyList;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
+
 import java.util.List;
 
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.oak.commons.json.JsopReader;
-import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.kernel.StringCache;
-import org.apache.jackrabbit.oak.kernel.TypeCodes;
+import org.apache.jackrabbit.oak.cache.StringCache;
+import org.apache.jackrabbit.oak.commons.json.JsopReader;
+import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.json.TypeCodes;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.BooleanPropertyState;
@@ -35,11 +39,6 @@ import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
-
-import com.google.common.collect.Lists;
-
-import static java.util.Collections.emptyList;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
 /**
  * PropertyState implementation with lazy parsing of the JSOP encoded value.
@@ -144,8 +143,6 @@ final class DocumentPropertyState implements PropertyState {
     }
 
     /**
-     * FIXME: copied from KernelNodeState.
-     *
      * Read a {@code PropertyState} from a {@link JsopReader}
      * @param name  The name of the property state
      * @param reader  The reader
@@ -156,8 +153,6 @@ final class DocumentPropertyState implements PropertyState {
     }
 
     /**
-     * FIXME: copied from KernelNodeState.
-     *
      * Read a {@code PropertyState} from a {@link JsopReader}.
      *
      * @param name the name of the property state
@@ -202,8 +197,6 @@ final class DocumentPropertyState implements PropertyState {
     }
 
     /**
-     * FIXME: copied from KernelNodeState.
-     *
      * Read a multi valued {@code PropertyState} from a {@link JsopReader}.
      *
      * @param name the name of the property state
@@ -215,8 +208,6 @@ final class DocumentPropertyState implements PropertyState {
     }
 
     /**
-     * FIXME: copied from KernelNodeState.
-     *
      * Read a multi valued {@code PropertyState} from a {@link JsopReader}.
      *
      * @param name the name of the property state

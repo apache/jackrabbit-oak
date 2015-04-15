@@ -214,6 +214,8 @@ public class QueryPlanTest extends AbstractRepositoryTest {
     public void nodeType() throws Exception {
         Session session = getAdminSession();
         QueryManager qm = session.getWorkspace().getQueryManager();
+        Node nodetype = session.getRootNode().getNode("oak:index").getNode("nodetype");
+        nodetype.setProperty("entryCount", 100000);
         Node testRootNode = session.getRootNode().addNode("testroot");
         Node n1 = testRootNode.addNode("node1");
         Node n2 = n1.addNode("node2");
@@ -221,7 +223,8 @@ public class QueryPlanTest extends AbstractRepositoryTest {
         session.save();
        
         String sql2 = "select [jcr:path] as [path] from [nt:base] " + 
-                "where [node2/node3/jcr:primaryType] is not null";
+                "where [node2/node3/jcr:primaryType] is not null " + 
+                "and isdescendantnode('/testroot')";
         
         Query q;
         QueryResult result;
@@ -233,8 +236,10 @@ public class QueryPlanTest extends AbstractRepositoryTest {
         assertTrue(it.hasNext());
         String plan = it.nextRow().getValue("plan").getString();
         // should not use the index on "jcr:primaryType"
-        assertEquals("[nt:base] as [nt:base] /* traverse \"*\" " + 
-                "where [nt:base].[node2/node3/jcr:primaryType] is not null */", 
+        assertEquals("[nt:base] as [nt:base] /* traverse \"/testroot//*\" " + 
+                "where ([nt:base].[node2/node3/jcr:primaryType] is not null) " + 
+                "and (isdescendantnode([nt:base], [/testroot])) " +
+                "*/", 
                 plan);
         
         // verify the result

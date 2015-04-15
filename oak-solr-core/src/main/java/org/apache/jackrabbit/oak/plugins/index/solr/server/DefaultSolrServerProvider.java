@@ -16,25 +16,69 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.server;
 
+import java.io.IOException;
 import javax.annotation.CheckForNull;
 
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationDefaults;
 import org.apache.solr.client.solrj.SolrServer;
+import org.apache.solr.client.solrj.impl.ConcurrentUpdateSolrServer;
 import org.apache.solr.client.solrj.impl.HttpSolrServer;
 
 public class DefaultSolrServerProvider implements SolrServerProvider {
 
     private SolrServer solrServer;
+    private SolrServer indexingSolrServer;
 
     @CheckForNull
     @Override
     public SolrServer getSolrServer() throws Exception {
         if (solrServer == null) {
-            String url = SolrServerConfigurationDefaults.LOCAL_BASE_URL + ':' +
-                    SolrServerConfigurationDefaults.HTTP_PORT + SolrServerConfigurationDefaults.CONTEXT +
-                    '/' + SolrServerConfigurationDefaults.CORE_NAME;
-            solrServer = new HttpSolrServer(url);
+            solrServer = new HttpSolrServer(getUrl());
         }
         return solrServer;
+    }
+
+    @CheckForNull
+    @Override
+    public SolrServer getIndexingSolrServer() throws Exception {
+        if (indexingSolrServer == null) {
+            indexingSolrServer = new ConcurrentUpdateSolrServer(getUrl(), 1000, 4);
+        }
+        return indexingSolrServer;
+    }
+
+    @CheckForNull
+    @Override
+    public SolrServer getSearchingSolrServer() throws Exception {
+        return getSolrServer();
+    }
+
+    private String getUrl() {
+        return SolrServerConfigurationDefaults.LOCAL_BASE_URL + ':' +
+                SolrServerConfigurationDefaults.HTTP_PORT + SolrServerConfigurationDefaults.CONTEXT +
+                '/' + SolrServerConfigurationDefaults.CORE_NAME;
+    }
+
+    @Override
+    public void close() throws IOException {
+        try {
+            SolrServer solrServer = getSolrServer();
+            if (solrServer != null) {
+                solrServer.shutdown();
+            }
+        } catch (Exception e) {
+            // do nothing
+        } try {
+            SolrServer indexingSolrServer = getIndexingSolrServer();
+            if (indexingSolrServer != null) {
+                indexingSolrServer.shutdown();
+            }
+        } catch (Exception e) {
+            // do nothing
+        } try {
+            getSearchingSolrServer().shutdown();
+        } catch (Exception e) {
+            // do nothing
+        }
     }
 }

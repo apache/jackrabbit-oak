@@ -24,7 +24,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
+import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -50,7 +50,7 @@ public class ACFilter implements EventFilter {
     public ACFilter(@Nonnull NodeState before, @Nonnull NodeState after,
             @Nonnull PermissionProvider permissionProvider) {
         this(permissionProvider.getTreePermission(
-                new ImmutableTree(after.exists() ? after : before), TreePermission.EMPTY));
+                TreeFactory.createReadOnlyTree((after.exists() ? after : before)), TreePermission.EMPTY));
     }
 
     @Override

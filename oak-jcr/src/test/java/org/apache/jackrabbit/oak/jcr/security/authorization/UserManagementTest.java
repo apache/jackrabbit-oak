@@ -456,4 +456,29 @@ public class UserManagementTest extends AbstractEvaluationTest {
         }
         assertTrue("Result mismatch", ids.isEmpty());
     }
+
+    @Test
+    public void testGlobRestriction() throws Exception {
+        String groupHome = Text.getRelativeParent(UserConstants.DEFAULT_GROUP_PATH, 1);
+        Privilege[] privs = privilegesFromName(PrivilegeConstants.REP_USER_MANAGEMENT);
+        allow(groupHome, privs);
+        deny(groupHome, privs, createGlobRestriction("*/" + UserConstants.REP_MEMBERS));
+
+        UserManager testUserMgr = getUserManager(testSession);
+
+        // creating a new group must be allow
+        Group gr = testUserMgr.createGroup(groupId);
+        testSession.save();
+
+        // modifying group membership must be denied
+        try {
+            gr.addMember(testUserMgr.getAuthorizable(testSession.getUserID()));
+            testSession.save();
+            fail();
+        } catch (AccessDeniedException e) {
+            // success
+        } finally {
+            testSession.refresh(false);
+        }
+    }
 }

@@ -24,13 +24,14 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.core.SystemRoot;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
+import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
@@ -89,10 +90,11 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
 
     @Override
     public void initialize(NodeBuilder builder, String workspaceName) {
-        NodeState base = builder.getNodeState();
+        // squeeze node state before it is passed to store (OAK-2411)
+        NodeState base = ModifiedNodeState.squeeze(builder.getNodeState());
         MemoryNodeStore store = new MemoryNodeStore(base);
 
-        Root root = new SystemRoot(store, EmptyHook.INSTANCE, workspaceName,
+        Root root = RootFactory.createSystemRoot(store, EmptyHook.INSTANCE, workspaceName,
                 securityProvider, new QueryEngineSettings(),
                 new CompositeQueryIndexProvider(new PropertyIndexProvider(),
                         new NodeTypeIndexProvider()));

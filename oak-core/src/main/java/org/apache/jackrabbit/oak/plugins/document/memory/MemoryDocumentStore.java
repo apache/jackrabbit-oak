@@ -29,6 +29,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -42,6 +44,7 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
 import com.google.common.base.Splitter;
 import com.mongodb.ReadPreference;
 import com.mongodb.WriteConcern;
+import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 
 /**
  * Emulates a MongoDB store (possibly consisting of multiple shards and
@@ -80,6 +83,14 @@ public class MemoryDocumentStore implements DocumentStore {
     private WriteConcern writeConcern;
 
     private Object lastReadWriteMode;
+
+    private final Map<String, String> metadata;
+
+    public MemoryDocumentStore() {
+        metadata = ImmutableMap.<String,String>builder()
+                        .put("type", "memory")
+                        .build();
+    }
 
     @Override
     public <T extends Document> T find(Collection<T> collection, String key, int maxCacheAge) {
@@ -123,9 +134,19 @@ public class MemoryDocumentStore implements DocumentStore {
             ArrayList<T> list = new ArrayList<T>();
             for (T doc : sub.values()) {
                 if (indexedProperty != null) {
-                    Long value = (Long) doc.get(indexedProperty);
-                    if (value == null || value < startValue) {
-                        continue;
+                    Object value = doc.get(indexedProperty);
+                    if (value instanceof Boolean) {
+                        long test = (value != null && ((Boolean) value).booleanValue()) ? 1 : 0;
+                        if (test < startValue) {
+                            continue;
+                        }
+                    } else if (value instanceof Long) {
+                        if (value == null || ((Long) value < startValue)) {
+                            continue;
+                        }
+                    } else if (value != null) {
+                        throw new DocumentStoreException("unexpected type for property " + indexedProperty + ": "
+                                + value.getClass());
                     }
                 }
                 list.add(doc);
@@ -175,7 +196,7 @@ public class MemoryDocumentStore implements DocumentStore {
      * @return the map
      */
     @SuppressWarnings("unchecked")
-    private <T extends Document> ConcurrentSkipListMap<String, T> getMap(Collection<T> collection) {
+    protected <T extends Document> ConcurrentSkipListMap<String, T> getMap(Collection<T> collection) {
         if (collection == Collection.NODES) {
             return (ConcurrentSkipListMap<String, T>) nodes;
         } else if (collection == Collection.CLUSTER_NODES) {
@@ -278,8 +299,8 @@ public class MemoryDocumentStore implements DocumentStore {
     }
 
     @Override
-    public void invalidateCache() {
-        // there is no cache, so nothing to invalidate
+    public CacheInvalidationStats invalidateCache() {
+        return null;
     }
 
     @Override
@@ -330,6 +351,16 @@ public class MemoryDocumentStore implements DocumentStore {
 
     public WriteConcern getWriteConcern() {
         return writeConcern;
+    }
+
+    @Override
+    public CacheStats getCacheStats() {
+        return null;
+    }
+
+    @Override
+    public Map<String, String> getMetadata() {
+        return metadata;
     }
 
 }

@@ -31,6 +31,12 @@ import java.util.Set;
 public interface QueryEngine {
     
     /**
+     * The suffix for internal SQL-2 statements. Those are logged with trace
+     * level instead of debug level.
+     */
+    String INTERNAL_SQL2_QUERY = " /* oak-internal */";
+
+    /**
      * Empty set of variables bindings. Useful as an argument to
      * {@link #executeQuery(String, String, long, long, Map, Map)} when
      * there are no variables in a query.

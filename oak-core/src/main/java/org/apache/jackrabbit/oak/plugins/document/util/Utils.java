@@ -23,6 +23,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Timestamp;
 import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
@@ -33,10 +35,14 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.AbstractIterator;
 import com.mongodb.BasicDBObject;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.document.Collection;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionContext;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
@@ -323,6 +329,12 @@ public class Utils {
         return id.substring(index + 1);
     }
 
+    public static int getDepthFromId(String id) {
+        int index = id.indexOf(':');
+        assert index > 0 : "Invalid id " + id;
+        return Integer.parseInt(id.substring(0, index));
+    }
+
     public static String getPreviousPathFor(String path, Revision r, int height) {
         if (!PathUtils.isAbsolute(path)) {
             throw new IllegalArgumentException("path must be absolute: " + path);
@@ -494,4 +506,87 @@ public class Utils {
         return StableRevisionComparator.INSTANCE.compare(a, b) >= 0 ? a : b;
     }
 
+    /**
+     * Returns an {@link Iterable} over all {@link NodeDocument}s in the given
+     * store. The returned {@linkplain Iterable} does not guarantee a consistent
+     * view on the store. it may return documents that have been added to the
+     * store after this method had been called.
+     *
+     * @param store
+     *            a {@link DocumentStore}.
+     * @return an {@link Iterable} over all documents in the store.
+     */
+    public static Iterable<NodeDocument> getAllDocuments(final DocumentStore store) {
+        return internalGetSelectedDocuments(store, null, 0);
+    }
+
+    /**
+     * Returns an {@link Iterable} over all {@link NodeDocument}s in the given
+     * store matching a condition on an <em>indexed property</em>. The returned
+     * {@link Iterable} does not guarantee a consistent view on the store.
+     * it may return documents that have been added to the store after this
+     * method had been called.
+     *
+     * @param store
+     *            a {@link DocumentStore}.
+     * @param indexedProperty the name of the indexed property.
+     * @param startValue the lower bound value for the indexed property
+     *                   (inclusive).
+     * @return an {@link Iterable} over all documents in the store matching the
+     *         condition
+     */
+    public static Iterable<NodeDocument> getSelectedDocuments(
+            DocumentStore store, String indexedProperty, long startValue) {
+        return internalGetSelectedDocuments(store, indexedProperty, startValue);
+    }
+
+    private static Iterable<NodeDocument> internalGetSelectedDocuments(
+            final DocumentStore store, final String indexedProperty,
+            final long startValue) {
+        return new Iterable<NodeDocument>() {
+            @Override
+            public Iterator<NodeDocument> iterator() {
+                return new AbstractIterator<NodeDocument>() {
+
+                    private static final int BATCH_SIZE = 100;
+                    private String startId = NodeDocument.MIN_ID_VALUE;
+
+                    private Iterator<NodeDocument> batch = nextBatch();
+
+                    @Override
+                    protected NodeDocument computeNext() {
+                        // read next batch if necessary
+                        if (!batch.hasNext()) {
+                            batch = nextBatch();
+                        }
+
+                        NodeDocument doc;
+                        if (batch.hasNext()) {
+                            doc = batch.next();
+                            // remember current id
+                            startId = doc.getId();
+                        } else {
+                            doc = endOfData();
+                        }
+                        return doc;
+                    }
+
+                    private Iterator<NodeDocument> nextBatch() {
+                        List<NodeDocument> result = indexedProperty == null ? store.query(Collection.NODES, startId,
+                                NodeDocument.MAX_ID_VALUE, BATCH_SIZE) : store.query(Collection.NODES, startId,
+                                NodeDocument.MAX_ID_VALUE, indexedProperty, startValue, BATCH_SIZE);
+                        return result.iterator();
+                    }
+                };
+            }
+        };
+    }
+
+    /**
+     * @return if {@code path} represent oak's internal path. That is, a path
+     *          element start with a colon.
+     */
+    public static boolean isHiddenPath(@Nonnull String path) {
+        return path.contains("/:");
+    }
 }

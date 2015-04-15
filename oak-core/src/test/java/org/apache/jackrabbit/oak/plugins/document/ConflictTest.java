@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.junit.Test;
 
 import static org.junit.Assert.fail;
@@ -35,7 +34,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.commit("/foo", "^\"prop\":\"value\"", rev, null);
             fail("Must fail with conflict for addExistingProperty");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -50,7 +49,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.commit("/foo", "^\"prop\":\"value\"", rev, null);
             fail("Must fail with conflict for addExistingProperty");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -66,7 +65,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.merge(branchRev, null);
             fail("Must fail with conflict for addExistingProperty");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -82,7 +81,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.merge(branchRev, null);
             fail("Must fail with conflict for addExistingProperty");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -102,7 +101,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.merge(branchRev1, null);
             fail("Must fail with conflict for addExistingProperty");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -115,7 +114,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.commit("/foo", "^\"prop\":null", rev, null);
             fail("Must fail with conflict for removeRemovedProperty");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -130,7 +129,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.commit("/foo", "^\"prop\":null", rev, null);
             fail("Must fail with conflict for removeRemovedProperty");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -146,7 +145,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.merge(branchRev, null);
             fail("Must fail with conflict for removeRemovedProperty");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -162,7 +161,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.merge(branchRev, null);
             fail("Must fail with conflict for removeRemovedProperty");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -182,7 +181,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.merge(branchRev1, null);
             fail("Must fail with conflict for removeRemovedProperty");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -195,7 +194,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.commit("/foo", "^\"prop\":null", rev, null);
             fail("Must fail with conflict for removeChangedProperty");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -210,7 +209,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.commit("/foo", "^\"prop\":null", rev, null);
             fail("Must fail with conflict for removeChangedProperty");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -226,7 +225,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.merge(branchRev, null);
             fail("Must fail with conflict for removeChangedProperty");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -242,7 +241,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.merge(branchRev, null);
             fail("Must fail with conflict for removeChangedProperty");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -261,7 +260,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.merge(branchRev1, null);
             fail("Must fail with conflict for removeChangedProperty");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -274,7 +273,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.commit("/foo", "^\"prop\":\"bar\"", rev, null);
             fail("Must fail with conflict for changeRemovedProperty");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -289,7 +288,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.commit("/foo", "^\"prop\":\"bar\"", rev, null);
             fail("Must fail with conflict for changeRemovedProperty");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -305,7 +304,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.merge(branchRev, null);
             fail("Must fail with conflict for changeRemovedProperty");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -321,7 +320,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.merge(branchRev, null);
             fail("Must fail with conflict for changeRemovedProperty");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -340,7 +339,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.merge(branchRev1, null);
             fail("Must fail with conflict for changeRemovedProperty");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -353,7 +352,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.commit("/foo", "^\"prop\":\"baz\"", rev, null);
             fail("Must fail with conflict for changeChangedProperty");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -368,7 +367,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.commit("/foo", "^\"prop\":\"baz\"", rev, null);
             fail("Must fail with conflict for changeChangedProperty");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -384,7 +383,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.merge(branchRev, null);
             fail("Must fail with conflict for changeChangedProperty");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -400,7 +399,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.merge(branchRev, null);
             fail("Must fail with conflict for changeChangedProperty");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -419,7 +418,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.merge(b2, null);
             fail("Must fail with conflict for changeChangedProperty");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -432,7 +431,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.commit("/foo", "+\"bar\":{}", rev, null);
             fail("Must fail with conflict for addExistingNode");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -447,7 +446,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.commit("/foo", "+\"bar\":{}", rev, null);
             fail("Must fail with conflict for addExistingNode");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -463,7 +462,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.merge(branchRev, null);
             fail("Must fail with conflict for addExistingNode");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -479,7 +478,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.merge(branchRev, null);
             fail("Must fail with conflict for addExistingNode");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -499,7 +498,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.merge(branchRev1, null);
             fail("Must fail with conflict for addExistingNode");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -512,7 +511,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.commit("/", "-\"foo\"", rev, null);
             fail("Must fail with conflict for removeRemovedNode");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -527,7 +526,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.commit("/", "-\"foo\"", rev, null);
             fail("Must fail with conflict for removeRemovedNode");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -543,7 +542,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.merge(branchRev, null);
             fail("Must fail with conflict for removeRemovedNode");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -559,7 +558,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.merge(branchRev, null);
             fail("Must fail with conflict for removeRemovedNode");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -578,7 +577,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.merge(branchRev1, null);
             fail("Must fail with conflict for removeRemovedNode");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -591,7 +590,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.commit("/", "-\"foo\"", rev, null);
             fail("Must fail with conflict for removeChangedNode");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -606,7 +605,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.commit("/", "-\"foo\"", rev, null);
             fail("Must fail with conflict for removeChangedNode");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -622,7 +621,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.merge(branchRev, null);
             fail("Must fail with conflict for removeChangedNode");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -638,7 +637,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.merge(branchRev, null);
             fail("Must fail with conflict for removeChangedNode");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -657,7 +656,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.merge(branchRev1, null);
             fail("Must fail with conflict for removeChangedNode");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -670,7 +669,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.commit("/foo", "^\"prop\":\"value\"", rev, null);
             fail("Must fail with conflict for changeRemovedNode");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -685,7 +684,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.commit("/foo", "^\"prop\":\"value\"", rev, null);
             fail("Must fail with conflict for changeRemovedNode");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -701,7 +700,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.merge(branchRev, null);
             fail("Must fail with conflict for changeRemovedNode");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -717,7 +716,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.merge(branchRev, null);
             fail("Must fail with conflict for changeRemovedNode");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }
@@ -736,7 +735,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         try {
             mk.merge(branchRev1, null);
             fail("Must fail with conflict for changeRemovedNode");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
     }

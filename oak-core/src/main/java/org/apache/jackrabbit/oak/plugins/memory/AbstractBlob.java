@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
@@ -71,6 +72,7 @@ public abstract class AbstractBlob implements Blob {
                 public long length() {
                     return blob.length();
                 }
+                @Nonnull
                 @Override
                 public InputStream getNewStream() {
                     return blob.getNewStream();

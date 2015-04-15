@@ -19,9 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.user;
 import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * Credentials implementation that only contains a {@code userId} but no password.
  * It can be used for {@link org.apache.jackrabbit.api.security.user.User#getCredentials()},

@@ -65,7 +65,7 @@ public class UserImportBestEffortTest extends AbstractImportTest {
 
         // saving changes of the import -> must succeed. add mandatory
         // props should have been created.
-        adminSession.save();
+        getImportSession().save();
     }
 
     /**
@@ -83,14 +83,14 @@ public class UserImportBestEffortTest extends AbstractImportTest {
                 "</sv:node>";
 
         doImport(getTargetPath(), xml);
-        adminSession.save();
+        getImportSession().save();
 
         // re-import should succeed if UUID-behavior is set accordingly
         doImport(getTargetPath(), xml, ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING);
 
         // saving changes of the import -> must succeed. add mandatory
         // props should have been created.
-        adminSession.save();
+        getImportSession().save();
     }
 
     @Test
@@ -132,10 +132,10 @@ public class UserImportBestEffortTest extends AbstractImportTest {
                 "</sv:node>";
         doImport(getTargetPath(), xml);
 
-        Authorizable newUser = userMgr.getAuthorizable("t");
+        Authorizable newUser = getUserManager().getAuthorizable("t");
         assertNotNull(newUser);
 
-        Authorizable u2 = userMgr.getAuthorizable("g");
+        Authorizable u2 = getUserManager().getAuthorizable("g");
         assertNotNull(u2);
 
         Subject subj = new Subject();
@@ -158,7 +158,7 @@ public class UserImportBestEffortTest extends AbstractImportTest {
                 "</sv:node>";
         doImport(getTargetPath(), xml);
 
-        Authorizable a = userMgr.getAuthorizable("t");
+        Authorizable a = getUserManager().getAuthorizable("t");
         assertFalse(a.isGroup());
 
         boolean found = false;

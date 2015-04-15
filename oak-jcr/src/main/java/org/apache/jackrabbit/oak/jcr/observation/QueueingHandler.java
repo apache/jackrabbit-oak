@@ -103,6 +103,7 @@ class QueueingHandler extends DefaultEventHandler {
     @Override
     public void propertyAdded(PropertyState after) {
         queue.addEvent(factory.propertyAdded(
+                after,
                 parentType, parentMixins,
                 pathTracker.getPath(), after.getName(),
                 identifierTracker.getIdentifier()));
@@ -111,6 +112,7 @@ class QueueingHandler extends DefaultEventHandler {
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) {
         queue.addEvent(factory.propertyChanged(
+                before, after,
                 parentType, parentMixins,
                 pathTracker.getPath(), after.getName(),
                 identifierTracker.getIdentifier()));
@@ -119,6 +121,7 @@ class QueueingHandler extends DefaultEventHandler {
     @Override
     public void propertyDeleted(PropertyState before) {
         queue.addEvent(factory.propertyDeleted(
+                before,
                 parentType, parentMixins,
                 pathTracker.getPath(), before.getName(),
                 identifierTracker.getIdentifier()));

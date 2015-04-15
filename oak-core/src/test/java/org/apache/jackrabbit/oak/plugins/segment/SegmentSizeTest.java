@@ -51,8 +51,8 @@ public class SegmentSizeTest {
         builder = EMPTY_NODE.builder();
         builder.setProperty("foo", "bar");
         builder.setProperty("baz", 123);
-        assertEquals(64, getSize(builder));
-        assertEquals(12, getAmortizedSize(builder));
+        assertEquals(80, getSize(builder));
+        assertEquals(16, getAmortizedSize(builder));
 
         builder = EMPTY_NODE.builder();
         builder.child("foo");
@@ -127,15 +127,15 @@ public class SegmentSizeTest {
         deny.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:read"), Type.NAMES));
         assertEquals(176, getSize(builder));
-        assertEquals(28, getAmortizedSize(builder));
+        assertEquals(32, getAmortizedSize(builder));
 
         NodeBuilder allow = builder.child("allow");
         allow.setProperty("jcr:primaryType", "rep:GrantACE");
         allow.setProperty("rep:principalName", "administrators");
         allow.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:all"), Type.NAMES));
-        assertEquals(288, getSize(builder));
-        assertEquals(72, getAmortizedSize(builder));
+        assertEquals(320, getSize(builder));
+        assertEquals(84, getAmortizedSize(builder));
 
         NodeBuilder deny0 = builder.child("deny0");
         deny0.setProperty("jcr:primaryType", "rep:DenyACE", Type.NAME);
@@ -143,16 +143,16 @@ public class SegmentSizeTest {
         deny0.setProperty("rep:glob", "*/activities/*");
         builder.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:read"), Type.NAMES));
-        assertEquals(384, getSize(builder));
-        assertEquals(108, getAmortizedSize(builder));
+        assertEquals(416, getSize(builder));
+        assertEquals(124, getAmortizedSize(builder));
 
         NodeBuilder allow0 = builder.child("allow0");
         allow0.setProperty("jcr:primaryType", "rep:GrantACE");
         allow0.setProperty("rep:principalName", "user-administrators");
         allow0.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:all"), Type.NAMES));
-        assertEquals(432, getSize(builder));
-        assertEquals(136, getAmortizedSize(builder));
+        assertEquals(480, getSize(builder));
+        assertEquals(160, getAmortizedSize(builder));
     }
 
     @Test

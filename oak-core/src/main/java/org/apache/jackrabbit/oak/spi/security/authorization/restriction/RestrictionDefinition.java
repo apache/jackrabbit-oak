@@ -52,6 +52,7 @@ public interface RestrictionDefinition {
      *
      * @return The required type which must be a valid {@link javax.jcr.PropertyType}.
      */
+    @Nonnull
     Type<?> getRequiredType();
 
     /**

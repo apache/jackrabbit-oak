@@ -21,6 +21,7 @@ import static junit.framework.Assert.assertFalse;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
+import static org.junit.Assert.assertEquals;
 
 import java.text.ParseException;
 
@@ -51,6 +52,20 @@ public class FilterTest {
         // this can refer to a multi-valued property
         Filter f = createFilter("//*[(@prop = 'aaa' and @prop = 'bbb' and @prop = 'ccc')]");
         assertFalse(f.isAlwaysFalse());
+    }
+    
+    @Test
+    public void isNull() throws Exception {
+        // this can refer to a multi-valued property
+        Filter f = createFilter("//*[not(@c)]");
+        assertEquals("[is null]", f.getPropertyRestrictions("c").toString());
+    }
+
+    @Test
+    public void isNotNull() throws Exception {
+        // this can refer to a multi-valued property
+        Filter f = createFilter("//*[@c]");
+        assertEquals("[is not null]", f.getPropertyRestrictions("c").toString());
     }
 
 }

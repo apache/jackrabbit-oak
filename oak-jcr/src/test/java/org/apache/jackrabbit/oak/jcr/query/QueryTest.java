@@ -48,6 +48,10 @@ import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
 
+import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
@@ -62,6 +66,106 @@ public class QueryTest extends AbstractRepositoryTest {
 
     public QueryTest(NodeStoreFixture fixture) {
         super(fixture);
+    }
+    
+    @Test
+    public void typeConversion() throws Exception {
+        Session session = getAdminSession();
+        Node root = session.getRootNode();
+        
+        Node test = root.addNode("test");
+        test.addNode("a", "oak:Unstructured").setProperty("time", "2001-01-01T00:00:00.000Z", PropertyType.DATE);
+        test.addNode("b", "oak:Unstructured").setProperty("time", "2010-01-01T00:00:00.000Z", PropertyType.DATE);
+        test.addNode("c", "oak:Unstructured").setProperty("time", "2020-01-01T00:00:00.000Z", PropertyType.DATE);
+        session.save();
+        
+        assertEquals("/test/c",
+                getNodeList(session, 
+                "select [jcr:path] " +
+                "from [nt:base] " + 
+                "where [time] > '2011-01-01T00:00:00.000z'", Query.JCR_SQL2));
+
+    }
+    
+    @Test
+    public void twoSelectors() throws Exception {
+        Session session = getAdminSession();
+        Node root = session.getRootNode();
+        
+        Node test = root.addNode("test");
+        test.addNode("testNode", "oak:Unstructured");
+        session.save();
+        
+        assertEquals("/test/testNode",
+                getNodeList(session, 
+                "select b.[jcr:path] as [jcr:path], b.[jcr:score] as [jcr:score], b.* " +
+                "from [nt:base] as a " +
+                "inner join [nt:base] as b " + 
+                "on ischildnode(b, a) " +
+                "where issamenode(a, '/test')", Query.JCR_SQL2));
+
+        assertEquals("/test/testNode",
+                getNodeList(session, 
+                "select b.[jcr:path] as [jcr:path], b.[jcr:score] as [jcr:score], b.* " +
+                "from [nt:base] as b " +
+                "inner join [nt:base] as a " + 
+                "on ischildnode(b, a) " +
+                "where issamenode(b, '/test/testNode')", Query.JCR_SQL2));
+
+        assertEquals("/test",
+                getNodeList(session, 
+                "select a.[jcr:path] as [jcr:path], a.[jcr:score] as [jcr:score], a.* " +
+                "from [nt:base] as a " +
+                "inner join [nt:base] as b " + 
+                "on ischildnode(b, a) " +
+                "where issamenode(a, '/test')", Query.JCR_SQL2));
+        
+        assertEquals("/test",
+                getNodeList(session, 
+                "select a.[jcr:path] as [jcr:path], a.[jcr:score] as [jcr:score], a.* " +
+                "from [nt:base] as b " +
+                "inner join [nt:base] as a " + 
+                "on ischildnode(b, a) " +
+                "where issamenode(b, '/test/testNode')", Query.JCR_SQL2));
+    }
+    
+    private static String getNodeList(Session session, String query, String language) throws RepositoryException {
+        QueryResult r = session.getWorkspace().getQueryManager()
+                .createQuery(query, language).execute();
+        NodeIterator it = r.getNodes();
+        StringBuilder buff = new StringBuilder();
+        while (it.hasNext()) {
+            if (buff.length() > 0) {
+                buff.append(", ");
+            }
+            buff.append(it.nextNode().getPath());        
+        }
+        return buff.toString();
+    }
+    
+    @Test
+    public void noDeclaringNodeTypesIndex() throws Exception {
+        Session session = getAdminSession();
+        Node root = session.getRootNode();
+        
+        // set declaringNodeTypes to an empty array
+        Node nodeTypeIndex = root.getNode("oak:index").getNode("nodetype");
+        nodeTypeIndex.setProperty("declaringNodeTypes", new String[] {
+            }, PropertyType.NAME);
+        session.save();
+
+        // add a node
+        Node test = root.addNode("test");
+        test.addNode("testNode", "oak:Unstructured");
+        session.save();
+
+        // run the query
+        String query = "/jcr:root/test//*[@jcr:primaryType='oak:Unstructured']";
+        QueryResult r = session.getWorkspace().getQueryManager()
+                .createQuery(query, "xpath").execute();
+        NodeIterator it = r.getNodes();
+        assertTrue(it.hasNext());
+        assertEquals("/test/testNode", it.nextNode().getPath());
     }
     
     @Test
@@ -81,7 +185,9 @@ public class QueryTest extends AbstractRepositoryTest {
         // disable the nodetype index
         Node nodeTypeIndex = root.getNode("oak:index").getNode("nodetype");
         nodeTypeIndex.setProperty("declaringNodeTypes", new String[] {
+                "nt:Folder"
             }, PropertyType.NAME);
+        session.save();
 
         // add 10 nodes
         Node test = root.addNode("test");
@@ -554,10 +660,12 @@ public class QueryTest extends AbstractRepositoryTest {
     public void xpathEscapeTest() throws RepositoryException {
         Session writer = createAdminSession();
         Session reader = createAdminSession();
+
+        UserManager uMgr = ((JackrabbitSession) writer).getUserManager();
+        String uid = "testUser";
         try {
-            Node rootNode = writer.getRootNode();
-            Node node = rootNode.addNode("test", "nt:unstructured");
-            node.addNode(".tokens");
+            User user = uMgr.createUser("testUser", "pw");
+            writer.getNode(user.getPath()).addNode(".tokens", "rep:Unstructured");
             writer.save();
 
             QueryManager qm = reader.getWorkspace().getQueryManager();
@@ -565,6 +673,11 @@ public class QueryTest extends AbstractRepositoryTest {
             NodeIterator res = q.execute().getNodes();
             assertEquals(1, res.getSize());
         } finally {
+            Authorizable a = uMgr.getAuthorizable(uid);
+            if (a != null) {
+                a.remove();
+                writer.save();
+            }
             if (reader != null) {
                 reader.logout();
             }

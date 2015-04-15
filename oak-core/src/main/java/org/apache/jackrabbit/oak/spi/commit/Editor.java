@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
+import javax.annotation.CheckForNull;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import javax.annotation.CheckForNull;
 
 /**
  * Content change editor. An editor receives information about changes
@@ -105,7 +105,8 @@ public interface Editor {
             throws CommitFailedException;
 
     /**
-     * Processes a changed child node.
+     * Processes a changed child node. This method gets called for all child nodes
+     * that may contain changes between the before and after states.
      *
      * @param name name of the changed node
      * @param before child node before the change

@@ -18,7 +18,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.commit;
 
-import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
+import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.oak.spi.commit.CompositeConflictHandler;
 
 /**
  * Utility class providing conflict handlers used for JCR.
@@ -29,8 +30,13 @@ public final class JcrConflictHandler {
      * The conflict handler is a composite of {@link ChildOrderConflictHandler}
      * and {@link AnnotatingConflictHandler}.
      */
-    public static final ConflictHandler JCR_CONFLICT_HANDLER =
-            new ChildOrderConflictHandler(new AnnotatingConflictHandler());
+    public static CompositeConflictHandler createJcrConflictHandler() {
+        return new CompositeConflictHandler(ImmutableList.of(
+                new JcrLastModifiedConflictHandler(),
+                new ChildOrderConflictHandler(),
+                new AnnotatingConflictHandler()
+        ));
+    }
 
     private JcrConflictHandler() {
     }

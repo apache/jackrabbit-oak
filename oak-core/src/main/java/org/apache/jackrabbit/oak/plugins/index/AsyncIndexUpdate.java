@@ -63,8 +63,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.stats.TimeSeriesStatsUtil;
 import org.apache.jackrabbit.stats.TimeSeriesRecorder;
+import org.apache.jackrabbit.stats.TimeSeriesStatsUtil;
 import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -350,6 +350,7 @@ public class AsyncIndexUpdate implements Runnable {
             NodeState after, String afterCheckpoint, String afterTime)
             throws CommitFailedException {
         Stopwatch watch = Stopwatch.createStarted();
+        boolean progressLogged = false;
         // start collecting runtime statistics
         preAsyncRunStatsStats(indexStats);
 
@@ -371,12 +372,14 @@ public class AsyncIndexUpdate implements Runnable {
 
             builder.child(ASYNC).setProperty(name, afterCheckpoint);
             builder.child(ASYNC).setProperty(PropertyStates.createProperty(lastIndexedTo, afterTime, Type.DATE));
+            boolean updatePostRunStatus = true;
             if (callback.isDirty() || before == MISSING_NODE) {
                 if (switchOnSync) {
-                    reindexedDefinitions.addAll(
-                            indexUpdate.getReindexedDefinitions());
+                    reindexedDefinitions.addAll(indexUpdate
+                            .getReindexedDefinitions());
+                    updatePostRunStatus = false;
                 } else {
-                    postAsyncRunStatsStatus(indexStats);
+                    updatePostRunStatus = true;
                 }
             } else {
                 if (switchOnSync) {
@@ -396,14 +399,28 @@ public class AsyncIndexUpdate implements Runnable {
                     }
                     reindexedDefinitions.clear();
                 }
-                postAsyncRunStatsStatus(indexStats);
+                updatePostRunStatus = true;
             }
             mergeWithConcurrencyCheck(builder, beforeCheckpoint, callback.lease);
+            if (updatePostRunStatus) {
+                postAsyncRunStatsStatus(indexStats);
+            }
             if (indexUpdate.isReindexingPerformed()) {
-                log.info("Reindexing completed for indexes: {} in {}", indexUpdate.getAllReIndexedIndexes(), watch);
+                log.info("Reindexing ({}) completed for indexes: {} in {}", name, indexUpdate.getReindexStats(), watch);
+                progressLogged = true;
             }
         } finally {
             callback.close();
+        }
+
+        if (!progressLogged) {
+            String msg = "AsyncIndex ({}) update run completed in {}. Indexed {} nodes";
+            //Log at info level if time taken is more than 5 min
+            if (watch.elapsed(TimeUnit.MINUTES) >= 5) {
+                log.info(msg, name, watch, callback.updates);
+            } else {
+                log.debug(msg, name, watch, callback.updates);
+            }
         }
     }
 
@@ -509,6 +526,7 @@ public class AsyncIndexUpdate implements Runnable {
             return ps != null ? ps.getValue(Type.STRING) : null;
         }
 
+        @Override
         public void pause() {
             log.debug("Pausing the async indexer");
             this.isPaused = true;

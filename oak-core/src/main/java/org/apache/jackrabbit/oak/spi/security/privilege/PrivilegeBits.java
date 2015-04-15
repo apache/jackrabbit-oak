@@ -96,8 +96,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
         BUILT_IN.put(REP_WRITE, PrivilegeBits.getInstance(WRITE2));
     }
 
-    public static PrivilegeBits NEXT_AFTER_BUILT_INS =
-            getInstance(INDEX_DEFINITION_MNGMT).nextBits();
+    public static final PrivilegeBits NEXT_AFTER_BUILT_INS = getInstance(INDEX_DEFINITION_MNGMT).nextBits();
 
     private final Data d;
 
@@ -449,10 +448,9 @@ public final class PrivilegeBits implements PrivilegeConstants {
     }
 
     /**
-     * Package private method to calculate the privilege bits associated with a
-     * given built-in or custom privilege definition.
+     * Method to calculate the next privilege bits associated with this instance.
      *
-     * @return an instance of {@code PrivilegeBits}
+     * @return an new instance of {@code PrivilegeBits}
      */
     @Nonnull
     public PrivilegeBits nextBits() {
@@ -510,7 +508,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
     /**
      * Base class for the internal privilege bits representation and handling.
      */
-    private static abstract class Data {
+    private abstract static class Data {
 
         abstract boolean isEmpty();
 

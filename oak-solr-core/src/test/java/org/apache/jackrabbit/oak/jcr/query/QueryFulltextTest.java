@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.jcr.query;
 
 import javax.jcr.Node;
+import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.query.Query;
@@ -48,6 +49,21 @@ public class QueryFulltextTest extends AbstractQueryTest {
         // expect two numbers (any value)
         result = result.replaceAll("[0-9\\.]+", "n");
         assertEquals("n, n", result);
+    }
+
+    public void testNativeMatchAll() throws Exception {
+        Session session = superuser;
+        QueryManager qm = session.getWorkspace().getQueryManager();
+
+        String sql2 = "select [jcr:path] as [path] from [nt:base] " +
+                "where native('solr', '*:*')";
+        Query q = qm.createQuery(sql2, Query.JCR_SQL2);
+        QueryResult result = q.execute();
+        NodeIterator nodes = result.getNodes();
+        while (nodes.hasNext()) {
+            Node node = nodes.nextNode();
+            assertNotNull(node);
+        }
     }
 
     public void testFulltext() throws Exception {

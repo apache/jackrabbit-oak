@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Iterator;
@@ -29,12 +30,16 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStoreTest;
 import org.apache.jackrabbit.oak.spi.blob.BlobStoreInputStream;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore.BlobId;
@@ -46,7 +51,12 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class DataStoreBlobStoreTest {
+public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
+    @Before
+    @Override
+    public void setUp() throws Exception {
+        store = DataStoreUtils.getBlobStore();
+    }
 
     @Test
     public void testInlineBinary() throws DataStoreException, IOException {
@@ -164,6 +174,27 @@ public class DataStoreBlobStoreTest {
 
         assertTrue(BlobId.isEncoded("abc"+BlobId.SEP+"123"));
         assertFalse(BlobId.isEncoded("abc"));
+    }
+
+    @Override
+    @Test
+    public void testCombinedIdentifier() throws Exception {
+    }
+
+    @Override
+    public void testEmptyIdentifier() throws Exception {
+    }
+
+    @Override
+    @Test
+    public void testGarbageCollection() throws Exception {
+    }
+
+    @After
+    @Override
+    public void tearDown() throws Exception {
+        FileUtils.deleteDirectory(new File(DataStoreUtils.getHomeDir()));
+        super.tearDown();
     }
 
     private static class ByteArrayDataRecord implements DataRecord {

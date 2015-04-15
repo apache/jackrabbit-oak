@@ -19,11 +19,10 @@
 
 package org.apache.jackrabbit.oak.plugins.segment.file;
 
-import static java.lang.String.valueOf;
-import static org.junit.Assert.assertTrue;
-
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
@@ -31,25 +30,26 @@ import java.util.concurrent.FutureTask;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentOverflowException;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SegmentReferenceLimitTestIT {
+
     private static final Logger LOG = LoggerFactory.getLogger(SegmentReferenceLimitTestIT.class);
 
     private File directory;
 
     @Before
     public void setUp() throws IOException {
-        directory = File.createTempFile("FileStoreTest", "dir", new File("target"));
+        directory = File.createTempFile("SegmentReferenceLimitTestIT", "dir", new File("target"));
         directory.delete();
         directory.mkdir();
     }
@@ -63,7 +63,16 @@ public class SegmentReferenceLimitTestIT {
         }
     }
 
+    /**
+     * OAK-2294 Corrupt repository after concurrent version operations
+     * 
+     * TODO Test is currently ignored because of how memory intensive it is
+     *
+     * @see <a
+     *      href="https://issues.apache.org/jira/browse/OAK-2294">OAK-2294</a>
+     */
     @Test
+    @Ignore
     public void corruption() throws IOException, CommitFailedException, ExecutionException, InterruptedException {
         FileStore fileStore = new FileStore(directory, 1, 0, false);
         SegmentNodeStore nodeStore = new SegmentNodeStore(fileStore);
@@ -72,19 +81,17 @@ public class SegmentReferenceLimitTestIT {
         root.setChildNode("test");
         nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        FutureTask<Void> w1 = run(new Worker(nodeStore, "w1"));
-        FutureTask<Void> w2 = run(new Worker(nodeStore, "w2"));
-        FutureTask<Void> w3 = run(new Worker(nodeStore, "w3"));
-        FutureTask<Void> w4 = run(new Worker(nodeStore, "w4"));
+        List<FutureTask<Void>> l = new ArrayList<FutureTask<Void>>();
+        for (int i = 0; i < 10; i++) {
+            l.add(run(new Worker(nodeStore, "w" + i)));
+        }
 
         try {
-            w1.get();
-            w2.get();
-            w3.get();
-            w4.get();
-        } catch (ExecutionException e) {
-            assertTrue(valueOf(e.getCause()), e.getCause() instanceof CommitFailedException);
-            assertTrue(valueOf(e.getCause()), e.getCause().getCause() instanceof SegmentOverflowException);
+            for (FutureTask<Void> w : l) {
+                w.get();
+            }
+        } finally {
+            fileStore.close();
         }
     }
 
@@ -105,11 +112,12 @@ public class SegmentReferenceLimitTestIT {
 
         @Override
         public Void call() throws Exception {
-            for (int k = 0; ; k++) {
+            for (int k = 0; k < 400; k++) {
                 NodeBuilder root = nodeStore.getRoot().builder();
                 root.getChildNode("test").setProperty(name + ' ' + k, name + " value " + k);
                 nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
             }
+            return null;
         }
     }
 

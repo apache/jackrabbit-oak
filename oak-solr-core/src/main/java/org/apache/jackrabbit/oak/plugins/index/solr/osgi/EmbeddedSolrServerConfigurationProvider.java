@@ -35,7 +35,7 @@ import org.osgi.service.component.ComponentContext;
  * An OSGi service {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationProvider}
  */
 @Component(metatype = true, immediate = true,
-        label = "Oak Solr embedded server configuration")
+        label = "Apache Jackrabbit Oak Solr embedded server configuration")
 @Service(value = SolrServerConfigurationProvider.class)
 @Property(name = "name", value = "embedded", propertyPrivate = true)
 public class EmbeddedSolrServerConfigurationProvider implements SolrServerConfigurationProvider<EmbeddedSolrServerProvider> {
@@ -46,11 +46,7 @@ public class EmbeddedSolrServerConfigurationProvider implements SolrServerConfig
     @Property(value = SolrServerConfigurationDefaults.CORE_NAME, label = "Solr Core name")
     private static final String SOLR_CORE_NAME = "solr.core.name";
 
-    @Property(value = SolrServerConfigurationDefaults.SOLR_CONFIG_PATH, label = "Path to specific Solr Core configuration")
-    private static final String SOLR_CONFIG_FILE = "solr.config.path";
-
     private String solrHome;
-    private String solrConfigFile;
     private String solrCoreName;
 
     private SolrServerConfiguration<EmbeddedSolrServerProvider> solrServerConfiguration;
@@ -63,16 +59,14 @@ public class EmbeddedSolrServerConfigurationProvider implements SolrServerConfig
         if (!file.exists()) {
             assert file.createNewFile();
         }
-        solrConfigFile = String.valueOf(componentContext.getProperties().get(SOLR_CONFIG_FILE));
         solrCoreName = String.valueOf(componentContext.getProperties().get(SOLR_CORE_NAME));
 
-        solrServerConfiguration = new EmbeddedSolrServerConfiguration(solrHome, solrConfigFile, solrCoreName);
+        solrServerConfiguration = new EmbeddedSolrServerConfiguration(solrHome, solrCoreName);
     }
 
     @Deactivate
     protected void deactivate() throws Exception {
         solrHome = null;
-        solrConfigFile = null;
         solrCoreName = null;
     }
 

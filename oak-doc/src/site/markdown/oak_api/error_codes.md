@@ -43,34 +43,34 @@ information about the issue. This page is an informal registry of common error c
 | 0025              | Mandatory child node X not included in a new node        |
 | 0026              | Mandatory child node X can not be removed                |
 
-#### Privilege Validation
-
-| Code              | Message                                                  |
-|-------------------|----------------------------------------------------------|
-| 0041              | Modification of existing privilege definition X          |
-| 0042              | Un-register privilege X                                  |
-| 0043              | Next bits not updated                                    |
-| 0044              | Privilege store not initialized                          |
-| 0045              | Modification of existing privilege definition X          |
-| 0046              | Modification of existing privilege definition X          |
-| 0047              | Invalid declared aggregate name X                        |
-| 0048              | PrivilegeBits are missing                                |
-| 0049              | PrivilegeBits already in used                            |
-| 0050              | Singular aggregation is equivalent to existing privilege.|
-| 0051              | Declared aggregate X is not a registered privilege       |
-| 0052              | Detected circular aggregation                            |
-| 0053              | Custom aggregate privilege X is already covered.         |
-
 #### User Validation
 
-_todo_
+see section [User Management](../security/user.html#validation)
+
+#### Privilege Validation
+
+see section [Privilege Management](../security/privilege.html#validation)
+
+#### Token Validation
+
+see section [Token Management](../security/authentication/tokenmanagement.html#validation)
+
 
 ### Type Access
 
 #### Permission Validation
 
-_todo_
+see section [Permissions](../security/permission.html#validation)
 
+### Type Access Control
+
+#### Default Access Control Validation
+
+see section [Access Control Management](../security/accesscontrol.html#validation)
+
+#### CUG Validation
+
+see section [Closed User Groups](../security/accesscontrol/cug.html#validation)
 
 <!-- hidden references -->
 [OAK-764]: https://issues.apache.org/jira/browse/OAK-764

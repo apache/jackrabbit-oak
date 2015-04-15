@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
@@ -61,7 +61,7 @@ public final class TreeTypeProvider {
         this.contextInfo = contextInfo;
     }
 
-    public int getType(ImmutableTree tree) {
+    public int getType(Tree tree) {
         if (tree.isRoot()) {
             return TYPE_DEFAULT;
         } else {
@@ -69,7 +69,7 @@ public final class TreeTypeProvider {
         }
     }
 
-    public int getType(ImmutableTree tree, int parentType) {
+    public int getType(Tree tree, int parentType) {
             if (tree.isRoot()) {
                 return TYPE_DEFAULT;
             }

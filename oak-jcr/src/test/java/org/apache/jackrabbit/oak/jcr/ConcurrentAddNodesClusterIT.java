@@ -16,6 +16,11 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static java.lang.Thread.UncaughtExceptionHandler;
+import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -37,20 +42,15 @@ import javax.jcr.SimpleCredentials;
 
 import com.google.common.util.concurrent.Uninterruptibles;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import static java.lang.Thread.UncaughtExceptionHandler;
-import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Concurrently add nodes with multiple sessions on multiple cluster nodes.
@@ -70,7 +70,7 @@ public class ConcurrentAddNodesClusterIT {
 
     @BeforeClass
     public static void mongoDBAvailable() {
-        Assume.assumeTrue(OakMongoMKRepositoryStub.isMongoDBAvailable());
+        Assume.assumeTrue(OakMongoNSRepositoryStub.isMongoDBAvailable());
     }
 
     @Before
@@ -164,6 +164,8 @@ public class ConcurrentAddNodesClusterIT {
                             exceptions.put(Thread.currentThread().getName(), r);
                             stop.set(true);
                             mainThread.interrupt();
+                        } finally {
+                            session.logout();
                         }
                     }
                 };
@@ -368,7 +370,7 @@ public class ConcurrentAddNodesClusterIT {
     }
 
     private static MongoConnection createConnection() throws Exception {
-        return OakMongoMKRepositoryStub.createConnection(
+        return OakMongoNSRepositoryStub.createConnection(
                 ConcurrentAddNodesClusterIT.class.getSimpleName());
     }
 
@@ -434,9 +436,13 @@ public class ConcurrentAddNodesClusterIT {
         public void run() {
             try {
                 Session session = createAdminSession(repo);
-                ensureIndex(session.getRootNode(), PROP_NAME);
-                String nodeName = "testroot-" + Thread.currentThread().getName();
-                createNodes(session, nodeName, LOOP_COUNT, NODE_COUNT, exceptions);
+                try {
+                    ensureIndex(session.getRootNode(), PROP_NAME);
+                    String nodeName = "testroot-" + Thread.currentThread().getName();
+                    createNodes(session, nodeName, LOOP_COUNT, NODE_COUNT, exceptions);
+                } finally {
+                    session.logout();
+                }
             } catch (Exception e) {
                 exceptions.put(Thread.currentThread().getName(), e);
             }

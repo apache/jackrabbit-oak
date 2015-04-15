@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Charsets.UTF_8;
-import static com.google.common.collect.Sets.newIdentityHashSet;
+import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Collections.emptySet;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.MEDIUM_LIMIT;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.SMALL_LIMIT;
@@ -236,7 +236,7 @@ public class SegmentBlob extends Record implements Blob {
             int listSize = (int) ((length + BLOCK_SIZE - 1) / BLOCK_SIZE);
             ListRecord list = new ListRecord(
                     segment.readRecordId(offset + 8), listSize);
-            Set<SegmentId> ids = newIdentityHashSet();
+            Set<SegmentId> ids = newHashSet();
             for (RecordId id : list.getEntries()) {
                 ids.add(id.getSegmentId());
             }

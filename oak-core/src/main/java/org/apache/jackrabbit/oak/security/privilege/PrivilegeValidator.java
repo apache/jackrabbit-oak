@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
+import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
@@ -105,7 +105,7 @@ class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants 
 
     @Override
     public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
-        if (isPrivilegeDefinition(before)) {
+        if (isPrivilegeDefinition(before) && !before.equals(after)) {
             throw new CommitFailedException(CONSTRAINT, 41, "Attempt to modify existing privilege definition " + name);
         } else {
             // not handled by this validator

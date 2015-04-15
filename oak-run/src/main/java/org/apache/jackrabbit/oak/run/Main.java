@@ -18,15 +18,15 @@ package org.apache.jackrabbit.oak.run;
 
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Arrays.asList;
+import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jackrabbit.oak.checkpoint.Checkpoints.CP;
+import static org.apache.jackrabbit.oak.plugins.segment.RecordType.NODE;
 import static org.apache.jackrabbit.oak.plugins.segment.file.tooling.ConsistencyChecker.checkConsistency;
 
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.InetAddress;
-import java.net.URL;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -41,6 +41,7 @@ import java.util.Properties;
 import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -73,7 +74,7 @@ import org.apache.jackrabbit.oak.explorer.NodeStoreTree;
 import org.apache.jackrabbit.oak.fixture.OakFixture;
 import org.apache.jackrabbit.oak.http.OakServlet;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.kernel.JsopDiff;
+import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.backup.FileStoreBackup;
 import org.apache.jackrabbit.oak.plugins.backup.FileStoreRestore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
@@ -81,16 +82,20 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.LastRevRecoveryAgent;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreHelper;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoMissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
 import org.apache.jackrabbit.oak.plugins.document.util.MapDBMapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
+import org.apache.jackrabbit.oak.plugins.segment.RecordUsageAnalyser;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
+import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.standby.client.StandbyClient;
 import org.apache.jackrabbit.oak.plugins.segment.standby.server.StandbyServer;
@@ -178,6 +183,9 @@ public class Main {
                 break;
             case RECOVERY:
                 recovery(args);
+                break;
+            case REPAIR:
+                repair(args);
                 break;
             case HELP:
             default:
@@ -461,6 +469,20 @@ public class Main {
             System.out.println("    -> compacting");
             FileStore store = new FileStore(directory, 256, TAR_STORAGE_MEMORY_MAPPED);
             try {
+                CompactionStrategy compactionStrategy = new CompactionStrategy(
+                        false, CompactionStrategy.CLONE_BINARIES_DEFAULT,
+                        CleanupType.CLEAN_ALL, 0,
+                        CompactionStrategy.MEMORY_THRESHOLD_DEFAULT) {
+                    @Override
+                    public boolean compacted(Callable<Boolean> setHead)
+                            throws Exception {
+                        // oak-run is doing compaction single-threaded
+                        // hence no guarding needed - go straight ahead
+                        // and call setHead
+                        return setHead.call();
+                    }
+                };
+                store.setCompactionStrategy(compactionStrategy);
                 store.compact();
             } finally {
                 store.close();
@@ -619,6 +641,31 @@ public class Main {
             closer.close();
         }
     }
+    
+    private static void repair(String[] args) throws IOException {
+        Closer closer = Closer.create();
+        String h = "repair mongodb://host:port/database path";
+        try {
+            NodeStore store = bootstrapNodeStore(args, closer, h);
+            if (!(store instanceof DocumentNodeStore)) {
+                System.err.println("Repair only available for DocumentNodeStore");
+                System.exit(1);
+            }
+            DocumentNodeStore dns = (DocumentNodeStore) store;
+            if (!(dns.getDocumentStore() instanceof MongoDocumentStore)) {
+                System.err.println("Repair only available for MongoDocumentStore");
+                System.exit(1);
+            }
+            MongoDocumentStore docStore = (MongoDocumentStore) dns.getDocumentStore();
+
+            String path = args[args.length - 1];
+            MongoDocumentStoreHelper.repair(docStore, path);
+        } catch (Throwable e) {
+            throw closer.rethrow(e);
+        } finally {
+            closer.close();
+        }
+    }
 
     private static void debug(String[] args) throws IOException {
         if (args.length == 0) {
@@ -660,6 +707,9 @@ public class Main {
                 "deep", "enable deep consistency checking. An optional long " +
                         "specifies the number of seconds between progress notifications")
                 .withOptionalArg().ofType(Long.class).defaultsTo(Long.MAX_VALUE);
+        ArgumentAcceptingOptionSpec<Long> bin = parser.accepts(
+                "bin", "read the n first bytes from binary properties. -1 for all bytes.")
+                .withOptionalArg().ofType(Long.class).defaultsTo(0L);
 
         OptionSet options = parser.parse(args);
 
@@ -678,8 +728,8 @@ public class Main {
         String journalFileName = journal.value(options);
         boolean fullTraversal = options.has(deep);
         long debugLevel = deep.value(options);
-
-         checkConsistency(dir, journalFileName, fullTraversal, debugLevel);
+        long binLen = bin.value(options);
+        checkConsistency(dir, journalFileName, fullTraversal, debugLevel, binLen);
     }
 
     private static void debugTarFile(FileStore store, String[] args) {
@@ -786,20 +836,21 @@ public class Main {
         }
     }
 
-    private static void debugFileStore(FileStore store){
-
+    private static void debugFileStore(FileStore store) {
         Map<SegmentId, List<SegmentId>> idmap = Maps.newHashMap();
-
         int dataCount = 0;
         long dataSize = 0;
         int bulkCount = 0;
         long bulkSize = 0;
+        RecordUsageAnalyser analyser = new RecordUsageAnalyser();
+
         for (SegmentId id : store.getSegmentIds()) {
             if (id.isDataSegmentId()) {
                 Segment segment = id.getSegment();
                 dataCount++;
                 dataSize += segment.size();
                 idmap.put(id, segment.getReferencedIds());
+                analyseSegment(segment, analyser);
             } else if (id.isBulkSegmentId()) {
                 bulkCount++;
                 bulkSize += id.getSegment().size();
@@ -808,11 +859,12 @@ public class Main {
         }
         System.out.println("Total size:");
         System.out.format(
-                "%6dMB in %6d data segments%n",
-                dataSize / (1024 * 1024), dataCount);
+                "%s in %6d data segments%n",
+                byteCountToDisplaySize(dataSize), dataCount);
         System.out.format(
-                "%6dMB in %6d bulk segments%n",
-                bulkSize / (1024 * 1024), bulkCount);
+                "%s in %6d bulk segments%n",
+                byteCountToDisplaySize(bulkSize), bulkCount);
+        System.out.println(analyser.toString());
 
         Set<SegmentId> garbage = newHashSet(idmap.keySet());
         Queue<SegmentId> queue = Queues.newArrayDeque();
@@ -836,14 +888,27 @@ public class Main {
                 bulkSize += id.getSegment().size();
             }
         }
-        System.out.println("Available for garbage collection:");
+        System.out.println("\nAvailable for garbage collection:");
         System.out.format(
-                "%6dMB in %6d data segments%n",
-                dataSize / (1024 * 1024), dataCount);
+                "%s in %6d data segments%n",
+                byteCountToDisplaySize(dataSize), dataCount);
         System.out.format(
-                "%6dMB in %6d bulk segments%n",
-                bulkSize / (1024 * 1024), bulkCount);
-    
+                "%s in %6d bulk segments%n",
+                byteCountToDisplaySize(bulkSize), bulkCount);
+    }
+
+    private static void analyseSegment(Segment segment, RecordUsageAnalyser analyser) {
+        for (int k = 0; k < segment.getRootCount(); k++) {
+            if (segment.getRootType(k) == NODE) {
+                RecordId nodeId = new RecordId(segment.getSegmentId(), segment.getRootOffset(k));
+                try {
+                    analyser.analyseNode(nodeId);
+                } catch (Exception e) {
+                    System.err.format("Error while processing node at %s", nodeId);
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 
     /**
@@ -928,7 +993,6 @@ public class Main {
     private static void server(String defaultUri, String[] args) throws Exception {
         OptionParser parser = new OptionParser();
 
-        OptionSpec<Void> mkServer = parser.accepts("mk", "MicroKernel server");
         OptionSpec<Integer> cache = parser.accepts("cache", "cache size (MB)").withRequiredArg().ofType(Integer.class).defaultsTo(100);
 
         // tar/h2 specific option
@@ -940,6 +1004,14 @@ public class Main {
         OptionSpec<Integer> port = parser.accepts("port", "MongoDB port").withRequiredArg().ofType(Integer.class).defaultsTo(27017);
         OptionSpec<String> dbName = parser.accepts("db", "MongoDB database").withRequiredArg();
         OptionSpec<Integer> clusterIds = parser.accepts("clusterIds", "Cluster Ids").withOptionalArg().ofType(Integer.class).withValuesSeparatedBy(',');
+
+        // RDB specific options
+        OptionSpec<String> rdbjdbcuri = parser.accepts("rdbjdbcuri", "RDB JDBC URI").withOptionalArg().defaultsTo("");
+        OptionSpec<String> rdbjdbcuser = parser.accepts("rdbjdbcuser", "RDB JDBC user").withOptionalArg().defaultsTo("");
+        OptionSpec<String> rdbjdbcpasswd = parser.accepts("rdbjdbcpasswd", "RDB JDBC password").withOptionalArg().defaultsTo("");
+        OptionSpec<String> rdbjdbctableprefix = parser.accepts("rdbjdbctableprefix", "RDB JDBC table prefix")
+                .withOptionalArg().defaultsTo("");
+
         OptionSpec<String> nonOption = parser.nonOptions();
         OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
         OptionSet options = parser.parse(args);
@@ -974,10 +1046,6 @@ public class Main {
                         host.value(options), port.value(options),
                         db, false,
                         cacheSize * MB);
-            } else if (OakFixture.OAK_MONGO_MK.equals(fix)) {
-                oakFixture = OakFixture.getMongoMK(
-                        host.value(options), port.value(options),
-                        db, false, cacheSize * MB);
             } else {
                 oakFixture = OakFixture.getMongo(
                         host.value(options), port.value(options),
@@ -990,18 +1058,14 @@ public class Main {
                 throw new IllegalArgumentException("Required argument base missing.");
             }
             oakFixture = OakFixture.getTar(OakFixture.OAK_TAR, baseFile, 256, cacheSize, mmap.value(options), false);
+        } else if (fix.equals(OakFixture.OAK_RDB)) {
+            oakFixture = OakFixture.getRDB(OakFixture.OAK_RDB, rdbjdbcuri.value(options), rdbjdbcuser.value(options),
+                    rdbjdbcpasswd.value(options), rdbjdbctableprefix.value(options), false, cacheSize);
         } else {
             throw new IllegalArgumentException("Unsupported repository setup " + fix);
         }
 
-        if (options.has(mkServer)) {
-            if (!cIds.isEmpty()) {
-                System.out.println("WARNING: clusterIds option is ignored when mk option is specified");
-            }
-            startMkServer(oakFixture, uri);
-        } else {
-            startOakServer(oakFixture, uri, cIds);
-        }
+        startOakServer(oakFixture, uri, cIds);
     }
 
     private static void startOakServer(OakFixture oakFixture, String uri, List<Integer> cIds) throws Exception {
@@ -1018,20 +1082,6 @@ public class Main {
             }
         }
         new HttpServer(uri, m);
-    }
-
-    private static void startMkServer(OakFixture oakFixture, String uri) throws Exception {
-        org.apache.jackrabbit.mk.server.Server server =
-            new org.apache.jackrabbit.mk.server.Server(oakFixture.getMicroKernel());
-
-        URL url = new URL(uri);
-        server.setBindAddress(InetAddress.getByName(url.getHost()));
-        if (url.getPort() > 0) {
-            server.setPort(url.getPort());
-        } else {
-            server.setPort(28080);
-        }
-        server.start();
     }
 
     public static class HttpServer {
@@ -1124,7 +1174,8 @@ public class Main {
         STANDBY("standy"),
         HELP("help"),
         CHECKPOINTS("checkpoints"),
-        RECOVERY("recovery");
+        RECOVERY("recovery"),
+        REPAIR("repair");
 
         private final String name;
 

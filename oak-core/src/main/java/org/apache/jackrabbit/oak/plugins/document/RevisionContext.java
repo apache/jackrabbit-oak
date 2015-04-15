@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Comparator;
 
+import javax.annotation.Nonnull;
+
 /**
  * Provides revision related context.
  */
@@ -44,4 +46,9 @@ public interface RevisionContext {
      */
     int getClusterId();
 
+    /**
+     * @return the current head revision.
+     */
+    @Nonnull
+    Revision getHeadRevision();
 }

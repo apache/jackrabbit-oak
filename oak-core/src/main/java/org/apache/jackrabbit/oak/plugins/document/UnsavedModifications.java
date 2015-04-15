@@ -29,6 +29,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.stats.Clock;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -131,17 +132,24 @@ class UnsavedModifications {
      * @param store the document node store.
      * @param lock the lock to acquire to get a consistent snapshot of the
      *             revisions to write back.
+     * @return stats about the write operation.
      */
-    public void persist(@Nonnull DocumentNodeStore store,
-                        @Nonnull Lock lock) {
+    public BackgroundWriteStats persist(@Nonnull DocumentNodeStore store,
+                                        @Nonnull Lock lock) {
+        BackgroundWriteStats stats = new BackgroundWriteStats();
         if (map.size() == 0) {
-            return;
+            return stats;
         }
         checkNotNull(store);
         checkNotNull(lock);
 
-        // get a copy of the map while holding the lock
+        Clock clock = store.getClock();
+
+        long time = clock.getTime();
+                // get a copy of the map while holding the lock
         lock.lock();
+        stats.lock = clock.getTime() - time;
+        time = clock.getTime();
         Map<String, Revision> pending;
         try {
             pending = Maps.newTreeMap(PathComparator.INSTANCE);
@@ -149,6 +157,7 @@ class UnsavedModifications {
         } finally {
             lock.unlock();
         }
+        stats.num = pending.size();
         UpdateOp updateOp = null;
         Revision lastRev = null;
         PeekingIterator<String> paths = Iterators.peekingIterator(
@@ -162,7 +171,7 @@ class UnsavedModifications {
             int size = pathList.size();
             if (updateOp == null) {
                 // create UpdateOp
-                Commit commit = new Commit(store, null, r);
+                Commit commit = new Commit(store, r, null, null);
                 updateOp = commit.getUpdateOperationForNode(p);
                 NodeDocument.setLastRev(updateOp, r);
                 lastRev = r;
@@ -196,6 +205,8 @@ class UnsavedModifications {
                 lastRev = null;
             }
         }
+        stats.write = clock.getTime() - time;
+        return stats;
     }
 
     @Override

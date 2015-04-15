@@ -130,6 +130,8 @@ public interface LuceneIndexConstants {
 
     String PROP_ORDERED = "ordered";
 
+    String PROP_SCORER_PROVIDER = "scorerProviderName";
+
     /**
      * Integer property indicating that LuceneIndex should be
      * used in compat mode to specific version
@@ -200,4 +202,57 @@ public interface LuceneIndexConstants {
     String ANL_CLASS = "class";
     String ANL_NAME = "name";
     String ANL_LUCENE_MATCH_VERSION = AbstractAnalysisFactory.LUCENE_MATCH_VERSION_PARAM;
+
+    /**
+     * Config node which include Tika related configuration
+     */
+    String TIKA = "tika";
+
+    /**
+     * nt:file node under 'tika' node which refers to the config xml file
+     */
+    String TIKA_CONFIG = "config.xml";
+
+    String TIKA_MAX_EXTRACT_LENGTH = "maxExtractLength";
+
+    /**
+     * The maximum number of terms that will be indexed for a single field in a
+     * document.  This limits the amount of memory required for indexing, so that
+     * collections with very large files will not crash the indexing process by
+     * running out of memory.<p/>
+     * Note that this effectively truncates large documents, excluding from the
+     * index terms that occur further in the document.  If you know your source
+     * documents are large, be sure to set this value high enough to accommodate
+     * the expected size.  If you set it to Integer.MAX_VALUE, then the only limit
+     * is your memory, but you should anticipate an OutOfMemoryError.<p/>
+     * By default, no more than 10,000 terms will be indexed for a field.
+     */
+    String MAX_FIELD_LENGTH = "maxFieldLength";
+
+    /**
+     * whether use this property values for suggestions
+     */
+    String PROP_USE_IN_SUGGEST = "useInSuggest";
+
+    /**
+     * update frequency of the suggester in minutes
+     */
+    String SUGGEST_UPDATE_FREQUENCY_MINUTES = "suggestUpdateFrequencyMinutes";
+
+    /**
+     * whether use this property values for spellchecking
+     */
+    String PROP_USE_IN_SPELLCHECK = "useInSpellcheck";
+
+    /**
+     * Property definition config indicating that null check support should be
+     * enabled for this property
+     */
+    String PROP_NULL_CHECK_ENABLED = "nullCheckEnabled";
+
+    /**
+     * Property definition config indicating that this property would be used with
+     * 'IS NOT NULL' constraint
+     */
+    String PROP_NOT_NULL_CHECK_ENABLED = "notNullCheckEnabled";
 }

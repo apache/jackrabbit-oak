@@ -27,7 +27,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import javax.jcr.AccessDeniedException;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
@@ -39,7 +38,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
@@ -132,9 +130,9 @@ public class TokenProviderImplTest extends AbstractTokenTest {
     @Test
     public void testTokenNode() throws Exception {
         Map<String, String> reserved = new HashMap<String, String>();
-        reserved.put(".token", "value");
-        reserved.put("rep:token.key", "value");
-        reserved.put("rep:token.exp", "value");
+        reserved.put(TOKEN_ATTRIBUTE, "value");
+        reserved.put(TOKEN_ATTRIBUTE_KEY, "value");
+        reserved.put(TOKEN_ATTRIBUTE_EXPIRY, "value");
 
         Map<String, String> privateAttributes = new HashMap<String, String>();
         privateAttributes.put(".token_exp", "value");
@@ -152,11 +150,11 @@ public class TokenProviderImplTest extends AbstractTokenTest {
 
         TokenInfo info = tokenProvider.createToken(userId, attributes);
         Tree tokenTree = getTokenTree(info);
-        PropertyState prop = tokenTree.getProperty("rep:token.key");
+        PropertyState prop = tokenTree.getProperty(TOKEN_ATTRIBUTE_KEY);
         assertNotNull(prop);
         assertEquals(Type.STRING, prop.getType());
 
-        prop = tokenTree.getProperty("rep:token.exp");
+        prop = tokenTree.getProperty(TOKEN_ATTRIBUTE_EXPIRY);
         assertNotNull(prop);
         assertEquals(Type.DATE, prop.getType());
 
@@ -201,16 +199,15 @@ public class TokenProviderImplTest extends AbstractTokenTest {
 
         assertNotNull(tokenProvider.getTokenInfo(info.getToken()));
 
-        NodeUtil node = new NodeUtil(root.getTree("/")).addChild("testNode", "nt:unstructured");
+        NodeUtil node = new NodeUtil(root.getTree("/")).addChild("testNode", JcrConstants.NT_UNSTRUCTURED);
         try {
-            createTokenTree(info, node, "rep:Token");
+            createTokenTree(info, node, TOKEN_NT_NAME);
             tokenTree.remove();
-            root.commit();
 
             assertNull(tokenProvider.getTokenInfo(info.getToken()));
         } finally {
             node.getTree().remove();
-            root.commit();
+            root.commit(CommitMarker.asCommitAttributes());
         }
     }
 
@@ -222,16 +219,14 @@ public class TokenProviderImplTest extends AbstractTokenTest {
         assertNotNull(tokenProvider.getTokenInfo(info.getToken()));
 
         Tree userTree = root.getTree(getUserManager(root).getAuthorizable(userId).getPath());
-        NodeUtil node = new NodeUtil(userTree).addChild("testNode", "nt:unstructured");
+        NodeUtil node = new NodeUtil(userTree).addChild("testNode", JcrConstants.NT_UNSTRUCTURED);
         try {
-            createTokenTree(info, node, "rep:Token");
+            createTokenTree(info, node, TOKEN_NT_NAME);
             tokenTree.remove();
-            root.commit();
 
             assertNull(tokenProvider.getTokenInfo(info.getToken()));
         } finally {
-            node.getTree().remove();
-            root.commit();
+            root.refresh();
         }
     }
 
@@ -243,16 +238,14 @@ public class TokenProviderImplTest extends AbstractTokenTest {
         assertNotNull(tokenProvider.getTokenInfo(info.getToken()));
 
         Tree userTree = root.getTree(getUserManager(root).getAuthorizable(userId).getPath());
-        NodeUtil node = new NodeUtil(userTree.getChild(".tokens"));
+        NodeUtil node = new NodeUtil(userTree.getChild(TOKENS_NODE_NAME));
         try {
-            createTokenTree(info, node, "nt:unstructured");
+            createTokenTree(info, node, JcrConstants.NT_UNSTRUCTURED);
             tokenTree.remove();
-            root.commit();
 
             assertNull(tokenProvider.getTokenInfo(info.getToken()));
         } finally {
-            node.getTree().remove();
-            root.commit();
+            root.refresh();
         }
     }
 
@@ -266,17 +259,14 @@ public class TokenProviderImplTest extends AbstractTokenTest {
         TokenInfo info2 = null;
         try {
             Tree adminTree = root.getTree(getUserManager(root).getAuthorizable(adminSession.getAuthInfo().getUserID()).getPath());
-            NodeUtil node = new NodeUtil(adminTree).getOrAddChild(".tokens", "nt:unstructured");
-            assertTrue(root.move(tokenTree.getPath(), node.getTree().getPath() + "/" + tokenTree.getName()));
-            root.commit();
+            NodeUtil node = new NodeUtil(adminTree).getOrAddChild(TOKENS_NODE_NAME, JcrConstants.NT_UNSTRUCTURED);
+            assertTrue(root.move(tokenTree.getPath(), node.getTree().getPath() + '/' + tokenTree.getName()));
 
             info2 = tokenProvider.getTokenInfo(info.getToken());
             assertNotNull(info2);
             assertFalse(info2.matches(new TokenCredentials(info.getToken())));
         } finally {
-            Tree t = getTokenTree(info2);
-            t.remove();
-            root.commit();
+            root.refresh();
         }
     }
 
@@ -361,7 +351,7 @@ public class TokenProviderImplTest extends AbstractTokenTest {
     }
 
     /**
-     * @see OAK-1985
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-1985">OAK-1985</a>
      */
     @Test
     public void testTokenValidationIsCaseInsensitive() throws Exception {
@@ -381,27 +371,27 @@ public class TokenProviderImplTest extends AbstractTokenTest {
         assertEquals(userId, info.getUserId());
     }
 
+    @Test
+    public void testTokenNodeName() throws Exception {
+        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+        Tree tokenTree = getTokenTree(info);
+
+        // name must not be a uuid which is only used in case of conflict during
+        // creation which is not expected here.
+        try {
+            UUID.fromString(tokenTree.getName());
+            fail("UUID-name should only be used in case of conflict");
+        } catch (IllegalArgumentException e) {
+            // success
+        }
+    }
+
     //--------------------------------------------------------------------------
     private static void assertTokenInfo(TokenInfo info, String userId) {
         assertNotNull(info);
         assertNotNull(info.getToken());
         assertEquals(userId, info.getUserId());
         assertFalse(info.isExpired(new Date().getTime()));
-    }
-
-    private Tree getTokenTree(TokenInfo info) {
-        String token = info.getToken();
-        int pos = token.indexOf('_');
-        String nodeId = (pos == -1) ? token : token.substring(0, pos);
-        return new IdentifierManager(root).getTree(nodeId);
-    }
-
-    private void createTokenTree(TokenInfo base, NodeUtil parent, String ntName) throws AccessDeniedException {
-        Tree tokenTree = getTokenTree(base);
-        Tree tree = parent.addChild("token", ntName).getTree();
-        tree.setProperty(tokenTree.getProperty(JcrConstants.JCR_UUID));
-        tree.setProperty(tokenTree.getProperty("rep:token.key"));
-        tree.setProperty(tokenTree.getProperty("rep:token.exp"));
     }
     
     private static class DataFuture {

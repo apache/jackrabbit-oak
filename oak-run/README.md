@@ -62,10 +62,14 @@ the console for a TarMK repository, use:
 
     $ java -jar oak-run-*.jar console /path/to/oak/repository
     
-To start the console for a MongoMK repository, use:
+To start the console for a DocumentMK/Mongo repository, use:
 
     $ java -jar oak-run-*.jar console mongodb://host
 
+To start the console for a DocumentMK/RDB repository, use:
+
+    $ java -jar oak-run-*.jar --rdbjdbcuser username --rdbjdbcpasswd password console jdbc:...
+    
 Console is based on [Groovy Shell](http://groovy.codehaus.org/Groovy+Shell) and hence one 
 can use all Groovy constructs. It also exposes the `org.apache.jackrabbit.oak.console.ConsoleSession`
 instance as through `session` variable. For example when using SegmentNodeStore you can 
@@ -96,6 +100,9 @@ The 'check' mode checks the storage of the FileStore for inconsistencies.
 
     $ java -jar oak-run-*.jar check <options>
 
+    --bin [Long]   read the n first bytes from binary  
+                     properties. -1 for all bytes.     
+                     (default: 0)                      
     --deep [Long]  enable deep consistency checking. An
                      optional long specifies the number
                      of seconds between progress
@@ -213,10 +220,9 @@ See the relevant documentation for more details.
 Oak server mode
 ---------------
 
-The Oak server mode starts a MicroKernel or full Oak instance with the 
+The Oak server mode starts a NodeStore or full Oak instance with the
 standard JCR plugins and makes it available over a simple HTTP mapping 
-defined in the `oak-http` and `oak-mk-remote` components. To start this 
-mode, use:
+defined in the `oak-http` component. To start this mode, use:
 
     $ java -jar oak-run-*.jar server [uri] [fixture] [options]
 
@@ -236,7 +242,6 @@ to be used. The following fixtures are currently supported:
 | Oak-Mongo     | Oak with the default Mongo backend                    |
 | Oak-Mongo-FDS | Oak with the default Mongo backend and FileDataStore  |
 | Oak-MongoNS   | Oak with the Mongo NodeStore                          |
-| Oak-MongoMK   | Oak with the Mongo MicroKernel                        |
 | Oak-Tar       | Oak with the Tar backend (aka Segment NodeStore)      |
 | Oak-Tar-FDS   | Oak with the Tar backend and FileDataStore            |
 
@@ -251,17 +256,18 @@ Depending on the fixture the following options are available:
     --clusterIds           - Cluster Ids for the Mongo setup: a comma separated list of integers
     --base <file>          - Tar: Path to the base file
     --mmap <64bit?>        - TarMK memory mapping (the default on 64 bit JVMs)
-    --mk                   - Start in MicroKernel mode exposing the MicroKernel API 
+    --rdbjdbcuri           - JDBC URL for RDB persistence
+    --rdbjdbcuser          - JDBC username (defaults to "")
+    --rdbjdbcpasswd        - JDBC password (defaults to "")
+    --rdbjdbctableprefix   - for RDB persistence: prefix for table names (defaults to "")
 
 Examples:
 
     $ java -jar oak-run-*.jar server
-    $ java -jar oak-run-*.jar server -mk
     $ java -jar oak-run-*.jar server http://localhost:4503 Oak-Tar --base myOak
     $ java -jar oak-run-*.jar server http://localhost:4502 Oak-Mongo --db myOak --clusterIds c1,c2,c3
 
-See the documentation in the `oak-http` and `oak-mk-remote` components for details 
-about the available functionality.
+See the documentation in the `oak-http` component for details about the available functionality.
 
 
 Benchmark mode
@@ -290,12 +296,13 @@ The following benchmark options (with default values) are currently supported:
     --rdbjdbcuri           - JDBC URL for RDB persistence (defaults to local file-based H2)
     --rdbjdbcuser          - JDBC username (defaults to "")
     --rdbjdbcpasswd        - JDBC password (defaults to "")
+    --rdbjdbctableprefix   - for RDB persistence: prefix for table names (defaults to "")
 
 These options are passed to the test cases and repository fixtures
 that need them. For example the Wikipedia dump option is needed by the
 WikipediaImport test case and the MongoDB address information by the
 MongoMK and SegmentMK -based repository fixtures. The cache setting
-controls the bundle cache size in Jackrabbit, the KernelNodeState
+controls the bundle cache size in Jackrabbit, the NodeState
 cache size in MongoMK, and the segment cache size in SegmentMK.
 
 The `--concurrency` levels can be specified as comma separated list of values,
@@ -342,12 +349,13 @@ Finally the benchmark runner supports the following repository fixtures:
 | Oak-Mongo     | Oak with the default Mongo backend                    |
 | Oak-Mongo-FDS | Oak with the default Mongo backend and FileDataStore  |
 | Oak-MongoNS   | Oak with the Mongo NodeStore                          |
-| Oak-MongoMK   | Oak with the Mongo MicroKernel                        |
 | Oak-Tar       | Oak with the Tar backend (aka Segment NodeStore)      |
 | Oak-RDB       | Oak with the DocumentMK/RDB persistence               |
 
 (Note that for Oak-RDB, the required JDBC drivers either need to be embedded
-into oak-run, or be specified separately in the class path.)
+into oak-run, or be specified separately in the class path. Furthermode, 
+dropDBAfterTest is interpreted to drop the *tables*, not the database
+iself, if and only if they have been auto-created)
 
 Once started, the benchmark runner will execute each listed test case
 against all the listed repository fixtures. After starting up the
@@ -482,8 +490,8 @@ The following scalability options (with default values) are currently supported:
 These options are passed to the various suites and repository fixtures
 that need them. For example the the MongoDB address information by the
 MongoMK and SegmentMK -based repository fixtures. The cache setting
-controls the KernelNodeState cache size in MongoMK, and the segment
-cache size in SegmentMK.
+controls the NodeState cache size in MongoMK, and the segment cache
+size in SegmentMK.
 
 You can use extra JVM options like `-Xmx` settings to better control the
 scalability suite test environment. It's also possible to attach the JVM to a
@@ -515,7 +523,6 @@ Finally the scalability runner supports the following repository fixtures:
 | Oak-Mongo     | Oak with the default Mongo backend                    |
 | Oak-Mongo-FDS | Oak with the default Mongo backend and FileDataStore  |
 | Oak-MongoNS   | Oak with the Mongo NodeStore                          |
-| Oak-MongoMK   | Oak with the Mongo MicroKernel                        |
 | Oak-Tar       | Oak with the Tar backend (aka Segment NodeStore)      |
 | Oak-RDB       | Oak with the DocumentMK/RDB persistence               |
 
@@ -672,9 +679,9 @@ Oak Mongo Shell Helpers
 =======================
 
 To simplify making sense of data created by Oak in Mongo a javascript file oak-mongo.js
-is provided. It includes some useful function to navigate the data in Mongo
+is provided. It includes [some useful function][1] to navigate the data in Mongo
 
-    $ wget https://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-run/src/main/js/oak-mongo.js
+    $ wget https://s.apache.org/oak-mongo.js
     $ mongo localhost/oak --shell oak-mongo.js
     MongoDB shell version: 2.6.3
     connecting to: localhost/oak
@@ -691,3 +698,28 @@ For reporting any issue related to Oak the script provides a function to collect
 can be dumped to a file
 
     $ mongo localhost/oak --eval "load('/path/to/oak-mongo.js');printjson(oak.systemStats());" --quiet > oak-stats.json
+
+[1]: http://jackrabbit.apache.org/oak/docs/oak-mongo-js/oak.html
+
+
+License
+-------
+
+(see the top-level [LICENSE.txt](../LICENSE.txt) for full license details)
+
+Collective work: Copyright 2012 The Apache Software Foundation.
+
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.

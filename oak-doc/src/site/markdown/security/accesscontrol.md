@@ -257,6 +257,27 @@ the node they are bound to. The node type definition used to represent access co
         }
     }
 
+<a name="validation"/>
+##### Validation
+
+The consistency of this content structure is asserted by a dedicated `AccessControlValidator`.
+The corresponding errors are all of type `AccessControl` with the following codes:
+
+| Code              | Message                                                  |
+|-------------------|----------------------------------------------------------|
+| 0001              | Generic access control violation                         |
+| 0002              | Access control entry node expected                       |
+| 0003              | Invalid policy name                                      |
+| 0004              | Invalid policy node: Order of children is not stable     |
+| 0005              | Access control policy within access control content      |
+| 0006              | Isolated policy node                                     |
+| 0007              | Isolated access control entry                            |
+| 0008              | ACE without principal name                               |
+| 0009              | ACE without privileges                                   |
+| 0010              | ACE contains invalid privilege name                      |
+| 0011              | ACE uses abstract privilege                              |
+| 0012              | Repository level policies defined with non-root node     |
+| 0013              | Duplicate ACE found in policy                            |
 
 #### XML Import
 

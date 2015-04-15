@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -83,9 +84,9 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
     //----------------------------------------------< ProtectedItemImporter >---
 
     @Override
-    public boolean init(Session session, Root root, NamePathMapper namePathMapper,
+    public boolean init(@Nonnull Session session, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper,
             boolean isWorkspaceImport, int uuidBehavior,
-            ReferenceChangeTracker referenceTracker, SecurityProvider securityProvider) {
+            @Nonnull ReferenceChangeTracker referenceTracker, @Nonnull SecurityProvider securityProvider) {
         if (initialized) {
             throw new IllegalStateException("Already initialized");
         }
@@ -117,7 +118,7 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
     //----------------------------------------------< ProtectedNodeImporter >---
 
     @Override
-    public boolean start(Tree protectedParent) throws RepositoryException {
+    public boolean start(@Nonnull Tree protectedParent) throws RepositoryException {
         checkInitialized();
 
         // the acl node must have been added during the regular import before
@@ -127,7 +128,7 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
     }
 
     @Override
-    public void end(Tree protectedParent) throws RepositoryException {
+    public void end(@Nonnull Tree protectedParent) throws RepositoryException {
         if (acl != null) {
             acMgr.setPolicy(acl.getPath(), acl);
             acl = null;
@@ -137,7 +138,7 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
     }
 
     @Override
-    public void startChildInfo(NodeInfo childInfo, List<PropInfo> propInfos) throws RepositoryException {
+    public void startChildInfo(@Nonnull NodeInfo childInfo, @Nonnull List<PropInfo> propInfos) throws RepositoryException {
         checkInitialized();
         String ntName = childInfo.getPrimaryTypeName();
         if (NT_REP_GRANT_ACE.equals(ntName) || NT_REP_DENY_ACE.equals(ntName)) {
@@ -197,51 +198,51 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
     private JackrabbitAccessControlList getACL(Tree tree) throws RepositoryException {
         String nodeName = tree.getName();
 
-        JackrabbitAccessControlList acl = null;
+        JackrabbitAccessControlList acList = null;
         if (!tree.isRoot()) {
             Tree parent = tree.getParent();
             if (AccessControlConstants.REP_POLICY.equals(nodeName)
                     && ntMgr.isNodeType(tree, AccessControlConstants.NT_REP_ACL)) {
-                acl = getACL(parent.getPath());
+                acList = getACL(parent.getPath());
             } else if (AccessControlConstants.REP_REPO_POLICY.equals(nodeName)
                     && ntMgr.isNodeType(tree, AccessControlConstants.NT_REP_ACL)
                     && parent.isRoot()) {
-                acl = getACL((String) null);
+                acList = getACL((String) null);
             }
         }
 
-        if (acl != null) {
+        if (acList != null) {
             // clear all existing entries
-            for (AccessControlEntry ace: acl.getAccessControlEntries()) {
-                acl.removeAccessControlEntry(ace);
+            for (AccessControlEntry ace: acList.getAccessControlEntries()) {
+                acList.removeAccessControlEntry(ace);
             }
         }
 
-        return acl;
+        return acList;
     }
 
     @CheckForNull
     private JackrabbitAccessControlList getACL(String path) throws RepositoryException {
-        JackrabbitAccessControlList acl = null;
+        JackrabbitAccessControlList acList = null;
         for (AccessControlPolicy p : acMgr.getPolicies(path)) {
             if (p instanceof JackrabbitAccessControlList) {
-                acl = (JackrabbitAccessControlList) p;
+                acList = (JackrabbitAccessControlList) p;
                 break;
             }
         }
-        return acl;
+        return acList;
     }
 
     //--------------------------------------------------------------------------
     private final class MutableEntry {
 
-        final boolean isAllow;
+        private final boolean isAllow;
 
-        Principal principal;
-        List<Privilege> privileges;
-        Map<String, Value> restrictions = new HashMap<String, Value>();
+        private Principal principal;
+        private List<Privilege> privileges;
+        private Map<String, Value> restrictions = new HashMap<String, Value>();
 
-        boolean ignore;
+        private boolean ignore;
 
         private MutableEntry(boolean isAllow) {
             this.isAllow = isAllow;

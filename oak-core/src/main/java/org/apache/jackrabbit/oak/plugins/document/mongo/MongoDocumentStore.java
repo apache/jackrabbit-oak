@@ -28,6 +28,7 @@ import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.regex.Matcher;
@@ -37,16 +38,19 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.mongodb.MongoClientURI;
 import com.mongodb.ReadPreference;
+
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.CachedNodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
@@ -55,13 +59,14 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
-import org.apache.jackrabbit.oak.plugins.document.cache.CachingDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.apache.jackrabbit.oak.plugins.document.cache.ForwardingListener;
 import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocOffHeapCache;
 import org.apache.jackrabbit.oak.plugins.document.cache.OffHeapCache;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,11 +92,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /**
  * A document store that uses MongoDB as the backend.
  */
-public class MongoDocumentStore implements CachingDocumentStore {
+public class MongoDocumentStore implements DocumentStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentStore.class);
-
-    private static final boolean LOG_TIME = false;
+    private static final PerfLogger PERFLOG = new PerfLogger(
+            LoggerFactory.getLogger(MongoDocumentStore.class.getName()
+                    + ".perf"));
 
     private static final DBObject BY_ID_ASC = new BasicDBObject(Document.ID, 1);
 
@@ -148,10 +154,36 @@ public class MongoDocumentStore implements CachingDocumentStore {
     private final long maxDeltaForModTimeIdxSecs =
             Long.getLong("oak.mongo.maxDeltaForModTimeIdxSecs",-1);
 
+    /**
+     * Disables the index hint sent to MongoDB.
+     * This overrides {@link #maxDeltaForModTimeIdxSecs}.
+     */
+    private final boolean disableIndexHint =
+            Boolean.getBoolean("oak.mongo.disableIndexHint");
+
+    /**
+     * Duration in milliseconds after which a mongo query will be terminated.
+     * <p>
+     * If this value is -1 no timeout is being set at all, if it is 1 or greater
+     * this translated to MongoDB's maxTimeNS being set accordingly.
+     * <p>
+     * Default is -1.
+     * See: http://mongodb.github.io/node-mongodb-native/driver-articles/anintroductionto1_4_and_2_6.html#maxtimems
+     */
+    private final long maxQueryTimeMS =
+            Long.getLong("oak.mongo.maxQueryTimeMS", -1);
+
     private String lastReadWriteMode;
 
+    private final Map<String, String> metadata;
+
     public MongoDocumentStore(DB db, DocumentMK.Builder builder) {
-        checkVersion(db);
+        String version = checkVersion(db);
+        metadata = ImmutableMap.<String,String>builder()
+                .put("type", "mongo")
+                .put("version", version)
+                .build();
+
         nodes = db.getCollection(
                 Collection.NODES.toString());
         clusterNodes = db.getCollection(
@@ -203,10 +235,11 @@ public class MongoDocumentStore implements CachingDocumentStore {
         cacheStats = new CacheStats(nodesCache, "Document-Documents", builder.getWeigher(),
                 builder.getDocumentCacheSize());
         LOG.info("Configuration maxReplicationLagMillis {}, " +
-                "maxDeltaForModTimeIdxSecs {}",maxReplicationLagMillis, maxDeltaForModTimeIdxSecs);
+                "maxDeltaForModTimeIdxSecs {}, disableIndexHint {}",
+                maxReplicationLagMillis, maxDeltaForModTimeIdxSecs, disableIndexHint);
     }
 
-    private static void checkVersion(DB db) {
+    private static String checkVersion(DB db) {
         String version = db.command("buildInfo").getString("version");
         Matcher m = Pattern.compile("^(\\d+)\\.(\\d+)\\..*").matcher(version);
         if (!m.matches()) {
@@ -215,13 +248,15 @@ public class MongoDocumentStore implements CachingDocumentStore {
         int major = Integer.parseInt(m.group(1));
         int minor = Integer.parseInt(m.group(2));
         if (major > 2) {
-            return;
+            return version;
         }
         if (minor < 6) {
             String msg = "MongoDB version 2.6.0 or higher required. " +
                     "Currently connected to a MongoDB with version: " + version;
             throw new RuntimeException(msg);
         }
+
+        return version;
     }
 
     private Cache<CacheValue, NodeDocument> createOffHeapCache(
@@ -238,20 +273,6 @@ public class MongoDocumentStore implements CachingDocumentStore {
         return new NodeDocOffHeapCache(primaryCache, listener, builder, this);
     }
 
-    private static long start() {
-        return LOG_TIME ? System.currentTimeMillis() : 0;
-    }
-
-    private void end(String message, long start) {
-        if (LOG_TIME) {
-            long t = System.currentTimeMillis() - start;
-            if (t > 0) {
-                LOG.debug(message + ": " + t);
-            }
-            timeSum += t;
-        }
-    }
-
     @Override
     public void finalize() throws Throwable {
         super.finalize();
@@ -261,10 +282,10 @@ public class MongoDocumentStore implements CachingDocumentStore {
     }
 
     @Override
-    public void invalidateCache() {
+    public CacheInvalidationStats invalidateCache() {
         //TODO Check if we should use LinearInvalidator for small cache sizes as
         //that would lead to lesser number of queries
-        CacheInvalidator.createHierarchicalInvalidator(this).invalidateCache();
+        return CacheInvalidator.createHierarchicalInvalidator(this).invalidateCache();
     }
 
     @Override
@@ -288,14 +309,20 @@ public class MongoDocumentStore implements CachingDocumentStore {
 
     @Override
     public <T extends Document> T find(Collection<T> collection, String key) {
-        return find(collection, key, true, -1);
+        final long start = PERFLOG.start();
+        final T result = find(collection, key, true, -1);
+        PERFLOG.end(start, 1, "find: preferCached=true, key={}", key);
+        return result;
     }
 
     @Override
     public <T extends Document> T find(final Collection<T> collection,
                                        final String key,
                                        int maxCacheAge) {
-        return find(collection, key, false, maxCacheAge);
+        final long start = PERFLOG.start();
+        final T result = find(collection, key, false, maxCacheAge);
+        PERFLOG.end(start, 1, "find: preferCached=false, key={}", key);
+        return result;
     }
 
     @SuppressWarnings("unchecked")
@@ -408,12 +435,14 @@ public class MongoDocumentStore implements CachingDocumentStore {
     protected <T extends Document> T findUncached(Collection<T> collection, String key, DocumentReadPreference docReadPref) {
         log("findUncached", key, docReadPref);
         DBCollection dbCollection = getDBCollection(collection);
-        long start = start();
+        final long start = PERFLOG.start();
+        boolean isSlaveOk = false;
         try {
             ReadPreference readPreference = getMongoReadPreference(collection, Utils.getParentId(key), docReadPref);
 
             if(readPreference.isSlaveOk()){
                 LOG.trace("Routing call to secondary for fetching [{}]", key);
+                isSlaveOk = true;
             }
 
             DBObject obj = dbCollection.findOne(getByKeyQuery(key).get(), null, null, readPreference);
@@ -438,7 +467,8 @@ public class MongoDocumentStore implements CachingDocumentStore {
             }
             return doc;
         } finally {
-            end("findUncached", start);
+            PERFLOG.end(start, 1, "findUncached on key={}, isSlaveOk={}", key,
+                    isSlaveOk);
         }
     }
 
@@ -468,20 +498,37 @@ public class MongoDocumentStore implements CachingDocumentStore {
         DBObject hint = new BasicDBObject(NodeDocument.ID, 1);
 
         if (indexedProperty != null) {
-            queryBuilder.and(indexedProperty);
-            queryBuilder.greaterThanEquals(startValue);
+            if (NodeDocument.DELETED_ONCE.equals(indexedProperty)) {
+                if (startValue != 1) {
+                    throw new DocumentStoreException(
+                            "unsupported value for property " + 
+                                    NodeDocument.DELETED_ONCE);
+                }
+                queryBuilder.and(indexedProperty);
+                queryBuilder.is(true);
+            } else {
+                queryBuilder.and(indexedProperty);
+                queryBuilder.greaterThanEquals(startValue);
 
-            if (NodeDocument.MODIFIED_IN_SECS.equals(indexedProperty)
-                    && canUseModifiedTimeIdx(startValue)) {
-                hint = new BasicDBObject(NodeDocument.MODIFIED_IN_SECS, -1);
+                if (NodeDocument.MODIFIED_IN_SECS.equals(indexedProperty)
+                        && canUseModifiedTimeIdx(startValue)) {
+                    hint = new BasicDBObject(NodeDocument.MODIFIED_IN_SECS, -1);
+                }
             }
         }
         DBObject query = queryBuilder.get();
         String parentId = Utils.getParentIdFromLowerLimit(fromKey);
         TreeLock lock = acquireExclusive(parentId != null ? parentId : "");
-        long start = start();
+        final long start = PERFLOG.start();
         try {
-            DBCursor cursor = dbCollection.find(query).sort(BY_ID_ASC).hint(hint);
+            DBCursor cursor = dbCollection.find(query).sort(BY_ID_ASC);
+            if (!disableIndexHint) {
+                cursor.hint(hint);
+            }
+            if (maxQueryTimeMS > 0) {
+                // OAK-2614: set maxTime if maxQueryTimeMS > 0
+                cursor.maxTime(maxQueryTimeMS, TimeUnit.MILLISECONDS);
+            }
             ReadPreference readPreference =
                     getMongoReadPreference(collection, parentId, getDefaultReadPreference(collection));
 
@@ -527,7 +574,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
             return list;
         } finally {
             lock.unlock();
-            end("query", start);
+            PERFLOG.end(start, 1, "query for children from [{}] to [{}]", fromKey, toKey);
         }
     }
 
@@ -542,7 +589,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
     public <T extends Document> void remove(Collection<T> collection, String key) {
         log("remove", key);
         DBCollection dbCollection = getDBCollection(collection);
-        long start = start();
+        long start = PERFLOG.start();
         try {
             WriteResult writeResult = dbCollection.remove(getByKeyQuery(key).get());
             invalidateCache(collection, key);
@@ -550,7 +597,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
                 throw new DocumentStoreException("Remove failed: " + writeResult.getError());
             }
         } finally {
-            end("remove", start);
+            PERFLOG.end(start, 1, "remove key={}", key);
         }
     }
 
@@ -580,7 +627,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
         DBObject update = createUpdate(updateOp);
 
         TreeLock lock = acquire(updateOp.getId());
-        long start = start();
+        final long start = PERFLOG.start();
         try {
             // get modCount of cached document
             Number modCount = null;
@@ -633,7 +680,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
             throw DocumentStoreException.convert(e);
         } finally {
             lock.unlock();
-            end("findAndModify", start);
+            PERFLOG.end(start, 1, "findAndModify [{}]", updateOp.getId());
         }
     }
 
@@ -703,7 +750,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
         }
 
         DBCollection dbCollection = getDBCollection(collection);
-        long start = start();
+        final long start = PERFLOG.start();
         try {
             try {
                 WriteResult writeResult = dbCollection.insert(inserts);
@@ -725,7 +772,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
                 return false;
             }
         } finally {
-            end("create", start);
+            PERFLOG.end(start, 1, "create");
         }
     }
 
@@ -739,7 +786,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
         // make sure we don't modify the original updateOp
         updateOp = updateOp.copy();
         DBObject update = createUpdate(updateOp);
-        long start = start();
+        final long start = PERFLOG.start();
         try {
             Map<String, NodeDocument> cachedDocs = Collections.emptyMap();
             if (collection == Collection.NODES) {
@@ -775,7 +822,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
                 throw DocumentStoreException.convert(e);
             }
         } finally {
-            end("update", start);
+            PERFLOG.end(start, 1, "update");
         }
     }
 
@@ -854,6 +901,8 @@ public class MongoDocumentStore implements CachingDocumentStore {
                     copy.put(key, o);
                 } else if (o instanceof Long) {
                     copy.put(key, o);
+                } else if (o instanceof Integer) {
+                    copy.put(key, o);
                 } else if (o instanceof Boolean) {
                     copy.put(key, o);
                 } else if (o instanceof BasicDBObject) {
@@ -912,8 +961,17 @@ public class MongoDocumentStore implements CachingDocumentStore {
         return cacheStats;
     }
 
+    @Override
+    public Map<String, String> getMetadata() {
+        return metadata;
+    }
+
     long getMaxDeltaForModTimeIdxSecs() {
         return maxDeltaForModTimeIdxSecs;
+    }
+
+    boolean getDisableIndexHint() {
+        return disableIndexHint;
     }
 
     Iterable<? extends Map.Entry<CacheValue, ? extends CachedNodeDocument>> getCacheEntries() {

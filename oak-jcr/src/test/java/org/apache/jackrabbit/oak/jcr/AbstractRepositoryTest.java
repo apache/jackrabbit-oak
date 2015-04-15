@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static org.apache.jackrabbit.oak.commons.CIHelper.buildBotLinuxTrunk;
+import static org.junit.Assume.assumeTrue;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Set;
@@ -29,11 +32,13 @@ import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
-import org.apache.jackrabbit.oak.jcr.FixturesHelper.Fixture;
+import org.apache.jackrabbit.oak.commons.FixturesHelper;
+import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -49,29 +54,26 @@ import org.junit.runners.Parameterized;
 @Ignore("This abstract base class does not have any tests")
 public abstract class AbstractRepositoryTest {
 
-    protected NodeStoreFixture fixture;
-    private NodeStore nodeStore;
-    private Repository repository;
-    private Session adminSession;
-    protected int observationQueueLength = Jcr.DEFAULT_OBSERVATION_QUEUE_LENGTH;
+    protected final NodeStoreFixture fixture;
+
+    private volatile NodeStore nodeStore;
+    private volatile Repository repository;
+    private volatile Session adminSession;
 
     /**
-     * The system property "ns-fixtures" can be used to provide a
+     * The system property "nsfixtures" can be used to provide a
      * whitespace-separated list of fixtures names for which the
      * tests should be run (the default is to use all fixtures).
      */
     private static final Set<Fixture> FIXTURES = FixturesHelper.getFixtures();
 
-    public AbstractRepositoryTest(NodeStoreFixture fixture) {
+    protected AbstractRepositoryTest(NodeStoreFixture fixture) {
         this.fixture = fixture;
     }
 
     @Parameterized.Parameters
     public static Collection<Object[]> fixtures() {
         Collection<Object[]> result = new ArrayList<Object[]>();
-        if (FIXTURES.contains(Fixture.DOCUMENT_MK)) {
-            result.add(new Object[] { NodeStoreFixture.DOCUMENT_MK });
-        }
         if (FIXTURES.contains(Fixture.DOCUMENT_NS)) {
             result.add(new Object[] { NodeStoreFixture.DOCUMENT_NS });
         }
@@ -82,6 +84,12 @@ public abstract class AbstractRepositoryTest {
             result.add(new Object[] { NodeStoreFixture.DOCUMENT_RDB });
         }
         return result;
+    }
+
+    @Before
+    public void checkAssumptions() {
+        // FIXME OAK-2379. Don't run the tests for now on the Linux BuildBot for DOCUMENT_RDB
+        assumeTrue(!buildBotLinuxTrunk() || fixture != NodeStoreFixture.DOCUMENT_RDB);
     }
 
     @After
@@ -104,19 +112,23 @@ public abstract class AbstractRepositoryTest {
     protected Repository getRepository() throws RepositoryException {
         if (repository == null) {
             nodeStore = createNodeStore(fixture);
-            QueryEngineSettings qs = new QueryEngineSettings();
-            qs.setFullTextComparisonWithoutIndex(true);
-            repository  = new Jcr(nodeStore)
-                    .withObservationQueueLength(observationQueueLength)
-                    .withAsyncIndexing()
-                    .with(qs)
-                    .createRepository();
+            repository = createRepository(nodeStore);
         }
         return repository;
     }
 
     protected NodeStore createNodeStore(NodeStoreFixture fixture) throws RepositoryException {
         return fixture.createNodeStore();
+    }
+
+    protected Repository createRepository(NodeStore nodeStore) {
+        return initJcr(new Jcr(nodeStore)).createRepository();
+    }
+
+    protected Jcr initJcr(Jcr jcr) {
+        QueryEngineSettings qs = new QueryEngineSettings();
+        qs.setFullTextComparisonWithoutIndex(true);
+        return jcr.withAsyncIndexing().with(qs);
     }
 
     protected Session getAdminSession() throws RepositoryException {

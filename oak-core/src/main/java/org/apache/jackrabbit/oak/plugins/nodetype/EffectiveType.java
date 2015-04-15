@@ -54,7 +54,7 @@ class EffectiveType {
 
     private final List<NodeState> types;
 
-    EffectiveType(List<NodeState> types) {
+    EffectiveType(@Nonnull List<NodeState> types) {
         this.types = checkNotNull(types);
     }
 
@@ -65,7 +65,7 @@ class EffectiveType {
      * @return {@code true} if the named type is included,
      *         {@code false} otherwise
      */
-    boolean isNodeType(String name) {
+    boolean isNodeType(@Nonnull String name) {
         for (NodeState type : types) {
             if (name.equals(type.getName(JCR_NODETYPENAME))
                     || contains(type.getNames(REP_SUPERTYPES), name)) {
@@ -75,7 +75,7 @@ class EffectiveType {
         return false;
     }
 
-    boolean isMandatoryProperty(String name) {
+    boolean isMandatoryProperty(@Nonnull String name) {
         return nameSetContains(REP_MANDATORY_PROPERTIES, name);
     }
 
@@ -84,7 +84,7 @@ class EffectiveType {
         return getNameSet(REP_MANDATORY_PROPERTIES);
     }
 
-    boolean isMandatoryChildNode(String name) {
+    boolean isMandatoryChildNode(@Nonnull String name) {
         return nameSetContains(REP_MANDATORY_CHILD_NODES, name);
     }
 
@@ -100,7 +100,7 @@ class EffectiveType {
      * @return matching property definition, or {@code null}
      */
     @CheckForNull
-    NodeState getDefinition(PropertyState property) {
+    NodeState getDefinition(@Nonnull PropertyState property) {
         String propertyName = property.getName();
         Type<?> propertyType = property.getType();
 
@@ -178,7 +178,7 @@ class EffectiveType {
      * @return {@code true} if there's a matching child node definition,
      *         {@code false} otherwise
      */
-    boolean isValidChildNode(String nameWithIndex, EffectiveType effective) {
+    boolean isValidChildNode(@Nonnull String nameWithIndex, @Nonnull EffectiveType effective) {
         String name = dropIndexFromName(nameWithIndex);
         boolean sns = !name.equals(nameWithIndex);
         Set<String> typeNames = effective.getTypeNames();
@@ -232,7 +232,7 @@ class EffectiveType {
      * @return default type, or {@code null} if not found
      */
     @CheckForNull
-    String getDefaultType(String nameWithIndex) {
+    String getDefaultType(@Nonnull String nameWithIndex) {
         String name = dropIndexFromName(nameWithIndex);
         boolean sns = !name.equals(nameWithIndex);
 
@@ -257,6 +257,7 @@ class EffectiveType {
         return null;
     }
 
+    @Nonnull
     Set<String> getTypeNames() {
         Set<String> names = newHashSet();
         for (NodeState type : types) {
@@ -286,11 +287,11 @@ class EffectiveType {
      * @param sns SNS flag, {@code true} if processing an SNS node
      * @param definition child node definition
      */
-    private boolean snsMatch(boolean sns, NodeState definition) {
+    private boolean snsMatch(boolean sns, @Nonnull NodeState definition) {
         return !sns || definition.getBoolean(JCR_SAMENAMESIBLINGS);
     }
 
-    private boolean nameSetContains(String set, String name) {
+    private boolean nameSetContains(@Nonnull String set, @Nonnull String name) {
         for (NodeState type : types) {
             if (contains(type.getNames(set), name)) {
                 return true;
@@ -300,7 +301,7 @@ class EffectiveType {
     }
 
     @Nonnull
-    private Set<String> getNameSet(String set) {
+    private Set<String> getNameSet(@Nonnull String set) {
         Set<String> names = newHashSet();
         for (NodeState type : types) {
             addAll(names, type.getNames(set));

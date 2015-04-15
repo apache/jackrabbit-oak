@@ -99,7 +99,13 @@ public abstract class QueryEngineImpl implements QueryEngine {
     private static Query parseQuery(
             String statement, String language, ExecutionContext context,
             Map<String, String> mappings) throws ParseException {
-        LOG.debug("Parsing {} statement: {}", language, statement);
+        
+        boolean isInternal = SQL2Parser.isInternal(statement);
+        if (isInternal) {
+            LOG.trace("Parsing {} statement: {}", language, statement);
+        } else {
+            LOG.debug("Parsing {} statement: {}", language, statement);
+        }
 
         NamePathMapper mapper = new NamePathMapperImpl(
                 new LocalNameMapper(context.getRoot(), mappings));
@@ -187,21 +193,21 @@ public abstract class QueryEngineImpl implements QueryEngine {
         this.traversalEnabled = traversalEnabled;
     }
 
-    private boolean setupMDC(Query q){
+    private static boolean setupMDC(Query q) {
         boolean mdcEnabled = false;
-        if (q.isMeasureOrExplainEnabled()){
+        if (q.isMeasureOrExplainEnabled()) {
             MDC.put(OAK_QUERY_ANALYZE, Boolean.TRUE.toString());
             mdcEnabled = true;
         }
 
-        if (LOG.isDebugEnabled()){
+        if (LOG.isDebugEnabled()) {
             MDC.put(MDC_QUERY_ID, String.valueOf(ID_COUNTER.incrementAndGet()));
             mdcEnabled = true;
         }
         return mdcEnabled;
     }
 
-    private void clearMDC() {
+    private static void clearMDC() {
         MDC.remove(MDC_QUERY_ID);
         MDC.remove(OAK_QUERY_ANALYZE);
     }

@@ -39,7 +39,7 @@ final class UserContext implements Context, UserConstants {
 
     //------------------------------------------------------------< Context >---
     @Override
-    public boolean definesProperty(Tree parent, PropertyState property) {
+    public boolean definesProperty(@Nonnull Tree parent, @Nonnull PropertyState property) {
         String propName = property.getName();
         String ntName = TreeUtil.getPrimaryTypeName(parent);
         if (NT_REP_USER.equals(ntName)) {
@@ -62,13 +62,13 @@ final class UserContext implements Context, UserConstants {
     }
 
     @Override
-    public boolean definesTree(Tree tree) {
+    public boolean definesTree(@Nonnull Tree tree) {
         String ntName = TreeUtil.getPrimaryTypeName(tree);
         return NT_NAMES.contains(ntName);
     }
 
     @Override
-    public boolean definesLocation(TreeLocation location) {
+    public boolean definesLocation(@Nonnull TreeLocation location) {
         Tree tree = location.getTree();
         if (tree != null && location.exists()) {
             PropertyState p = location.getProperty();
@@ -76,18 +76,14 @@ final class UserContext implements Context, UserConstants {
         } else {
             String path = location.getPath();
             String name = Text.getName(path);
-            if (USER_PROPERTY_NAMES.contains(name)
+            // NOTE: if none of the conditions below match, we are not able to
+            // reliably determine if the specified location defines a user or
+            // group node (missing node type information on non-existing location)
+            return USER_PROPERTY_NAMES.contains(name)
                     || GROUP_PROPERTY_NAMES.contains(name)
                     || path.contains(REP_MEMBERS)
                     || path.contains(REP_MEMBERS_LIST)
-                    || path.contains(REP_PWD)) {
-                return true;
-            } else {
-                // undefined: unable to determine if the specified location
-                // defines a user or group node (missing node type information
-                // on non-existing location
-                return false;
-            }
+                    || path.contains(REP_PWD);
         }
     }
 

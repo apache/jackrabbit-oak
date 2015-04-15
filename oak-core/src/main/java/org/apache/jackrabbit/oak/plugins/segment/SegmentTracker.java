@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.slf4j.Logger;
@@ -93,20 +94,25 @@ public class SegmentTracker {
 
     private long currentSize = 0;
 
-    public SegmentTracker(SegmentStore store, int cacheSizeMB) {
+    public SegmentTracker(SegmentStore store, int cacheSizeMB,
+            SegmentVersion version) {
         for (int i = 0; i < tables.length; i++) {
             tables[i] = new SegmentIdTable(this);
         }
 
         this.store = store;
-        this.writer = new SegmentWriter(store, this);
+        this.writer = new SegmentWriter(store, this, version);
         this.cacheSize = cacheSizeMB * MB;
         this.compactionMap = new AtomicReference<CompactionMap>(
                 new CompactionMap(1, this));
     }
 
+    public SegmentTracker(SegmentStore store, SegmentVersion version) {
+        this(store, DEFAULT_MEMORY_CACHE_SIZE, version);
+    }
+
     public SegmentTracker(SegmentStore store) {
-        this(store, DEFAULT_MEMORY_CACHE_SIZE);
+        this(store, DEFAULT_MEMORY_CACHE_SIZE, SegmentVersion.V_11);
     }
 
     public SegmentWriter getWriter() {
@@ -200,7 +206,7 @@ public class SegmentTracker {
      * running.
      */
     public void collectBlobReferences(ReferenceCollector collector) {
-        Set<SegmentId> processed = newIdentityHashSet();
+        Set<SegmentId> processed = newHashSet();
         Queue<SegmentId> queue = newArrayDeque(getReferencedSegmentIds());
         writer.flush(); // force the current segment to have root record info
         while (!queue.isEmpty()) {

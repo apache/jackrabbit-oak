@@ -19,10 +19,11 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 import java.util.Collections;
 import java.util.Set;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.core.ImmutableRoot;
-import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
@@ -43,37 +44,40 @@ public final class AllPermissions implements CompiledPermissions {
     }
 
     @Override
-    public void refresh(@Nonnull ImmutableRoot root, @Nonnull String workspaceName) {
+    public void refresh(@Nonnull Root root, @Nonnull String workspaceName) {
         // nop
     }
 
+    @Nonnull
     @Override
     public RepositoryPermission getRepositoryPermission() {
         return RepositoryPermission.ALL;
     }
 
+    @Nonnull
     @Override
-    public TreePermission getTreePermission(@Nonnull ImmutableTree tree, @Nonnull TreePermission parentPermission) {
+    public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
         return TreePermission.ALL;
     }
 
     @Override
-    public boolean isGranted(ImmutableTree tree, PropertyState property, long permissions) {
+    public boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
         return true;
     }
 
     @Override
-    public boolean isGranted(String path, long permissions) {
+    public boolean isGranted(@Nonnull String path, long permissions) {
         return true;
     }
 
+    @Nonnull
     @Override
-    public Set<String> getPrivileges(ImmutableTree tree) {
+    public Set<String> getPrivileges(@Nullable Tree tree) {
         return Collections.singleton(PrivilegeConstants.JCR_ALL);
     }
 
     @Override
-    public boolean hasPrivileges(ImmutableTree tree, String... privilegeNames) {
+    public boolean hasPrivileges(@Nullable Tree tree, @Nonnull String... privilegeNames) {
         return true;
     }
 }

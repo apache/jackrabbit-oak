@@ -39,6 +39,8 @@ import org.apache.felix.scr.annotations.ReferencePolicyOption;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
+import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
+import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
@@ -82,7 +84,7 @@ public class LuceneIndexProviderService {
     private static final String PROP_DEBUG = "debug";
 
     @Property(
-            boolValue = false,
+            boolValue = true,
             label = "Enable CopyOnRead",
             description = "Enable copying of Lucene index to local file system to improve query performance"
     )
@@ -95,22 +97,36 @@ public class LuceneIndexProviderService {
     )
     private static final String PROP_LOCAL_INDEX_DIR = "localIndexDir";
 
+    @Property(
+            boolValue = true,
+            label = "Open index asynchronously",
+            description = "Enable opening of indexes in asynchronous mode"
+    )
+    private static final String PROP_ASYNC_INDEX_OPEN = "enableOpenIndexAsync";
+
     private Whiteboard whiteboard;
 
     private WhiteboardExecutor executor;
+
+    private BackgroundObserver backgroundObserver;
+
+    @Reference
+    ScorerProviderFactory scorerFactory;
 
     @Activate
     private void activate(BundleContext bundleContext, Map<String, ?> config)
             throws NotCompliantMBeanException {
         initializeFactoryClassLoaders(getClass().getClassLoader());
         whiteboard = new OsgiWhiteboard(bundleContext);
+        executor = new WhiteboardExecutor();
+        executor.start(whiteboard);
 
-        indexProvider = new LuceneIndexProvider(createTracker(bundleContext, config));
+        indexProvider = new LuceneIndexProvider(createTracker(bundleContext, config), scorerFactory);
         initializeLogging(config);
         initialize();
 
         regs.add(bundleContext.registerService(QueryIndexProvider.class.getName(), indexProvider, null));
-        regs.add(bundleContext.registerService(Observer.class.getName(), indexProvider, null));
+        registerObserver(bundleContext, config);
 
         oakRegs.add(registerMBean(whiteboard,
                 LuceneIndexMBean.class,
@@ -127,6 +143,10 @@ public class LuceneIndexProviderService {
 
         for (Registration reg : oakRegs){
             reg.unregister();
+        }
+
+        if (backgroundObserver != null){
+            backgroundObserver.close();
         }
 
         if (indexProvider != null) {
@@ -163,7 +183,7 @@ public class LuceneIndexProviderService {
     }
 
     private IndexTracker createTracker(BundleContext bundleContext, Map<String, ?> config) {
-        boolean enableCopyOnRead = PropertiesUtil.toBoolean(config.get(PROP_COPY_ON_READ), false);
+        boolean enableCopyOnRead = PropertiesUtil.toBoolean(config.get(PROP_COPY_ON_READ), true);
         if (enableCopyOnRead){
             String indexDirPath = PropertiesUtil.toString(config.get(PROP_LOCAL_INDEX_DIR), null);
             if (Strings.isNullOrEmpty(indexDirPath)) {
@@ -177,8 +197,6 @@ public class LuceneIndexProviderService {
                     "directory path [%s] nor repository home [%s] defined", PROP_LOCAL_INDEX_DIR, REPOSITORY_HOME);
 
             File indexDir = new File(indexDirPath);
-            executor = new WhiteboardExecutor();
-            executor.start(whiteboard);
             IndexCopier copier = new IndexCopier(executor, indexDir);
             log.info("Enabling CopyOnRead support. Index files would be copied under {}", indexDir.getAbsolutePath());
 
@@ -192,6 +210,17 @@ public class LuceneIndexProviderService {
         }
 
         return new IndexTracker();
+    }
+
+    private void registerObserver(BundleContext bundleContext, Map<String, ?> config) {
+        boolean enableAsyncIndexOpen = PropertiesUtil.toBoolean(config.get(PROP_ASYNC_INDEX_OPEN), true);
+        Observer observer = indexProvider;
+        if (enableAsyncIndexOpen) {
+            backgroundObserver = new BackgroundObserver(indexProvider, executor, 5);
+            observer = backgroundObserver;
+            log.info("Registering the LuceneIndexProvider as a BackgroundObserver");
+        }
+        regs.add(bundleContext.registerService(Observer.class.getName(), observer, null));
     }
 
     private void initializeFactoryClassLoaders(ClassLoader classLoader) {

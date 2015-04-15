@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlTest;
 import org.junit.Before;
@@ -96,10 +98,12 @@ public class RestrictionDefinitionImplTest extends AbstractAccessControlTest {
         defs.add(new RestrictionDefinitionImpl(name, Type.NAMES, true));
         // - different impl
         defs.add(new RestrictionDefinition() {
+            @Nonnull
             @Override
             public String getName() {
                 return name;
             }
+            @Nonnull
             @Override
             public Type<?> getRequiredType() {
                 return Type.NAME;

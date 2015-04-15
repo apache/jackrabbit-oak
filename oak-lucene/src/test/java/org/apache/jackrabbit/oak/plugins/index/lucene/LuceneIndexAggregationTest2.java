@@ -45,7 +45,6 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.SystemRoot;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.SimpleNodeAggregator;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -54,6 +53,7 @@ import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.NodeTypeRegistry;
+import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
@@ -88,7 +88,7 @@ public class LuceneIndexAggregationTest2 extends AbstractQueryTest {
             .with(new InitialContent() {
 
                 @Override
-                public void initialize(NodeBuilder builder) {
+                public void initialize(@Nonnull NodeBuilder builder) {
                     super.initialize(builder);
 
                     // registering additional node types for wider testing
@@ -99,9 +99,9 @@ public class LuceneIndexAggregationTest2 extends AbstractQueryTest {
                         NodeState base = builder.getNodeState();
                         NodeStore store = new MemoryNodeStore(base);
 
-                        Root root = new SystemRoot(store, new EditorHook(
+                        Root root = RootFactory.createSystemRoot(store, new EditorHook(
                             new CompositeEditorProvider(new NamespaceEditorProvider(),
-                                new TypeEditorProvider())));
+                                new TypeEditorProvider())), null, null, null, null);
 
                         NodeTypeRegistry.register(root, stream, "testing node types");
 
@@ -145,7 +145,7 @@ public class LuceneIndexAggregationTest2 extends AbstractQueryTest {
             }        
         }
     }
-    
+
     @Override
     protected void createTestIndexNode() throws Exception {
         Tree index = root.getTree("/");
@@ -167,6 +167,11 @@ public class LuceneIndexAggregationTest2 extends AbstractQueryTest {
                 .getChild(NT_TEST_ASSET).addChild("includeOriginal");
         originalInclude.setProperty(LuceneIndexConstants.AGG_RELATIVE_NODE, true);
         originalInclude.setProperty(LuceneIndexConstants.AGG_PATH, "jcr:content/renditions/original");
+
+        Tree includeSingleRel = indexDefn.getChild(LuceneIndexConstants.AGGREGATES)
+            .getChild(NT_TEST_ASSET).addChild("includeFirstLevelChild");
+        includeSingleRel.setProperty(LuceneIndexConstants.AGG_RELATIVE_NODE, true);
+        includeSingleRel.setProperty(LuceneIndexConstants.AGG_PATH, "firstLevelChild");
 
         //Include all properties
         Tree props = TestUtil.newRulePropTree(indexDefn, "test:Asset");
@@ -324,6 +329,25 @@ public class LuceneIndexAggregationTest2 extends AbstractQueryTest {
         root.commit();
         assertQuery(statement, "xpath", Collections.<String>emptyList());
         setTraversalEnabled(true);
+    }
+
+    @Test
+    public void indexSingleRelativeNode() throws Exception {
+        setTraversalEnabled(false);
+        final String statement = "//element(*, test:Asset)[ " +
+            "jcr:contains(firstLevelChild, 'summer') ]";
+
+        List<String> expected = newArrayList();
+
+        Tree content = root.getTree("/").addChild("content");
+        Tree page = content.addChild("pages");
+        page.setProperty(JCR_PRIMARYTYPE, NT_TEST_ASSET, NAME);
+        Tree child = page.addChild("firstLevelChild");
+        child.setProperty("tag", "summer is here", STRING);
+        root.commit();
+
+        expected.add("/content/pages");
+        assertQuery(statement, "xpath", expected);
     }
 
 

@@ -617,8 +617,8 @@ public class AsyncIndexUpdateTest {
         private final FaultyIndexEditor faulty = new FaultyIndexEditor();
 
         @Override
-        public Editor getIndexEditor(String type, NodeBuilder definition,
-                NodeState root, IndexUpdateCallback callback)
+        public Editor getIndexEditor(@Nonnull String type, @Nonnull NodeBuilder definition,
+                @Nonnull NodeState root, @Nonnull IndexUpdateCallback callback)
                 throws CommitFailedException {
             return faulty;
         }

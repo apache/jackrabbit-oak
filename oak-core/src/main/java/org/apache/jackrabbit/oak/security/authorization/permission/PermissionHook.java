@@ -21,8 +21,8 @@ import java.util.Map;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
+import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.PostValidationHook;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
@@ -33,8 +33,6 @@ import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -64,8 +62,6 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
  */
 public class PermissionHook implements PostValidationHook, AccessControlConstants, PermissionConstants {
 
-    private static final Logger log = LoggerFactory.getLogger(PermissionHook.class);
-
     private final RestrictionProvider restrictionProvider;
     private final String workspaceName;
 
@@ -92,7 +88,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         NodeBuilder rootAfter = after.builder();
 
         permissionRoot = getPermissionRoot(rootAfter);
-        bitsProvider = new PrivilegeBitsProvider(new ImmutableRoot(after));
+        bitsProvider = new PrivilegeBitsProvider(RootFactory.createReadOnlyRoot(after));
 
         isACL = new TypePredicate(after, NT_REP_ACL);
         isACE = new TypePredicate(after, NT_REP_ACE);
@@ -102,6 +98,11 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         after.compareAgainstBaseState(before, diff);
         apply();
         return rootAfter.getNodeState();
+    }
+
+    @Override
+    public String toString() {
+        return "PermissionHook";
     }
 
     private void apply() {
@@ -119,7 +120,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         return rootBuilder.getChildNode(JCR_SYSTEM).getChildNode(REP_PERMISSION_STORE).getChildNode(workspaceName);
     }
 
-    private class Diff extends DefaultNodeStateDiff {
+    private final class Diff extends DefaultNodeStateDiff {
 
         private final String parentPath;
 

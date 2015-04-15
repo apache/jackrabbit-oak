@@ -21,22 +21,19 @@ import java.util.Set;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
-import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
+import org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants;
+import org.apache.jackrabbit.oak.spi.commit.PartialConflictHandler;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * This conflict handler instance takes care of properly merging conflicts
  * occurring by concurrent reorder operations.
  *
- * @see org.apache.jackrabbit.oak.plugins.tree.TreeConstants#OAK_CHILD_ORDER
+ * @see org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants#OAK_CHILD_ORDER
  */
-public class ChildOrderConflictHandler extends ConflictHandlerWrapper {
-
-    public ChildOrderConflictHandler(ConflictHandler handler) {
-        super(handler);
-    }
+public class ChildOrderConflictHandler implements PartialConflictHandler {
 
     @Override
     public Resolution addExistingProperty(NodeBuilder parent,
@@ -48,7 +45,7 @@ public class ChildOrderConflictHandler extends ConflictHandlerWrapper {
             merge(parent, ours, theirs);
             return Resolution.MERGED;
         } else {
-            return handler.addExistingProperty(parent, ours, theirs);
+            return null;
         }
     }
 
@@ -59,7 +56,7 @@ public class ChildOrderConflictHandler extends ConflictHandlerWrapper {
             // orderBefore() on trees that were deleted
             return Resolution.THEIRS;
         } else {
-            return handler.changeDeletedProperty(parent, ours);
+            return null;
         }
     }
 
@@ -71,7 +68,7 @@ public class ChildOrderConflictHandler extends ConflictHandlerWrapper {
             merge(parent, ours, theirs);
             return Resolution.MERGED;
         } else {
-            return handler.changeChangedProperty(parent, ours, theirs);
+            return null;
         }
     }
 
@@ -103,7 +100,7 @@ public class ChildOrderConflictHandler extends ConflictHandlerWrapper {
             // concurrent remove of ordered trees
             return Resolution.THEIRS;
         } else {
-            return handler.deleteDeletedProperty(parent, ours);
+            return null;
         }
     }
 
@@ -114,8 +111,28 @@ public class ChildOrderConflictHandler extends ConflictHandlerWrapper {
             // remove trees that were reordered by another session
             return Resolution.THEIRS;
         } else {
-            return handler.deleteChangedProperty(parent, theirs);
+            return null;
         }
+    }
+
+    @Override
+    public Resolution addExistingNode(NodeBuilder parent, String name, NodeState ours, NodeState theirs) {
+        return null;
+    }
+
+    @Override
+    public Resolution changeDeletedNode(NodeBuilder parent, String name, NodeState ours) {
+        return null;
+    }
+
+    @Override
+    public Resolution deleteChangedNode(NodeBuilder parent, String name, NodeState theirs) {
+        return null;
+    }
+
+    @Override
+    public Resolution deleteDeletedNode(NodeBuilder parent, String name) {
+        return null;
     }
 
     //----------------------------< internal >----------------------------------

@@ -557,7 +557,7 @@ public class LdapProviderConfig {
      * Defines the configuration of a connection pool. Currently we only define the max size.
      * (documentation copied from {@link org.apache.commons.pool.impl.GenericObjectPool})
      */
-    public class PoolConfig {
+    public static class PoolConfig {
 
         private int maxActiveSize;
 
@@ -609,8 +609,13 @@ public class LdapProviderConfig {
                 .setNoCertCheck(params.getConfigValue(PARAM_NO_CERT_CHECK, PARAM_NO_CERT_CHECK_DEFAULT))
                 .setBindDN(params.getConfigValue(PARAM_BIND_DN, PARAM_BIND_DN_DEFAULT))
                 .setBindPassword(params.getConfigValue(PARAM_BIND_PASSWORD, PARAM_BIND_PASSWORD_DEFAULT))
-                .setSearchTimeout(ConfigurationParameters.Milliseconds.of(params.getConfigValue(PARAM_SEARCH_TIMEOUT, PARAM_SEARCH_TIMEOUT_DEFAULT)).value)
                 .setGroupMemberAttribute(params.getConfigValue(PARAM_GROUP_MEMBER_ATTRIBUTE, PARAM_GROUP_MEMBER_ATTRIBUTE_DEFAULT));
+
+        ConfigurationParameters.Milliseconds ms = ConfigurationParameters.Milliseconds.of(params.getConfigValue(PARAM_SEARCH_TIMEOUT, PARAM_SEARCH_TIMEOUT_DEFAULT));
+        if (ms != null) {
+            cfg.setSearchTimeout(ms.value);
+        }
+
 
         cfg.getUserConfig()
                 .setBaseDN(params.getConfigValue(PARAM_USER_BASE_DN, PARAM_USER_BASE_DN))
@@ -976,13 +981,13 @@ public class LdapProviderConfig {
      * &lt;valueencoding&gt; rule as described in <a href="http://www.ietf.org/rfc/rfc4515.txt">RFC 4515</a>.
      *
      * @param value Right hand side of "attrId=value" assertion occurring in an LDAP search filter.
-     * @return Escaped version of <code>value</code>
+     * @return Escaped version of {@code value}
      */
     public static String encodeFilterValue(String value) {
         StringBuilder sb = null;
         for (int i = 0; i < value.length(); i++) {
             char ch = value.charAt(i);
-            String replace = null;
+            String replace;
             switch (ch) {
                 case '*':
                     replace = "\\2A";
@@ -1003,6 +1008,9 @@ public class LdapProviderConfig {
                 case '\0':
                     replace = "\\00";
                     break;
+
+                default:
+                    replace = null;
             }
             if (replace != null) {
                 if (sb == null) {

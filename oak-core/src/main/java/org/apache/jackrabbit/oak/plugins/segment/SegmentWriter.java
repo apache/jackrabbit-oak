@@ -27,7 +27,7 @@ import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithExpectedSize;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.newLinkedHashMap;
-import static com.google.common.collect.Sets.newIdentityHashSet;
+import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.nCopies;
@@ -38,6 +38,7 @@ import static org.apache.jackrabbit.oak.plugins.segment.MapRecord.BUCKETS_PER_LE
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.MAX_SEGMENT_SIZE;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ID_BYTES;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.SEGMENT_REFERENCE_LIMIT;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.V_11;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -51,11 +52,15 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.jcr.PropertyType;
 
+import com.google.common.base.Charsets;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.io.ByteStreams;
+import com.google.common.io.Closeables;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -64,13 +69,6 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import com.google.common.base.Charsets;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.io.ByteStreams;
-import com.google.common.io.Closeables;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,13 +87,13 @@ public class SegmentWriter {
 
     static final int BLOCK_SIZE = 1 << 12; // 4kB
 
-    static byte[] createNewBuffer() {
+    static byte[] createNewBuffer(SegmentVersion v) {
         byte[] buffer = new byte[Segment.MAX_SEGMENT_SIZE];
         buffer[0] = '0';
         buffer[1] = 'a';
         buffer[2] = 'K';
-        buffer[3] = '\n';
-        buffer[4] = 0;
+        buffer[3] = SegmentVersion.asByte(v);
+        buffer[4] = 0; // reserved
         buffer[5] = 0; // refcount
         return buffer;
     }
@@ -118,10 +116,11 @@ public class SegmentWriter {
      * avoid storing duplicates of frequently occurring data.
      * Should only be accessed from synchronized blocks to prevent corruption.
      */
+    @SuppressWarnings("serial")
     private final Map<Object, RecordId> records =
         new LinkedHashMap<Object, RecordId>(15000, 0.75f, true) {
             @Override
-            protected boolean removeEldestEntry(Entry<Object, RecordId> e) {
+            protected boolean removeEldestEntry(Map.Entry<Object, RecordId> e) {
                 return size() > 10000;
             }
         };
@@ -141,7 +140,7 @@ public class SegmentWriter {
      * The segment write buffer, filled from the end to the beginning
      * (see OAK-629).
      */
-    private byte[] buffer = createNewBuffer();
+    private byte[] buffer;
 
     /**
      * The number of bytes already written (or allocated). Counted from
@@ -157,19 +156,18 @@ public class SegmentWriter {
 
     private Segment segment;
 
-    public SegmentWriter(SegmentStore store, SegmentTracker tracker) {
+    /**
+     * Version of the segment storage format.
+     */
+    private final SegmentVersion version;
+
+    public SegmentWriter(SegmentStore store, SegmentTracker tracker, SegmentVersion version) {
         this.store = store;
         this.tracker = tracker;
+        this.version = version;
+        this.buffer = createNewBuffer(version);
         this.segment = new Segment(tracker, buffer);
         segment.getSegmentId().setSegment(segment);
-    }
-
-    public synchronized Segment getCurrentSegment(SegmentId id) {
-        if (id == segment.getSegmentId()) {
-            return segment;
-        } else {
-            return null;
-        }
     }
 
     /**
@@ -239,7 +237,7 @@ public class SegmentWriter {
             }
             tracker.setSegment(id, new Segment(tracker, id, data));
 
-            buffer = createNewBuffer();
+            buffer = createNewBuffer(version);
             roots.clear();
             blobrefs.clear();
             length = 0;
@@ -294,8 +292,8 @@ public class SegmentWriter {
                 || refcount > Segment.SEGMENT_REFERENCE_LIMIT) {
             refcount -= idcount;
 
-            Set<SegmentId> segmentIds = newIdentityHashSet();
-            
+            Set<SegmentId> segmentIds = newHashSet();
+
             // The set of old record ids in this segment
             // that were previously root record ids, but will no longer be,
             // because the record to be written references them.
@@ -304,7 +302,7 @@ public class SegmentWriter {
             Set<RecordId> notRoots = new HashSet<RecordId>();
             for (RecordId recordId : ids) {
                 SegmentId segmentId = recordId.getSegmentId();
-                if (segmentId != segment.getSegmentId()) {
+                if (!(segmentId.equals(segment.getSegmentId()))) {
                     segmentIds.add(segmentId);
                 } else if (roots.containsKey(recordId)) {
                     notRoots.add(recordId);
@@ -346,7 +344,7 @@ public class SegmentWriter {
                   "Segment cannot have more than 255 references " + segment.getSegmentId());
         }
         for (int index = 0; index < refcount; index++) {
-            if (segmentId == segment.getRefId(index)) {
+            if (segmentId.equals(segment.getRefId(index))) {
                 return index;
             }
         }
@@ -442,7 +440,6 @@ public class SegmentWriter {
             return new MapRecord(mapId);
         }
     }
-
 
     private synchronized RecordId writeListBucket(List<RecordId> bucket) {
         checkArgument(bucket.size() > 1);
@@ -967,7 +964,17 @@ public class SegmentWriter {
                 propertyTypes[i] = (byte) type.tag();
             }
         }
-        ids.addAll(Arrays.asList(propertyNames));
+
+        RecordId propNamesId = null;
+        if (segment.getSegmentVersion().onOrAfter(V_11)) {
+            if (propertyNames.length > 0) {
+                propNamesId = writeList(Arrays.asList(propertyNames));
+                ids.add(propNamesId);
+            }
+        } else {
+            ids.addAll(Arrays.asList(propertyNames));
+        }
+
         checkState(propertyNames.length < (1 << 18));
         head |= propertyNames.length;
 
@@ -984,8 +991,16 @@ public class SegmentWriter {
         if (childNameId != null) {
             writeRecordId(childNameId);
         }
+        if (segment.getSegmentVersion().onOrAfter(V_11)) {
+            if (propNamesId != null) {
+                writeRecordId(propNamesId);
+            }
+        }
         for (int i = 0; i < propertyNames.length; i++) {
-            writeRecordId(propertyNames[i]);
+            if (!segment.getSegmentVersion().onOrAfter(V_11)) {
+                // V10 only
+                writeRecordId(propertyNames[i]);
+            }
             buffer[position++] = propertyTypes[i];
         }
 
@@ -1086,33 +1101,42 @@ public class SegmentWriter {
             ids.add(writeNode(state.getChildNode(template.getChildName())).getRecordId());
         }
 
+        List<RecordId> pIds = Lists.newArrayList();
         for (PropertyTemplate pt : template.getPropertyTemplates()) {
             String name = pt.getName();
             PropertyState property = state.getProperty(name);
 
             if (property instanceof SegmentPropertyState
                     && store.containsSegment(((SegmentPropertyState) property).getRecordId().getSegmentId())) {
-                ids.add(((SegmentPropertyState) property).getRecordId());
+                pIds.add(((SegmentPropertyState) property).getRecordId());
             } else if (before == null
                     || !store.containsSegment(before.getRecordId().getSegmentId())) {
-                ids.add(writeProperty(property));
+                pIds.add(writeProperty(property));
             } else {
                 // reuse previously stored property, if possible
                 PropertyTemplate bt = beforeTemplate.getPropertyTemplate(name);
                 if (bt == null) {
-                    ids.add(writeProperty(property)); // new property
+                    pIds.add(writeProperty(property)); // new property
                 } else {
                     SegmentPropertyState bp = beforeTemplate.getProperty(
                             before.getRecordId(), bt.getIndex());
                     if (property.equals(bp)) {
-                        ids.add(bp.getRecordId()); // no changes
+                        pIds.add(bp.getRecordId()); // no changes
                     } else if (bp.isArray() && bp.getType() != BINARIES) {
                         // reuse entries from the previous list
-                        ids.add(writeProperty(property, bp.getValueRecords()));
+                        pIds.add(writeProperty(property, bp.getValueRecords()));
                     } else {
-                        ids.add(writeProperty(property));
+                        pIds.add(writeProperty(property));
                     }
                 }
+            }
+        }
+
+        if (!pIds.isEmpty()) {
+            if (segment.getSegmentVersion().onOrAfter(V_11)) {
+                ids.add(writeList(pIds));
+            } else {
+                ids.addAll(pIds);
             }
         }
 

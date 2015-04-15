@@ -115,12 +115,12 @@ public class AccessControlAction extends AbstractAuthorizableAction {
     }
 
     @Override
-    public void onCreate(Group group, Root root, NamePathMapper namePathMapper) throws RepositoryException {
+    public void onCreate(@Nonnull Group group, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
         setAC(group, root, namePathMapper);
     }
 
     @Override
-    public void onCreate(User user, String password, Root root, NamePathMapper namePathMapper) throws RepositoryException {
+    public void onCreate(@Nonnull User user, @Nullable String password, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
         setAC(user, root, namePathMapper);
     }
 

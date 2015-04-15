@@ -48,6 +48,7 @@ public class UnionQueryImpl implements Query {
     private long offset;
     private long size = -1;
     private final QueryEngineSettings settings;
+    private boolean isInternal;
     
     UnionQueryImpl(boolean unionAll, Query left, Query right, QueryEngineSettings settings) {
         this.unionAll = unionAll;
@@ -232,8 +233,11 @@ public class UnionQueryImpl implements Query {
             return Arrays.asList(r).iterator();
         }
         if (LOG.isDebugEnabled()) {
-            LOG.debug("query execute union");
-            LOG.debug("query plan {}", getPlan());
+            if (isInternal) {
+                LOG.trace("query union plan {}", getPlan());
+            } else {
+                LOG.debug("query union plan {}", getPlan());
+            }
         }
         Iterator<ResultRowImpl> it = Iterators.concat(left.getRows(), right.getRows());
         if (measure) {
@@ -244,6 +248,11 @@ public class UnionQueryImpl implements Query {
         Comparator<ResultRowImpl> orderBy = ResultRowImpl.getComparator(orderings);
         it = FilterIterators.newCombinedFilter(it, distinct, limit, offset, orderBy, settings);
         return it;     
+    }
+
+    @Override
+    public void setInternal(boolean isInternal) {
+        this.isInternal = isInternal;
     }
     
 }

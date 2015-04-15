@@ -107,17 +107,13 @@ public class RecordTest {
         assertEquals(blockId, level2p.getEntry(0));
         assertEquals(blockId, level2p.getEntry(LEVEL_SIZE * LEVEL_SIZE));
 
-        try {
-            int count = 0;
-            for (RecordId entry : level2p.getEntries()) {
-                assertEquals(blockId, entry);
-                assertEquals(blockId, level2p.getEntry(count));
-                count++;
-            }
-            assertEquals(LEVEL_SIZE * LEVEL_SIZE + 1, count);
-        } catch (IllegalArgumentException e) {
-            fail("OAK-1287");
+        int count = 0;
+        for (RecordId entry : level2p.getEntries()) {
+            assertEquals(blockId, entry);
+            assertEquals(blockId, level2p.getEntry(count));
+            count++;
         }
+        assertEquals(LEVEL_SIZE * LEVEL_SIZE + 1, count);
     }
 
     private ListRecord writeList(int size, RecordId id) {

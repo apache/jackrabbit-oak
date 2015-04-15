@@ -121,7 +121,7 @@ class PropertyIndex implements QueryIndex {
         return values;
     }
 
-    private PropertyIndexPlan plan(NodeState root, Filter filter) {
+    private static PropertyIndexPlan plan(NodeState root, Filter filter) {
         PropertyIndexPlan bestPlan = null;
 
         // TODO support indexes on a path
@@ -132,7 +132,7 @@ class PropertyIndex implements QueryIndex {
             if (PROPERTY.equals(definition.getString(TYPE_PROPERTY_NAME))
                     && definition.hasChildNode(INDEX_CONTENT_NODE_NAME)) {
                 PropertyIndexPlan plan = new PropertyIndexPlan(
-                        entry.getName(), definition, filter);
+                        entry.getName(), root, definition, filter);
                 if (plan.getCost() != Double.POSITIVE_INFINITY) {
                     LOG.debug("property cost for {} is {}",
                             plan.getName(), plan.getCost());

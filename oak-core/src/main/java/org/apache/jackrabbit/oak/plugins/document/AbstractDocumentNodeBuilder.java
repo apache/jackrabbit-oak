@@ -53,7 +53,7 @@ abstract class AbstractDocumentNodeBuilder extends MemoryNodeBuilder {
      */
     @Override
     @Nonnull
-    public NodeBuilder setChildNode(String name, NodeState state) {
+    public NodeBuilder setChildNode(@Nonnull String name, @Nonnull NodeState state) {
         NodeBuilder builder = super.setChildNode(name, EMPTY_NODE);
         for (PropertyState property : state.getProperties()) {
             builder.setProperty(property);
@@ -69,7 +69,7 @@ abstract class AbstractDocumentNodeBuilder extends MemoryNodeBuilder {
 
     @Override
     @Nonnull
-    public DocumentNodeBuilder getChildNode(String name) {
+    public DocumentNodeBuilder getChildNode(@Nonnull String name) {
         checkValidName(name);
         return createChildBuilder(name);
     }

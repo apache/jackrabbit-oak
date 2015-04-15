@@ -18,9 +18,11 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.AbstractMap;
 import java.util.AbstractSet;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
@@ -61,9 +63,32 @@ class ValueMap {
                 if (map.isEmpty()) {
                     docs = doc.getPreviousDocs(property, null).iterator();
                 } else {
-                    docs = Iterators.concat(
-                            Iterators.singletonIterator(doc),
-                            doc.getPreviousDocs(property, null).iterator());
+                    // merge sort local map into maps of previous documents
+                    List<Iterator<NodeDocument>> iterators = 
+                            new ArrayList<Iterator<NodeDocument>>(2);
+                    iterators.add(Iterators.singletonIterator(doc));
+                    iterators.add(doc.getPreviousDocs(property, null).iterator());                            
+                    docs = Iterators.mergeSorted(iterators, new Comparator<NodeDocument>() {
+                                @Override
+                                public int compare(NodeDocument o1,
+                                                   NodeDocument o2) {
+                                    Revision r1 = getFirstRevision(o1);
+                                    Revision r2 = getFirstRevision(o2);
+                                    return c.compare(r1, r2);
+                                }
+                            
+                                private Revision getFirstRevision(NodeDocument d) {
+                                    Map<Revision, String> values;
+                                    if (Objects.equal(d.getId(), doc.getId())) {
+                                        // return local map for main document
+                                        values = d.getLocalMap(property);
+                                    } else {
+                                        values = d.getValueMap(property);
+                                    }
+                                    return values.keySet().iterator().next();
+                                }
+                        
+                            });
                 }
 
                 return new MergeSortedIterators<Map.Entry<Revision, String>>(
@@ -120,27 +145,34 @@ class ValueMap {
 
             @Override
             public String get(Object key) {
-                // first check values map of this document
-                String value = map.get(key);
-                if (value != null) {
-                    return value;
-                }
                 Revision r = (Revision) key;
+                // first check values map of this document
+                if (map.containsKey(r)) {
+                    return map.get(r);
+                }
                 for (NodeDocument prev : doc.getPreviousDocs(property, r)) {
-                    value = prev.getValueMap(property).get(key);
+                    String value = prev.getValueMap(property).get(r);
                     if (value != null) {
                         return value;
                     }
                 }
-                // not found
+                // not found or null
                 return null;
             }
 
             @Override
             public boolean containsKey(Object key) {
-                // can use get()
-                // the values map does not have null values
-                return get(key) != null;
+                // check local map first
+                if (map.containsKey(key)) {
+                    return true;
+                }
+                Revision r = (Revision) key;
+                for (NodeDocument prev : doc.getPreviousDocs(property, r)) {
+                    if (prev.getValueMap(property).containsKey(key)) {
+                        return true;
+                    }
+                }
+                return false;
             }
         };
     }

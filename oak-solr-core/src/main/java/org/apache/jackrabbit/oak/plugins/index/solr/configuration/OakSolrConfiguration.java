@@ -70,7 +70,7 @@ public interface OakSolrConfiguration {
     /**
      * Provide the commit policy to be used by a given {@link org.apache.solr.client.solrj.SolrServer}
      *
-     * @return a {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.CommitPolicy}
+     * @return a {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration.CommitPolicy}
      */
     @Nonnull
     CommitPolicy getCommitPolicy();
@@ -122,4 +122,30 @@ public interface OakSolrConfiguration {
      */
     @Nonnull
     Collection<String> getIgnoredProperties();
+
+    /**
+     * Provide the names of the properties that should be indexed and searched by the Solr index
+     *
+     * @return a {@link java.util.Collection} of property names for properties to be ignored
+     */
+    @Nonnull
+    Collection<String> getUsedProperties();
+
+    /**
+     * Enum for describing Solr commit policy used in a certain instance
+     */
+    enum CommitPolicy {
+        /**
+         * for default Solr commit
+         */
+        HARD,
+        /**
+         * for Solr soft commit
+         */
+        SOFT,
+        /**
+         * if no commits should be sent (relying on auto(soft)commit on the instance itself)
+         */
+        AUTO
+    }
 }

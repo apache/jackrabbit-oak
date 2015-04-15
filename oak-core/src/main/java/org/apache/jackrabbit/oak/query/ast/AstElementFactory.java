@@ -157,4 +157,11 @@ public class AstElementFactory {
         return new SimilarImpl(selectorName, propertyName, path);
     }
 
+    public ConstraintImpl spellcheck(String selectorName, StaticOperandImpl expression) {
+        return new SpellcheckImpl(selectorName, expression);
+    }
+
+    public ConstraintImpl suggest(String selectorName, StaticOperandImpl expression) {
+        return new SuggestImpl(selectorName, expression);
+    }
 }

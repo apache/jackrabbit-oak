@@ -22,8 +22,6 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.StandardSystemProperty;
@@ -36,16 +34,18 @@ import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
 import com.mongodb.ReadPreference;
 import com.mongodb.WriteResult;
-import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.SplitDocumentCleanUp;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
+import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.collect.Iterables.transform;
 import static com.mongodb.QueryBuilder.start;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
 
 /**
@@ -56,7 +56,7 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocTy
  * documents. In such case read from secondaries are preferred</p>
  */
 public class MongoVersionGCSupport extends VersionGCSupport {
-    private final Logger log = LoggerFactory.getLogger(getClass());
+    private static final Logger LOG = LoggerFactory.getLogger(MongoVersionGCSupport.class);
     private final MongoDocumentStore store;
 
     public MongoVersionGCSupport(MongoDocumentStore store) {
@@ -75,39 +75,45 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         return CloseableIterable.wrap(transform(cursor, new Function<DBObject, NodeDocument>() {
             @Override
             public NodeDocument apply(DBObject input) {
-                return store.convertFromDBObject(Collection.NODES, input);
+                return store.convertFromDBObject(NODES, input);
             }
         }), cursor);
     }
 
     @Override
-    public int deleteSplitDocuments(Set<SplitDocType> gcTypes, long oldestRevTimeStamp) {
+    protected SplitDocumentCleanUp createCleanUp(Set<SplitDocType> gcTypes,
+                                                 long oldestRevTimeStamp,
+                                                 VersionGCStats stats) {
+        return new MongoSplitDocCleanUp(gcTypes, oldestRevTimeStamp, stats);
+    }
+
+    @Override
+    protected Iterable<NodeDocument> identifyGarbage(final Set<SplitDocType> gcTypes,
+                                                     final long oldestRevTimeStamp) {
+        return transform(getNodeCollection().find(createQuery(gcTypes, oldestRevTimeStamp)),
+                new Function<DBObject, NodeDocument>() {
+            @Override
+            public NodeDocument apply(DBObject input) {
+                return store.convertFromDBObject(NODES, input);
+            }
+        });
+    }
+
+    private DBObject createQuery(Set<SplitDocType> gcTypes,
+                                 long oldestRevTimeStamp) {
         //OR condition has to be first as we have a index for that
         //((type == DEFAULT_NO_CHILD || type == PROP_COMMIT_ONLY ..) && _sdMaxRevTime < oldestRevTimeStamp(in secs)
         QueryBuilder orClause = start();
         for(SplitDocType type : gcTypes){
             orClause.or(start(NodeDocument.SD_TYPE).is(type.typeCode()).get());
         }
-        DBObject query = start()
+        return start()
                 .and(
-                    orClause.get(),
-                    start(NodeDocument.SD_MAX_REV_TIME_IN_SECS)
-                        .lessThan(NodeDocument.getModifiedInSecs(oldestRevTimeStamp))
-                        .get()
+                        orClause.get(),
+                        start(NodeDocument.SD_MAX_REV_TIME_IN_SECS)
+                                .lessThan(NodeDocument.getModifiedInSecs(oldestRevTimeStamp))
+                                .get()
                 ).get();
-
-        if(log.isDebugEnabled()){
-            //if debug level logging is on then determine the id of documents to be deleted
-            //and log them
-            logSplitDocIdsTobeDeleted(query);
-        }
-
-        WriteResult writeResult = getNodeCollection().remove(query);
-        if (writeResult.getError() != null) {
-            //TODO This might be temporary error or we fail fast and let next cycle try again
-            log.warn("Error occurred while deleting old split documents from Mongo {}", writeResult.getError());
-        }
-        return writeResult.getN();
     }
 
     private void logSplitDocIdsTobeDeleted(DBObject query) {
@@ -115,11 +121,11 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         final BasicDBObject keys = new BasicDBObject(Document.ID, 1);
         List<String> ids;
         DBCursor cursor = getNodeCollection().find(query, keys)
-                .setReadPreference(store.getConfiguredReadPreference(Collection.NODES));
+                .setReadPreference(store.getConfiguredReadPreference(NODES));
         try {
              ids = ImmutableList.copyOf(Iterables.transform(cursor, new Function<DBObject, String>() {
                  @Override
-                 public String apply(@Nullable DBObject input) {
+                 public String apply(DBObject input) {
                      return (String) input.get(Document.ID);
                  }
              }));
@@ -128,10 +134,43 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         }
         StringBuilder sb = new StringBuilder("Split documents with following ids were deleted as part of GC \n");
         Joiner.on(StandardSystemProperty.LINE_SEPARATOR.value()).appendTo(sb, ids);
-        log.debug(sb.toString());
+        LOG.debug(sb.toString());
     }
 
     private DBCollection getNodeCollection(){
-        return store.getDBCollection(Collection.NODES);
+        return store.getDBCollection(NODES);
+    }
+
+    private class MongoSplitDocCleanUp extends SplitDocumentCleanUp {
+
+        protected final Set<SplitDocType> gcTypes;
+        protected final long oldestRevTimeStamp;
+
+        protected MongoSplitDocCleanUp(Set<SplitDocType> gcTypes,
+                                       long oldestRevTimeStamp,
+                                       VersionGCStats stats) {
+            super(MongoVersionGCSupport.this.store, stats,
+                    identifyGarbage(gcTypes, oldestRevTimeStamp));
+            this.gcTypes = gcTypes;
+            this.oldestRevTimeStamp = oldestRevTimeStamp;
+        }
+
+        @Override
+        protected int deleteSplitDocuments() {
+            DBObject query = createQuery(gcTypes, oldestRevTimeStamp);
+
+            if(LOG.isDebugEnabled()){
+                //if debug level logging is on then determine the id of documents to be deleted
+                //and log them
+                logSplitDocIdsTobeDeleted(query);
+            }
+
+            WriteResult writeResult = getNodeCollection().remove(query);
+            if (writeResult.getError() != null) {
+                //TODO This might be temporary error or we fail fast and let next cycle try again
+                LOG.warn("Error occurred while deleting old split documents from Mongo {}", writeResult.getError());
+            }
+            return writeResult.getN();
+        }
     }
 }

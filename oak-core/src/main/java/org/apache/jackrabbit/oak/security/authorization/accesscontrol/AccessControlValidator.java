@@ -20,6 +20,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
@@ -34,9 +36,10 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
-import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
+import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
+import org.apache.jackrabbit.oak.plugins.tree.impl.AbstractTree;
+import org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
@@ -58,7 +61,7 @@ import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
  */
 class AccessControlValidator extends DefaultValidator implements AccessControlConstants {
 
-    private final ImmutableTree parentAfter;
+    private final Tree parentAfter;
 
     private final PrivilegeBitsProvider privilegeBitsProvider;
     private final PrivilegeManager privilegeManager;
@@ -67,20 +70,19 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
     private final TypePredicate isRepoAccessControllable;
     private final TypePredicate isAccessControllable;
 
-    AccessControlValidator(ImmutableTree parentAfter,
+    AccessControlValidator(NodeState parentAfter,
                            PrivilegeManager privilegeManager,
                            PrivilegeBitsProvider privilegeBitsProvider,
                            RestrictionProvider restrictionProvider) {
-        this.parentAfter = parentAfter;
+        this.parentAfter = TreeFactory.createReadOnlyTree(parentAfter);
         this.privilegeBitsProvider = privilegeBitsProvider;
         this.privilegeManager = privilegeManager;
         this.restrictionProvider = restrictionProvider;
-        this.isRepoAccessControllable = new TypePredicate(parentAfter.getNodeState(), MIX_REP_REPO_ACCESS_CONTROLLABLE);
-        this.isAccessControllable = new TypePredicate(parentAfter.getNodeState(), MIX_REP_ACCESS_CONTROLLABLE);
+        this.isRepoAccessControllable = new TypePredicate(parentAfter, MIX_REP_REPO_ACCESS_CONTROLLABLE);
+        this.isAccessControllable = new TypePredicate(parentAfter, MIX_REP_ACCESS_CONTROLLABLE);
     }
 
-    private AccessControlValidator(
-            AccessControlValidator parent, ImmutableTree parentAfter) {
+    private AccessControlValidator(AccessControlValidator parent, Tree parentAfter) {
         this.parentAfter = parentAfter;
         this.privilegeBitsProvider = parent.privilegeBitsProvider;
         this.privilegeManager = parent.privilegeManager;
@@ -117,7 +119,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
 
     @Override
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
-        ImmutableTree treeAfter = checkNotNull(parentAfter.getChild(name));
+        Tree treeAfter = checkNotNull(parentAfter.getChild(name));
 
         checkValidTree(parentAfter, treeAfter, after);
         return new AccessControlValidator(this, treeAfter);
@@ -125,7 +127,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
 
     @Override
     public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
-        ImmutableTree treeAfter = checkNotNull(parentAfter.getChild(name));
+        Tree treeAfter = checkNotNull(parentAfter.getChild(name));
 
         checkValidTree(parentAfter, treeAfter, after);
         return new AccessControlValidator(this, treeAfter);
@@ -139,7 +141,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
 
     //------------------------------------------------------------< private >---
 
-    private void checkValidTree(ImmutableTree parentAfter, Tree treeAfter, NodeState nodeAfter) throws CommitFailedException {
+    private void checkValidTree(Tree parentAfter, Tree treeAfter, NodeState nodeAfter) throws CommitFailedException {
         if (isPolicy(treeAfter)) {
             checkValidPolicy(parentAfter, treeAfter, nodeAfter);
         } else if (isAccessControlEntry(treeAfter)) {
@@ -165,7 +167,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
         }
     }
 
-    private void checkValidPolicy(ImmutableTree parent, Tree policyTree, NodeState policyNode) throws CommitFailedException {
+    private void checkValidPolicy(Tree parent, Tree policyTree, NodeState policyNode) throws CommitFailedException {
         if (REP_REPO_POLICY.equals(policyTree.getName())) {
             checkValidAccessControlledNode(parent, isRepoAccessControllable);
             checkValidRepoAccessControlled(parent);
@@ -194,18 +196,20 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
         }
     }
 
-    private void checkValidAccessControlledNode(ImmutableTree accessControlledTree, TypePredicate requiredMixin) throws CommitFailedException {
+    private static void checkValidAccessControlledNode(@Nonnull Tree accessControlledTree,
+                                                       @Nonnull TypePredicate requiredMixin) throws CommitFailedException {
         if (AC_NODETYPE_NAMES.contains(TreeUtil.getPrimaryTypeName(accessControlledTree))) {
             throw accessViolation(5, "Access control policy within access control content (" + accessControlledTree.getPath() + ')');
         }
 
-        if (!requiredMixin.apply(accessControlledTree.getNodeState())) {
+        NodeState ns = (accessControlledTree instanceof AbstractTree) ? ((AbstractTree) accessControlledTree).getNodeState() : null;
+        if (!requiredMixin.apply(ns)) {
             String msg = "Isolated policy node. Parent is not of type " + requiredMixin;
             throw accessViolation(6, msg);
         }
     }
 
-    private void checkValidAccessControlEntry(Tree aceNode) throws CommitFailedException {
+    private void checkValidAccessControlEntry(@Nonnull Tree aceNode) throws CommitFailedException {
         Tree parent = aceNode.getParent();
         if (!parent.exists() || !NT_REP_ACL.equals(TreeUtil.getPrimaryTypeName(parent))) {
             throw accessViolation(7, "Isolated access control entry at " + aceNode.getPath());
@@ -215,7 +219,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
         checkValidRestrictions(aceNode);
     }
 
-    private void checkValidPrincipal(String principalName) throws CommitFailedException {
+    private void checkValidPrincipal(@CheckForNull String principalName) throws CommitFailedException {
         if (principalName == null || principalName.isEmpty()) {
             throw accessViolation(8, "Missing principal name.");
         }
@@ -277,7 +281,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
         return new CommitFailedException(ACCESS_CONTROL, code, message);
     }
 
-    private class Entry {
+    private final class Entry {
 
         private final String principalName;
         private final PrivilegeBits privilegeBits;

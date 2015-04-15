@@ -35,4 +35,7 @@ public interface ClientStandbyStatusMBean extends StandbyStatusMBean {
     @Description("number of seconds since last successful request")
     int calcSecondsSinceLastSuccess();
 
+    @Description("Runs garbage collection")
+    void cleanup();
+
 }

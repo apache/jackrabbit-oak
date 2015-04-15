@@ -18,53 +18,12 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
-import static com.google.common.collect.Sets.newHashSet;
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertTrue;
-import static org.apache.jackrabbit.JcrConstants.JCR_FROZENMIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_FROZENPRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_FROZENUUID;
-import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
-import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
-import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_ADD_CHILD_NODES;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_ALL;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_LIFECYCLE_MANAGEMENT;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_LOCK_MANAGEMENT;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_MODIFY_ACCESS_CONTROL;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_MODIFY_PROPERTIES;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_NODE_TYPE_DEFINITION_MANAGEMENT;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ_ACCESS_CONTROL;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_REMOVE_CHILD_NODES;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_REMOVE_NODE;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_RETENTION_MANAGEMENT;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_VERSION_MANAGEMENT;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_WORKSPACE_MANAGEMENT;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_WRITE;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_ADD_PROPERTIES;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_ALTER_PROPERTIES;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_INDEX_DEFINITION_MANAGEMENT;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_PRIVILEGE_MANAGEMENT;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_READ_NODES;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_READ_PROPERTIES;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_REMOVE_PROPERTIES;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_USER_MANAGEMENT;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_WRITE;
-
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-
 import javax.jcr.Binary;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.Node;
@@ -81,19 +40,26 @@ import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
-import javax.jcr.security.Privilege;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionManager;
 
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
-import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.junit.Test;
+
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertNotNull;
+import static junit.framework.Assert.assertTrue;
+import static org.apache.jackrabbit.JcrConstants.JCR_FROZENMIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_FROZENPRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_FROZENUUID;
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
+import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
+import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 
 public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
 
@@ -115,11 +81,6 @@ public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
 
             NamespaceRegistry registry = workspace.getNamespaceRegistry();
             registry.registerNamespace("test", "http://www.example.org/");
-
-            PrivilegeManager privilegeManager = workspace.getPrivilegeManager();
-            privilegeManager.registerPrivilege("test:privilege", false, null);
-            privilegeManager.registerPrivilege(
-                    "test:aggregate", false, new String[] { "jcr:read", "test:privilege" });
 
             NodeTypeManager nodeTypeManager = workspace.getNodeTypeManager();
             NodeTypeTemplate template = nodeTypeManager.createNodeTypeTemplate();
@@ -213,102 +174,6 @@ public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
             assertEquals(
                     "http://www.example.org/",
                     session.getNamespaceURI("test"));
-        } finally {
-            session.logout();
-        }
-    }
-
-    @Test
-    public void verifyPrivileges() throws RepositoryException {
-        Set<String> nonAggregatePrivileges = newHashSet(
-            REP_READ_NODES, REP_READ_PROPERTIES, REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES,
-            REP_REMOVE_PROPERTIES, JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE,
-            JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL, JCR_NODE_TYPE_MANAGEMENT,
-            JCR_VERSION_MANAGEMENT, JCR_LOCK_MANAGEMENT, JCR_LIFECYCLE_MANAGEMENT,
-            JCR_RETENTION_MANAGEMENT, JCR_WORKSPACE_MANAGEMENT, JCR_NODE_TYPE_DEFINITION_MANAGEMENT,
-            JCR_NAMESPACE_MANAGEMENT, REP_PRIVILEGE_MANAGEMENT, REP_USER_MANAGEMENT,
-            REP_INDEX_DEFINITION_MANAGEMENT);
-
-        Map<String, String[]> aggregatePrivileges = Maps.newHashMap();
-        aggregatePrivileges.put(JCR_READ,
-                new String[] {REP_READ_NODES, REP_READ_PROPERTIES});
-        aggregatePrivileges.put(JCR_MODIFY_PROPERTIES,
-                new String[] {REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES});
-        aggregatePrivileges.put(JCR_WRITE,
-                new String[] {JCR_MODIFY_PROPERTIES, REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES,
-                        REP_REMOVE_PROPERTIES, JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES,
-                        JCR_REMOVE_NODE});
-        aggregatePrivileges.put(REP_WRITE,
-                new String[] {JCR_WRITE, JCR_MODIFY_PROPERTIES, REP_ADD_PROPERTIES,
-                        REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES, JCR_ADD_CHILD_NODES,
-                        JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE, JCR_NODE_TYPE_MANAGEMENT});
-        aggregatePrivileges.put(JCR_ALL,
-                new String[] {REP_READ_NODES, REP_READ_PROPERTIES, REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES,
-                        REP_REMOVE_PROPERTIES, JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE,
-                        JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL, JCR_NODE_TYPE_MANAGEMENT,
-                        JCR_VERSION_MANAGEMENT, JCR_LOCK_MANAGEMENT, JCR_LIFECYCLE_MANAGEMENT,
-                        JCR_RETENTION_MANAGEMENT, JCR_WORKSPACE_MANAGEMENT, JCR_NODE_TYPE_DEFINITION_MANAGEMENT,
-                        JCR_NAMESPACE_MANAGEMENT, REP_PRIVILEGE_MANAGEMENT, REP_USER_MANAGEMENT,
-                        REP_INDEX_DEFINITION_MANAGEMENT, JCR_READ, JCR_MODIFY_PROPERTIES, JCR_WRITE, REP_WRITE});
-
-        JackrabbitSession session = createAdminSession();
-        try {
-            JackrabbitWorkspace workspace = (JackrabbitWorkspace) session.getWorkspace();
-            PrivilegeManager manager = workspace.getPrivilegeManager();
-            Privilege[] privileges = manager.getRegisteredPrivileges();
-
-            for (Privilege privilege : privileges) {
-                if (privilege.isAggregate()) {
-                    String[] expected = aggregatePrivileges.remove(privilege.getName());
-                    if (expected != null) {
-                        String[] actual = getNames(privilege.getAggregatePrivileges());
-                        assertTrue("Miss match in aggregate privilege " + privilege.getName() +
-                                " expected " + Arrays.toString(expected) +
-                                " actual " + Arrays.toString(actual),
-                            newHashSet(expected).equals(newHashSet(actual)));
-                    }
-                } else {
-                    nonAggregatePrivileges.remove(privilege.getName());
-                }
-            }
-
-            assertTrue("Missing non aggregate privileges: " + nonAggregatePrivileges,
-                    nonAggregatePrivileges.isEmpty());
-            assertTrue("Missing aggregate privileges: " + aggregatePrivileges.keySet(),
-                aggregatePrivileges.isEmpty());
-        }
-        finally {
-            session.logout();
-        }
-    }
-
-    private static String[] getNames(Privilege[] privileges) {
-        String[] names = new String[privileges.length];
-        for (int i = 0; i < privileges.length; i++) {
-            names[i] = privileges[i].getName();
-        }
-        return names;
-    }
-
-    @Test
-    public void verifyCustomPrivileges() throws Exception {
-        JackrabbitSession session = createAdminSession();
-        try {
-            JackrabbitWorkspace workspace =
-                    (JackrabbitWorkspace) session.getWorkspace();
-            PrivilegeManager manager = workspace.getPrivilegeManager();
-
-            Privilege privilege = manager.getPrivilege("test:privilege");
-            assertNotNull(privilege);
-            assertFalse(privilege.isAbstract());
-            assertFalse(privilege.isAggregate());
-            assertEquals(0, privilege.getDeclaredAggregatePrivileges().length);
-
-            Privilege aggregate = manager.getPrivilege("test:aggregate");
-            assertNotNull(aggregate);
-            assertFalse(aggregate.isAbstract());
-            assertTrue(aggregate.isAggregate());
-            assertEquals(2, aggregate.getDeclaredAggregatePrivileges().length);
         } finally {
             session.logout();
         }

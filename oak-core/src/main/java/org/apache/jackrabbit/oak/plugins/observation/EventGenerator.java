@@ -23,7 +23,7 @@ import static com.google.common.collect.Lists.newLinkedList;
 import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
+import static org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants.OAK_CHILD_ORDER;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.spi.state.MoveDetector.SOURCE_PATH;
 
@@ -36,6 +36,8 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.apache.jackrabbit.oak.util.PerfLogger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Continuation-based content diff implementation that generates
@@ -54,6 +56,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
  */
 public class EventGenerator {
 
+    private static final PerfLogger perfLogger = new PerfLogger(
+            LoggerFactory.getLogger(EventGenerator.class.getName()
+                    + ".perf"));
+
     /**
      * Maximum number of content changes to process during the
      * execution of a single diff continuation.
@@ -68,20 +74,27 @@ public class EventGenerator {
      */
     private static final int MAX_QUEUED_CONTINUATIONS = 1000;
 
-    private final LinkedList<Runnable> continuations = newLinkedList();
+    private final LinkedList<Continuation> continuations = newLinkedList();
+
+    private final ContentChangeInfo changeInfo;
 
     /**
      * Creates a new generator instance. Changes to process need to be added
      * through {@link #addHandler(NodeState, NodeState, EventHandler)}
+     * @param changeInfo
      */
-    public EventGenerator() {}
+    public EventGenerator(ContentChangeInfo changeInfo) {
+        this.changeInfo = changeInfo;
+    }
 
     /**
      * Creates a new generator instance for processing the given changes.
      */
     public EventGenerator(
             @Nonnull NodeState before, @Nonnull NodeState after,
+            @Nonnull ContentChangeInfo changeInfo,
             @Nonnull EventHandler handler) {
+        this(changeInfo);
         continuations.addFirst(new Continuation(handler, before, after, 0));
     }
 
@@ -105,11 +118,16 @@ public class EventGenerator {
      */
     public void generate() {
         if (!continuations.isEmpty()) {
-            continuations.removeFirst().run();
+            final Continuation c = continuations.removeFirst();
+            final long start = perfLogger
+                    .start("generate: Starting event generation");
+            c.run();
+            perfLogger.end(start, 1, "generate: Generated {} events",
+                    c.counter);
         }
     }
 
-    private class Continuation implements NodeStateDiff, Runnable {
+    private class Continuation implements NodeStateDiff, Runnable, ContentChangeInfoProvider {
 
         /**
          * Filtered handler of detected content changes.
@@ -163,6 +181,13 @@ public class EventGenerator {
                 // as a result of hitting the MAX_CHANGES_PER_CONTINUATION limit
                 handler.leave(before, after);
             }
+        }
+
+        //-------------------------------------------------< ContentChangeInfoProvider >--
+
+        @Override
+        public ContentChangeInfo getChangeInfo() {
+            return changeInfo;
         }
 
         //-------------------------------------------------< NodeStateDiff >--

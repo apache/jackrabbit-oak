@@ -32,7 +32,7 @@ class Record {
     }
 
     static boolean fastEquals(Record a, Record b) {
-        return a.segmentId == b.segmentId && a.offset == b.offset;
+        return a.offset == b.offset && a.segmentId.equals(b.segmentId);
     }
 
     /**

@@ -58,11 +58,9 @@ import com.google.common.collect.ImmutableMap;
 @Service
 public class ExternalLoginModuleFactory implements LoginModuleFactory {
 
-    /**
-     * default logger
-     */
     private static final Logger log = LoggerFactory.getLogger(ExternalLoginModuleFactory.class);
 
+    @SuppressWarnings("UnusedDeclaration")
     @Property(
             intValue = 50,
             label = "JAAS Ranking",
@@ -71,6 +69,7 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory {
     )
     public static final String JAAS_RANKING = LoginModuleFactory.JAAS_RANKING;
 
+    @SuppressWarnings("UnusedDeclaration")
     @Property(
             value = "SUFFICIENT",
             label = "JAAS Control Flag",
@@ -80,6 +79,7 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory {
     )
     public static final String JAAS_CONTROL_FLAG = LoginModuleFactory.JAAS_CONTROL_FLAG;
 
+    @SuppressWarnings("UnusedDeclaration")
     @Property(
             label = "JAAS Realm",
             description = "The realm name (or application name) against which the LoginModule  is be registered. If no " +
@@ -124,6 +124,7 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory {
      * Activates the LoginModuleFactory service
      * @param context the component context
      */
+    @SuppressWarnings("UnusedDeclaration")
     @Activate
     private void activate(ComponentContext context) {
         //noinspection unchecked
@@ -148,6 +149,7 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory {
         }
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     @Deactivate
     private void deactivate() {
         if (mbeanRegistration != null) {

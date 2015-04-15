@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.jcr.security.user;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +28,6 @@ import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -73,7 +71,7 @@ public class UserImportWithActionsTest extends AbstractImportTest {
     protected ConfigurationParameters getConfigurationParameters() {
         Map<String, Object> userParams = new HashMap<String, Object>();
         userParams.put(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider);
-        return ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams)));
+        return ConfigurationParameters.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams));
     }
 
     @Test
@@ -116,7 +114,7 @@ public class UserImportWithActionsTest extends AbstractImportTest {
     @Test
     public void testAccessControlActionExecutionForUser() throws Exception {
         AccessControlAction a1 = new AccessControlAction();
-        a1.init(securityProvider, ConfigurationParameters.of(Collections.singletonMap(AccessControlAction.USER_PRIVILEGE_NAMES, new String[] {Privilege.JCR_ALL})));
+        a1.init(securityProvider, ConfigurationParameters.of(AccessControlAction.USER_PRIVILEGE_NAMES, new String[] {Privilege.JCR_ALL}));
 
         setAuthorizableActions(a1);
 
@@ -130,11 +128,11 @@ public class UserImportWithActionsTest extends AbstractImportTest {
 
         doImport(USERPATH, xml);
 
-        Authorizable a = userMgr.getAuthorizable("t");
+        Authorizable a = getUserManager().getAuthorizable("t");
         assertNotNull(a);
         assertFalse(a.isGroup());
 
-        AccessControlManager acMgr = adminSession.getAccessControlManager();
+        AccessControlManager acMgr = getImportSession().getAccessControlManager();
         AccessControlPolicy[] policies = acMgr.getPolicies(a.getPath());
         assertNotNull(policies);
         assertEquals(1, policies.length);
@@ -148,7 +146,7 @@ public class UserImportWithActionsTest extends AbstractImportTest {
     @Test
     public void testAccessControlActionExecutionForUser2() throws Exception {
         AccessControlAction a1 = new AccessControlAction();
-        a1.init(securityProvider, ConfigurationParameters.of(Collections.singletonMap(AccessControlAction.USER_PRIVILEGE_NAMES, new String[] {Privilege.JCR_ALL})));
+        a1.init(securityProvider, ConfigurationParameters.of(AccessControlAction.USER_PRIVILEGE_NAMES, new String[] {Privilege.JCR_ALL}));
         setAuthorizableActions(a1);
 
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
@@ -161,11 +159,11 @@ public class UserImportWithActionsTest extends AbstractImportTest {
 
         doImport(USERPATH, xml);
 
-        Authorizable a = userMgr.getAuthorizable("t");
+        Authorizable a = getUserManager().getAuthorizable("t");
         assertNotNull(a);
         assertFalse(a.isGroup());
 
-        AccessControlManager acMgr = adminSession.getAccessControlManager();
+        AccessControlManager acMgr = getImportSession().getAccessControlManager();
         AccessControlPolicy[] policies = acMgr.getPolicies(a.getPath());
         assertNotNull(policies);
         assertEquals(1, policies.length);
@@ -179,7 +177,7 @@ public class UserImportWithActionsTest extends AbstractImportTest {
     @Test
     public void testAccessControlActionExecutionForGroup() throws Exception {
         AccessControlAction a1 = new AccessControlAction();
-        a1.init(securityProvider, ConfigurationParameters.of(Collections.singletonMap(AccessControlAction.GROUP_PRIVILEGE_NAMES, new String[] {Privilege.JCR_READ})));
+        a1.init(securityProvider, ConfigurationParameters.of(AccessControlAction.GROUP_PRIVILEGE_NAMES, new String[] {Privilege.JCR_READ}));
         setAuthorizableActions(a1);
 
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
@@ -191,11 +189,11 @@ public class UserImportWithActionsTest extends AbstractImportTest {
 
         doImport(GROUPPATH, xml);
 
-        Authorizable a = userMgr.getAuthorizable("g");
+        Authorizable a = getUserManager().getAuthorizable("g");
         assertNotNull(a);
         assertTrue(a.isGroup());
 
-        AccessControlManager acMgr = adminSession.getAccessControlManager();
+        AccessControlManager acMgr = getImportSession().getAccessControlManager();
         AccessControlPolicy[] policies = acMgr.getPolicies(a.getPath());
         assertNotNull(policies);
         assertEquals(1, policies.length);
@@ -213,6 +211,7 @@ public class UserImportWithActionsTest extends AbstractImportTest {
         private void addAction(AuthorizableAction action) {
             actions.add(action);
         }
+        @Nonnull
         @Override
         public List<? extends AuthorizableAction> getAuthorizableActions(@Nonnull SecurityProvider securityProvider) {
             return actions;
@@ -239,12 +238,12 @@ public class UserImportWithActionsTest extends AbstractImportTest {
         }
 
         @Override
-        public void onRemove(Authorizable authorizable, Root root, NamePathMapper namePathMapper) throws RepositoryException {
+        public void onRemove(Authorizable authorizable, Root root, NamePathMapper namePathMapper) {
             // ignore
         }
 
         @Override
-        public void onPasswordChange(User user, String newPassword, Root root, NamePathMapper namePathMapper) throws RepositoryException {
+        public void onPasswordChange(User user, String newPassword, Root root, NamePathMapper namePathMapper) {
             pw = newPassword;
         }
     }

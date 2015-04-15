@@ -107,7 +107,7 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 })
 public class UserConfigurationImpl extends ConfigurationBase implements UserConfiguration, SecurityConfiguration {
 
-    private final UserAuthenticationFactory defaultAuthFactory = new UserAuthenticationFactoryImpl();
+    private static final UserAuthenticationFactory DEFAULT_AUTH_FACTORY = new UserAuthenticationFactoryImpl();
 
     public UserConfigurationImpl() {
         super();
@@ -117,6 +117,11 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
         super(securityProvider, securityProvider.getParameters(NAME));
     }
 
+    public static UserAuthenticationFactory getDefaultAuthenticationFactory() {
+        return DEFAULT_AUTH_FACTORY;
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
     @Activate
     private void activate(Map<String, Object> properties) {
         setParameters(ConfigurationParameters.of(properties));
@@ -136,7 +141,7 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
         if (!params.containsKey(UserConstants.PARAM_USER_AUTHENTICATION_FACTORY)) {
             return ConfigurationParameters.of(
                     params,
-                    ConfigurationParameters.of(UserConstants.PARAM_USER_AUTHENTICATION_FACTORY, defaultAuthFactory));
+                    ConfigurationParameters.of(UserConstants.PARAM_USER_AUTHENTICATION_FACTORY, DEFAULT_AUTH_FACTORY));
         } else {
             return params;
         }
@@ -150,7 +155,7 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
 
     @Nonnull
     @Override
-    public List<? extends ValidatorProvider> getValidators(String workspaceName, Set<Principal> principals, MoveTracker moveTracker) {
+    public List<? extends ValidatorProvider> getValidators(@Nonnull String workspaceName, @Nonnull Set<Principal> principals, @Nonnull MoveTracker moveTracker) {
         return Collections.singletonList(new UserValidatorProvider(getParameters()));
     }
 

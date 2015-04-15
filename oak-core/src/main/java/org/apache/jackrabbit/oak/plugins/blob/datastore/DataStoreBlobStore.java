@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
@@ -48,6 +49,7 @@ import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.MultiDataStoreAware;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
+import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.slf4j.Logger;
@@ -62,7 +64,8 @@ import static com.google.common.collect.Iterators.transform;
  * It also handles inlining binaries if there size is smaller than
  * {@link org.apache.jackrabbit.core.data.DataStore#getMinRecordLength()}
  */
-public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollectableBlobStore {
+public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore,
+        GarbageCollectableBlobStore {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final DataStore delegate;
@@ -117,7 +120,7 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
 
     @Override
     public DataRecord getRecordIfStored(DataIdentifier identifier) throws DataStoreException {
-        if(isInMemoryRecord(identifier)){
+        if (isInMemoryRecord(identifier)) {
             return getDataRecord(identifier.toString());
         }
         return delegate.getRecordIfStored(identifier);
@@ -125,7 +128,7 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
 
     @Override
     public DataRecord getRecord(DataIdentifier identifier) throws DataStoreException {
-        if(isInMemoryRecord(identifier)){
+        if (isInMemoryRecord(identifier)) {
             return getDataRecord(identifier.toString());
         }
         return delegate.getRecord(identifier);
@@ -218,7 +221,7 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
         try {
             checkNotNull(encodedBlobId, "BlobId must be specified");
             BlobId id = BlobId.of(encodedBlobId);
-            if(encodeLengthInId && id.hasLengthInfo()){
+            if (encodeLengthInId && id.hasLengthInfo()) {
                 return id.length;
             }
             return getDataRecord(id.blobId).getLength();
@@ -228,7 +231,7 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
     }
 
     @Override
-    public String getBlobId(String reference) {
+    public String getBlobId(@Nonnull String reference) {
         checkNotNull(reference);
         DataRecord record;
         try {
@@ -243,20 +246,20 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
     }
 
     @Override
-    public String getReference(String encodedBlobId) {
+    public String getReference(@Nonnull String encodedBlobId) {
         checkNotNull(encodedBlobId);
         String blobId = extractBlobId(encodedBlobId);
         //Reference are not created for in memory record
-        if(InMemoryDataRecord.isInstance(blobId)){
+        if (InMemoryDataRecord.isInstance(blobId)) {
             return null;
         }
 
         DataRecord record;
         try {
             record = delegate.getRecord(new DataIdentifier(blobId));
-            if(record != null){
+            if (record != null) {
                 return record.getReference();
-            }else{
+            } else {
                 log.debug("No blob found for id [{}]", blobId);
             }
         } catch (DataStoreException e) {
@@ -298,7 +301,7 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
 
     @Override
     public void setBlockSize(int x) {
-
+        // nothing to do
     }
 
     @Override
@@ -321,7 +324,7 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
 
     @Override
     public void startMark() throws IOException {
-
+        // nothing to do
     }
 
     @Override
@@ -331,7 +334,7 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
 
     @Override
     public void clearCache() {
-
+        // nothing to do
     }
 
     @Override
@@ -361,10 +364,10 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
                 }
                 return false;
             }
-        }),new Function<DataRecord, String>() {
+        }), new Function<DataRecord, String>() {
             @Override
             public String apply(DataRecord input) {
-                if(encodeLengthInId) {
+                if (encodeLengthInId) {
                     return BlobId.of(input).encodedValue();
                 }
                 return input.getIdentifier().toString();
@@ -392,6 +395,48 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
     @Override
     public Iterator<String> resolveChunks(String blobId) throws IOException {
         return Iterators.singletonIterator(blobId);
+    }
+
+    @Override
+    public void addMetadataRecord(InputStream stream, String name) throws DataStoreException {
+        if (delegate instanceof SharedDataStore) {
+            ((SharedDataStore) delegate).addMetadataRecord(stream, name);
+        }
+    }
+
+    @Override public DataRecord getMetadataRecord(String name) {
+        if (delegate instanceof SharedDataStore) {
+            return ((SharedDataStore) delegate).getMetadataRecord(name);
+        }
+        return null;
+    }
+
+    @Override
+    public List<DataRecord> getAllMetadataRecords(String prefix) {
+        if (delegate instanceof SharedDataStore) {
+            return ((SharedDataStore) delegate).getAllMetadataRecords(prefix);
+        }
+        return null;
+    }
+
+    @Override
+    public boolean deleteMetadataRecord(String name) {
+        return delegate instanceof SharedDataStore && ((SharedDataStore) delegate).deleteMetadataRecord(name);
+    }
+
+    @Override
+    public void deleteAllMetadataRecords(String prefix) {
+        if (delegate instanceof SharedDataStore) {
+            ((SharedDataStore) delegate).deleteAllMetadataRecords(prefix);
+        }
+    }
+
+    @Override
+    public Type getType() {
+        if (delegate instanceof SharedDataStore) {
+            return Type.SHARED;
+        }
+        return Type.DEFAULT;
     }
 
     //~---------------------------------------------< Object >
@@ -423,16 +468,16 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
 
     private DataRecord getDataRecord(String blobId) throws DataStoreException {
         DataRecord id;
-        if(InMemoryDataRecord.isInstance(blobId)){
+        if (InMemoryDataRecord.isInstance(blobId)) {
             id = InMemoryDataRecord.getInstance(blobId);
-        }else{
+        } else {
             id = delegate.getRecord(new DataIdentifier(blobId));
         }
         checkNotNull(id, "No DataRecord found for blobId [%s]", blobId);
         return id;
     }
 
-    private boolean isInMemoryRecord(DataIdentifier identifier){
+    private static boolean isInMemoryRecord(DataIdentifier identifier) {
         return InMemoryDataRecord.isInstance(identifier.toString());
     }
 
@@ -469,15 +514,15 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
         return record;
     }
 
-    private String getBlobId(DataRecord dr){
-        if(encodeLengthInId){
+    private String getBlobId(DataRecord dr) {
+        if (encodeLengthInId) {
             return BlobId.of(dr).encodedValue();
         }
         return dr.getIdentifier().toString();
     }
 
-    private String extractBlobId(String encodedBlobId){
-        if(encodeLengthInId){
+    private String extractBlobId(String encodedBlobId) {
+        if (encodeLengthInId) {
             return BlobId.of(encodedBlobId).blobId;
         }
         return encodedBlobId;
@@ -507,36 +552,36 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
 
         BlobId(String encodedBlobId) {
             int indexOfSep = encodedBlobId.lastIndexOf(SEP);
-            if(indexOfSep != -1){
+            if (indexOfSep != -1) {
                 this.blobId = encodedBlobId.substring(0, indexOfSep);
                 this.length = Long.valueOf(encodedBlobId.substring(indexOfSep+SEP.length()));
-            }else{
+            } else {
                 this.blobId = encodedBlobId;
                 this.length = -1;
             }
         }
 
-        String encodedValue(){
-            if(hasLengthInfo()){
+        String encodedValue() {
+            if (hasLengthInfo()) {
                 return blobId + SEP + String.valueOf(length);
-            } else{
+            } else {
                 return blobId;
             }
         }
 
-        boolean hasLengthInfo(){
+        boolean hasLengthInfo() {
             return length != -1;
         }
 
-        static boolean isEncoded(String encodedBlobId){
+        static boolean isEncoded(String encodedBlobId) {
             return encodedBlobId.contains(SEP);
         }
 
-        static BlobId of(String encodedValue){
+        static BlobId of(String encodedValue) {
             return new BlobId(encodedValue);
         }
 
-        static BlobId of(DataRecord dr){
+        static BlobId of(DataRecord dr) {
             return new BlobId(dr);
         }
     }

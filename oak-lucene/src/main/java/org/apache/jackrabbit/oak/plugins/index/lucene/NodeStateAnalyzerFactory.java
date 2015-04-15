@@ -37,8 +37,9 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
-import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
+import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.util.AbstractAnalysisFactory;
@@ -56,7 +57,6 @@ import org.apache.lucene.util.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
 
@@ -68,7 +68,11 @@ import static com.google.common.collect.Lists.newArrayList;
 final class NodeStateAnalyzerFactory{
     private static final AtomicBoolean versionWarningAlreadyLogged = new AtomicBoolean(false);
 
-    private static final Set<String> IGNORE_PROP_NAMES = ImmutableSet.of(LuceneIndexConstants.ANL_CLASS, LuceneIndexConstants.ANL_NAME);
+    private static final Set<String> IGNORE_PROP_NAMES = ImmutableSet.of(
+            LuceneIndexConstants.ANL_CLASS,
+            LuceneIndexConstants.ANL_NAME,
+            JcrConstants.JCR_PRIMARYTYPE
+    );
 
     private static final Logger log = LoggerFactory.getLogger(NodeStateAnalyzerFactory.class);
 
@@ -101,7 +105,7 @@ final class NodeStateAnalyzerFactory{
     private TokenFilterFactory[] loadTokenFilterFactories(NodeState tokenFiltersState) {
         List<TokenFilterFactory> result = newArrayList();
 
-        ImmutableTree tree = new ImmutableTree(tokenFiltersState);
+        Tree tree = TreeFactory.createReadOnlyTree(tokenFiltersState);
         for (Tree t : tree.getChildren()){
             NodeState state = tokenFiltersState.getChildNode(t.getName());
 
@@ -119,7 +123,7 @@ final class NodeStateAnalyzerFactory{
         List<CharFilterFactory> result = newArrayList();
 
         //Need to read children in order
-        ImmutableTree tree = new ImmutableTree(charFiltersState);
+        Tree tree = TreeFactory.createReadOnlyTree(charFiltersState);
         for (Tree t : tree.getChildren()){
             NodeState state = charFiltersState.getChildNode(t.getName());
 
@@ -232,19 +236,9 @@ final class NodeStateAnalyzerFactory{
         return version;
     }
 
-    /**
-     * Assumes that given state is of type nt:file and then reads
-     * the jcr:content/@jcr:data property to get the binary content
-     */
-    private static Blob getBlob(NodeState state, String resourceName){
-        NodeState contentNode = state.getChildNode(JcrConstants.JCR_CONTENT);
-        checkArgument(contentNode.exists(), "Was expecting to find jcr:content node to read resource %s", resourceName);
-        return contentNode.getProperty(JcrConstants.JCR_DATA).getValue(Type.BINARY);
-    }
-
     private static CharArraySet loadStopwordSet(NodeState file, String name,
                                                   Version matchVersion) throws IOException {
-        Blob blob = getBlob(file, name);
+        Blob blob = ConfigUtil.getBlob(file, name);
         Reader stopwords = new InputStreamReader(blob.getNewStream(), IOUtils.CHARSET_UTF_8);
         try {
             return WordlistLoader.getWordSet(stopwords, matchVersion);
@@ -265,7 +259,7 @@ final class NodeStateAnalyzerFactory{
         @Override
         public InputStream openResource(String resource) throws IOException {
             if (state.hasChildNode(resource)){
-                return getBlob(state.getChildNode(resource), resource).getNewStream();
+                return ConfigUtil.getBlob(state.getChildNode(resource), resource).getNewStream();
             }
             return delegate.openResource(resource);
         }

@@ -19,8 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.util.ArrayList;
+import java.io.IOException;
 import java.util.EnumSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -29,20 +30,24 @@ import com.google.common.base.Joiner;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoVersionGCSupport;
+
+import org.apache.jackrabbit.oak.commons.sort.StringSort;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.collect.Iterators.partition;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.COMMIT_ROOT_ONLY;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_LEAF;
 
 public class VersionGarbageCollector {
+    //Kept less than MongoDocumentStore.IN_CLAUSE_BATCH_SIZE to avoid re-partitioning
+    private static final int DELETE_BATCH_SIZE = 450;
     private final DocumentNodeStore nodeStore;
     private final VersionGCSupport versionStore;
+    private int overflowToDiskThreshold = 100000;
 
-    private final Logger log = LoggerFactory.getLogger(getClass());
+    private static final Logger log = LoggerFactory.getLogger(VersionGarbageCollector.class);
 
     /**
      * Split document types which can be safely garbage collected
@@ -50,18 +55,13 @@ public class VersionGarbageCollector {
     private static final Set<NodeDocument.SplitDocType> GC_TYPES = EnumSet.of(
             DEFAULT_LEAF, COMMIT_ROOT_ONLY);
 
-    VersionGarbageCollector(DocumentNodeStore nodeStore) {
+    VersionGarbageCollector(DocumentNodeStore nodeStore,
+                            VersionGCSupport gcSupport) {
         this.nodeStore = nodeStore;
-
-        if(nodeStore.getDocumentStore() instanceof MongoDocumentStore){
-            this.versionStore =
-                    new MongoVersionGCSupport((MongoDocumentStore) nodeStore.getDocumentStore());
-        }else {
-            this.versionStore = new VersionGCSupport(nodeStore.getDocumentStore());
-        }
+        this.versionStore = gcSupport;
     }
 
-    public VersionGCStats gc(long maxRevisionAge, TimeUnit unit) {
+    public VersionGCStats gc(long maxRevisionAge, TimeUnit unit) throws IOException {
         long maxRevisionAgeInMillis = unit.toMillis(maxRevisionAge);
         Stopwatch sw = Stopwatch.createStarted();
         VersionGCStats stats = new VersionGCStats();
@@ -90,46 +90,92 @@ public class VersionGarbageCollector {
         return stats;
     }
 
-    private void collectSplitDocuments(VersionGCStats stats, long oldestRevTimeStamp) {
-        int count = versionStore.deleteSplitDocuments(GC_TYPES, oldestRevTimeStamp);
-        stats.splitDocGCCount += count;
+    public void setOverflowToDiskThreshold(int overflowToDiskThreshold) {
+        this.overflowToDiskThreshold = overflowToDiskThreshold;
     }
 
-    private void collectDeletedDocuments(VersionGCStats stats, Revision headRevision, long oldestRevTimeStamp) {
-        List<String> docIdsToDelete = new ArrayList<String>();
-        Iterable<NodeDocument> itr = versionStore.getPossiblyDeletedDocs(oldestRevTimeStamp);
+    private void collectSplitDocuments(VersionGCStats stats, long oldestRevTimeStamp) {
+        versionStore.deleteSplitDocuments(GC_TYPES, oldestRevTimeStamp, stats);
+    }
+
+    private void collectDeletedDocuments(VersionGCStats stats, Revision headRevision, long oldestRevTimeStamp)
+            throws IOException {
+        int docsTraversed = 0;
+        final int progressBatchSize = 10000;
+        StringSort docIdsToDelete = new StringSort(overflowToDiskThreshold, NodeDocumentIdComparator.INSTANCE);
         try {
-            for (NodeDocument doc : itr) {
-                //Check if node is actually deleted at current revision
-                //As node is not modified since oldestRevTimeStamp then
-                //this node has not be revived again in past maxRevisionAge
-                //So deleting it is safe
-                if (doc.getNodeAtRevision(nodeStore, headRevision, null) == null) {
-                    docIdsToDelete.add(doc.getId());
-                    //Collect id of all previous docs also
-                    for (NodeDocument prevDoc : ImmutableList.copyOf(doc.getAllPreviousDocs())) {
-                        docIdsToDelete.add(prevDoc.getId());
+            stats.collectDeletedDocs.start();
+            Iterable<NodeDocument> itr = versionStore.getPossiblyDeletedDocs(oldestRevTimeStamp);
+            try {
+                for (NodeDocument doc : itr) {
+                    //Check if node is actually deleted at current revision
+                    //As node is not modified since oldestRevTimeStamp then
+                    //this node has not be revived again in past maxRevisionAge
+                    //So deleting it is safe
+                    docsTraversed++;
+                    if (docsTraversed % progressBatchSize == 0){
+                        log.info("Iterated through {} documents so far. {} found to be deleted", docsTraversed, docIdsToDelete.getSize());
+                    }
+                    if (doc.getNodeAtRevision(nodeStore, headRevision, null) == null) {
+                        docIdsToDelete.add(doc.getId());
+                        //Collect id of all previous docs also
+                        for (NodeDocument prevDoc : ImmutableList.copyOf(doc.getAllPreviousDocs())) {
+                            docIdsToDelete.add(prevDoc.getId());
+                        }
                     }
                 }
+            } finally {
+                Utils.closeIfCloseable(itr);
             }
-        } finally {
-            Utils.closeIfCloseable(itr);
-        }
+            stats.collectDeletedDocs.stop();
 
-        if(log.isDebugEnabled()) {
-            StringBuilder sb = new StringBuilder("Deleted document with following ids were deleted as part of GC \n");
-            Joiner.on(StandardSystemProperty.LINE_SEPARATOR.value()).appendTo(sb, docIdsToDelete);
-            log.debug(sb.toString());
+            if (docIdsToDelete.isEmpty()){
+                return;
+            }
+
+            docIdsToDelete.sort();
+            log.info("Proceeding to delete [{}] documents", docIdsToDelete.getSize());
+
+            stats.deleteDeletedDocs.start();
+            Iterator<List<String>> idListItr = partition(docIdsToDelete.getIds(), DELETE_BATCH_SIZE);
+            int deletedCount = 0;
+            int lastLoggedCount = 0;
+            while (idListItr.hasNext()) {
+                List<String> deletionBatch = idListItr.next();
+                deletedCount += deletionBatch.size();
+
+                if (log.isDebugEnabled()) {
+                    StringBuilder sb = new StringBuilder("Performing batch deletion of documents with following ids. \n");
+                    Joiner.on(StandardSystemProperty.LINE_SEPARATOR.value()).appendTo(sb, deletionBatch);
+                    log.debug(sb.toString());
+                }
+                log.debug("Deleted [{}] documents so far", deletedCount);
+
+                if (deletedCount - lastLoggedCount >= progressBatchSize){
+                    lastLoggedCount = deletedCount;
+                    double progress = deletedCount * 1.0 / docIdsToDelete.getSize() * 100;
+                    String msg = String.format("Deleted %d (%1.2f%%) documents so far", deletedCount, progress);
+                    log.info(msg);
+                }
+
+                nodeStore.getDocumentStore().remove(Collection.NODES, deletionBatch);
+            }
+
+            nodeStore.invalidateDocChildrenCache();
+            stats.deleteDeletedDocs.stop();
+            stats.deletedDocGCCount += docIdsToDelete.getSize();
+        } finally {
+            docIdsToDelete.close();
         }
-        nodeStore.getDocumentStore().remove(Collection.NODES, docIdsToDelete);
-        nodeStore.invalidateDocChildrenCache();
-        stats.deletedDocGCCount += docIdsToDelete.size();
     }
 
     public static class VersionGCStats {
         boolean ignoredGCDueToCheckPoint;
         int deletedDocGCCount;
         int splitDocGCCount;
+        int intermediateSplitDocGCCount;
+        final Stopwatch collectDeletedDocs = Stopwatch.createUnstarted();
+        final Stopwatch deleteDeletedDocs = Stopwatch.createUnstarted();
 
 
         @Override
@@ -138,6 +184,9 @@ public class VersionGarbageCollector {
                     "ignoredGCDueToCheckPoint=" + ignoredGCDueToCheckPoint +
                     ", deletedDocGCCount=" + deletedDocGCCount +
                     ", splitDocGCCount=" + splitDocGCCount +
+                    ", intermediateSplitDocGCCount=" + intermediateSplitDocGCCount +
+                    ", timeToCollectDeletedDocs=" + collectDeletedDocs +
+                    ", timeTakenToDeleteDocs=" + deleteDeletedDocs +
                     '}';
         }
     }

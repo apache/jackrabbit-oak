@@ -206,6 +206,7 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
             public Object getAttribute(String attributeName) {
                 return null;
             }
+            @Nonnull
             @Override
             public Set<Principal> getPrincipals() {
                 return null;

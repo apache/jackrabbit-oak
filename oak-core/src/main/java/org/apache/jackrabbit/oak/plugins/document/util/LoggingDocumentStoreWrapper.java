@@ -17,16 +17,19 @@
 package org.apache.jackrabbit.oak.plugins.document.util;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
+import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -219,10 +222,10 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public void invalidateCache() {
+    public CacheInvalidationStats invalidateCache() {
         try {
             logMethod("invalidateCache");
-            store.invalidateCache();
+            return store.invalidateCache();
         } catch (Exception e) {
             logException(e);
             throw convert(e);
@@ -279,6 +282,27 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
         }
     }
 
+    @Override
+    public CacheStats getCacheStats() {
+        try {
+            logMethod("getCacheStats");
+            return logResult(new Callable<CacheStats>() {
+                @Override
+                public CacheStats call() throws Exception {
+                    return store.getCacheStats();
+                }
+            });
+        } catch (Exception e) {
+            logException(e);
+            throw convert(e);
+        }
+    }
+
+    @Override
+    public Map<String, String> getMetadata() {
+        return store.getMetadata();
+    }
+
     private void logMethod(String methodName, Object... args) {
         StringBuilder buff = new StringBuilder("ds");
         buff.append('.').append(methodName).append('(');
@@ -328,5 +352,4 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
         }
         LOG.info(out);
     }
-
 }

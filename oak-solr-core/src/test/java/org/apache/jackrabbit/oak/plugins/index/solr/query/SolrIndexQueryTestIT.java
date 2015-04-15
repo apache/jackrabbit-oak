@@ -88,6 +88,11 @@ public class SolrIndexQueryTestIT extends AbstractQueryTest {
     }
 
     @Test
+    public void sql1() throws Exception {
+        test("sql1.txt");
+    }
+
+    @Test
     public void sql2() throws Exception {
         test("sql2.txt");
     }
@@ -286,6 +291,26 @@ public class SolrIndexQueryTestIT extends AbstractQueryTest {
     }
 
     @Test
+    public void testRepSimilarXPathQuery() throws Exception {
+        String query = "//element(*, nt:base)[rep:similar(., '/test/a')]";
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("text", "Hello World Hello World");
+        test.addChild("b").setProperty("text", "Hello World");
+        test.addChild("c").setProperty("text", "World");
+        test.addChild("d").setProperty("text", "Hello");
+        test.addChild("e").setProperty("text", "World");
+        test.addChild("f").setProperty("text", "Hello");
+        test.addChild("g").setProperty("text", "World");
+        test.addChild("h").setProperty("text", "Hello");
+        root.commit();
+        Iterator<String> result = executeQuery(query, "xpath").iterator();
+        assertTrue(result.hasNext());
+        assertEquals("/test/b", result.next());
+        assertTrue(result.hasNext());
+        assertEquals("/test/c", result.next());
+    }
+
+    @Test
     public void nativeSolr() throws Exception {
         test("native_solr.txt");
     }
@@ -420,5 +445,51 @@ public class SolrIndexQueryTestIT extends AbstractQueryTest {
 
         assertQuery("//*[jcr:contains(., 'media') and (@p = 'dam/smartcollection' or @p = 'dam/collection') ]", "xpath",
                 ImmutableList.of(one.getPath(), two.getPath()));
+    }
+
+    @Test
+    public void testSortingOnPath() throws Exception {
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").addChild("c");
+        test.addChild("b").addChild("d");
+        root.commit();
+
+        Iterator<String> result = executeQuery(
+                "select [jcr:path] from [nt:base] where isdescendantnode('/test') order by [jcr:path] asc",
+                "JCR-SQL2").iterator();
+        assertTrue(result.hasNext());
+        assertEquals("/test/a", result.next());
+        assertTrue(result.hasNext());
+        assertEquals("/test/a/c", result.next());
+        assertTrue(result.hasNext());
+        assertEquals("/test/b", result.next());
+        assertTrue(result.hasNext());
+        assertEquals("/test/b/d", result.next());
+        assertFalse(result.hasNext());
+    }
+
+    @Test
+    public void testSortingOnProperty() throws Exception {
+        Tree test = root.getTree("/").addChild("test");
+        Tree a = test.addChild("a");
+        a.setProperty("foo", "bar");
+        a.addChild("c").setProperty("foo", "car");
+        Tree b = test.addChild("b");
+        b.setProperty("foo", "tar");
+        b.addChild("d").setProperty("foo", "jar");
+        root.commit();
+
+        Iterator<String> result = executeQuery(
+                "select [jcr:path] from [nt:base] where isdescendantnode('/test') order by [foo] asc",
+                "JCR-SQL2").iterator();
+        assertTrue(result.hasNext());
+        assertEquals("/test/a", result.next());
+        assertTrue(result.hasNext());
+        assertEquals("/test/a/c", result.next());
+        assertTrue(result.hasNext());
+        assertEquals("/test/b/d", result.next());
+        assertTrue(result.hasNext());
+        assertEquals("/test/b", result.next());
+        assertFalse(result.hasNext());
     }
 }

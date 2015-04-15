@@ -18,14 +18,22 @@ package org.apache.jackrabbit.oak.plugins.index.property.strategy;
 
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ENTRY_COUNT_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.KEY_COUNT_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditor.COUNT_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditor.DEFAULT_RESOLUTION;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.util.ApproximateCounter.COUNT_PROPERTY_PREFIX;
 
 import java.util.Collections;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Assert;
@@ -62,7 +70,7 @@ public class ContentMirrorStoreStrategyTest {
         NodeBuilder index = root.builder();
 
         for (String path : asList("/", "a/b/c", "a/b/d", "b", "d/e", "d/e/f")) {
-            store.update(index, path, EMPTY, KEY);
+            store.update(index, path, null, null, EMPTY, KEY);
         }
         checkPath(index, "key", "", true);
         checkPath(index, "key", "a/b/c", true);
@@ -73,30 +81,30 @@ public class ContentMirrorStoreStrategyTest {
 
         // remove the root key, removes just the "match" property, when the
         // index is not empty
-        store.update(index, "/", KEY, EMPTY);
+        store.update(index, "/", null, null, KEY, EMPTY);
         checkPath(index, "key", "d/e/f", true);
 
         // removing intermediary path doesn't remove the entire subtree
-        store.update(index, "d/e", KEY, EMPTY);
+        store.update(index, "d/e", null, null, KEY, EMPTY);
         checkPath(index, "key", "d/e/f", true);
 
         // removing intermediary path doesn't remove the entire subtree
-        store.update(index, "d/e/f", KEY, EMPTY);
+        store.update(index, "d/e/f", null, null, KEY, EMPTY);
         checkNotPath(index, "key", "d");
 
         // brother segment removed
-        store.update(index, "a/b/d", KEY, EMPTY);
-        store.update(index, "a/b", KEY, EMPTY);
+        store.update(index, "a/b/d", null, null, KEY, EMPTY);
+        store.update(index, "a/b", null, null, KEY, EMPTY);
         checkPath(index, "key", "a/b/c", true);
 
         // reinsert root and remove everything else
-        store.update(index, "", EMPTY, KEY);
-        store.update(index, "d/e/f", KEY, EMPTY);
-        store.update(index, "b", KEY, EMPTY);
-        store.update(index, "a/b/c", KEY, EMPTY);
+        store.update(index, "", null, null, EMPTY, KEY);
+        store.update(index, "d/e/f", null, null, KEY, EMPTY);
+        store.update(index, "b", null, null, KEY, EMPTY);
+        store.update(index, "a/b/c", null, null, KEY, EMPTY);
 
         // remove the root key when the index is empty
-        store.update(index, "", KEY, EMPTY);
+        store.update(index, "", null, null, KEY, EMPTY);
         Assert.assertEquals(0, index.getChildNodeCount(1));
     }
 
@@ -133,11 +141,153 @@ public class ContentMirrorStoreStrategyTest {
         NodeState root = EMPTY_NODE;
         NodeBuilder indexMeta = root.builder();
         NodeBuilder index = indexMeta.child(INDEX_CONTENT_NODE_NAME);
-        store.update(index, "a", EMPTY, KEY);
-        store.update(index, "b", EMPTY, KEY);
+        store.update(index, "a", null, null, EMPTY, KEY);
+        store.update(index, "b", null, null, EMPTY, KEY);
         Assert.assertTrue(
                 "ContentMirrorStoreStrategy should guarantee uniqueness on insert",
-                store.count(indexMeta.getNodeState(), Collections.singleton("key"), 2) > 1);
+                store.count(root, indexMeta.getNodeState(), Collections.singleton("key"), 2) > 1);
+    }
+    
+    @Test
+    public void testIndexCountersUsageWithoutPathRestriction() {
+        final long approxNodeCount = 50;
+        final long approxKeyCount = 25;
+        final long entryCount = 30 * DEFAULT_RESOLUTION;
+        final long keyCount = 75;
+        final int maxTraversal = 200;
+        final String keyValue = KEY.iterator().next();
+        final String approxPropName = COUNT_PROPERTY_PREFIX + "gen_uuid";
+
+        IndexStoreStrategy store = new ContentMirrorStoreStrategy();
+        NodeState root = EMPTY_NODE;
+        NodeBuilder indexMeta = root.builder();
+        NodeBuilder index = indexMeta.child(INDEX_CONTENT_NODE_NAME);
+        NodeBuilder key = index.child(keyValue);
+
+        // is-not-null query without entryCount
+        index.setProperty(approxPropName, approxNodeCount, Type.LONG);
+        Assert.assertEquals("Approximate count not used for is-not-null query",
+                approxNodeCount, store.count(root, indexMeta.getNodeState(),
+                        null, maxTraversal));
+
+        // prop=value query without entryCount
+        key.setProperty(approxPropName, approxKeyCount, Type.LONG);
+        Assert.assertEquals("Approximate count not used for key=value query",
+                approxKeyCount, store.count(root, indexMeta.getNodeState(),
+                        KEY, maxTraversal));
+
+        // is-not-null query with entryCount
+        indexMeta
+                .setProperty(ENTRY_COUNT_PROPERTY_NAME, entryCount, Type.LONG);
+        Assert.assertEquals(
+                "Entry count not used even when present for is-not-null query",
+                entryCount, store.count(root, indexMeta.getNodeState(), null,
+                        maxTraversal));
+
+        // prop=value query with entryCount but without keyCount
+        Assert.assertTrue("Rough key count not considered for key=value query",
+                entryCount > store.count(root, indexMeta.getNodeState(), KEY,
+                        maxTraversal));
+
+        // prop=value query with entryCount and keyCount
+        indexMeta.setProperty(KEY_COUNT_PROPERTY_NAME, keyCount, Type.LONG);
+        Assert.assertTrue("Key count not considered for key=value query",
+                entryCount > store.count(root, indexMeta.getNodeState(), KEY,
+                        maxTraversal));
+
+        // is-not-null query with entryCount=-1 (this should lead to traversal
+        // and hence should result in '0'
+        indexMeta.setProperty(ENTRY_COUNT_PROPERTY_NAME, (long) -1, Type.LONG);
+        Assert.assertEquals(
+                "Entry count not used even when present for is-not-null query",
+                0, store.count(root, indexMeta.getNodeState(), null,
+                        maxTraversal));
+    }
+
+    @Test
+    public void testIndexCountersUsageWithPathRestriction() {
+        final String subPathName = "sub-path";
+        final int filteredNodeFactor = 2;
+        final long repoTreeApproxNodeCount = 50000;
+        final long repoSubPathApproxNodeCount = repoTreeApproxNodeCount /
+                filteredNodeFactor;
+        final FilterImpl filter = new FilterImpl();
+        filter.restrictPath("/" + subPathName,
+                Filter.PathRestriction.ALL_CHILDREN);
+
+        final long approxNodeCount = 100;
+        final long approxKeyCount = 50;
+        final long entryCount = 60 * DEFAULT_RESOLUTION;
+        final long keyCount = 150;
+        final int maxTraversal = 200;
+        final String keyValue = KEY.iterator().next();
+        final String approxPropName = COUNT_PROPERTY_PREFIX + "gen_uuid";
+
+        IndexStoreStrategy store = new ContentMirrorStoreStrategy();
+        NodeBuilder rootBuilder = EMPTY_NODE.builder();
+
+        // setup tree for NodeCounter to work
+        rootBuilder.setProperty(COUNT_PROPERTY_NAME,
+                repoTreeApproxNodeCount, Type.LONG);
+        NodeBuilder subPath = rootBuilder.child(subPathName);
+        subPath.setProperty(COUNT_PROPERTY_NAME,
+                repoSubPathApproxNodeCount, Type.LONG);
+
+        NodeState root = rootBuilder.getNodeState();
+
+        NodeBuilder indexMeta = rootBuilder.child("propIndex");
+        NodeBuilder index = indexMeta.child(INDEX_CONTENT_NODE_NAME);
+        NodeBuilder key = index.child(keyValue);
+
+        // is-not-null query without entryCount
+        index.setProperty(approxPropName, approxNodeCount, Type.LONG);
+        assertInRange(
+                "Approximate count not used for is-not-null query",
+                approxNodeCount,
+                filteredNodeFactor *
+                        store.count(filter, root, indexMeta.getNodeState(),
+                                null, maxTraversal));
+
+        // prop=value query without entryCount
+        key.setProperty(approxPropName, approxKeyCount, Type.LONG);
+        assertInRange(
+                "Approximate count not used for key=value query",
+                approxKeyCount,
+                filteredNodeFactor *
+                        store.count(filter, root, indexMeta.getNodeState(),
+                                KEY, maxTraversal));
+
+        // is-not-null query with entryCount
+        indexMeta
+                .setProperty(ENTRY_COUNT_PROPERTY_NAME, entryCount, Type.LONG);
+        assertInRange(
+                "Entry count not used even when present for is-not-null query",
+                entryCount,
+                filteredNodeFactor *
+                        store.count(filter, root, indexMeta.getNodeState(),
+                                null, maxTraversal));
+
+        // prop=value query with entryCount but without keyCount
+        Assert.assertTrue(
+                "Rough key count not considered for key=value query",
+                entryCount > filteredNodeFactor *
+                        store.count(filter, root, indexMeta.getNodeState(),
+                                KEY, maxTraversal));
+
+        // prop=value query with entryCount and keyCount
+        indexMeta.setProperty(KEY_COUNT_PROPERTY_NAME, keyCount, Type.LONG);
+        Assert.assertTrue(
+                "Key count not considered for key=value query",
+                entryCount > filteredNodeFactor *
+                        store.count(filter, root, indexMeta.getNodeState(),
+                                KEY, maxTraversal));
+    }
+
+    private static void assertInRange(String msg, double expected, double actual) {
+        final double allowedError = 0.1;
+
+        double diff = Math.abs(expected - actual);
+        Assert.assertTrue(msg, diff < expected * allowedError);
     }
 
 }

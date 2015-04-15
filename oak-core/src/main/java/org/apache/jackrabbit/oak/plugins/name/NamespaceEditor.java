@@ -16,18 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.name;
 
-import java.util.Locale;
-import java.util.Set;
-
-import com.google.common.collect.ImmutableSet;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
-import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
-import org.apache.jackrabbit.oak.spi.commit.Editor;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-
 import static javax.jcr.NamespaceRegistry.PREFIX_JCR;
 import static javax.jcr.NamespaceRegistry.PREFIX_MIX;
 import static javax.jcr.NamespaceRegistry.PREFIX_NT;
@@ -39,6 +27,18 @@ import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.REP_NSDA
 import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.REP_URIS;
 import static org.apache.jackrabbit.oak.plugins.name.Namespaces.isValidPrefix;
 import static org.apache.jackrabbit.oak.plugins.name.Namespaces.safeGet;
+
+import java.util.Locale;
+import java.util.Set;
+
+import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
+import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * TODO document
@@ -88,7 +88,7 @@ class NamespaceEditor extends DefaultEditor {
     }
 
     private static boolean containsValue(NodeState namespaces, String value) {
-        return safeGet(new ImmutableTree(namespaces.getChildNode(REP_NSDATA)),
+        return safeGet(TreeFactory.createReadOnlyTree(namespaces.getChildNode(REP_NSDATA)),
                 REP_URIS).contains(value);
     }
 

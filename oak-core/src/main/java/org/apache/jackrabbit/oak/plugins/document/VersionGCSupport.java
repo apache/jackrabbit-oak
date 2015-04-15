@@ -19,16 +19,19 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.util.List;
+import static com.google.common.collect.Iterables.filter;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getAllDocuments;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getSelectedDocuments;
+
 import java.util.Set;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
+import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
+import com.google.common.base.Predicate;
 
 public class VersionGCSupport {
+
     private final DocumentStore store;
 
     public VersionGCSupport(DocumentStore store) {
@@ -36,7 +39,7 @@ public class VersionGCSupport {
     }
 
     public Iterable<NodeDocument> getPossiblyDeletedDocs(final long lastModifiedTime) {
-        return Iterables.filter(getAllDocuments(), new Predicate<NodeDocument>() {
+        return filter(getSelectedDocuments(store, NodeDocument.DELETED_ONCE, 1), new Predicate<NodeDocument>() {
             @Override
             public boolean apply(NodeDocument input) {
                 return input.wasDeletedOnce() && !input.hasBeenModifiedSince(lastModifiedTime);
@@ -44,21 +47,29 @@ public class VersionGCSupport {
         });
     }
 
-    public int deleteSplitDocuments(Set<SplitDocType> gcTypes, long oldestRevTimeStamp) {
-        List<String> docsToDelete = Lists.newArrayList();
-        for(NodeDocument doc : getAllDocuments()){
-            SplitDocType splitType = doc.getSplitDocType();
-            if(gcTypes.contains(splitType) && doc.hasAllRevisionLessThan(oldestRevTimeStamp)){
-                docsToDelete.add(doc.getId());
-            }
-        }
-        store.remove(Collection.NODES, docsToDelete);
-        return docsToDelete.size();
+    public void deleteSplitDocuments(Set<SplitDocType> gcTypes,
+                                     long oldestRevTimeStamp,
+                                     VersionGCStats stats) {
+        stats.splitDocGCCount += createCleanUp(gcTypes, oldestRevTimeStamp, stats)
+                .disconnect()
+                .deleteSplitDocuments();
     }
 
-    private List<NodeDocument> getAllDocuments() {
-        //Fetch all documents.
-        return store.query(Collection.NODES,NodeDocument.MIN_ID_VALUE,
-                NodeDocument.MAX_ID_VALUE, Integer.MAX_VALUE);
+    protected SplitDocumentCleanUp createCleanUp(Set<SplitDocType> gcTypes,
+                                                 long oldestRevTimeStamp,
+                                                 VersionGCStats stats) {
+        return new SplitDocumentCleanUp(store, stats,
+                identifyGarbage(gcTypes, oldestRevTimeStamp));
+    }
+
+    protected Iterable<NodeDocument> identifyGarbage(final Set<SplitDocType> gcTypes,
+                                                     final long oldestRevTimeStamp) {
+        return filter(getAllDocuments(store), new Predicate<NodeDocument>() {
+            @Override
+            public boolean apply(NodeDocument doc) {
+                return gcTypes.contains(doc.getSplitDocType())
+                        && doc.hasAllRevisionLessThan(oldestRevTimeStamp);
+            }
+        });
     }
 }

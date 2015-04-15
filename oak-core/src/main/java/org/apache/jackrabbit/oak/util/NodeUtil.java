@@ -77,7 +77,7 @@ public class NodeUtil {
         return mapper.getJcrName(tree.getName());
     }
 
-    @CheckForNull
+    @Nonnull
     public NodeUtil getParent() {
         return new NodeUtil(tree.getParent(), mapper);
     }
@@ -166,6 +166,9 @@ public class NodeUtil {
                     } else if (!PathUtils.denotesCurrent(segment)) {
                         target = target.addChild(segment, primaryTypeName);
                     }
+                }
+                if (target == null) {
+                    throw new AccessDeniedException();
                 }
                 return target;
             } else {

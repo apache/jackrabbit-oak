@@ -37,9 +37,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.jackrabbit.oak.plugins.document.cache.CachingDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
-import org.junit.Assume;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,16 +67,25 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     @Test
-    public void testMaxId() {
-        // TODO see OAK-1589
-        Assume.assumeTrue(!(super.ds instanceof MongoDocumentStore));
+    public void testMaxIdAscii() {
+        int result = testMaxId(true);
+        assertTrue("needs to support keys of 512 bytes length, but only supports " + result, result >= 512);
+    }
+
+    @Test
+    public void testMaxIdNonAscii() {
+        testMaxId(false);
+    }
+
+    private int testMaxId(boolean ascii) {
         int min = 0;
         int max = 32768;
         int test = 0;
+        int last = 0;
 
         while (max - min >= 2) {
             test = (max + min) / 2;
-            String id = generateString(test, true);
+            String id = generateId(test, ascii);
             UpdateOp up = new UpdateOp(id, true);
             up.set("_id", id);
             boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
@@ -87,21 +93,25 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                 // check that we really can read it
                 NodeDocument findme = super.ds.find(Collection.NODES, id, 0);
                 assertNotNull("failed to retrieve previously stored document", findme);
+                assertEquals(id, findme.getId());
                 super.ds.remove(Collection.NODES, id);
                 min = test;
+                last = test;
             } else {
                 max = test;
             }
         }
 
-        LOG.info("max id length for " + super.dsname + " was " + test);
+        LOG.info("max " + (ascii ? "ASCII ('0')" : "non-ASCII (U+1F4A9)") + " id length for " + super.dsname + " was " + last);
+        return last;
     }
 
     @Test
     public void testMaxProperty() {
         int min = 0;
-        int max = 1024 * 1024 * 4; // 32M
+        int max = 1024 * 1024 * 8;
         int test = 0;
+        int last = 0;
 
         while (max - min >= 256) {
             test = (max + min) / 2;
@@ -117,12 +127,13 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                 assertNotNull("failed to retrieve previously stored document", findme);
                 super.ds.remove(Collection.NODES, id);
                 min = test;
+                last = test;
             } else {
                 max = test;
             }
         }
 
-        LOG.info("max prop length for " + super.dsname + " was " + test);
+        LOG.info("max prop length for " + super.dsname + " was " + last);
     }
 
     @Test
@@ -187,24 +198,22 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
     @Test
     public void testInterestingStrings() {
-        // TODO see OAK-1913
-        Assume.assumeTrue(!(super.dsname.equals("RDB-MySQL")));
+        // test case  "gclef:\uD834\uDD1E" will fail on MySQL unless properly configured to use utf8mb4 charset        // Assume.assumeTrue(!(super.dsname.equals("RDB-MySQL")));
 
-        String[] tests = new String[] {
-            "simple:foo", "cr:a\n\b", "dquote:a\"b", "bs:a\\b", "euro:a\u201c", "gclef:\uD834\uDD1E", "tab:a\tb", "nul:a\u0000b"
-        };
+        String[] tests = new String[] { "simple:foo", "cr:a\n\b", "dquote:a\"b", "bs:a\\b", "euro:a\u201c", "gclef:\uD834\uDD1E",
+                "tab:a\tb", "nul:a\u0000b", "brokensurrogate:\ud800" };
 
         for (String t : tests) {
             int pos = t.indexOf(":");
             String testname = t.substring(0, pos);
             String test = t.substring(pos + 1);
             String id = this.getClass().getName() + ".testInterestingStrings-" + testname;
+            super.ds.remove(Collection.NODES, id);
             UpdateOp up = new UpdateOp(id, true);
             up.set("_id", id);
             up.set("foo", test);
-            super.ds.remove(Collection.NODES, id);
             boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
-            assertTrue("failed to insert a document with property value of " + test + " in " + super.dsname, success);
+            assertTrue("failed to insert a document with property value of " + test + " (" + testname + ") in " + super.dsname, success);
             // re-read from persistence
             super.ds.invalidateCache();
             NodeDocument nd = super.ds.find(Collection.NODES, id);
@@ -308,6 +317,27 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         assertEquals(5, result.size());
         assertTrue(result.contains(base + "1"));
         assertFalse(result.contains(base + "0"));
+    }
+
+    @Test
+    public void testQueryDeletedOnce() {
+        // create ten documents
+        String base = this.getClass().getName() + ".testQueryDeletedOnce-";
+        for (int i = 0; i < 10; i++) {
+            String id = base + i;
+            UpdateOp up = new UpdateOp(id, true);
+            up.set("_id", id);
+            up.set(NodeDocument.DELETED_ONCE, Boolean.valueOf(i % 2 == 0));
+            boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
+            assertTrue("document with " + id + " not created", success);
+            removeMe.add(id);
+        }
+
+        List<String> result = getKeys(ds.query(Collection.NODES, base, base + "Z", NodeDocument.DELETED_ONCE,
+                1L, 1000));
+        assertEquals(5, result.size());
+        assertTrue(result.contains(base + "0"));
+        assertFalse(result.contains(base + "1"));
     }
 
     @Test
@@ -444,7 +474,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         while (System.currentTimeMillis() < end) {
             long now = System.currentTimeMillis();
             List<NodeDocument> result = super.ds.query(Collection.NODES, sid, cid + "X", fetchcount);
-            if ((super.ds instanceof CachingDocumentStore) && result.size() > 0) {
+            if (super.ds.getCacheStats() != null && result.size() > 0) {
                 // check freshness of returned documents
                 long created = result.get(0).getLastCheckTime();
                 assertTrue(
@@ -524,8 +554,17 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     @Test
-    public void testPerfReadBigDoc() {
-        String id = this.getClass().getName() + ".testReadBigDoc";
+    public void testPerfReadBigDocCached() {
+        perfReadBigDoc(true, this.getClass().getName() + ".testReadBigDocCached");
+    }
+
+    @Test
+    public void testPerfReadBigDocAfterInvalidate() {
+        perfReadBigDoc(false, this.getClass().getName() + ".testReadBigDocAfterInvalidate");
+    }
+
+    private void perfReadBigDoc(boolean cached, String name) {
+        String id = name;
         long duration = 1000;
         int cnt = 0;
 
@@ -540,12 +579,15 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
         long end = System.currentTimeMillis() + duration;
         while (System.currentTimeMillis() < end) {
-            NodeDocument d = super.ds.find(Collection.NODES, id, 10); // allow 10ms old entries
+            if (!cached) {
+                super.ds.invalidateCache(Collection.NODES, id);
+            }
+            NodeDocument d = super.ds.find(Collection.NODES, id, 10);
             cnt += 1;
         }
 
-        LOG.info("big doc read from " + super.dsname + " was "
-                + cnt + " in " + duration + "ms (" + (cnt / (duration / 1000f)) + "/s)");
+        LOG.info("big doc read " + (cached ? "" : "(after invalidate) ") + "from " + super.dsname + " was " + cnt + " in "
+                + duration + "ms (" + (cnt / (duration / 1000f)) + "/s)");
     }
 
     @Test
@@ -618,6 +660,19 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         return new String(s);
     }
 
+    private static String generateId(int length, boolean ascii) {
+        StringBuffer sb = new StringBuffer();
+        for (int i = 0; i < length; i++) {
+            if (ascii) {
+                sb.append("0");
+            }
+            else {
+                sb.append(Character.toChars(0x1F4A9));
+            }
+        }
+        return sb.toString();
+    }
+
     @Test
     public void testPerfUpdateLimit() throws SQLException, UnsupportedEncodingException {
         internalTestPerfUpdateLimit("testPerfUpdateLimit", "raw row update (set long)", 0);
@@ -656,7 +711,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                 PreparedStatement stmt = connection.prepareStatement("insert into " + table
                         + " (ID, MODCOUNT, DATA) values (?, ?, ?)");
                 try {
-                    stmt.setString(1, key);
+                    setIdInStatement(stmt, 1, key);
                     stmt.setLong(2, 0);
                     stmt.setString(3, "X");
                     stmt.executeUpdate();
@@ -666,6 +721,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                 }
             } catch (SQLException ex) {
                 // ignored
+                // ex.printStackTrace();
             } finally {
                 if (connection != null) {
                     try {
@@ -687,7 +743,8 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             byte bdata[] = new byte[65536];
             String sdata = appendString;
             boolean needsConcat = super.dsname.contains("MySQL");
-            int dataInChars = (super.dsname.contains("Oracle") ? 4000 : 16384);
+            boolean needsSQLStringConcat = super.dsname.contains("MSSql");
+            int dataInChars = ((super.dsname.contains("Oracle") || (super.dsname.contains("MSSql"))) ? 4000 : 16384);
             int dataInBytes = dataInChars / 3;
 
             while (System.currentTimeMillis() < end) {
@@ -700,7 +757,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                         PreparedStatement stmt = connection.prepareStatement("update " + table + " set MODCOUNT = ? where ID = ?");
                         try {
                             stmt.setLong(1, cnt);
-                            stmt.setString(2, key);
+                            setIdInStatement(stmt, 2, key);
                             assertEquals(1, stmt.executeUpdate());
                             connection.commit();
                         } finally {
@@ -712,7 +769,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                         try {
                             stmt.setLong(1, cnt);
                             stmt.setString(2, "JSON data " + UUID.randomUUID());
-                            stmt.setString(3, key);
+                            setIdInStatement(stmt, 3, key);
                             assertEquals(1, stmt.executeUpdate());
                             connection.commit();
                         } finally {
@@ -727,25 +784,36 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                             bdata[(int) cnt % bdata.length] = (byte) (cnt & 0xff);
                             stmt.setString(2, "JSON data " + UUID.randomUUID());
                             stmt.setBytes(3, bdata);
-                            stmt.setString(4, key);
+                            setIdInStatement(stmt, 4, key);
                             assertEquals(1, stmt.executeUpdate());
                             connection.commit();
                         } finally {
                             stmt.close();
                         }
                     } else if (mode == 3) {
-                        PreparedStatement stmt = connection.prepareStatement("update "
-                                + table
-                                + " set "
-                                + (needsConcat ? "DATA = CONCAT(DATA, ?)" : "DATA = DATA || CAST(? as varchar(" + dataInChars
-                                        + "))") + " where ID = ?");
+                        String t = "update " + table + " ";
+
+                        t += "set DATA = ";
+                        if (needsConcat) {
+                            t += "CONCAT(DATA, ?) ";
+                        } else if (needsSQLStringConcat) {
+                            t += "CASE WHEN LEN(DATA) <= " + (dataInChars - appendString.length()) + " THEN (DATA + CAST(? AS nvarchar(" + 4000
+                                    + "))) ELSE (DATA + CAST(DATA AS nvarchar(max))) END";
+                        } else {
+                            t += "DATA || CAST(? as varchar(" + dataInChars + "))";
+                        }
+
+                        t += " where ID = ?";
+
+                        PreparedStatement stmt = connection.prepareStatement(t);
                         try {
                             stmt.setString(1, appendString);
-                            stmt.setString(2, key);
+                            setIdInStatement(stmt, 2, key);
                             assertEquals(1, stmt.executeUpdate());
                             connection.commit();
                             expect.append(appendString);
                         } catch (SQLException ex) {
+                            // ex.printStackTrace();
                             String state = ex.getSQLState();
                             if ("22001".equals(state) /* everybody */ || ("72000".equals(state) && 1489 == ex.getErrorCode()) /* Oracle */) {
                                 // overflow
@@ -753,11 +821,12 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                                 stmt = connection.prepareStatement("update " + table
                                         + " set MODCOUNT = MODCOUNT + 1, DATA = ? where ID = ?");
                                 stmt.setString(1, "X");
-                                stmt.setString(2, key);
+                                setIdInStatement(stmt, 2, key);
                                 assertEquals(1, stmt.executeUpdate());
                                 connection.commit();
                                 expect = new StringBuffer("X");
                             } else {
+                                // ex.printStackTrace();
                                 throw (ex);
                             }
                         } finally {
@@ -782,7 +851,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                                 stmt.setString(si++, "null");
                                 stmt.setBytes(si++, sdata.getBytes("UTF-8"));
                             }
-                            stmt.setString(si++, key);
+                            setIdInStatement(stmt, si++, key);
                             assertEquals(1, stmt.executeUpdate());
                             connection.commit();
                             sdata += appendString;
@@ -813,7 +882,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                     connection.setAutoCommit(false);
                     PreparedStatement stmt = connection.prepareStatement("select DATA, MODCOUNT from " + table + " where ID = ?");
                     try {
-                        stmt.setString(1, key);
+                        setIdInStatement(stmt, 1, key);
                         ResultSet rs = stmt.executeQuery();
                         assertTrue(rs.next());
                         String got = rs.getString(1);
@@ -893,5 +962,25 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             assertNotNull(cmc3);
             assertTrue(cmc2.longValue() == cmc3.longValue());
         }
+    }
+
+    private void setIdInStatement(PreparedStatement stmt, int idx, String id) throws SQLException {
+        boolean binaryId = super.dsname.contains("MySQL") || super.dsname.contains("MSSql");
+        if (binaryId) {
+            try {
+                stmt.setBytes(idx, id.getBytes("UTF-8"));
+            } catch (UnsupportedEncodingException ex) {
+                LOG.error("UTF-8 not supported??", ex);
+                throw new DocumentStoreException(ex);
+            }
+        } else {
+            stmt.setString(idx, id);
+        }
+    }
+
+    @Test
+    public void description() throws Exception{
+        Map<String, String> desc = ds.getMetadata();
+        assertNotNull(desc.get("type"));
     }
 }

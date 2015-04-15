@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.permission;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -40,7 +39,8 @@ public interface TreePermission {
      * @return The tree permission for the child tree identified by {@code childName}
      * and {@code childState}.
      */
-    TreePermission getChildPermission(String childName, NodeState childState);
+    @Nonnull
+    TreePermission getChildPermission(@Nonnull String childName, @Nonnull NodeState childState);
 
     /**
      * Return if read access is granted for the {@code Tree} associated with
@@ -110,8 +110,9 @@ public interface TreePermission {
      * any permissions.
      */
     TreePermission EMPTY = new TreePermission() {
+        @Nonnull
         @Override
-        public TreePermission getChildPermission(String childName, NodeState childState) {
+        public TreePermission getChildPermission(@Nonnull String childName, @Nonnull NodeState childState) {
             return EMPTY;
         }
 
@@ -141,7 +142,7 @@ public interface TreePermission {
         }
 
         @Override
-        public boolean isGranted(long permissions, @Nullable PropertyState property) {
+        public boolean isGranted(long permissions, @Nonnull PropertyState property) {
             return false;
         }
     };
@@ -151,8 +152,9 @@ public interface TreePermission {
      * all permissions.
      */
     TreePermission ALL = new TreePermission() {
+        @Nonnull
         @Override
-        public TreePermission getChildPermission(String childName, NodeState childState) {
+        public TreePermission getChildPermission(@Nonnull String childName, @Nonnull NodeState childState) {
             return ALL;
         }
 
@@ -182,7 +184,7 @@ public interface TreePermission {
         }
 
         @Override
-        public boolean isGranted(long permissions, @Nullable PropertyState property) {
+        public boolean isGranted(long permissions, @Nonnull PropertyState property) {
             return true;
         }
     };
