@@ -31,10 +31,12 @@ import javax.jcr.SimpleCredentials;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.apache.jackrabbit.oak.util.NodeUtil;
@@ -306,6 +308,27 @@ public class TokenProviderImplTest extends AbstractTokenTest {
         } catch (NumberFormatException e) {
             // success
         }
+    }
+
+    /**
+     * @see OAK-1985
+     */
+    @Test
+    public void testTokenValidationIsCaseInsensitive() throws Exception {
+        Root root = adminSession.getLatestRoot();
+        TokenConfiguration tokenConfig = getSecurityProvider().getConfiguration(TokenConfiguration.class);
+        TokenProvider tp = tokenConfig.getTokenProvider(root);
+
+        String userId = ((SimpleCredentials) getAdminCredentials()).getUserID();
+        TokenInfo info = tp.createToken(userId.toUpperCase(), Collections.<String, Object>emptyMap());
+
+        assertTrue(info.matches(new TokenCredentials(info.getToken())));
+        assertEquals(userId, info.getUserId());
+
+        info = tp.getTokenInfo(info.getToken());
+
+        assertTrue(info.matches(new TokenCredentials(info.getToken())));
+        assertEquals(userId, info.getUserId());
     }
 
     //--------------------------------------------------------------------------

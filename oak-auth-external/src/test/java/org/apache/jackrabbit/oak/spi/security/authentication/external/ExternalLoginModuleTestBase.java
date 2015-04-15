@@ -82,6 +82,7 @@ public abstract class ExternalLoginModuleTestBase extends AbstractSecurityTest {
         mapping.put("email", "email");
         mapping.put("profile/name", "profile/name");
         mapping.put("profile/age", "profile/age");
+        mapping.put("profile/constantProperty", "\"constant-value\"");
         syncConfig.user().setPropertyMapping(mapping);
         syncConfig.user().setMembershipNestingDepth(1);
         setSyncConfig(syncConfig);
