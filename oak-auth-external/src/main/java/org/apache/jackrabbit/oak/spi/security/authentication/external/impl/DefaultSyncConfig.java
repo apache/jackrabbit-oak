@@ -215,6 +215,10 @@ public class DefaultSyncConfig {
     )
     public static final String PARAM_GROUP_PATH_PREFIX = "group.pathPrefix";
 
+    private static final long MILLIS_PER_HOUR = 60 * 60 * 1000;
+    private static final ConfigurationParameters.Milliseconds ONE_HOUR = ConfigurationParameters.Milliseconds.of(MILLIS_PER_HOUR);
+    private static final ConfigurationParameters.Milliseconds ONE_DAY = ConfigurationParameters.Milliseconds.of(24 * MILLIS_PER_HOUR);
+
     /**
      * Base config class for users and groups
      */
@@ -409,22 +413,16 @@ public class DefaultSyncConfig {
                 .setName(params.getConfigValue(PARAM_NAME, PARAM_NAME_DEFAULT));
 
         cfg.user()
-                .setMembershipExpirationTime(
-                        ConfigurationParameters.Milliseconds.of(params.getConfigValue(PARAM_USER_MEMBERSHIP_EXPIRATION_TIME, PARAM_USER_MEMBERSHIP_EXPIRATION_TIME_DEFAULT)).value
-                )
+                .setMembershipExpirationTime(getMilliSeconds(params, PARAM_USER_MEMBERSHIP_EXPIRATION_TIME, PARAM_USER_MEMBERSHIP_EXPIRATION_TIME_DEFAULT, ONE_HOUR))
                 .setMembershipNestingDepth(params.getConfigValue(PARAM_USER_MEMBERSHIP_NESTING_DEPTH, PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT))
-                .setExpirationTime(
-                        ConfigurationParameters.Milliseconds.of(params.getConfigValue(PARAM_USER_EXPIRATION_TIME, PARAM_USER_EXPIRATION_TIME_DEFAULT)).value
-                )
+                .setExpirationTime(getMilliSeconds(params, PARAM_USER_EXPIRATION_TIME, PARAM_USER_EXPIRATION_TIME_DEFAULT, ONE_HOUR))
                 .setPathPrefix(params.getConfigValue(PARAM_USER_PATH_PREFIX, PARAM_USER_PATH_PREFIX_DEFAULT))
                 .setAutoMembership(params.getConfigValue(PARAM_USER_AUTO_MEMBERSHIP, PARAM_USER_AUTO_MEMBERSHIP_DEFAULT))
                 .setPropertyMapping(createMapping(
                         params.getConfigValue(PARAM_USER_PROPERTY_MAPPING, PARAM_USER_PROPERTY_MAPPING_DEFAULT)));
 
         cfg.group()
-                .setExpirationTime(
-                        ConfigurationParameters.Milliseconds.of(params.getConfigValue(PARAM_GROUP_EXPIRATION_TIME, PARAM_GROUP_EXPIRATION_TIME_DEFAULT)).value
-                )
+                .setExpirationTime(getMilliSeconds(params, PARAM_GROUP_EXPIRATION_TIME, PARAM_GROUP_EXPIRATION_TIME_DEFAULT, ONE_DAY))
                 .setPathPrefix(params.getConfigValue(PARAM_GROUP_PATH_PREFIX, PARAM_GROUP_PATH_PREFIX_DEFAULT))
                 .setAutoMembership(params.getConfigValue(PARAM_GROUP_AUTO_MEMBERSHIP, PARAM_GROUP_AUTO_MEMBERSHIP_DEFAULT))
                 .setPropertyMapping(createMapping(
@@ -433,12 +431,18 @@ public class DefaultSyncConfig {
         return cfg;
     }
 
+    private static long getMilliSeconds(@Nonnull ConfigurationParameters params, @Nonnull String paramName,
+                                        @Nonnull String defaultParamValue,
+                                        @Nonnull ConfigurationParameters.Milliseconds defaultMillis) {
+        return ConfigurationParameters.Milliseconds.of(params.getConfigValue(paramName, defaultParamValue), defaultMillis).value;
+    }
+
     /**
      * Creates a new property mapping map from a list of patterns.
      * @param patterns the patterns
      * @return the mapping map
      */
-    private static Map<String, String> createMapping(String[] patterns) {
+    private static Map<String, String> createMapping(@Nonnull String[] patterns) {
         Map<String, String> mapping = new HashMap<String, String>();
         for (String pattern: patterns) {
             int idx = pattern.indexOf('=');
