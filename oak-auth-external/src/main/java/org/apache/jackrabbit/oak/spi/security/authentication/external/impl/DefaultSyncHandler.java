@@ -47,6 +47,7 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.iterator.AbstractLazyIterator;
+import org.apache.jackrabbit.oak.commons.DebugTimer;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
@@ -198,7 +199,7 @@ public class DefaultSyncHandler implements SyncHandler {
     /**
      * Internal implementation of the sync context
      */
-    private class ContextImpl implements SyncContext {
+    private final class ContextImpl implements SyncContext {
 
         private final ExternalIdentityProvider idp;
 

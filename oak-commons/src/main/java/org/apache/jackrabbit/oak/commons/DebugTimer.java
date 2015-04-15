@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
+package org.apache.jackrabbit.oak.commons;
 
 import java.util.LinkedList;
 import java.util.List;
