@@ -27,7 +27,7 @@ import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithExpectedSize;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.newLinkedHashMap;
-import static com.google.common.collect.Sets.newIdentityHashSet;
+import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.nCopies;
@@ -52,7 +52,6 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.jcr.PropertyType;
@@ -121,7 +120,7 @@ public class SegmentWriter {
     private final Map<Object, RecordId> records =
         new LinkedHashMap<Object, RecordId>(15000, 0.75f, true) {
             @Override
-            protected boolean removeEldestEntry(Entry<Object, RecordId> e) {
+            protected boolean removeEldestEntry(Map.Entry<Object, RecordId> e) {
                 return size() > 10000;
             }
         };
@@ -169,14 +168,6 @@ public class SegmentWriter {
         this.buffer = createNewBuffer(version);
         this.segment = new Segment(tracker, buffer);
         segment.getSegmentId().setSegment(segment);
-    }
-
-    public synchronized Segment getCurrentSegment(SegmentId id) {
-        if (id == segment.getSegmentId()) {
-            return segment;
-        } else {
-            return null;
-        }
     }
 
     /**
@@ -301,8 +292,8 @@ public class SegmentWriter {
                 || refcount > Segment.SEGMENT_REFERENCE_LIMIT) {
             refcount -= idcount;
 
-            Set<SegmentId> segmentIds = newIdentityHashSet();
-            
+            Set<SegmentId> segmentIds = newHashSet();
+
             // The set of old record ids in this segment
             // that were previously root record ids, but will no longer be,
             // because the record to be written references them.
@@ -311,7 +302,7 @@ public class SegmentWriter {
             Set<RecordId> notRoots = new HashSet<RecordId>();
             for (RecordId recordId : ids) {
                 SegmentId segmentId = recordId.getSegmentId();
-                if (segmentId != segment.getSegmentId()) {
+                if (!(segmentId.equals(segment.getSegmentId()))) {
                     segmentIds.add(segmentId);
                 } else if (roots.containsKey(recordId)) {
                     notRoots.add(recordId);
@@ -353,7 +344,7 @@ public class SegmentWriter {
                   "Segment cannot have more than 255 references " + segment.getSegmentId());
         }
         for (int index = 0; index < refcount; index++) {
-            if (segmentId == segment.getRefId(index)) {
+            if (segmentId.equals(segment.getRefId(index))) {
                 return index;
             }
         }
