@@ -50,6 +50,7 @@ import static org.junit.Assert.fail;
 public class LoginModuleImplTest extends AbstractSecurityTest {
 
     private static final String USER_ID = "test";
+    private static final String USER_ID_CASED = "TeSt";
     private static final String USER_PW = "pw";
     private User user;
 
@@ -135,6 +136,39 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
             cs = login(new SimpleCredentials(USER_ID, USER_PW.toCharArray()));
             AuthInfo authInfo = cs.getAuthInfo();
             assertEquals(USER_ID, authInfo.getUserID());
+        } finally {
+            if (cs != null) {
+                cs.close();
+            }
+        }
+    }
+
+    @Test
+    public void testUserLoginIsCaseInsensitive() throws Exception {
+        ContentSession cs = null;
+        try {
+            createTestUser();
+
+            cs = login(new SimpleCredentials(USER_ID_CASED, USER_PW.toCharArray()));
+            AuthInfo authInfo = cs.getAuthInfo();
+            UserManager userMgr = getUserManager(root);
+            Authorizable auth = userMgr.getAuthorizable(authInfo.getUserID());
+            assertNotNull(auth);
+        } finally {
+            if (cs != null) {
+                cs.close();
+            }
+        }
+    }
+
+    @Test
+    public void testUserLoginIsCaseInsensitive2() throws Exception {
+        ContentSession cs = null;
+        try {
+            createTestUser();
+            cs = login(new SimpleCredentials(USER_ID_CASED, USER_PW.toCharArray()));
+            AuthInfo authInfo = cs.getAuthInfo();
+            assertEquals(USER_ID_CASED, authInfo.getUserID());
         } finally {
             if (cs != null) {
                 cs.close();
