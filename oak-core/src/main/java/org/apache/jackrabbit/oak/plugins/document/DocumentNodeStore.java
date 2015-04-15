@@ -1631,16 +1631,16 @@ public final class DocumentNodeStore
         // split documents (does not create new revisions)
         backgroundSplit();
         long splitTime = clock.getTime() - time;
-        time = clock.getTime();
         // write back pending updates to _lastRev
-        backgroundWrite();
-        long writeTime = clock.getTime() - time;
-        String msg = "Background operations stats (clean:{}, split:{}, write:{})";
+        BackgroundWriteStats stats = backgroundWrite();
+        stats.split = splitTime;
+        stats.clean = cleanTime;
+        String msg = "Background operations stats ({})";
         if (clock.getTime() - start > TimeUnit.SECONDS.toMillis(10)) {
             // log as info if it took more than 10 seconds
-            LOG.info(msg, cleanTime, splitTime, writeTime);
+            LOG.info(msg, stats);
         } else {
-            LOG.debug(msg, cleanTime, splitTime, writeTime);
+            LOG.debug(msg, stats);
         }
     }
 
@@ -1778,15 +1778,18 @@ public final class DocumentNodeStore
         if (!externalChanges.isEmpty()) {
             // invalidate caches
             stats.cacheStats = store.invalidateCache();
-            stats.cacheInvalidationTime = clock.getTime() - time;
-            time = clock.getTime();
             // TODO only invalidate affected items
             docChildrenCache.invalidateAll();
+            stats.cacheInvalidationTime = clock.getTime() - time;
+            time = clock.getTime();
 
             // make sure update to revision comparator is atomic
             // and no local commit is in progress
             backgroundOperationLock.writeLock().lock();
             try {
+                stats.lock = clock.getTime() - time;
+                time = clock.getTime();
+
                 // the latest revisions of the current cluster node
                 // happened before the latest revisions of other cluster nodes
                 revisionComparator.add(newRevision(), headSeen);
@@ -1815,6 +1818,7 @@ public final class DocumentNodeStore
         CacheInvalidationStats cacheStats;
         long readHead;
         long cacheInvalidationTime;
+        long lock;
         long dispatchChanges;
         long purge;
 
@@ -1828,6 +1832,7 @@ public final class DocumentNodeStore
                     "cacheStats:" + cacheStatsMsg +
                     ", head:" + readHead +
                     ", cache:" + cacheInvalidationTime +
+                    ", lock:" + lock +
                     ", dispatch:" + dispatchChanges +
                     ", purge:" + purge +
                     '}';
@@ -1910,8 +1915,8 @@ public final class DocumentNodeStore
         }
     }
 
-    void backgroundWrite() {
-        unsavedLastRevisions.persist(this, backgroundOperationLock.writeLock());
+    BackgroundWriteStats backgroundWrite() {
+        return unsavedLastRevisions.persist(this, backgroundOperationLock.writeLock());
     }
 
     //-----------------------------< internal >---------------------------------
