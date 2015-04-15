@@ -31,6 +31,7 @@ import java.util.Date;
 import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
 
+import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.stats.TimeSeriesRecorder;
@@ -43,7 +44,8 @@ import org.apache.jackrabbit.stats.TimeSeriesRecorder;
  * second to ensure the various time series maintained by this implementation
  * are correctly aggregated.
  */
-public class FileStoreGCMonitor implements GCMonitor, GCMonitorMBean, Runnable {
+public class FileStoreGCMonitor extends AnnotatedStandardMBean
+        implements GCMonitor, GCMonitorMBean, Runnable {
     private final TimeSeriesRecorder gcCount = new TimeSeriesRecorder(true);
     private final TimeSeriesRecorder repositorySize = new TimeSeriesRecorder(false);
     private final TimeSeriesRecorder reclaimedSize = new TimeSeriesRecorder(true);
@@ -56,6 +58,7 @@ public class FileStoreGCMonitor implements GCMonitor, GCMonitorMBean, Runnable {
     private String status = "NA";
 
     public FileStoreGCMonitor(@Nonnull Clock clock) {
+        super(GCMonitorMBean.class);
         this.clock = checkNotNull(clock);
     }
 
