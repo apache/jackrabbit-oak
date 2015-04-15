@@ -204,6 +204,22 @@ public class LdapProviderConfig {
     public static final String PARAM_USER_POOL_MAX_ACTIVE = "userPool.maxActive";
 
     /**
+     * @see ConnectionConfig#isTestOnBorrow()
+     */
+    public static final boolean PARAM_TEST_ON_BORROW_DEFAULT = true;
+
+    /**
+     * @see #isTestOnBorrow()
+     */
+    @Property(
+            label = "Connection config test on borrow",
+            description = "Indicates if the test on borrow is used or not in the connection to LDAP",
+            boolValue = PARAM_TEST_ON_BORROW_DEFAULT
+    )
+    public static final String PARAM_TEST_ON_BORROW = "connectionConfig.testOnBorrow";
+
+    
+    /**
      * @see Identity#getBaseDN()
      */
     public static final String PARAM_USER_BASE_DN_DEFAULT = "ou=people,o=example,dc=com";
@@ -606,6 +622,7 @@ public class LdapProviderConfig {
                 .setPort(params.getConfigValue(PARAM_LDAP_PORT, PARAM_LDAP_PORT_DEFAULT))
                 .setUseSSL(params.getConfigValue(PARAM_USE_SSL, PARAM_USE_SSL_DEFAULT))
                 .setUseTLS(params.getConfigValue(PARAM_USE_TLS, PARAM_USE_TLS_DEFAULT))
+                .setTestOnBorrow(params.getConfigValue(PARAM_TEST_ON_BORROW, PARAM_TEST_ON_BORROW_DEFAULT))
                 .setNoCertCheck(params.getConfigValue(PARAM_NO_CERT_CHECK, PARAM_NO_CERT_CHECK_DEFAULT))
                 .setBindDN(params.getConfigValue(PARAM_BIND_DN, PARAM_BIND_DN_DEFAULT))
                 .setBindPassword(params.getConfigValue(PARAM_BIND_PASSWORD, PARAM_BIND_PASSWORD_DEFAULT))
@@ -649,6 +666,8 @@ public class LdapProviderConfig {
     private boolean useSSL = PARAM_USE_SSL_DEFAULT;
 
     private boolean useTLS = PARAM_USE_TLS_DEFAULT;
+    
+    private boolean isTestOnBorrow = PARAM_TEST_ON_BORROW_DEFAULT;
 
     private boolean noCertCheck = PARAM_NO_CERT_CHECK_DEFAULT;
 
@@ -769,6 +788,28 @@ public class LdapProviderConfig {
     @Nonnull
     public LdapProviderConfig setUseSSL(boolean useSSL) {
         this.useSSL = useSSL;
+        return this;
+    }
+    
+    /**
+     * Configures whether test on borrow is used for connections.
+     * The default is {@value #PARAM_TEST_ON_BORROW_DEFAULT}.
+     *
+     * @return {@code true} if test on borrow should be used.
+     */
+    public boolean isTestOnBorrow() {
+        return isTestOnBorrow;
+    }
+
+    /**
+     * Enables test on borrow for connections.
+     * @param isTestOnBorrow {@code true} to enable test on borrow for connections.
+     * @return {@code this}
+     * @see #isTestOnBorrow()
+     */
+    @Nonnull
+    public LdapProviderConfig setTestOnBorrow(boolean isTestOnBorrow) {
+        this.isTestOnBorrow = isTestOnBorrow;
         return this;
     }
 
@@ -1033,6 +1074,7 @@ public class LdapProviderConfig {
         sb.append(", port=").append(port);
         sb.append(", useSSL=").append(useSSL);
         sb.append(", useTLS=").append(useTLS);
+        sb.append(", isTestOnBorrow=").append(isTestOnBorrow);
         sb.append(", noCertCheck=").append(noCertCheck);
         sb.append(", bindDN='").append(bindDN).append('\'');
         sb.append(", bindPassword='***'");

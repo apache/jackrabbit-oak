@@ -488,7 +488,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
 
         if (config.getAdminPoolConfig().getMaxActive() != 0) {
             adminPool = new LdapConnectionPool(adminConnectionFactory);
-            adminPool.setTestOnBorrow(true);
+            adminPool.setTestOnBorrow(config.isTestOnBorrow());
             adminPool.setMaxActive(config.getAdminPoolConfig().getMaxActive());
             adminPool.setWhenExhaustedAction(GenericObjectPool.WHEN_EXHAUSTED_BLOCK);
         }
@@ -499,7 +499,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
         userConnectionFactory = new PoolableUnboundConnectionFactory(cc);
         if (config.getUserPoolConfig().getMaxActive() != 0) {
             userPool = new UnboundLdapConnectionPool(userConnectionFactory);
-            userPool.setTestOnBorrow(true);
+            userPool.setTestOnBorrow(config.isTestOnBorrow());
             userPool.setMaxActive(config.getUserPoolConfig().getMaxActive());
             userPool.setWhenExhaustedAction(GenericObjectPool.WHEN_EXHAUSTED_BLOCK);
         }
