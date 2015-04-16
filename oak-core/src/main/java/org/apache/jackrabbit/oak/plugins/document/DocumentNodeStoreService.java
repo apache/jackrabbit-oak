@@ -263,6 +263,7 @@ public class DocumentNodeStoreService {
         int diffCachePercentage = toInteger(prop(PROP_DIFF_CACHE_PERCENTAGE), DEFAULT_DIFF_CACHE_PERCENTAGE);
         int changesSize = toInteger(prop(PROP_CHANGES_SIZE), DEFAULT_CHANGES_SIZE);
         int blobCacheSize = toInteger(prop(PROP_BLOB_CACHE_SIZE), DEFAULT_BLOB_CACHE_SIZE);
+        String persistentCache = PropertiesUtil.toString(prop(PROP_PERSISTENT_CACHE), DEFAULT_PERSISTENT_CACHE);
         boolean useMK = toBoolean(context.getProperties().get(PROP_USE_MK), false);
 
         DocumentMK.Builder mkBuilder =
@@ -274,6 +275,10 @@ public class DocumentNodeStoreService {
                         docChildrenCachePercentage, 
                         diffCachePercentage).
                 offHeapCacheSize(offHeapCache * MB);
+        
+        if (persistentCache != null && persistentCache.length() > 0) {
+            mkBuilder.setPersistentCache(persistentCache);
+        }
 
         //Set blobstore before setting the DB
         if (customBlobStore) {
