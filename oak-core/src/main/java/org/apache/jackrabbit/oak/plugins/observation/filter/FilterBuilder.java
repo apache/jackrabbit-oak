@@ -39,6 +39,7 @@ import javax.annotation.Nonnull;
 import com.google.common.base.Objects;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
@@ -371,12 +372,37 @@ public final class FilterBuilder {
                 return subTrees;
             }
 
+            @Override
+            public FilterConfigMBean getConfigMBean() {
+                return FilterBuilder.this.getConfigMBean();
+            }
+
             private boolean isLocal(String sessionId, CommitInfo info) {
                 return info != null && Objects.equal(info.getSessionId(), sessionId);
             }
 
             private boolean isExternal(CommitInfo info) {
                 return info == null;
+            }
+        };
+    }
+
+    @Nonnull
+    private FilterConfigMBean getConfigMBean(){
+        return new FilterConfigMBean() {
+            @Override
+            public String[] getSubTrees() {
+                return Iterables.toArray(subTrees, String.class);
+            }
+
+            @Override
+            public boolean isIncludeClusterLocal() {
+                return FilterBuilder.this.includeClusterExternal;
+            }
+
+            @Override
+            public boolean isIncludeClusterExternal() {
+                return FilterBuilder.this.includeClusterLocal;
             }
         };
     }

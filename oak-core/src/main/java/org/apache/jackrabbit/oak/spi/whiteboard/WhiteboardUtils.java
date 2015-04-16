@@ -19,8 +19,10 @@ package org.apache.jackrabbit.oak.spi.whiteboard;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Collections.emptyMap;
 
+import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.CheckForNull;
@@ -61,8 +63,15 @@ public class WhiteboardUtils {
     public static <T> Registration registerMBean(
             Whiteboard whiteboard,
             Class<T> iface, T bean, String type, String name) {
+        return registerMBean(whiteboard, iface, bean, type, name, Collections.<String, String>emptyMap());
+    }
+
+    public static <T> Registration registerMBean(
+            Whiteboard whiteboard,
+            Class<T> iface, T bean, String type, String name, Map<String, String> attrs) {
         try {
-            Hashtable<String, String> table = new Hashtable<String, String>();
+
+            Hashtable<String, String> table = new Hashtable<String, String>(attrs);
             table.put("type", ObjectName.quote(type));
             table.put("name", ObjectName.quote(name));
             table.put("id", String.valueOf(COUNTER.incrementAndGet()));
