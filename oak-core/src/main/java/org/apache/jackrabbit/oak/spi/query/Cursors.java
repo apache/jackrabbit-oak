@@ -173,11 +173,10 @@ public class Cursors {
                 it = Iterators.filter(it, new Predicate<String>() {
                     
                     private final HashSet<String> known = new HashSet<String>();
-                    private final long maxMemoryEntries = settings.getLimitInMemory();
 
                     @Override
                     public boolean apply(@Nullable String input) {
-                        FilterIterators.checkMemoryLimit(known.size(), maxMemoryEntries);
+                        FilterIterators.checkMemoryLimit(known.size(), settings);
                         // Set.add returns true for new entries
                         return known.add(input);
                     }
@@ -223,11 +222,11 @@ public class Cursors {
         
         private boolean closed;
         
-        private final long maxReadEntries;
-
+        private final QueryEngineSettings settings;
+        
         public TraversingCursor(Filter filter, NodeState rootState) {
             this.filter = filter;
-            this.maxReadEntries = filter.getQueryEngineSettings().getLimitReads();
+            this.settings = filter.getQueryEngineSettings();
 
             String path = filter.getPath();
             parentPath = null;
@@ -309,7 +308,7 @@ public class Cursors {
 
                     readCount++;
                     if (readCount % 1000 == 0) {
-                        FilterIterators.checkReadLimit(readCount, maxReadEntries);
+                        FilterIterators.checkReadLimit(readCount, settings);
                         LOG.warn("Traversed " + readCount + " nodes with filter " + filter + "; consider creating an index or changing the query");
                     }
 
@@ -410,14 +409,14 @@ public class Cursors {
                         return;
                     }
                     secondSet.put(p2, s);
-                    FilterIterators.checkMemoryLimit(secondSet.size(), settings.getLimitInMemory());
+                    FilterIterators.checkMemoryLimit(secondSet.size(), settings);
                 }
             }
         }
         
         private void markSeen(String path) {
             seen.add(path);
-            FilterIterators.checkMemoryLimit(seen.size(), settings.getLimitInMemory());
+            FilterIterators.checkMemoryLimit(seen.size(), settings);
         }
         
     }
@@ -493,7 +492,7 @@ public class Cursors {
 
         private void markSeen(String path) {
             seen.add(path);
-            FilterIterators.checkMemoryLimit(seen.size(), settings.getLimitInMemory());
+            FilterIterators.checkMemoryLimit(seen.size(), settings);
         }
 
     }
