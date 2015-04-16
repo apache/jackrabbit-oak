@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.query.FilterIterators;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -240,14 +241,14 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
          * Keep the returned path, to avoid returning duplicate entries.
          */
         private final Set<String> knownPaths = Sets.newHashSet();
-        private final long maxMemoryEntries;
+        private final QueryEngineSettings settings;
 
         PathIterator(Filter filter, String indexName) {
             this.filter = filter;
             this.indexName = indexName;
             parentPath = "";
             currentPath = "/";
-            this.maxMemoryEntries = filter.getQueryEngineSettings().getLimitInMemory();
+            this.settings = filter.getQueryEngineSettings();
         }
 
         void enqueue(Iterator<? extends ChildNodeEntry> it) {
@@ -310,7 +311,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                     if (node.getBoolean("match")) {
                         readCount++;
                         if (readCount % TRAVERSING_WARN == 0) {
-                            FilterIterators.checkReadLimit(readCount, maxMemoryEntries);
+                            FilterIterators.checkReadLimit(readCount, settings);
                             LOG.warn("Traversed {} nodes ({} index entries) using index {} with filter {}", readCount, intermediateNodeReadCount, indexName, filter);
                         }
                         return;
