@@ -189,6 +189,21 @@ public class LdapProviderConfig {
     public static final String PARAM_ADMIN_POOL_MAX_ACTIVE = "adminPool.maxActive";
 
     /**
+     * @see PoolConfig#lookupOnValidate()
+     */
+    public static final boolean PARAM_ADMIN_POOL_LOOKUP_ON_VALIDATE_DEFAULT = true;
+
+    /**
+     * @see PoolConfig#lookupOnValidate()
+     */
+    @Property(
+            label = "Admin pool lookup on validate",
+            description = "Indicates an ROOT DSE lookup is performed to test if the connection is still valid when taking it out of the pool.",
+            boolValue = PARAM_ADMIN_POOL_LOOKUP_ON_VALIDATE_DEFAULT
+    )
+    public static final String PARAM_ADMIN_POOL_LOOKUP_ON_VALIDATE = "adminPool.lookupOnValidate";
+
+    /**
      * @see PoolConfig#getMaxActive()
      */
     public static final int PARAM_USER_POOL_MAX_ACTIVE_DEFAULT = 8;
@@ -202,6 +217,21 @@ public class LdapProviderConfig {
             longValue = PARAM_USER_POOL_MAX_ACTIVE_DEFAULT
     )
     public static final String PARAM_USER_POOL_MAX_ACTIVE = "userPool.maxActive";
+
+    /**
+     * @see PoolConfig#lookupOnValidate()
+     */
+    public static final boolean PARAM_USER_POOL_LOOKUP_ON_VALIDATE_DEFAULT = true;
+
+    /**
+     * @see PoolConfig#lookupOnValidate()
+     */
+    @Property(
+            label = "User pool lookup on validate",
+            description = "Indicates an ROOT DSE lookup is performed to test if the connection is still valid when taking it out of the pool.",
+            boolValue = PARAM_USER_POOL_LOOKUP_ON_VALIDATE_DEFAULT
+    )
+    public static final String PARAM_USER_POOL_LOOKUP_ON_VALIDATE = "userPool.lookupOnValidate";
 
     /**
      * @see Identity#getBaseDN()
@@ -561,6 +591,8 @@ public class LdapProviderConfig {
 
         private int maxActiveSize;
 
+        private boolean lookupOnValidate;
+
         /**
          * Returns the maximum number of objects that can be allocated by the pool
          * (checked out to clients, or idle awaiting checkout) at a given time.
@@ -580,8 +612,32 @@ public class LdapProviderConfig {
          * @see #getMaxActive
          * @return this
          */
+        @Nonnull
         public PoolConfig setMaxActive(int maxActive) {
             this.maxActiveSize = maxActive;
+            return this;
+        }
+
+        /**
+         * Defines if the lookup on validate flag is enabled. If enable a connection that taken from the
+         * pool are validated before used. currently this is done by performing a lookup to the ROOT DSE, which
+         * might not be allowed on all LDAP servers.
+
+         * @return {@code true} if the flag is enabled.
+         */
+        public boolean lookupOnValidate() {
+            return lookupOnValidate;
+        }
+
+        /**
+         * Sets the lookup on validate flag.
+         *
+         * @see #lookupOnValidate()
+         * @return this
+         */
+        @Nonnull
+        public PoolConfig setLookupOnValidate(boolean lookupOnValidate) {
+            this.lookupOnValidate = lookupOnValidate;
             return this;
         }
 
@@ -589,6 +645,7 @@ public class LdapProviderConfig {
         public String toString() {
             final StringBuilder sb = new StringBuilder("PoolConfig{");
             sb.append("maxActiveSize=").append(maxActiveSize);
+            sb.append(", lookupOnValidate=").append(lookupOnValidate);
             sb.append('}');
             return sb.toString();
         }
@@ -632,9 +689,11 @@ public class LdapProviderConfig {
                 .setMakeDnPath(params.getConfigValue(PARAM_GROUP_MAKE_DN_PATH, PARAM_GROUP_MAKE_DN_PATH_DEFAULT));
 
         cfg.getAdminPoolConfig()
+                .setLookupOnValidate(params.getConfigValue(PARAM_ADMIN_POOL_LOOKUP_ON_VALIDATE, PARAM_ADMIN_POOL_LOOKUP_ON_VALIDATE_DEFAULT))
                 .setMaxActive(params.getConfigValue(PARAM_ADMIN_POOL_MAX_ACTIVE, PARAM_ADMIN_POOL_MAX_ACTIVE_DEFAULT));
 
         cfg.getUserPoolConfig()
+                .setLookupOnValidate(params.getConfigValue(PARAM_USER_POOL_LOOKUP_ON_VALIDATE, PARAM_USER_POOL_LOOKUP_ON_VALIDATE_DEFAULT))
                 .setMaxActive(params.getConfigValue(PARAM_USER_POOL_MAX_ACTIVE, PARAM_USER_POOL_MAX_ACTIVE_DEFAULT));
 
         return cfg;
