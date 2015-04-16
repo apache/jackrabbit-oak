@@ -34,10 +34,14 @@ import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Component
 @Service(EditorProvider.class)
 public class TypeEditorProvider implements EditorProvider {
+
+    private static final Logger LOG = LoggerFactory.getLogger(TypeEditorProvider.class);
 
     private final boolean strict;
 
@@ -69,6 +73,7 @@ public class TypeEditorProvider implements EditorProvider {
             Set<String> modifiedTypes =
                     registration.getModifiedTypes(beforeTypes);
             if (!modifiedTypes.isEmpty()) {
+                long start = System.currentTimeMillis();
                 // Some node types were modified, so scan the repository
                 // to make sure that the modified definitions still apply.
                 Editor editor = new VisibleEditor(new TypeEditor(
@@ -76,6 +81,8 @@ public class TypeEditorProvider implements EditorProvider {
                         primary, mixins, builder));
                 CommitFailedException exception =
                         EditorDiff.process(editor, MISSING_NODE, after);
+                LOG.info("Node type changes: " + modifiedTypes + "; repository scan took " + (System.currentTimeMillis() - start)
+                        + "ms" + (exception == null ? "" : "; failed with " + exception.getMessage()));
                 if (exception != null) {
                     throw exception;
                 }
