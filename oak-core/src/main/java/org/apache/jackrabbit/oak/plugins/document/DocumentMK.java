@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.InputStream;
+import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
@@ -27,6 +28,7 @@ import javax.sql.DataSource;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.Weigher;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.mongodb.DB;
 
@@ -390,6 +392,7 @@ public class DocumentMK implements MicroKernel {
     private void parseJsonDiff(Commit commit, String json, String rootPath) {
         Revision baseRev = commit.getBaseRevision();
         String baseRevId = baseRev != null ? baseRev.toString() : null;
+        Set<String> added = Sets.newHashSet();
         JsopReader t = new JsopTokenizer(json);
         while (true) {
             int r = t.read();
@@ -402,6 +405,7 @@ public class DocumentMK implements MicroKernel {
                     t.read(':');
                     t.read('{');
                     parseAddNode(commit, t, path);
+                    added.add(path);
                     break;
                 case '-':
                     DocumentNodeState toRemove = nodeStore.getNode(path, commit.getBaseRevision());
@@ -421,6 +425,9 @@ public class DocumentMK implements MicroKernel {
                         value = t.readRawValue().trim();
                     }
                     String p = PathUtils.getParentPath(path);
+                    if (!added.contains(p) && nodeStore.getNode(p, commit.getBaseRevision()) == null) {
+                        throw new DocumentStoreException("Node not found: " + path + " in revision " + baseRevId);
+                    }
                     String propertyName = PathUtils.getName(path);
                     commit.updateProperty(p, propertyName, value);
                     commit.updatePropertyDiff(p, propertyName, value);
