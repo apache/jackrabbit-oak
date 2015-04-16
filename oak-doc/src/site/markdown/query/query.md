@@ -59,22 +59,21 @@ In Oak, this is no longer the case, and such queries search for an exact path ma
 
 Slow queries are logged as follows:
 
-    *WARN* Traversed 1000 nodes with filter Filter(query=select ...)
+    *WARN* Traversed 10000 nodes with filter Filter(query=select ...)
     consider creating an index or changing the query
 
 If this is the case, an index might need to be created, or the condition 
 of the query might need to be changed to take advantage of an existing index.
 
-If a query reads more than 10 thousand nodes in memory, then the query is cancelled
-with an UnsupportedOperationException saying that 
-"The query read more than 10000 nodes in memory. To avoid running out of memory, processing was stopped."
-As a workaround, this limit can be changed using the system property "oak.queryLimitInMemory".
-
-If a query traversed more than 100 thousand nodes (for example because there is no index
-at all and the whole repository is traversed), then the query is cancelled
-with an UnsupportedOperationException saying that 
-"The query read or traversed more than 10000 nodes. To avoid affecting other tasks, processing was stopped.".
-As a workaround, this limit can be changed using the system property "oak.queryLimitReads".
+Queries that traverse many nodes, or that read many nodes in memory, can be cancelled.
+The limits can be set at runtime (also while a slow query is running) using JMX,
+domain "org.apache.jackrabbit.oak", type "QueryEngineSettings", attribute names
+"LimitInMemory" and "LimitReads".
+These setting are not persisted, so in the next restart, the default values (unlimited) are used.
+As a workaround, these limits can be changed using the system properties 
+"oak.queryLimitInMemory" and "oak.queryLimitReads".
+Queries that exceed one of the limits are cancelled with an UnsupportedOperationException saying that 
+"The query read more than x nodes... To avoid running out of memory, processing was stopped."
 
 ### Full-Text Queries
 
