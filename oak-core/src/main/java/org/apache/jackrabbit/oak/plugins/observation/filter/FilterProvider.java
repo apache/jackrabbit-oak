@@ -62,4 +62,6 @@ public interface FilterProvider {
      */
     @Nonnull
     Iterable<String> getSubTrees();
+
+    FilterConfigMBean getConfigMBean();
 }
