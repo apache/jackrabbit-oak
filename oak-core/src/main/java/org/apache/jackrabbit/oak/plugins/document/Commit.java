@@ -477,16 +477,12 @@ public class Commit {
             }
             String conflictMessage = null;
             if (newestRev == null) {
-                if ((op.isDelete() || !op.isNew()) &&
-                        (!nodeStore.getEnableConcurrentAddRemove() || isConflicting(before, op))
-                        ) {
+                if ((op.isDelete() || !op.isNew()) && isConflicting(before, op)) {
                     conflictMessage = "The node " +
                             op.getId() + " does not exist or is already deleted";
                 }
             } else {
-                if (op.isNew() &&
-                        (!nodeStore.getEnableConcurrentAddRemove() || isConflicting(before, op))
-                        ) {
+                if (op.isNew() && isConflicting(before, op)) {
                     conflictMessage = "The node " +
                             op.getId() + " was already added in revision\n" +
                             newestRev;
