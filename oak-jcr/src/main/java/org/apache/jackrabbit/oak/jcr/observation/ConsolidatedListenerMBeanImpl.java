@@ -1,5 +1,3 @@
-
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -25,7 +23,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.management.ObjectName;
@@ -38,6 +35,7 @@ import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
+import com.google.common.base.Objects;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.felix.scr.annotations.Activate;
@@ -166,12 +164,12 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
             ListenerMBeans m = new ListenerMBeans();
             m.eventListenerMBean = e.getValue();
             for (Map.Entry<ObjectName, FilterConfigMBean> ef : filterConfigs.entrySet()){
-                if (Objects.equals(getListenerId(ef.getKey()), listenerId)){
+                if (Objects.equal(getListenerId(ef.getKey()), listenerId)){
                     m.filterConfigMBean = ef.getValue();
                 }
             }
             for (Map.Entry<ObjectName, BackgroundObserverMBean> ef : bgObservers.entrySet()){
-                if (Objects.equals(getListenerId(ef.getKey()), listenerId)){
+                if (Objects.equal(getListenerId(ef.getKey()), listenerId)){
                     m.observerMBean = ef.getValue();
                 }
             }
