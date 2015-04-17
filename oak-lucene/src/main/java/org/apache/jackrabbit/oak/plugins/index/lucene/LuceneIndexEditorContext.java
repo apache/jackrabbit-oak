@@ -192,20 +192,26 @@ public class LuceneIndexEditorContext {
     }
 
     private static Parser initializeTikaParser(IndexDefinition definition) {
-        if (definition.hasCustomTikaConfig()){
-            InputStream is = definition.getTikaConfig();
-            try {
-                TikaConfig config = new TikaConfig(is);
-                return new AutoDetectParser(config);
-            } catch (IOException e){
-                throw new RuntimeException("Error loading TikaConfig for "+ definition, e);
-            } catch (SAXException e) {
-                throw new RuntimeException("Error loading TikaConfig for "+ definition, e);
-            } catch (TikaException e) {
-                throw new RuntimeException("Error loading TikaConfig for "+ definition, e);
-            } finally {
-                IOUtils.closeQuietly(is);
+        ClassLoader existing = Thread.currentThread().getContextClassLoader();
+        try {
+            if (definition.hasCustomTikaConfig()) {
+                Thread.currentThread().setContextClassLoader(LuceneIndexEditorContext.class.getClassLoader());
+                InputStream is = definition.getTikaConfig();
+                try {
+                    TikaConfig config = new TikaConfig(is);
+                    return new AutoDetectParser(config);
+                } catch (IOException e) {
+                    throw new RuntimeException("Error loading TikaConfig for " + definition, e);
+                } catch (SAXException e) {
+                    throw new RuntimeException("Error loading TikaConfig for " + definition, e);
+                } catch (TikaException e) {
+                    throw new RuntimeException("Error loading TikaConfig for " + definition, e);
+                } finally {
+                    IOUtils.closeQuietly(is);
+                }
             }
+        }finally {
+            Thread.currentThread().setContextClassLoader(existing);
         }
         return defaultParser;
     }
