@@ -25,6 +25,7 @@ import java.net.URI;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.Blob;
@@ -246,11 +247,11 @@ public final class PropertyValues {
      * 
      * @param value the value to convert
      * @param targetType the target property type 
-     * @param mapper the name mapper
+     * @param mapper the name mapper or {@code null} if no name/path mapping is required.
      * @return the converted value
      * @throws IllegalArgumentException if mapping is illegal
      */
-    public static PropertyValue convert(@Nonnull PropertyValue value, int targetType, @Nonnull NamePathMapper mapper) {
+    public static PropertyValue convert(@Nonnull PropertyValue value, int targetType, @Nullable NamePathMapper mapper) {
         int sourceType = value.getType().tag();
         if (sourceType == targetType) {
             return value;
