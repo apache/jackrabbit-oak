@@ -245,13 +245,19 @@ public class LuceneIndexEditorContext {
     }
 
     private static Parser initializeTikaParser(IndexDefinition definition) {
-        if (definition.hasCustomTikaConfig()){
-            InputStream is = definition.getTikaConfig();
-            try {
-                return new AutoDetectParser(getTikaConfig(is, definition));
-            } finally {
-                IOUtils.closeQuietly(is);
+        ClassLoader current = Thread.currentThread().getContextClassLoader();
+        try {
+            if (definition.hasCustomTikaConfig()) {
+                Thread.currentThread().setContextClassLoader(LuceneIndexEditorContext.class.getClassLoader());
+                InputStream is = definition.getTikaConfig();
+                try {
+                    return new AutoDetectParser(getTikaConfig(is, definition));
+                } finally {
+                    IOUtils.closeQuietly(is);
+                }
             }
+        }finally {
+            Thread.currentThread().setContextClassLoader(current);
         }
         return defaultParser;
     }
