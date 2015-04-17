@@ -1,5 +1,5 @@
 
-Release Notes -- Apache Jackrabbit Oak -- Version 1.0.12
+Release Notes -- Apache Jackrabbit Oak -- Version 1.0.13
 
 Introduction
 ------------
@@ -8,73 +8,161 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.0.12 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.0.13 is a patch release that contains fixes and
 improvements over Oak 1.0. Jackrabbit Oak 1.0.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.0.12
+Changes in Oak 1.0.13
 ---------------------
+
+Sub-task
+
+    [OAK-2395] - RDB: MS SQL Server support
+    [OAK-2404] - Provide more information in SegmentNotFoundException
+    [OAK-2628] - RDB: convenience tool for dumping table creation
+    statements
+    [OAK-2637] - update Postgres JDBC version to 9.4
+    [OAK-2673] - Resolve add-add, delete-delete merge conflict for
+    empty hidden docs
+    [OAK-2781] - log node type changes and the time needed to traverse
+    the repository
+
+Bug
+
+    [OAK-1589] - MongoDocumentStore fails to report error for keys
+    that are too long
+    [OAK-1985] - TokenLoginModule can't handle case insensitive
+    userids
+    [OAK-2036] - getPlan() output for NodeTypeIndex doesn't indicate
+    the index type used
+    [OAK-2224] - Increase the threshold for warning in PathIterator
+    [OAK-2295] - Using "order by jcr:score" slows down queries by a
+    few orders of magnitude
+    [OAK-2375] - Sporadic test failure of HeavyWriteIT.heavyWrite on
+    Travis
+    [OAK-2420] - DocumentNodeStore revision GC may lead to NPE
+    [OAK-2549] - Persistent Cache: support append-only mode
+    [OAK-2557] - VersionGC uses way too much memory if there is a
+    large pile of garbage
+    [OAK-2562] - DiffCache is inefficient
+    [OAK-2565] - Duplicate conditions should be removed (where x=1
+    or/and x=1)
+    [OAK-2566] - PropertyRestriction.isNotNullRestriction does not
+    take "list" into account
+    [OAK-2576] - ServiceEvent on each session login/logout
+    [OAK-2577] - LuceneSupportTest fails
+    [OAK-2582] - RDB: improve memory cache handling
+    [OAK-2584] - Row estimator should have a threshold
+    [OAK-2600] - DocumentNodeStoreMBean not being registered with the
+    JMX in branch
+    [OAK-2603] - Failure in one of the batch in VersionGC might lead
+    to orphaned nodes
+    [OAK-2607] - OakSolrConfigurationProviderService wrongly uses
+    ignoredProperties for usedProperties
+    [OAK-2616] - GCMonitorMBean#getRepositorySize reports incorrect
+    values
+    [OAK-2639] - Incorrect check for log level in PerfLogger
+    [OAK-2642] - DocumentNodeStore.dispose() may leave repository in
+    an inconsistent state
+    [OAK-2648] - ObservationTest.observationDispose() restarts
+    repository after test finished
+    [OAK-2649] - IndexCopier might create empty files in case of error
+    occuring while copying
+    [OAK-2662] - SegmentOverflowException in HeavyWriteIT on Jenkins
+    [OAK-2666] - LMSEstimator update resetting weights
+    [OAK-2670] - Online Backup of segment store fails on Windows
+    because the journal file is locked exclusively.
+    [OAK-2695] - DocumentNodeStore.dispatch() may pass null to
+    NodeStateDiff
+    [OAK-2709] - Misleading log message from IndexCopier
+    [OAK-2716] - Background operation lock not released when
+    DocumentNodeStore is closed
+    [OAK-2720] - Misleading traversal warning message while performing
+    query
+    [OAK-2732] - NPE in lucene search
+    [OAK-2740] - TreeTypeProvider treates optimized node type
+    definition info as Ac-Content
+    [OAK-2751] - Test failures with EnableConcurrentAddRemove feature
+    enabled on 1.0 branch
+    [OAK-2752] - SegmentIdTable can sometimes hang when calling
+    getSegmentId(msb, lsb)
+    [OAK-2759] - Empty commit causes deserialization issue in
+    LocalDiffCache leading to cache corruption
+    [OAK-2780] - DocumentMK.commit() does not check if node exists on
+    property patch
+    [OAK-2782] - Tika not able to load class in case of custom config
+
+Improvement
+
+    [OAK-2228] - Changing the query traversal limit should affect
+    already started queries
+    [OAK-2230] - Execution Stats for async indexing
+    [OAK-2448] - Do not create nodeChildren cache entry for leaf
+    [OAK-2464] - Optimize read of known non-existing children
+    [OAK-2499] - Expose mongo and db versions for reporting purposes
+    [OAK-2570] - Open indexes in IndexTracker non blocking way
+    [OAK-2571] - Protect the persistent cache against Thread.interrupt
+    [OAK-2572] - Include cache invalidation stats in logs related to
+    background operations
+    [OAK-2579] - RepositoryManager must not register
+    WhiteboardExecutor with Oak
+    [OAK-2587] - observation processing too eager/unfair under load
+    [OAK-2589] - Provide progress indication when reindexing is being
+    peformed
+    [OAK-2590] - IndexCopier Error occurred while removing deleted
+    files from Local
+    [OAK-2591] - Invoke indexUpdate only when new Document are added
+    in LuceneIndexEditor
+    [OAK-2594] - Backport spellcheck support to 1.0
+    [OAK-2595] - High memory consumption of CompactionGainEstimate
+    [OAK-2601] - PerfLogger for NodeObserver.contentChanged()
+    [OAK-2602] - [Solr] Cost calculation takes time with solr pings
+    even when not fulfilling query
+    [OAK-2604] - Backport LMSEstimator and sorting capabilities to
+    branch 1.0
+    [OAK-2608] - Avoid indexing user/group/uuid props by default
+    [OAK-2614] - Timeout for MongoDB query
+    [OAK-2624] - Move out non essential task processing from
+    DocumentNodeStore background thread
+    [OAK-2654] - SegmentIdTable too eager to refresh
+    [OAK-2668] - Ability to disable index hints for MongoDB
+    [OAK-2669] - Use Consolidated diff for local changes with
+    persistent cache to avoid calculating diff again
+    [OAK-2671] - Persistent cache: use different files in tests
+    [OAK-2708] - Enable CopyOnRead feature for Lucene indexes by
+    default
+    [OAK-2737] - RepositoryUpgrade.copy() should allow custom commit
+    hooks
+    [OAK-2738] - Possible StackOverflowException with many "or"
+    conditions
+    [OAK-2743] - Log time taken in couple of places in indexing
+    [OAK-2753] - Use increasing batch size for sorted queries in
+    LucenePropertyIndex
+    [OAK-2755] - Consolidated JMX view of all EventListener related
+    statistics
+    [OAK-2769] - Add progress log to VersionGC in DocumentNodeStore
+
+New Feature
+
+    [OAK-2371] - Helper class for CI configurations
+
+Task
+
+    [OAK-2168] - Make SolrIndex implement AdvanceQueryIndex
+    [OAK-2578] - Add Sling OSGi Mocks to parent pom
+    [OAK-2583] - Use PerfLogger in DocumentNodeStoreBranch
+
+Test
+
+    [OAK-2696] - Maven build on travis too verbose
+
+Wish
+
+    [OAK-1859] - Migration from TarMK to MongoMK
    
-Bug Fixes
-   [OAK-1709] - Diff cache entry too large
-   [OAK-2294] - Corrupt repository after concurrent version operations
-   [OAK-2346] - InitializerTest.testInitializerMongoWithoutInitialContent() fails
-   [OAK-2360] - IllegalStateException: OrderedPropertyIndex index is used even when no index is available
-   [OAK-2369] - DataStoreWrapperBackend not updated to latest extensions added to Backend interface
-   [OAK-2384] - SegmentNotFoundException when keeping JCR Value references
-   [OAK-2389] - issues with JsopBuilder.encode and .escape
-   [OAK-2449] - offline compaction (via oak-run) broken
-   [OAK-2450] - MongoDocumentStore fails for DELETED_ONCE indexed property
-   [OAK-2475] - Query Filter looses property constraints for multiple and conditions for same property
-   [OAK-2496] - InitializerTest failing with Mongo on 1.0 branch
-   [OAK-2505] - Rows parameter is provided but the value is not taken from configuration
-   [OAK-2513] - algorithm with O(n!) in mongoMk rebase - not finishing in years
-   [OAK-2515] - SolrQueryIndex blindly executes a 2nd query to check there are no more results
-   [OAK-2518] - backport DocumentStoreException to Oak 1.0
-   [OAK-2528] - Entries in _commitRoot not purged
-   [OAK-2532] - OSGiIT fails on 1.0 branch
-   [OAK-2535] - TARMK Cold Standby allow cleanup on standby instance
-   [OAK-2541] - TARMK Cold Standby marks the sync as stopped on first error
-   [OAK-2558] - Wrong interpretation of SegmentNodeStoreService configuration values 
-   [OAK-2559] - Lucene index rules should be case insensitive
-
-Improvements
-   [OAK-1796] - Update Mongo Java Driver version to 2.12
-   [OAK-2252] - make generic VersionGCSupport perform better
-   [OAK-2340] - LucenePropertyIndex should support pure nodeType based query
-   [OAK-2407] - Auto-refresh sessions on revision gc
-   [OAK-2415] - Improve logging in repository migration in upgrade
-   [OAK-2432] - Allow querying on jcr:primaryType property if that property is indexed
-   [OAK-2453] - Move MongoDiffCache to mongo package
-   [OAK-2461] - Optimize access to pending _lastRev updates
-   [OAK-2463] - Provide support for providing custom Tika config
-   [OAK-2471] - Include index name in the log from LuceneIndexEditor
-   [OAK-2501] - add more trace-logging to mongoMk to debug performance issues
-   [OAK-2516] - Add user information in audit events in oak
-   [OAK-2519] - remove CachingDocumentStore interface
-   [OAK-2527] - Update SegmentMK header format definition
-   [OAK-2529] - Index usage for "not equals" conditions
-   [OAK-2534] - Add missing Apache Jackrabbit qualifiers to OSGi services metatype
-   [OAK-2546] - allow configuring subcaches of documentnodestore individually
-   [OAK-2553] - Add builder to file store
-   [OAK-2554] - Make AbstractServiceTracker.stop() idempotent
-   [OAK-2568] - Ignore redundant IS NOT NULL constraints 
-
-New Features
-   [OAK-2517] - Support IS NULL based property restrictions in LucenePropertyIndex
-   [OAK-2530] - Support IS NULL based property restrictions in the query engine
-
-Tasks
-   [OAK-2484] - Backport OAK-2319 to 1.0
-
-Sub-tasks
-   [OAK-2446] - make DELETEDONCE an indexed property
-   [OAK-2506] - port RDB support back to Oak 1.0
-   [OAK-2552] - Implement MBean monitoring garbage collection
-
 In addition to the above-mentioned changes, this release contains
 all changes included in previous Apache Jackrabbit Oak 1.0.x releases.
 
