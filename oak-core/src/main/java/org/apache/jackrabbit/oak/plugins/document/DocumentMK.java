@@ -154,24 +154,6 @@ public class DocumentMK {
         }
     }
 
-    public String getRevisionHistory(long since, int maxEntries, String path)
-            throws DocumentStoreException {
-        // not currently called by oak-core
-        throw new DocumentStoreException("Not implemented");
-    }
-
-    public String waitForCommit(String oldHeadRevisionId, long timeout)
-            throws DocumentStoreException, InterruptedException {
-        // not currently called by oak-core
-        throw new DocumentStoreException("Not implemented");
-    }
-
-    public String getJournal(String fromRevisionId, String toRevisionId,
-            String path) throws DocumentStoreException {
-        // not currently called by oak-core
-        throw new DocumentStoreException("Not implemented");
-    }
-
     public String diff(String fromRevisionId,
                        String toRevisionId,
                        String path,
@@ -203,12 +185,6 @@ public class DocumentMK {
             throw new DocumentStoreException(e);
         }
         return n != null;
-    }
-
-    public long getChildNodeCount(String path, String revisionId)
-            throws DocumentStoreException {
-        // not currently called by oak-core
-        throw new DocumentStoreException("Not implemented");
     }
 
     public String getNodes(String path, String revisionId, int depth,
