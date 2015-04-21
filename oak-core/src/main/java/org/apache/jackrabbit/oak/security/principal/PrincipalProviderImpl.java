@@ -34,13 +34,13 @@ import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
-import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
+import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.slf4j.Logger;
@@ -167,25 +167,10 @@ class PrincipalProviderImpl implements PrincipalProvider {
             @Override
             public <T> void build(QueryBuilder<T> builder) {
                 builder.setCondition(builder.like('@' +UserConstants.REP_PRINCIPAL_NAME, buildSearchPattern(nameHint)));
-                builder.setSelector(getAuthorizableClass(searchType));
+                builder.setSelector(AuthorizableType.getType(searchType).getAuthorizableClass());
             }
         };
         return userManager.findAuthorizables(userQuery);
-    }
-
-
-    private static Class<? extends Authorizable> getAuthorizableClass(int searchType) {
-        switch (searchType) {
-            case PrincipalManager.SEARCH_TYPE_GROUP:
-                return org.apache.jackrabbit.api.security.user.Group.class;
-            case PrincipalManager.SEARCH_TYPE_NOT_GROUP:
-                return User.class;
-            case PrincipalManager.SEARCH_TYPE_ALL:
-                return Authorizable.class;
-            default:
-                throw new IllegalArgumentException("Invalid search type " + searchType);
-
-        }
     }
 
     private static String buildSearchPattern(String nameHint) {
