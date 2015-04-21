@@ -149,10 +149,12 @@ public class MongoDocumentStore implements DocumentStore {
 
     /**
      * Duration in seconds under which queries would use index on _modified field
-     * If set to -1 then modifiedTime index would not be used
+     * If set to -1 then modifiedTime index would not be used.
+     * <p>
+     * Default is 60 seconds.
      */
     private final long maxDeltaForModTimeIdxSecs =
-            Long.getLong("oak.mongo.maxDeltaForModTimeIdxSecs",-1);
+            Long.getLong("oak.mongo.maxDeltaForModTimeIdxSecs", 60);
 
     /**
      * Disables the index hint sent to MongoDB.
