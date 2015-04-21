@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.spi.commit;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Iterables.size;
 import static com.google.common.collect.Queues.newArrayBlockingQueue;
 
 import java.io.Closeable;
@@ -34,6 +36,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -200,6 +203,46 @@ public class BackgroundObserver implements Observer, Closeable {
         queue.clear();
         queue.add(STOP);
         stopped = true;
+    }
+
+    @Nonnull
+    public BackgroundObserverMBean getMBean(){
+        return new BackgroundObserverMBean() {
+            @Override
+            public String getClassName() {
+                return observer.getClass().getName();
+            }
+
+            @Override
+            public int getQueueSize() {
+                return queue.size();
+            }
+
+            @Override
+            public int getMaxQueueSize() {
+                return getMaxQueueLength();
+            }
+
+            @Override
+            public int getLocalEventCount() {
+                return size(filter(queue, new Predicate<ContentChange>() {
+                    @Override
+                    public boolean apply(@Nullable ContentChange input) {
+                        return input.info != null;
+                    }
+                }));
+            }
+
+            @Override
+            public int getExternalEventCount() {
+                return size(filter(queue, new Predicate<ContentChange>() {
+                    @Override
+                    public boolean apply(@Nullable ContentChange input) {
+                        return input.info == null;
+                    }
+                }));
+            }
+        };
     }
 
     //----------------------------------------------------------< Observer >--
