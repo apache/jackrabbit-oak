@@ -136,12 +136,12 @@ public class MemoryDocumentStore implements DocumentStore {
                 if (indexedProperty != null) {
                     Object value = doc.get(indexedProperty);
                     if (value instanceof Boolean) {
-                        long test = (value != null && ((Boolean) value).booleanValue()) ? 1 : 0;
+                        long test = ((Boolean) value) ? 1 : 0;
                         if (test < startValue) {
                             continue;
                         }
                     } else if (value instanceof Long) {
-                        if (value == null || ((Long) value < startValue)) {
+                        if ((Long) value < startValue) {
                             continue;
                         }
                     } else if (value != null) {
