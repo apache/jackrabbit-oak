@@ -276,6 +276,9 @@ public class BenchmarkRunner {
             new GetPrincipalTest(
                     numberOfUsers.value(options),
                     flatStructure.value(options)),
+            new GetGroupPrincipalsTest(
+                    numberOfGroups.value(options),
+                    nestedGroups.value(options)),
             new FullTextSearchTest(
                     wikipedia.value(options),
                     flatStructure.value(options),

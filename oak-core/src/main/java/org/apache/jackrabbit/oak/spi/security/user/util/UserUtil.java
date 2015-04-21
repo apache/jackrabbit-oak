@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
@@ -129,6 +130,25 @@ public final class UserUtil implements UserConstants {
             }
         }
         return null;
+    }
+
+    /**
+     * Retrieve the id from the given {@code authorizableTree}, which must have
+     * been verified for being a valid authorizable of the specified type upfront.
+     *
+     * @param authorizableTree The authorizable tree which must be of the given {@code type}/
+     * @param type The type of the authorizable tree.
+     * @return The id retrieved from the specified {@code AuthorizableTree}.
+     */
+    @Nonnull
+    public static String getAuthorizableId(@Nonnull Tree authorizableTree, @Nonnull AuthorizableType type) {
+        checkArgument(UserUtil.isType(authorizableTree, type));
+        PropertyState idProp = authorizableTree.getProperty(UserConstants.REP_AUTHORIZABLE_ID);
+        if (idProp != null) {
+            return idProp.getValue(STRING);
+        } else {
+            return Text.unescapeIllegalJcrChars(authorizableTree.getName());
+        }
     }
 
     @CheckForNull

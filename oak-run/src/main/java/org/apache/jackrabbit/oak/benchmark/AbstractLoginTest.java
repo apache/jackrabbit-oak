@@ -78,7 +78,7 @@ abstract class AbstractLoginTest extends AbstractTest {
         try {
             AccessControlUtils.addAccessControlEntry(s, "/", EveryonePrincipal.getInstance(), new String[]{Privilege.JCR_READ}, true);
             if (USER.equals(runAsUser)) {
-                User user = ((JackrabbitSession) s).getUserManager().createUser(USER, USER);
+                ((JackrabbitSession) s).getUserManager().createUser(USER, USER);
             }
         } finally {
             s.save();

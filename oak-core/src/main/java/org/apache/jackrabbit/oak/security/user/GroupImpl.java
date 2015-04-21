@@ -17,21 +17,18 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import java.security.Principal;
-import java.util.Enumeration;
 import java.util.Iterator;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.slf4j.Logger;
@@ -42,9 +39,6 @@ import org.slf4j.LoggerFactory;
  */
 class GroupImpl extends AuthorizableImpl implements Group {
 
-    /**
-     * logger instance
-     */
     private static final Logger log = LoggerFactory.getLogger(GroupImpl.class);
 
     GroupImpl(String id, Tree tree, UserManagerImpl userManager) throws RepositoryException {
@@ -230,72 +224,31 @@ class GroupImpl extends AuthorizableImpl implements Group {
     /**
      * Principal representation of this group instance.
      */
-    private class GroupPrincipal extends TreeBasedPrincipal implements java.security.acl.Group {
+    private class GroupPrincipal extends AbstractGroupPrincipal {
 
-        GroupPrincipal(String principalName, Tree groupTree) {
-            super(principalName, groupTree, getUserManager().getNamePathMapper());
+        private GroupPrincipal(String principalName, Tree groupTree) {
+            super(principalName, groupTree, GroupImpl.this.getUserManager().getNamePathMapper());
         }
 
         @Override
-        public boolean addMember(Principal principal) {
-            throw new UnsupportedOperationException();
+        UserManager getUserManager() {
+            return GroupImpl.this.getUserManager();
         }
 
         @Override
-        public boolean removeMember(Principal principal) {
-            throw new UnsupportedOperationException();
+        boolean isEveryone() throws RepositoryException {
+            return GroupImpl.this.isEveryone();
         }
 
         @Override
-        public boolean isMember(Principal principal) {
-            boolean isMember = false;
-            try {
-                // shortcut for everyone group -> avoid collecting all members
-                // as all users and groups are member of everyone.
-                if (isEveryone()) {
-                    isMember = !EveryonePrincipal.NAME.equals(principal.getName());
-                } else {
-                    Authorizable a = getUserManager().getAuthorizable(principal);
-                    if (a != null) {
-                        isMember = GroupImpl.this.isMember(a);
-                    }
-                }
-            } catch (RepositoryException e) {
-                log.warn("Failed to determine group membership", e.getMessage());
-            }
-
-            // principal doesn't represent a known authorizable or an error occurred.
-            return isMember;
+        boolean isMember(@Nonnull Authorizable authorizable) throws RepositoryException {
+            return GroupImpl.this.isMember(authorizable);
         }
 
+        @Nonnull
         @Override
-        public Enumeration<? extends Principal> members() {
-            final Iterator<Authorizable> members;
-            try {
-                members = GroupImpl.this.getMembers();
-            } catch (RepositoryException e) {
-                // should not occur.
-                String msg = "Unable to retrieve Group members: " + e.getMessage();
-                log.error(msg);
-                throw new IllegalStateException(msg);
-            }
-
-            Iterator<Principal> principals = Iterators.transform(members, new Function<Authorizable, Principal>() {
-                @Override
-                public Principal apply(Authorizable authorizable) {
-                    if (authorizable == null) {
-                        return null;
-                    }
-                    try {
-                        return authorizable.getPrincipal();
-                    } catch (RepositoryException e) {
-                        String msg = "Internal error while retrieving principal: " + e.getMessage();
-                        log.error(msg);
-                        throw new IllegalStateException(msg);
-                    }
-                }
-            });
-            return Iterators.asEnumeration(Iterators.filter(principals, Predicates.<Object>notNull()));
+        Iterator<Authorizable> getMembers() throws RepositoryException {
+            return GroupImpl.this.getMembers();
         }
     }
 }
