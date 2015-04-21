@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
+import org.apache.jackrabbit.oak.spi.commit.BackgroundObserverMBean;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
@@ -218,6 +219,11 @@ public class LuceneIndexProviderService {
         if (enableAsyncIndexOpen) {
             backgroundObserver = new BackgroundObserver(indexProvider, executor, 5);
             observer = backgroundObserver;
+            oakRegs.add(registerMBean(whiteboard,
+                    BackgroundObserverMBean.class,
+                    backgroundObserver.getMBean(),
+                    BackgroundObserverMBean.TYPE,
+                    "LuceneIndexConfigObserver queue stats"));
             log.info("Registering the LuceneIndexProvider as a BackgroundObserver");
         }
         regs.add(bundleContext.registerService(Observer.class.getName(), observer, null));
