@@ -23,10 +23,17 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.size;
 import static java.util.concurrent.TimeUnit.HOURS;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT_FACTOR;
@@ -38,12 +45,15 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -52,6 +62,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -66,6 +77,8 @@ public class VersionGarbageCollectorTest {
     private DocumentNodeStore store;
 
     private VersionGarbageCollector gc;
+
+    private ExecutorService execService;
 
     public VersionGarbageCollectorTest(DocumentStoreFixture fixture) {
         this.fixture = fixture;
@@ -90,6 +103,7 @@ public class VersionGarbageCollectorTest {
 
     @Before
     public void setUp() throws InterruptedException {
+        execService = Executors.newCachedThreadPool();
         clock = new Clock.Virtual();
         store = new DocumentMK.Builder()
                 .clock(clock)
@@ -106,6 +120,8 @@ public class VersionGarbageCollectorTest {
     public void tearDown() throws Exception {
         store.dispose();
         Revision.resetClockToDefault();
+        execService.shutdown();
+        execService.awaitTermination(1, MINUTES);
     }
 
     @Test
@@ -382,6 +398,83 @@ public class VersionGarbageCollectorTest {
         assertNotNull(doc);
         int numRevs = size(doc.getValueMap("prop").entrySet());
         assertTrue("too many revisions: " + numRevs, numRevs < 6000);
+    }
+
+    // OAK-2778
+    @Ignore
+    @Test
+    public void gcWithConcurrentModification() throws Exception {
+        Revision.setClock(clock);
+
+        // create test content
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("foo");
+        builder.child("bar");
+        merge(store, builder);
+
+        // remove again
+        builder = store.getRoot().builder();
+        builder.getChildNode("foo").remove();
+        builder.getChildNode("bar").remove();
+        merge(store, builder);
+
+        // wait one hour
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(1));
+
+        final BlockingQueue<NodeDocument> docs = Queues.newSynchronousQueue();
+        VersionGCSupport gcSupport = new VersionGCSupport(store.getDocumentStore()) {
+            @Override
+            public Iterable<NodeDocument> getPossiblyDeletedDocs(long lastModifiedTime) {
+                return filter(super.getPossiblyDeletedDocs(lastModifiedTime),
+                        new Predicate<NodeDocument>() {
+                            @Override
+                            public boolean apply(NodeDocument input) {
+                                try {
+                                    docs.put(input);
+                                } catch (InterruptedException e) {
+                                    throw new RuntimeException(e);
+                                }
+                                return true;
+                            }
+                        });
+            }
+        };
+        final VersionGarbageCollector gc = new VersionGarbageCollector(store, gcSupport);
+        // start GC -> will try to remove /foo and /bar
+        Future<VersionGCStats> f = execService.submit(new Callable<VersionGCStats>() {
+            @Override
+            public VersionGCStats call() throws Exception {
+                return gc.gc(30, MINUTES);
+            }
+        });
+
+        NodeDocument doc = docs.take();
+        String name = PathUtils.getName(doc.getPath());
+        // recreate node, which hasn't been removed yet
+        name = name.equals("foo") ? "bar" : "foo";
+        builder = store.getRoot().builder();
+        builder.child(name);
+        merge(store, builder);
+
+        // loop over child node entries -> will populate nodeChildrenCache
+        for (ChildNodeEntry cne : store.getRoot().getChildNodeEntries()) {
+            cne.getName();
+        }
+        // invalidate cached DocumentNodeState
+        DocumentNodeState state = (DocumentNodeState) store.getRoot().getChildNode(name);
+        store.invalidateNodeCache(state.getPath(), state.getRevision());
+
+        while (!f.isDone()) {
+            docs.poll();
+        }
+
+        // read children again after GC finished
+        for (ChildNodeEntry cne : store.getRoot().getChildNodeEntries()) {
+            cne.getName();
+        }
+
+        VersionGCStats stats = f.get();
+        assertEquals(1, stats.deletedDocGCCount);
     }
 
     private void merge(DocumentNodeStore store, NodeBuilder builder)
