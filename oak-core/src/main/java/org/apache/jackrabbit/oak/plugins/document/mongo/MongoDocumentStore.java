@@ -167,11 +167,11 @@ public class MongoDocumentStore implements DocumentStore {
      * If this value is -1 no timeout is being set at all, if it is 1 or greater
      * this translated to MongoDB's maxTimeNS being set accordingly.
      * <p>
-     * Default is -1.
+     * Default is 60'000 (one minute).
      * See: http://mongodb.github.io/node-mongodb-native/driver-articles/anintroductionto1_4_and_2_6.html#maxtimems
      */
     private final long maxQueryTimeMS =
-            Long.getLong("oak.mongo.maxQueryTimeMS", -1);
+            Long.getLong("oak.mongo.maxQueryTimeMS", TimeUnit.MINUTES.toMillis(1));
 
     private String lastReadWriteMode;
 
