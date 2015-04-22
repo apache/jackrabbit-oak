@@ -77,6 +77,16 @@ public abstract class CompactionStrategy {
     public static final byte MEMORY_THRESHOLD_DEFAULT = 5;
 
     /**
+     * Default value for {@link #getRetryCount()}
+     */
+    public static final int RETRY_COUNT_DEFAULT = 5;
+
+    /**
+     * Default value for {@link #getForceAfterFail()}
+     */
+    public static final boolean FORCE_AFTER_FAIL_DEFAULT = true;
+
+    /**
      * No compaction at all
      */
     public static CompactionStrategy NO_COMPACTION = new CompactionStrategy(
@@ -103,6 +113,10 @@ public abstract class CompactionStrategy {
     private long olderThan;
 
     private byte memoryThreshold = MEMORY_THRESHOLD_DEFAULT;
+
+    private int retryCount = RETRY_COUNT_DEFAULT;
+
+    private boolean forceAfterFail = FORCE_AFTER_FAIL_DEFAULT;
 
     private CompactionMap compactionMap;
 
@@ -189,6 +203,44 @@ public abstract class CompactionStrategy {
 
     public void setMemoryThreshold(byte memoryThreshold) {
         this.memoryThreshold = memoryThreshold;
+    }
+
+    /**
+     * Get whether or not to force compact concurrent commits on top of already
+     * compacted commits after the maximum number of retries has been reached.
+     * Force committing tries to exclusively write lock the node store.
+     * @return  {@code true} if force commit is on, {@code false} otherwise
+     */
+    public boolean getForceAfterFail() {
+        return forceAfterFail;
+    }
+
+    /**
+     * Set whether or not to force compact concurrent commits on top of already
+     * compacted commits after the maximum number of retries has been reached.
+     * Force committing tries to exclusively write lock the node store.
+     * @param forceAfterFail
+     */
+    public void setForceAfterFail(boolean forceAfterFail) {
+        this.forceAfterFail = forceAfterFail;
+    }
+
+    /**
+     * Get the number of tries to compact concurrent commits on top of already
+     * compacted commits
+     * @return  retry count
+     */
+    public int getRetryCount() {
+        return retryCount;
+    }
+
+    /**
+     * Set the number of tries to compact concurrent commits on top of already
+     * compacted commits
+     * @param retryCount
+     */
+    public void setRetryCount(int retryCount) {
+        this.retryCount = retryCount;
     }
 
     public abstract boolean compacted(@Nonnull Callable<Boolean> setHead) throws Exception;

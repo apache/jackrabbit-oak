@@ -85,6 +85,26 @@ public class DefaultCompactionStrategyMBean
     }
 
     @Override
+    public boolean getForceAfterFail() {
+        return strategy.getForceAfterFail();
+    }
+
+    @Override
+    public void setForceAfterFail(boolean forceAfterFail) {
+        strategy.setForceAfterFail(forceAfterFail);
+    }
+
+    @Override
+    public int getRetryCount() {
+        return strategy.getRetryCount();
+    }
+
+    @Override
+    public void setRetryCount(int retryCount) {
+        strategy.setRetryCount(retryCount);
+    }
+
+    @Override
     public String getCompactionMapStats() {
         CompactionMap cm = strategy.getCompactionMap();
         if (cm != null) {
