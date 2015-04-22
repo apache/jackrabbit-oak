@@ -85,7 +85,7 @@ abstract class AbstractGroupPrincipal extends TreeBasedPrincipal implements java
             // should not occur.
             String msg = "Unable to retrieve Group members: " + e.getMessage();
             log.error(msg);
-            throw new IllegalStateException(msg);
+            throw new IllegalStateException(msg, e);
         }
 
         Iterator<Principal> principals = Iterators.transform(members, new Function<Authorizable, Principal>() {
@@ -99,7 +99,7 @@ abstract class AbstractGroupPrincipal extends TreeBasedPrincipal implements java
                 } catch (RepositoryException e) {
                     String msg = "Internal error while retrieving principal: " + e.getMessage();
                     log.error(msg);
-                    throw new IllegalStateException(msg);
+                    throw new IllegalStateException(msg, e);
                 }
             }
         });
