@@ -982,7 +982,7 @@ public class LdapProviderConfig {
         StringBuilder sb = null;
         for (int i = 0; i < value.length(); i++) {
             char ch = value.charAt(i);
-            String replace = null;
+            String replace;
             switch (ch) {
                 case '*':
                     replace = "\\2A";
@@ -1003,6 +1003,9 @@ public class LdapProviderConfig {
                 case '\0':
                     replace = "\\00";
                     break;
+
+                default:
+                    replace = null;
             }
             if (replace != null) {
                 if (sb == null) {

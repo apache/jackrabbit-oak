@@ -17,6 +17,7 @@
 
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
+import java.io.IOException;
 
 import org.apache.commons.pool.PoolableObjectFactory;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
@@ -57,7 +58,7 @@ public class PoolableUnboundConnectionFactory implements PoolableObjectFactory<L
     /**
      * {@inheritDoc}
      */
-    public void activateObject(LdapConnection connection) throws Exception {
+    public void activateObject(LdapConnection connection) {
         log.debug("activate connection: {}", connection);
     }
 
@@ -65,7 +66,7 @@ public class PoolableUnboundConnectionFactory implements PoolableObjectFactory<L
     /**
      * {@inheritDoc}
      */
-    public void destroyObject(LdapConnection connection) throws Exception {
+    public void destroyObject(LdapConnection connection) throws IOException {
         log.debug("destroy connection: {}", connection);
         connection.close();
     }
@@ -74,7 +75,7 @@ public class PoolableUnboundConnectionFactory implements PoolableObjectFactory<L
     /**
      * {@inheritDoc}
      */
-    public LdapConnection makeObject() throws Exception {
+    public LdapConnection makeObject() throws LdapException {
         LdapNetworkConnection connection = config.isUseTls()
                 ? new TlsGuardingConnection(config)
                 : new LdapNetworkConnection(config);
@@ -87,7 +88,7 @@ public class PoolableUnboundConnectionFactory implements PoolableObjectFactory<L
     /**
      * {@inheritDoc}
      */
-    public void passivateObject(LdapConnection connection) throws Exception {
+    public void passivateObject(LdapConnection connection) {
         log.debug("passivate connection: {}", connection);
     }
 
@@ -114,7 +115,7 @@ public class PoolableUnboundConnectionFactory implements PoolableObjectFactory<L
      *
      * @see org.apache.directory.ldap.client.api.LdapNetworkConnection#bindAsync(org.apache.directory.api.ldap.model.message.BindRequest)
      */
-    private static class TlsGuardingConnection extends LdapNetworkConnection {
+    private static final class TlsGuardingConnection extends LdapNetworkConnection {
 
         private boolean tlsStarted;
 
