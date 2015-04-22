@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.EmptyPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.CompositeRestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
@@ -96,11 +97,18 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
                         aggrPermissionProviders.add((AggregatedPermissionProvider) pProvider);
                     }
                 }
-                if (aggrPermissionProviders.size() == 1) {
-                    return aggrPermissionProviders.get(0);
-                } else {
-                    return new CompositePermissionProvider(root, aggrPermissionProviders);
+                PermissionProvider pp;
+                switch (aggrPermissionProviders.size()) {
+                    case 0 :
+                        pp = EmptyPermissionProvider.getInstance();
+                        break;
+                    case 1 :
+                        pp = aggrPermissionProviders.get(0);
+                        break;
+                    default :
+                        pp = new CompositePermissionProvider(root, aggrPermissionProviders);
                 }
+                return pp;
         }
     }
 }
