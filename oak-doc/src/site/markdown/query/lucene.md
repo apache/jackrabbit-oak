@@ -122,11 +122,18 @@ name
 : Optional property
 : Captures the name of the index which is used while logging
 
-compatMode
+compatVersion
 : Required integer property and should be set to 2
 : By default Oak uses older Lucene index implementation which does not
-  supports property restrictions, index time aggregation etc. To make use of
-  this feature set it to 2
+  supports property restrictions, index time aggregation etc. 
+  To make use of this feature set it to 2.
+  Please note for full text indexing with compatVersion 2, 
+  at query time, only the access right of the parent (aggregate) node is checked, 
+  and the access right of the child nodes is not checked.
+  If this is a security concern, then compatVersion should not be set,
+  so that query time aggregation is used, in which case the access right
+  of the relevant child is also checked.
+  A compatVersion 2 full text index is usually faster to run queries.
 
 [maxFieldLength][OAK-2469]
 : Numbers of terms indexed per field. Defaults to 10000
