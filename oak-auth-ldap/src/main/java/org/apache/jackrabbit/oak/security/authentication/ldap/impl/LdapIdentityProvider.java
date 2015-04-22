@@ -123,11 +123,12 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
      * Constructor for non-OSGi cases.
      * @param config the configuration
      */
-    public LdapIdentityProvider(LdapProviderConfig config) {
+    public LdapIdentityProvider(@Nonnull LdapProviderConfig config) {
         this.config = config;
         init();
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     @Activate
     private void activate(Map<String, Object> properties) {
         ConfigurationParameters cfg = ConfigurationParameters.of(properties);
@@ -135,6 +136,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
         init();
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     @Deactivate
     private void deactivate() {
         close();
@@ -150,8 +152,9 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
 
         // setup admin connection pool
         LdapConnectionConfig cc = createConnectionConfig();
-        if (!config.getBindDN().isEmpty()) {
-            cc.setName(config.getBindDN());
+        String bindDN = config.getBindDN();
+        if (bindDN != null && !bindDN.isEmpty()) {
+            cc.setName(bindDN);
             cc.setCredentials(config.getBindPassword());
         }
         adminConnectionFactory = new PoolableLdapConnectionFactory(cc);
