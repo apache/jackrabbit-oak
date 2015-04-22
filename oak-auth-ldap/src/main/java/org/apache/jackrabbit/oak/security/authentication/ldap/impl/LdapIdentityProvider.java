@@ -51,7 +51,6 @@ import org.apache.directory.ldap.client.api.LdapConnection;
 import org.apache.directory.ldap.client.api.LdapConnectionConfig;
 import org.apache.directory.ldap.client.api.LdapConnectionPool;
 import org.apache.directory.ldap.client.api.NoVerificationTrustManager;
-import org.apache.directory.ldap.client.api.PoolableLdapConnectionFactory;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
@@ -100,7 +99,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
     /**
      * admin connection factory
      */
-    private PoolableLdapConnectionFactory adminConnectionFactory;
+    private OakPoolableLdapConnectionFactory adminConnectionFactory;
 
     /**
      * the connection pool with unbound connections
@@ -481,8 +480,8 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
             cc.setName(bindDN);
             cc.setCredentials(config.getBindPassword());
         }
-        adminConnectionFactory = new PoolableLdapConnectionFactory(cc);
-
+        adminConnectionFactory = new OakPoolableLdapConnectionFactory(cc);
+        adminConnectionFactory.setLookupOnValidate(config.getAdminPoolConfig().lookupOnValidate());
         if (config.getAdminPoolConfig().getMaxActive() != 0) {
             adminPool = new LdapConnectionPool(adminConnectionFactory);
             adminPool.setTestOnBorrow(true);
@@ -494,6 +493,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
         cc = createConnectionConfig();
 
         userConnectionFactory = new PoolableUnboundConnectionFactory(cc);
+        userConnectionFactory.setLookupOnValidate(config.getUserPoolConfig().lookupOnValidate());
         if (config.getUserPoolConfig().getMaxActive() != 0) {
             userPool = new UnboundLdapConnectionPool(userConnectionFactory);
             userPool.setTestOnBorrow(true);
