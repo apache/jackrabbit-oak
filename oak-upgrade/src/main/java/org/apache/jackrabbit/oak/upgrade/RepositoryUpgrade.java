@@ -28,13 +28,11 @@ import static org.apache.jackrabbit.core.RepositoryImpl.VERSION_STORAGE_NODE_ID;
 import static org.apache.jackrabbit.oak.plugins.name.Namespaces.addCustomMapping;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_ALL;
-import static org.apache.jackrabbit.spi.commons.name.NameConstants.ANY_NAME;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -122,7 +120,6 @@ import org.apache.jackrabbit.spi.commons.conversion.NamePathResolver;
 import org.apache.jackrabbit.spi.commons.value.ValueFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.rmi.log.LogInputStream;
 
 public class RepositoryUpgrade {
 
@@ -607,7 +604,7 @@ public class RepositoryUpgrade {
         NodeDefinitionTemplate tmpl = ntMgr.createNodeDefinitionTemplate();
 
         Name name = def.getName();
-        if (name != null && !name.equals(ANY_NAME)) {
+        if (name != null) {
             tmpl.setName(getOakName(name));
         }
         tmpl.setAutoCreated(def.isAutoCreated());
@@ -634,7 +631,7 @@ public class RepositoryUpgrade {
         PropertyDefinitionTemplate tmpl = ntMgr.createPropertyDefinitionTemplate();
 
         Name name = def.getName();
-        if (name != null && !name.equals(ANY_NAME)) {
+        if (name != null) {
             tmpl.setName(getOakName(name));
         }
         tmpl.setAutoCreated(def.isAutoCreated());
