@@ -706,19 +706,45 @@ public class FileStore implements SegmentStore {
 
         Callable<Boolean> setHead = new SetHead(before, after, compactor);
         try {
-            while(!compactionStrategy.compacted(setHead)) {
+            int cycles = 0;
+            boolean success = false;
+            while(cycles++ < compactionStrategy.getRetryCount()
+                    && !(success = compactionStrategy.compacted(setHead))) {
                 // Some other concurrent changes have been made.
                 // Rebase (and compact) those changes on top of the
                 // compacted state before retrying to set the head.
+                gcMonitor.info("TarMK compaction detected concurrent commits while compacting. " +
+                        "Compacting these commits. Cycle {}", cycles);
                 SegmentNodeState head = getHead();
                 after = compactor.compact(after, head);
                 setHead = new SetHead(head, after, compactor);
             }
-            gcMonitor.info("TarMK compaction completed in {}ms",
-                    System.currentTimeMillis() - start);
+            if (!success) {
+                gcMonitor.info("TarMK compaction gave up compacting concurrent commits after " +
+                        "{} cycles.", cycles - 1);
+                if (compactionStrategy.getForceAfterFail()) {
+                    gcMonitor.info("TarMK compaction force compacting remaining commits");
+                    if (!forceCompact(after, compactor)) {
+                        gcMonitor.warn("TarMK compaction failed to force compact remaining commits. " +
+                                "Most likely compaction didn't get exclusive access to the store.");
+                    }
+                }
+            }
+
+            gcMonitor.info("TarMK compaction completed after {} cycles in {}ms",
+                    cycles - 1, System.currentTimeMillis() - start);
         } catch (Exception e) {
             gcMonitor.error("Error while running TarMK compaction", e);
         }
+    }
+
+    private boolean forceCompact(final SegmentNodeState before, final Compactor compactor) throws Exception {
+        return compactionStrategy.compacted(new Callable<Boolean>() {
+            @Override
+            public Boolean call() throws Exception {
+                return new SetHead(getHead(), compactor.compact(before, getHead()), compactor).call();
+            }
+        });
     }
 
     public synchronized Iterable<SegmentId> getSegmentIds() {

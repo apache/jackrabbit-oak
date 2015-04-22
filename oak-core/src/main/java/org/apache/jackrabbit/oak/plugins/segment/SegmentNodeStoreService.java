@@ -18,12 +18,16 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Collections.emptyMap;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toBoolean;
+import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toInteger;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CLEANUP_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CLONE_BINARIES_DEFAULT;
+import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.FORCE_AFTER_FAIL_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.MEMORY_THRESHOLD_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.PAUSE_DEFAULT;
+import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.RETRY_COUNT_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.TIMESTAMP_DEFAULT;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
@@ -173,6 +177,32 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     public static final String PAUSE_COMPACTION = "pauseCompaction";
 
     @Property(
+            intValue = RETRY_COUNT_DEFAULT,
+            label = "Compaction Retries",
+            description = "Number of tries to compact concurrent commits on top of already " +
+                    "compacted commits"
+    )
+    public static final String COMPACTION_RETRY_COUNT = "compaction.retryCount";
+
+    @Property(
+            boolValue = FORCE_AFTER_FAIL_DEFAULT,
+            label = "Force Compaction",
+            description = "Whether or not to force compact concurrent commits on top of already " +
+                    " compacted commits after the maximum number of retries has been reached. " +
+                    "Force committing tries to exclusively write lock the node store."
+    )
+    public static String COMPACTION_FORCE_AFTER_FAIL = "compaction.forceAfterFail";
+
+    public static final int COMPACTION_LOCK_WAIT_TIME_DEFAULT = 60;
+    @Property(
+            intValue = COMPACTION_LOCK_WAIT_TIME_DEFAULT,
+            label = "Compaction Lock Wait Time",
+            description = "Number of seconds to wait for the lock for committing compacted changes " +
+                    "respectively to wait for the exclusive write lock for force committing."
+    )
+    public static final String COMPACTION_LOCK_WAIT_TIME = "compaction.lockWaitTime";
+
+    @Property(
             boolValue = false,
             label = "Standby Mode",
             description = "Flag indicating that this component will not register as a NodeStore but just as a NodeStoreProvider"
@@ -285,6 +315,12 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                 CLONE_BINARIES_DEFAULT);
         long cleanupTs = toLong(lookup(context, COMPACTION_CLEANUP_TIMESTAMP),
                 TIMESTAMP_DEFAULT);
+        int retryCount = toInteger(lookup(context, COMPACTION_RETRY_COUNT),
+                RETRY_COUNT_DEFAULT);
+        boolean forceCommit = toBoolean(lookup(context, COMPACTION_FORCE_AFTER_FAIL),
+                FORCE_AFTER_FAIL_DEFAULT);
+        final int lockWaitTime = toInteger(lookup(context, COMPACTION_LOCK_WAIT_TIME),
+                COMPACTION_LOCK_WAIT_TIME_DEFAULT);
         String cleanup = lookup(context, COMPACTION_CLEANUP);
         if (cleanup == null) {
             cleanup = CLEANUP_DEFAULT.toString();
@@ -302,9 +338,11 @@ public class SegmentNodeStoreService extends ProxyNodeStore
             public boolean compacted(Callable<Boolean> setHead) throws Exception {
                 // Need to guard against concurrent commits to avoid
                 // mixed segments. See OAK-2192.
-                return delegate.locked(setHead);
+                return delegate.locked(setHead, lockWaitTime, SECONDS);
             }
         };
+        compactionStrategy.setRetryCount(retryCount);
+        compactionStrategy.setForceAfterFail(forceCommit);
 
         OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
         gcMonitor = new GCMonitorTracker();
