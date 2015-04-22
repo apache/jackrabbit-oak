@@ -224,7 +224,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
     /**
      * Principal representation of this group instance.
      */
-    private class GroupPrincipal extends AbstractGroupPrincipal {
+    private final class GroupPrincipal extends AbstractGroupPrincipal {
 
         private GroupPrincipal(String principalName, Tree groupTree) {
             super(principalName, groupTree, GroupImpl.this.getUserManager().getNamePathMapper());
