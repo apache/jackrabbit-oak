@@ -20,10 +20,12 @@ package org.apache.jackrabbit.oak.jcr.nodetype;
 
 import static junit.framework.Assert.fail;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 import javax.jcr.Node;
+import javax.jcr.PropertyType;
 import javax.jcr.Session;
 import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.ConstraintViolationException;
@@ -119,6 +121,71 @@ public class NodeTypeTest extends AbstractRepositoryTest {
         } catch (ConstraintViolationException unexpected) {
             fail();
         }
+    }
+
+    @Test
+    public void trivialUpdates() throws Exception {
+        // test various trivial updates that should not trigger repository scans
+        // whether or not the repository scan happens can not be checked directly;
+        // it requires inspecting the INFO level log 
+
+        String[] types = new String[] { "trivial1", "trivial2" };
+        ArrayList<NodeTypeTemplate> ntt = new ArrayList<NodeTypeTemplate>();
+
+        // adding node types
+        Session session = getAdminSession();
+        NodeTypeManager manager = session.getWorkspace().getNodeTypeManager();
+        for (String t : types) {
+            NodeTypeTemplate nt = manager.createNodeTypeTemplate();
+            nt.setName(t);
+            ntt.add(nt);
+        }
+        manager.registerNodeTypes(ntt.toArray(new NodeTypeTemplate[0]), false);
+
+        // adding an optional property
+        ntt = new ArrayList<NodeTypeTemplate>();
+        for (String t : types) {
+            NodeTypeDefinition ntd = manager.getNodeType(t);
+            PropertyDefinitionTemplate opt = manager.createPropertyDefinitionTemplate();
+            opt.setMandatory(false);
+            opt.setName("optional");
+            opt.setRequiredType(PropertyType.STRING);
+            PropertyDefinitionTemplate opts = manager.createPropertyDefinitionTemplate();
+            opts.setMandatory(false);
+            opts.setMultiple(true);
+            opts.setName("optionals");
+            opts.setRequiredType(PropertyType.STRING);
+
+            NodeTypeTemplate nt = manager.createNodeTypeTemplate(ntd);
+            List pdt = nt.getPropertyDefinitionTemplates();
+            pdt.add(opt);
+            pdt.add(opts);
+            ntt.add(nt);
+        }
+        manager.registerNodeTypes(ntt.toArray(new NodeTypeTemplate[0]), true);
+
+        // make one optional property mandatory
+        ntt = new ArrayList<NodeTypeTemplate>();
+        for (String t : types) {
+            NodeTypeDefinition ntd = manager.getNodeType(t);
+            PropertyDefinitionTemplate opt = manager.createPropertyDefinitionTemplate();
+            opt.setMandatory("trivial2".equals(t));
+            opt.setName("optional");
+            opt.setRequiredType(PropertyType.STRING);
+            PropertyDefinitionTemplate opts = manager.createPropertyDefinitionTemplate();
+            opts.setMandatory("trivial2".equals(t));
+            opts.setMultiple(true);
+            opts.setName("optionals");
+            opts.setRequiredType(PropertyType.STRING);
+
+            NodeTypeTemplate nt = manager.createNodeTypeTemplate(ntd);
+            List pdt = nt.getPropertyDefinitionTemplates();
+            pdt.add(opt);
+            pdt.add(opts);
+            ntt.add(nt);
+        }
+        // but update both node types
+        manager.registerNodeTypes(ntt.toArray(new NodeTypeTemplate[0]), true);
     }
 
     @Test
