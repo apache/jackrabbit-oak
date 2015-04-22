@@ -38,7 +38,8 @@ public interface RepositoryPermission {
      *     <li>{@link Permissions#WORKSPACE_MANAGEMENT}</li>
      * </ul>
      * @return {@code true} if the specified repository level permissions are
-     * {@code granted}; false otherwise.
+     * {@code granted}; {@code false} otherwise
+     * @see {@link Permissions#isRepositoryPermission(long)}
      */
     boolean isGranted(long repositoryPermissions);
 

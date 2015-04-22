@@ -83,7 +83,7 @@ class CompositePermissionProvider implements PermissionProvider {
     @Override
     public Set<String> getPrivileges(@Nullable final Tree tree) {
         PrivilegeBits result = null;
-        for (AggregatedPermissionProvider pp : filter(tree)) {
+        for (AggregatedPermissionProvider pp : filter(pps, tree)) {
             PrivilegeBits privs = privilegeBitsProvider.getBits(pp.getPrivileges(tree));
             if (result == null) {
                 result = PrivilegeBits.getInstance();
@@ -188,8 +188,10 @@ class CompositePermissionProvider implements PermissionProvider {
         });
     }
 
-    private Iterable<AggregatedPermissionProvider> filter(@Nullable final Tree tree) {
-        return Iterables.filter(pps, new Predicate<AggregatedPermissionProvider>() {
+    private static Iterable<AggregatedPermissionProvider> filter(
+            @Nonnull final List<AggregatedPermissionProvider> providers,
+            @Nullable final Tree tree) {
+        return Iterables.filter(providers, new Predicate<AggregatedPermissionProvider>() {
             @Override
             public boolean apply(AggregatedPermissionProvider pp) {
                 // the permissionprovider is never null
@@ -225,20 +227,6 @@ class CompositePermissionProvider implements PermissionProvider {
             if (!isGranted) {
                 return false;
             }
-        }
-        return isGranted;
-    }
-
-    private static boolean grantsRepoPermission(long permission, @Nonnull Iterable<AggregatedPermissionProvider> providers) {
-        Iterator<AggregatedPermissionProvider> it = providers.iterator();
-        boolean isGranted = false;
-        while (it.hasNext()) {
-            AggregatedPermissionProvider pp = it.next();
-            isGranted = pp.getRepositoryPermission().isGranted(permission);
-            if (!isGranted) {
-                return false;
-            }
-
         }
         return isGranted;
     }
@@ -373,20 +361,24 @@ class CompositePermissionProvider implements PermissionProvider {
         }
     }
 
+    /**
+     * TODO
+     */
     private final class CompositeRepositoryPermission implements RepositoryPermission {
 
         @Override
         public boolean isGranted(long repositoryPermissions) {
-            if (Permissions.isAggregate(repositoryPermissions)) {
-                for (long permission : Permissions.aggregates(repositoryPermissions)) {
-                    if (!grantsRepoPermission(permission, filter(null))) {
-                        return false;
-                    }
+            Iterator<AggregatedPermissionProvider> it = filter(pps, null).iterator();
+            boolean isGranted = false;
+            while (it.hasNext()) {
+                AggregatedPermissionProvider pp = it.next();
+                isGranted = pp.getRepositoryPermission().isGranted(repositoryPermissions);
+                if (!isGranted) {
+                    return false;
                 }
-                return true;
-            } else {
-                return grantsRepoPermission(repositoryPermissions, filter(null));
+
             }
+            return isGranted;
         }
     }
 }
