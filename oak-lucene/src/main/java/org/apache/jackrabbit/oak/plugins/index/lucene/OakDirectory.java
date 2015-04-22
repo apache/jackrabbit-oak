@@ -164,13 +164,13 @@ class OakDirectory extends Directory {
 
         private long length;
 
-        private final List<Blob> data;
+        private List<Blob> data;
 
         private boolean dataModified = false;
 
         private int index = -1;
 
-        private final byte[] blob;
+        private byte[] blob;
 
         private boolean blobModified = false;
 
@@ -374,7 +374,8 @@ class OakDirectory extends Directory {
 
         @Override
         public void close() {
-            // do nothing
+            file.blob = null;
+            file.data = null;
         }
 
     }
@@ -421,6 +422,8 @@ class OakDirectory extends Directory {
         @Override
         public void close() throws IOException {
             flush();
+            file.blob = null;
+            file.data = null;
         }
 
     }
