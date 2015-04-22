@@ -46,6 +46,11 @@ public class PoolableUnboundConnectionFactory implements PoolableObjectFactory<L
     private LdapConnectionConfig config;
 
     /**
+     * flag controlling the validation behavior
+     */
+    private boolean lookupOnValidate;
+
+    /**
      * Creates a new instance of PoolableUnboundConnectionFactory
      *
      * @param config the configuration for creating LdapConnections
@@ -54,6 +59,20 @@ public class PoolableUnboundConnectionFactory implements PoolableObjectFactory<L
         this.config = config;
     }
 
+    /**
+     * Checks if a lookup is performed during {@link #validateObject(LdapConnection)}.
+     * @return {@code true} if a lookup is performed.
+     */
+    public boolean getLookupOnValidate() {
+        return lookupOnValidate;
+    }
+
+    /**
+     * @see #getLookupOnValidate()
+     */
+    public void setLookupOnValidate(boolean lookupOnValidate) {
+        this.lookupOnValidate = lookupOnValidate;
+    }
 
     /**
      * {@inheritDoc}
@@ -99,10 +118,12 @@ public class PoolableUnboundConnectionFactory implements PoolableObjectFactory<L
     public boolean validateObject(LdapConnection connection) {
         boolean valid = false;
         if (connection.isConnected()) {
-            try {
-                valid = connection.lookup(Dn.ROOT_DSE, SchemaConstants.NO_ATTRIBUTE) != null;
-            } catch (LdapException le) {
-                log.debug("error during connection validation: {}", le.toString());
+            if (lookupOnValidate) {
+                try {
+                    valid = connection.lookup(Dn.ROOT_DSE, SchemaConstants.NO_ATTRIBUTE) != null;
+                } catch (LdapException le) {
+                    log.debug("error during connection validation: {}", le.toString());
+                }
             }
         }
         log.debug("validating connection {}: {}", connection, valid);
