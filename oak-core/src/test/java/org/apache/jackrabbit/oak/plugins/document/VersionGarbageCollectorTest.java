@@ -62,7 +62,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -401,19 +400,17 @@ public class VersionGarbageCollectorTest {
     }
 
     // OAK-2778
-    @Ignore
     @Test
     public void gcWithConcurrentModification() throws Exception {
         Revision.setClock(clock);
+        DocumentStore ds = store.getDocumentStore();
 
         // create test content
-        NodeBuilder builder = store.getRoot().builder();
-        builder.child("foo");
-        builder.child("bar");
-        merge(store, builder);
+        createTestNode("foo");
+        createTestNode("bar");
 
         // remove again
-        builder = store.getRoot().builder();
+        NodeBuilder builder = store.getRoot().builder();
         builder.getChildNode("foo").remove();
         builder.getChildNode("bar").remove();
         merge(store, builder);
@@ -469,12 +466,34 @@ public class VersionGarbageCollectorTest {
         }
 
         // read children again after GC finished
+        List<String> names = Lists.newArrayList();
         for (ChildNodeEntry cne : store.getRoot().getChildNodeEntries()) {
-            cne.getName();
+            names.add(cne.getName());
         }
+        assertEquals(1, names.size());
+
+        doc = ds.find(NODES, Utils.getIdFromPath("/" + names.get(0)));
+        assertNotNull(doc);
+        assertEquals(0, Iterators.size(doc.getAllPreviousDocs()));
 
         VersionGCStats stats = f.get();
         assertEquals(1, stats.deletedDocGCCount);
+        assertEquals(2, stats.splitDocGCCount);
+    }
+
+    private void createTestNode(String name) throws CommitFailedException {
+        DocumentStore ds = store.getDocumentStore();
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child(name);
+        merge(store, builder);
+        String id = Utils.getIdFromPath("/" + name);
+        int i = 0;
+        while (ds.find(NODES, id).getPreviousRanges().isEmpty()) {
+            builder = store.getRoot().builder();
+            builder.getChildNode(name).setProperty("p", i++);
+            merge(store, builder);
+            store.runBackgroundOperations();
+        }
     }
 
     private void merge(DocumentNodeStore store, NodeBuilder builder)
