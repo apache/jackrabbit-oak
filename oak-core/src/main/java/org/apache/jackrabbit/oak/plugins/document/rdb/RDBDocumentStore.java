@@ -36,6 +36,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -75,6 +76,7 @@ import com.google.common.base.Objects;
 import com.google.common.cache.Cache;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Striped;
 
 /**
@@ -1171,8 +1173,28 @@ public class RDBDocumentStore implements DocumentStore {
 
     private <T extends Document> int delete(Collection<T> collection,
                                             Map<String, Map<Key, Condition>> toRemove) {
-        // TODO: implement
-        throw new UnsupportedOperationException("not yet implemented");
+        int numDeleted = 0;
+        String tableName = getTable(collection);
+        Map<String, Map<Key, Condition>> subMap = Maps.newHashMap();
+        Iterator<Entry<String, Map<Key, Condition>>> it = toRemove.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, Map<Key, Condition>> entry = it.next();
+            subMap.put(entry.getKey(), entry.getValue());
+            if (subMap.size() == 64 || !it.hasNext()) {
+                Connection connection = null;
+                try {
+                    connection = this.ch.getRWConnection();
+                    numDeleted += dbDelete(connection, tableName, subMap);
+                    connection.commit();
+                } catch (Exception ex) {
+                    throw DocumentStoreException.convert(ex);
+                } finally {
+                    this.ch.closeConnection(connection);
+                }
+                subMap.clear();
+            }
+        }
+        return numDeleted;
     }
 
     private <T extends Document> boolean updateDocument(@Nonnull Collection<T> collection, @Nonnull T document,
@@ -1653,6 +1675,51 @@ public class RDBDocumentStore implements DocumentStore {
                 LOG.debug("DB delete failed for " + tableName + "/" + ids);
             }
             return result;
+        } finally {
+            stmt.close();
+        }
+    }
+
+    private int dbDelete(Connection connection, String tableName,
+                         Map<String, Map<Key, Condition>> toDelete)
+            throws SQLException, DocumentStoreException {
+        String or = "";
+        StringBuilder whereClause = new StringBuilder();
+        for (Entry<String, Map<Key, Condition>> entry : toDelete.entrySet()) {
+            whereClause.append(or);
+            or = " or ";
+            whereClause.append("ID=?");
+            for (Entry<Key, Condition> c : entry.getValue().entrySet()) {
+                if (!c.getKey().getName().equals(MODIFIED)) {
+                    throw new DocumentStoreException(
+                            "Unsupported condition: " + c);
+                }
+                whereClause.append(" and MODIFIED");
+                if (c.getValue().type == Condition.Type.EQUALS
+                        && c.getValue().value instanceof Long) {
+                    whereClause.append("=?");
+                } else if (c.getValue().type == Condition.Type.EXISTS) {
+                    whereClause.append(" is not null");
+                } else {
+                    throw new DocumentStoreException(
+                            "Unsupported condition: " + c);
+                }
+            }
+        }
+
+        PreparedStatement stmt= connection.prepareStatement(
+                "delete from " + tableName + " where " + whereClause);
+        try {
+            int i = 1;
+            for (Entry<String, Map<Key, Condition>> entry : toDelete.entrySet()) {
+                setIdInStatement(stmt, i++, entry.getKey());
+                for (Entry<Key, Condition> c : entry.getValue().entrySet()) {
+                    if (c.getValue().type == Condition.Type.EQUALS) {
+                        stmt.setLong(i++, (Long) c.getValue().value);
+                    }
+                }
+            }
+            return stmt.executeUpdate();
         } finally {
             stmt.close();
         }
