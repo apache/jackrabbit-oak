@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -31,6 +32,34 @@ import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.junit.Test;
 
 public class CacheTest {
+
+    @Test
+    public void closeAlways() throws Exception {
+        FileUtils.deleteDirectory(new File("target/cacheTest"));
+        PersistentCache cache = new PersistentCache("target/cacheTest,manualCommit");
+        CacheMap<String, String> map = cache.openMap(0, "test", null);
+        // break the map by calling interrupt
+        Thread.currentThread().interrupt();
+        map.put("hello", "world");
+        cache.close();
+        assertFalse(Thread.interrupted());
+    }
+
+    @Test
+    public void deleteOldAtStartup() throws Exception {
+        FileUtils.deleteDirectory(new File("target/cacheTest"));
+        new File("target/cacheTest").mkdirs();
+        new File("target/cacheTest/cache-0.data").createNewFile();
+        new File("target/cacheTest/cache-1.data").createNewFile();
+        new File("target/cacheTest/cache-2.data").createNewFile();
+        new File("target/cacheTest/cache-3.data").createNewFile();
+        PersistentCache cache = new PersistentCache("target/cacheTest");
+        cache.close();
+        assertFalse(new File("target/cacheTest/cache-0.data").exists());
+        assertFalse(new File("target/cacheTest/cache-1.data").exists());
+        assertTrue(new File("target/cacheTest/cache-2.data").exists());
+        assertTrue(new File("target/cacheTest/cache-3.data").exists());
+    }
 
     @Test
     public void test() throws Exception {
