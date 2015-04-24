@@ -194,28 +194,33 @@ Is useful whenever there is a query with a property constraint that is not full-
 To define a property index on a subtree you have to add an index definition node that:
 
 * must be of type `oak:QueryIndexDefinition`
-* must have the `type` property set to __`property`__
-* contains the `propertyNames` property.
+* `type` (String) must have the  property set to "property".
+* `propertyNames` (Name, multi-valued):
+    the  property to be indexed.
     This is a multi-valued property, and must not be empty.
-    It usually contains only one property name.
-    All nodes that have any of those properties are stored in this index.
+    It usually contains only _one_ property name.
+    All nodes that have _any_ of those properties are stored in this index.
     
 It is recommended to index one property per index.
 (If multiple properties are indexed within one index, 
 then the index contains all nodes that has either one of the properties,
 which can make the query less efficient, and can make the query pick the wrong index.)
 
-_Optionally_ you can specify
+Optionally you can specify:
 
-* a uniqueness constraint on a property index by setting the `unique` flag to `true`,
-* that the property index only applies to a certain node type by setting the 
-  `declaringNodeTypes` property,
-* the `entryCount` (a long), the estimated number of path entries in the index, 
-  which is used for the cost estimation (a high entry count means a high cost)
-* the `keyCount` (a long), the estimated number of keys in the index,
-  which is used for the cost estimation (a high key count means a lower cost,
-  when searching for specific keys; has no effect when searching for "is not null"),
-* the `reindex` flag which when set to `true`, triggers a full content re-index.
+* `declaringNodeTypes` (Name, multi-valued): the index only applies to a certain node type.
+* `unique` (Boolean): if set to `true`, a uniqueness constraint on this
+  property is added. Ensure you set declaringNodeTypes, 
+  otherwise all nodes of the repository are affected (which is most likely not what you want),
+  and you are not able to version the node.
+* `entryCount` (Long): the estimated number of path entries in the index, 
+  to override the cost estimation (a high entry count means a high cost).
+* `keyCount` (Long), the estimated number of keys in the index,
+  to override the cost estimation (a high key count means a lower cost,
+  when searching for specific keys; has no effect when searching for "is not null").
+* `reindex` (Boolean): if set to `true`, the full content is re-indexed.
+  This can take a long time, and is run synchronously with storing the index
+  (except with an async index). See "Reindexing" below for details.
 
 Example:
 
