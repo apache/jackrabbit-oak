@@ -253,11 +253,11 @@ public class VersionGCDeletionTest {
     private static class TestDocumentStore extends MemoryDocumentStore {
         boolean throwException;
         @Override
-        public <T extends Document> void remove(Collection<T> collection, String path) {
-            if (throwException && "2:/x/y".equals(path)){
+        public <T extends Document> void remove(Collection<T> collection, String key) {
+            if (throwException && "2:/x/y".equals(key)){
                 throw new AssertionError();
             }
-            super.remove(collection, path);
+            super.remove(collection, key);
         }
 
         @SuppressWarnings("unchecked")
