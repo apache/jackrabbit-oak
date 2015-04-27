@@ -473,7 +473,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     private void internalSetValue(@Nonnull final Value[] values)
             throws RepositoryException {
         if (values.length > MV_PROPERTY_WARN_THRESHOLD) {
-            LOG.warn("Large multi valued property detected ({} values).", values.length);
+            LOG.warn("Large multi valued property [{}] detected ({} values).",dlg.getPath(), values.length);
         }
 
         sessionDelegate.performVoid(new ItemWriteOperation("internalSetValue") {
