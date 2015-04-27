@@ -210,6 +210,7 @@ public class BenchmarkRunner {
             new CreateNodesBenchmark(),
             new ManyNodes(),
             new ObservationTest(),
+            new RevisionGCTest(),
             new XmlImportTest(),
             new FlatTreeWithAceForSamePrincipalTest(),
             new ReadDeepTreeTest(
