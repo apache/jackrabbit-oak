@@ -1376,7 +1376,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 oakName, compact(values), Type.fromTag(type, true));
 
         if (values.length > MV_PROPERTY_WARN_THRESHOLD) {
-            LOG.warn("Large multi valued property detected ({} values).", values.length);
+            LOG.warn("Large multi valued property [{}/{}] detected ({} values).",dlg.getPath(), jcrName, values.length);
         }
 
         return perform(new ItemWriteOperation<Property>("internalSetProperty") {
