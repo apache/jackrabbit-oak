@@ -21,14 +21,15 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerObserver;
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -48,7 +49,6 @@ import javax.management.ObjectName;
 import javax.security.auth.login.LoginException;
 
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.io.Closer;
@@ -56,7 +56,6 @@ import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
 import org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
@@ -66,6 +65,7 @@ import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexMBeanRegistration;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounterMBean;
@@ -308,11 +308,11 @@ public class Oak {
     };
 
     /**
-     * Flag controlling the asynchronous indexing behavior. If false (default)
-     * there will be no background indexing happening.
-     * 
+     * Map containing the (names -> delayInSecods) of the background indexing
+     * tasks that need to be started with this repository. A {@code null} value
+     * means no background tasks will run.
      */
-    private boolean asyncIndexing = false;
+    private Map<String, Long> asyncTasks;
 
     public Oak(NodeStore store) {
         this.store = checkNotNull(store);
@@ -504,15 +504,38 @@ public class Oak {
     }
 
     /**
+     * <p>
      * Enable the asynchronous (background) indexing behavior.
-     *
-     * Please not that when enabling the background indexer, you need to take
+     * </p>
+     * <p>
+     * Please note that when enabling the background indexer, you need to take
      * care of calling
      * <code>#shutdown<code> on the <code>executor<code> provided for this Oak instance.
-     *
+     * </p>
+     * @deprecated Use {@link Oak#withAsyncIndexing(String, long)} instead
      */
+    @Deprecated
     public Oak withAsyncIndexing() {
-        this.asyncIndexing = true;
+        return withAsyncIndexing("async", 5);
+    }
+
+    /**
+     * <p>
+     * Enable the asynchronous (background) indexing behavior for the provided
+     * task name.
+     * </p>
+     * <p>
+     * Please note that when enabling the background indexer, you need to take
+     * care of calling
+     * <code>#shutdown<code> on the <code>executor<code> provided for this Oak instance.
+     * </p>
+     */
+    public Oak withAsyncIndexing(@Nonnull String name, long delayInSeconds) {
+        if (this.asyncTasks == null) {
+            asyncTasks = new HashMap<String, Long>();
+        }
+        checkState(delayInSeconds > 0, "delayInSeconds value must be > 0");
+        asyncTasks.put(checkNotNull(name), delayInSeconds);
         return this;
     }
 
@@ -537,25 +560,25 @@ public class Oak {
         initHooks.add(new EditorHook(CompositeEditorProvider
                 .compose(editorProviders)));
 
-        if (asyncIndexing) {
-            String name = "async";
-            AsyncIndexUpdate task = new AsyncIndexUpdate(name, store,
-                    indexEditors);
-            regs.add(scheduleWithFixedDelay(whiteboard, task, 5, true));
-            regs.add(registerMBean(whiteboard, IndexStatsMBean.class,
-                    task.getIndexStats(), IndexStatsMBean.TYPE, name));
-            // Register AsyncIndexStats for execution stats update
-            regs.add(
-                scheduleWithFixedDelay(whiteboard, task.getIndexStats(), 1, false));
+        if (asyncTasks != null) {
+            IndexMBeanRegistration indexRegistration = new IndexMBeanRegistration(
+                    whiteboard);
+            regs.add(indexRegistration);
+            for (Entry<String, Long> t : asyncTasks.entrySet()) {
+                AsyncIndexUpdate task = new AsyncIndexUpdate(t.getKey(), store,
+                        indexEditors);
+                indexRegistration.registerAsyncIndexer(task, t.getValue());
+            }
 
+            // TODO verify how this fits in with OAK-2749
             PropertyIndexAsyncReindex asyncPI = new PropertyIndexAsyncReindex(
                     new AsyncIndexUpdate(IndexConstants.ASYNC_REINDEX_VALUE,
                             store, indexEditors, true), getExecutor());
             regs.add(registerMBean(whiteboard,
                     PropertyIndexAsyncReindexMBean.class, asyncPI,
-                    PropertyIndexAsyncReindexMBean.TYPE, name));
+                    PropertyIndexAsyncReindexMBean.TYPE, "async"));
         }
-        
+
         regs.add(registerMBean(whiteboard, NodeCounterMBean.class,
                 new NodeCounter(store), NodeCounterMBean.TYPE, "nodeCounter"));
 

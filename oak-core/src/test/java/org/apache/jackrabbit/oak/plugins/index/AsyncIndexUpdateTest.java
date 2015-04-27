@@ -25,6 +25,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefi
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider.TYPE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -41,6 +42,7 @@ import javax.annotation.Nullable;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate.IndexTaskSpliter;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -680,4 +682,126 @@ public class AsyncIndexUpdateTest {
 
     }
 
+    @Test
+    public void taskSplit() throws Exception {
+        MemoryNodeStore store = new MemoryNodeStore();
+        IndexEditorProvider provider = new PropertyIndexEditorProvider();
+
+        NodeBuilder builder = store.getRoot().builder();
+
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, "async");
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "changedIndex", true, false, ImmutableSet.of("bar"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, "async");
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "ignored1", true, false, ImmutableSet.of("baz"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, "async-ignored");
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "ignored2", true, false, ImmutableSet.of("etc"), null);
+
+        builder.child("testRoot").setProperty("foo", "abc");
+        builder.child("testRoot").setProperty("bar", "abc");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        assertTrue("Expecting no checkpoints",
+                store.listCheckpoints().size() == 0);
+
+        AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
+        async.run();
+        assertTrue("Expecting one checkpoint",
+                store.listCheckpoints().size() == 1);
+        String firstCp = store.listCheckpoints().iterator().next();
+
+        builder = store.getRoot().builder();
+        builder.child("testRoot").setProperty("foo", "def");
+        builder.child("testRoot").setProperty("bar", "def");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        IndexTaskSpliter splitter = async.getTaskSplitter();
+        splitter.registerSplit(newHashSet("/oak:index/changedIndex"), "async-slow");
+
+        async.run();
+
+        Set<String> checkpoints = newHashSet(store.listCheckpoints());
+
+        assertTrue("Expecting two checkpoints",
+                checkpoints.size() == 2);
+        assertTrue(checkpoints.remove(firstCp));
+        String secondCp = checkpoints.iterator().next();
+
+        NodeState asyncNode = store.getRoot().getChildNode(
+                AsyncIndexUpdate.ASYNC);
+        assertEquals(firstCp, asyncNode.getString("async-slow"));
+        assertEquals(secondCp, asyncNode.getString("async"));
+        assertFalse(newHashSet(asyncNode.getStrings("async-temp")).contains(
+                firstCp));
+
+        NodeState indexNode = store.getRoot().getChildNode(
+                INDEX_DEFINITIONS_NAME);
+        assertEquals("async",
+                indexNode.getChildNode("rootIndex").getString("async"));
+        assertEquals("async-ignored", indexNode.getChildNode("ignored1")
+                .getString("async"));
+        assertNull(indexNode.getChildNode("ignored2").getString("async"));
+
+        assertEquals("async-slow", indexNode.getChildNode("changedIndex")
+                .getString("async"));
+        assertEquals(false,
+                indexNode.getChildNode("changedIndex").getBoolean("reindex"));
+
+        // new index task is on previous checkpoint
+        PropertyIndexLookup lookup = new PropertyIndexLookup(store.getRoot());
+        assertEquals(ImmutableSet.of("testRoot"), find(lookup, "bar", "abc"));
+        assertEquals(ImmutableSet.of(), find(lookup, "bar", "def"));
+    }
+
+    @Test
+    public void taskSplitNoMatch() throws Exception {
+        MemoryNodeStore store = new MemoryNodeStore();
+        IndexEditorProvider provider = new PropertyIndexEditorProvider();
+
+        NodeBuilder builder = store.getRoot().builder();
+
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, "async");
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "ignored", true, false, ImmutableSet.of("baz"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, "async-ignored");
+
+        builder.child("testRoot").setProperty("foo", "abc");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        assertTrue("Expecting no checkpoints",
+                store.listCheckpoints().size() == 0);
+
+        AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
+        async.run();
+        assertTrue("Expecting one checkpoint",
+                store.listCheckpoints().size() == 1);
+        String firstCp = store.listCheckpoints().iterator().next();
+
+        builder = store.getRoot().builder();
+        builder.child("testRoot").setProperty("foo", "def");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        IndexTaskSpliter splitter = async.getTaskSplitter();
+        // no match on the provided path
+        splitter.registerSplit(newHashSet("/oak:index/ignored"), "async-slow");
+        async.run();
+
+        Set<String> checkpoints = newHashSet(store.listCheckpoints());
+
+        assertTrue("Expecting a single checkpoint",
+                checkpoints.size() == 1);
+        String secondCp = checkpoints.iterator().next();
+
+        NodeState asyncNode = store.getRoot().getChildNode(
+                AsyncIndexUpdate.ASYNC);
+        assertEquals(secondCp, asyncNode.getString("async"));
+        assertNull(firstCp, asyncNode.getString("async-slow"));
+
+    }
 }
