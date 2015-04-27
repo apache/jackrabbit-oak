@@ -144,9 +144,29 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
 
     @Override
     public <T extends Document> void remove(Collection<T> collection, List<String> keys) {
-        //TODO Logging
-        for(String key : keys){
-            remove(collection, key);
+        try {
+            logMethod("remove", collection, keys);
+            store.remove(collection, keys);
+        } catch (Exception e) {
+            logException(e);
+            throw convert(e);
+        }
+    }
+
+    @Override
+    public <T extends Document> int remove(final Collection<T> collection,
+                                           final Map<String, Map<UpdateOp.Key, UpdateOp.Condition>> toRemove) {
+        try {
+            logMethod("remove", collection, toRemove);
+            return logResult(new Callable<Integer>() {
+                @Override
+                public Integer call() throws Exception {
+                    return store.remove(collection, toRemove);
+                }
+            });
+        } catch (Exception e) {
+            logException(e);
+            throw convert(e);
         }
     }
 

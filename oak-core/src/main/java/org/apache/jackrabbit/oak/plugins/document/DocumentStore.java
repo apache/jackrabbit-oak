@@ -131,7 +131,7 @@ public interface DocumentStore {
     <T extends Document> void remove(Collection<T> collection, String key);
 
     /**
-     * Batch remove documents with given key. Keys for documents that do not
+     * Batch remove documents with given keys. Keys for documents that do not
      * exist are simply ignored. If this method fails with an exception, then
      * only some of the documents identified by {@code keys} may have been
      * removed.
@@ -141,6 +141,21 @@ public interface DocumentStore {
      * @param keys list of keys
      */
     <T extends Document> void remove(Collection<T> collection, List<String> keys);
+
+    /**
+     * Batch remove documents with given keys and corresponding conditions. Keys
+     * for documents that do not exist are simply ignored. A document is only
+     * removed if the corresponding conditions are met. If this method fails
+     * with an exception, then only some of the documents may have been removed.
+     *
+     * @param <T> the document type
+     * @param collection the collection.
+     * @param toRemove the keys of the documents to remove with the
+     *                 corresponding conditions.
+     * @return the number of removed documents.
+     */
+    <T extends Document> int remove(Collection<T> collection,
+                                     Map<String, Map<UpdateOp.Key, UpdateOp.Condition>> toRemove);
 
     /**
      * Try to create a list of documents. This method returns {@code code} iff
@@ -188,7 +203,7 @@ public interface DocumentStore {
 
     /**
      * Performs a conditional update (e.g. using
-     * {@link UpdateOp.Operation.Type#CONTAINS_MAP_ENTRY} and only updates the
+     * {@link UpdateOp.Condition.Type#EXISTS} and only updates the
      * document if the condition is <code>true</code>. The returned document is
      * immutable.
      *
