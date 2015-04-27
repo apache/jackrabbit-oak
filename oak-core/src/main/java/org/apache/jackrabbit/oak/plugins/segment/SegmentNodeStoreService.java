@@ -439,12 +439,17 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     public synchronized void deactivate() {
         unregisterNodeStore();
 
-        observerTracker.stop();
-        gcMonitor.stop();
+        if (observerTracker != null) {
+            observerTracker.stop();
+        }
+        if (gcMonitor != null) {
+            gcMonitor.stop();
+        }
         delegate = null;
-
-        store.close();
-        store = null;
+        if (store != null) {
+            store.close();
+            store = null;
+        }
     }
 
     protected void bindBlobStore(BlobStore blobStore) throws IOException {
