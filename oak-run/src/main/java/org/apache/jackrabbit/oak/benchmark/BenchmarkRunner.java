@@ -32,6 +32,7 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.ContinuousRevisionGCTest;
 import org.apache.jackrabbit.oak.benchmark.wikipedia.WikipediaImport;
 import org.apache.jackrabbit.oak.fixture.JackrabbitRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
@@ -211,6 +212,7 @@ public class BenchmarkRunner {
             new ManyNodes(),
             new ObservationTest(),
             new RevisionGCTest(),
+            new ContinuousRevisionGCTest(),
             new XmlImportTest(),
             new FlatTreeWithAceForSamePrincipalTest(),
             new ReadDeepTreeTest(
