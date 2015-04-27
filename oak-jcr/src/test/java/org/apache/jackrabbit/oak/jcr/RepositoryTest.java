@@ -24,9 +24,11 @@ import static org.apache.jackrabbit.commons.JcrUtils.getChildNodes;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
+import static org.junit.matchers.JUnitMatchers.containsString;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -35,9 +37,11 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import javax.jcr.Binary;
 import javax.jcr.GuestCredentials;
@@ -65,6 +69,12 @@ import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.Appender;
+import ch.qos.logback.core.AppenderBase;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitNode;
 import org.apache.jackrabbit.api.JackrabbitRepository;
@@ -82,6 +92,7 @@ import org.apache.jackrabbit.spi.commons.value.QValueValue;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.slf4j.LoggerFactory;
 
 public class RepositoryTest extends AbstractRepositoryTest {
     private static final String TEST_NODE = "test_node";
@@ -2103,6 +2114,41 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertEquals("fooValue", session.getProperty("/node/fooProp").getString());
     }
     
+    @Test
+    public void largeMultiValueProperty() throws Exception{
+        final List<String> logMessages = Lists.newArrayList();
+        Appender<ILoggingEvent> a = new AppenderBase<ILoggingEvent>() {
+            @Override
+            protected void append(ILoggingEvent e) {
+                if (Level.WARN.isGreaterOrEqual(e.getLevel())){
+                    logMessages.add(e.getFormattedMessage());
+                }
+            }
+        };
+        a.start();
+        rootLogger().addAppender(a);
+        Session session = getAdminSession();
+        Node node = session.getRootNode().addNode("largeMultiValueProperty", "nt:unstructured");
+        String[] largeArray = new String[1000+1]; //ItemImpl.MV_PROPERTY_WARN_THRESHOLD - 1000
+        Arrays.fill(largeArray, "x");
+        Property p = node.setProperty("fooProp", largeArray);
+        Property p2 = node.setProperty("barProp", new String[] {"x"});
+        p2.setValue(largeArray);
+        session.save();
+
+        rootLogger().detachAppender(a);
+
+        assertTrue(logMessages.size() >= 2);
+        assertThat("Warn log message must contains a reference to the large array property path",
+                logMessages.toString(), containsString(p.getPath()));
+        assertThat("Warn log message must contains a reference to the large array property path",
+                logMessages.toString(), containsString(p2.getPath()));
+    }
+
+    private static ch.qos.logback.classic.Logger rootLogger() {
+        return ((LoggerContext) LoggerFactory.getILoggerFactory()).getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
+    }
+
     //------------------------------------------------------------< private >---
 
     private Node getNode(String path) throws RepositoryException {
