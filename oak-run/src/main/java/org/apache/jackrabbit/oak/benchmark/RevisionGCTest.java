@@ -44,13 +44,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
  */
 public class RevisionGCTest extends Benchmark {
 
-    private static final float GARBAGE_RATIO = Float.parseFloat(
+    protected static final float GARBAGE_RATIO = Float.parseFloat(
             System.getProperty("garbageRatio", "0.5"));
 
-    private static final String NODE_TYPE =
+    protected static final String NODE_TYPE =
             System.getProperty("nodeType", "nt:unstructured");
 
-    private static final int SCALE = AbstractTest.getScale(100);
+    protected static final int SCALE = AbstractTest.getScale(100);
 
     @Override
     public void run(Iterable<RepositoryFixture> fixtures) {
@@ -84,7 +84,7 @@ public class RevisionGCTest extends Benchmark {
         }
     }
 
-    private void run(Repository repository, NodeStore nodeStore)
+    protected void run(Repository repository, NodeStore nodeStore)
             throws Exception {
         Session s = createSession(repository);
         Random rand = new Random();
@@ -114,7 +114,7 @@ public class RevisionGCTest extends Benchmark {
         }
     }
 
-    private static String revisionGC(NodeStore nodeStore) throws Exception {
+    protected static String revisionGC(NodeStore nodeStore) throws Exception {
         if (nodeStore instanceof DocumentNodeStore) {
             return ((DocumentNodeStore) nodeStore).getVersionGarbageCollector()
                     .gc(0, TimeUnit.SECONDS).toString();
@@ -129,13 +129,13 @@ public class RevisionGCTest extends Benchmark {
                 + nodeStore.getClass().getName());
     }
 
-    private static NodeStore getNodeStore(Oak oak) throws Exception {
+    protected static NodeStore getNodeStore(Oak oak) throws Exception {
         Field f = Oak.class.getDeclaredField("store");
         f.setAccessible(true);
         return (NodeStore) f.get(oak);
     }
 
-    private static Session createSession(Repository repository)
+    protected static Session createSession(Repository repository)
             throws RepositoryException {
         return repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
     }
