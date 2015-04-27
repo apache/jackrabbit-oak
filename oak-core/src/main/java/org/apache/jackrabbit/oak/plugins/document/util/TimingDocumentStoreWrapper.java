@@ -180,9 +180,31 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
 
     @Override
     public <T extends Document> void remove(Collection<T> collection, List<String> keys) {
-        //TODO Timing
-        for(String key : keys){
-            remove(collection, key);
+        try {
+            long start = now();
+            base.remove(collection, keys);
+            updateAndLogTimes("remove", start, 0, 0);
+            if (logCommonCall()) {
+                logCommonCall(start, "remove " + collection + " " + keys);
+            }
+        } catch (Exception e) {
+            throw convert(e);
+        }
+    }
+
+    @Override
+    public <T extends Document> int remove(Collection<T> collection,
+                                           Map<String, Map<UpdateOp.Key, UpdateOp.Condition>> toRemove) {
+        try {
+            long start = now();
+            int result = base.remove(collection, toRemove);
+            updateAndLogTimes("remove", start, 0, 0);
+            if (logCommonCall()) {
+                logCommonCall(start, "remove " + collection + " " + toRemove);
+            }
+            return result;
+        } catch (Exception e) {
+            throw convert(e);
         }
     }
 

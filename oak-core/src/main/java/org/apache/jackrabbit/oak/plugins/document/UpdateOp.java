@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -39,6 +40,7 @@ public final class UpdateOp {
     private boolean isDelete;
 
     private final Map<Key, Operation> changes;
+    private Map<Key, Condition> conditions;
 
     /**
      * Create an update operation for the document with the given id. The commit
@@ -110,6 +112,14 @@ public final class UpdateOp {
 
     public Map<Key, Operation> getChanges() {
         return changes;
+    }
+
+    public Map<Key, Condition> getConditions() {
+        if (conditions == null) {
+            return Collections.emptyMap();
+        } else {
+            return conditions;
+        }
     }
 
     /**
@@ -198,8 +208,26 @@ public final class UpdateOp {
         if (isNew) {
             throw new IllegalStateException("Cannot use containsMapEntry() on new document");
         }
-        Operation op = new Operation(Operation.Type.CONTAINS_MAP_ENTRY, exists);
-        changes.put(new Key(property, checkNotNull(revision)), op);
+        Condition c = exists ? Condition.EXISTS : Condition.MISSING;
+        getOrCreateConditions().put(new Key(property, checkNotNull(revision)), c);
+    }
+
+    /**
+     * Checks if the property or map entry is equal to the given value.
+     *
+     * @param property the name of the property or map.
+     * @param revision the revision within the map or {@code null} if this check
+     *                 is for a property.
+     * @param value the value to compare to.
+     */
+    void equals(@Nonnull String property,
+                @Nullable Revision revision,
+                @Nonnull Object value) {
+        if (isNew) {
+            throw new IllegalStateException("Cannot perform equals check on new document");
+        }
+        getOrCreateConditions().put(new Key(property, revision),
+                Condition.newEqualsCondition(value));
     }
 
     /**
@@ -227,6 +255,13 @@ public final class UpdateOp {
     @Override
     public String toString() {
         return "key: " + id + " " + (isNew ? "new" : "update") + " " + changes;
+    }
+
+    private Map<Key, Condition> getOrCreateConditions() {
+        if (conditions == null) {
+            conditions = Maps.newHashMap();
+        }
+        return conditions;
     }
 
     /**
@@ -269,12 +304,7 @@ public final class UpdateOp {
              * Remove the sub-key / value pair.
              * The value in the stored node is a map.
              */
-            REMOVE_MAP_ENTRY,
-
-            /**
-             * Checks if the sub-key is present in a map or not.
-             */
-            CONTAINS_MAP_ENTRY
+            REMOVE_MAP_ENTRY
 
          }
 
@@ -308,7 +338,6 @@ public final class UpdateOp {
             case SET:
             case MAX:
             case REMOVE_MAP_ENTRY:
-            case CONTAINS_MAP_ENTRY:
                 // nothing to do
                 break;
             case SET_MAP_ENTRY:
@@ -318,6 +347,66 @@ public final class UpdateOp {
             return reverse;
         }
 
+    }
+
+    /**
+     * A condition to check before an update is applied.
+     */
+    public static final class Condition {
+
+        /**
+         * Check if a sub-key exists in a map.
+         */
+        public static final Condition EXISTS = new Condition(Type.EXISTS, true);
+
+        /**
+         * Check if a sub-key is missing in a map.
+         */
+        public static final Condition MISSING = new Condition(Type.EXISTS, false);
+
+        public enum Type {
+
+            /**
+             * Checks if the sub-key is present in a map or not.
+             */
+            EXISTS,
+
+            /**
+             * Checks if a map entry equals a given value.
+             */
+            EQUALS
+
+        }
+
+        /**
+         * The condition type.
+         */
+        public final Type type;
+
+        /**
+         * The value.
+         */
+        public final Object value;
+
+        private Condition(Type type, Object value) {
+            this.type = type;
+            this.value = value;
+        }
+
+        /**
+         * Creates a new equals condition with the given value.
+         *
+         * @param value the value to compare to.
+         * @return the equals condition.
+         */
+        public static Condition newEqualsCondition(@Nonnull Object value) {
+            return new Condition(Type.EQUALS, checkNotNull(value));
+        }
+
+        @Override
+        public String toString() {
+            return type + " " + value;
+        }
     }
 
     /**

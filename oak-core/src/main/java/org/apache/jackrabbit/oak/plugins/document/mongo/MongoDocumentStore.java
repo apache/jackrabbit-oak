@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -41,6 +42,7 @@ import javax.annotation.Nullable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.mongodb.MongoClientURI;
+import com.mongodb.QueryOperators;
 import com.mongodb.ReadPreference;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
@@ -55,6 +57,7 @@ import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
@@ -99,7 +102,7 @@ public class MongoDocumentStore implements DocumentStore {
 
     private static final DBObject BY_ID_ASC = new BasicDBObject(Document.ID, 1);
 
-    static enum DocumentReadPreference {
+    enum DocumentReadPreference {
         PRIMARY,
         PREFER_PRIMARY,
         PREFER_SECONDARY,
@@ -111,11 +114,6 @@ public class MongoDocumentStore implements DocumentStore {
     private final DBCollection nodes;
     private final DBCollection clusterNodes;
     private final DBCollection settings;
-
-    /**
-     * The sum of all milliseconds this class waited for MongoDB.
-     */
-    private long timeSum;
 
     private final Cache<CacheValue, NodeDocument> nodesCache;
     private final CacheStats cacheStats;
@@ -547,12 +545,11 @@ public class MongoDocumentStore implements DocumentStore {
         DBCollection dbCollection = getDBCollection(collection);
         long start = PERFLOG.start();
         try {
-            WriteResult writeResult = dbCollection.remove(getByKeyQuery(key).get());
-            invalidateCache(collection, key);
-            if (writeResult.getError() != null) {
-                throw new DocumentStoreException("Remove failed: " + writeResult.getError());
-            }
+            dbCollection.remove(getByKeyQuery(key).get());
+        } catch (Exception e) {
+            throw DocumentStoreException.convert(e, "Remove failed for " + key);
         } finally {
+            invalidateCache(collection, key);
             PERFLOG.end(start, 1, "remove key={}", key);
         }
     }
@@ -561,15 +558,58 @@ public class MongoDocumentStore implements DocumentStore {
     public <T extends Document> void remove(Collection<T> collection, List<String> keys) {
         log("remove", keys);
         DBCollection dbCollection = getDBCollection(collection);
-        for(List<String> keyBatch : Lists.partition(keys, IN_CLAUSE_BATCH_SIZE)){
-            DBObject query = QueryBuilder.start(Document.ID).in(keyBatch).get();
-            WriteResult writeResult = dbCollection.remove(query);
-            invalidateCache(collection, keyBatch);
-            if (writeResult.getError() != null) {
-                throw new DocumentStoreException("Remove failed: " + writeResult.getError());
+        long start = PERFLOG.start();
+        try {
+            for(List<String> keyBatch : Lists.partition(keys, IN_CLAUSE_BATCH_SIZE)){
+                DBObject query = QueryBuilder.start(Document.ID).in(keyBatch).get();
+                try {
+                    dbCollection.remove(query);
+                } catch (Exception e) {
+                    throw DocumentStoreException.convert(e, "Remove failed for " + keyBatch);
+                } finally {
+                    invalidateCache(collection, keyBatch);
+                }
             }
+        } finally {
+            PERFLOG.end(start, 1, "remove keys={}", keys);
         }
+    }
 
+    @Override
+    public <T extends Document> int remove(Collection<T> collection,
+                                           Map<String, Map<Key, Condition>> toRemove) {
+        log("remove", toRemove);
+        int num = 0;
+        DBCollection dbCollection = getDBCollection(collection);
+        long start = PERFLOG.start();
+        try {
+            List<String> batchIds = Lists.newArrayList();
+            List<DBObject> batch = Lists.newArrayList();
+            Iterator<Entry<String, Map<Key, Condition>>> it = toRemove.entrySet().iterator();
+            while (it.hasNext()) {
+                Entry<String, Map<Key, Condition>> entry = it.next();
+                QueryBuilder query = createQueryForUpdate(
+                        entry.getKey(), entry.getValue());
+                batchIds.add(entry.getKey());
+                batch.add(query.get());
+                if (!it.hasNext() || batch.size() == IN_CLAUSE_BATCH_SIZE) {
+                    DBObject q = new BasicDBObject();
+                    q.put(QueryOperators.OR, batch);
+                    try {
+                        num += dbCollection.remove(q).getN();
+                    } catch (Exception e) {
+                        throw DocumentStoreException.convert(e, "Remove failed for " + batch);
+                    } finally {
+                        invalidateCache(collection, Lists.newArrayList(batchIds));
+                    }
+                    batchIds.clear();
+                    batch.clear();
+                }
+            }
+        } finally {
+            PERFLOG.end(start, 1, "remove keys={}", toRemove);
+        }
+        return num;
     }
 
     @CheckForNull
@@ -600,7 +640,9 @@ public class MongoDocumentStore implements DocumentStore {
             // perform a conditional update with limited result
             // if we have a matching modCount
             if (modCount != null) {
-                QueryBuilder query = createQueryForUpdate(updateOp, checkConditions);
+
+                QueryBuilder query = createQueryForUpdate(updateOp.getId(),
+                        updateOp.getConditions());
                 query.and(Document.MOD_COUNT).is(modCount);
                 DBObject fields = new BasicDBObject();
                 // return _id only
@@ -619,10 +661,8 @@ public class MongoDocumentStore implements DocumentStore {
 
             // conditional update failed or not possible
             // perform operation and get complete document
-            QueryBuilder query = createQueryForUpdate(updateOp, checkConditions);
-            DBObject oldNode = dbCollection.findAndModify(query.get(), null,
-                    null /*sort*/, false /*remove*/, update, false /*returnNew*/,
-                    upsert);
+            QueryBuilder query = createQueryForUpdate(updateOp.getId(), updateOp.getConditions());
+            DBObject oldNode = dbCollection.findAndModify(query.get(), null, null /*sort*/, false /*remove*/, update, false /*returnNew*/, upsert);
             if (checkConditions && oldNode == null) {
                 return null;
             }
@@ -693,9 +733,6 @@ public class MongoDocumentStore implements DocumentStore {
                     }
                     case REMOVE_MAP_ENTRY:
                         // nothing to do for new entries
-                        break;
-                    case CONTAINS_MAP_ENTRY:
-                        // no effect
                         break;
                 }
             }
@@ -894,9 +931,6 @@ public class MongoDocumentStore implements DocumentStore {
 
     @Override
     public void dispose() {
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("MongoDB time: " + timeSum);
-        }
         nodes.getDB().getMongo().close();
 
         if (nodesCache instanceof Closeable) {
@@ -1063,22 +1097,23 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     @Nonnull
-    private static QueryBuilder createQueryForUpdate(UpdateOp updateOp,
-                                              boolean checkConditions) {
-        QueryBuilder query = getByKeyQuery(updateOp.getId());
+    private static QueryBuilder createQueryForUpdate(String key,
+                                                     Map<Key, Condition> conditions) {
+        QueryBuilder query = getByKeyQuery(key);
 
-        for (Entry<Key, Operation> entry : updateOp.getChanges().entrySet()) {
+        for (Entry<Key, Condition> entry : conditions.entrySet()) {
             Key k = entry.getKey();
-            Operation op = entry.getValue();
-            switch (op.type) {
-                case CONTAINS_MAP_ENTRY: {
-                    if (checkConditions) {
-                        query.and(k.toString()).exists(op.value);
-                    }
+            Condition c = entry.getValue();
+            switch (c.type) {
+                case EXISTS:
+                    query.and(k.toString()).exists(c.value);
                     break;
-                }
+                case EQUALS:
+                    query.and(k.toString()).is(c.value);
+                    break;
             }
         }
+
         return query;
     }
 
