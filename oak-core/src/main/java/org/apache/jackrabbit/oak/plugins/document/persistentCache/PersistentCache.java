@@ -51,7 +51,7 @@ public class PersistentCache {
     private boolean cacheDiff = true;
     private boolean cacheDocs;
     private boolean cacheDocChildren;
-    private boolean compactOnClose = true;
+    private boolean compactOnClose;
     private boolean compress = true;
     private ArrayList<GenerationCache> caches = 
             new ArrayList<GenerationCache>();
@@ -87,6 +87,8 @@ public class PersistentCache {
                 cacheDocChildren = true;
             } else if (p.equals("-compact")) {
                 compactOnClose = false;
+            } else if (p.equals("+compact")) {
+                compactOnClose = true;
             } else if (p.equals("-compress")) {
                 compress = false;
             } else if (p.endsWith("time")) {
