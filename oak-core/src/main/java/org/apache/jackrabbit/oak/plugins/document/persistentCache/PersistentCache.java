@@ -51,7 +51,7 @@ public class PersistentCache {
     private boolean cacheDiff = true;
     private boolean cacheDocs;
     private boolean cacheDocChildren;
-    private boolean compactOnClose = true;
+    private boolean compactOnClose;
     private boolean compress = true;
     private ArrayList<GenerationCache> caches = 
             new ArrayList<GenerationCache>();
@@ -65,6 +65,7 @@ public class PersistentCache {
     private long maxBinaryEntry = 1024 * 1024;
     private int autoCompact = 50;
     private boolean appendOnly;
+    private boolean manualCommit;
 
     public PersistentCache(String url) {
         LOG.info("start version 1");
@@ -86,6 +87,8 @@ public class PersistentCache {
                 cacheDocChildren = true;
             } else if (p.equals("-compact")) {
                 compactOnClose = false;
+            } else if (p.equals("+compact")) {
+                compactOnClose = true;
             } else if (p.equals("-compress")) {
                 compress = false;
             } else if (p.endsWith("time")) {
@@ -98,6 +101,8 @@ public class PersistentCache {
                 autoCompact = Integer.parseInt(p.split("=")[1]);
             } else if (p.equals("appendOnly")) {
                 appendOnly = true;
+            } else if (p.equals("manualCommit")) {
+                manualCommit = true;
             }
         }
         this.directory = dir;
@@ -137,7 +142,15 @@ public class PersistentCache {
             }
         }
         while (generations.size() > 2) {
-            generations.remove(generations.last());
+            Integer oldest = generations.first();
+            File oldFile = new File(getFileName(oldest));
+            if (!oldFile.canWrite()) {
+                LOG.info("Ignoring old, read-only generation " + oldFile.getAbsolutePath());
+            } else {
+                LOG.info("Removing old generation " + oldFile.getAbsolutePath());
+                oldFile.delete();
+            }
+            generations.remove(oldest);
         }
         readGeneration = generations.size() > 1 ? generations.first() : -1;
         writeGeneration = generations.size() > 0 ? generations.last() : 0;
@@ -169,6 +182,9 @@ public class PersistentCache {
                 try {
                     if (compress) {
                         builder.compress();
+                    }
+                    if (manualCommit) {
+                        builder.autoCommitDisabled();
                     }
                     if (fileName != null) {
                         builder.fileName(fileName);
@@ -203,18 +219,26 @@ public class PersistentCache {
                 if (store == null) {
                     return;
                 }
+                boolean compact = compactOnClose;
                 try {
-                    boolean compact = compactOnClose;
                     if (store.getFileStore().isReadOnly()) {
                         compact = false;
                     }
+                    // clear the interrupted flag, if set
+                    Thread.interrupted();
                     store.close();
-                    if (compact) {
-                        MVStoreTool.compact(fileName, true);
-                    }
                 } catch (Exception e) {
-                    LOG.debug("Could not close or compact the store", e);
-                    LOG.warn("Could not close or compact the store: " + e);
+                    LOG.debug("Could not close the store", e);
+                    LOG.warn("Could not close the store: " + e);
+                    store.closeImmediately();
+                }
+                if (compact) {
+                    try {
+                        MVStoreTool.compact(fileName, true);
+                    } catch (Exception e) {
+                        LOG.debug("Could not compact the store", e);
+                        LOG.warn("Could not compact the store: " + e);
+                    }
                 }
                 store = null;
             }
