@@ -33,6 +33,7 @@ import org.apache.felix.scr.annotations.References;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.server.OakSolrServer;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.solr.client.solrj.SolrServer;
 import org.osgi.service.component.ComponentContext;
@@ -102,24 +103,6 @@ public class SolrServerProviderService implements SolrServerProvider {
                 cachedSolrServer = null;
             }
         }
-        if (cachedIndexingSolrServer != null) {
-            try {
-                cachedIndexingSolrServer.shutdown();
-            } catch (Exception e) {
-                log.error("could not correctly shutdown Solr {} server {}", serverType, cachedIndexingSolrServer);
-            } finally {
-                cachedIndexingSolrServer = null;
-            }
-        }
-        if (cachedSearchingSolrServer != null) {
-            try {
-                cachedSearchingSolrServer.shutdown();
-            } catch (Exception e) {
-                log.error("could not correctly shutdown Solr {} server {}", serverType, cachedSearchingSolrServer);
-            } finally {
-                cachedSearchingSolrServer = null;
-            }
-        }
     }
 
     protected void bindSolrServerConfigurationProvider(final SolrServerConfigurationProvider solrServerConfigurationProvider, Map<String, Object> properties) {
@@ -172,23 +155,13 @@ public class SolrServerProviderService implements SolrServerProvider {
     @CheckForNull
     @Override
     public SolrServer getIndexingSolrServer() throws Exception {
-        synchronized (solrServerConfigurationProviders) {
-            if (cachedIndexingSolrServer == null) {
-                cachedIndexingSolrServer = getServer();
-            }
-            return cachedIndexingSolrServer;
-        }
+        return getSolrServer();
     }
 
     @CheckForNull
     @Override
     public SolrServer getSearchingSolrServer() throws Exception {
-        synchronized (solrServerConfigurationProviders) {
-            if (cachedSearchingSolrServer == null) {
-                cachedSearchingSolrServer = getServer();
-            }
-            return cachedSearchingSolrServer;
-        }
+        return getSolrServer();
     }
 
     private SolrServer getServer() {
@@ -197,9 +170,7 @@ public class SolrServerProviderService implements SolrServerProvider {
             SolrServerConfigurationProvider solrServerConfigurationProvider = solrServerConfigurationProviders.get(serverType);
             if (solrServerConfigurationProvider != null) {
                 try {
-                    SolrServerConfiguration solrServerConfiguration = solrServerConfigurationProvider.getSolrServerConfiguration();
-                    SolrServerProvider solrServerProvider = solrServerConfiguration.getProvider();
-                    solrServer = solrServerProvider.getSolrServer();
+                    solrServer = new OakSolrServer(solrServerConfigurationProvider);
                     log.info("created new SolrServer {}", solrServer);
                 } catch (Exception e) {
                     log.error("could not get a SolrServerProvider of type {}", serverType, e);
