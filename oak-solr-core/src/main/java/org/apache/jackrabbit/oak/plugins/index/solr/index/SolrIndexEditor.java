@@ -47,6 +47,9 @@ import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
+import static org.apache.jackrabbit.oak.plugins.index.solr.util.SolrUtils.getSortingField;
+import static org.apache.jackrabbit.oak.plugins.index.solr.util.SolrUtils.partialEscape;
 
 /**
  * Index editor for keeping a Solr index up to date.
@@ -213,21 +216,6 @@ public class SolrIndexEditor implements IndexEditor {
         return null; // no need to recurse down the removed subtree
     }
 
-    private static CharSequence partialEscape(CharSequence s) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < s.length(); i++) {
-            char c = s.charAt(i);
-            if (c == '\\' || c == '!' || c == '(' || c == ')' ||
-                    c == ':' || c == '^' || c == '[' || c == ']' || c == '/' ||
-                    c == '{' || c == '}' || c == '~' || c == '*' || c == '?' ||
-                    c == '-' || c == ' ') {
-                sb.append('\\');
-            }
-            sb.append(c);
-        }
-        return sb;
-    }
-
     private SolrInputDocument docFromState(NodeState state) {
         SolrInputDocument inputDocument = new SolrInputDocument();
         String path = getPath();
@@ -237,61 +225,51 @@ public class SolrIndexEditor implements IndexEditor {
                     || !configuration.getIgnoredProperties().contains(property.getName())) {
                 // try to get the field to use for this property from configuration
                 String fieldName = configuration.getFieldNameFor(property.getType());
+                Object fieldValue;
                 if (fieldName != null) {
-                    Object value = property.getValue(property.getType());
-                    inputDocument.addField(fieldName, value);
-                    // add sort field
-                    inputDocument.addField(getSortingField(property.getType().tag(), property.getName()), value);
+                    fieldValue = property.getValue(property.getType());
                 } else {
+                    fieldName = property.getName();
                     if (Type.BINARY.tag() == property.getType().tag()) {
-                        List<String> value = extractTextValues(property, state);
-                        inputDocument.addField(property.getName(), value);
-                        StringBuilder builder = new StringBuilder();
-                        for (String v : value) {
-                            if (builder.length() > 0) {
-                                builder.append(',');
-                            }
-                            builder.append(v);
-                        }
-                        // add sort field
-                        inputDocument.addField(getSortingField(property.getType().tag(), property.getName()), builder.toString());
-                    } else if (property.isArray()) { // or fallback to adding propertyName:stringValue(s)
-                        Iterable<String> strings = property.getValue(Type.STRINGS);
-                        StringBuilder builder = new StringBuilder();
-                        for (String s : strings) {
-                            inputDocument.addField(property.getName(), s);
-                            if (builder.length() > 0) {
-                                builder.append(',');
-                            }
-                            builder.append(s);
-                        }
-                        // add sort field
-                        inputDocument.addField(getSortingField(property.getType().tag(), property.getName()), builder.toString());
+                        fieldValue = extractTextValues(property, state);
+                    } else if (property.isArray()) {
+                        fieldValue = property.getValue(Type.STRINGS);
                     } else {
-                        String value = property.getValue(Type.STRING);
-                        inputDocument.addField(property.getName(), value);
-                        // add sort field
-                        inputDocument.addField(getSortingField(property.getType().tag(), property.getName()), value);
+                        fieldValue = property.getValue(Type.STRING);
                     }
                 }
+                // add property field
+                inputDocument.addField(fieldName, fieldValue);
+
+                Object sortValue;
+                if (fieldValue instanceof Iterable) {
+                    Iterable values = (Iterable) fieldValue;
+                    StringBuilder builder = new StringBuilder();
+                    String stringValue = null;
+                    for (Object value : values) {
+                        builder.append(value);
+                        if (builder.length() > 1024) {
+                            stringValue = builder.substring(0, 1024);
+                            break;
+                        }
+                    }
+                    if (stringValue == null) {
+                        stringValue = builder.toString();
+                    }
+                    sortValue = stringValue;
+                } else {
+                    if (fieldValue.toString().length() > 1024) {
+                        sortValue = fieldValue.toString().substring(0, 1024);
+                    } else {
+                        sortValue = fieldValue;
+                    }
+                }
+
+                // add sort field
+                inputDocument.addField(getSortingField(property.getType().tag(), property.getName()), sortValue);
             }
         }
         return inputDocument;
-    }
-
-    private String getSortingField(int tag, String s) {
-//        switch (tag) {
-//            case PropertyType.LONG:
-//                return s+"_long_sort";
-//            case PropertyType.DATE:
-//                return s+"_date_sort";
-//            case PropertyType.DOUBLE:
-//                return s+"_double_sort";
-//            case PropertyType.STRING:
-//                return s+"_string_sort";
-//            default:
-                return s+"_string_sort";
-//        }
     }
 
     private List<String> extractTextValues(
