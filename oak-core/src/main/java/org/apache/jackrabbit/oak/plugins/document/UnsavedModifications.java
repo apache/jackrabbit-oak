@@ -30,6 +30,8 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -46,6 +48,8 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
  * a background thread.
  */
 class UnsavedModifications {
+
+    private static final Logger LOG = LoggerFactory.getLogger(UnsavedModifications.class);
 
     /**
      * The maximum number of document to update at once in a multi update.
@@ -197,6 +201,7 @@ class UnsavedModifications {
                     ids.add(Utils.getIdFromPath(path));
                 }
                 store.getDocumentStore().update(NODES, ids, updateOp);
+                LOG.debug("Updated _lastRev to {} on {}", lastRev, ids);
                 for (String path : pathList) {
                     map.remove(path, lastRev);
                 }
