@@ -30,6 +30,8 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -46,6 +48,8 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
  * a background thread.
  */
 class UnsavedModifications implements Closeable {
+
+    private static final Logger LOG = LoggerFactory.getLogger(UnsavedModifications.class);
 
     /**
      * Keep at most this number of entries in memory when modifications are
@@ -207,6 +211,7 @@ class UnsavedModifications implements Closeable {
                         ids.add(Utils.getIdFromPath(path));
                     }
                     store.getDocumentStore().update(NODES, ids, updateOp);
+                    LOG.debug("Updated _lastRev to {} on {}", lastRev, ids);
                     for (String path : pathList) {
                         map.remove(path, lastRev);
                     }
