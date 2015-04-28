@@ -63,7 +63,7 @@ public class SolrServerRegistry {
         return null;
     }
 
-    public static void unregister(SolrServerConfiguration<SolrServerProvider> configuration, @Nonnull Strategy strategy) {
+    public static void unregister(SolrServerConfiguration configuration, @Nonnull Strategy strategy) {
         switch (strategy) {
             case INDEXING:
                 synchronized (indexingServerRegistry) {
