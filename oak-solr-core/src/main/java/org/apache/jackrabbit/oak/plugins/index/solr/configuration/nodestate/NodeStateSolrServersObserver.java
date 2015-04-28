@@ -46,20 +46,20 @@ public class NodeStateSolrServersObserver extends DiffObserver {
     }
 
     private void shutdownRegisteredSolrServers(NodeState nodeState) {
-        log.debug("shutting down servers at {}", nodeState);
+        log.info("shutting down servers at {}", nodeState);
         NodeStateSolrServerConfigurationProvider nodeStateSolrServerConfigurationProvider = new NodeStateSolrServerConfigurationProvider(nodeState);
         SolrServerConfiguration<SolrServerProvider> solrServerConfiguration = nodeStateSolrServerConfigurationProvider.getSolrServerConfiguration();
         SolrServer searchingSolrServer = SolrServerRegistry.get(solrServerConfiguration, SolrServerRegistry.Strategy.SEARCHING);
         if (searchingSolrServer != null) {
             searchingSolrServer.shutdown();
-            log.debug("searching SolrServer shut down");
+            log.info("searching SolrServer shut down");
             SolrServerRegistry.unregister(solrServerConfiguration, SolrServerRegistry.Strategy.SEARCHING);
         }
 
         SolrServer indexingSolrServer = SolrServerRegistry.get(solrServerConfiguration, SolrServerRegistry.Strategy.INDEXING);
         if (indexingSolrServer != null) {
             indexingSolrServer.shutdown();
-            log.debug("indexing SolrServer shut down");
+            log.info("indexing SolrServer shut down");
             SolrServerRegistry.unregister(solrServerConfiguration, SolrServerRegistry.Strategy.INDEXING);
         }
     }

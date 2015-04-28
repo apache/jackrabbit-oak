@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.solr.server;
 import java.io.IOException;
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationProvider;
 import org.apache.solr.client.solrj.SolrRequest;
@@ -61,8 +62,15 @@ public class OakSolrServer extends SolrServer {
         SolrServerRegistry.Strategy strategy = isIndex ? SolrServerRegistry.Strategy.INDEXING : SolrServerRegistry.Strategy.SEARCHING;
         SolrServer solrServer = SolrServerRegistry.get(solrServerConfiguration, strategy);
         if (solrServer == null) {
-            solrServer = isIndex ? solrServerProvider.getIndexingSolrServer() : solrServerProvider.getSearchingSolrServer();
-            SolrServerRegistry.register(solrServerConfiguration, solrServer, strategy);
+            if (solrServerConfiguration instanceof EmbeddedSolrServerConfiguration) {
+                solrServer = solrServerProvider.getSolrServer();
+                // the same Solr server has to be used for both
+                SolrServerRegistry.register(solrServerConfiguration, solrServer, SolrServerRegistry.Strategy.INDEXING);
+                SolrServerRegistry.register(solrServerConfiguration, solrServer, SolrServerRegistry.Strategy.SEARCHING);
+            } else {
+                solrServer = isIndex ? solrServerProvider.getIndexingSolrServer() : solrServerProvider.getSearchingSolrServer();
+                SolrServerRegistry.register(solrServerConfiguration, solrServer, strategy);
+            }
         }
         return solrServer;
     }
@@ -71,6 +79,8 @@ public class OakSolrServer extends SolrServer {
     public void shutdown() {
         try {
             solrServerProvider.close();
+            SolrServerRegistry.unregister(solrServerConfiguration, SolrServerRegistry.Strategy.INDEXING);
+            SolrServerRegistry.unregister(solrServerConfiguration, SolrServerRegistry.Strategy.SEARCHING);
         } catch (IOException e) {
             // do nothing
         }
