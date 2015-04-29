@@ -51,9 +51,10 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_FILE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorContext.getIndexWriterConfig;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorContext.newIndexDirectory;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.NT_TEST;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.createNodeWithType;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.useV2;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
@@ -62,6 +63,7 @@ import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Type;
@@ -92,10 +94,15 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.AtomicReader;
 import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.queries.CustomScoreProvider;
 import org.apache.lucene.queries.CustomScoreQuery;
 import org.apache.lucene.search.Query;
 import org.junit.After;
+import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -274,6 +281,76 @@ public class LuceneIndexTest {
         assertEquals("/a", cursor.next().getPath());
         assertEquals("/", cursor.next().getPath());
         assertFalse(cursor.hasNext());
+    }
+
+    @Test
+    public void testCursorStability() throws Exception {
+        NodeBuilder index = newLucenePropertyIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "lucene", ImmutableSet.of("foo"), null);
+        NodeBuilder rules = index.child(INDEX_RULES);
+        NodeBuilder fooProp = rules.child("nt:base").child(LuceneIndexConstants.PROP_NODE).child("foo");
+        fooProp.setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true);
+
+        //1. Create 60 nodes
+        NodeState before = builder.getNodeState();
+        int noOfDocs = LucenePropertyIndex.LUCENE_QUERY_BATCH_SIZE + 10;
+        for (int i = 0; i < noOfDocs; i++) {
+            builder.child("a"+i).setProperty("foo", (long)i);
+        }
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
+
+        IndexTracker tracker = new IndexTracker();
+        tracker.update(indexed);
+
+        //Perform query and get hold of cursor
+        AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker);
+        FilterImpl filter = createFilter(NT_BASE);
+        filter.restrictProperty("foo", Operator.GREATER_OR_EQUAL, PropertyValues.newLong(0L));
+        List<IndexPlan> plans = queryIndex.getPlans(filter, null, indexed);
+        Cursor cursor = queryIndex.query(plans.get(0), indexed);
+
+        //Trigger loading of cursor
+        assertTrue(cursor.hasNext());
+
+        //Now before traversing further go ahead and delete all but 10 nodes
+        before = indexed;
+        builder = indexed.builder();
+        for (int i = 0; i < noOfDocs - 10; i++) {
+            builder.child("a"+i).remove();
+        }
+        after = builder.getNodeState();
+        indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+        builder = indexed.builder();
+
+        //Ensure that Lucene actually removes deleted docs
+        NodeBuilder idx = builder.child(INDEX_DEFINITIONS_NAME).child("lucene");
+        purgeDeletedDocs(idx, new IndexDefinition(root, idx));
+        int numDeletes = getDeletedDocCount(idx, new IndexDefinition(root, idx));
+        Assert.assertEquals(0, numDeletes);
+
+        //Update the IndexSearcher
+        tracker.update(builder.getNodeState());
+
+        //its hard to get correct size estimate as post deletion cursor
+        // would have already picked up 50 docs which would not be considered
+        //deleted by QE for the revision at which query was triggered
+        //So just checking for >
+        Assert.assertTrue(Iterators.size(cursor) > 0);
+    }
+
+    private void purgeDeletedDocs(NodeBuilder idx, IndexDefinition definition) throws IOException {
+        IndexWriter writer = new IndexWriter(newIndexDirectory(definition, idx), getIndexWriterConfig(definition));
+        writer.forceMergeDeletes();
+        writer.close();
+    }
+
+    public int getDeletedDocCount(NodeBuilder idx, IndexDefinition definition) throws IOException {
+        IndexReader reader = DirectoryReader.open(newIndexDirectory(definition, idx));
+        int numDeletes = reader.numDeletedDocs();
+        reader.close();
+        return numDeletes;
     }
 
     @Test
