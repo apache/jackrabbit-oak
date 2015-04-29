@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.2.1
+Release Notes -- Apache Jackrabbit Oak -- Version 1.2.2
 
 Introduction
 ------------
@@ -7,41 +7,44 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.2.1 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.2.2 is a patch release that contains fixes and
 improvements over Oak 1.2. Jackrabbit Oak 1.2.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.2.1
+Changes in Oak 1.2.2
 --------------------
 
 Improvements
 
-  [OAK-2737] RepositoryUpgrade.copy() should allow custom commit hooks
-  [OAK-2738] Possible StackOverflowException with many "or" conditions
-  [OAK-2743] Log time taken in couple of places in indexing 
-  [OAK-2753] Use increasing batch size for sorted queries in LucenePropertyIndex
-  [OAK-2762] Configurable maxLockTryTimeMS
-  [OAK-2766] Log time to acquire backgroundOperationLock in background operation tasks
-  [OAK-2769] Add progress log to VersionGC in DocumentNodeStore
+  [OAK-2726] - Avoid repository traversal for trivial node type changes
+  [OAK-2755] - Consolidated JMX view of all EventListener related statistics
+  [OAK-2789] - Enable timeout for MongoDB queries
+  [OAK-2791] - Change default for oak.mongo.maxDeltaForModTimeIdxSecs
+  [OAK-2806] - Provide property path in warning log for large multi value property
+  [OAK-2818] - Log _lastRev background updates
 
 Bug fixes
 
-  [OAK-2662] SegmentOverflowException in HeavyWriteIT on Jenkins
-  [OAK-2723] FileStore does not scale because of precomputed graph on TarReader
-  [OAK-2732] NPE in lucene search
-  [OAK-2740] TreeTypeProvider treates optimized node type definition info as Ac-Content
-  [OAK-2752] SegmentIdTable can sometimes hang when calling getSegmentId(msb, lsb)
-  [OAK-2759] Empty commit causes deserialization issue in LocalDiffCache leading to cache corruption
+  [OAK-2569] - LuceneIndex#loadDocs can throw IllegalArgumentException
+  [OAK-2750] - Indexing for sorting can fail if value is too long
+  [OAK-2780] - DocumentMK.commit() does not check if node exists on property patch
+  [OAK-2782] - Tika not able to load class in case of custom config
+  [OAK-2796] - Persistent cache: old files not removed sometimes
+  [OAK-2798] - OakIndexInput should unset OakIndexFile's byte[] upon close
+  [OAK-2803] - RepositoryUpgrade.copy() doesn't create correct templates for residual item definitions
+  [OAK-2811] - Oak + data store: NPE in SegmentNodeStoreService.deactivate() leads to data store not shutting down properly
+  [OAK-2815] - Persistent cache may block commit
+  [OAK-2820] - SolrServerProviderService should leverage OakSolrServer
 
-Sub-tasks
+Tests
 
-  [OAK-2770] - Configurable mode for backgroundOperationLock
+  [OAK-2764] - ExternalSharedStoreIT occasionally fails on travis
 
 In addition to the above-mentioned changes, this release contains
-all changes included up to the Apache Jackrabbit Oak 1.2.0 release.
+all changes included up to the Apache Jackrabbit Oak 1.2.1 release.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
