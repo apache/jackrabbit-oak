@@ -67,6 +67,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiFields;
@@ -268,6 +269,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             private ScoreDoc lastDoc;
             private int nextBatchSize = LUCENE_QUERY_BATCH_SIZE;
             private boolean noDocs = false;
+            private long lastSearchIndexerVersion;
 
             @Override
             protected LuceneResultRow computeNext() {
@@ -327,6 +329,8 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                         if (customScoreQuery != null) {
                             query = customScoreQuery;
                         }
+
+                        checkForIndexVersionChange(searcher);
 
                         TopDocs docs;
                         long start = PERF_LOGGER.start();
@@ -414,6 +418,16 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 }
 
                 return !queue.isEmpty();
+            }
+
+            private void checkForIndexVersionChange(IndexSearcher searcher) {
+                long currentVersion = getVersion(searcher);
+                if (currentVersion != lastSearchIndexerVersion && lastDoc != null){
+                    lastDoc = null;
+                    LOG.debug("Change in index version detected {} => {}. Query would be performed without " +
+                            "offset", currentVersion, lastSearchIndexerVersion);
+                }
+                this.lastSearchIndexerVersion = currentVersion;
             }
         };
         return new LucenePathCursor(itr, plan, settings);
@@ -882,6 +896,14 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             }
         }
         throw new IllegalStateException("PropertyRestriction not handled " + pr + " for index " + defn );
+    }
+
+    static long getVersion(IndexSearcher indexSearcher){
+        IndexReader reader = indexSearcher.getIndexReader();
+        if (reader instanceof DirectoryReader){
+            return ((DirectoryReader) reader).getVersion();
+        }
+        return -1;
     }
 
     private static void addReferenceConstraint(String uuid, List<Query> qs,
