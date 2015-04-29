@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneFileIndexDefinition;
@@ -72,11 +73,25 @@ public class LuceneInitializerHelper implements RepositoryInitializer {
         this.storageEnabled = storageEnabled;
     }
 
+    /**
+     * set the {@code async} property to "async".
+     * @return
+     */
     public LuceneInitializerHelper async() {
-        async = "async";
-        return this;
+        return async("async");
     }
 
+    /**
+     * will set the {@code async} property to the provided value
+     * 
+     * @param async
+     * @return
+     */
+    public LuceneInitializerHelper async(@Nonnull final String async) {
+        this.async = checkNotNull(async);
+        return this;
+    }
+    
     @Override
     public void initialize(@Nonnull NodeBuilder builder) {
         if (builder.hasChildNode(INDEX_DEFINITIONS_NAME)

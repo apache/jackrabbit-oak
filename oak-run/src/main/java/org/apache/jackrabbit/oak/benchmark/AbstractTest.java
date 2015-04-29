@@ -24,6 +24,7 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.Repository;
@@ -31,10 +32,14 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
+import jline.internal.Log;
+
 import org.apache.commons.math.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math.stat.descriptive.SynchronizedDescriptiveStatistics;
 import org.apache.jackrabbit.oak.benchmark.util.Profiler;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Abstract base class for individual performance benchmarks.
@@ -67,6 +72,8 @@ abstract class AbstractTest<T> extends Benchmark implements CSVResultGenerator {
     
     private static final boolean PROFILE = Boolean.getBoolean("profile");
     
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractTest.class);
+    
     private Repository repository;
 
     private Credentials credentials;
@@ -80,7 +87,56 @@ abstract class AbstractTest<T> extends Benchmark implements CSVResultGenerator {
     private Profiler profiler;
 
     private PrintStream out;
+    
+    /**
+     * <p>
+     * used to signal the {@link #runTest(int)} if stop running future test planned or not. If set
+     * to true, it will exit the loop not performing any more tests.
+     * </p>
+     * 
+     * <p>
+     * useful when the running of the benchmark makes sense for as long as other processes didn't
+     * complete.
+     * </p>
+     * 
+     * <p>
+     * Set this variable from within the benchmark itself by using {@link #issueHaltRequest(String)}
+     * </p>
+     * 
+     * <p>
+     * <strong>it works only for concurrency level of 1 ({@code --concurrency 1} the
+     * default)</strong>
+     * </p>
+     */
+    private boolean haltRequested;
 
+    
+    /**
+     * If concurrency level is 1 ({@code --concurrency 1}, the default) it will issue a request to
+     * halt any future runs of a single benchmark. Useful when the benchmark makes sense only if run
+     * in conjunction of any other parallel operations.
+     * 
+     * @param message an optional message that can be provided. It will logged at info level.
+     */
+    protected void issueHaltRequest(@Nullable final String message) {
+        String m = message == null ? "" : message;
+        LOG.info("halt requested. {}", m);
+        haltRequested = true;
+    }
+
+    /**
+     * <p>
+     * this method will be called during the {@link #tearDown()} before the {@link #afterSuite()}.
+     * Override it if you have background processes you wish to stop.
+     * </p>
+     * <p>
+     * For example in case of big imports, the suite could be keep running for as long as the import
+     * is running, even if the tests are actually no longer executed.
+     * </p>
+     */
+    protected void issueHaltChildThreads() {
+    }
+    
     @Override
     public void setPrintStream(PrintStream out) {
         this.out = out;
@@ -110,6 +166,8 @@ abstract class AbstractTest<T> extends Benchmark implements CSVResultGenerator {
 
         this.running = true;
 
+        haltRequested = false;
+        
         beforeSuite();
         if (PROFILE) {
             profiler = new Profiler().startCollecting();
@@ -153,7 +211,13 @@ abstract class AbstractTest<T> extends Benchmark implements CSVResultGenerator {
             
             // Run a few iterations to warm up the system
             long warmupEnd = System.currentTimeMillis() + WARMUP;
-            while (System.currentTimeMillis() < warmupEnd) {
+            boolean stop = false;
+            while (System.currentTimeMillis() < warmupEnd && !stop) {
+                if (!stop) {
+                    // we want to execute this at lease once. after that we consider the
+                    // `haltRequested` flag.
+                    stop = haltRequested;
+                }
                 execute();
             }
 
@@ -228,7 +292,13 @@ abstract class AbstractTest<T> extends Benchmark implements CSVResultGenerator {
         if (concurrencyLevel == 1) {
             // Run test iterations, and capture the execution times
             long runtimeEnd = System.currentTimeMillis() + RUNTIME;
-            while (System.currentTimeMillis() < runtimeEnd) {
+            boolean stop = false;
+            while (System.currentTimeMillis() < runtimeEnd && !stop) {
+                if (!stop) {
+                    // we want to execute this at lease once. after that we consider the
+                    // `haltRequested` flag.
+                    stop = haltRequested;
+                }
                 statistics.addValue(execute());
             }
 
@@ -305,6 +375,7 @@ abstract class AbstractTest<T> extends Benchmark implements CSVResultGenerator {
      * @throws Exception if the benchmark can not be cleaned up
      */
     public void tearDown() throws Exception {
+        issueHaltChildThreads();
         this.running = false;
         for (Thread thread : threads) {
             thread.join();
