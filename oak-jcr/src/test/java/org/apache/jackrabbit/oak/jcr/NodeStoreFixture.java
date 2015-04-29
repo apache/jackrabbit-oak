@@ -30,6 +30,7 @@ import com.mongodb.DB;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
@@ -53,25 +54,18 @@ public abstract class NodeStoreFixture {
 
         @Override
         public NodeStore createNodeStore() {
-            String id = UUID.randomUUID().toString();
-            this.ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:file:./" + fname + id, "sa", "");
+            String prefix = "T" + UUID.randomUUID().toString().replace("-",  "");
+            RDBOptions options = new RDBOptions().tablePrefix(prefix).dropTablesOnClose(true);
+            this.ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:file:./" + fname + "oaktest", "sa", "");
             return new DocumentMK.Builder().
-                    setRDBConnection(this.ds).
-                    setPersistentCache("target/persistentCache,time").                        
+                    setPersistentCache("target/persistentCache,time").
+                    setRDBConnection(this.ds, options).
                     getNodeStore();
         }
 
         @Override
         public NodeStore createNodeStore(int clusterNodeId) {
-            try {
-                this.ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:file:./" + fname + "oaknodes-" + clusterNodeId, "sa", "");
-                return new DocumentMK.Builder().
-                        setRDBConnection(this.ds).
-                        setPersistentCache("target/persistentCache,time").                        
-                        getNodeStore();
-            } catch (Exception e) {
-                return null;
-            }
+            throw new RuntimeException("clustered node store config not supported yet");
         }
 
         @Override
