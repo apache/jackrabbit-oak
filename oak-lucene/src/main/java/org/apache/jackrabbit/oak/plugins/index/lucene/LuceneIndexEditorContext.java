@@ -55,7 +55,7 @@ public class LuceneIndexEditorContext {
     private static final PerfLogger PERF_LOGGER =
             new PerfLogger(LoggerFactory.getLogger(LuceneIndexEditorContext.class.getName() + ".perf"));
 
-    private static IndexWriterConfig getIndexWriterConfig(IndexDefinition definition) {
+    static IndexWriterConfig getIndexWriterConfig(IndexDefinition definition) {
         // FIXME: Hack needed to make Lucene work in an OSGi environment
         Thread thread = Thread.currentThread();
         ClassLoader loader = thread.getContextClassLoader();
@@ -72,7 +72,7 @@ public class LuceneIndexEditorContext {
         }
     }
 
-    private static Directory newIndexDirectory(IndexDefinition indexDefinition, NodeBuilder definition)
+    static Directory newIndexDirectory(IndexDefinition indexDefinition, NodeBuilder definition)
             throws IOException {
         String path = definition.getString(PERSISTENCE_PATH);
         if (path == null) {
