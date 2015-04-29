@@ -290,7 +290,15 @@ public class BenchmarkRunner {
                     wikipedia.value(options),
                     flatStructure.value(options),
                     report.value(options), withStorage.value(options), withServer.value(options)),
-            new FindAuthorizableWithScopeTest(numberOfUsers.value(options), setScope.value(options))
+            new FindAuthorizableWithScopeTest(numberOfUsers.value(options), setScope.value(options)),
+            new LucenePropertyFullTextTest(
+                wikipedia.value(options),
+                flatStructure.value(options),
+                report.value(options), withStorage.value(options)),
+            new LucenePropertyFTSeparated(
+                wikipedia.value(options),
+                flatStructure.value(options),
+                report.value(options), withStorage.value(options))
         };
 
         Set<String> argset = Sets.newHashSet(nonOption.values(options));
