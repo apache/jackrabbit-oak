@@ -197,6 +197,8 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
     private final int suggesterUpdateFrequencyMinutes;
 
+    private final boolean saveDirListing;
+
     public IndexDefinition(NodeState root, NodeState defn) {
         this(root, defn, null);
     }
@@ -257,6 +259,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         this.maxExtractLength = determineMaxExtractLength();
         this.suggesterUpdateFrequencyMinutes = getOptionalValue(defn, LuceneIndexConstants.SUGGEST_UPDATE_FREQUENCY_MINUTES, 60);
         this.scorerProviderName = getOptionalValue(defn, LuceneIndexConstants.PROP_SCORER_PROVIDER, null);
+        this.saveDirListing = getOptionalValue(defn, LuceneIndexConstants.SAVE_DIR_LISTING, false);
     }
 
     public boolean isFullTextEnabled() {
@@ -359,6 +362,10 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
     public String getScorerProviderName() {
         return scorerProviderName;
+    }
+
+    public boolean saveDirListing() {
+        return saveDirListing;
     }
 
     @Override

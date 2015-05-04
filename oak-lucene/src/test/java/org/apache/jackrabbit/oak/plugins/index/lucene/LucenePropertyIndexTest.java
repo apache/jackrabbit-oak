@@ -340,7 +340,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
-        test.addChild("a").setProperty("tags", of("a","b"), Type.STRINGS);
+        test.addChild("a").setProperty("tags", of("a", "b"), Type.STRINGS);
         test.addChild("b").setProperty("tags", of("a","c"), Type.STRINGS);
         root.commit();
 
@@ -364,8 +364,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         String explain = explain(q);
         System.out.println(explain);
         String luceneQuery = explain.substring(0, explain.indexOf('\n'));
-        assertEquals("[nt:unstructured] as [content] /* lucene:test1(/oak:index/test1) " + 
-                "+(tags:Products:A tags:Products:A/B) " + 
+        assertEquals("[nt:unstructured] as [content] /* lucene:test1(/oak:index/test1) " +
+                "+(tags:Products:A tags:Products:A/B) " +
                 "+(tags:DocTypes:A tags:DocTypes:B tags:DocTypes:C tags:ProblemType:A)",
                 luceneQuery);
     }
@@ -1287,6 +1287,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         def.setProperty(REINDEX_PROPERTY_NAME, true);
         def.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
         def.setProperty(PropertyStates.createProperty(LuceneIndexConstants.INCLUDE_PROPERTY_NAMES, propNames, Type.STRINGS));
+        def.setProperty(LuceneIndexConstants.SAVE_DIR_LISTING, true);
         return index.getChild(INDEX_DEFINITIONS_NAME).getChild(name);
     }
 

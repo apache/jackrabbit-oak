@@ -80,7 +80,7 @@ public class LuceneIndexEditorContext {
             throws IOException {
         String path = definition.getString(PERSISTENCE_PATH);
         if (path == null) {
-            return new OakDirectory(definition.child(INDEX_DATA_CHILD_NAME), indexDefinition);
+            return new OakDirectory(definition.child(INDEX_DATA_CHILD_NAME), indexDefinition, false);
         } else {
             // try {
             File file = new File(path);
@@ -118,6 +118,8 @@ public class LuceneIndexEditorContext {
 
     private Parser parser;
 
+    private Directory directory;
+
     /**
      * The media types supported by the parser used.
      */
@@ -144,7 +146,8 @@ public class LuceneIndexEditorContext {
     IndexWriter getWriter() throws IOException {
         if (writer == null) {
             final long start = PERF_LOGGER.start();
-            writer = new IndexWriter(newIndexDirectory(definition, definitionBuilder), config);
+            directory = newIndexDirectory(definition, definitionBuilder);
+            writer = new IndexWriter(directory, config);
             PERF_LOGGER.end(start, -1, "Created IndexWriter for directory {}", definition);
         }
         return writer;
@@ -167,6 +170,8 @@ public class LuceneIndexEditorContext {
             updateSuggester();
 
             writer.close();
+
+            directory.close();
 
             //OAK-2029 Record the last updated status so
             //as to make IndexTracker detect changes when index
