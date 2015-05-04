@@ -60,6 +60,7 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.IN
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class LuceneIndexEditorTest {
@@ -157,6 +158,24 @@ public class LuceneIndexEditorTest {
         tracker.update(indexed);
 
         assertEquals(2, getSearcher().getIndexReader().numDocs());
+    }
+
+    @Test
+    public void saveDirectoryListing() throws Exception{
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        NodeBuilder nb = newLuceneIndexDefinitionV2(index, "lucene",
+                of(TYPENAME_STRING));
+        nb.setProperty(LuceneIndexConstants.SAVE_DIR_LISTING, true);
+        nb.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
+        nb.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo"), STRINGS));
+
+        NodeState before = builder.getNodeState();
+        builder.child("test").setProperty("foo", "fox is jumping");
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+        NodeState dir = indexed.getChildNode("oak:index").getChildNode("lucene").getChildNode(":data");
+        assertTrue(dir.hasProperty(OakDirectory.PROP_DIR_LISTING));
     }
 
     /**
