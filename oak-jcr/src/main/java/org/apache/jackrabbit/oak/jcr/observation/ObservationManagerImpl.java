@@ -48,6 +48,7 @@ import org.apache.jackrabbit.commons.iterator.EventListenerIteratorAdapter;
 import org.apache.jackrabbit.commons.observation.ListenerTracker;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -222,7 +223,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
             includePaths.add(namePathMapper.getOakPath(absPath));
         }
         Set<String> excludedPaths = getOakPaths(namePathMapper, filter.getExcludedPaths());
-        optimise(includePaths, excludedPaths);
+        PathUtils.unifyInExcludes(includePaths, excludedPaths);
         if (includePaths.isEmpty()) {
             LOG.warn("The passed filter excludes all events. No event listener registered");
             return;
@@ -257,26 +258,6 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
                 !noExternal, listener, eventTypes, absPath, isDeep, uuids, nodeTypeName, noLocal);
 
         addEventListener(listener, tracker, filterBuilder.build());
-    }
-
-    /**
-     * Removes paths from {@code includePaths} that are completely excluded
-     * and only retains paths in {@code excludedPaths} that are included.
-     * @param includePaths
-     * @param excludedPaths
-     */
-    private static void optimise(Set<String> includePaths, Set<String> excludedPaths) {
-        Set<String> retain = newHashSet();
-        for (String include : includePaths) {
-            for (String exclude : excludedPaths) {
-                if (exclude.equals(include) || isAncestor(exclude, include)) {
-                    includePaths.remove(include);
-                } else if (isAncestor(include, exclude)) {
-                    retain.add(exclude);
-                }
-            }
-        }
-        excludedPaths.retainAll(retain);
     }
 
     private static List<Condition> createExclusions(FilterBuilder filterBuilder, Iterable<String> excludedPaths) {
