@@ -20,7 +20,10 @@ import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Lists.reverse;
 import static com.google.common.collect.Maps.newHashMap;
+import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Maps.newTreeMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.REF_COUNT_OFFSET;
@@ -130,12 +133,17 @@ class TarWriter {
      * {@link #containsEntry(long, long)} and {@link #readEntry(long, long)}
      * methods to retrieve data from this file while it's still being written,
      * and finally by the {@link #close()} method to generate the tar index.
-     * Should only be accessed from synchronized code;
+     * The map is ordered in the order that entries have been written.
+     * <p>
+     * Should only be accessed from synchronized code.
      */
-    private final Map<UUID, TarEntry> index = newHashMap();
+    private final Map<UUID, TarEntry> index = newLinkedHashMap();
 
     private final Set<UUID> references = newHashSet();
 
+    /**
+     * Segment graph of the entries that have already been written.
+     */
     private final SortedMap<UUID, List<UUID>> graph = newTreeMap();
 
     TarWriter(File file) {
@@ -441,21 +449,22 @@ class TarWriter {
     /**
      * Add all segment ids that are reachable from {@code referencedIds} via
      * this writer's segment graph and subsequently remove those segment ids
-     * from {@code referencedIds} that are in this {{TarWriter}} as those can't
-     * be cleaned up anyway.
+     * from {@code referencedIds} that are in this {@code TarWriter}. The
+     * latter can't be cleaned up anyway because they are not be present in
+     * any of the readers.
+     *
      * @param referencedIds
      * @throws IOException
      */
     synchronized void collectReferences(Set<UUID> referencedIds) throws IOException {
-        Set<UUID> referenced = newHashSet();
-        for (UUID id : referencedIds) {
-            List<UUID> refs = graph.get(id);
-            if (refs != null) {
-                referenced.addAll(refs);
+        for (UUID uuid : reverse(newArrayList(index.keySet()))) {
+            if (referencedIds.remove(uuid)) {
+                List<UUID> refs = graph.get(uuid);
+                if (refs != null) {
+                    referencedIds.addAll(refs);
+                }
             }
         }
-        referencedIds.addAll(referenced);
-        referencedIds.removeAll(index.keySet());
     }
 
     //------------------------------------------------------------< Object >--

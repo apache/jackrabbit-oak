@@ -44,7 +44,6 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.plugins.segment.file.TarWriterTest.SegmentGraphBuilder.Node;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class TarWriterTest {
@@ -53,7 +52,6 @@ public class TarWriterTest {
      * Regression test for OAK-2800
      */
     @Test
-    @Ignore("OAK-2800")  // FIXME OAK-2800
     public void collectReferences() throws IOException {
         SegmentGraphBuilder graphBuilder = new SegmentGraphBuilder();
 
