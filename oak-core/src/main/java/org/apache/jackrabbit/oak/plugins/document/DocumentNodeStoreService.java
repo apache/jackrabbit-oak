@@ -56,6 +56,7 @@ import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.ObserverTracker;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
@@ -520,6 +521,23 @@ public class DocumentNodeStoreService {
                         CacheStatsMBean.TYPE,
                         store.getDocChildrenCacheStats().getName())
         );
+        for (CacheStats cs : store.getDiffCacheStats()) {
+            registrations.add(
+                    registerMBean(whiteboard,
+                            CacheStatsMBean.class, cs,
+                            CacheStatsMBean.TYPE, cs.getName()));
+        }
+        DocumentStore ds = store.getDocumentStore();
+        if (ds.getCacheStats() != null) {
+            registrations.add(
+                    registerMBean(whiteboard,
+                            CacheStatsMBean.class,
+                            ds.getCacheStats(),
+                            CacheStatsMBean.TYPE,
+                            ds.getCacheStats().getName())
+            );
+        }
+
         registrations.add(
                 registerMBean(whiteboard,
                         CheckpointMBean.class,
@@ -535,39 +553,6 @@ public class DocumentNodeStoreService {
                         DocumentNodeStoreMBean.TYPE,
                         "Document node store management")
         );
-
-        DiffCache cl = store.getDiffCache();
-        if (cl instanceof MemoryDiffCache) {
-            MemoryDiffCache mcl = (MemoryDiffCache) cl;
-            registrations.add(
-                    registerMBean(whiteboard,
-                            CacheStatsMBean.class,
-                            mcl.getDiffCacheStats(),
-                            CacheStatsMBean.TYPE,
-                            mcl.getDiffCacheStats().getName()));
-        }
-
-        DiffCache localCache = store.getLocalDiffCache();
-        if (localCache instanceof LocalDiffCache) {
-            LocalDiffCache mcl = (LocalDiffCache) localCache;
-            registrations.add(
-                    registerMBean(whiteboard,
-                            CacheStatsMBean.class,
-                            mcl.getDiffCacheStats(),
-                            CacheStatsMBean.TYPE,
-                            mcl.getDiffCacheStats().getName()));
-        }
-
-        DocumentStore ds = store.getDocumentStore();
-        if (ds.getCacheStats() != null) {
-            registrations.add(
-                    registerMBean(whiteboard,
-                            CacheStatsMBean.class,
-                            ds.getCacheStats(),
-                            CacheStatsMBean.TYPE,
-                            ds.getCacheStats().getName())
-            );
-        }
 
         if (store.getBlobStore() instanceof GarbageCollectableBlobStore) {
             BlobGarbageCollector gc = new BlobGarbageCollector() {
