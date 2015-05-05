@@ -19,12 +19,15 @@
 package org.apache.jackrabbit.oak.cache;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.Test;
 
@@ -32,6 +35,72 @@ import org.junit.Test;
  * Tests the LIRS cache by concurrently reading and writing.
  */
 public class ConcurrentTest {
+
+    @Test
+    public void testLoaderBlock() throws Exception {
+        // access to the same segment should not be blocked while loading an entry
+        // only access to this entry is blocked
+        final CacheLIRS<Integer, Integer> cache = new CacheLIRS.Builder().
+                maximumWeight(100).averageWeight(10).build();
+        final Exception[] ex = new Exception[1];
+        int threadCount = 10;
+        Thread[] threads = new Thread[threadCount];
+        final AtomicBoolean stop = new AtomicBoolean();
+        final AtomicInteger nextKey = new AtomicInteger();
+        final AtomicLong additionalWait = new AtomicLong();
+        for (int i = 0; i < threadCount; i++) {
+            Thread t = new Thread() {
+                @Override
+                public void run() {
+                    while (!stop.get()) {
+                        final int key = nextKey.getAndIncrement();
+                        final int wait = key;
+                        Callable<Integer> callable = new Callable<Integer>() {
+                            @Override
+                            public Integer call() throws ExecutionException {
+                                try {
+                                    Thread.sleep(wait);
+                                } catch (InterruptedException e) {
+                                    // ignore
+                                }
+                                cache.get(key * 10);
+                                return 1;
+                            }
+                        };
+                        long start = System.currentTimeMillis();
+                        try {
+                            cache.get(key, callable);
+                        } catch (Exception e) {
+                            ex[0] = e;
+                        }
+                        long time = System.currentTimeMillis() - start;
+                        additionalWait.addAndGet(time - wait);
+                        cache.remove(key);
+                    }
+                }
+            };
+            t.start();
+            threads[i] = t;
+        }
+        // test for 1000 ms
+        Thread.sleep(1000);
+        stop.set(true);
+        for (Thread t : threads) {
+            t.join(1000);
+            // if the thread is still alive after 1 second, we assume
+            // there is a deadlock - we just let the threads alive,
+            // but report a failure (what else could we do?)
+            if (t.isAlive()) {
+                assertFalse("Deadlock detected!", t.isAlive());
+            }
+        }
+        if (ex[0] != null) {
+            throw ex[0];
+        }        
+        long add = additionalWait.get();
+System.out.println("add: " + add);        
+        assertTrue("Had to wait unexpectedly long for other threads: " + add, add < 1000);
+    }
     
     @Test
     public void testCacheAccessInLoaderDeadlock() throws Exception {
