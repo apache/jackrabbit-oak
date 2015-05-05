@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.PathRev;
+import org.apache.jackrabbit.oak.plugins.document.util.RevisionsKey;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 
 public enum CacheType {
@@ -104,32 +105,6 @@ public enum CacheType {
         }
     },
 
-    CONSOLIDATED_DIFF {
-        @Override
-        public <K> String keyToString(K key) {
-            return ((StringValue) key).asString();
-        }
-        @SuppressWarnings("unchecked")
-        @Override
-        public <K> K keyFromString(String key) {
-            return (K) StringValue.fromString(key);
-        }
-        @Override
-        public <K> int compareKeys(K a, K b) {
-            return ((StringValue) a).asString().compareTo(((StringValue) b).asString());
-        }
-        @Override
-        public <V> String valueToString(V value) {
-            return ((LocalDiffCache.ConsolidatedDiff) value).asString();
-        }
-        @SuppressWarnings("unchecked")
-        @Override
-        public <V> V valueFromString(
-                DocumentNodeStore store, DocumentStore docStore, String value) {
-            return (V) LocalDiffCache.ConsolidatedDiff.fromString(value);
-        }
-    },
-    
     DOC_CHILDREN {
         @Override
         public <K> String keyToString(K key) {
@@ -180,8 +155,34 @@ public enum CacheType {
                 DocumentNodeStore store, DocumentStore docStore, String value) {
             return (V) NodeDocument.fromString(docStore, value);
         }
-    }; 
-    
+    },
+
+    LOCAL_DIFF {
+        @Override
+        public <K> String keyToString(K key) {
+            return ((RevisionsKey) key).asString();
+        }
+        @SuppressWarnings("unchecked")
+        @Override
+        public <K> K keyFromString(String key) {
+            return (K) RevisionsKey.fromString(key);
+        }
+        @Override
+        public <K> int compareKeys(K a, K b) {
+            return ((RevisionsKey) a).compareTo((RevisionsKey) b);
+        }
+        @Override
+        public <V> String valueToString(V value) {
+            return ((LocalDiffCache.Diff) value).asString();
+        }
+        @SuppressWarnings("unchecked")
+        @Override
+        public <V> V valueFromString(
+                DocumentNodeStore store, DocumentStore docStore, String value) {
+            return (V) LocalDiffCache.Diff.fromString(value);
+        }
+    };
+
     public abstract <K> String keyToString(K key);
     public abstract <K> K keyFromString(String key);
     public abstract <K> int compareKeys(K a, K b);
