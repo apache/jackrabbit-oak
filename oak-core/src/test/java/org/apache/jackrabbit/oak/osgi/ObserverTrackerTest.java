@@ -34,7 +34,6 @@ import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
@@ -109,7 +108,6 @@ public class ObserverTrackerTest {
     }
 
     @Test
-    @Ignore("OAK-2845")  // FIXME OAK-2845
     public void unregisterTwice() {
         tracker.addingService(ref1);
         assertEquals(ImmutableSet.of(observer1), observers);
