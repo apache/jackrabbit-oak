@@ -124,6 +124,12 @@ class IndexPlanner {
             return null;
         }
 
+        if (!checkForQueryPaths()) {
+            log.trace("Opting out due mismatch between path restriction {} and query paths {}",
+                    filter.getPath(), definition.getQueryPaths());
+            return null;
+        }
+
         result = new PlanResult(indexPath, definition, indexingRule);
 
         if (definition.hasFunctionDefined()
@@ -195,6 +201,29 @@ class IndexPlanner {
         //TODO support for nodeName queries
 
         return null;
+    }
+
+    /**
+     * Check if there is a mismatch between QueryPaths associated with index
+     * and path restriction specified in query
+
+     * @return true if QueryPaths and path restrictions do not have any conflict
+     */
+    private boolean checkForQueryPaths() {
+        String[] queryPaths = definition.getQueryPaths();
+        if (queryPaths == null){
+            //No explicit value specified. Assume '/' which results in true
+            return true;
+        }
+
+        String pathRestriction = filter.getPath();
+        for (String queryPath : queryPaths){
+            if (queryPath.equals(pathRestriction) || PathUtils.isAncestor(queryPath, pathRestriction)){
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static boolean canSortByProperty(List<OrderEntry> sortOrder) {

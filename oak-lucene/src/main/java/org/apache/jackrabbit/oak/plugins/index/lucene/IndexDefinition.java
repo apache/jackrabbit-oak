@@ -47,6 +47,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.PathFilter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -56,6 +58,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper;
@@ -174,6 +177,11 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
     private final boolean hasCustomTikaConfig;
 
+    private final PathFilter pathFilter;
+
+    @Nullable
+    private final String[] queryPaths;
+
     private final boolean saveDirListing;
 
     public IndexDefinition(NodeState root, NodeState defn) {
@@ -231,6 +239,8 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         this.indexesAllTypes = areAllTypesIndexed();
         this.analyzer = createAnalyzer();
         this.hasCustomTikaConfig = getTikaConfigNode().exists();
+        this.pathFilter = PathFilter.from(new ReadOnlyBuilder(defn));
+        this.queryPaths = getQueryPaths(defn);
         this.saveDirListing = getOptionalValue(defn, LuceneIndexConstants.SAVE_DIR_LISTING, false);
     }
 
@@ -326,6 +336,15 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
     public boolean saveDirListing() {
         return saveDirListing;
+    }
+
+    public PathFilter getPathFilter() {
+        return pathFilter;
+    }
+
+    @Nullable
+    public String[] getQueryPaths() {
+        return queryPaths;
     }
 
     @Override
@@ -1205,6 +1224,14 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         }
 
         return result;
+    }
+
+    private String[] getQueryPaths(NodeState defn) {
+        PropertyState ps = defn.getProperty(IndexConstants.QUERY_PATHS);
+        if (ps != null){
+            return Iterables.toArray(ps.getValue(Type.STRINGS), String.class);
+        }
+        return null;
     }
 
     private static IndexFormatVersion versionFrom(PropertyState ps){
