@@ -203,4 +203,11 @@ public interface LuceneIndexConstants {
      * whether use this property values for spellchecking
      */
     String PROP_USE_IN_SPELLCHECK = "useInSpellcheck";
+
+    /**
+     * Boolean property indicating that Lucene directory content
+     * should be saved as part of NodeState itself as a multi value property
+     * to allow faster reads (OAK-2809)
+     */
+    String SAVE_DIR_LISTING = "saveDirectoryListing";
 }

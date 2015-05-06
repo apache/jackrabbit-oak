@@ -1108,6 +1108,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         def.setProperty(REINDEX_PROPERTY_NAME, true);
         def.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
         def.setProperty(PropertyStates.createProperty(LuceneIndexConstants.INCLUDE_PROPERTY_NAMES, propNames, Type.STRINGS));
+        def.setProperty(LuceneIndexConstants.SAVE_DIR_LISTING, true);
         return index.getChild(INDEX_DEFINITIONS_NAME).getChild(name);
     }
 

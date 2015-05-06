@@ -174,6 +174,8 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
     private final boolean hasCustomTikaConfig;
 
+    private final boolean saveDirListing;
+
     public IndexDefinition(NodeState root, NodeState defn) {
         this(root, defn, null);
     }
@@ -229,6 +231,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         this.indexesAllTypes = areAllTypesIndexed();
         this.analyzer = createAnalyzer();
         this.hasCustomTikaConfig = getTikaConfigNode().exists();
+        this.saveDirListing = getOptionalValue(defn, LuceneIndexConstants.SAVE_DIR_LISTING, false);
     }
 
     public boolean isFullTextEnabled() {
@@ -319,6 +322,10 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
     public String getIndexName() {
         return indexName;
+    }
+
+    public boolean saveDirListing() {
+        return saveDirListing;
     }
 
     @Override
