@@ -130,10 +130,8 @@ public abstract class AbstractImportTest {
             }
             adminSession.save();
         } finally {
-            if (getImportBehavior() != null) {
-                adminSession.logout();
-                repo = dispose(repo);
-            }
+            adminSession.logout();
+            repo = dispose(repo);
         }
     }
 
