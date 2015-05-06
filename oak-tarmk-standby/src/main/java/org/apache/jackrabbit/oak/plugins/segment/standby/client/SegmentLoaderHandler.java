@@ -25,8 +25,6 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.concurrent.EventExecutorGroup;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -97,7 +95,7 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
         }
 
         try {
-            store.setLoader(this);
+            store.preSync(this);
             SegmentNodeState before = store.getHead();
             SegmentNodeBuilder builder = before.builder();
 
@@ -118,14 +116,7 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
                     }
 
                     log.debug("did reread locally corrupt segment " + id + " with size " + s.size());
-                    ByteArrayOutputStream bout = new ByteArrayOutputStream(s.size());
-                    try {
-                        s.writeTo(bout);
-                    } catch (IOException f) {
-                        log.error("can't wrap segment to output stream", f);
-                        throw e;
-                    }
-                    store.writeSegment(s.getSegmentId(), bout.toByteArray(), 0, s.size());
+                    store.persist(s.getSegmentId(), s);
                 }
             } while(true);
             boolean ok = store.setHead(before, builder.getNodeState());
@@ -144,6 +135,7 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
                 }
             }
         } finally {
+            store.postSync();
             close();
         }
     }
