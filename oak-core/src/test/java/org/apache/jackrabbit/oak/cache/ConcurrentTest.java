@@ -98,7 +98,6 @@ public class ConcurrentTest {
             throw ex[0];
         }        
         long add = additionalWait.get();
-System.out.println("add: " + add);        
         assertTrue("Had to wait unexpectedly long for other threads: " + add, add < 1000);
     }
     
