@@ -82,10 +82,14 @@ public class DocumentMK {
             "oak.documentMK.manyChildren", 50);
 
     /**
-     * Enable the LIRS cache.
+     * Enable or disable the LIRS cache (null to use the default setting for this configuration).
      */
-    static final boolean LIRS_CACHE = Boolean.parseBoolean(
-            System.getProperty("oak.documentMK.lirsCache", "false"));
+    static final Boolean LIRS_CACHE;
+    
+    static {
+        String s = System.getProperty("oak.documentMK.lirsCache");
+        LIRS_CACHE = s == null ? null : Boolean.parseBoolean(s);
+    }
 
     /**
      * Enable fast diff operations.
@@ -891,7 +895,14 @@ public class DocumentMK {
         
         private <K extends CacheValue, V extends CacheValue> Cache<K, V> buildCache(
                 long maxWeight) {
-            if (LIRS_CACHE || persistentCacheURI != null) {
+            // by default, use the LIRS cache when using the persistent cache,
+            // but don't use it otherwise
+            boolean useLirs = persistentCacheURI != null;
+            // allow to override this by using the system property
+            if (LIRS_CACHE != null) {
+                useLirs = LIRS_CACHE;
+            }
+            if (useLirs) {
                 return CacheLIRS.newBuilder().
                         weigher(weigher).
                         averageWeight(2000).
