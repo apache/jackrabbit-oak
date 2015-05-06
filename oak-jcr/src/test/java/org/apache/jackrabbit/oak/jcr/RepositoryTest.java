@@ -20,6 +20,8 @@ package org.apache.jackrabbit.oak.jcr;
 
 import static java.util.Arrays.asList;
 import static javax.jcr.ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW;
+import static javax.jcr.Repository.OPTION_NODE_AND_PROPERTY_WITH_SAME_NAME_SUPPORTED;
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.commons.JcrUtils.getChildNodes;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -641,6 +643,29 @@ public class RepositoryTest extends AbstractRepositoryTest {
         Node parentNode = getNode(TEST_PATH);
         addProperty(parentNode, "string", getAdminSession().getValueFactory().createValue("string value"));
     }
+
+    @Test
+    public void testGetItemReturnsNodeBeforeProperty() throws RepositoryException {
+        String snnpSupported = getRepository().getDescriptor(OPTION_NODE_AND_PROPERTY_WITH_SAME_NAME_SUPPORTED);
+        assumeTrue(Boolean.valueOf(snnpSupported));
+
+        String newNodeName = "getItemTest";
+        String nodeAndPropertyName = "subnode";
+
+        Session session = getAdminSession();
+        Node root = session.getRootNode();
+        assertFalse(root.hasNode(newNodeName));
+        Node newNode = root.addNode(newNodeName, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+
+        newNode.setProperty(nodeAndPropertyName, "prop value");
+        newNode.addNode(nodeAndPropertyName);
+        session.save();
+
+        Item item = session.getItem("/" + newNodeName + "/" + nodeAndPropertyName);
+
+        assertTrue("should retrieve Node before property", item.isNode());
+    }
+
 
     @Test
     public void addMultiValuedString() throws RepositoryException {
