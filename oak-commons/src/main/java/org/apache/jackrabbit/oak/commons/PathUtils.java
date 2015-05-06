@@ -18,10 +18,13 @@ package org.apache.jackrabbit.oak.commons;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nonnull;
+
+import static com.google.common.collect.Sets.newHashSet;
 
 /**
  * Utility methods to parse a path.
@@ -435,5 +438,48 @@ public final class PathUtils {
         }
         return true;
     }
+
+    /**
+     * Unify path inclusions and exclusions.
+     * <ul>
+     * <li>A path in {@code includePaths} is only retained if {@code includePaths} contains
+     * none of its ancestors and {@code excludePaths} contains neither of its ancestors nor
+     * that path itself.</li>
+     * <li>A path in {@code excludePaths} is only retained if {@code includePaths} contains
+     * an ancestor of that path.</li>
+     * </ul>
+     *
+     * When a set of paths is <em>filtered wrt.</em> {@code includePaths} and {@code excludePaths}
+     * by first excluding all paths that have an ancestor or are contained in {@code excludePaths}
+     * and then including all paths that have an ancestor or are contained in {@code includePaths}
+     * then the result is the same regardless whether the {@code includePaths} and
+     * {@code excludePaths} sets have been run through this method or not.
+     *
+     * @param includePaths set of paths to be included
+     * @param excludedPaths set of paths to be excluded
+     */
+    public static void unifyInExcludes(Set<String> includePaths, Set<String> excludedPaths) {
+        Set<String> retain = newHashSet();
+        Set<String> includesRemoved = newHashSet();
+        for (String include : includePaths) {
+            for (String exclude : excludedPaths) {
+                if (exclude.equals(include) || isAncestor(exclude, include)) {
+                    includesRemoved.add(include);
+                } else if (isAncestor(include, exclude)) {
+                    retain.add(exclude);
+                }
+            }
+
+            //Remove redundant includes /a, /a/b -> /a
+            for (String include2 : includePaths) {
+                if (isAncestor(include, include2)) {
+                    includesRemoved.add(include2);
+                }
+            }
+        }
+        includePaths.removeAll(includesRemoved);
+        excludedPaths.retainAll(retain);
+    }
+
 
 }
