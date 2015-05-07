@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.osgi;
 
 import static org.ops4j.pax.exam.CoreOptions.bundle;
+import static org.ops4j.pax.exam.CoreOptions.frameworkProperty;
 import static org.ops4j.pax.exam.CoreOptions.junitBundles;
 import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
 import static org.ops4j.pax.exam.CoreOptions.systemProperties;
@@ -58,6 +59,7 @@ public class OSGiIT {
                 mavenBundle( "org.apache.felix", "org.apache.felix.configadmin", "1.4.0" ),
                 mavenBundle( "org.apache.felix", "org.apache.felix.fileinstall", "3.2.6" ),
                 mavenBundle( "org.ops4j.pax.logging", "pax-logging-api", "1.7.2" ),
+                frameworkProperty("repository.home").value("target"),
                 systemProperties(new SystemPropertyOption("felix.fileinstall.dir").value(getConfigDir())),
                 jarBundles());
     }
