@@ -122,6 +122,12 @@
             <artifactId>aws-java-sdk</artifactId>
             <version>1.9.11</version>
         </dependency>
+        <dependency>
+            <groupId>joda-time</groupId>
+            <artifactId>joda-time</artifactId>
+            <version>2.2</version>
+            <optional>true</optional>
+        </dependency>
 
         <dependency>
             <groupId>org.slf4j</groupId>
