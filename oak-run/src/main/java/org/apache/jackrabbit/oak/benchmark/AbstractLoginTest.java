@@ -111,8 +111,7 @@ abstract class AbstractLoginTest extends AbstractTest {
                         Map<String, Integer> map = Collections.singletonMap(UserConstants.PARAM_PASSWORD_HASH_ITERATIONS, noIterations);
                         ConfigurationParameters conf = ConfigurationParameters.of(map);
                         SecurityProvider sp = new SecurityProviderImpl(ConfigurationParameters.of(ImmutableMap.of(configName, conf)));
-                        oak.with(sp);
-                        return new Jcr(oak);
+                        return new Jcr(oak).with(sp);
                     }
                 });
             } else {
