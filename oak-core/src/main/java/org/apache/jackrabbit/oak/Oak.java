@@ -684,7 +684,17 @@ public class Oak {
 
         @Override
         public void close() throws IOException {
-            executorService.shutdown();
+            try {
+                executorService.shutdown();
+                executorService.awaitTermination(5, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                LOG.error("Error while shutting down the executorService", e);
+            } finally {
+                if (!executorService.isTerminated()) {
+                    LOG.warn("executorService didn't shutdown properly. Will be forced now.");
+                }
+                executorService.shutdownNow();
+            }
         }
     }
 
