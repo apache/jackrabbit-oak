@@ -436,6 +436,34 @@ public class IndexCopierTest {
         assertEquals(0, c1.getFailedToDeleteFiles().size());
     }
 
+    @Test
+    public void deletedOnlyFilesForOlderVersion() throws Exception{
+        Directory baseDir = new CloseSafeDir();
+
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+        IndexCopier copier = new RAMIndexCopier(baseDir, sameThreadExecutor(), getWorkDir());
+
+        //1. Open a local and read t1 from remote
+        Directory remote1 = new RAMDirectory();
+        byte[] t1 = writeFile(remote1, "t1");
+
+        Directory local1 = copier.wrap("/foo", defn, remote1);
+        readAndAssert(local1, "t1", t1);
+
+        //While local1 is open , open another local2 and read t2
+        Directory remote2 = new RAMDirectory();
+        byte[] t2 = writeFile(remote2, "t2");
+
+        Directory local2 = copier.wrap("/foo", defn, remote2);
+        readAndAssert(local2, "t2", t2);
+
+        //Close local1
+        local1.close();
+
+        //t2 should still be readable
+        readAndAssert(local2, "t2", t2);
+    }
+
     private byte[] writeFile(Directory dir, String name) throws IOException {
         byte[] data = randomBytes(rnd.nextInt(maxFileSize) + 1);
         IndexOutput o = dir.createOutput(name, IOContext.DEFAULT);

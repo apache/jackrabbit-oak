@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -164,10 +165,16 @@ class IndexCopier implements CopyOnReadStatsMBean {
         private final Directory local;
 
         private final ConcurrentMap<String, FileReference> files = newConcurrentMap();
+        /**
+         * Set of fileNames bound to current local dir. It is updated with any new file
+         * which gets added by this directory
+         */
+        private final Set<String> localFileNames = Sets.newConcurrentHashSet();
 
         public CopyOnReadDirectory(Directory remote, Directory local) throws IOException {
             this.remote = remote;
             this.local = local;
+            this.localFileNames.addAll(Arrays.asList(local.listAll()));
         }
 
         @Override
@@ -334,7 +341,7 @@ class IndexCopier implements CopyOnReadStatsMBean {
         private void removeDeletedFiles() throws IOException {
             //Files present in dest but not present in source have to be deleted
             Set<String> filesToBeDeleted = Sets.difference(
-                    ImmutableSet.copyOf(local.listAll()),
+                    ImmutableSet.copyOf(localFileNames),
                     ImmutableSet.copyOf(remote.listAll())
             );
 
@@ -384,6 +391,7 @@ class IndexCopier implements CopyOnReadStatsMBean {
 
             void markValid(){
                 this.valid = true;
+                localFileNames.add(name);
             }
         }
     }
