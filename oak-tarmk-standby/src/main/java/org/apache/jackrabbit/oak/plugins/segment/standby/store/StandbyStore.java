@@ -16,11 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.standby.store;
 
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.Blob;
@@ -70,35 +75,88 @@ public class StandbyStore implements SegmentStore {
 
     @Override
     public Segment readSegment(SegmentId sid) {
+        callId++;
         Deque<SegmentId> ids = new ArrayDeque<SegmentId>();
         ids.offer(sid);
         int err = 0;
-        Set<SegmentId> seen = new HashSet<SegmentId>();
+        Set<SegmentId> persisted = new HashSet<SegmentId>();
+
+        Map<SegmentId, Segment> cache = new HashMap<SegmentId, Segment>();
+        long cacheOps = 0;
+
+        long cacheWeight = 0;
+        long maxWeight = 0;
+        long maxKeys = 0;
 
         while (!ids.isEmpty()) {
             SegmentId id = ids.remove();
-            if (!seen.contains(id) && !delegate.containsSegment(id)) {
-                log.debug("trying to read segment " + id);
-                Segment s = loader.readSegment(id.toString());
+            if (!persisted.contains(id) && !delegate.containsSegment(id)) {
+                Segment s;
+                boolean logRefs = true;
+                if (cache.containsKey(id)) {
+                    s = cache.remove(id);
+                    cacheWeight -= s.size();
+                    cacheOps++;
+                    logRefs = false;
+                } else {
+                    log.debug("transferring segment {}", id);
+                    s = loader.readSegment(id.toString());
+                }
+
                 if (s != null) {
-                    log.debug("got segment " + id + " with size " + s.size());
-                    ByteArrayOutputStream bout = new ByteArrayOutputStream(
+                    log.debug("processing segment {} with size {}", id,
                             s.size());
                     if (id.isDataSegmentId()) {
-                        ids.addAll(s.getReferencedIds());
+                        boolean hasPendingRefs = false;
+                        List<SegmentId> refs = s.getReferencedIds();
+                        if (logRefs) {
+                            log.debug("{} -> {}", id, refs);
+                        }
+                        for (SegmentId nr : refs) {
+                            // skip already persisted or self-ref
+                            if (persisted.contains(nr) || id.equals(nr)) {
+                                continue;
+                            }
+                            hasPendingRefs = true;
+                            if (!ids.contains(nr)) {
+                                if (nr.isBulkSegmentId()) {
+                                    // binaries first
+                                    ids.addFirst(nr);
+                                } else {
+                                    // data segments last
+                                    ids.add(nr);
+                                }
+                            }
+                        }
+
+                        if (!hasPendingRefs) {
+                            persisted.add(id);
+                            persist(id, s);
+                        } else {
+                            // persist it later, after the refs are in place
+                            ids.add(id);
+
+                            // TODO there is a chance this might introduce
+                            // a OOME because of the position of the current
+                            // segment in the processing queue. putting it at
+                            // the end of the current queue means it will stay
+                            // in the cache until the pending queue of the
+                            // segment's references is processed.
+                            cache.put(id, s);
+                            cacheWeight += s.size();
+                            cacheOps++;
+
+                            maxWeight = Math.max(maxWeight, cacheWeight);
+                            maxKeys = Math.max(maxKeys, cache.size());
+                        }
+                    } else {
+                        persisted.add(id);
+                        persist(id, s);
                     }
-                    try {
-                        s.writeTo(bout);
-                        writeSegment(id, bout.toByteArray(), 0, s.size());
-                    } catch (IOException e) {
-                        throw new IllegalStateException(
-                                "Unable to write remote segment " + id, e);
-                    }
-                    seen.add(id);
-                    ids.removeAll(seen);
+                    ids.removeAll(persisted);
                     err = 0;
                 } else {
-                    log.error("could NOT read segment " + id);
+                    log.error("could NOT read segment {}", id);
                     if (loader.isClosed() || err == 4) {
                         loader.close();
                         throw new IllegalStateException(
@@ -108,12 +166,42 @@ public class StandbyStore implements SegmentStore {
                     ids.addFirst(id);
                 }
             } else {
-                seen.add(id);
+                persisted.add(id);
             }
         }
-
-        log.debug("calling delegate to return segment " + sid);
+        cacheStats.put(callId, "W: " + humanReadableByteCount(maxWeight)
+                + ", Keys: " + maxKeys + ", Ops: " + cacheOps);
         return delegate.readSegment(sid);
+    }
+
+    public void persist(SegmentId in, Segment s) {
+        SegmentId id = delegate.getTracker().getSegmentId(
+                in.getMostSignificantBits(), in.getLeastSignificantBits());
+        log.debug("persisting segment {} with size {}", id, s.size());
+        try {
+            ByteArrayOutputStream bout = new ByteArrayOutputStream(s.size());
+            s.writeTo(bout);
+            writeSegment(id, bout.toByteArray(), 0, s.size());
+        } catch (IOException e) {
+            throw new IllegalStateException("Unable to write remote segment "
+                    + id, e);
+        }
+    }
+
+    private long callId = 0;
+    private Map<Long, String> cacheStats;
+
+    public void preSync(RemoteSegmentLoader loader) {
+        this.loader = loader;
+        this.cacheStats = new HashMap<Long, String>();
+    }
+
+    public void postSync() {
+        loader = null;
+        if (log.isDebugEnabled() && !cacheStats.isEmpty()) {
+            log.debug("sync cache stats {}", cacheStats);
+        }
+        cacheStats = null;
     }
 
     @Override
@@ -139,10 +227,6 @@ public class StandbyStore implements SegmentStore {
     @Override
     public void gc() {
         delegate.gc();
-    }
-
-    public void setLoader(RemoteSegmentLoader loader) {
-        this.loader = loader;
     }
 
     public long size() {
