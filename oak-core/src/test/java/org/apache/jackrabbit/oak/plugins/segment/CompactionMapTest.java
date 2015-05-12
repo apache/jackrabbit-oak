@@ -53,8 +53,10 @@ public class CompactionMapTest {
             }
         }
 
+        map.compress();
         System.gc();
         System.out.println("final: " + (runtime.totalMemory() - runtime.freeMemory()) / (1024 * 1024) + "MB");
+        System.out.println("Compaction map: " + map.getCompactionStats());
     }
 
     @Test
