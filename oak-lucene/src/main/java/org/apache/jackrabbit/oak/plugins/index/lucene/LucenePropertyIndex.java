@@ -287,14 +287,23 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                         path = "/";
                     }
                     if (pr.isPathTransformed()) {
+                        String originalPath = path;
                         path = pr.transformPath(path);
+
+                        if (path == null){
+                            LOG.trace("Ignoring path {} : Transformation returned null", originalPath);
+                            return null;
+                        }
+
                         // avoid duplicate entries
-                        if (path == null || seenPaths.contains(path)) {
+                        if (seenPaths.contains(path)){
+                            LOG.trace("Ignoring path {} : Duplicate post transformation", originalPath);
                             return null;
                         }
                         seenPaths.add(path);
                     }
 
+                    LOG.trace("Matched path {}", path);
                     return new LuceneResultRow(path, doc.score);
                 }
                 return null;
@@ -323,30 +332,40 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
 
                         TopDocs docs;
                         long start = PERF_LOGGER.start();
-                        if (lastDoc != null) {
-                            LOG.debug("loading the next {} entries for query {}", nextBatchSize, query);
-                            if (sort == null) {
-                                docs = searcher.searchAfter(lastDoc, query, nextBatchSize);
+                        while (true) {
+                            if (lastDoc != null) {
+                                LOG.debug("loading the next {} entries for query {}", nextBatchSize, query);
+                                if (sort == null) {
+                                    docs = searcher.searchAfter(lastDoc, query, nextBatchSize);
+                                } else {
+                                    docs = searcher.searchAfter(lastDoc, query, nextBatchSize, sort);
+                                }
                             } else {
-                                docs = searcher.searchAfter(lastDoc, query, nextBatchSize, sort);
+                                LOG.debug("loading the first {} entries for query {}", nextBatchSize, query);
+                                if (sort == null) {
+                                    docs = searcher.search(query, nextBatchSize);
+                                } else {
+                                    docs = searcher.search(query, nextBatchSize, sort);
+                                }
                             }
-                        } else {
-                            LOG.debug("loading the first {} entries for query {}", nextBatchSize, query);
-                            if (sort == null) {
-                                docs = searcher.search(query, nextBatchSize);
-                            } else {
-                                docs = searcher.search(query, nextBatchSize, sort);
-                            }
-                        }
-                        PERF_LOGGER.end(start, -1, "...");
-                        nextBatchSize = (int) Math.min(nextBatchSize * 2L, 100000);
+                            PERF_LOGGER.end(start, -1, "{} ...", docs.scoreDocs.length);
+                            nextBatchSize = (int) Math.min(nextBatchSize * 2L, 100000);
 
-                        for (ScoreDoc doc : docs.scoreDocs) {
-                            LuceneResultRow row = convertToRow(doc, searcher);
-                            if (row != null) {
-                                queue.add(row);
+                            for (ScoreDoc doc : docs.scoreDocs) {
+                                LuceneResultRow row = convertToRow(doc, searcher);
+                                if (row != null) {
+                                    queue.add(row);
+                                }
+                                lastDocToRecord = doc;
                             }
-                            lastDocToRecord = doc;
+
+                            if (queue.isEmpty() && docs.scoreDocs.length > 0) {
+                                //queue is still empty but more results can be fetched
+                                //from Lucene so still continue
+                                lastDoc = lastDocToRecord;
+                            } else {
+                                break;
+                            }
                         }
                     } else if (luceneRequestFacade.getLuceneRequest() instanceof SpellcheckHelper.SpellcheckQuery) {
                         SpellcheckHelper.SpellcheckQuery spellcheckQuery = (SpellcheckHelper.SpellcheckQuery) luceneRequestFacade.getLuceneRequest();

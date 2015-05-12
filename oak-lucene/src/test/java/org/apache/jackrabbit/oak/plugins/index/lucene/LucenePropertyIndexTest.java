@@ -1102,6 +1102,38 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertQuery("select * from [nt:base] where CONTAINS(*, 'sky ')", Collections.<String>emptyList());
     }
 
+    @Test
+    public void relativePropertyAndCursor() throws Exception{
+        // Index Definition
+        Tree idx = createIndex("test1", of("propa", "propb"));
+        TestUtil.useV2(idx);
+        idx.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, true);
+
+        Tree propNode = idx.addChild(PROP_NODE);
+
+        // property definition for index test1
+        Tree propA = propNode.addChild("propa");
+        propA.setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_STRING);
+        propA.setProperty(LuceneIndexConstants.FIELD_BOOST, 2.0);
+
+        root.commit();
+
+        // create test data with 1 more than batch size
+        //with boost set we ensure that correct result comes *after* the batch size of results
+        Tree test = root.getTree("/").addChild("test");
+        root.commit();
+        for (int i = 0; i < LucenePropertyIndex.LUCENE_QUERY_BATCH_SIZE; i++) {
+            test.addChild("a"+i).addChild("doNotInclude").setProperty("propa", "foo");
+        }
+        test.addChild("b").addChild("jcr:content").setProperty("propb", "foo");
+        root.commit();
+
+        String queryString = "/jcr:root//element(*, nt:base)[jcr:contains(jcr:content, 'foo' )]";
+
+        assertQuery(queryString, "xpath", asList("/test/b"));
+    }
+
+
     private void createFileNode(Tree tree, String name, String content, String mimeType){
         Tree jcrContent = tree.addChild(name).addChild(JCR_CONTENT);
         jcrContent.setProperty(JcrConstants.JCR_DATA, content.getBytes());
