@@ -27,6 +27,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -128,11 +129,11 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
     private Exception callStack;
 
-    private RDBConnectionHandler ch;
+    protected RDBConnectionHandler ch;
 
     // from options
-    private String tnData;
-    private String tnMeta;
+    protected String tnData;
+    protected String tnMeta;
     private Set<String> tablesToBeDropped = new HashSet<String>();
 
     private static void versionCheck(DatabaseMetaData md, int xmaj, int xmin, String description) throws SQLException {
@@ -367,7 +368,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
             }
             if (count == 0) {
                 try {
-                    prep = con.prepareStatement("insert into " + this.tnData + "(ID, DATA) values(?, ?)");
+                    prep = con.prepareStatement("insert into " + this.tnData + " (ID, DATA) values(?, ?)");
                     try {
                         prep.setString(1, id);
                         prep.setBytes(2, data);
@@ -376,13 +377,39 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                         prep.close();
                     }
                 } catch (SQLException ex) {
-                    // TODO: this code used to ignore exceptions here, assuming that it might be a case where the blob is already in the database (maybe this requires inspecting the exception code)
-                    String message = "insert document failed for id " + id + " with length " + data.length + " (check max size of datastore_data.data)";
-                    LOG.error(message, ex);
-                    throw new RuntimeException(message, ex);
+                    this.ch.rollbackConnection(con);
+                    // the insert failed although it should have succeeded; see whether the blob already exists
+                    prep = con.prepareStatement("select DATA from " + this.tnData + " where ID = ?");
+                    byte[] dbdata = null;
+                    try {
+                        prep.setString(1, id);
+                        ResultSet rs = prep.executeQuery();
+                        if (rs.next()) {
+                            dbdata = rs.getBytes(1);
+                        }
+                    } finally {
+                        prep.close();
+                    }
+
+                    if (dbdata == null) {
+                        // insert failed although record isn't there
+                        String message = "insert document failed for id " + id + " with length " + data.length + " (check max size of datastore_data.data)";
+                        LOG.error(message, ex);
+                        throw new RuntimeException(message, ex);
+                    }
+                    else if (!Arrays.equals(data, dbdata)) {
+                        // record is there but contains different data
+                        String message = "DATA table already contains blob for id " + id + ", but the actual data differs (lengths: " + data.length + ", " + dbdata.length + ")";
+                        LOG.error(message, ex);
+                        throw new RuntimeException(message, ex);
+                    }
+                    else {
+                        // just recover
+                        LOG.info("recovered from DB inconsistency for id " + id + ": meta record was missing (impact will be minor performance degradation)");
+                    }
                 }
                 try {
-                    prep = con.prepareStatement("insert into " + this.tnMeta + "(ID, LVL, LASTMOD) values(?, ?, ?)");
+                    prep = con.prepareStatement("insert into " + this.tnMeta + " (ID, LVL, LASTMOD) values(?, ?, ?)");
                     try {
                         prep.setString(1, id);
                         prep.setInt(2, level);
@@ -393,6 +420,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                     }
                 } catch (SQLException e) {
                     // already exists - ok
+                    LOG.debug("inserting meta record for id " + id, e);
                 }
             }
         } finally {
