@@ -689,6 +689,7 @@ public class Oak {
                 executorService.awaitTermination(5, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
                 LOG.error("Error while shutting down the executorService", e);
+                Thread.currentThread().interrupt();
             } finally {
                 if (!executorService.isTerminated()) {
                     LOG.warn("executorService didn't shutdown properly. Will be forced now.");
