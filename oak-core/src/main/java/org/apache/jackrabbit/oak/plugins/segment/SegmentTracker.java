@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import static com.google.common.collect.Lists.newLinkedList;
 import static com.google.common.collect.Queues.newArrayDeque;
 import static com.google.common.collect.Sets.newHashSet;
-import static com.google.common.collect.Sets.newIdentityHashSet;
 
 import java.security.SecureRandom;
 import java.util.LinkedList;
@@ -29,7 +28,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
 
-import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.slf4j.Logger;
@@ -254,6 +252,11 @@ public class SegmentTracker {
         for (int i = 0; i < tables.length; i++) {
             tables[i].clearSegmentIdTables(strategy);
         }
+    }
+
+    public synchronized void clearCache() {
+        segments.clear();
+        currentSize = 0;
     }
 
 }
