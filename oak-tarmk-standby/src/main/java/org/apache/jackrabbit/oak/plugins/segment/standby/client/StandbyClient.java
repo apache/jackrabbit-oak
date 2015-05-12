@@ -43,7 +43,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentStoreProvider;
 import org.apache.jackrabbit.oak.plugins.segment.standby.codec.RecordIdDecoder;
 import org.apache.jackrabbit.oak.plugins.segment.standby.jmx.ClientStandbyStatusMBean;
 import org.apache.jackrabbit.oak.plugins.segment.standby.jmx.StandbyStatusMBean;
@@ -88,10 +87,10 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
 
     public StandbyClient(String host, int port, SegmentStore store,
             boolean secure, int readTimeoutMs) throws SSLException {
-        this(host, port, store, null, secure, readTimeoutMs, false);
+        this(host, port, store, secure, readTimeoutMs, false);
     }
 
-    public StandbyClient(String host, int port, SegmentStore store, SegmentStoreProvider storeProvider,
+    public StandbyClient(String host, int port, SegmentStore store,
             boolean secure, int readTimeoutMs, boolean autoClean)
             throws SSLException {
         this.state = STATUS_INITIALIZING;
@@ -104,7 +103,7 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
         }
         this.readTimeoutMs = readTimeoutMs;
         this.autoClean = autoClean;
-        this.store = new StandbyStore(store, storeProvider);
+        this.store = new StandbyStore(store);
         String s = System.getProperty(CLIENT_ID_PROPERTY_NAME);
         this.observer = new CommunicationObserver((s == null || s.length() == 0) ? UUID.randomUUID().toString() : s);
 

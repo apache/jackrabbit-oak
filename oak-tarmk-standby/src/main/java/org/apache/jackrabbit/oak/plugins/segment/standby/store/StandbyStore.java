@@ -33,11 +33,9 @@ import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentStoreProvider;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,14 +47,10 @@ public class StandbyStore implements SegmentStore {
 
     private final SegmentStore delegate;
 
-    private final SegmentStoreProvider storeProvider;
-
     private RemoteSegmentLoader loader;
 
-    public StandbyStore(SegmentStore delegate,
-            SegmentStoreProvider storeProvider) {
+    public StandbyStore(SegmentStore delegate) {
         this.delegate = delegate;
-        this.storeProvider = storeProvider;
     }
 
     @Override
@@ -246,38 +240,10 @@ public class StandbyStore implements SegmentStore {
         return -1;
     }
 
-    private void refreshStoreProviderRoot() {
-        if (storeProvider != null && storeProvider instanceof NodeStore) {
-            int i = 0;
-            SegmentNodeState root = null;
-            while (!delegate.getHead().equals(root) && i < 50) {
-                root = (SegmentNodeState) ((NodeStore) storeProvider).getRoot();
-                i++;
-            }
-            log.debug(
-                    "#refreshStoreProviderRoot called, refreshed {} time(s).",
-                    i);
-        } else {
-            log.debug("#refreshStoreProviderRoot ignored {}", storeProvider);
-        }
-    }
-
     public void cleanup() {
         if (delegate instanceof FileStore) {
             try {
-                FileStore store = (FileStore) delegate;
-
-                store.getTracker().clearCache();
-                store.getTracker().getWriter().dropCache();
-                store.getTracker().getWriter().flush();
-
-                tracker.clearCache();
-                tracker.getWriter().dropCache();
-                tracker.getWriter().flush();
-
-                refreshStoreProviderRoot();
-
-                store.cleanup();
+                ((FileStore) delegate).cleanup();
             } catch (IOException e) {
                 log.error("Error running cleanup", e);
             }
