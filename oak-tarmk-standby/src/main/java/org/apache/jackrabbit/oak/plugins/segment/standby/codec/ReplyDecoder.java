@@ -113,18 +113,8 @@ public class ReplyDecoder extends ReplayingDecoder<DecodingState> {
         long msb = in.readLong();
         long lsb = in.readLong();
         long hash = in.readLong();
-
-        // #readBytes throws a 'REPLAY' exception if there are not enough bytes
-        // available for reading
-        ByteBuf data = in.readBytes(len - 25);
-        byte[] segment;
-        if (data.hasArray()) {
-            segment = data.array();
-        } else {
-            segment = new byte[len - 25];
-            in.readBytes(segment);
-        }
-
+        byte[] segment = new byte[len - 25];
+        in.readBytes(segment);
         Hasher hasher = Hashing.murmur3_32().newHasher();
         long check = hasher.putBytes(segment).hash().padToLong();
         if (hash == check) {
@@ -145,17 +135,8 @@ public class ReplyDecoder extends ReplayingDecoder<DecodingState> {
         String id = new String(bid, Charset.forName("UTF-8"));
 
         long hash = in.readLong();
-        // #readBytes throws a 'REPLAY' exception if there are not enough bytes
-        // available for reading
-        ByteBuf data = in.readBytes(length);
-        byte[] blob;
-        if (data.hasArray()) {
-            blob = data.array();
-        } else {
-            blob = new byte[length];
-            data.readBytes(blob);
-        }
-
+        byte[] blob = new byte[length];
+        in.readBytes(blob);
         Hasher hasher = Hashing.murmur3_32().newHasher();
         long check = hasher.putBytes(blob).hash().padToLong();
         if (hash == check) {

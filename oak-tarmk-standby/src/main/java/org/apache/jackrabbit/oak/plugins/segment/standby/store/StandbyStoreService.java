@@ -150,7 +150,7 @@ public class StandbyStoreService {
         int readTimeout = PropertiesUtil.toInteger(props.get(READ_TIMEOUT), READ_TIMEOUT_DEFAULT);
         boolean clean = PropertiesUtil.toBoolean(props.get(AUTO_CLEAN), AUTO_CLEAN_DEFAULT);
 
-        sync = new StandbyClient(host, port, segmentStore, storeProvider, secure, readTimeout, clean);
+        sync = new StandbyClient(host, port, segmentStore, secure, readTimeout, clean);
         Dictionary<Object, Object> dictionary = new Hashtable<Object, Object>();
         dictionary.put("scheduler.period", interval);
         dictionary.put("scheduler.concurrent", false);
