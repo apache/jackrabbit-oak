@@ -46,7 +46,8 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
 
     private RDBBlobStore blobStore;
 
-    private static final String URL = System.getProperty("rdb.jdbc-url", "jdbc:h2:mem:oakblobs");
+    private static final String URL = System.getProperty("rdb.jdbc-url", 
+                    "jdbc:h2:file:./target/db/RDBBlobStoreTest");
 
     private static final String USERNAME = System.getProperty("rdb.jdbc-user", "sa");
 
@@ -57,7 +58,8 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
     @Before
     @Override
     public void setUp() throws Exception {
-        blobStore = new RDBBlobStore(RDBDataSourceFactory.forJdbcUrl(URL, USERNAME, PASSWD), new RDBOptions().tablePrefix("test").dropTablesOnClose(true));
+        blobStore = new RDBBlobStore(RDBDataSourceFactory.forJdbcUrl(URL, USERNAME, PASSWD), new RDBOptions().tablePrefix("test")
+                .dropTablesOnClose(true));
         blobStore.setBlockSize(128);
         blobStore.setBlockSizeMin(48);
         this.store = blobStore;
@@ -96,7 +98,7 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
             r.nextBytes(data);
             byte[] digest = getDigest(data);
             try {
-                RDBBlobStoreFriend.storeBlock(blobStore, getDigest(data), 0, data);
+                RDBBlobStoreFriend.storeBlock(blobStore, digest, 0, data);
                 byte[] data2 = RDBBlobStoreFriend.readBlockFromBackend(blobStore, digest);
                 if (!Arrays.equals(data, data2)) {
                     throw new Exception("data mismatch for length " + data.length);
@@ -111,6 +113,29 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
 
         int expected = Math.max(blobStore.getBlockSize(), 2 * 1024 * 1024);
         assertTrue("expected supported block size is " + expected + ", but measured: " + test, test >= expected);
+    }
+
+    @Test
+    public void testResilienceMissingMetaEntry() throws Exception {
+        int test = 1024 * 1024;
+        byte[] data = new byte[test];
+        Random r = new Random(0);
+        r.nextBytes(data);
+        byte[] digest = getDigest(data);
+        RDBBlobStoreFriend.storeBlock(blobStore, digest, 0, data);
+        byte[] data2 = RDBBlobStoreFriend.readBlockFromBackend(blobStore, digest);
+        if (!Arrays.equals(data, data2)) {
+            throw new Exception("data mismatch");
+        }
+
+        RDBBlobStoreFriend.killMetaEntry(blobStore, digest);
+
+        // retry
+        RDBBlobStoreFriend.storeBlock(blobStore, digest, 0, data);
+        byte[] data3 = RDBBlobStoreFriend.readBlockFromBackend(blobStore, digest);
+        if (!Arrays.equals(data, data3)) {
+            throw new Exception("data mismatch");
+        }
     }
 
     private byte[] getDigest(byte[] bytes) throws IOException {
