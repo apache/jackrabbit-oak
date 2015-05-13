@@ -31,13 +31,12 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  * Module: Authentication
  * =============================================================================
  *
- * Title: Anonymous Login (Guest Login)
+ * Title: Guest Login (aka Anonymous Login)
  * -----------------------------------------------------------------------------
  *
  * Goal:
- * Understand how to login as anonymous (guest) user, the meaning of the
- * {@link javax.jcr.GuestCredentials} and how this is linked to the 'anonymous'
- * user.
+ * Understand how to login as guest, the meaning of the {@link javax.jcr.GuestCredentials}
+ * and how this is linked to the 'anonymous' user.
  *
  * Exercises:
  *
@@ -82,7 +81,7 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  * @see org.apache.jackrabbit.api.security.user.User#changePassword(String, String)
  * @see org.apache.jackrabbit.api.security.user.User#disable(String)
  */
-public class AnonymousLoginTest extends AbstractJCRTest {
+public class GuestLoginTest extends AbstractJCRTest {
 
     private Repository repository;
     private Session testSession;

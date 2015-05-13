@@ -22,14 +22,15 @@ import org.slf4j.LoggerFactory;
 
 /**
  * <pre>
- * Module: TODO
+ * Module: User Management
  * =============================================================================
  *
- * Title: SystemUserTest
+ * Title: System Users
  * -----------------------------------------------------------------------------
  *
  * Goal:
- * TODO
+ * Understand the difference between system users and regular users and why we
+ * decided to introduce a dedicated API for system users in Jackrabbit API 2.10.
  *
  * Exercises:
  *
@@ -43,7 +44,7 @@ import org.slf4j.LoggerFactory;
  *
  * </pre>
  *
- * @see TODO
+ * @see <a href="https://issues.apache.org/jira/browse/JCR-3802">JCR-3802</a>
  */
 public class SystemUserTest extends AbstractSecurityTest {
 

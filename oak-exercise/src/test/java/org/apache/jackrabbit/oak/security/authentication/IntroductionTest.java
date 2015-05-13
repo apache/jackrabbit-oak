@@ -68,7 +68,7 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  *
  * - Explain the difference of the {@code JackrabbitRepository} login extension
  *   wrt regular JCR login and explain what it is (could be) used for.
- *   Hint: CQ/Granite/Sling, Apache JIRA
+ *   Hint: Look at Sling (Granite|CQ), search in the Apache JIRA
  *   Answer: TODO
  *
  * </pre>

@@ -24,6 +24,8 @@ import javax.jcr.Session;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
 /**
@@ -91,13 +93,15 @@ public class AnonymousIdTest extends AbstractJCRTest {
         String anonymousId = "differentAnonymousId";
 
         // TODO : use built-in oak configuration settings to have a different anonymous ID.
-        ConfigurationParameters configuration = ConfigurationParameters.EMPTY; // FIXME : define the configuration
+        ConfigurationParameters userConfigParams = ConfigurationParameters.EMPTY; // FIXME : define the configuration
 
-        Jcr jcr = new Jcr().with(new SecurityProviderImpl(configuration));
+        // create a new JCR repository with the given setup
+        Jcr jcr = new Jcr().with(new SecurityProviderImpl(ConfigurationParameters.of(UserConfiguration.NAME, userConfigParams)));
 
         Repository jcrRepository = jcr.createRepository();
-        testSession = jcrRepository.login(new GuestCredentials(), null);
+        Session guestSession = jcrRepository.login(new GuestCredentials(), null);
 
-        assertEquals(anonymousId, testSession.getUserID());
+        assertEquals(anonymousId, guestSession.getUserID());
+        guestSession.logout();
     }
 }

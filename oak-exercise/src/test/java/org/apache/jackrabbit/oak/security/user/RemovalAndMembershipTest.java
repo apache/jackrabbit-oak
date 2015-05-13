@@ -53,8 +53,8 @@ import static org.junit.Assert.assertTrue;
  * Additional Exercise:
  * -----------------------------------------------------------------------------
  *
- * The following exercises can easily be performed in a Granite/CQ installation
- * with the same setup as in this test class:
+ * The following exercises can easily be performed in a Sling based repository
+ * installation (e.g. Granite|CQ) with the same setup as in this test class:
  *
  * 1. Test Setup
  *
@@ -87,6 +87,19 @@ import static org.junit.Assert.assertTrue;
  * - Perform the same test as 'admin' and compare the result with 3.
  * - TODO: Explain whats the difference and why it works.
  *
+ *
+ * Advanced Exercise:
+ * -----------------------------------------------------------------------------
+ *
+ * - Discuss the possibilities Oak which could help to address the drawback you identified
+ *   with the {@link org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction}
+ *   approach.
+ *
+ *
+ * Related Exercises:
+ * -----------------------------------------------------------------------------
+ *
+ * - {@link org.apache.jackrabbit.oak.security.user.RemoveAuthorizableTest()}
  *
  * </pre>
  *
