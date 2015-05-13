@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
@@ -26,6 +27,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Calendar;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -115,6 +117,8 @@ public class LuceneIndexEditorContext {
 
     private Directory directory;
 
+    private final TextExtractionStats textExtractionStats = new TextExtractionStats();
+
     LuceneIndexEditorContext(NodeState root, NodeBuilder definition, IndexUpdateCallback updateCallback) {
         this.definitionBuilder = definition;
         this.definition = new IndexDefinition(root, definition);
@@ -167,8 +171,10 @@ public class LuceneIndexEditorContext {
             //is stored in file system
             NodeBuilder status = definitionBuilder.child(":status");
             status.setProperty("lastUpdated", ISO8601.format(Calendar.getInstance()), Type.DATE);
-            status.setProperty("indexedNodes",indexedNodes);
+            status.setProperty("indexedNodes", indexedNodes);
             PERF_LOGGER.end(start, -1, "Closed IndexWriter for directory {}", definition);
+
+            textExtractionStats.log(reindex);
         }
     }
 
@@ -193,6 +199,10 @@ public class LuceneIndexEditorContext {
 
     public IndexDefinition getDefinition() {
         return definition;
+    }
+
+    public void recordTextExtractionStats(long timeInMillis, long size) {
+        textExtractionStats.addStats(timeInMillis, size);
     }
 
     private static Parser initializeTikaParser(IndexDefinition definition) {
@@ -240,5 +250,51 @@ public class LuceneIndexEditorContext {
             log.warn("Tika configuration not available : "+source, e);
         }
         return TikaConfig.getDefaultConfig();
+    }
+
+    static class TextExtractionStats {
+        /**
+         * Log stats only if time spent is more than 2 min
+         */
+        private static final long LOGGING_THRESHOLD = TimeUnit.MINUTES.toMillis(2);
+        private int count;
+        private long totalSize;
+        private long totalTime;
+
+        public void addStats(long timeInMillis, long size) {
+            count++;
+            totalSize += size;
+            totalTime += timeInMillis;
+        }
+
+        public void log(boolean reindex) {
+            if (log.isDebugEnabled()) {
+                log.debug("Text extraction stats {}", this);
+            } else if (anyParsingDone() && (reindex || isTakingLotsOfTime())) {
+                log.info("Text extraction stats {}", this);
+            }
+        }
+
+        private boolean isTakingLotsOfTime() {
+            return totalTime > LOGGING_THRESHOLD;
+        }
+
+        private boolean anyParsingDone() {
+            return count > 0;
+        }
+
+        @Override
+        public String toString() {
+            return String.format(" %d (%s, %s)", count,
+                    timeInWords(totalTime), humanReadableByteCount(totalSize));
+        }
+
+        private static String timeInWords(long millis) {
+            return String.format("%d min, %d sec",
+                    TimeUnit.MILLISECONDS.toMinutes(millis),
+                    TimeUnit.MILLISECONDS.toSeconds(millis) -
+                            TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis))
+            );
+        }
     }
 }
