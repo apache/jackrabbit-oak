@@ -224,10 +224,12 @@ public class LuceneIndexEditorContext {
     }
 
     private static AutoDetectParser createDefaultParser() {
+        ClassLoader current = Thread.currentThread().getContextClassLoader();
         URL configUrl = LuceneIndexEditorContext.class.getResource("tika-config.xml");
         InputStream is = null;
         if (configUrl != null) {
             try {
+                Thread.currentThread().setContextClassLoader(LuceneIndexEditorContext.class.getClassLoader());
                 is = configUrl.openStream();
                 TikaConfig config = new TikaConfig(is);
                 log.info("Loaded default Tika Config from classpath {}", configUrl);
@@ -236,6 +238,7 @@ public class LuceneIndexEditorContext {
                 log.warn("Tika configuration not available : " + configUrl, e);
             } finally {
                 IOUtils.closeQuietly(is);
+                Thread.currentThread().setContextClassLoader(current);
             }
         } else {
             log.warn("Default Tika configuration not found from {}", configUrl);
