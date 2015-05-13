@@ -18,18 +18,48 @@ package org.apache.jackrabbit.oak.plugins.index.solr.util;
 
 import java.io.File;
 
-import org.apache.jackrabbit.core.query.AbstractQueryTest;
-import org.apache.jackrabbit.oak.plugins.index.solr.util.NodeTypeIndexingUtils;
+import javax.jcr.Repository;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.SimpleCredentials;
+
+import org.apache.jackrabbit.api.JackrabbitRepository;
+import org.apache.jackrabbit.oak.jcr.Jcr;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
+
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Testcase for {@link org.apache.jackrabbit.oak.plugins.index.solr.util.NodeTypeIndexingUtils}
  */
-public class NodeTypeIndexingUtilsTest extends AbstractQueryTest {
+public class NodeTypeIndexingUtilsTest {
 
+    private Repository r;
+    private Session s;
+
+    @Before
+    public void setUp() throws RepositoryException {
+        r = new Jcr().createRepository();
+        s = r.login(new SimpleCredentials("admin", "admin".toCharArray()));
+    }
+
+    @After
+    public void tearDown() {
+        s.logout();
+        s = null;
+        if (r instanceof JackrabbitRepository) {
+            ((JackrabbitRepository) r).shutdown();
+        }
+        r = null;
+    }
+
+    @Test
     public void testSynonymsFileCreation() throws Exception {
         File synonymsFile = NodeTypeIndexingUtils.createPrimaryTypeSynonymsFile(getClass().getResource("/").getFile() +
-                "/pt-synonyms.txt", superuser);
+                "/pt-synonyms.txt", s);
         assertNotNull(synonymsFile);
         assertTrue(synonymsFile.exists());
     }
