@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.Closeable;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -26,30 +25,36 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import static org.junit.Assert.assertEquals;
+import static java.util.Collections.synchronizedList;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.fail;
 
 /**
  * Tests for {@link CommitQueue}.
  */
 public class CommitQueueTest {
 
+    private static final Logger LOG = LoggerFactory.getLogger(CommitQueueTest.class);
+
     private static final int NUM_WRITERS = 10;
 
     private static final int COMMITS_PER_WRITER = 100;
+
+    private List<Exception> exceptions = synchronizedList(new ArrayList<Exception>());
 
     @Test
     public void concurrentCommits() throws Exception {
         final DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
         AtomicBoolean running = new AtomicBoolean(true);
-        final List<Exception> exceptions = Collections.synchronizedList(new ArrayList<Exception>());
 
         Closeable observer = store.addObserver(new Observer() {
             private Revision before = new Revision(0, 0, store.getClusterId());
@@ -58,7 +63,7 @@ public class CommitQueueTest {
             public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
                 DocumentNodeState after = (DocumentNodeState) root;
                 Revision r = after.getRevision();
-                System.out.println("seen: " + r);
+                LOG.debug("seen: {}", r);
                 if (r.compareRevisionTime(before) < 0) {
                     exceptions.add(new Exception(
                             "Inconsistent revision sequence. Before: " +
@@ -106,46 +111,103 @@ public class CommitQueueTest {
         running.set(false);
         observer.close();
         store.dispose();
-        for (Exception e : exceptions) {
-            throw e;
-        }
+        assertNoExceptions();
     }
 
-    // OAK-2867
     @Test
-    public void doneFailsWithException() throws Exception {
-        final DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
-        final CommitQueue commits = new CommitQueue(store,
-                new ChangeDispatcher(store.getRoot()));
-        Revision r = commits.createRevision();
-        Commit c = new Commit(store, r, store.getHeadRevision(),
-                store.createBranch(store.getRoot())) {
+    public void concurrentCommits2() throws Exception {
+        final CommitQueue queue = new CommitQueue() {
             @Override
-            public void applyToCache(Revision before, boolean isBranchCommit) {
-                throw new RuntimeException("applyToCache");
+            protected Revision newRevision() {
+                return Revision.newRevision(1);
             }
         };
 
-        try {
-            commits.done(c, true, null);
-            fail("must fail with RuntimeException");
-        } catch (Exception e) {
-            assertEquals("applyToCache", e.getMessage());
+        final CommitQueue.Callback c = new CommitQueue.Callback() {
+            private Revision before = Revision.newRevision(1);
+
+            @Override
+            public void headOfQueue(@Nonnull Revision r) {
+                LOG.debug("seen: {}", r);
+                if (r.compareRevisionTime(before) < 0) {
+                    exceptions.add(new Exception(
+                            "Inconsistent revision sequence. Before: " +
+                                    before + ", after: " + r));
+                }
+                before = r;
+            }
+        };
+
+        // perform commits with multiple threads
+        List<Thread> writers = new ArrayList<Thread>();
+        for (int i = 0; i < NUM_WRITERS; i++) {
+            final Random random = new Random(i);
+            writers.add(new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        for (int i = 0; i < COMMITS_PER_WRITER; i++) {
+                            Revision r = queue.createRevision();
+                            try {
+                                Thread.sleep(0, random.nextInt(1000));
+                            } catch (InterruptedException e) {
+                                // ignore
+                            }
+                            if (random.nextInt(5) == 0) {
+                                // cancel 20% of the commits
+                                queue.canceled(r);
+                            } else {
+                                queue.done(r, c);
+                            }
+                        }
+                    } catch (Exception e) {
+                        exceptions.add(e);
+                    }
+                }
+            }));
         }
+        for (Thread t : writers) {
+            t.start();
+        }
+        for (Thread t : writers) {
+            t.join();
+        }
+        assertNoExceptions();
+    }
+
+    // OAK-2868
+    @Test
+    public void branchCommitMustNotBlockTrunkCommit() throws Exception {
+        final DocumentNodeStore ds = new DocumentMK.Builder().getNodeStore();
+
+        // simulate start of a branch commit
+        Commit c = ds.newCommit(ds.getHeadRevision().asBranchRevision(), null);
 
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
-                Commit c = new Commit(store, commits.createRevision(),
-                        store.getHeadRevision(), null);
-                commits.done(c, false, null);
+                try {
+                    NodeBuilder builder = ds.getRoot().builder();
+                    builder.child("foo");
+                    ds.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+                } catch (CommitFailedException e) {
+                    exceptions.add(e);
+                }
             }
         });
         t.start();
+
         t.join(3000);
         assertFalse("Commit did not succeed within 3 seconds", t.isAlive());
 
-        store.dispose();
+        ds.canceled(c);
+        ds.dispose();
+        assertNoExceptions();
     }
 
+    private void assertNoExceptions() throws Exception {
+        if (!exceptions.isEmpty()) {
+            throw exceptions.get(0);
+        }
+    }
 }
