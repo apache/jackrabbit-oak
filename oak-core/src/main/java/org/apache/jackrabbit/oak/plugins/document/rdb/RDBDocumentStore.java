@@ -407,6 +407,30 @@ public class RDBDocumentStore implements DocumentStore {
             public String getTableCreationStatement(String tableName) {
                 return ("create table " + tableName + " (ID varchar(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA bytea)");
             }
+
+            @Override
+            public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
+                Connection con = null;
+                Map<String, String> result = new HashMap<String, String>();
+                try {
+                    con = ch.getROConnection();
+                    String cat = con.getCatalog();
+                    PreparedStatement stmt = con.prepareStatement("SELECT pg_encoding_to_char(encoding), datcollate FROM pg_database WHERE datname=?");
+                    stmt.setString(1, cat);
+                    ResultSet rs = stmt.executeQuery();
+                    while (rs.next()) {
+                        result.put("pg_encoding_to_char(encoding)", rs.getString(1));
+                        result.put("datcollate", rs.getString(2));
+                    }
+                    stmt.close();
+                    con.commit();
+                } catch (SQLException ex) {
+                    LOG.debug("while getting diagnostics", ex);
+                } finally {
+                    ch.closeConnection(con);
+                }
+                return result.toString();
+            }
         },
 
         DB2("DB2") {
@@ -414,7 +438,35 @@ public class RDBDocumentStore implements DocumentStore {
             public void checkVersion(DatabaseMetaData md) throws SQLException {
                 versionCheck(md, 10, 5, description);
             }
-        },
+
+            @Override
+            public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
+                Connection con = null;
+                Map<String, String> result = new HashMap<String, String>();
+                try {
+                    con = ch.getROConnection();
+                    // we can't look up by schema as con.getSchema is JDK 1.7
+                    PreparedStatement stmt = con.prepareStatement("SELECT CODEPAGE, COLLATIONSCHEMA, COLLATIONNAME, TABSCHEMA FROM SYSCAT.COLUMNS WHERE COLNAME=? and COLNO=0 AND UPPER(TABNAME)=UPPER(?)");
+                    stmt.setString(1, "ID");
+                    stmt.setString(2, tableName);
+                    ResultSet rs = stmt.executeQuery();
+                    while (rs.next() && result.size() < 20) {
+                        // thus including the schema name here
+                        String schema = rs.getString("TABSCHEMA").trim();
+                        result.put(schema + ".CODEPAGE", rs.getString("CODEPAGE").trim());
+                        result.put(schema + ".COLLATIONSCHEMA", rs.getString("COLLATIONSCHEMA").trim());
+                        result.put(schema + ".COLLATIONNAME", rs.getString("COLLATIONNAME").trim());
+                    }
+                    stmt.close();
+                    con.commit();
+                } catch (SQLException ex) {
+                    LOG.debug("while getting diagnostics", ex);
+                } finally {
+                    ch.closeConnection(con);
+                }
+                return result.toString();
+            }
+},
 
         ORACLE("Oracle") {
             @Override
@@ -433,6 +485,27 @@ public class RDBDocumentStore implements DocumentStore {
             public String getTableCreationStatement(String tableName) {
                 // see https://issues.apache.org/jira/browse/OAK-1914
                 return ("create table " + tableName + " (ID varchar(512) not null primary key, MODIFIED number, HASBINARY number, DELETEDONCE number, MODCOUNT number, CMODCOUNT number, DSIZE number, DATA varchar(4000), BDATA blob)");
+            }
+
+            @Override
+            public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
+                Connection con = null;
+                Map<String, String> result = new HashMap<String, String>();
+                try {
+                    con = ch.getROConnection();
+                    Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery("SELECT PARAMETER, VALUE from NLS_DATABASE_PARAMETERS WHERE PARAMETER IN ('NLS_COMP', 'NLS_CHARACTERSET')");
+                    while (rs.next()) {
+                        result.put(rs.getString(1), rs.getString(2));
+                    }
+                    stmt.close();
+                    con.commit();
+                } catch (SQLException ex) {
+                    LOG.debug("while getting diagnostics", ex);
+                } finally {
+                    ch.closeConnection(con);
+                }
+                return result.toString();
             }
         },
 
@@ -462,6 +535,28 @@ public class RDBDocumentStore implements DocumentStore {
             @Override
             public String getConcatQueryString(int dataOctetLimit, int dataLength) {
                 return "CONCAT(DATA, ?)";
+            }
+
+            @Override
+            public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
+                Connection con = null;
+                Map<String, String> result = new HashMap<String, String>();
+                try {
+                    con = ch.getROConnection();
+                    PreparedStatement stmt = con.prepareStatement("SHOW TABLE STATUS LIKE ?");
+                    stmt.setString(1, tableName);
+                    ResultSet rs = stmt.executeQuery();
+                    while (rs.next()) {
+                        result.put("collation", rs.getString("Collation"));
+                    }
+                    stmt.close();
+                    con.commit();
+                } catch (SQLException ex) {
+                    LOG.debug("while getting diagnostics", ex);
+                } finally {
+                    ch.closeConnection(con);
+                }
+                return result.toString();
             }
         },
 
@@ -502,6 +597,29 @@ public class RDBDocumentStore implements DocumentStore {
             @Override
             public String getGreatestQueryString(String column) {
                 return "(select MAX(mod) from (VALUES (" + column + "), (?)) AS ALLMOD(mod))";
+            }
+
+            @Override
+            public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
+                Connection con = null;
+                Map<String, String> result = new HashMap<String, String>();
+                try {
+                    con = ch.getROConnection();
+                    String cat = con.getCatalog();
+                    PreparedStatement stmt = con.prepareStatement("SELECT collation_name FROM sys.databases WHERE name=?");
+                    stmt.setString(1, cat);
+                    ResultSet rs = stmt.executeQuery();
+                    while (rs.next()) {
+                        result.put("collation_name", rs.getString(1));
+                    }
+                    stmt.close();
+                    con.commit();
+                } catch (SQLException ex) {
+                    LOG.debug("while getting diagnostics", ex);
+                } finally {
+                    ch.closeConnection(con);
+                }
+                return result.toString();
             }
         };
 
@@ -581,6 +699,10 @@ public class RDBDocumentStore implements DocumentStore {
                     + tableName
                     + " (ID varchar(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA blob("
                     + 1024 * 1024 * 1024 + "))";
+        }
+
+        public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
+            return "";
         }
 
         protected String description;
@@ -718,8 +840,10 @@ public class RDBDocumentStore implements DocumentStore {
             tablesToBeDropped.addAll(tablesCreated);
         }
 
+        String diag = db.getAdditionalDiagnostics(this.ch, this.tnNodes);
+
         LOG.info("RDBDocumentStore instantiated for database " + dbDesc + ", using driver: " + driverDesc + ", connecting to: "
-                + dbUrl);
+                + dbUrl + (diag.isEmpty() ? "" : (", properties: " + diag)));
         if (!tablesPresent.isEmpty()) {
             LOG.info("Tables present upon startup: " + tablesPresent);
         }
