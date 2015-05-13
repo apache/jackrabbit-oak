@@ -21,7 +21,6 @@ import java.io.StringReader;
 import java.util.regex.Pattern;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.BaseTokenStreamTestCase;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.core.KeywordTokenizer;
@@ -31,18 +30,19 @@ import org.apache.lucene.analysis.path.PathHierarchyTokenizer;
 import org.apache.lucene.analysis.pattern.PatternCaptureGroupTokenFilter;
 import org.apache.lucene.analysis.pattern.PatternReplaceFilter;
 import org.apache.lucene.analysis.reverse.ReverseStringFilter;
-import org.apache.lucene.util.LuceneTestCase;
 import org.apache.lucene.util.Version;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.apache.lucene.analysis.BaseTokenStreamTestCase.assertAnalyzesTo;
+import static org.apache.lucene.analysis.BaseTokenStreamTestCase.assertTokenStreamContents;
 
 /**
  * Testcase for checking default analyzers configurations behave as expected with regards to path related restrictions
  *
  * Note that default Solr analyzers for Oak should be equivalent to the ones programmatically defined here.
  */
-@LuceneTestCase.SuppressCodecs({"Lucene3x"})
-public class DefaultAnalyzersConfigurationTest extends BaseTokenStreamTestCase {
+public class DefaultAnalyzersConfigurationTest {
 
     private Analyzer parentPathIndexingAnalyzer;
     private Analyzer parentPathSearchingAnalyzer;
@@ -54,7 +54,6 @@ public class DefaultAnalyzersConfigurationTest extends BaseTokenStreamTestCase {
 
     @Before
     public void setUp() throws Exception {
-        super.setUp();
         this.exactPathAnalyzer = new Analyzer() {
             @Override
             protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
