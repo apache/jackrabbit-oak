@@ -26,10 +26,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 
 /**
  * Tests for {@link CommitQueue}.
@@ -104,6 +109,43 @@ public class CommitQueueTest {
         for (Exception e : exceptions) {
             throw e;
         }
+    }
+
+    // OAK-2867
+    @Test
+    public void doneFailsWithException() throws Exception {
+        final DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
+        final CommitQueue commits = new CommitQueue(store,
+                new ChangeDispatcher(store.getRoot()));
+        Revision r = commits.createRevision();
+        Commit c = new Commit(store, r, store.getHeadRevision(),
+                store.createBranch(store.getRoot())) {
+            @Override
+            public void applyToCache(Revision before, boolean isBranchCommit) {
+                throw new RuntimeException("applyToCache");
+            }
+        };
+
+        try {
+            commits.done(c, true, null);
+            fail("must fail with RuntimeException");
+        } catch (Exception e) {
+            assertEquals("applyToCache", e.getMessage());
+        }
+
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Commit c = new Commit(store, commits.createRevision(),
+                        store.getHeadRevision(), null);
+                commits.done(c, false, null);
+            }
+        });
+        t.start();
+        t.join(3000);
+        assertFalse("Commit did not succeed within 3 seconds", t.isAlive());
+
+        store.dispose();
     }
 
 }
