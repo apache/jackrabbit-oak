@@ -77,8 +77,11 @@ class CommitQueue {
     void done(@Nonnull Commit commit, boolean isBranch, @Nullable CommitInfo info) {
         checkNotNull(commit);
         if (isBranch) {
-            commit.applyToCache(commit.getBaseRevision(), true);
-            removeCommit(commit.getRevision());
+            try {
+                commit.applyToCache(commit.getBaseRevision(), true);
+            } finally {
+                removeCommit(commit.getRevision());
+            }
         } else {
             afterTrunkCommit(commit, info);
         }
