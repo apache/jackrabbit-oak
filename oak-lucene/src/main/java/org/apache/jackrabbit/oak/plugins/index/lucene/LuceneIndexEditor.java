@@ -28,7 +28,6 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPath
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil.getPrimaryTypeName;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -39,6 +38,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import com.google.common.collect.Sets;
+import com.google.common.io.CountingInputStream;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -741,11 +741,14 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
     private String parseStringValue(Blob v, Metadata metadata, String path) {
         WriteOutContentHandler handler = new WriteOutContentHandler();
+        long start = System.currentTimeMillis();
+        long size = 0;
         try {
-            InputStream stream = v.getNewStream();
+            CountingInputStream stream = new CountingInputStream(v.getNewStream());
             try {
                 context.getParser().parse(stream, handler, metadata, new ParseContext());
             } finally {
+                size = stream.getCount();
                 stream.close();
             }
         } catch (LinkageError e) {
@@ -765,7 +768,9 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                 return "TextExtractionError";
             }
         }
-        return handler.toString();
+        String result = handler.toString();
+        context.recordTextExtractionStats(System.currentTimeMillis() - start, size);
+        return result;
     }
 
 }
