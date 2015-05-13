@@ -17,6 +17,10 @@
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+
+import org.apache.jackrabbit.oak.commons.StringUtils;
 
 public class RDBBlobStoreFriend {
 
@@ -26,5 +30,22 @@ public class RDBBlobStoreFriend {
 
     public static byte[] readBlockFromBackend(RDBBlobStore ds, byte[] digest) throws Exception {
         return ds.readBlockFromBackend(digest);
+    }
+
+    public static void killMetaEntry(RDBBlobStore ds, byte[] digest) throws Exception {
+        String id = StringUtils.convertBytesToHex(digest);
+        Connection con = ds.ch.getRWConnection();
+        PreparedStatement prepDelMeta = null;
+        try {
+            prepDelMeta = con.prepareStatement("delete from " + ds.tnMeta + " where ID = ?");
+            prepDelMeta.setString(1, id);
+            prepDelMeta.execute();
+            prepDelMeta.close();
+            prepDelMeta = null;
+        } finally {
+            ds.ch.closeStatement(prepDelMeta);
+            con.commit();
+            ds.ch.closeConnection(con);
+        }
     }
 }
