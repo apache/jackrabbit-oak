@@ -493,11 +493,18 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
             PropertyState property, NodeState state, String nodePath, String path) {
         List<Field> fields = new ArrayList<Field>();
         Metadata metadata = new Metadata();
+
+        //jcr:mimeType is mandatory for a binary to be indexed
+        String type = state.getString(JcrConstants.JCR_MIMETYPE);
+
+        if (type == null || !isSupportedMediaType(type)){
+            log.trace("Ignoring binary content for node {} due to unsupported " +
+                    "(or null) jcr:mimeType [{}]", nodePath, type);
+            return fields;
+        }
+
+        metadata.set(Metadata.CONTENT_TYPE, type);
         if (JCR_DATA.equals(property.getName())) {
-            String type = state.getString(JcrConstants.JCR_MIMETYPE);
-            if (type != null) { // not mandatory
-                metadata.set(Metadata.CONTENT_TYPE, type);
-            }
             String encoding = state.getString(JcrConstants.JCR_ENCODING);
             if (encoding != null) { // not mandatory
                 metadata.set(Metadata.CONTENT_ENCODING, encoding);
@@ -733,6 +740,10 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
     private boolean isIndexable(){
         return indexingRule != null;
+    }
+
+    private boolean isSupportedMediaType(String type) {
+        return context.isSupportedMediaType(type);
     }
 
     private PathFilter.Result getPathFilterResult(String childNodeName) {
