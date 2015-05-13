@@ -708,6 +708,8 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             try {
                 connection = super.rdbDataSource.getConnection();
                 connection.setAutoCommit(false);
+                // we use the same pool as the document store, and the connection might have been returned in read-only mode
+                connection.setReadOnly(false);
                 PreparedStatement stmt = connection.prepareStatement("insert into " + table
                         + " (ID, MODCOUNT, DATA) values (?, ?, ?)");
                 try {
@@ -884,7 +886,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                     try {
                         setIdInStatement(stmt, 1, key);
                         ResultSet rs = stmt.executeQuery();
-                        assertTrue(rs.next());
+                        assertTrue("test record " + key + " not found in " + super.dsname, rs.next());
                         String got = rs.getString(1);
                         long modc = rs.getLong(2);
                         LOG.info("column reset " + modc + " times");
