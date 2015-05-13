@@ -91,6 +91,10 @@ public class RepositorySidegrade {
 
             copyState(builder, root);
 
+            // removing references to the checkpoints, 
+            // which don't exist in the new repository
+            builder.setChildNode(":async");
+
             target.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         } catch (Exception e) {
             throw new RepositoryException("Failed to copy content", e);
