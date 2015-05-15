@@ -260,6 +260,8 @@ public class ExternalLoginModule extends AbstractLoginModule {
     @Override
     public boolean commit() throws LoginException {
         if (externalUser == null) {
+            // login attempt in this login module was not successful
+            clearState();
             return false;
         }
         Set<? extends Principal> principals = getPrincipals(externalUser.getId());
