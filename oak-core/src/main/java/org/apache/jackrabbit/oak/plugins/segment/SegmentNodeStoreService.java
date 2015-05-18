@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Collections.emptyMap;
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toBoolean;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toInteger;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
@@ -38,7 +37,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Dictionary;
 import java.util.Hashtable;
-import java.util.concurrent.Callable;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.felix.scr.annotations.Activate;
@@ -62,7 +60,6 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType;
 import org.apache.jackrabbit.oak.plugins.identifier.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
-import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategyMBean;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.DefaultCompactionStrategyMBean;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
@@ -220,7 +217,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
     private String name;
 
-    private SegmentStore store;
+    private FileStore store;
 
     private SegmentNodeStore delegate;
 
@@ -331,18 +328,6 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         if (memoryThresholdS != null) {
             memoryThreshold = Byte.valueOf(memoryThresholdS);
         }
-        CompactionStrategy compactionStrategy = new CompactionStrategy(
-                pauseCompaction, cloneBinaries, CleanupType.valueOf(cleanup), cleanupTs,
-                memoryThreshold) {
-            @Override
-            public boolean compacted(Callable<Boolean> setHead) throws Exception {
-                // Need to guard against concurrent commits to avoid
-                // mixed segments. See OAK-2192.
-                return delegate.locked(setHead, lockWaitTime, SECONDS);
-            }
-        };
-        compactionStrategy.setRetryCount(retryCount);
-        compactionStrategy.setForceAfterFail(forceCommit);
 
         OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
         gcMonitor = new GCMonitorTracker();
@@ -354,12 +339,20 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                 .withGCMonitor(gcMonitor);
         if (customBlobStore) {
             log.info("Initializing SegmentNodeStore with BlobStore [{}]", blobStore);
-            store = storeBuilder.withBlobStore(blobStore).create()
-                    .setCompactionStrategy(compactionStrategy);
+            store = storeBuilder.withBlobStore(blobStore).create();
         } else {
-            store = storeBuilder.create()
-                    .setCompactionStrategy(compactionStrategy);
+            store = storeBuilder.create();
         }
+        SegmentNodeStoreBuilder nodeStoreBuilder = SegmentNodeStore
+                .newSegmentNodeStore(store);
+        nodeStoreBuilder.withCompactionStrategy(pauseCompaction, cloneBinaries,
+                cleanup, cleanupTs, memoryThreshold, lockWaitTime, retryCount,
+                forceCommit);
+        delegate = nodeStoreBuilder.create();
+
+        CompactionStrategy compactionStrategy = nodeStoreBuilder
+                .getCompactionStrategy();
+        store.setCompactionStrategy(compactionStrategy);
 
         FileStoreGCMonitor fsgcMonitor = new FileStoreGCMonitor(Clock.SIMPLE);
         fsgcMonitorMBean = new CompositeRegistration(
@@ -368,7 +361,6 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                         "File Store garbage collection monitor"),
                 scheduleWithFixedDelay(whiteboard, fsgcMonitor, 1));
 
-        delegate = new SegmentNodeStore(store);
         observerTracker = new ObserverTracker(delegate);
         observerTracker.start(context.getBundleContext());
 
