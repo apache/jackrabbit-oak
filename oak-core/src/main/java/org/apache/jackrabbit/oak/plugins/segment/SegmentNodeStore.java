@@ -93,7 +93,22 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
     private long maximumBackoff = MILLISECONDS.convert(10, SECONDS);
 
+    @Nonnull
+    public static SegmentNodeStoreBuilder newSegmentNodeStore(
+            @Nonnull SegmentStore store) {
+        return SegmentNodeStoreBuilder.newSegmentNodeStore(checkNotNull(store));
+    }
+
+    /**
+     * @deprecated Use {@link SegmentNodeStore#newSegmentNodeStore(SegmentStore)} instead
+     * 
+     */
+    @Deprecated
     public SegmentNodeStore(SegmentStore store) {
+        this(store, false);
+    }
+
+    SegmentNodeStore(SegmentStore store, boolean internal) {
         this.store = store;
         this.head = new AtomicReference<SegmentNodeState>(store.getHead());
         this.changeDispatcher = new ChangeDispatcher(getRoot());
