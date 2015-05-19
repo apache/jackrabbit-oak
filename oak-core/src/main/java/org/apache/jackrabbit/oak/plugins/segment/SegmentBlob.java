@@ -136,6 +136,10 @@ public class SegmentBlob extends Record implements Blob {
 
     @Override
     public String getContentIdentity() {
+        String blobId = getBlobId();
+        if (blobId != null){
+            return blobId;
+        }
         return getRecordId().toString();
     }
 
