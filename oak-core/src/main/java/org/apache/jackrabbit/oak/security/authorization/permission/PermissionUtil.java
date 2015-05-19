@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.util.Text;
@@ -85,5 +86,13 @@ public final class PermissionUtil implements PermissionConstants {
             path = parentAfter.getPath();
         }
         return path;
+    }
+
+    public static Tree getImmutableTree(@Nullable Tree tree, @Nonnull Root immutableRoot) {
+        if (tree instanceof ImmutableTree) {
+            return tree;
+        } else {
+            return (tree == null) ? null : immutableRoot.getTree(tree.getPath());
+        }
     }
 }
