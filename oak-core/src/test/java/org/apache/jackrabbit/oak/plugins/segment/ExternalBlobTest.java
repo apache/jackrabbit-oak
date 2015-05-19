@@ -79,6 +79,8 @@ public class ExternalBlobTest {
         Blob b2 = testCreateAndRead(nodeStore.createBlob(new ByteArrayInputStream(data2)));
         assertTrue(b2 instanceof SegmentBlob);
         assertNotNull(b2.getReference());
+        assertEquals(b2.getContentIdentity(), ((SegmentBlob) b2).getBlobId());
+
         InputStream is = dbs.getInputStream(((SegmentBlob) b2).getBlobId());
         assertNotNull(IOUtils.contentEquals(new ByteArrayInputStream(data2), is));
         is.close();
