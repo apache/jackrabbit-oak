@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.document.UpdateUtils.checkConditions;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -35,6 +36,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -60,6 +62,7 @@ import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
@@ -73,10 +76,11 @@ import com.google.common.base.Objects;
 import com.google.common.cache.Cache;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Striped;
 
 /**
- * Implementation of {@link CachingDocumentStore} for relational databases.
+ * Implementation of {@link DocumentStore} for relational databases.
  * 
  * <h3>Supported Databases</h3>
  * <p>
@@ -239,6 +243,16 @@ public class RDBDocumentStore implements DocumentStore {
             invalidateCache(collection, id, true);
         }
         delete(collection, ids);
+    }
+
+    @Override
+    public <T extends Document> int remove(Collection<T> collection,
+                                            Map<String, Map<Key, Condition>> toRemove) {
+        int num = delete(collection, toRemove);
+        for (String id : toRemove.keySet()) {
+            invalidateCache(collection, id, true);
+        }
+        return num;
     }
 
     @Override
@@ -1005,7 +1019,7 @@ public class RDBDocumentStore implements DocumentStore {
                 throw new DocumentStoreException("Document does not exist: " + update.getId());
             }
             T doc = collection.newDocument(this);
-            if (checkConditions && !UpdateUtils.checkConditions(doc, update)) {
+            if (checkConditions && !checkConditions(doc, update.getConditions())) {
                 return null;
             }
             update.increment(MODCOUNT, 1);
@@ -1105,7 +1119,7 @@ public class RDBDocumentStore implements DocumentStore {
     private <T extends Document> T applyChanges(Collection<T> collection, T oldDoc, UpdateOp update, boolean checkConditions) {
         T doc = collection.newDocument(this);
         oldDoc.deepCopy(doc);
-        if (checkConditions && !UpdateUtils.checkConditions(doc, update)) {
+        if (checkConditions && !checkConditions(doc, update.getConditions())) {
             return null;
         }
         if (hasChangesToCollisions(update)) {
@@ -1263,13 +1277,14 @@ public class RDBDocumentStore implements DocumentStore {
         }
     }
 
-    private <T extends Document> void delete(Collection<T> collection, List<String> ids) {
+    private <T extends Document> int delete(Collection<T> collection, List<String> ids) {
+        int numDeleted = 0;
         for (List<String> sublist : Lists.partition(ids, 64)) {
             Connection connection = null;
             String tableName = getTable(collection);
             try {
                 connection = this.ch.getRWConnection();
-                dbDelete(connection, tableName, sublist);
+                numDeleted += dbDelete(connection, tableName, sublist);
                 connection.commit();
             } catch (Exception ex) {
                 throw new DocumentStoreException(ex);
@@ -1277,6 +1292,33 @@ public class RDBDocumentStore implements DocumentStore {
                 this.ch.closeConnection(connection);
             }
         }
+        return numDeleted;
+    }
+
+    private <T extends Document> int delete(Collection<T> collection,
+                                            Map<String, Map<Key, Condition>> toRemove) {
+        int numDeleted = 0;
+        String tableName = getTable(collection);
+        Map<String, Map<Key, Condition>> subMap = Maps.newHashMap();
+        Iterator<Entry<String, Map<Key, Condition>>> it = toRemove.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, Map<Key, Condition>> entry = it.next();
+            subMap.put(entry.getKey(), entry.getValue());
+            if (subMap.size() == 64 || !it.hasNext()) {
+                Connection connection = null;
+                try {
+                    connection = this.ch.getRWConnection();
+                    numDeleted += dbDelete(connection, tableName, subMap);
+                    connection.commit();
+                } catch (Exception ex) {
+                    throw DocumentStoreException.convert(ex);
+                } finally {
+                    this.ch.closeConnection(connection);
+                }
+                subMap.clear();
+            }
+        }
+        return numDeleted;
     }
 
     private <T extends Document> boolean updateDocument(@Nonnull Collection<T> collection, @Nonnull T document,
@@ -1346,12 +1388,7 @@ public class RDBDocumentStore implements DocumentStore {
      * state
      */
     private static boolean requiresPreviousState(UpdateOp update) {
-        for (Map.Entry<Key, Operation> change : update.getChanges().entrySet()) {
-            Operation op = change.getValue();
-            if (op.type == UpdateOp.Operation.Type.CONTAINS_MAP_ENTRY)
-                return true;
-        }
-        return false;
+        return !update.getConditions().isEmpty();
     }
 
     private static long getModifiedFromUpdate(UpdateOp update) {
@@ -1735,7 +1772,7 @@ public class RDBDocumentStore implements DocumentStore {
         }
     }
 
-    private void dbDelete(Connection connection, String tableName, List<String> ids) throws SQLException {
+    private int dbDelete(Connection connection, String tableName, List<String> ids) throws SQLException {
 
         PreparedStatement stmt;
         int cnt = ids.size();
@@ -1761,6 +1798,52 @@ public class RDBDocumentStore implements DocumentStore {
             if (result != cnt) {
                 LOG.debug("DB delete failed for " + tableName + "/" + ids);
             }
+            return result;
+        } finally {
+            stmt.close();
+        }
+    }
+
+    private int dbDelete(Connection connection, String tableName,
+                         Map<String, Map<Key, Condition>> toDelete)
+            throws SQLException, DocumentStoreException {
+        String or = "";
+        StringBuilder whereClause = new StringBuilder();
+        for (Entry<String, Map<Key, Condition>> entry : toDelete.entrySet()) {
+            whereClause.append(or);
+            or = " or ";
+            whereClause.append("ID=?");
+            for (Entry<Key, Condition> c : entry.getValue().entrySet()) {
+                if (!c.getKey().getName().equals(MODIFIED)) {
+                    throw new DocumentStoreException(
+                            "Unsupported condition: " + c);
+                }
+                whereClause.append(" and MODIFIED");
+                if (c.getValue().type == Condition.Type.EQUALS
+                        && c.getValue().value instanceof Long) {
+                    whereClause.append("=?");
+                } else if (c.getValue().type == Condition.Type.EXISTS) {
+                    whereClause.append(" is not null");
+                } else {
+                    throw new DocumentStoreException(
+                            "Unsupported condition: " + c);
+                }
+            }
+        }
+
+        PreparedStatement stmt= connection.prepareStatement(
+                "delete from " + tableName + " where " + whereClause);
+        try {
+            int i = 1;
+            for (Entry<String, Map<Key, Condition>> entry : toDelete.entrySet()) {
+                setIdInStatement(stmt, i++, entry.getKey());
+                for (Entry<Key, Condition> c : entry.getValue().entrySet()) {
+                    if (c.getValue().type == Condition.Type.EQUALS) {
+                        stmt.setLong(i++, (Long) c.getValue().value);
+                    }
+                }
+            }
+            return stmt.executeUpdate();
         } finally {
             stmt.close();
         }

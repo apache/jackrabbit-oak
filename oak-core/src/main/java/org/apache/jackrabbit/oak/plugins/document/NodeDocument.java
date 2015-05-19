@@ -371,6 +371,17 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     }
 
     /**
+     * See also {@link #MODIFIED_IN_SECS}.
+     *
+     * @return the time in seconds this document was last modified with five
+     *          seconds precision. Returns {@code null} if none is set.
+     */
+    @CheckForNull
+    public Long getModified() {
+        return (Long) get(MODIFIED_IN_SECS);
+    }
+
+    /**
      * Returns <tt>true</tt> if this node possibly has children.
      * If false then that indicates that there are no child
      *
