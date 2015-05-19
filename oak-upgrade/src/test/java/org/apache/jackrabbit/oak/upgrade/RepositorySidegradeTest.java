@@ -18,11 +18,23 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertNotNull;
+import static junit.framework.Assert.assertTrue;
+import static org.apache.jackrabbit.JcrConstants.JCR_FROZENMIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_FROZENPRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_FROZENUUID;
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
+import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
+import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.Calendar;
 import java.util.Random;
+
 import javax.jcr.Binary;
 import javax.jcr.Credentials;
 import javax.jcr.NamespaceRegistry;
@@ -58,18 +70,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
-
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertTrue;
-import static org.apache.jackrabbit.JcrConstants.JCR_FROZENMIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_FROZENPRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_FROZENUUID;
-import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
-import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
-import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 
 public class RepositorySidegradeTest {
 
@@ -120,7 +122,8 @@ public class RepositorySidegradeTest {
     }
     
     // OAK-2869
-    @Test    
+    @Test
+    @Ignore("OAK-2876")  // FIXME See OAK-2876
     public void verifyAsync() throws Exception {
         NodeState state = targetNodeStore.getRoot().getChildNode(":async");
         assertFalse(state.hasProperty("test"));
