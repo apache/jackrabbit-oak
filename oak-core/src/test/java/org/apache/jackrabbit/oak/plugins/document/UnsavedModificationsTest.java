@@ -31,7 +31,6 @@ import org.junit.Test;
  */
 public class UnsavedModificationsTest {
 
-    @Ignore
     @Test
     public void concurrent() throws Exception {
         final List<Exception> exceptions = Collections.synchronizedList(
@@ -96,15 +95,20 @@ public class UnsavedModificationsTest {
         });
         t2.start();
 
-        while (exceptions.isEmpty()) {
+        long end = System.currentTimeMillis() + 5000;
+        while (exceptions.isEmpty() && System.currentTimeMillis() < end) {
             Thread.sleep(1000);
-            System.out.println("size: " + mod.getPaths().size());
         }
 
         try {
             for (Exception e : exceptions) {
                 throw e;
             }
+
+            exceptions.add(new Exception("stop"));
+            t1.join();
+            t2.join();
+
         } finally {
             ns.dispose();
             mod.close();

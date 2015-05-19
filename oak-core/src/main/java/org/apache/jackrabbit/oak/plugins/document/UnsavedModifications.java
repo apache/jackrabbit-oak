@@ -70,6 +70,11 @@ class UnsavedModifications implements Closeable {
     private final ConcurrentMap<String, Revision> map = mapFactory.create();
 
     /**
+     * Monitor object to synchronize updates on the {@link #map}. See OAK-2888.
+     */
+    private final Object update = new Object();
+
+    /**
      * Puts a revision for the given path. The revision for the given path is
      * only put if there is no modification present for the revision or if the
      * current modification revision is older than the passed revision.
@@ -83,20 +88,22 @@ class UnsavedModifications implements Closeable {
     public Revision put(@Nonnull String path, @Nonnull Revision revision) {
         checkNotNull(path);
         checkNotNull(revision);
-        for (;;) {
-            Revision previous = map.get(path);
-            if (previous == null) {
-                if (map.putIfAbsent(path, revision) == null) {
-                    return null;
-                }
-            } else {
-                if (previous.compareRevisionTime(revision) < 0) {
-                    if (map.replace(path, previous, revision)) {
-                        return previous;
+        synchronized (update) {
+            for (;;) {
+                Revision previous = map.get(path);
+                if (previous == null) {
+                    if (map.putIfAbsent(path, revision) == null) {
+                        return null;
                     }
                 } else {
-                    // revision is earlier, do not update
-                    return null;
+                    if (previous.compareRevisionTime(revision) < 0) {
+                        if (map.replace(path, previous, revision)) {
+                            return previous;
+                        }
+                    } else {
+                        // revision is earlier, do not update
+                        return null;
+                    }
                 }
             }
         }
@@ -212,8 +219,10 @@ class UnsavedModifications implements Closeable {
                     }
                     store.getDocumentStore().update(NODES, ids, updateOp);
                     LOG.debug("Updated _lastRev to {} on {}", lastRev, ids);
-                    for (String path : pathList) {
-                        map.remove(path, lastRev);
+                    synchronized (update) {
+                        for (String path : pathList) {
+                            map.remove(path, lastRev);
+                        }
                     }
                     pathList.clear();
                     updateOp = null;
