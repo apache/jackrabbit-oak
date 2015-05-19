@@ -255,4 +255,11 @@ public interface LuceneIndexConstants {
      * 'IS NOT NULL' constraint
      */
     String PROP_NOT_NULL_CHECK_ENABLED = "notNullCheckEnabled";
+
+    /**
+     * Boolean property indicating that Lucene directory content
+     * should be saved as part of NodeState itself as a multi value property
+     * to allow faster reads (OAK-2809)
+     */
+    String SAVE_DIR_LISTING = "saveDirectoryListing";
 }
