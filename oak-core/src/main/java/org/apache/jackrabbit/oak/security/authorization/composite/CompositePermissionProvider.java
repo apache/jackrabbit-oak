@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
+import org.apache.jackrabbit.oak.security.authorization.permission.PermissionUtil;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
@@ -81,10 +82,11 @@ class CompositePermissionProvider implements PermissionProvider {
 
     @Nonnull
     @Override
-    public Set<String> getPrivileges(@Nullable final Tree tree) {
+    public Set<String> getPrivileges(@Nullable Tree tree) {
         PrivilegeBits result = null;
-        for (AggregatedPermissionProvider pp : filter(pps, tree)) {
-            PrivilegeBits privs = privilegeBitsProvider.getBits(pp.getPrivileges(tree));
+        Tree immutableTree = PermissionUtil.getImmutableTree(tree, immutableRoot);
+        for (AggregatedPermissionProvider pp : filter(pps, immutableTree)) {
+            PrivilegeBits privs = privilegeBitsProvider.getBits(pp.getPrivileges(immutableTree));
             if (result == null) {
                 result = PrivilegeBits.getInstance();
                 result.add(privs);
@@ -97,17 +99,18 @@ class CompositePermissionProvider implements PermissionProvider {
     }
 
     @Override
-    public boolean hasPrivileges(@Nullable final Tree tree, @Nonnull String... privilegeNames) {
+    public boolean hasPrivileges(@Nullable Tree tree, @Nonnull String... privilegeNames) {
+        final Tree immutableTree = PermissionUtil.getImmutableTree(tree, immutableRoot);
         for (final String privName : privilegeBitsProvider.getAggregatedPrivilegeNames(privilegeNames)) {
             Iterable<AggregatedPermissionProvider> providers = Iterables.filter(pps, new Predicate<AggregatedPermissionProvider>() {
                 @Override
                 public boolean apply(AggregatedPermissionProvider pp) {
                     // the permissionprovider is never null
-                    return (tree == null) ? pp.handlesRepositoryPermissions() : pp.handles(tree, privilegeBitsProvider.getBits(privName));
+                    return (immutableTree == null) ? pp.handlesRepositoryPermissions() : pp.handles(immutableTree, privilegeBitsProvider.getBits(privName));
                 }
             });
             for (AggregatedPermissionProvider pp : providers) {
-                if (!pp.hasPrivileges(tree, privName)) {
+                if (!pp.hasPrivileges(immutableTree, privName)) {
                     return false;
                 }
             }
@@ -124,28 +127,29 @@ class CompositePermissionProvider implements PermissionProvider {
     @Nonnull
     @Override
     public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
-        ImmutableTree immTree = (tree instanceof ImmutableTree) ? (ImmutableTree) tree : (ImmutableTree) immutableRoot.getTree(tree.getPath());
+        ImmutableTree immutableTree = (ImmutableTree) PermissionUtil.getImmutableTree(tree, immutableRoot);
         if (tree.isRoot()) {
-            return new CompositeTreePermission(immTree, new CompositeTreePermission());
+            return new CompositeTreePermission(immutableTree, new CompositeTreePermission());
         } else {
             if (!(parentPermission instanceof CompositeTreePermission)) {
                 throw new IllegalArgumentException("Illegal parent permission instance. Expected CompositeTreePermission.");
             }
-            return new CompositeTreePermission(immTree, (CompositeTreePermission) parentPermission);
+            return new CompositeTreePermission(immutableTree, (CompositeTreePermission) parentPermission);
         }
     }
 
     @Override
     public boolean isGranted(@Nonnull Tree parent, @Nullable PropertyState property, long permissions) {
+        Tree immParent = PermissionUtil.getImmutableTree(parent, immutableRoot);
         if (Permissions.isAggregate(permissions)) {
             for (final long permission : Permissions.aggregates(permissions)) {
-                if (!grantsPermission(parent, property, permission, filter(parent, permission))) {
+                if (!grantsPermission(immParent, property, permission, filter(parent, permission))) {
                     return false;
                 }
             }
             return true;
         } else {
-            return grantsPermission(parent, property, permissions, filter(parent, permissions));
+            return grantsPermission(immParent, property, permissions, filter(immParent, permissions));
         }
     }
 
