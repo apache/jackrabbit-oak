@@ -48,7 +48,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
  *
  * @see TODO
  */
-public class UserVsPrincipal extends AbstractSecurityTest {
+public class UserVsPrincipalTest extends AbstractSecurityTest {
 
     private static final String USER_ID = "testUser";
     private static final String PRINCIPAL_NAME = "testPrincipal";

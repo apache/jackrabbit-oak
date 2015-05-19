@@ -16,36 +16,103 @@
  */
 package org.apache.jackrabbit.oak.security.principal;
 
+import java.security.Principal;
+import javax.jcr.RepositoryException;
+
+import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
+import org.apache.jackrabbit.test.NotExecutableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * <pre>
- * Module: TODO
+ * Module: Principal Management
  * =============================================================================
  *
- * Title: PrincipalProviderTest
+ * Title: Principal Provider
  * -----------------------------------------------------------------------------
  *
  * Goal:
- * TODO
+ * Get familiar with the {@link org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider} interface.
  *
  * Exercises:
  *
- * - {@link #TODO}
+ * - {@link #testCorrespondance()}
+ *   List the corresponding calls between {@link PrincipalManager} and {@link PrincipalProvider}.
+ *   List also those methods that have no correspondance in either interface.
+ *   Try to identify the reason for having a JCR-level manager and an Oak-level provider interface.
  *
  *
- * Additional Exercises:
+ * Additional Exercises
  * -----------------------------------------------------------------------------
  *
- * TODO
+ * - Take a closer look at the {@link org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration}
+ *   and the available implementations.
  *
+ *   Question: Can you identify how they are used and how principal management can
+ *             be extended both in an OSGi-based and regular java setup?
+ *
+ *
+ * Advanced Exercises:
+ * -----------------------------------------------------------------------------
+ *
+ * - Complete the {@link org.apache.jackrabbit.oak.security.principal.CustomPrincipalProvider}
+ *   stub and deploy the exercise bundle in a Sling base repository installation
+ *   (e.g. Cq|Granite).
+ *   > Try to identify the tools that allow you to explore your custom principals
+ *   > Play with the dynamic group membership as you define it in the principal provider and verify that the subjects calculated upon login are correct
+ *   > Play with the authorization part of the principal management granting/revoking access for one of your custom principals
  * </pre>
  *
- * @see TODO
+ * @see org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider
+ * @see org.apache.jackrabbit.oak.security.principal.CustomPrincipalProvider
+ * @see org.apache.jackrabbit.oak.security.principal.CustomPrincipalConfiguration
  */
 public class PrincipalProviderTest extends AbstractSecurityTest {
 
+    private PrincipalProvider principalProvider;
+    private PrincipalManager principalManager;
+
+    private String testPrincipalName;
+
+    @Override
+    public void before() throws Exception {
+        super.before();
+
+        principalProvider = getConfig(PrincipalConfiguration.class).getPrincipalProvider(root, NamePathMapper.DEFAULT);
+        principalManager = getConfig(PrincipalConfiguration.class).getPrincipalManager(root, NamePathMapper.DEFAULT);
+
+        // NOTE: this method call doesn't make to much sense outside of a
+        // simple test with a very limited number of principals (!!)
+        PrincipalIterator principalIterator = principalManager.getPrincipals(PrincipalManager.SEARCH_TYPE_NOT_GROUP);
+        if (principalIterator.hasNext()) {
+            testPrincipalName = principalIterator.nextPrincipal().getName();
+        }
+
+        if (testPrincipalName == null) {
+            throw new NotExecutableException();
+        }
+    }
+
+    @Override
+    public void after() throws Exception {
+        super.after();
+    }
+
+    public void testCorrespondance() {
+        boolean exists = principalManager.hasPrincipal(testPrincipalName);
+        Principal principal = principalManager.getPrincipal(testPrincipalName);
+        PrincipalIterator principalIterator = principalManager.findPrincipals(testPrincipalName, PrincipalManager.SEARCH_TYPE_ALL);
+        PrincipalIterator groups = principalManager.getGroupMembership(principal);
+        PrincipalIterator all = principalManager.getPrincipals(PrincipalManager.SEARCH_TYPE_ALL);
+
+        // TODO: write the corresponding calls for the principal provider and verify the expected result
+        // TODO: which methods have nor corresponding call in the other interface?
+    }
 
 }

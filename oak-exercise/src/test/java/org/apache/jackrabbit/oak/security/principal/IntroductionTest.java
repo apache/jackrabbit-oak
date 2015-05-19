@@ -16,36 +16,76 @@
  */
 package org.apache.jackrabbit.oak.security.principal;
 
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
+import org.apache.jackrabbit.test.AbstractJCRTest;
 
 /**
  * <pre>
- * Module: TODO
+ * Module: Principal Management
  * =============================================================================
  *
- * Title: IntroductionTest
+ * Title: Introduction to Principal Management
  * -----------------------------------------------------------------------------
  *
  * Goal:
- * TODO
+ * Understand the usage of principal management in Oak and become familiar with
+ * the difference between the Jackrabbit {@link PrincipalManager} and the
+ * {@link PrincipalProvider} exposed by Oak SPI.
  *
  * Exercises:
  *
- * - {@link #TODO}
+ * - Overview and Usages of Principal Management
+ *   Search for usage of principal management API (e.g. the {@link org.apache.jackrabbit.api.security.principal.PrincipalManager}
+ *   and {@link org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider}
+ *   interface in Oak _and_ Jackrabbit JCR Commons. List your findings and discuss the impact.
+ *
+ *   Question: Where is the principal manager|provider being used?
+ *   Question: Who is the expected API consumer?
+ *   Question: What are the characteristics of this areas? E.g. are they configurable/pluggable?
+ *   Question: What can you say about the relation of principal management and authentication?
+ *   Question: What can you say about the relation of principal management and authorization?
+ *
+ * - {@link testHasPrincipal()}
  *
  *
  * Additional Exercises:
  * -----------------------------------------------------------------------------
  *
- * TODO
+ * - Discuss why principal management API is read only.
+ *   Question: How are principals exposed by the {@link PrincipalManager} collected?
+ *   Question: How does the default implementation look like?
+ *
+ * - Become familar with the pluggable nature of the principal management
+ *   Question: What means does Oak provide to change or extend the set of principals exposed?
+ *   Question: What interfaces do you need to implement?
+ *
+ *
+ * Advanced Exercises:
+ * -----------------------------------------------------------------------------
+ *
+ * If you want to dig deeper into the principal management implementation details
+ * you may want to play around with plugging your custom principal provider instance
+ * or replacing the default setup altogether.
+ *
+ * - Write your your custom implemenation of the principal provider and deploy it
+ *   in an OSGi based repository setup. Observe the effect it has on principal
+ *   management, authentication and authorization.
+ *
+ *
+ * Related Exercises
+ * -----------------------------------------------------------------------------
+ *
+ * - {@link org.apache.jackrabbit.oak.security.principal.PrincipalManagerTest}
+ * - {@link org.apache.jackrabbit.oak.security.principal.PrincipalProviderTest}
+ * - {@link org.apache.jackrabbit.oak.security.principal.EveryoneTest}
  *
  * </pre>
  *
- * @see TODO
+ * @see org.apache.jackrabbit.api.security.principal.PrincipalManager
+ * @see org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider
  */
-public class IntroductionTest extends AbstractSecurityTest {
-
+public class IntroductionTest extends AbstractJCRTest {
 
 }

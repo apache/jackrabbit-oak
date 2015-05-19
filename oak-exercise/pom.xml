@@ -42,6 +42,29 @@
             </systemPropertyVariables>
           </configuration>
         </plugin>
+        <plugin>
+          <groupId>org.apache.felix</groupId>
+          <artifactId>maven-bundle-plugin</artifactId>
+          <configuration>
+            <instructions>
+              <Embed-Dependency>
+              </Embed-Dependency>
+              <Embed-Transitive>true</Embed-Transitive>
+              <Import-Package>
+                *;resolution:=optional
+              </Import-Package>
+              <Export-Package>
+              </Export-Package>
+              <DynamicImport-Package>
+                org.apache.felix.jaas.boot
+              </DynamicImport-Package>
+            </instructions>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.felix</groupId>
+          <artifactId>maven-scr-plugin</artifactId>
+        </plugin>
       </plugins>
     </build>
 
@@ -78,6 +101,12 @@
         <version>${jackrabbit.version}</version>
       </dependency>
 
+      <!-- Findbugs annotations -->
+      <dependency>
+        <groupId>com.google.code.findbugs</groupId>
+        <artifactId>jsr305</artifactId>
+      </dependency>
+
       <!-- OSGi -->
       <dependency>
         <!-- somehow the 1.6.0_65 compiler crashes on osx without this. -->
@@ -85,6 +114,23 @@
         <artifactId>org.apache.felix.scr.annotations</artifactId>
         <scope>provided</scope>
       </dependency>
+      <dependency>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>org.apache.felix.jaas</artifactId>
+        <version>0.0.2</version>
+        <scope>provided</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.osgi</groupId>
+        <artifactId>org.osgi.core</artifactId>
+        <scope>provided</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.osgi</groupId>
+        <artifactId>org.osgi.compendium</artifactId>
+        <scope>provided</scope>
+      </dependency>
+
 
       <dependency>
         <groupId>com.google.guava</groupId>

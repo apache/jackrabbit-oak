@@ -68,7 +68,7 @@ import static org.junit.Assert.assertTrue;
  *
  * - Configure your system such that membership cleanup is performed upon
  *   removal of the test user.
- *   TODO: Explain what you need to do (Hint: authorizable actions).
+ *   Explain what you need to do (Hint: authorizable actions).
  *
  * 3. Test Execution with 'uadmin'
  *
@@ -78,14 +78,14 @@ import static org.junit.Assert.assertTrue;
  * - Login as 'admin' again and test if the user has been removed; if yes, recreate
  *   it and verify and if members-list at 'administrators' has been adjust (test-user removed).
  *
- * - TODO: Explain the result both for the main and variant.
+ * - Explain the result both for the main and variant.
  *   > the removal failed: explain why?
  *   > the member-cleanup didn't succeed: explain why?
  *
  * 4. Test Execution with 'admin'
  *
  * - Perform the same test as 'admin' and compare the result with 3.
- * - TODO: Explain whats the difference and why it works.
+ * - Explain whats the difference and why it works.
  *
  *
  * Advanced Exercise:

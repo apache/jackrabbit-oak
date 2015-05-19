@@ -48,7 +48,6 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  * - Read JSR 283 and the JavaDoc of {@link javax.jcr.Session#getUserID()}
  *   Question: What is the defined return value of this method? How does that
  *   relate to {@link org.apache.jackrabbit.api.security.user.User#getID()}?
- *   Answer: TODO
  *
  * - {@link #testGetUserIDReturnsNull()}
  *   Run the test and explain why {@link javax.jcr.Session#getUserID()} returns

@@ -58,22 +58,24 @@ import static org.junit.Assert.assertEquals;
  * - {@link #testGuestAuthInfo()}
  *   Walk though the login call on the Oak API and identify where the {@link AuthInfo}
  *   is being created.
- *   TODO: Fix the test case by providing the expected id and set of principals for the guest content session.
- *   TODO: Can you identify the similarities between the subject and the AuthInfo? What is missing in AuthInfo?
+ *   Fix the test case by providing the expected id and set of principals for the guest content session.
+ *   Question: Can you identify the similarities between the subject and the AuthInfo? What is missing in AuthInfo?
  *
  * - {@link #testUserAuthInfo()}
  *   Same as {@link #testGuestAuthInfo()} for a newly created user.
- *   TODO: Fix the test case by providing the expected id and set of principals for the content session.
- *   TODO: Pay attention to the way the test user has been created.
- *   TODO: What is the principal name?
- *   TODO: What is the difference between the userID and the principal name? and how is that reflected in the AuthInfo?
+ *   Fix the test case by providing the expected id and set of principals for the content session.
+ *   Pay attention to the way the test user has been created.
+ *
+ *   Question: What is the principal name?
+ *   Question: What is the difference between the userID and the principal name? and how is that reflected in the AuthInfo?
  *
  * - {@link #testUserAuthInfoWithGroupMembership()}
  *   Same as {@link #testUserAuthInfo()} but with the subtle difference that the
  *   test user is member of a group.
- *   TODO: Fix the test case by providing the expected set of principals for the content session.
- *   TODO: Identify how the group membership is being exposed in the AuthInfo
- *   TODO: Can you spot the 'groupID' in the AuthInfo? Or in the underlying Subject?
+ *   Fix the test case by providing the expected set of principals for the content session.
+ *   Identify how the group membership is being exposed in the AuthInfo
+ *
+ *   Question: Can you spot the 'groupID' in the AuthInfo? Or in the underlying Subject?
  *
  * </pre>
  *

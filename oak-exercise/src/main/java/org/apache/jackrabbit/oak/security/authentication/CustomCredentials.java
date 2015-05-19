@@ -14,42 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authorization;
+package org.apache.jackrabbit.oak.security.authentication;
 
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import java.util.Map;
+import javax.jcr.Credentials;
+
+import com.google.common.collect.ImmutableMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * <pre>
- * Module: TODO
- * =============================================================================
- *
- * Title: PermissionDiscoveryTest
- * -----------------------------------------------------------------------------
- *
- * Goal:
- * TODO
- *
- * Exercises:
- *
- * - {@link #TODO}
- *
- *
- * Additional Exercises:
- * -----------------------------------------------------------------------------
- *
- * TODO
- *
- * </pre>
- *
- * @see TODO
- */
-public class PermissionDiscoveryTest extends AbstractSecurityTest {
+class CustomCredentials implements Credentials {
 
-    // TODO: session.haspermission
-    // TODO: session.checkPermission
-    // TODO: speciality of add_node
-    // TODO: oak specific -> pass permissions name
+    private final String loginID;
+    private final String password;
+    private final Map<String, String> attributes;
 
+    CustomCredentials(String loginID, String password, Map<String,String> attributes) {
+        this.loginID = loginID;
+        this.password = password;
+        this.attributes = ImmutableMap.copyOf(attributes);
+    }
+
+    String getLoginID() {
+        return loginID;
+    }
+
+    String getPassword() {
+        return password;
+    }
+
+    Map<String, String> getAttributes() {
+        return attributes;
+    }
 }

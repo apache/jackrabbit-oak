@@ -64,17 +64,17 @@ import org.slf4j.LoggerFactory;
  * - {@link #testAccessControlEntry()}
  *   Test case illustrating the effect of removing the principal (for simplicity
  *   represented by a test-user) referenced in an access control entry.
- *   TODO: explain the expected behavior and fix the test if necessary
+ *   Explain the expected behavior and fix the test if necessary
  *
  * - {@link #testCreatedBy()}
  *   Test case illustrating the effect of removing a user which created node
  *   that is of type 'mix:created'.
- *   TODO: explain the expected behavior and fix the test if necessary
+ *   Explain the expected behavior and fix the test if necessary
  *
  * - {@link #testLastModifiedBy()}
  *   Test case illustrating the effect of removing a user which added the mixin
  *   'mix:lastModified' to the test node.
- *   TODO: explain the expected behavior and fix the test if necessary
+ *   Explain the expected behavior and fix the test if necessary
  *
  * - {@link #testLock()}
  *   Test case illustrating the effect of removing a user which created a
@@ -83,14 +83,12 @@ import org.slf4j.LoggerFactory;
  * - Based on the experiences from perfoming the above tests, summarize the effect
  *   of removing an existing user and potentially re-using the same ID
  *   at a later point.
+ *
  *   Question: What are the implications from a security point of view
- *   Answer: TODO
  *   Question: What are possible consequences from a legal point of view
- *   Answer: TODO
  *
  * - Use the user management API to identify alterntive ways such that you don't
  *   need to remove the user.
- *   Answer: TODO
  *
  *
  * Additional Exercises:
@@ -99,14 +97,14 @@ import org.slf4j.LoggerFactory;
  * In a OSGI-based Oak installation (Sling|Granite|CQ) you can extend this exercise:
  *
  * - Look for additional node types that store references to user or principals.
- *   TODO: list node types and the properties
+ *   List node types and the properties
  *
  * - Inspect application code: can you find additional references to user/principals
  *   stored?
- *   TODO: provide a list and discuss the impact from a security|legel point of view
+ *   Provide a list and discuss the impact from a security|legel point of view
  *
  * - Inspect the various log files for user or principal references
- *   TODO: discuss the legal implications of re-using them for different entities (subjects).
+ *   Discuss the legal implications of re-using them for different entities (subjects).
  *
  *
  * Related Exercises:

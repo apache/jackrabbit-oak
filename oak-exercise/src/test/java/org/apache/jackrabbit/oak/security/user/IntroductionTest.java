@@ -38,98 +38,28 @@ import org.slf4j.LoggerFactory;
  * -----------------------------------------------------------------------------
  *
  * Goal:
- * Make yourself familiar with the basic user management functionality as present
- * in Jackrabbit API
+ * Understand the usage of user management in Oak.
  *
  * Exercises:
  *
- * - {@link #testCreateUser()}
- *   Use to method to create a new user. Play with the parameters.
- *   Question: What are valid values for the parameters?
- *   Question: Which parameters can be 'null'?
- *   Question: What's the effect if one/some parameters are 'null'?
+ * - Overview and Usages of User Management
+ *   Search for usage of user management API (e.g. the {@link org.apache.jackrabbit.api.security.user.UserManager}
+ *   interface in Oak. List your findings and discuss the impact.
  *
- * - {@link #testCreateGroup()}
- *   Use to method to create a new group. Play with the parameters.
- *   Question: What are valid values for the parameters?
- *   Question: Which parameters can be 'null'?
- *   Question: What's the effect if one/some parameters are 'null'?
+ *   Question: Where is the user management API being used?
+ *   Question: What are the characteristics of this areas? E.g. are they configurable/pluggable?
+ *   Question: What can you say about the usage of user management in the authorization code base?
  *
- * - {@link #testGetAuthorizable()}
- *   Play around wit the various methods defined on {@link org.apache.jackrabbit.api.security.user.UserManager}
- *   to retrieve an existing user or group.
+ *
+ * Advanced Exercises:
+ * -----------------------------------------------------------------------------
+ *
+ * - Define an repository setup that doesn't require a user management implementation.
+ *
+ *   Question: Which parts need to be modified?
+ *   Question: What are the consequences for Jcr/Jackrabbit API consumers?
  *
  * </pre>
  */
 public class IntroductionTest extends AbstractJCRTest {
-
-    private UserManager userManager;
-
-    private User testUser;
-    private Group testGroup;
-
-    @Override
-    protected void setUp() throws Exception {
-        super.setUp();
-
-        userManager = ((JackrabbitSession) superuser).getUserManager();
-    }
-
-    @Override
-    protected void tearDown() throws Exception {
-        try {
-            if (testUser != null) {
-                testUser.remove();
-            }
-            if (testGroup != null) {
-                testGroup.remove();
-            }
-            superuser.save();
-        } finally {
-            super.tearDown();
-        }
-    }
-
-    public void testCreateUser() throws RepositoryException {
-        // TODO: use the following parameters (with suitable values) to create a new user.
-        // TODO: play with the values. what are valid values? which params can be null? what is the effect?
-        String userID = null;
-        String password = null;
-        Principal principal = null;
-        String intermediatePath = null;
-
-        // TODO: use both methods to create a new user. what's the effect?
-        testUser = userManager.createUser(userID, password, principal, intermediatePath);
-        //testUser = userManager.createUser(userID password);
-
-        superuser.save();
-    }
-
-    public void testCreateGroup() throws RepositoryException {
-        // TODO: use the following parameters (with suitable values) to create a new group.
-        // TODO: play with the values. what are valid values? which params can be null? what is the effect?
-        String groupID = null;
-        Principal principal = null;
-        String intermediatePath = null;
-
-        // TODO: use both methods to create a new group. what's the effect?
-        testGroup = userManager.createGroup(groupID, principal, intermediatePath);
-//        testGroup = userManager.createGroup(groupID);
-//        testGroup = userManager.createGroup(principal);
-//        testGroup = userManager.createGroup(principal, intermediatePath);
-
-        superuser.save();
-    }
-
-    public void testGetAuthorizable() throws RepositoryException {
-        testUser = userManager.createUser("testUser", null, new PrincipalImpl("testPrincipal"), null);
-        testGroup = userManager.createGroup("testGroup", new PrincipalImpl("testGroupPrincipal"), null);
-        superuser.save();
-
-        // TODO: use all methods provided on UserManager interface to retrieve a given user/group.
-        // - lookup by id
-        // - lookup by path
-        // - lookup by principal
-        // - lookup by id + class
-    }
 }

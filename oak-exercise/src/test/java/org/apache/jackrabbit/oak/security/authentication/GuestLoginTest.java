@@ -64,14 +64,13 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  * - Run a Sling (Granite|Cq) application and identify how the Sling Authentication
  *   deals with guest login.
  *   Question: What is the Sling way to disable anonymous (guest) access?
- *   Answer: TODO
  *
  *
  * Related Exercises:
  * -----------------------------------------------------------------------------
  *
  * - {@link org.apache.jackrabbit.oak.security.authentication.AnonymousIdTest()}
- * - {@link org.apache.jackrabbit.oak.security.user.RepositoryWithoutAnonymous()}
+ * - {@link org.apache.jackrabbit.oak.security.user.RepositoryWithoutAnonymousTest ()}
  * - {@link org.apache.jackrabbit.oak.security.authentication.NullLoginTest()}
  *
  * </pre>

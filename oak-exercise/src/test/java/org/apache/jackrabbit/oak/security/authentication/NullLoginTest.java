@@ -62,6 +62,13 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  *   like Jackrabbit 2.x and treats {@link javax.jcr.Repository#login()}
  *   (null-login) as anonymous login.
  *
+ *
+ * Related Exercises:
+ * -----------------------------------------------------------------------------
+ *
+ * - {@link org.apache.jackrabbit.oak.security.authentication.LoginModuleTest}
+ * - {@link org.apache.jackrabbit.oak.security.authentication.PreAuthTest}
+ *
  * </pre>
  */
 public class NullLoginTest extends AbstractJCRTest {
@@ -115,7 +122,7 @@ public class NullLoginTest extends AbstractJCRTest {
 
     public void testJr2CompatibleLoginConfiguration() throws RepositoryException {
         // TODO: define the configuration that allows you to have null-login treated as anonymous login.
-        Configuration configuration = null; // FIXME : define a configuration that makes the test pass
+        Configuration configuration = null; // FIXME : define a jaas configuration that makes the test pass
 
         Configuration.setConfiguration(configuration);
         try {

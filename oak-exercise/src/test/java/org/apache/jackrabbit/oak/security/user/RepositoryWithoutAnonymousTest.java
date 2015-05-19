@@ -48,7 +48,7 @@ import static org.junit.Assert.fail;
  * @see org.apache.jackrabbit.oak.security.user.UserInitializer
  * @see org.apache.jackrabbit.oak.spi.security.user.UserConstants#PARAM_ANONYMOUS_ID
  */
-public class RepositoryWithoutAnonymous extends AbstractSecurityTest {
+public class RepositoryWithoutAnonymousTest extends AbstractSecurityTest {
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {

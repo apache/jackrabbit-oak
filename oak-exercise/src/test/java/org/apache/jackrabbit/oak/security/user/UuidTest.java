@@ -56,7 +56,6 @@ import org.slf4j.LoggerFactory;
  *     implications for the authorizable implementation as it is today?
  *   - How is the jcr:uuid set in this default implementation?
  *   - What is the jcr:uuid use for in this default implementation?
- *   Answers: TODO
  *
  * - {@link #testIdAndUuidAndIdentifier()}
  *   Use the answers provided above to fix the test. The goal is that you learn

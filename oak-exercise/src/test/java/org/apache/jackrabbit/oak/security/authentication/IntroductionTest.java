@@ -64,12 +64,10 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  * Questions:
  *
  * - Explain the difference between the different login flavors
- *   Answer: TODO
  *
  * - Explain the difference of the {@code JackrabbitRepository} login extension
  *   wrt regular JCR login and explain what it is (could be) used for.
  *   Hint: Look at Sling (Granite|CQ), search in the Apache JIRA
- *   Answer: TODO
  *
  * </pre>
  *

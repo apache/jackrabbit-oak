@@ -20,13 +20,18 @@ import javax.jcr.GuestCredentials;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.security.auth.login.LoginException;
 
+import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * <pre>
@@ -48,60 +53,66 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  *   upon guest login? Explain why.
  *
  * - {@link #testDifferentAnonymousID()}
- *   Define the configuration settings that will create you a JCR repository instance
+ *   Define the configuration settings that will create you an Oak repository instance
  *   that has a different anonymous ID.
+ *
+ *
+ * Additional Exercise
+ * -----------------------------------------------------------------------------
+ *
+ * In Adobe Granite exists an Osgi service that allows you to retrive the ID
+ * of the 'anonymous' user without hardcoding.
+ *
+ * - Find the service and test how you can obtain the anonymous ID.
  *
  * </pre>
  *
  * @see javax.jcr.GuestCredentials
  */
-public class AnonymousIdTest extends AbstractJCRTest {
+public class AnonymousIdTest extends AbstractSecurityTest {
 
-    private Repository repository;
-    private Session testSession;
+    private ContentSession testSession;
 
     @Override
-    protected void setUp() throws Exception {
-        super.setUp();
-
-        repository = getHelper().getRepository();
-        superuser.save();
+    public void before() throws Exception {
+        super.before();
     }
 
     @Override
-    protected void tearDown() throws Exception {
+    public void after() throws Exception {
         try {
-            if (testSession != null && testSession.isLive()) {
-                testSession.logout();
+            if (testSession != null) {
+                testSession.close();
             }
         } finally {
-            super.tearDown();
+            super.after();
         }
     }
 
-    public void testAnonymousID() throws RepositoryException {
-        testSession = repository.login(new GuestCredentials());
+    public void testAnonymousID() throws RepositoryException, LoginException {
+        testSession = login(new GuestCredentials());
 
-        String anonymousID = testSession.getUserID();
+        String anonymousID = testSession.getAuthInfo().getUserID();
 
         // TODO: what value do you expect for 'anonymousID'? explain why.
         String expectedID = null; //FIXME : fill-in value without hardcoding
         assertEquals(expectedID, anonymousID);
     }
 
+    @Override
+    protected ConfigurationParameters getSecurityConfigParameters() {
+        // TODO: un-comment for 'testDifferentAnonymousID'
+//        ConfigurationParameters userConfig = ConfigurationParameters.of(UserConstants.PARAM_ANONYMOUS_ID, "differentAnonymousId");
+//        return ConfigurationParameters.of(UserConfiguration.NAME, userConfig);
+        return ConfigurationParameters.EMPTY;
+    }
+
     public void testDifferentAnonymousID() throws Exception {
-        String anonymousId = "differentAnonymousId";
+        // TODO : use built-in oak configuration settings to have a different anonymous ID -> uncomment the configuration parameters in 'getSecurityConfigParameters' above
 
-        // TODO : use built-in oak configuration settings to have a different anonymous ID.
-        ConfigurationParameters userConfigParams = ConfigurationParameters.EMPTY; // FIXME : define the configuration
+        testSession = login(new GuestCredentials());
 
-        // create a new JCR repository with the given setup
-        Jcr jcr = new Jcr().with(new SecurityProviderImpl(ConfigurationParameters.of(UserConfiguration.NAME, userConfigParams)));
-
-        Repository jcrRepository = jcr.createRepository();
-        Session guestSession = jcrRepository.login(new GuestCredentials(), null);
-
-        assertEquals(anonymousId, guestSession.getUserID());
-        guestSession.logout();
+        String expectedId = null; // TODO: write the expected ID
+        assertEquals(expectedId, testSession.getAuthInfo().getUserID());
     }
 }

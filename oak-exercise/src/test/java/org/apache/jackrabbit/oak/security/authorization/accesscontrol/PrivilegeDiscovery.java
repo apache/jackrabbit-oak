@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authorization;
+package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.slf4j.Logger;
@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
  * Module: TODO
  * =============================================================================
  *
- * Title: RestrictionsTest
+ * Title: PrivilegeDiscovery
  * -----------------------------------------------------------------------------
  *
  * Goal:
@@ -45,9 +45,10 @@ import org.slf4j.LoggerFactory;
  *
  * @see TODO
  */
-public class RestrictionsTest extends AbstractSecurityTest {
+public class PrivilegeDiscovery extends AbstractSecurityTest {
 
-    // TODO: built-in restrictions
-    // TODO: write/plug custom restrictions
+    // TODO; diff wrt session.haspermission
+    // TODO: Acmgr.hasPrivilege || getPrivileges
+    // TODO: why probably slower?
 
 }

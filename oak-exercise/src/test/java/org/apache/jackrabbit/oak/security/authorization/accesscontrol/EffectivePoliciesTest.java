@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authentication;
+package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.slf4j.Logger;
@@ -22,10 +22,10 @@ import org.slf4j.LoggerFactory;
 
 /**
  * <pre>
- * Module: Authentication
+ * Module: TODO
  * =============================================================================
  *
- * Title: Pre-Authentication
+ * Title: EffectivePoliciesTest
  * -----------------------------------------------------------------------------
  *
  * Goal:
@@ -36,17 +36,16 @@ import org.slf4j.LoggerFactory;
  * - {@link #TODO}
  *
  *
- * Relatd Exercises:
+ * Additional Exercises:
  * -----------------------------------------------------------------------------
  *
- * - {@link org.apache.jackrabbit.oak.security.authentication.LoginModuleTest}
- * - {@link org.apache.jackrabbit.oak.security.authentication.NullLoginTest}
+ * TODO
  *
  * </pre>
  *
  * @see TODO
  */
-public class PreAuthTest extends AbstractSecurityTest {
+public class EffectivePoliciesTest extends AbstractSecurityTest {
 
 
 }
