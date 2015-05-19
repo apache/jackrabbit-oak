@@ -54,6 +54,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.PathFilter.PROP_INCLUDED_PATHS;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_RULES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ORDERED_PROP_NAMES;
@@ -336,7 +337,7 @@ public class IndexPlannerTest {
         filter.restrictProperty("foo", Operator.EQUAL, null);
         IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
-        assertNull("For null checks no plan should be returned",plan);
+        assertNull("For null checks no plan should be returned", plan);
     }
 
     @Test
@@ -361,6 +362,44 @@ public class IndexPlannerTest {
         IndexPlanner.PlanResult pr =
                 (IndexPlanner.PlanResult) plan.getAttribute(LucenePropertyIndex.ATTR_PLAN_RESULT);
         assertNotNull(pr.getPropDefn(filter.getPropertyRestriction("foo")));
+    }
+
+    @Test
+    public void noPathRestHasQueryPath() throws Exception{
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        defn.setProperty(createProperty(IndexConstants.QUERY_PATHS, of("/test/a"), Type.STRINGS));
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+
+        FilterImpl filter = createFilter("nt:base");
+        filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        filter.restrictPath("/test2", Filter.PathRestriction.ALL_CHILDREN);
+        IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        assertNull(planner.getPlan());
+    }
+
+    @Test
+    public void hasPathRestHasMatchingQueryPaths() throws Exception{
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        defn.setProperty(createProperty(IndexConstants.QUERY_PATHS, of("/test/a", "/test/b"), Type.STRINGS));
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+
+        FilterImpl filter = createFilter("nt:base");
+        filter.restrictPath("/test/a", Filter.PathRestriction.ALL_CHILDREN);
+        filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        assertNotNull(planner.getPlan());
+    }
+
+    @Test
+    public void hasPathRestHasNoExplicitQueryPaths() throws Exception{
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+
+        FilterImpl filter = createFilter("nt:base");
+        filter.restrictPath("/test2", Filter.PathRestriction.ALL_CHILDREN);
+        filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        assertNotNull(planner.getPlan());
     }
 
     private IndexNode createIndexNode(IndexDefinition defn, long numOfDocs) throws IOException {

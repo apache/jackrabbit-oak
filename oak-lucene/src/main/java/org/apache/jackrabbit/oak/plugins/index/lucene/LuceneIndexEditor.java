@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.PathFilter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.Aggregate.Matcher;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
@@ -112,6 +113,8 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
     private final MatcherState matcherState;
 
+    private final PathFilter.Result pathFilterResult;
+
     LuceneIndexEditor(NodeState root, NodeBuilder definition,
         IndexUpdateCallback updateCallback) throws CommitFailedException {
         this.parent = null;
@@ -122,10 +125,12 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         this.root = root;
         this.isDeleted = false;
         this.matcherState = MatcherState.NONE;
+        this.pathFilterResult = context.getDefinition().getPathFilter().doFiler(getPath());
     }
 
     private LuceneIndexEditor(LuceneIndexEditor parent, String name,
                               MatcherState matcherState,
+                              PathFilter.Result pathFilterResult,
             boolean isDeleted) {
         this.parent = parent;
         this.name = name;
@@ -134,6 +139,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         this.root = parent.root;
         this.isDeleted = isDeleted;
         this.matcherState = matcherState;
+        this.pathFilterResult = pathFilterResult;
     }
 
     public String getPath() {
@@ -159,12 +165,17 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
             beforeTree = parent.beforeTree.getChild(name);
         }
 
-        //For traversal in deleted sub tree before state has to be used
-        Tree current = afterTree.exists() ? afterTree : beforeTree;
-        indexingRule = getDefinition().getApplicableIndexingRule(current);
+        //Only check for indexing if the result is include.
+        //In case like TRAVERSE nothing needs to be indexed for those
+        //path
+        if (pathFilterResult == PathFilter.Result.INCLUDE) {
+            //For traversal in deleted sub tree before state has to be used
+            Tree current = afterTree.exists() ? afterTree : beforeTree;
+            indexingRule = getDefinition().getApplicableIndexingRule(current);
 
-        if (indexingRule != null) {
-            currentMatchers = indexingRule.getAggregate().createMatchers(this);
+            if (indexingRule != null) {
+                currentMatchers = indexingRule.getAggregate().createMatchers(this);
+            }
         }
     }
 
@@ -218,18 +229,30 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
     @Override
     public Editor childNodeAdded(String name, NodeState after) {
-        return new LuceneIndexEditor(this, name, getMatcherState(name, after), false);
+        PathFilter.Result filterResult = getPathFilterResult(name);
+        if (filterResult != PathFilter.Result.EXCLUDE) {
+            return new LuceneIndexEditor(this, name, getMatcherState(name, after), filterResult, false);
+        }
+        return null;
     }
 
     @Override
     public Editor childNodeChanged(
             String name, NodeState before, NodeState after) {
-        return new LuceneIndexEditor(this, name, getMatcherState(name, after), false);
+        PathFilter.Result filterResult = getPathFilterResult(name);
+        if (filterResult != PathFilter.Result.EXCLUDE) {
+            return new LuceneIndexEditor(this, name, getMatcherState(name, after), filterResult, false);
+        }
+        return null;
     }
 
     @Override
     public Editor childNodeDeleted(String name, NodeState before)
             throws CommitFailedException {
+        PathFilter.Result filterResult = getPathFilterResult(name);
+        if (filterResult == PathFilter.Result.EXCLUDE) {
+            return null;
+        }
 
         if (!isDeleted) {
             // tree deletion is handled on the parent node
@@ -249,7 +272,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
         MatcherState ms = getMatcherState(name, before);
         if (!ms.isEmpty()){
-            return new LuceneIndexEditor(this, name, ms, true);
+            return new LuceneIndexEditor(this, name, ms, filterResult, true);
         }
         return null; // no need to recurse down the removed subtree
     }
@@ -765,6 +788,10 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
     private boolean isIndexable(){
         return indexingRule != null;
+    }
+
+    private PathFilter.Result getPathFilterResult(String childNodeName) {
+        return context.getDefinition().getPathFilter().doFiler(concat(getPath(), childNodeName));
     }
 
     private boolean isSupportedMediaType(String type) {
