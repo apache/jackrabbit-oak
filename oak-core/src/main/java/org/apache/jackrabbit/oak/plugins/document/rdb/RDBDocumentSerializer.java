@@ -102,10 +102,6 @@ public class RDBDocumentSerializer {
             if (columnProperties.contains(key.getName()) && null == key.getRevision())
                 continue;
 
-            // already checked
-            if (op.type == UpdateOp.Operation.Type.CONTAINS_MAP_ENTRY)
-                continue;
-
             if (needComma) {
                 sb.append(",");
             }
@@ -177,7 +173,7 @@ public class RDBDocumentSerializer {
     }
 
     /**
-     * Reconstructs a {@link Document) based on the persisted {@link DBRow}.
+     * Reconstructs a {@link Document) based on the persisted {@link RDBRow}.
      */
     public <T extends Document> T fromRow(@Nonnull Collection<T> collection, @Nonnull RDBRow row) throws DocumentStoreException {
         T doc = collection.newDocument(store);

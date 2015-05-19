@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.plugins.document.util;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -49,12 +51,14 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
+    @Nonnull
     public synchronized <T extends Document> List<T> query(final Collection<T> collection, final String fromKey,
             final String toKey, final int limit) {
         return store.query(collection, fromKey, toKey, limit);
     }
 
     @Override
+    @Nonnull
     public synchronized <T extends Document> List<T> query(final Collection<T> collection, final String fromKey,
             final String toKey, final String indexedProperty, final long startValue, final int limit) {
         return store.query(collection, fromKey, toKey, indexedProperty, startValue, limit);
@@ -67,9 +71,13 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
 
     @Override
     public synchronized <T extends Document> void remove(Collection<T> collection, List<String> keys) {
-        for(String key : keys){
-            remove(collection, key);
-        }
+        store.remove(collection, keys);
+    }
+
+    @Override
+    public synchronized <T extends Document> int remove(Collection<T> collection,
+                                                        Map<String, Map<UpdateOp.Key, UpdateOp.Condition>> toRemove) {
+        return store.remove(collection, toRemove);
     }
 
     @Override
