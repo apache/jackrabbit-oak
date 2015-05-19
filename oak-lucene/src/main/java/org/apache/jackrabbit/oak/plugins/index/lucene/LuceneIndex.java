@@ -349,23 +349,31 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                         TopDocs docs;
                         long time = System.currentTimeMillis();
                         checkForIndexVersionChange(searcher);
-                        if (lastDoc != null) {
-                            LOG.debug("loading the next {} entries for query {}", nextBatchSize, query);
-                            docs = searcher.searchAfter(lastDoc, query, nextBatchSize);
-                        } else {
-                            LOG.debug("loading the first {} entries for query {}", nextBatchSize, query);
-                            docs = searcher.search(query, nextBatchSize);
-                        }
-                        time = System.currentTimeMillis() - time;
-                        LOG.debug("... took {} ms", time);
-                        nextBatchSize = (int) Math.min(nextBatchSize * 2L, 100000);
-
-                        for (ScoreDoc doc : docs.scoreDocs) {
-                            LuceneResultRow row = convertToRow(doc, searcher);
-                            if (row != null) {
-                                queue.add(row);
+                        while (true) {
+                            if (lastDoc != null) {
+                                LOG.debug("loading the next {} entries for query {}", nextBatchSize, query);
+                                docs = searcher.searchAfter(lastDoc, query, nextBatchSize);
+                            } else {
+                                LOG.debug("loading the first {} entries for query {}", nextBatchSize, query);
+                                docs = searcher.search(query, nextBatchSize);
                             }
-                            lastDocToRecord = doc;
+                            time = System.currentTimeMillis() - time;
+                            LOG.debug("... took {} ms", time);
+                            nextBatchSize = (int) Math.min(nextBatchSize * 2L, 100000);
+
+                            for (ScoreDoc doc : docs.scoreDocs) {
+                                LuceneResultRow row = convertToRow(doc, searcher);
+                                if (row != null) {
+                                    queue.add(row);
+                                }
+                                lastDocToRecord = doc;
+                            }
+
+                            if (queue.isEmpty() && docs.scoreDocs.length > 0) {
+                                lastDoc = lastDocToRecord;
+                            } else {
+                                break;
+                            }
                         }
                     } else if (luceneRequestFacade.getLuceneRequest() instanceof SpellcheckHelper.SpellcheckQuery) {
                         SpellcheckHelper.SpellcheckQuery spellcheckQuery = (SpellcheckHelper.SpellcheckQuery) luceneRequestFacade.getLuceneRequest();
