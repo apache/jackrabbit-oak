@@ -54,6 +54,15 @@ public abstract class AbstractBlob implements Blob {
             return false; // blobs not equal, given known and non-equal lengths
         }
 
+        String ai = a.getContentIdentity();
+        String bi = b.getContentIdentity();
+
+        //Check for identity first. If they are same then its
+        //definitely same blob. If not we need to check further.
+        if (ai != null && bi != null && ai.equals(bi)){
+            return true;
+        }
+
         try {
             return ByteStreams.equal(supplier(a), supplier(b));
         } catch (IOException e) {
