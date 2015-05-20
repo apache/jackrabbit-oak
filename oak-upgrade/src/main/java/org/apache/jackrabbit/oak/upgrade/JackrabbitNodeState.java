@@ -247,7 +247,10 @@ class JackrabbitNodeState extends AbstractNodeState {
                     throw new IllegalStateException(
                             "Unable to access child node " + name, e);
                 }
-                warn("Skipping broken child node entry " + name, e);
+                warn("Skipping broken child node entry " + name + " and changing the primary type to nt:unstructured", e);
+                properties.put(JCR_PRIMARYTYPE, PropertyStates.createProperty(
+                        JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME));
+
             }
         }
         checkValidName(name);
