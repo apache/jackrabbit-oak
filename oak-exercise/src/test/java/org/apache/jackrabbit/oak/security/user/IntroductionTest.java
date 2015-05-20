@@ -50,6 +50,19 @@ import org.slf4j.LoggerFactory;
  *   Question: What are the characteristics of this areas? E.g. are they configurable/pluggable?
  *   Question: What can you say about the usage of user management in the authorization code base?
  *
+ * - Configuration
+ *   Look at the default implementation of the {@link org.apache.jackrabbit.oak.spi.security.user.UserConfiguration}
+ *   and try to identify the configurable parts. Compare your results with the
+ *   Oak documentation.
+ *
+ *   Question: Can you provide a list of configuration options?
+ *
+ * - Pluggability
+ *   Starting from the {@link UserConfiguration} again, investigate
+ *   how the default implementation could be replaced.
+ *
+ *   Question: Is it possible to combine different user management implementations?
+ *
  *
  * Advanced Exercises:
  * -----------------------------------------------------------------------------

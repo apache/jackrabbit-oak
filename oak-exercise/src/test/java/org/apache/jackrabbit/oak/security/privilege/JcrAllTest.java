@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * <pre>
- * Module: Privilege Management | Authorization
+ * Module: Privilege Management
  * =============================================================================
  *
  * Title: The Privilege 'jcr:all'

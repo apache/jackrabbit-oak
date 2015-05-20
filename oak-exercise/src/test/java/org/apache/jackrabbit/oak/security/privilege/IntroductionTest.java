@@ -22,14 +22,16 @@ import org.slf4j.LoggerFactory;
 
 /**
  * <pre>
- * Module: TODO
+ * Module: Privilege Management
  * =============================================================================
  *
- * Title: IntroductionTest
+ * Title: Introduction
  * -----------------------------------------------------------------------------
  *
  * Goal:
- * TODO
+ * Become familiar with the Privilege Management API defined by the Jackrabbit API
+ * and understand how privileges are used internally in Oak.
+ *
  *
  * Exercises:
  *
@@ -43,7 +45,7 @@ import org.slf4j.LoggerFactory;
  *
  * </pre>
  *
- * @see TODO
+ * @see org.apache.jackrabbit.oak.security.privilege.PrivilegeManagerTest
  */
 public class IntroductionTest extends AbstractSecurityTest {
 

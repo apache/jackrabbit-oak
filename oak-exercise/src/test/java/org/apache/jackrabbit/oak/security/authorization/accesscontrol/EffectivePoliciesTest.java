@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * <pre>
- * Module: TODO
+ * Module: Authorization (Access Control Management)
  * =============================================================================
  *
  * Title: EffectivePoliciesTest

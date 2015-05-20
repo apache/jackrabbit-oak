@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.general;
+package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.slf4j.Logger;
@@ -22,18 +22,24 @@ import org.slf4j.LoggerFactory;
 
 /**
  * <pre>
- * Module: TODO
+ * Module: Authorization (Access Control Management)
  * =============================================================================
  *
- * Title: SecurityProviderTest
+ * Title: Introduction to Access Control Management
  * -----------------------------------------------------------------------------
  *
  * Goal:
- * TODO
+ * Become familiar with the JCR Access Control Management API and the extensions
+ * provided by Jackrabbit API. Understand how access control management is
+ * used and exposed in Oak.
  *
  * Exercises:
  *
- * - {@link #TODO}
+ * - Overview
+ *   TODO
+ *
+ * - Configuration
+ *   TODO
  *
  *
  * Additional Exercises:
@@ -45,7 +51,7 @@ import org.slf4j.LoggerFactory;
  *
  * @see TODO
  */
-public class SecurityProviderTest extends AbstractSecurityTest {
+public class IntroductionTest extends AbstractSecurityTest {
 
 
 }

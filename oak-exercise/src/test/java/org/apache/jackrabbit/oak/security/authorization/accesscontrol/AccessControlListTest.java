@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,29 +26,34 @@ import org.slf4j.LoggerFactory;
  * Module: Authorization (Access Control Management)
  * =============================================================================
  *
- * Title: Privilege Discovery
+ * Title: Access Control List in Detail
  * -----------------------------------------------------------------------------
  *
  * Goal:
- * TODO
+ * Learn to use additional ways to modify an JCR or Jackrabbit ACL.
  *
  * Exercises:
  *
  * - {@link #TODO}
  *
  *
- * Additional Exercises:
+ * Related Exercises:
  * -----------------------------------------------------------------------------
  *
- * TODO
+ * - {@link org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlListImplTest}
+ * - {@link org.apache.jackrabbit.oak.security.authorization.accesscontrol.RestrictionsTest}
  *
  * </pre>
  *
- * @see TODO
+ * @see javax.jcr.security.AccessControlList
+ * @see org.apache.jackrabbit.api.security.JackrabbitAccessControlList
+ * @see javax.jcr.security.AccessControlEntry
+ * @see org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry
  */
-public class PrivilegeDiscovery extends AbstractSecurityTest {
+public class AccessControlListTest extends AbstractJCRTest {
 
-    // TODO; diff wrt session.haspermission
-    // TODO: Acmgr.hasPrivilege || getPrivileges
 
+    // TODO: remove entries
+    // TODO: getPath
+    // TODO: reorder entries
 }

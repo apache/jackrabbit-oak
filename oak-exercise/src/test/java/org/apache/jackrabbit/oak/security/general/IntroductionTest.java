@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
+package org.apache.jackrabbit.oak.security.general;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.slf4j.Logger;
@@ -22,10 +22,10 @@ import org.slf4j.LoggerFactory;
 
 /**
  * <pre>
- * Module: TODO
+ * Module: Security General
  * =============================================================================
  *
- * Title: AccessControlManagement
+ * Title: Introduction
  * -----------------------------------------------------------------------------
  *
  * Goal:
@@ -45,13 +45,7 @@ import org.slf4j.LoggerFactory;
  *
  * @see TODO
  */
-public class AccessControlManagementTest extends AbstractSecurityTest {
+public class IntroductionTest extends AbstractSecurityTest {
 
-    // TODO JCR vs Jackrabbit API
-
-    // TODO Jackrabbit Utilities
-
-    // TODO : omit setPolicy
-    // TODO : omit save call
 
 }

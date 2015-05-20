@@ -25,11 +25,12 @@ import org.slf4j.LoggerFactory;
  * Module: Authorization (Access Control Management)
  * =============================================================================
  *
- * Title: Privilege Discovery
+ * Title: AccessControlList Implementation Details
  * -----------------------------------------------------------------------------
  *
  * Goal:
- * TODO
+ * Understand some of the implementation details applied by the default
+ * access control list provided by the Oak access control management.
  *
  * Exercises:
  *
@@ -39,15 +40,20 @@ import org.slf4j.LoggerFactory;
  * Additional Exercises:
  * -----------------------------------------------------------------------------
  *
- * TODO
+ * The JCR specification mandates the that the principal used to create an ACE
+ * is known to the system.
+ *
+ * - Investigate how the Oak repository can be configured such that creating
+ *   ACEs with unknown principals would still succeed.
+ *
+ *   Question: Can you name the configuration option and list the allowed values? What are the differences?
+ *   Question: Can you find other places in the access control management code
+ *             base where this is being used?
+ *   Question: Can you imagine the use cases for such a different or relaxed behaviour?
  *
  * </pre>
- *
- * @see TODO
  */
-public class PrivilegeDiscovery extends AbstractSecurityTest {
+public class AccessControlListImplTest extends AbstractSecurityTest {
 
-    // TODO; diff wrt session.haspermission
-    // TODO: Acmgr.hasPrivilege || getPrivileges
 
 }

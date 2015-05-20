@@ -32,7 +32,7 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  * Module: Authentication
  * =============================================================================
  *
- * Title: Null Login with PrePopulated Subject
+ * Title: Null Login with PrePopulated Subject (Pre-Authentication without LoginModule)
  * -----------------------------------------------------------------------------
  *
  * Goal:
@@ -70,6 +70,8 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  * - {@link org.apache.jackrabbit.oak.security.authentication.PreAuthTest}
  *
  * </pre>
+ *
+ * @see <a href="http://jackrabbit.apache.org/oak/docs/security/authentication/preauthentication.html">Pre-Authentication Documentation</a>
  */
 public class NullLoginTest extends AbstractJCRTest {
 

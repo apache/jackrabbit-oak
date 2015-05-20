@@ -22,10 +22,10 @@ import org.slf4j.LoggerFactory;
 
 /**
  * <pre>
- * Module: TODO
+ * Module: Authorization (Permission Evaluation)
  * =============================================================================
  *
- * Title: PermissionStoreTest
+ * Title: PermissionStore
  * -----------------------------------------------------------------------------
  *
  * Goal:

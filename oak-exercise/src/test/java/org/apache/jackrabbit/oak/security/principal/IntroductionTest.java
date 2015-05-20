@@ -43,11 +43,24 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  *
  *   Question: Where is the principal manager|provider being used?
  *   Question: Who is the expected API consumer?
- *   Question: What are the characteristics of this areas? E.g. are they configurable/pluggable?
+ *   Question: What are the characteristics of this areas?
  *   Question: What can you say about the relation of principal management and authentication?
  *   Question: What can you say about the relation of principal management and authorization?
  *
- * - {@link testHasPrincipal()}
+ *
+ * - Configuration
+ *   Look at the default implementation of the {@link org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfigurationConfiguration}
+ *   and try to identify the configurable parts. Compare your results with the
+ *   Oak documentation.
+ *
+ *   Question: Can you provide a list of configuration options?
+ *
+ * - Pluggability
+ *   Become familar with the pluggable nature of the principal management
+ *   Question: What means does Oak provide to change or extend the set of principals exposed?
+ *   Question: What interfaces do you need to implement?
+ *
+ *   Question: Is it possible to combine different principal implementations? How does that work?
  *
  *
  * Additional Exercises:
@@ -56,10 +69,6 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  * - Discuss why principal management API is read only.
  *   Question: How are principals exposed by the {@link PrincipalManager} collected?
  *   Question: How does the default implementation look like?
- *
- * - Become familar with the pluggable nature of the principal management
- *   Question: What means does Oak provide to change or extend the set of principals exposed?
- *   Question: What interfaces do you need to implement?
  *
  *
  * Advanced Exercises:

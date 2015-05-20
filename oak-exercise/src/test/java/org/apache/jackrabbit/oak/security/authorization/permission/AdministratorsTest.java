@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authorization;
+package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.slf4j.Logger;
@@ -22,10 +22,10 @@ import org.slf4j.LoggerFactory;
 
 /**
  * <pre>
- * Module: TODO
+ * Module: Authorization (Permission Evaluation)
  * =============================================================================
  *
- * Title: AdministratorsTest
+ * Title: Administrative Permissions
  * -----------------------------------------------------------------------------
  *
  * Goal:

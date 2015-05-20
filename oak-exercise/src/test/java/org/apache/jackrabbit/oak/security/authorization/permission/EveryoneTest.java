@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
+package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.slf4j.Logger;
@@ -22,10 +22,10 @@ import org.slf4j.LoggerFactory;
 
 /**
  * <pre>
- * Module: Authorization (Access Control Management)
+ * Module: Authorization (Permission Evaluation)
  * =============================================================================
  *
- * Title: Privilege Discovery
+ * Title: EveryoneTest
  * -----------------------------------------------------------------------------
  *
  * Goal:
@@ -45,9 +45,9 @@ import org.slf4j.LoggerFactory;
  *
  * @see TODO
  */
-public class PrivilegeDiscovery extends AbstractSecurityTest {
+public class EveryoneTest extends AbstractSecurityTest {
 
-    // TODO; diff wrt session.haspermission
-    // TODO: Acmgr.hasPrivilege || getPrivileges
+    // TODO : administrators member of everyone
+    // TODO : system-users -> member of everyone but user principal
 
 }

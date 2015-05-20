@@ -22,10 +22,10 @@ import org.slf4j.LoggerFactory;
 
 /**
  * <pre>
- * Module: TODO
+ * Module: Privilege Management
  * =============================================================================
  *
- * Title: PrivilegeManagerTest
+ * Title: PrivilegeManager
  * -----------------------------------------------------------------------------
  *
  * Goal:
