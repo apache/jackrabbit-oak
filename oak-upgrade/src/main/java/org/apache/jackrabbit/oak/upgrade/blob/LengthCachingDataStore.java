@@ -118,6 +118,19 @@ public class LengthCachingDataStore extends AbstractDataStore {
     }
 
     @Override
+    public DataRecord getRecordFromReference(String reference) throws DataStoreException {
+        //Override the getRecordFromReference so that reference handling does not
+        //trigger a call to FS
+        if (reference != null) {
+            int colon = reference.indexOf(':');
+            if (colon != -1) {
+                return getRecordIfStored(new DataIdentifier(reference.substring(0, colon)));
+            }
+        }
+        return null;
+    }
+
+    @Override
     public DataRecord addRecord(InputStream inputStream) throws DataStoreException {
         checkIfReadOnly();
         DataRecord result = getDelegate().addRecord(inputStream);
