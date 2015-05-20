@@ -158,6 +158,19 @@ public class LengthCachingDataStoreTest {
 
     }
 
+    @Test
+    public void referenceHandling() throws Exception{
+        int minSize =  new FileDataStore().getMinRecordLength();
+        LengthCachingDataStore fds = new LengthCachingDataStore();
+        fds.setDelegateClass(FileDataStore.class.getName());
+        fds.init(tempFolder.newFolder().getAbsolutePath());
+        fds.setReadOnly(false);
+
+        DataRecord dr1 = fds.addRecord(byteStream(minSize + 10));
+        assertNotNull(fds.getRecordFromReference(dr1.getReference()));
+        assertEquals(dr1.getIdentifier(), fds.getRecordFromReference(dr1.getReference()).getIdentifier());
+    }
+
     private InputStream byteStream(int size) {
         return new ByteArrayInputStream(bytes(size));
     }
