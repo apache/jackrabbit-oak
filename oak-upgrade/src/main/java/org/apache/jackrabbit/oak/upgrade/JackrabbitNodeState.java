@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.upgrade;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.addAll;
+import static com.google.common.collect.Iterables.skip;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newHashMap;
@@ -120,6 +121,8 @@ class JackrabbitNodeState extends AbstractNodeState {
 
     private final TypePredicate isFrozenNode;
 
+    private final boolean skipOnError;
+
     /**
      * Source namespace mappings (URI -&lt; prefix).
      */
@@ -134,7 +137,8 @@ class JackrabbitNodeState extends AbstractNodeState {
     private final Map<String, PropertyState> properties;
 
     private JackrabbitNodeState(
-            JackrabbitNodeState parent, String name, NodePropBundle bundle) {
+            JackrabbitNodeState parent, String name, NodePropBundle bundle,
+            boolean skipOnError) {
         this.parent = parent;
         this.name = name;
         this.path = null;
@@ -150,6 +154,7 @@ class JackrabbitNodeState extends AbstractNodeState {
         this.useBinaryReferences = parent.useBinaryReferences;
         this.properties = createProperties(bundle);
         this.nodes = createNodes(bundle);
+        this.skipOnError = skipOnError;
         setChildOrder();
         setVersionablePaths();
         fixFrozenUuid();
@@ -160,7 +165,7 @@ class JackrabbitNodeState extends AbstractNodeState {
             PersistenceManager source, NodeState root,
             Map<String, String> uriToPrefix, NodeId id, String path,
             String workspaceName, Map<String, String> versionablePaths,
-            boolean useBinaryReferences) {
+            boolean useBinaryReferences, boolean skipOnError) {
         this.parent = null;
         this.name = null;
         this.path = path;
@@ -174,6 +179,7 @@ class JackrabbitNodeState extends AbstractNodeState {
         this.uriToPrefix = uriToPrefix;
         this.versionablePaths = versionablePaths;
         this.useBinaryReferences = useBinaryReferences;
+        this.skipOnError = skipOnError;
         try {
             NodePropBundle bundle = loader.loadBundle(id);
             this.properties = createProperties(bundle);
@@ -235,10 +241,13 @@ class JackrabbitNodeState extends AbstractNodeState {
         if (id != null) {
             try {
                 return new JackrabbitNodeState(
-                        this, name, loader.loadBundle(id));
+                        this, name, loader.loadBundle(id), skipOnError);
             } catch (ItemStateException e) {
-                throw new IllegalStateException(
-                        "Unable to access child node " + name, e);
+                if (!skipOnError) {
+                    throw new IllegalStateException(
+                            "Unable to access child node " + name, e);
+                }
+                warn("Skipping broken child node entry " + name, e);
             }
         }
         checkValidName(name);
@@ -258,7 +267,7 @@ class JackrabbitNodeState extends AbstractNodeState {
             String name = entry.getKey();
             try {
                 JackrabbitNodeState child = new JackrabbitNodeState(
-                        this, name, loader.loadBundle(entry.getValue()));
+                        this, name, loader.loadBundle(entry.getValue()), skipOnError);
                 entries.add(new MemoryChildNodeEntry(name, child));
             } catch (ItemStateException e) {
                 warn("Skipping broken child node entry " + name, e);

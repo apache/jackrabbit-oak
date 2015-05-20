@@ -137,6 +137,8 @@ public class RepositoryUpgrade {
 
     private boolean copyBinariesByReference = false;
 
+    private boolean skipOnError = false;
+
     private List<CommitHook> customCommitHooks = null;
 
     /**
@@ -189,6 +191,14 @@ public class RepositoryUpgrade {
 
     public void setCopyBinariesByReference(boolean copyBinariesByReference) {
         this.copyBinariesByReference = copyBinariesByReference;
+    }
+
+    public boolean isSkipOnError() {
+        return skipOnError;
+    }
+
+    public void setSkipOnError(boolean skipOnError) {
+        this.skipOnError = skipOnError;
     }
 
     /**
@@ -677,13 +687,13 @@ public class RepositoryUpgrade {
         copyState(system, JCR_VERSIONSTORAGE, new JackrabbitNodeState(
                 pm, root, uriToPrefix, VERSION_STORAGE_NODE_ID,
                 "/jcr:system/jcr:versionStorage",
-                workspaceName, versionablePaths, copyBinariesByReference));
+                workspaceName, versionablePaths, copyBinariesByReference, skipOnError));
 
         logger.info("Copying activities");
         copyState(system, "jcr:activities", new JackrabbitNodeState(
                 pm, root, uriToPrefix, ACTIVITIES_NODE_ID,
                 "/jcr:system/jcr:activities",
-                workspaceName, versionablePaths, copyBinariesByReference));
+                workspaceName, versionablePaths, copyBinariesByReference, skipOnError));
     }
 
     private String copyWorkspace(
@@ -697,7 +707,7 @@ public class RepositoryUpgrade {
 
         NodeState state = new JackrabbitNodeState(
                 pm, root, uriToPrefix, ROOT_NODE_ID, "/",
-                workspaceName, versionablePaths, copyBinariesByReference);
+                workspaceName, versionablePaths, copyBinariesByReference, skipOnError);
 
         for (PropertyState property : state.getProperties()) {
             builder.setProperty(property);
