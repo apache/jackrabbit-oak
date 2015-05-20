@@ -459,7 +459,33 @@ public class PropertyIndexTest {
                 Type.STRINGS);
         NodeState after = builder.getNodeState();
 
-        HOOK.processCommit(before, after, CommitInfo.EMPTY); // should throw
+        // should throw
+        HOOK.processCommit(before, after, CommitInfo.EMPTY); 
+    }
+    
+    @Test
+    public void testUpdateUnique() throws Exception {
+        NodeState root = EMPTY_NODE;
+
+        NodeBuilder builder = root.builder();
+        createIndexDefinition(
+                builder.child(INDEX_DEFINITIONS_NAME),
+                "fooIndex", true, true, ImmutableSet.of("foo"), null);
+        NodeState before = builder.getNodeState();
+        builder.child("a").setProperty("foo", "abc");
+        NodeState after = builder.getNodeState();
+        NodeState done = HOOK.processCommit(before, after, CommitInfo.EMPTY); 
+
+        // remove, and then re-add the same node
+        builder = done.builder();
+        builder.child("a").setProperty("foo", "abc");
+        after = builder.getNodeState();
+        
+        // apply the changes to the state before adding the entries
+        done = HOOK.processCommit(before, after, CommitInfo.EMPTY); 
+        
+        // re-apply the changes
+        done = HOOK.processCommit(done, after, CommitInfo.EMPTY); 
     }
 
     @Test

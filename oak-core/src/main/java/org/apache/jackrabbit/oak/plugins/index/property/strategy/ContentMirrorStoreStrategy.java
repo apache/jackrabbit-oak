@@ -576,4 +576,14 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
             }
         }
     }
+
+    @Override
+    public boolean exists(NodeBuilder index, String key) {
+        // This is currently not implemented, because there is no test case for it,
+        // and because there is currently no need for this method with this class.
+        // We would need to traverse the tree and search for an entry "match".
+        // See also OAK-2663 for a potential (but untested) implementation.
+        throw new UnsupportedOperationException();
+   }
+
 }
