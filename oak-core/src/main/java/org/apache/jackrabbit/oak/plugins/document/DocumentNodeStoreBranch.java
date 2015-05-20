@@ -55,7 +55,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
     private static final PerfLogger perfLogger = new PerfLogger(
             LoggerFactory.getLogger(DocumentNodeStoreBranch.class.getName()
                     + ".perf"));
-    private static final int MAX_LOCK_TRY_TIME_MULTIPLIER = Integer.getInteger("oak.maxLockTryTimeMultiplier", 3);
+    private static final int MAX_LOCK_TRY_TIME_MULTIPLIER = Integer.getInteger("oak.maxLockTryTimeMultiplier", 30);
 
     private static final ConcurrentMap<Thread, DocumentNodeStoreBranch> BRANCHES = Maps.newConcurrentMap();
     private static final Random RANDOM = new Random();
