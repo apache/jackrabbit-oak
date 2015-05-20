@@ -555,6 +555,39 @@ var oak = (function(global){
         return getRevisionEntry(doc, commitRootPath, revision);
     };
     
+    /**
+     * Prints mongoexport command to export all documents related to given path.
+     * Related documents refer to all documents in the hierarchy and their split documents.
+     * e.g.
+     * > oak.printMongoExportCommand("/etc", {db: "aem-author"})
+     *
+     * @memberof oak
+     * @method printMongoExportCommand
+     * @param {string} path the path of the document.
+     * @param {object} options pass optional parameters for host, port, db, and filename 
+     * @returns {string} command line which can be used to export documents using mongoexport
+     */
+
+    api.printMongoExportCommand = function (path, options) {
+        options = options || {};
+        var host = options.host || "127.0.0.1";
+        var port = options.port || "27017";
+        var db = options.db || "oak";
+        var filename = options.filename || "all-required-nodes.json"
+
+        var query = JSON.stringify(getDocAndHierarchyQuery(path));
+
+        var mongoExportCommand = "mongoexport"
+                                    + " --host " + host
+                                    + " --port " + port
+                                    + " --db " + db
+                                    + " --collection nodes"
+                                    + " --out " + filename
+                                    + " --query '" + query + "'";
+
+        return mongoExportCommand;
+    };
+
     //~--------------------------------------------------< internal >
 
     var checkOrFixDeepHistory = function(path, fix, prepare, verbose) {
@@ -899,6 +932,41 @@ var oak = (function(global){
     // http://stackoverflow.com/questions/3561493/is-there-a-regexp-escape-function-in-javascript
     var escapeForRegExp = function(s) {
         return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    };
+
+    var getDocAndHierarchyQuery = function (path) {
+        var paths = getHierarchyPaths(path);
+
+        var ins = [];
+        var ors = [];
+        paths.forEach(function (path) {
+            ins.push(pathDepth(path) + ':' + path);
+
+            var depth = pathDepth(path);
+            var splitDocRegex = '^' + (depth+2) + ':p' + path + (depth==0?'':'/');
+
+            ors.push({_id : {$regex : splitDocRegex}});
+        });
+
+        ors.push({_id : {$in : ins}});
+
+        return {$or : ors}
+    };
+
+    var getHierarchyPaths = function (path) {
+        var pathElems = path.split("/");
+        var lastPath = "";
+        var paths = ["/"];
+
+        pathElems.forEach(function (pathElem) {
+            //avoid empty path elems like "/".split("/")->["", ""] or "/a".split("/")->["", "a"]
+            if (pathElem != "") {
+                lastPath = lastPath + "/" + pathElem;
+                paths.push(lastPath);
+            }
+        });
+
+        return paths;
     };
 
     return api;
