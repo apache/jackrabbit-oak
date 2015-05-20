@@ -173,7 +173,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
     public NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info)
             throws CommitFailedException {
         try {
-            return merge0(hook, info);
+            return merge0(hook, info, false);
         } catch (CommitFailedException e) {
             if (!e.isOfType(MERGE)) {
                 throw e;
@@ -181,20 +181,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         }
         // retry with exclusive lock, blocking other
         // concurrent writes
-        // do not wait forever
-        Lock lock = null;
-        try {
-            lock = acquireMergeLock(true);
-        } catch (InterruptedException e) {
-            // ignore and proceed with shared lock used in base class
-        }
-        try {
-            return merge0(hook, info);
-        } finally {
-            if (lock != null) {
-                lock.unlock();
-            }
-        }
+        return merge0(hook, info, true);
     }
 
     @Override
@@ -210,7 +197,9 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
     //------------------------------< internal >--------------------------------
 
     @Nonnull
-    private NodeState merge0(@Nonnull CommitHook hook, @Nonnull CommitInfo info)
+    private NodeState merge0(@Nonnull CommitHook hook,
+                             @Nonnull CommitInfo info,
+                             boolean exclusive)
             throws CommitFailedException {
         CommitFailedException ex = null;
         long time = System.currentTimeMillis();
@@ -229,7 +218,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             }
             try {
                 final long start = perfLogger.start();
-                Lock lock = acquireMergeLock(false);
+                Lock lock = acquireMergeLock(exclusive);
                 try {
                     perfLogger.end(start, 1, "Merge - Acquired lock");
                     return branchState.merge(checkNotNull(hook), checkNotNull(info));
