@@ -20,12 +20,15 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.InputStream;
+import java.io.IOException;
 import java.text.ParseException;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
@@ -59,7 +62,10 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.util.ISO8601;
+import org.junit.After;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static com.google.common.collect.ImmutableSet.of;
 import static java.util.Arrays.asList;
@@ -94,6 +100,11 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
      */
     static final int NUMBER_OF_NODES = LucenePropertyIndex.LUCENE_QUERY_BATCH_SIZE * 2;
 
+    private ExecutorService executorService = Executors.newFixedThreadPool(2);
+
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
     @Override
     protected void createTestIndexNode() throws Exception {
         setTraversalEnabled(false);
@@ -107,10 +118,23 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
                 .with(new OpenSecurityProvider())
                 .with((QueryIndexProvider) provider)
                 .with((Observer) provider)
-                .with(new LuceneIndexEditorProvider())
+                .with(new LuceneIndexEditorProvider(createIndexCopier()))
                 .with(new PropertyIndexEditorProvider())
                 .with(new NodeTypeIndexProvider())
                 .createContentRepository();
+    }
+
+    private IndexCopier createIndexCopier() {
+        try {
+            return new IndexCopier(executorService, temporaryFolder.getRoot());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @After
+    public void shutdownExecutor(){
+        executorService.shutdown();
     }
 
     private Tree createFulltextIndex(Tree index, String name) throws CommitFailedException {

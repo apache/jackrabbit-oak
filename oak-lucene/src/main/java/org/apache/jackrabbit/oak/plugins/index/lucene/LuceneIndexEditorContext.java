@@ -30,6 +30,8 @@ import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
@@ -58,14 +60,16 @@ public class LuceneIndexEditorContext {
     private static final PerfLogger PERF_LOGGER =
             new PerfLogger(LoggerFactory.getLogger(LuceneIndexEditorContext.class.getName() + ".perf"));
 
-    static IndexWriterConfig getIndexWriterConfig(IndexDefinition definition) {
+    static IndexWriterConfig getIndexWriterConfig(IndexDefinition definition, boolean remoteDir) {
         // FIXME: Hack needed to make Lucene work in an OSGi environment
         Thread thread = Thread.currentThread();
         ClassLoader loader = thread.getContextClassLoader();
         thread.setContextClassLoader(IndexWriterConfig.class.getClassLoader());
         try {
             IndexWriterConfig config = new IndexWriterConfig(VERSION, definition.getAnalyzer());
-            config.setMergeScheduler(new SerialMergeScheduler());
+            if (remoteDir) {
+                config.setMergeScheduler(new SerialMergeScheduler());
+            }
             if (definition.getCodec() != null) {
                 config.setCodec(definition.getCodec());
             }
@@ -99,8 +103,6 @@ public class LuceneIndexEditorContext {
         }
     }
 
-    private final IndexWriterConfig config;
-
     private static final Parser defaultParser = createDefaultParser();
 
     private final IndexDefinition definition;
@@ -117,6 +119,10 @@ public class LuceneIndexEditorContext {
 
     private Parser parser;
 
+    @Nullable
+    private final IndexCopier indexCopier;
+
+
     private Directory directory;
 
     private final TextExtractionStats textExtractionStats = new TextExtractionStats();
@@ -126,10 +132,11 @@ public class LuceneIndexEditorContext {
      */
     private Set<MediaType> supportedMediaTypes;
 
-    LuceneIndexEditorContext(NodeState root, NodeBuilder definition, IndexUpdateCallback updateCallback) {
+    LuceneIndexEditorContext(NodeState root, NodeBuilder definition, IndexUpdateCallback updateCallback,
+                             @Nullable IndexCopier indexCopier) {
         this.definitionBuilder = definition;
+        this.indexCopier = indexCopier;
         this.definition = new IndexDefinition(root, definition);
-        this.config = getIndexWriterConfig(this.definition);
         this.indexedNodes = 0;
         this.updateCallback = updateCallback;
 
@@ -149,6 +156,13 @@ public class LuceneIndexEditorContext {
         if (writer == null) {
             final long start = PERF_LOGGER.start();
             directory = newIndexDirectory(definition, definitionBuilder);
+            IndexWriterConfig config;
+            if (indexCopier != null){
+                directory = indexCopier.wrapForWrite(definition, directory, reindex);
+                config = getIndexWriterConfig(definition, false);
+            } else {
+                config = getIndexWriterConfig(definition, true);
+            }
             writer = new IndexWriter(directory, config);
             PERF_LOGGER.end(start, -1, "Created IndexWriter for directory {}", definition);
         }
