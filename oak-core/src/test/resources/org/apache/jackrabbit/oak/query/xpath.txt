@@ -24,6 +24,30 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
+# order by @jcr:score
+xpath2sql /jcr:root/content//*[jcr:contains(., 'x')] order by @jcr:score descending
+select [jcr:path], [jcr:score], *
+  from [nt:base] as a
+  where contains(*, 'x')
+  and isdescendantnode(a, '/content')
+  /* xpath ... */
+
+xpath2sql /jcr:root/content//*[jcr:contains(., 'x')] order by @jcr:score ascending
+select [jcr:path], [jcr:score], *
+  from [nt:base] as a
+  where contains(*, 'x')
+  and isdescendantnode(a, '/content')
+  order by [jcr:score]
+  /* xpath ... */
+
+xpath2sql /jcr:root/content//*[jcr:contains(., 'x')] order by @title
+select [jcr:path], [jcr:score], *
+  from [nt:base] as a
+  where contains(*, 'x')
+  and isdescendantnode(a, '/content')
+  order by [title]
+  /* xpath ... */
+
 # "or" problem
 xpath2sql /jcr:root/content//*[(@i = '1' or @i = '2') or (@t = 'a' or @t = 'b')]
 select [jcr:path], [jcr:score], *
