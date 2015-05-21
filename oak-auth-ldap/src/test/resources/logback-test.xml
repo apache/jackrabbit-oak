@@ -29,14 +29,14 @@
         </encoder>
     </appender>
 
-    <logger name="org.apache.directory.ldap" level="DEBUG" />
-    <logger name="org.apache.jackrabbit.oak.security.authentication.ldap" level="DEBUG" />
+    <!--<logger name="org.apache.directory.ldap" level="DEBUG" />-->
+    <!--<logger name="org.apache.jackrabbit.oak.security.authentication.ldap" level="DEBUG" />-->
 
     <root level="INFO">
         <!--
-        <appender-ref ref="file"/>
-        -->
         <appender-ref ref="console"/>
+        -->
+        <appender-ref ref="file"/>
     </root>
 
 </configuration>

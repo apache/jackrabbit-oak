@@ -31,6 +31,10 @@
     <name>Oak LDAP Authentication Support</name>
     <packaging>bundle</packaging>
 
+    <properties>
+        <apacheds.test.version>2.0.0-M20</apacheds.test.version>
+    </properties>
+
     <build>
         <plugins>
             <plugin>
@@ -41,6 +45,7 @@
                         <Import-Package>
                             !org.dom4j.*,
                             !org.xmlpull.v1,
+                            !sun.net.util,
                             *
                         </Import-Package>
                         <Embed-Dependency>
@@ -171,24 +176,7 @@
             <artifactId>logback-classic</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.apache.directory.server</groupId>
-            <artifactId>apacheds-all</artifactId>
-            <version>2.0.0-M20</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.directory.server</groupId>
-            <artifactId>apacheds-server-unit</artifactId>
-            <version>1.5.5</version>
-            <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.directory.server</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
+
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-core</artifactId>
@@ -204,5 +192,169 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- test dependencies for apache DS server. -->
+        <!-- note: we don't include apacheds-all since we then have a duplicate schema ldiff in the classpath -->
+        <dependency>
+            <groupId>org.apache.directory.server</groupId>
+            <artifactId>apacheds-core</artifactId>
+            <version>${apacheds.test.version}</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.directory.api</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.directory.server</groupId>
+            <artifactId>apacheds-core-annotations</artifactId>
+            <version>${apacheds.test.version}</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.directory.api</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.directory.server</groupId>
+            <artifactId>apacheds-core-api</artifactId>
+            <version>${apacheds.test.version}</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.directory.api</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.directory.server</groupId>
+            <artifactId>apacheds-core-avl</artifactId>
+            <version>${apacheds.test.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.directory.server</groupId>
+            <artifactId>apacheds-core-constants</artifactId>
+            <version>${apacheds.test.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.directory.server</groupId>
+            <artifactId>apacheds-core-jndi</artifactId>
+            <version>${apacheds.test.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.directory.server</groupId>
+            <artifactId>apacheds-interceptor-kerberos</artifactId>
+            <version>${apacheds.test.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.directory.server</groupId>
+            <artifactId>apacheds-kerberos-codec</artifactId>
+            <version>${apacheds.test.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.directory.server</groupId>
+            <artifactId>apacheds-ldif-partition</artifactId>
+            <version>${apacheds.test.version}</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.directory.api</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.directory.server</groupId>
+            <artifactId>apacheds-protocol-dhcp</artifactId>
+            <version>${apacheds.test.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.directory.server</groupId>
+            <artifactId>apacheds-protocol-dns</artifactId>
+            <version>${apacheds.test.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.directory.server</groupId>
+            <artifactId>apacheds-protocol-kerberos</artifactId>
+            <version>${apacheds.test.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.directory.server</groupId>
+            <artifactId>apacheds-protocol-ldap</artifactId>
+            <version>${apacheds.test.version}</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.directory.api</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.directory.server</groupId>
+            <artifactId>apacheds-protocol-ntp</artifactId>
+            <version>${apacheds.test.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.directory.server</groupId>
+            <artifactId>apacheds-protocol-shared</artifactId>
+            <version>${apacheds.test.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.directory.server</groupId>
+            <artifactId>apacheds-server-annotations</artifactId>
+            <version>${apacheds.test.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.directory.server</groupId>
+            <artifactId>apacheds-server-config</artifactId>
+            <version>${apacheds.test.version}</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.directory.api</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.directory.server</groupId>
+            <artifactId>apacheds-server-jndi</artifactId>
+            <version>${apacheds.test.version}</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.directory.api</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.directory.server</groupId>
+            <artifactId>apacheds-xdbm-partition</artifactId>
+            <version>${apacheds.test.version}</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.directory.api</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
     </dependencies>
 </project>

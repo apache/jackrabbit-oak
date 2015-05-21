@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap;
 
-import java.io.InputStream;
-
 import javax.naming.directory.BasicAttributes;
 import javax.naming.directory.DirContext;
 import javax.naming.ldap.LdapContext;
@@ -55,7 +53,7 @@ class InternalLdapServer extends AbstractServer {
                 .append('\n').append("givenName:").append(firstName)
                 .append('\n').append("uid: ").append(userId)
                 .append('\n').append("userPassword: ").append(password).append("\n\n");
-        injectEntries(entries.toString());
+        addEntry(entries.toString());
         return dn;
     }
 
@@ -65,7 +63,7 @@ class InternalLdapServer extends AbstractServer {
         entries.append("dn: ").append(dn).append('\n').append("objectClass: ")
                 .append(GROUP_CLASS_ATTR).append('\n').append(GROUP_MEMBER_ATTR)
                 .append(":\n").append("cn: ").append(name).append("\n\n");
-        injectEntries(entries.toString());
+        addEntry(entries.toString());
         return dn;
     }
 
@@ -81,10 +79,6 @@ class InternalLdapServer extends AbstractServer {
         BasicAttributes attrs = new BasicAttributes();
         attrs.put("member", memberDN);
         ctxt.modifyAttributes(groupDN, DirContext.REMOVE_ATTRIBUTE, attrs);
-    }
-
-    public void loadLdif(InputStream in) throws Exception {
-        super.loadLdif(in, false);
     }
 
     private static String buildDn(String name, boolean isGroup) {
