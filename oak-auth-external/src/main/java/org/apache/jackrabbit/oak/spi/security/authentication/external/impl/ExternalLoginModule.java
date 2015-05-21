@@ -277,6 +277,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
             }
             return true;
         }
+        clearState();
         return false;
     }
 
