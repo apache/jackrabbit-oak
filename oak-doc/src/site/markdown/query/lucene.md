@@ -550,6 +550,13 @@ the config file via `tika/config.xml` node in index config.
     * maxExtractLength = -10, maxFieldLength = 10000 -> Actual value = 100000
     * maxExtractLength = 1000 -> Actual value = 1000
 
+#### Mime type usage
+
+A binary would only be index if there is an associated property `jcr:mimeType` defined
+and that is supported by Tika. By default indexer uses [TypeDetector][OAK-2895]
+instead of default `DefaultDetector` which relies on the `jcr:mimeType` to pick up the
+right parser. 
+
 <a name="non-root-index"></a>
 ### Non Root Index Definitions
 
@@ -1086,6 +1093,7 @@ such fields
 [OAK-2469]: https://issues.apache.org/jira/browse/OAK-2469
 [OAK-2470]: https://issues.apache.org/jira/browse/OAK-2470
 [OAK-2463]: https://issues.apache.org/jira/browse/OAK-2463
+[OAK-2895]: https://issues.apache.org/jira/browse/OAK-2895
 [luke]: https://code.google.com/p/luke/
 [tika]: http://tika.apache.org/
 [oak-console]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run#console
