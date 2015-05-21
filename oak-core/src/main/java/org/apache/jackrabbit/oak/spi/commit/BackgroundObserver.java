@@ -30,13 +30,12 @@ import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Predicate;
+import org.apache.jackrabbit.oak.commons.concurrent.NotifyingFutureTask;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -109,7 +108,7 @@ public class BackgroundObserver implements Observer, Closeable {
     /**
      * Current background task
      */
-    private volatile ListenableFutureTask currentTask = ListenableFutureTask.completed();
+    private volatile NotifyingFutureTask currentTask = NotifyingFutureTask.completed();
 
     /**
      * Completion handler: set the current task to the next task and schedules that one
@@ -134,7 +133,7 @@ public class BackgroundObserver implements Observer, Closeable {
 
         @Override
         public void run() {
-            currentTask = new ListenableFutureTask(task);
+            currentTask = new NotifyingFutureTask(task);
             executor.execute(currentTask);
         }
     };
@@ -289,61 +288,4 @@ public class BackgroundObserver implements Observer, Closeable {
     private static Logger getLogger(@Nonnull Observer observer) {
         return LoggerFactory.getLogger(checkNotNull(observer).getClass());
     }
-
-    /**
-     * A future task with a on complete handler.
-     */
-    private static class ListenableFutureTask extends FutureTask<Void> {
-        private final AtomicBoolean completed = new AtomicBoolean(false);
-
-        private volatile Runnable onComplete;
-
-        public ListenableFutureTask(Callable<Void> callable) {
-            super(callable);
-        }
-
-        public ListenableFutureTask(Runnable task) {
-            super(task, null);
-        }
-
-        /**
-         * Set the on complete handler. The handler will run exactly once after
-         * the task terminated. If the task has already terminated at the time of
-         * this method call the handler will execute immediately.
-         * <p>
-         * Note: there is no guarantee to which handler will run when the method
-         * is called multiple times with different arguments.
-         * @param onComplete
-         */
-        public void onComplete(Runnable onComplete) {
-            this.onComplete = onComplete;
-            if (isDone()) {
-                run(onComplete);
-            }
-        }
-
-        @Override
-        protected void done() {
-            run(onComplete);
-        }
-
-        private void run(Runnable onComplete) {
-            if (onComplete != null && completed.compareAndSet(false, true)) {
-                onComplete.run();
-            }
-        }
-
-        private static final Runnable NOP = new Runnable() {
-            @Override
-            public void run() {
-            }
-        };
-
-        public static ListenableFutureTask completed() {
-            ListenableFutureTask f = new ListenableFutureTask(NOP);
-            f.run();
-            return f;
-        }
-    }
-
 }
