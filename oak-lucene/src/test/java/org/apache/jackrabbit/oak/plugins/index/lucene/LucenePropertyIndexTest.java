@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import java.io.InputStream;
 import java.text.ParseException;
 import java.util.Calendar;
 import java.util.Collections;
@@ -26,16 +27,20 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
+import com.google.common.base.Charsets;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.io.CountingInputStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -45,6 +50,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.NodeTypeRegistry;
@@ -79,6 +85,7 @@ import static org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.Orde
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.matchers.JUnitMatchers.containsString;
 
@@ -1208,6 +1215,22 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
+    public void excludedBlobContentNotAccessed() throws Exception{
+        Tree idx = createFulltextIndex(root.getTree("/"), "test");
+        TestUtil.useV2(idx);
+
+        AccessStateProvidingBlob testBlob =
+                new AccessStateProvidingBlob("<?xml version=\"1.0\" encoding=\"UTF-8\"?><msg>sky is blue</msg>");
+
+        Tree test = root.getTree("/").addChild("test");
+        createFileNode(test, "zip", testBlob, "application/zip");
+        root.commit();
+
+        assertFalse(testBlob.isStreamAccessed());
+        assertEquals(0, testBlob.readByteCount());
+    }
+
+    @Test
     public void maxFieldLengthCheck() throws Exception{
         Tree idx = createFulltextIndex(root.getTree("/"), "test");
         TestUtil.useV2(idx);
@@ -1312,8 +1335,12 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     private Tree createFileNode(Tree tree, String name, String content, String mimeType){
+        return createFileNode(tree, name, new ArrayBasedBlob(content.getBytes()), mimeType);
+    }
+
+    private Tree createFileNode(Tree tree, String name, Blob content, String mimeType){
         Tree jcrContent = tree.addChild(name).addChild(JCR_CONTENT);
-        jcrContent.setProperty(JcrConstants.JCR_DATA, content.getBytes());
+        jcrContent.setProperty(JcrConstants.JCR_DATA, content);
         jcrContent.setProperty(JcrConstants.JCR_MIMETYPE, mimeType);
         return jcrContent;
     }
@@ -1481,6 +1508,40 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
                     ", value2=" + value2 +
                     ", path='" + path + '\'' +
                     '}';
+        }
+    }
+
+    private static class AccessStateProvidingBlob extends ArrayBasedBlob {
+        private CountingInputStream stream;
+
+        public AccessStateProvidingBlob(byte[] value) {
+            super(value);
+        }
+
+        public AccessStateProvidingBlob(String content) {
+            this(content.getBytes(Charsets.UTF_8));
+        }
+
+        @Nonnull
+        @Override
+        public InputStream getNewStream() {
+            stream = new CountingInputStream(super.getNewStream());
+            return stream;
+        }
+
+        public boolean isStreamAccessed() {
+            return stream != null;
+        }
+
+        public void resetState(){
+            stream = null;
+        }
+
+        public long readByteCount(){
+            if (stream == null){
+                return 0;
+            }
+            return stream.getCount();
         }
     }
 }
