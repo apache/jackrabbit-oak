@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -415,7 +416,11 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
 
     private InputStream getStream(String blobId) throws IOException {
         try {
-            return getDataRecord(blobId).getStream();
+            InputStream in = getDataRecord(blobId).getStream();
+            if (!(in instanceof BufferedInputStream)){
+                in = new BufferedInputStream(in);
+            }
+            return in;
         } catch (DataStoreException e) {
             throw new IOException(e);
         }
