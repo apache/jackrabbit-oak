@@ -89,7 +89,9 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
             PropertyState s = k.getProperty("entry");
             for (int i = 0; i < s.count(); i++) {
                 String r = s.getValue(Type.STRING, i);
-                list.add(r);
+                if (!list.contains(r)) {
+                    list.add(r);
+                }
             }
         }
         PropertyState s2 = MultiStringPropertyState.stringProperty("entry", list);
@@ -139,6 +141,11 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
                 return list.iterator();
             }
         };
+    }
+
+    @Override
+    public boolean exists(NodeBuilder index, String key) {
+        return index.hasChildNode(key);
     }
 
     @Override
