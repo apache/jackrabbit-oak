@@ -19,12 +19,12 @@ package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 import java.io.IOException;
 
 import org.apache.commons.pool.PoolableObjectFactory;
-import org.apache.directory.api.ldap.model.constants.SchemaConstants;
 import org.apache.directory.api.ldap.model.exception.LdapException;
-import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.ldap.client.api.LdapConnection;
 import org.apache.directory.ldap.client.api.LdapConnectionConfig;
+import org.apache.directory.ldap.client.api.LdapConnectionValidator;
 import org.apache.directory.ldap.client.api.LdapNetworkConnection;
+import org.apache.directory.ldap.client.api.LookupLdapConnectionValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,9 +45,9 @@ public class PoolableUnboundConnectionFactory implements PoolableObjectFactory<L
     private LdapConnectionConfig config;
 
     /**
-     * flag controlling the validation behavior
+     * internal validator
      */
-    private boolean lookupOnValidate;
+    private LdapConnectionValidator validator = new LookupLdapConnectionValidator();
 
     /**
      * Creates a new instance of PoolableUnboundConnectionFactory
@@ -59,18 +59,19 @@ public class PoolableUnboundConnectionFactory implements PoolableObjectFactory<L
     }
 
     /**
-     * Checks if a lookup is performed during {@link #validateObject(LdapConnection)}.
-     * @return {@code true} if a lookup is performed.
+     * gets the connection validator
+     * @return the connection validator
      */
-    public boolean getLookupOnValidate() {
-        return lookupOnValidate;
+    public LdapConnectionValidator getValidator() {
+        return validator;
     }
 
     /**
-     * @see #getLookupOnValidate()
+     * Sets the connection validator that is used when the connection is taken out of the pool
+     * @param validator the validator
      */
-    public void setLookupOnValidate(boolean lookupOnValidate) {
-        this.lookupOnValidate = lookupOnValidate;
+    public void setValidator(LdapConnectionValidator validator) {
+        this.validator = validator;
     }
 
     /**
@@ -115,16 +116,7 @@ public class PoolableUnboundConnectionFactory implements PoolableObjectFactory<L
      * {@inheritDoc}
      */
     public boolean validateObject(LdapConnection connection) {
-        boolean valid = false;
-        if (connection.isConnected()) {
-            if (lookupOnValidate) {
-                try {
-                    valid = connection.lookup(Dn.ROOT_DSE, SchemaConstants.NO_ATTRIBUTE) != null;
-                } catch (LdapException le) {
-                    log.debug("error during connection validation: {}", le.toString());
-                }
-            }
-        }
+        boolean valid = validator == null || validator.validate(connection);
         log.debug("validating connection {}: {}", connection, valid);
         return valid;
     }

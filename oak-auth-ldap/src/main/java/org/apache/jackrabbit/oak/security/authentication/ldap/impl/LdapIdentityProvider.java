@@ -47,10 +47,14 @@ import org.apache.directory.api.ldap.model.message.SearchResultEntry;
 import org.apache.directory.api.ldap.model.message.SearchScope;
 import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.api.ldap.model.name.Rdn;
+import org.apache.directory.ldap.client.api.AbstractPoolableLdapConnectionFactory;
+import org.apache.directory.ldap.client.api.DefaultLdapConnectionValidator;
 import org.apache.directory.ldap.client.api.LdapConnection;
 import org.apache.directory.ldap.client.api.LdapConnectionConfig;
 import org.apache.directory.ldap.client.api.LdapConnectionPool;
+import org.apache.directory.ldap.client.api.LookupLdapConnectionValidator;
 import org.apache.directory.ldap.client.api.NoVerificationTrustManager;
+import org.apache.directory.ldap.client.api.ValidatingPoolableLdapConnectionFactory;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
@@ -100,7 +104,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
     /**
      * admin connection factory
      */
-    private OakPoolableLdapConnectionFactory adminConnectionFactory;
+    private AbstractPoolableLdapConnectionFactory adminConnectionFactory;
 
     /**
      * the connection pool with unbound connections
@@ -483,8 +487,12 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
             cc.setName(bindDN);
             cc.setCredentials(config.getBindPassword());
         }
-        adminConnectionFactory = new OakPoolableLdapConnectionFactory(cc);
-        adminConnectionFactory.setLookupOnValidate(config.getAdminPoolConfig().lookupOnValidate());
+        adminConnectionFactory = new ValidatingPoolableLdapConnectionFactory(cc);
+        if (config.getAdminPoolConfig().lookupOnValidate()) {
+            adminConnectionFactory.setValidator(new LookupLdapConnectionValidator());
+        } else {
+            adminConnectionFactory.setValidator(new DefaultLdapConnectionValidator());
+        }
         if (config.getAdminPoolConfig().getMaxActive() != 0) {
             adminPool = new LdapConnectionPool(adminConnectionFactory);
             adminPool.setTestOnBorrow(true);
@@ -496,7 +504,11 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
         cc = createConnectionConfig();
 
         userConnectionFactory = new PoolableUnboundConnectionFactory(cc);
-        userConnectionFactory.setLookupOnValidate(config.getUserPoolConfig().lookupOnValidate());
+        if (config.getUserPoolConfig().lookupOnValidate()) {
+            userConnectionFactory.setValidator(new UnboundLookupConnectionValidator());
+        } else {
+            userConnectionFactory.setValidator(new UnboundConnectionValidator());
+        }
         if (config.getUserPoolConfig().getMaxActive() != 0) {
             userPool = new UnboundLdapConnectionPool(userConnectionFactory);
             userPool.setTestOnBorrow(true);
@@ -541,21 +553,18 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
 
         // Process the request
         SearchCursor searchCursor = null;
+        Entry resultEntry = null;
         try {
             searchCursor = connection.search(req);
             while (searchCursor.next()) {
-                Response response = searchCursor.get();
-
-                // process the SearchResultEntry
-                if (response instanceof SearchResultEntry) {
-                    Entry resultEntry = ((SearchResultEntry) response).getEntry();
-                    if (searchCursor.next()) {
-                        log.warn("search for {} returned more than one entry. discarding additional ones.", searchFilter);
+                if (resultEntry != null) {
+                    log.warn("search for {} returned more than one entry. discarding additional ones.", searchFilter);
+                } else {
+                    // process the SearchResultEntry
+                    Response response = searchCursor.get();
+                    if (response instanceof SearchResultEntry) {
+                        resultEntry = ((SearchResultEntry) response).getEntry();
                     }
-                    if (log.isDebugEnabled()) {
-                        log.debug("search below {} with {} found {}", idConfig.getBaseDN(), searchFilter, resultEntry.getDn());
-                    }
-                    return resultEntry;
                 }
             }
         } finally {
@@ -564,9 +573,13 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
             }
         }
         if (log.isDebugEnabled()) {
-            log.debug("search below {} with {} found 0 entries.", idConfig.getBaseDN(), searchFilter);
+            if (resultEntry == null) {
+                log.debug("search below {} with {} found 0 entries.", idConfig.getBaseDN(), searchFilter);
+            } else {
+                log.debug("search below {} with {} found {}", idConfig.getBaseDN(), searchFilter, resultEntry.getDn());
+            }
         }
-        return null;
+        return resultEntry;
     }
 
     /**

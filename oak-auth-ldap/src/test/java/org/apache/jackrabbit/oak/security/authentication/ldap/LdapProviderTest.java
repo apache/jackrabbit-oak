@@ -31,7 +31,6 @@ import org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapIdentityP
 import org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.apache.jackrabbit.util.Text;
@@ -58,7 +57,7 @@ public class LdapProviderTest {
 
     public static final String IDP_NAME = "ldap";
 
-    protected ExternalIdentityProvider idp;
+    protected LdapIdentityProvider idp;
 
     protected LdapProviderConfig providerConfig;
 
@@ -91,9 +90,11 @@ public class LdapProviderTest {
         if (!USE_COMMON_LDAP_FIXTURE) {
             LDAP_SERVER.tearDown();
         }
+        idp.close();
+        idp = null;
     }
 
-    protected ExternalIdentityProvider createIDP() {
+    protected LdapIdentityProvider createIDP() {
         providerConfig = new LdapProviderConfig()
                 .setName(IDP_NAME)
                 .setHostname("127.0.0.1")
@@ -170,6 +171,82 @@ public class LdapProviderTest {
         ExternalUser user = idp.authenticate(creds);
         assertNotNull("User 1 must authenticate", user);
         assertEquals("User Ref", TEST_USER1_DN, user.getExternalId().getId());
+    }
+
+    @Test
+    public void testAuthenticateValidateFalseFalse() throws Exception {
+        providerConfig.getAdminPoolConfig()
+                .setMaxActive(2)
+                .setLookupOnValidate(false);
+        providerConfig.getUserPoolConfig()
+                .setMaxActive(2)
+                .setLookupOnValidate(false);
+        idp.close();
+        idp = new LdapIdentityProvider(providerConfig);
+
+        SimpleCredentials creds = new SimpleCredentials(TEST_USER1_UID, "pass".toCharArray());
+        for (int i=0; i<8; i++) {
+            ExternalUser user = idp.authenticate(creds);
+            assertNotNull("User 1 must authenticate", user);
+            assertEquals("User Ref", TEST_USER1_DN, user.getExternalId().getId());
+        }
+    }
+
+    @Test
+    public void testAuthenticateValidateFalseTrue() throws Exception {
+        providerConfig.getAdminPoolConfig()
+                .setMaxActive(2)
+                .setLookupOnValidate(false);
+        providerConfig.getUserPoolConfig()
+                .setMaxActive(2)
+                .setLookupOnValidate(true);
+        idp.close();
+        idp = new LdapIdentityProvider(providerConfig);
+
+        SimpleCredentials creds = new SimpleCredentials(TEST_USER1_UID, "pass".toCharArray());
+        for (int i=0; i<8; i++) {
+            ExternalUser user = idp.authenticate(creds);
+            assertNotNull("User 1 must authenticate", user);
+            assertEquals("User Ref", TEST_USER1_DN, user.getExternalId().getId());
+        }
+    }
+
+    @Test
+    public void testAuthenticateValidateTrueFalse() throws Exception {
+        providerConfig.getAdminPoolConfig()
+                .setMaxActive(2)
+                .setLookupOnValidate(true);
+        providerConfig.getUserPoolConfig()
+                .setMaxActive(2)
+                .setLookupOnValidate(false);
+        idp.close();
+        idp = new LdapIdentityProvider(providerConfig);
+
+        SimpleCredentials creds = new SimpleCredentials(TEST_USER1_UID, "pass".toCharArray());
+        for (int i=0; i<8; i++) {
+            ExternalUser user = idp.authenticate(creds);
+            assertNotNull("User 1 must authenticate (i=" + i + ")", user);
+            assertEquals("User Ref", TEST_USER1_DN, user.getExternalId().getId());
+        }
+    }
+
+    @Test
+    public void testAuthenticateValidateTrueTrue() throws Exception {
+        providerConfig.getAdminPoolConfig()
+                .setMaxActive(2)
+                .setLookupOnValidate(true);
+        providerConfig.getUserPoolConfig()
+                .setMaxActive(2)
+                .setLookupOnValidate(true);
+        idp.close();
+        idp = new LdapIdentityProvider(providerConfig);
+
+        SimpleCredentials creds = new SimpleCredentials(TEST_USER1_UID, "pass".toCharArray());
+        for (int i=0; i<8; i++) {
+            ExternalUser user = idp.authenticate(creds);
+            assertNotNull("User 1 must authenticate (i=" + i + ")", user);
+            assertEquals("User Ref", TEST_USER1_DN, user.getExternalId().getId());
+        }
     }
 
     @Test
