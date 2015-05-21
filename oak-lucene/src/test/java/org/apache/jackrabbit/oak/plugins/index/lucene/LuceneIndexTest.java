@@ -89,6 +89,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+@SuppressWarnings("ConstantConditions")
 public class LuceneIndexTest {
 
     private static final EditorHook HOOK = new EditorHook(
@@ -356,7 +357,7 @@ public class LuceneIndexTest {
     }
 
     private void purgeDeletedDocs(NodeBuilder idx, IndexDefinition definition) throws IOException {
-        IndexWriter writer = new IndexWriter(newIndexDirectory(definition, idx), getIndexWriterConfig(definition));
+        IndexWriter writer = new IndexWriter(newIndexDirectory(definition, idx), getIndexWriterConfig(definition, true));
         writer.forceMergeDeletes();
         writer.close();
     }

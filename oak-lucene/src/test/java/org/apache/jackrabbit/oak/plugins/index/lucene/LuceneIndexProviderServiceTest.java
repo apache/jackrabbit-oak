@@ -22,16 +22,20 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.lucene.util.InfoStream;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class LuceneIndexProviderServiceTest {
@@ -50,10 +54,16 @@ public class LuceneIndexProviderServiceTest {
 
         assertNotNull(context.getService(QueryIndexProvider.class));
         assertNotNull(context.getService(Observer.class));
+        assertNotNull(context.getService(IndexEditorProvider.class));
 
-        assertNotNull("CopyOnRead should be enabled by default",context.getService(CopyOnReadStatsMBean.class));
+        LuceneIndexEditorProvider editorProvider =
+                (LuceneIndexEditorProvider) context.getService(IndexEditorProvider.class);
+        assertNull(editorProvider.getIndexCopier());
+
+        assertNotNull("CopyOnRead should be enabled by default", context.getService(CopyOnReadStatsMBean.class));
 
         assertTrue(context.getService(Observer.class) instanceof BackgroundObserver);
+        assertEquals(InfoStream.NO_OUTPUT, InfoStream.getDefault());
 
         MockOsgi.deactivate(service);
     }
@@ -66,6 +76,31 @@ public class LuceneIndexProviderServiceTest {
 
         assertTrue(context.getService(Observer.class) instanceof LuceneIndexProvider);
 
+        MockOsgi.deactivate(service);
+    }
+
+    @Test
+    public void enableCopyOnWrite() throws Exception{
+        Map<String,Object> config = getDefaultConfig();
+        config.put("enableCopyOnWriteSupport", true);
+        MockOsgi.activate(service, context.bundleContext(), config);
+
+        LuceneIndexEditorProvider editorProvider =
+                (LuceneIndexEditorProvider) context.getService(IndexEditorProvider.class);
+
+        assertNotNull(editorProvider);
+        assertNotNull(editorProvider.getIndexCopier());
+
+        MockOsgi.deactivate(service);
+    }
+
+    @Test
+    public void debugLogging() throws Exception{
+        Map<String,Object> config = getDefaultConfig();
+        config.put("debug", true);
+        MockOsgi.activate(service, context.bundleContext(), config);
+
+        assertEquals(LoggingInfoStream.INSTANCE, InfoStream.getDefault());
         MockOsgi.deactivate(service);
     }
 
