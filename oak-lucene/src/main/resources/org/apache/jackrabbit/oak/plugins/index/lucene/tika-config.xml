@@ -21,7 +21,7 @@
 
 <properties>
   <detectors>
-    <detector class="org.apache.tika.detect.DefaultDetector"/>
+    <detector class="org.apache.tika.detect.TypeDetector"/>
   </detectors>
   <parsers>
     <parser class="org.apache.tika.parser.DefaultParser"/>
