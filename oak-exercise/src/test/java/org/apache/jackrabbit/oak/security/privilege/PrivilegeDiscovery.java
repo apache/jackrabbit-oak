@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
+package org.apache.jackrabbit.oak.security.privilege;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.slf4j.Logger;

@@ -136,7 +136,8 @@ import org.slf4j.LoggerFactory;
  * - Take a second look at the {@link org.apache.jackrabbit.api.security.JackrabbitAccessControlManager}.
  *
  *   Question: What additional methods exist with respect to retrieving access control policies?
- *   Question: Can you explain how to use to methods?
+ *   Question: Can you explain how to use these methods?
+ *   Question: Explore how the default implementation handles these calls.
  *
  *
  * Related Exercises
