@@ -45,6 +45,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.io.LazyInputStream;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.PathFilter;
@@ -54,6 +55,7 @@ import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.util.BlobByteSource;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.DoubleDocValuesField;
 import org.apache.lucene.document.DoubleField;
@@ -755,7 +757,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         long start = System.currentTimeMillis();
         long size = 0;
         try {
-            CountingInputStream stream = new CountingInputStream(v.getNewStream());
+            CountingInputStream stream = new CountingInputStream(new LazyInputStream(new BlobByteSource(v)));
             try {
                 context.getParser().parse(stream, handler, metadata, new ParseContext());
             } finally {
