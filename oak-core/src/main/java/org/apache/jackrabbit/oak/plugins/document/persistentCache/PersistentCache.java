@@ -67,6 +67,8 @@ public class PersistentCache {
     private int autoCompact = 50;
     private boolean appendOnly;
     private boolean manualCommit;
+    
+    private int exceptionCount;
 
     public PersistentCache(String url) {
         LOG.info("start version 1");
@@ -204,6 +206,7 @@ public class PersistentCache {
                     builder.backgroundExceptionHandler(new Thread.UncaughtExceptionHandler() {
                         @Override
                         public void uncaughtException(Thread t, Throwable e) {
+                            exceptionCount++;
                             LOG.debug("Error in the background thread of the persistent cache", e);
                             LOG.warn("Error in the background thread of the persistent cache: " + e);
                         }
@@ -213,6 +216,7 @@ public class PersistentCache {
                         store.setReuseSpace(false);
                     }
                 } catch (Exception e) {
+                    exceptionCount++;
                     LOG.warn("Could not open the store " + fileName, e);
                 }
             }
@@ -231,6 +235,7 @@ public class PersistentCache {
                     Thread.interrupted();
                     store.close();
                 } catch (Exception e) {
+                    exceptionCount++;
                     LOG.debug("Could not close the store", e);
                     LOG.warn("Could not close the store: " + e);
                     store.closeImmediately();
@@ -239,6 +244,7 @@ public class PersistentCache {
                     try {
                         MVStoreTool.compact(fileName, true);
                     } catch (Exception e) {
+                        exceptionCount++;
                         LOG.debug("Could not compact the store", e);
                         LOG.warn("Could not compact the store: " + e);
                     }
@@ -254,6 +260,7 @@ public class PersistentCache {
                     }
                     return store.openMap(name, builder);
                 } catch (Exception e) {
+                    exceptionCount++;
                     LOG.warn("Could not open the map", e);
                     return null;
                 }
@@ -262,12 +269,16 @@ public class PersistentCache {
             @Override
             long getFileSize() {
                 try {
+                    if (store == null) {
+                        return 0;
+                    }
                     FileStore fs = store.getFileStore();
                     if (fs == null) {
                         return 0;
                     }
                     return fs.size();
                 } catch (Exception e) {
+                    exceptionCount++;
                     LOG.warn("Could not retrieve the map size", e);
                     return 0;
                 }
@@ -345,6 +356,7 @@ public class PersistentCache {
         } else if (generation == writeGeneration) {
             s = writeStore;
         } else {
+            exceptionCount++;
             throw new IllegalArgumentException("Unknown generation: " + generation);
         }
         return new CacheMap<K, V>(s, name, builder);
@@ -398,6 +410,10 @@ public class PersistentCache {
     
     public int getOpenCount() {
         return writeStore.getOpenCount();
+    }
+    
+    public int getExceptionCount() {
+        return exceptionCount;
     }
 
 
