@@ -318,12 +318,30 @@ abstract class Expression {
             }
             String commonLeft = getCommonLeftPart();
             if (commonLeft == null) {
+                // the case:
+                // (other>0 or x=1) or x=2
+                // can be converted to:
+                // other>0 or (x=1 or x=2)
+                // which can then be optimized
+                if (left instanceof OrCondition) {
+                    OrCondition orLeft = (OrCondition) left;
+                    Expression l1 = orLeft.left;
+                    Expression l2 = orLeft.right;
+                    OrCondition orRight = new OrCondition(l2, right);
+                    Expression o2 = orRight.optimize();
+                    if (o2 != orRight) {
+                        return new OrCondition(l1, o2);
+                    }
+                }
                 return this;
             }
             // "@x = 1 or @x = 2" is converted to "@x in (1, 2)"
             if (left instanceof InCondition) {
                 InCondition in = (InCondition) left;
                 in.list.addAll(right.getRight());
+                // return a new instance, because we changed
+                // the list
+                in = new InCondition(in.getLeft(), in.list);
                 return in;
             }
             ArrayList<Expression> list = new ArrayList<Expression>();
@@ -676,6 +694,8 @@ abstract class Expression {
     
         final Selector selector;
         final String name;
+        private String cacheString;
+        private boolean cacheOnlySelector;
         
         /**
          * If there was no "@" character in front of the property name. If that
@@ -692,6 +712,11 @@ abstract class Expression {
     
         @Override
         public String toString() {
+            if (cacheString != null) {
+                if (cacheOnlySelector == selector.onlySelector) {
+                    return cacheString;
+                }
+            }
             StringBuilder buff = new StringBuilder();
             if (!selector.onlySelector) {
                 buff.append(selector.name).append('.');
@@ -701,7 +726,9 @@ abstract class Expression {
             } else {
                 buff.append('[').append(name).append(']');
             }
-            return buff.toString();
+            cacheString = buff.toString();
+            cacheOnlySelector = selector.onlySelector;
+            return cacheString;
         }
         
         @Override
