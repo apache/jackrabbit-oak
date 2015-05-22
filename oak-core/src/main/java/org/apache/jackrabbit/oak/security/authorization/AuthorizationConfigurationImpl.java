@@ -56,8 +56,6 @@ import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.ControlFlag;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
@@ -102,21 +100,14 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
         @Property(name = CompositeConfiguration.PARAM_RANKING,
                 label = "Ranking",
                 description = "Ranking of this configuration in a setup with multiple authorization configurations.",
-                intValue = 100),
-        @Property(name = AggregatedPermissionProvider.PARAM_CONTROL_FLAG,
-                label = "Control Flag",
-                description = "Control flag defining if the permission provider is SUFFICIENT or REQUIRED.",
-                options = {
-                        @PropertyOption(name = ControlFlag.SUFFICIENT_NAME, value = ControlFlag.SUFFICIENT_NAME),
-                        @PropertyOption(name = ControlFlag.REQUISITE_NAME, value = ControlFlag.REQUISITE_NAME)
-                },
-                value = ControlFlag.REQUISITE_NAME)
+                intValue = 100)
 })
 public class AuthorizationConfigurationImpl extends ConfigurationBase implements AuthorizationConfiguration {
     public AuthorizationConfigurationImpl() {
         super();
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     @Activate
     private void activate(Map<String, Object> properties) {
         setParameters(ConfigurationParameters.of(properties));
@@ -134,6 +125,7 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
         return NAME;
     }
 
+    @Nonnull
     @Override
     public Context getContext() {
         return AuthorizationContext.getInstance();
@@ -147,14 +139,15 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
 
     @Nonnull
     @Override
-    public List<? extends CommitHook> getCommitHooks(String workspaceName) {
+    public List<? extends CommitHook> getCommitHooks(@Nonnull String workspaceName) {
         return ImmutableList.of(
                 new VersionablePathHook(workspaceName),
                 new PermissionHook(workspaceName, getRestrictionProvider()));
     }
 
+    @Nonnull
     @Override
-    public List<ValidatorProvider> getValidators(String workspaceName, Set<Principal> principals, MoveTracker moveTracker) {
+    public List<ValidatorProvider> getValidators(@Nonnull String workspaceName, @Nonnull Set<Principal> principals, @Nonnull MoveTracker moveTracker) {
         return ImmutableList.of(
                 new PermissionStoreValidatorProvider(),
                 new PermissionValidatorProvider(getSecurityProvider(), workspaceName, principals, moveTracker),
@@ -168,8 +161,9 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
     }
 
     //-----------------------------------------< AccessControlConfiguration >---
+    @Nonnull
     @Override
-    public AccessControlManager getAccessControlManager(Root root, NamePathMapper namePathMapper) {
+    public AccessControlManager getAccessControlManager(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper) {
         return new AccessControlManagerImpl(root, namePathMapper, getSecurityProvider());
     }
 
@@ -186,7 +180,7 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
 
     @Nonnull
     @Override
-    public PermissionProvider getPermissionProvider(Root root, String workspaceName, Set<Principal> principals) {
+    public PermissionProvider getPermissionProvider(@Nonnull Root root, @Nonnull String workspaceName, @Nonnull Set<Principal> principals) {
         return new PermissionProviderImpl(root, workspaceName, principals, this);
     }
 

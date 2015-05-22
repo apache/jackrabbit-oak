@@ -34,9 +34,10 @@ import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
+import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 
 /**
- * A MicroKernel wrapper that can be used to log and also time MicroKernel
+ * A DocumentStore wrapper that can be used to log and also time DocumentStore
  * calls.
  */
 public class TimingDocumentStoreWrapper implements DocumentStore {
@@ -179,9 +180,31 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
 
     @Override
     public <T extends Document> void remove(Collection<T> collection, List<String> keys) {
-        //TODO Timing
-        for(String key : keys){
-            remove(collection, key);
+        try {
+            long start = now();
+            base.remove(collection, keys);
+            updateAndLogTimes("remove", start, 0, 0);
+            if (logCommonCall()) {
+                logCommonCall(start, "remove " + collection + " " + keys);
+            }
+        } catch (Exception e) {
+            throw convert(e);
+        }
+    }
+
+    @Override
+    public <T extends Document> int remove(Collection<T> collection,
+                                           Map<String, Map<UpdateOp.Key, UpdateOp.Condition>> toRemove) {
+        try {
+            long start = now();
+            int result = base.remove(collection, toRemove);
+            updateAndLogTimes("remove", start, 0, 0);
+            if (logCommonCall()) {
+                logCommonCall(start, "remove " + collection + " " + toRemove);
+            }
+            return result;
+        } catch (Exception e) {
+            throw convert(e);
         }
     }
 
@@ -249,11 +272,12 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public void invalidateCache() {
+    public CacheInvalidationStats invalidateCache() {
         try {
             long start = now();
-            base.invalidateCache();
+            CacheInvalidationStats result = base.invalidateCache();
             updateAndLogTimes("invalidateCache", start, 0, 0);
+            return result;
         } catch (Exception e) {
             throw convert(e);
         }
@@ -315,6 +339,11 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
         } catch (Exception e) {
             throw convert(e);
         }
+    }
+
+    @Override
+    public Map<String, String> getMetadata() {
+        return base.getMetadata();
     }
 
     private void logCommonCall(long start, String key) {

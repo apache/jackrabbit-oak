@@ -16,22 +16,20 @@
  */
 package org.apache.jackrabbit.oak.security.user.autosave;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 
 /**
- * @see OAK-1922
+ * @see <a href="https://issues.apache.org/jira/browse/OAK-2156">OAK-2156</a>
  */
 public class PasswordExpiryTest extends org.apache.jackrabbit.oak.security.user.PasswordExpiryTest {
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         ConfigurationParameters userConfig = ConfigurationParameters.of(
-                ImmutableMap.of(
-                        UserConstants.PARAM_PASSWORD_MAX_AGE, 10,
-                        UserConstants.PARAM_SUPPORT_AUTOSAVE, true));
-        return ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, userConfig));
+                UserConstants.PARAM_PASSWORD_MAX_AGE, 10,
+                UserConstants.PARAM_SUPPORT_AUTOSAVE, true);
+        return ConfigurationParameters.of(UserConfiguration.NAME, userConfig);
     }
 }

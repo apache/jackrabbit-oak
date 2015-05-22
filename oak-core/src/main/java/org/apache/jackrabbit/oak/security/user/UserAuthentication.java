@@ -89,7 +89,7 @@ class UserAuthentication implements Authentication, UserConstants {
 
     //-----------------------------------------------------< Authentication >---
     @Override
-    public boolean authenticate(Credentials credentials) throws LoginException {
+    public boolean authenticate(@Nullable Credentials credentials) throws LoginException {
         if (credentials == null || userId == null) {
             return false;
         }

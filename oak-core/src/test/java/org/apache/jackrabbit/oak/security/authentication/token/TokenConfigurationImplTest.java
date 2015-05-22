@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.token;
 
-import java.util.Collections;
-
-import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
@@ -41,9 +38,8 @@ public class TokenConfigurationImplTest extends AbstractSecurityTest {
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
-        ConfigurationParameters config = ConfigurationParameters.of(
-                Collections.singletonMap(TokenProviderImpl.PARAM_TOKEN_EXPIRATION, 60));
-        return ConfigurationParameters.of(ImmutableMap.of(TokenConfiguration.NAME, config));
+        ConfigurationParameters config = ConfigurationParameters.of(TokenProviderImpl.PARAM_TOKEN_EXPIRATION, 60);
+        return ConfigurationParameters.of(TokenConfiguration.NAME, config);
     }
 
     @Test

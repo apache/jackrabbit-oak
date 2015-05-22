@@ -38,6 +38,7 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
@@ -437,5 +438,22 @@ public class PrivilegeRegistrationTest extends AbstractPrivilegeTest {
         privilegeManager.registerPrivilege("customPriv", false, null);
 
         assertTrue(acMgr.hasPrivileges(testPath, principalSet, allPrivileges));
+    }
+
+    @Test
+    public void testRegisterPrivilegeAggregatingJcrAll() throws Exception {
+        privilegeManager.registerPrivilege("customPriv", false, null);
+
+        try {
+            privilegeManager.registerPrivilege("customPriv2", false, new String[]{"customPriv", Privilege.JCR_ALL});
+            fail("Aggregation containing jcr:all is invalid.");
+        } catch (RepositoryException e) {
+            // success
+            Throwable cause = e.getCause();
+            assertTrue(cause instanceof CommitFailedException);
+            assertEquals(53, ((CommitFailedException) cause).getCode());
+        } finally {
+            superuser.refresh(false);
+        }
     }
 }

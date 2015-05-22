@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+
 /**
  * Defaults for Solr configurations.
  */
@@ -46,7 +50,8 @@ public class SolrServerConfigurationDefaults {
     public static final boolean PROPERTY_RESTRICTIONS = false;
     public static final boolean PATH_RESTRICTIONS = false;
     public static final boolean PRIMARY_TYPES = false;
-    public static final String IGNORED_PROPERTIES = "";
+    public static final Collection<String> IGNORED_PROPERTIES = Collections.unmodifiableCollection(
+            Arrays.asList("rep:members", "rep:authorizableId", "jcr:uuid", "rep:principalName", "rep:password"));
     public static final String TYPE_MAPPINGS = "";
     public static final String PROPERTY_MAPPINGS = "";
 

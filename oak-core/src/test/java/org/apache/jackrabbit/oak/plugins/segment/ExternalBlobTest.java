@@ -43,6 +43,8 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Random;
 
+import javax.annotation.Nonnull;
+
 import static junit.framework.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -77,6 +79,8 @@ public class ExternalBlobTest {
         Blob b2 = testCreateAndRead(nodeStore.createBlob(new ByteArrayInputStream(data2)));
         assertTrue(b2 instanceof SegmentBlob);
         assertNotNull(b2.getReference());
+        assertEquals(b2.getContentIdentity(), ((SegmentBlob) b2).getBlobId());
+
         InputStream is = dbs.getInputStream(((SegmentBlob) b2).getBlobId());
         assertNotNull(IOUtils.contentEquals(new ByteArrayInputStream(data2), is));
         is.close();
@@ -205,12 +209,12 @@ public class ExternalBlobTest {
         }
 
         @Override
-        public String getBlobId(String reference) {
+        public String getBlobId(@Nonnull String reference) {
             return reference;
         }
 
         @Override
-        public String getReference(String blobId) {
+        public String getReference(@Nonnull String blobId) {
             return blobId;
         }
     }

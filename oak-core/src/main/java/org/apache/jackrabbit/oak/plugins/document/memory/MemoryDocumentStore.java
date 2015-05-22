@@ -28,8 +28,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.jcr.RepositoryException;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -39,11 +39,15 @@ import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
 
 import com.google.common.base.Splitter;
 import com.mongodb.ReadPreference;
 import com.mongodb.WriteConcern;
+import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
+
+import static org.apache.jackrabbit.oak.plugins.document.UpdateUtils.checkConditions;
 
 /**
  * Emulates a MongoDB store (possibly consisting of multiple shards and
@@ -82,6 +86,14 @@ public class MemoryDocumentStore implements DocumentStore {
     private WriteConcern writeConcern;
 
     private Object lastReadWriteMode;
+
+    private final Map<String, String> metadata;
+
+    public MemoryDocumentStore() {
+        metadata = ImmutableMap.<String,String>builder()
+                        .put("type", "memory")
+                        .build();
+    }
 
     @Override
     public <T extends Document> T find(Collection<T> collection, String key, int maxCacheAge) {
@@ -127,12 +139,12 @@ public class MemoryDocumentStore implements DocumentStore {
                 if (indexedProperty != null) {
                     Object value = doc.get(indexedProperty);
                     if (value instanceof Boolean) {
-                        long test = (value != null && ((Boolean) value).booleanValue()) ? 1 : 0;
+                        long test = ((Boolean) value) ? 1 : 0;
                         if (test < startValue) {
                             continue;
                         }
                     } else if (value instanceof Long) {
-                        if (value == null || ((Long) value < startValue)) {
+                        if ((Long) value < startValue) {
                             continue;
                         }
                     } else if (value != null) {
@@ -152,11 +164,11 @@ public class MemoryDocumentStore implements DocumentStore {
     }
 
     @Override
-    public <T extends Document> void remove(Collection<T> collection, String path) {
+    public <T extends Document> void remove(Collection<T> collection, String key) {
         Lock lock = rwLock.writeLock();
         lock.lock();
         try {
-            getMap(collection).remove(path);
+            getMap(collection).remove(key);
         } finally {
             lock.unlock();
         }
@@ -167,6 +179,28 @@ public class MemoryDocumentStore implements DocumentStore {
         for(String key : keys){
             remove(collection, key);
         }
+    }
+
+    @Override
+    public <T extends Document> int remove(Collection<T> collection,
+                                           Map<String, Map<UpdateOp.Key, Condition>> toRemove) {
+        int num = 0;
+        ConcurrentSkipListMap<String, T> map = getMap(collection);
+        for (Map.Entry<String, Map<UpdateOp.Key, Condition>> entry : toRemove.entrySet()) {
+            Lock lock = rwLock.writeLock();
+            lock.lock();
+            try {
+                T doc = map.get(entry.getKey());
+                if (doc != null && checkConditions(doc, entry.getValue())) {
+                    if (map.remove(entry.getKey()) != null) {
+                        num++;
+                    }
+                }
+            } finally {
+                lock.unlock();
+            }
+        }
+        return num;
     }
 
     @CheckForNull
@@ -221,7 +255,7 @@ public class MemoryDocumentStore implements DocumentStore {
             } else {
                 oldDoc.deepCopy(doc);
             }
-            if (checkConditions && !UpdateUtils.checkConditions(doc, update)) {
+            if (checkConditions && !checkConditions(doc, update.getConditions())) {
                 return null;
             }
             // update the document
@@ -290,8 +324,8 @@ public class MemoryDocumentStore implements DocumentStore {
     }
 
     @Override
-    public void invalidateCache() {
-        // there is no cache, so nothing to invalidate
+    public CacheInvalidationStats invalidateCache() {
+        return null;
     }
 
     @Override
@@ -347,6 +381,11 @@ public class MemoryDocumentStore implements DocumentStore {
     @Override
     public CacheStats getCacheStats() {
         return null;
+    }
+
+    @Override
+    public Map<String, String> getMetadata() {
+        return metadata;
     }
 
 }

@@ -31,7 +31,6 @@ import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -79,7 +78,7 @@ public class ImportIgnoreTest {
         if (importBehavior != null) {
             Map<String, String> params = new HashMap<String, String>();
             params.put(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, getImportBehavior());
-            ConfigurationParameters config = ConfigurationParameters.of(ImmutableMap.of(AuthorizationConfiguration.NAME, ConfigurationParameters.of(params)));
+            ConfigurationParameters config = ConfigurationParameters.of(AuthorizationConfiguration.NAME, ConfigurationParameters.of(params));
 
             securityProvider = new SecurityProviderImpl(config);
         } else {

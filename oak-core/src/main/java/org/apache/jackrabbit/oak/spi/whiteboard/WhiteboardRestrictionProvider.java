@@ -22,7 +22,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
-import javax.jcr.security.AccessControlException;
 
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.CompositeRestrictionProvider;
@@ -51,13 +50,13 @@ public class WhiteboardRestrictionProvider
 
     @Nonnull
     @Override
-    public Restriction createRestriction(@Nullable String oakPath, @Nonnull String oakName, @Nonnull Value value) throws AccessControlException, RepositoryException {
+    public Restriction createRestriction(@Nullable String oakPath, @Nonnull String oakName, @Nonnull Value value) throws RepositoryException {
         return getProvider().createRestriction(oakPath, oakName, value);
     }
 
     @Nonnull
     @Override
-    public Restriction createRestriction(@Nullable String oakPath, @Nonnull String oakName, @Nonnull Value... values) throws AccessControlException, RepositoryException {
+    public Restriction createRestriction(@Nullable String oakPath, @Nonnull String oakName, @Nonnull Value... values) throws RepositoryException {
         return getProvider().createRestriction(oakPath, oakName, values);
     }
 
@@ -73,7 +72,7 @@ public class WhiteboardRestrictionProvider
     }
 
     @Override
-    public void validateRestrictions(@Nullable String oakPath, @Nonnull Tree aceTree) throws AccessControlException, RepositoryException {
+    public void validateRestrictions(@Nullable String oakPath, @Nonnull Tree aceTree) throws RepositoryException {
         getProvider().validateRestrictions(oakPath, aceTree);
     }
 

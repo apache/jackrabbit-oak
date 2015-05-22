@@ -37,13 +37,10 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugPolicy;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.junit.Test;
 
@@ -56,40 +53,13 @@ import static org.junit.Assert.fail;
 
 public class CugAccessControlManagerTest extends AbstractCugTest {
 
-    private static final String SUPPORTED_PATH = "/content";
-    private static final String UNSUPPORTED_PATH = "/testNode";
-    private static final String INVALID_PATH = "/path/to/non/existing/tree";
-    private static final ConfigurationParameters CUG_CONFIG = ConfigurationParameters.of(CugConstants.PARAM_CUG_SUPPORTED_PATHS, SUPPORTED_PATH);
-
     private CugAccessControlManager cugAccessControlManager;
 
     @Override
     public void before() throws Exception {
         super.before();
 
-        NodeUtil rootNode = new NodeUtil(root.getTree("/"));
-        NodeUtil content = rootNode.addChild("content", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-        content.addChild("subtree", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-        rootNode.addChild("testNode", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-        root.commit();
-
         cugAccessControlManager = new CugAccessControlManager(root, NamePathMapper.DEFAULT, getSecurityProvider());
-    }
-
-    @Override
-    public void after() throws Exception {
-        try {
-            root.getTree(SUPPORTED_PATH).remove();
-            root.getTree(UNSUPPORTED_PATH).remove();
-            root.commit();
-        } finally {
-            super.after();
-        }
-    }
-
-    @Override
-    protected ConfigurationParameters getSecurityConfigParameters() {
-        return ConfigurationParameters.of(ImmutableMap.of(AuthorizationConfiguration.NAME, CUG_CONFIG));
     }
 
     private CugPolicy createCug(@Nonnull String path) {
@@ -307,6 +277,9 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
         cugAccessControlManager.removePolicy(SUPPORTED_PATH, createCug(SUPPORTED_PATH + "/subtree"));
     }
 
+    /**
+     * An invalid (unsupported) implementation of {@link CugPolicy}.
+     */
     private static final class InvalidCug implements CugPolicy {
 
         private static final InvalidCug INSTANCE = new InvalidCug();

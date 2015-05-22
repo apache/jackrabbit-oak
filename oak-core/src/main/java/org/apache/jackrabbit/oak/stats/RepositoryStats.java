@@ -40,11 +40,9 @@ import javax.management.openmbean.CompositeData;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.api.jmx.RepositoryStatsMBean;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.jackrabbit.stats.TimeSeriesStatsUtil;
 
 public class RepositoryStats implements RepositoryStatsMBean {
-    private static final Logger LOG = LoggerFactory.getLogger(RepositoryStats.class);
 
     private final RepositoryStatistics repoStats;
     private final TimeSeries maxQueueLength;

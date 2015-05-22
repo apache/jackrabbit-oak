@@ -24,8 +24,11 @@ import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.OBSERVAT
 import static org.apache.jackrabbit.oak.plugins.observation.filter.VisibleFilter.VISIBLE_FILTER;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerObserver;
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
 
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -35,6 +38,7 @@ import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Monitor;
 import com.google.common.util.concurrent.Monitor.Guard;
 import org.apache.jackrabbit.api.jmx.EventListenerMBean;
@@ -43,9 +47,11 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventFilter;
+import org.apache.jackrabbit.oak.plugins.observation.filter.FilterConfigMBean;
 import org.apache.jackrabbit.oak.plugins.observation.filter.FilterProvider;
 import org.apache.jackrabbit.oak.plugins.observation.filter.Filters;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
+import org.apache.jackrabbit.oak.spi.commit.BackgroundObserverMBean;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -54,7 +60,8 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
-import org.apache.jackrabbit.oak.stats.TimeSeriesMax;
+import org.apache.jackrabbit.oak.util.PerfLogger;
+import org.apache.jackrabbit.stats.TimeSeriesMax;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,6 +74,8 @@ import org.slf4j.LoggerFactory;
  */
 class ChangeProcessor implements Observer {
     private static final Logger LOG = LoggerFactory.getLogger(ChangeProcessor.class);
+    private static final PerfLogger PERF_LOGGER = new PerfLogger(
+            LoggerFactory.getLogger(ChangeProcessor.class.getName() + ".perf"));
 
     /**
      * Fill ratio of the revision queue at which commits should be delayed
@@ -79,6 +88,14 @@ class ChangeProcessor implements Observer {
      * kicks in.
      */
     public static final int MAX_DELAY = 10000;
+
+    private static final AtomicInteger COUNTER = new AtomicInteger();
+
+    /**
+     * JMX ObjectName property storing the listenerId which allows
+     * to correlate various mbeans
+     */
+    static final String LISTENER_ID = "listenerId";
 
     private final ContentSession contentSession;
     private final NamePathMapper namePathMapper;
@@ -133,10 +150,18 @@ class ChangeProcessor implements Observer {
         final WhiteboardExecutor executor = new WhiteboardExecutor();
         executor.start(whiteboard);
         final BackgroundObserver observer = createObserver(executor);
+        Map<String, String> attrs = ImmutableMap.of(LISTENER_ID, String.valueOf(COUNTER.incrementAndGet()));
+        String name = tracker.toString();
         registration = new CompositeRegistration(
             registerObserver(whiteboard, observer),
             registerMBean(whiteboard, EventListenerMBean.class,
-                    tracker.getListenerMBean(), "EventListener", tracker.toString()),
+                    tracker.getListenerMBean(), "EventListener", name, attrs),
+            registerMBean(whiteboard, BackgroundObserverMBean.class,
+                    observer.getMBean(), BackgroundObserverMBean.TYPE, name, attrs),
+            //TODO If FilterProvider gets changed later then MBean would need to be
+            // re-registered
+            registerMBean(whiteboard, FilterConfigMBean.class,
+                    filterProvider.get().getConfigMBean(), FilterConfigMBean.TYPE, name, attrs),
             new Registration() {
                 @Override
                 public void unregister() {
@@ -148,7 +173,14 @@ class ChangeProcessor implements Observer {
                 public void unregister() {
                     executor.stop();
                 }
-        });
+            },
+            scheduleWithFixedDelay(whiteboard, new Runnable() {
+                @Override
+                public void run() {
+                    tracker.recordOneSecond();
+                }
+            }, 1)
+        );
     }
 
     private BackgroundObserver createObserver(final WhiteboardExecutor executor) {
@@ -159,6 +191,7 @@ class ChangeProcessor implements Observer {
             @Override
             protected void added(int queueSize) {
                 maxQueueLength.recordValue(queueSize);
+                tracker.recordQueueLength(queueSize);
 
                 if (queueSize == queueLength) {
                     if (commitRateLimiter != null) {
@@ -259,6 +292,7 @@ class ChangeProcessor implements Observer {
     public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
         if (previousRoot != null) {
             try {
+                long start = PERF_LOGGER.start();
                 FilterProvider provider = filterProvider.get();
                 // FIXME don't rely on toString for session id
                 if (provider.includeCommit(contentSession.toString(), info)) {
@@ -276,6 +310,9 @@ class ChangeProcessor implements Observer {
                         }
                     }
                 }
+                PERF_LOGGER.end(start, 100,
+                        "Generated events (before: {}, after: {})",
+                        previousRoot, root);
             } catch (Exception e) {
                 LOG.warn("Error while dispatching observation events for " + tracker, e);
             }

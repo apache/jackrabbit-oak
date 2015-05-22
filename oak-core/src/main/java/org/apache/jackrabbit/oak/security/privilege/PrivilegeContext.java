@@ -38,7 +38,7 @@ final class PrivilegeContext implements Context, PrivilegeConstants {
 
     //------------------------------------------------------------< Context >---
     @Override
-    public boolean definesProperty(Tree parent, PropertyState property) {
+    public boolean definesProperty(@Nonnull Tree parent, @Nonnull PropertyState property) {
         return definesTree(parent) && PRIVILEGE_PROPERTY_NAMES.contains(property.getName());
     }
 
@@ -48,12 +48,12 @@ final class PrivilegeContext implements Context, PrivilegeConstants {
     }
 
     @Override
-    public boolean definesTree(Tree tree) {
+    public boolean definesTree(@Nonnull Tree tree) {
         return PRIVILEGE_NODETYPE_NAMES.contains(TreeUtil.getPrimaryTypeName(tree));
     }
 
     @Override
-    public boolean definesLocation(TreeLocation location) {
+    public boolean definesLocation(@Nonnull TreeLocation location) {
         return location.getPath().startsWith(PRIVILEGES_PATH);
     }
 

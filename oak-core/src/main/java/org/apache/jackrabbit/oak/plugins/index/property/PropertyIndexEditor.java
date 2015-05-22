@@ -29,6 +29,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTE
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndex.encode;
 
+import java.util.Collections;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -87,6 +88,7 @@ class PropertyIndexEditor implements IndexEditor {
     private final Predicate<NodeState> typePredicate;
 
     /**
+     * This field is only set for unique indexes. Otherwise it is null.
      * Keys to check for uniqueness, or {@code null} for no uniqueness checks.
      */
     private final Set<String> keysToCheckForUniqueness;
@@ -264,11 +266,13 @@ class PropertyIndexEditor implements IndexEditor {
                 updateCallback.indexUpdate();
                 NodeBuilder index = definition.child(INDEX_CONTENT_NODE_NAME);
                 String properties = definition.getString(PROPERTY_NAMES);
-                getStrategy(keysToCheckForUniqueness != null).update(
-                        index, getPath(), properties, definition, beforeKeys, afterKeys);
-                if (keysToCheckForUniqueness != null) {
-                    keysToCheckForUniqueness.addAll(afterKeys);
+                boolean uniqueIndex = keysToCheckForUniqueness != null;
+                if (uniqueIndex) {
+                    keysToCheckForUniqueness.addAll(
+                            getExistingKeys(afterKeys, index));
                 }
+                getStrategy(uniqueIndex).update(
+                        index, getPath(), properties, definition, beforeKeys, afterKeys);
             }
         }
 
@@ -276,21 +280,63 @@ class PropertyIndexEditor implements IndexEditor {
             // make sure that the index node exist, even with no content
             definition.child(INDEX_CONTENT_NODE_NAME);
 
+            boolean uniqueIndex = keysToCheckForUniqueness != null;
             // check uniqueness constraints when leaving the root
-            if (keysToCheckForUniqueness != null
-                    && !keysToCheckForUniqueness.isEmpty()) {
+            if (uniqueIndex && 
+                    !keysToCheckForUniqueness.isEmpty()) {
                 NodeState indexMeta = definition.getNodeState();
-                IndexStoreStrategy s = getStrategy(true);
-                for (String key : keysToCheckForUniqueness) {
-                    if (s.count(root, indexMeta, singleton(key), 2) > 1) {
-                        String msg = String.format("Uniqueness constraint violated at path [%s] for one of the " +
-                                        "property in %s having value %s", getPath(), propertyNames, key);
-                        throw new CommitFailedException(
-                                CONSTRAINT, 30, msg);
-                    }
+                String failed = getFirstDuplicate(
+                        keysToCheckForUniqueness, indexMeta);
+                if (failed != null) {
+                    String msg = String.format(
+                            "Uniqueness constraint violated at path [%s] for one of the "
+                                    + "property in %s having value %s",
+                            getPath(), propertyNames, failed);
+                    throw new CommitFailedException(CONSTRAINT, 30, msg);                
                 }
             }
         }
+    }
+    
+    /**
+     * From a set of keys, get those that already exist in the index.
+     * 
+     * @param keys the keys
+     * @param index the index
+     * @return the set of keys that already exist in this unique index
+     */
+    private Set<String> getExistingKeys(Set<String> keys, NodeBuilder index) {
+        Set<String> existing = null;
+        IndexStoreStrategy s = getStrategy(true);
+        for (String key : keys) {
+            if (s.exists(index, key)) {
+                if (existing == null) {
+                    existing = newHashSet();
+                }
+                existing.add(key);
+            }
+        }
+        if (existing == null) {
+            existing = Collections.emptySet();
+        }
+        return existing;
+    }
+        
+    /**
+     * From a set of keys, get the first that has multiple entries, if any.
+     * 
+     * @param keys the keys
+     * @param indexMeta the index configuration
+     * @return the first duplicate, or null if none was found
+     */
+    private String getFirstDuplicate(Set<String> keys, NodeState indexMeta) {
+        IndexStoreStrategy s = getStrategy(true);
+        for (String key : keys) {
+            if (s.count(root, indexMeta, singleton(key), 2) > 1) {
+                return key;
+            }
+        }
+        return null;
     }
 
     private static boolean isTypeProperty(String name) {

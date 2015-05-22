@@ -153,7 +153,7 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
             File coreProperties = new File(new File(solrCoreDir), "core.properties");
             assert coreProperties.createNewFile();
             FileOutputStream out = new FileOutputStream(coreProperties);
-            IOUtils.writeBytes(out, ("name=" + coreName).getBytes());
+            IOUtils.writeBytes(out, ("name=" + coreName).getBytes("UTF-8"));
             out.flush();
             out.close();
 
@@ -253,8 +253,10 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
     @Override
     public void close() throws IOException {
         try {
-            if (solrServer != null) {
-                solrServer.shutdown();
+            synchronized (this) {
+                if (solrServer != null) {
+                    solrServer.shutdown();
+                }
             }
         } catch (Exception e) {
             // do nothing

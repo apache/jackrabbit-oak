@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -28,7 +27,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache.GenerationCache;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
-import org.h2.mvstore.MVMapConcurrent;
+import org.h2.mvstore.MVMap;
 import org.h2.mvstore.StreamStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,11 +59,11 @@ public class BlobCache implements BlobStore, GarbageCollectableBlobStore, Genera
     
     @Override
     public void addGeneration(int generation, boolean readOnly) {
-        Map<Long, byte[]> d = cache.openMap(generation, "data", 
-                new MVMapConcurrent.Builder<Long, byte[]>());
+        CacheMap<Long, byte[]> d = cache.openMap(generation, "data", 
+                new MVMap.Builder<Long, byte[]>());
         data.addReadMap(generation, d);
-        Map<String, byte[]> m = cache.openMap(generation, "meta", 
-                new MVMapConcurrent.Builder<String, byte[]>());
+        CacheMap<String, byte[]> m = cache.openMap(generation, "meta", 
+                new MVMap.Builder<String, byte[]>());
         meta.addReadMap(generation, m);
         if (!readOnly) {
             // the order is important:

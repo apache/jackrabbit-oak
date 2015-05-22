@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 @Service({PrincipalConfiguration.class, SecurityConfiguration.class})
 public class PrincipalConfigurationImpl extends ConfigurationBase implements PrincipalConfiguration {
 
+    @SuppressWarnings("UnusedDeclaration")
     public PrincipalConfigurationImpl() {
         super();
     }
@@ -50,6 +51,7 @@ public class PrincipalConfigurationImpl extends ConfigurationBase implements Pri
         super(securityProvider, securityProvider.getParameters(NAME));
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     @Activate
     private void activate(Map<String, Object> properties) {
         setParameters(ConfigurationParameters.of(properties));
@@ -68,7 +70,14 @@ public class PrincipalConfigurationImpl extends ConfigurationBase implements Pri
     @Override
     public PrincipalProvider getPrincipalProvider(Root root, NamePathMapper namePathMapper) {
         UserConfiguration uc = getSecurityProvider().getConfiguration(UserConfiguration.class);
-        return new PrincipalProviderImpl(root, uc, namePathMapper);
+        PrincipalProvider principalProvider = uc.getUserPrincipalProvider(root, namePathMapper);
+        if (principalProvider != null) {
+            // use user-implementation specific principal provider implementation
+            return principalProvider;
+        } else {
+            // use default implementation acting on user management API
+            return new PrincipalProviderImpl(root, uc, namePathMapper);
+        }
     }
 
     //----------------------------------------------< SecurityConfiguration >---

@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate;
 import java.io.IOException;
 
 import com.google.common.collect.Iterables;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.solr.client.solrj.SolrServer;

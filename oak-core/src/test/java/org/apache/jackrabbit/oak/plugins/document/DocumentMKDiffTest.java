@@ -28,7 +28,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Tests for MicroKernel#diff
+ * Tests for NodeStore#diff
  */
 public class DocumentMKDiffTest extends AbstractMongoConnectionTest {
 

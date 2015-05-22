@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.stats;
 
 import static junit.framework.Assert.assertTrue;
-import static org.apache.jackrabbit.oak.commons.CIHelper.buildBotWin7Trunk;
-import static org.junit.Assume.assumeTrue;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -46,49 +44,47 @@ public class ClockTest {
     }
 
     @Test
-    public void testClockDrift() throws InterruptedException {
-        // FIXME OAK-1904 temporary hack to disable this test on Apache buildbot
-        assumeTrue(!buildBotWin7Trunk());
-        ScheduledExecutorService executor =
-                Executors.newSingleThreadScheduledExecutor();
+    public void testClockDriftSimple() throws InterruptedException {
+        testClockDrift(Clock.SIMPLE);
+    }
 
+    @Test
+    public void testClockDriftAccurate() throws InterruptedException {
+        testClockDrift(Clock.ACCURATE);
+    }
+
+    @Test
+    public void testClockDriftFast() throws InterruptedException {
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
         try {
-            Clock[] clocks = new Clock[] {
-                    Clock.SIMPLE,
-                    Clock.ACCURATE,
-                    new Clock.Fast(executor)
-            };
-
-            for (Clock clock : clocks) {
-                long drift = clock.getTime() - System.currentTimeMillis();
-
-                // Set the drift limit to twice as high as granularity,
-                // plus 3ms for Thread.sleep() inaccuracy in the fast clock
-                final long granularity = getGranularity(clock);
-                final long limit = (2 * granularity) / 1000 + 3;
-                assertTrue(
-                        clock + " unexpected drift: " + drift + "ms (estimated limit was " +
-                                limit + "ms, measured granularity was " + (granularity / 1000f) + "ms)",
-                        Math.abs(drift) <= limit);
-            }
-
-            Thread.sleep(100);
-
-            for (Clock clock : clocks) {
-                long drift = clock.getTime() - System.currentTimeMillis();
-
-                // Set the drift limit to twice as high as granularity,
-                // plus 3ms for Thread.sleep() inaccuracy in the fast clock
-                final long granularity = getGranularity(clock);
-                final long limit = (2 * granularity) / 1000 + 3;
-                assertTrue(
-                        clock + " unexpected drift ater 100ms: " + drift + "ms (estimated limit was " +
-                                limit + "ms, measured granularity was " + (granularity / 1000f) + "ms)",
-                        Math.abs(drift) <= limit);
-            }
+            testClockDrift(new Clock.Fast(executor));
         } finally {
             executor.shutdown();
         }
+    }
+
+    private void testClockDrift(Clock clock) throws InterruptedException {
+
+        long drift = clock.getTime() - System.currentTimeMillis();
+
+        // Set the drift limit to twice as high as granularity,
+        // plus 3ms for Thread.sleep() inaccuracy in the fast clock
+        long granularity = getGranularity(clock);
+        long limit = (2 * granularity) / 1000 + 3;
+        assertTrue(clock + " unexpected drift: " + drift + "ms (estimated limit was " + limit + "ms, measured granularity was "
+                + (granularity / 1000f) + "ms)", Math.abs(drift) <= limit);
+
+        long waittime = 100;
+        Thread.sleep(waittime);
+
+        drift = clock.getTime() - System.currentTimeMillis();
+
+        // Set the drift limit to twice as high as granularity,
+        // plus 3ms for Thread.sleep() inaccuracy in the fast clock
+        granularity = getGranularity(clock);
+        limit = (2 * granularity) / 1000 + 3;
+        assertTrue(clock + " unexpected drift after " + waittime + "ms: " + drift + "ms (estimated limit was " + limit
+                + "ms, measured granularity was " + (granularity / 1000f) + "ms)", Math.abs(drift) <= limit);
     }
 
     private static long getGranularity(Clock clock) {
@@ -98,26 +94,31 @@ public class ClockTest {
     }
 
     @Test
-    public void testClockIncreasing() throws InterruptedException {
-        ScheduledExecutorService executor =
-                Executors.newSingleThreadScheduledExecutor();
-        try {
-            Clock[] clocks = new Clock[] {
-                    Clock.SIMPLE,
-                    Clock.ACCURATE,
-                    new Clock.Fast(executor)
-            };
+    public void testClockIncreasingSimple() throws InterruptedException {
+        testClockIncreasing(Clock.SIMPLE);
+    }
 
-            long[] time = new long[clocks.length];
-            for (int i = 0; i < 10; i++) {
-                for (int j = 0; j < clocks.length; j++) {
-                    long now = clocks[j].getTimeIncreasing();
-                    assertTrue(time[j] < now);
-                    time[j] = now;
-                }
-            }
+    @Test
+    public void testClockIncreasingAccurate() throws InterruptedException {
+        testClockIncreasing(Clock.SIMPLE);
+    }
+
+    @Test
+    public void testClockIncreasingFast() throws InterruptedException {
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        try {
+            testClockIncreasing(new Clock.Fast(executor));
         } finally {
             executor.shutdown();
+        }
+    }
+
+    private void testClockIncreasing(Clock clock) throws InterruptedException {
+        long time = 0;
+        for (int i = 0; i < 10; i++) {
+            long now = clock.getTimeIncreasing();
+            assertTrue(time < now);
+            time = now;
         }
     }
 

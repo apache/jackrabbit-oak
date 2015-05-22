@@ -76,6 +76,7 @@ public class TokenConfigurationImpl extends ConfigurationBase implements TokenCo
         super(securityProvider, securityProvider.getParameters(NAME));
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     @Activate
     private void activate(Map<String, Object> properties) {
         setParameters(ConfigurationParameters.of(properties));
@@ -90,7 +91,7 @@ public class TokenConfigurationImpl extends ConfigurationBase implements TokenCo
 
     @Nonnull
     @Override
-    public List<? extends ValidatorProvider> getValidators(String workspaceName, Set<Principal> principals, MoveTracker moveTracker) {
+    public List<? extends ValidatorProvider> getValidators(@Nonnull String workspaceName, @Nonnull Set<Principal> principals, @Nonnull MoveTracker moveTracker) {
         ValidatorProvider vp = new TokenValidatorProvider(getSecurityProvider().getParameters(UserConfiguration.NAME));
         return ImmutableList.of(vp);
     }

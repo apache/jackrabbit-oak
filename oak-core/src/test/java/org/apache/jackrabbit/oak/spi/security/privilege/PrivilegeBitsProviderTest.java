@@ -18,13 +18,17 @@ package org.apache.jackrabbit.oak.spi.security.privilege;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.Privilege;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -147,5 +151,42 @@ public class PrivilegeBitsProviderTest extends AbstractSecurityTest implements P
             bits.add(bitsProvider.getBits(name));
         }
         assertEquals(all, bits.unmodifiable());
+    }
+
+    @Test
+    public void testGetAggregatedNames() throws Exception {
+        assertFalse(bitsProvider.getAggregatedPrivilegeNames().iterator().hasNext());
+        assertFalse(bitsProvider.getAggregatedPrivilegeNames("unknown").iterator().hasNext());
+
+        for (String nonAggregate : PrivilegeConstants.NON_AGGREGATE_PRIVILEGES) {
+            assertEquals(Collections.singleton(nonAggregate), bitsProvider.getAggregatedPrivilegeNames(nonAggregate));
+        }
+
+        Map<String[], Set<String>> testMap = Maps.newHashMap();
+        testMap.put(new String[] {JCR_READ}, ImmutableSet.of(REP_READ_NODES, REP_READ_PROPERTIES));
+        testMap.put(new String[] {JCR_MODIFY_PROPERTIES}, ImmutableSet.of(REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES));
+        testMap.put(new String[] {JCR_WRITE}, ImmutableSet.of(JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE, REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES));
+        testMap.put(new String[] {REP_WRITE}, ImmutableSet.of(JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE, REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES, JCR_NODE_TYPE_MANAGEMENT));
+        testMap.put(new String[] {JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL}, ImmutableSet.of(JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL));
+        testMap.put(new String[] {JCR_READ, JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL}, ImmutableSet.of(REP_READ_NODES, REP_READ_PROPERTIES, JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL));
+        testMap.put(new String[] {JCR_ALL}, NON_AGGREGATE_PRIVILEGES);
+        testMap.put(new String[] {JCR_READ, JCR_WRITE, JCR_ALL}, NON_AGGREGATE_PRIVILEGES);
+
+        for (String[] prvNames : testMap.keySet()) {
+            Set<String> expected = testMap.get(prvNames);
+            assertEquals(expected, ImmutableSet.copyOf(bitsProvider.getAggregatedPrivilegeNames(prvNames)));
+            assertEquals(expected, ImmutableSet.copyOf(bitsProvider.getAggregatedPrivilegeNames(prvNames)));
+        }
+
+        PrivilegeManager pMgr = getPrivilegeManager(root);
+        pMgr.registerPrivilege("test1", true, null);
+
+        assertEquals(ImmutableSet.of("test1"), ImmutableSet.copyOf(bitsProvider.getAggregatedPrivilegeNames("test1")));
+
+        Set<String> expected = Sets.newHashSet(NON_AGGREGATE_PRIVILEGES);
+        expected.add("test1");
+        assertEquals(expected, ImmutableSet.copyOf(bitsProvider.getAggregatedPrivilegeNames(JCR_ALL)));
+        assertEquals(expected, ImmutableSet.copyOf(bitsProvider.getAggregatedPrivilegeNames(JCR_ALL)));
+
     }
 }

@@ -66,7 +66,7 @@ public final class QueryUtil {
      * @return The corresponding node type name.
      */
     @Nonnull
-    public static String getNodeTypeName(AuthorizableType type) {
+    public static String getNodeTypeName(@Nonnull AuthorizableType type) {
         if (type == AuthorizableType.USER) {
             return UserConstants.NT_REP_USER;
         } else if (type == AuthorizableType.GROUP) {
@@ -109,7 +109,6 @@ public final class QueryUtil {
 
     @Nonnull
     public static String format(@Nonnull Value value) throws RepositoryException {
-        String s;
         switch (value.getType()) {
             case PropertyType.STRING:
             case PropertyType.BOOLEAN:

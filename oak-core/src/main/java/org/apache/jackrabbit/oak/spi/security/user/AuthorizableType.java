@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.spi.security.user;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 
 /**
@@ -64,6 +66,18 @@ public enum AuthorizableType {
             default:
                 // TYPE_AUTHORIZABLE:
                 return true;
+        }
+    }
+
+    public Class<? extends Authorizable> getAuthorizableClass() {
+        switch (userType) {
+            case UserManager.SEARCH_TYPE_GROUP:
+                return Group.class;
+            case UserManager.SEARCH_TYPE_USER:
+                return User.class;
+            default:
+                // TYPE_AUTHORIZABLE:
+                return Authorizable.class;
         }
     }
 }

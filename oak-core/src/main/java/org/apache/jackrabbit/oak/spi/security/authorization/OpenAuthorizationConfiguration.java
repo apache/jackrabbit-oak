@@ -35,8 +35,9 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 public class OpenAuthorizationConfiguration extends SecurityConfiguration.Default
         implements AuthorizationConfiguration {
 
+    @Nonnull
     @Override
-    public AccessControlManager getAccessControlManager(Root root, NamePathMapper namePathMapper) {
+    public AccessControlManager getAccessControlManager(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper) {
         throw new UnsupportedOperationException();
     }
 
@@ -48,7 +49,7 @@ public class OpenAuthorizationConfiguration extends SecurityConfiguration.Defaul
 
     @Nonnull
     @Override
-    public PermissionProvider getPermissionProvider(Root root, String workspaceName, Set<Principal> principals) {
+    public PermissionProvider getPermissionProvider(@Nonnull Root root, @Nonnull String workspaceName, @Nonnull Set<Principal> principals) {
         return OpenPermissionProvider.getInstance();
     }
 

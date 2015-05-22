@@ -24,13 +24,13 @@ import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 
 /**
  * Implementation of the user management that allows to set the autosave flag.
@@ -68,6 +68,11 @@ public class AutoSaveEnabledManager implements UserManager {
     @Override
     public Authorizable getAuthorizable(String id) throws RepositoryException {
         return wrap(dlg.getAuthorizable(id));
+    }
+
+    @Override
+    public <T extends Authorizable> T getAuthorizable(String id, Class<T> authorizableClass) throws RepositoryException {
+        return UserUtil.castAuthorizable(wrap(dlg.getAuthorizable(id)), authorizableClass);
     }
 
     @Override
@@ -114,7 +119,7 @@ public class AutoSaveEnabledManager implements UserManager {
     }
 
     @Override
-    public User createSystemUser(String userID, String intermediatePath) throws AuthorizableExistsException, RepositoryException {
+    public User createSystemUser(String userID, String intermediatePath) throws RepositoryException {
         try {
             return wrap(dlg.createUser(userID, intermediatePath));
         } finally {

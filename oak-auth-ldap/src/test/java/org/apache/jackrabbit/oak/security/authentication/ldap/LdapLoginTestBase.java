@@ -46,7 +46,6 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -66,7 +65,6 @@ public abstract class LdapLoginTestBase extends ExternalLoginModuleTestBase {
     protected static final String USER_LASTNAME = "Bar";
     protected static final String USER_ATTR = "givenName";
     protected static final String USER_PROP = "profile/name";
-    protected static final String GROUP_PROP = "profile/member";
     protected static final String GROUP_NAME = "foobargroup";
 
     protected static String GROUP_DN;

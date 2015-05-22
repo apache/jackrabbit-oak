@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.security.authorization.composite;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
@@ -29,6 +30,7 @@ import javax.jcr.security.Privilege;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
+import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.PolicyOwner;
@@ -40,7 +42,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class CompositeAccessControlManagerTest extends AbstractCompositeTest {
+public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
 
     private static final String TEST_PATH = "/test";
 
@@ -215,7 +217,7 @@ public class CompositeAccessControlManagerTest extends AbstractCompositeTest {
 
         //----------------------------------------------------< PolicyOwner >---
         @Override
-        public boolean defines(String absPath, AccessControlPolicy accessControlPolicy) {
+        public boolean defines(String absPath, @Nonnull AccessControlPolicy accessControlPolicy) {
             return TEST_PATH.equals(absPath) && accessControlPolicy == TestPolicy.INSTANCE;
         }
     }

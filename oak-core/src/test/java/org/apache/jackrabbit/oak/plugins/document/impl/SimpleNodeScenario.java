@@ -16,16 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.impl;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 
 /**
  * A class that can perform simple operations.
  */
 public class SimpleNodeScenario {
 
-    private final MicroKernel mk;
+    private final DocumentMK mk;
 
-    public SimpleNodeScenario(MicroKernel mk) {
+    public SimpleNodeScenario(DocumentMK mk) {
         this.mk = mk;
     }
 

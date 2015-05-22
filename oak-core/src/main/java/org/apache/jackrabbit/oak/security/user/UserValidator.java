@@ -187,7 +187,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
         }
     }
 
-    private void validateAuthorizable(@Nonnull Tree tree, @Nonnull AuthorizableType type) throws CommitFailedException {
+    private void validateAuthorizable(@Nonnull Tree tree, @Nullable AuthorizableType type) throws CommitFailedException {
         boolean isSystemUser = (type == AuthorizableType.USER) && UserUtil.isSystemUser(tree);
         String authRoot = UserUtil.getAuthorizableRootPath(provider.getConfig(), type);
         if (isSystemUser) {
@@ -204,10 +204,10 @@ class UserValidator extends DefaultValidator implements UserConstants {
 
             if (isSystemUser) {
                 if (TreeUtil.getString(tree, REP_PASSWORD) != null) {
-                    throw constraintViolation(27, "Attempt to set password with system user.");
+                    throw constraintViolation(32, "Attempt to set password with system user.");
                 }
                 if (tree.hasChild(REP_PWD)) {
-                    throw constraintViolation(28, "Attempt to add rep:pwd node to a system user.");
+                    throw constraintViolation(33, "Attempt to add rep:pwd node to a system user.");
                 }
             }
         }

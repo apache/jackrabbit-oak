@@ -19,25 +19,19 @@ package org.apache.jackrabbit.oak.spi.security.authorization.permission;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 
 /**
  * Extension of the {@link PermissionProvider} interface that allows it to be
  * used in combination with other provider implementations.
+ *
+ * TODO This is work in progress (OAK-1268)
  */
 public interface AggregatedPermissionProvider extends PermissionProvider {
 
-    /**
-     * Name of the configuration option that specifies the {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.ControlFlag}
-     * of this provider instance.
-     */
-    String PARAM_CONTROL_FLAG = "controlFlag";
-
-    @Nonnull
-    ControlFlag getFlag();
-
     boolean handles(@Nonnull String path, @Nonnull String jcrAction);
 
-    boolean handles(@Nonnull Tree tree);
+    boolean handles(@Nonnull Tree tree, @Nonnull PrivilegeBits privilegeBits);
 
     boolean handles(@Nonnull Tree tree, long permission);
 

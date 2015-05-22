@@ -22,12 +22,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.regex.Matcher;
@@ -37,9 +39,11 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.mongodb.MongoClientURI;
+import com.mongodb.QueryOperators;
 import com.mongodb.ReadPreference;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
@@ -54,9 +58,11 @@ import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
+import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.apache.jackrabbit.oak.plugins.document.cache.ForwardingListener;
 import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocOffHeapCache;
 import org.apache.jackrabbit.oak.plugins.document.cache.OffHeapCache;
@@ -98,7 +104,7 @@ public class MongoDocumentStore implements DocumentStore {
 
     private static final DBObject BY_ID_ASC = new BasicDBObject(Document.ID, 1);
 
-    static enum DocumentReadPreference {
+    enum DocumentReadPreference {
         PRIMARY,
         PREFER_PRIMARY,
         PREFER_SECONDARY,
@@ -110,11 +116,6 @@ public class MongoDocumentStore implements DocumentStore {
     private final DBCollection nodes;
     private final DBCollection clusterNodes;
     private final DBCollection settings;
-
-    /**
-     * The sum of all milliseconds this class waited for MongoDB.
-     */
-    private long timeSum;
 
     private final Cache<CacheValue, NodeDocument> nodesCache;
     private final CacheStats cacheStats;
@@ -146,15 +147,43 @@ public class MongoDocumentStore implements DocumentStore {
 
     /**
      * Duration in seconds under which queries would use index on _modified field
-     * If set to -1 then modifiedTime index would not be used
+     * If set to -1 then modifiedTime index would not be used.
+     * <p>
+     * Default is 60 seconds.
      */
     private final long maxDeltaForModTimeIdxSecs =
-            Long.getLong("oak.mongo.maxDeltaForModTimeIdxSecs",-1);
+            Long.getLong("oak.mongo.maxDeltaForModTimeIdxSecs", 60);
+
+    /**
+     * Disables the index hint sent to MongoDB.
+     * This overrides {@link #maxDeltaForModTimeIdxSecs}.
+     */
+    private final boolean disableIndexHint =
+            Boolean.getBoolean("oak.mongo.disableIndexHint");
+
+    /**
+     * Duration in milliseconds after which a mongo query will be terminated.
+     * <p>
+     * If this value is -1 no timeout is being set at all, if it is 1 or greater
+     * this translated to MongoDB's maxTimeNS being set accordingly.
+     * <p>
+     * Default is 60'000 (one minute).
+     * See: http://mongodb.github.io/node-mongodb-native/driver-articles/anintroductionto1_4_and_2_6.html#maxtimems
+     */
+    private final long maxQueryTimeMS =
+            Long.getLong("oak.mongo.maxQueryTimeMS", TimeUnit.MINUTES.toMillis(1));
 
     private String lastReadWriteMode;
 
+    private final Map<String, String> metadata;
+
     public MongoDocumentStore(DB db, DocumentMK.Builder builder) {
-        checkVersion(db);
+        String version = checkVersion(db);
+        metadata = ImmutableMap.<String,String>builder()
+                .put("type", "mongo")
+                .put("version", version)
+                .build();
+
         nodes = db.getCollection(
                 Collection.NODES.toString());
         clusterNodes = db.getCollection(
@@ -206,10 +235,11 @@ public class MongoDocumentStore implements DocumentStore {
         cacheStats = new CacheStats(nodesCache, "Document-Documents", builder.getWeigher(),
                 builder.getDocumentCacheSize());
         LOG.info("Configuration maxReplicationLagMillis {}, " +
-                "maxDeltaForModTimeIdxSecs {}",maxReplicationLagMillis, maxDeltaForModTimeIdxSecs);
+                "maxDeltaForModTimeIdxSecs {}, disableIndexHint {}",
+                maxReplicationLagMillis, maxDeltaForModTimeIdxSecs, disableIndexHint);
     }
 
-    private static void checkVersion(DB db) {
+    private static String checkVersion(DB db) {
         String version = db.command("buildInfo").getString("version");
         Matcher m = Pattern.compile("^(\\d+)\\.(\\d+)\\..*").matcher(version);
         if (!m.matches()) {
@@ -218,13 +248,15 @@ public class MongoDocumentStore implements DocumentStore {
         int major = Integer.parseInt(m.group(1));
         int minor = Integer.parseInt(m.group(2));
         if (major > 2) {
-            return;
+            return version;
         }
         if (minor < 6) {
             String msg = "MongoDB version 2.6.0 or higher required. " +
                     "Currently connected to a MongoDB with version: " + version;
             throw new RuntimeException(msg);
         }
+
+        return version;
     }
 
     private Cache<CacheValue, NodeDocument> createOffHeapCache(
@@ -250,10 +282,10 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     @Override
-    public void invalidateCache() {
+    public CacheInvalidationStats invalidateCache() {
         //TODO Check if we should use LinearInvalidator for small cache sizes as
         //that would lead to lesser number of queries
-        CacheInvalidator.createHierarchicalInvalidator(this).invalidateCache();
+        return CacheInvalidator.createHierarchicalInvalidator(this).invalidateCache();
     }
 
     @Override
@@ -489,7 +521,14 @@ public class MongoDocumentStore implements DocumentStore {
         TreeLock lock = acquireExclusive(parentId != null ? parentId : "");
         final long start = PERFLOG.start();
         try {
-            DBCursor cursor = dbCollection.find(query).sort(BY_ID_ASC).hint(hint);
+            DBCursor cursor = dbCollection.find(query).sort(BY_ID_ASC);
+            if (!disableIndexHint) {
+                cursor.hint(hint);
+            }
+            if (maxQueryTimeMS > 0) {
+                // OAK-2614: set maxTime if maxQueryTimeMS > 0
+                cursor.maxTime(maxQueryTimeMS, TimeUnit.MILLISECONDS);
+            }
             ReadPreference readPreference =
                     getMongoReadPreference(collection, parentId, getDefaultReadPreference(collection));
 
@@ -552,12 +591,11 @@ public class MongoDocumentStore implements DocumentStore {
         DBCollection dbCollection = getDBCollection(collection);
         long start = PERFLOG.start();
         try {
-            WriteResult writeResult = dbCollection.remove(getByKeyQuery(key).get());
-            invalidateCache(collection, key);
-            if (writeResult.getError() != null) {
-                throw new DocumentStoreException("Remove failed: " + writeResult.getError());
-            }
+            dbCollection.remove(getByKeyQuery(key).get());
+        } catch (Exception e) {
+            throw DocumentStoreException.convert(e, "Remove failed for " + key);
         } finally {
+            invalidateCache(collection, key);
             PERFLOG.end(start, 1, "remove key={}", key);
         }
     }
@@ -566,15 +604,58 @@ public class MongoDocumentStore implements DocumentStore {
     public <T extends Document> void remove(Collection<T> collection, List<String> keys) {
         log("remove", keys);
         DBCollection dbCollection = getDBCollection(collection);
-        for(List<String> keyBatch : Lists.partition(keys, IN_CLAUSE_BATCH_SIZE)){
-            DBObject query = QueryBuilder.start(Document.ID).in(keyBatch).get();
-            WriteResult writeResult = dbCollection.remove(query);
-            invalidateCache(collection, keyBatch);
-            if (writeResult.getError() != null) {
-                throw new DocumentStoreException("Remove failed: " + writeResult.getError());
+        long start = PERFLOG.start();
+        try {
+            for(List<String> keyBatch : Lists.partition(keys, IN_CLAUSE_BATCH_SIZE)){
+                DBObject query = QueryBuilder.start(Document.ID).in(keyBatch).get();
+                try {
+                    dbCollection.remove(query);
+                } catch (Exception e) {
+                    throw DocumentStoreException.convert(e, "Remove failed for " + keyBatch);
+                } finally {
+                    invalidateCache(collection, keyBatch);
+                }
             }
+        } finally {
+            PERFLOG.end(start, 1, "remove keys={}", keys);
         }
+    }
 
+    @Override
+    public <T extends Document> int remove(Collection<T> collection,
+                                           Map<String, Map<Key, Condition>> toRemove) {
+        log("remove", toRemove);
+        int num = 0;
+        DBCollection dbCollection = getDBCollection(collection);
+        long start = PERFLOG.start();
+        try {
+            List<String> batchIds = Lists.newArrayList();
+            List<DBObject> batch = Lists.newArrayList();
+            Iterator<Entry<String, Map<Key, Condition>>> it = toRemove.entrySet().iterator();
+            while (it.hasNext()) {
+                Entry<String, Map<Key, Condition>> entry = it.next();
+                QueryBuilder query = createQueryForUpdate(
+                        entry.getKey(), entry.getValue());
+                batchIds.add(entry.getKey());
+                batch.add(query.get());
+                if (!it.hasNext() || batch.size() == IN_CLAUSE_BATCH_SIZE) {
+                    DBObject q = new BasicDBObject();
+                    q.put(QueryOperators.OR, batch);
+                    try {
+                        num += dbCollection.remove(q).getN();
+                    } catch (Exception e) {
+                        throw DocumentStoreException.convert(e, "Remove failed for " + batch);
+                    } finally {
+                        invalidateCache(collection, Lists.newArrayList(batchIds));
+                    }
+                    batchIds.clear();
+                    batch.clear();
+                }
+            }
+        } finally {
+            PERFLOG.end(start, 1, "remove keys={}", toRemove);
+        }
+        return num;
     }
 
     @CheckForNull
@@ -605,7 +686,9 @@ public class MongoDocumentStore implements DocumentStore {
             // perform a conditional update with limited result
             // if we have a matching modCount
             if (modCount != null) {
-                QueryBuilder query = createQueryForUpdate(updateOp, checkConditions);
+
+                QueryBuilder query = createQueryForUpdate(updateOp.getId(),
+                        updateOp.getConditions());
                 query.and(Document.MOD_COUNT).is(modCount);
                 DBObject fields = new BasicDBObject();
                 // return _id only
@@ -624,10 +707,8 @@ public class MongoDocumentStore implements DocumentStore {
 
             // conditional update failed or not possible
             // perform operation and get complete document
-            QueryBuilder query = createQueryForUpdate(updateOp, checkConditions);
-            DBObject oldNode = dbCollection.findAndModify(query.get(), null,
-                    null /*sort*/, false /*remove*/, update, false /*returnNew*/,
-                    upsert);
+            QueryBuilder query = createQueryForUpdate(updateOp.getId(), updateOp.getConditions());
+            DBObject oldNode = dbCollection.findAndModify(query.get(), null, null /*sort*/, false /*remove*/, update, false /*returnNew*/, upsert);
             if (checkConditions && oldNode == null) {
                 return null;
             }
@@ -698,9 +779,6 @@ public class MongoDocumentStore implements DocumentStore {
                     }
                     case REMOVE_MAP_ENTRY:
                         // nothing to do for new entries
-                        break;
-                    case CONTAINS_MAP_ENTRY:
-                        // no effect
                         break;
                 }
             }
@@ -902,9 +980,6 @@ public class MongoDocumentStore implements DocumentStore {
 
     @Override
     public void dispose() {
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("MongoDB time: " + timeSum);
-        }
         nodes.getDB().getMongo().close();
 
         if (nodesCache instanceof Closeable) {
@@ -922,8 +997,17 @@ public class MongoDocumentStore implements DocumentStore {
         return cacheStats;
     }
 
+    @Override
+    public Map<String, String> getMetadata() {
+        return metadata;
+    }
+
     long getMaxDeltaForModTimeIdxSecs() {
         return maxDeltaForModTimeIdxSecs;
+    }
+
+    boolean getDisableIndexHint() {
+        return disableIndexHint;
     }
 
     Iterable<? extends Map.Entry<CacheValue, ? extends CachedNodeDocument>> getCacheEntries() {
@@ -1062,22 +1146,23 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     @Nonnull
-    private static QueryBuilder createQueryForUpdate(UpdateOp updateOp,
-                                              boolean checkConditions) {
-        QueryBuilder query = getByKeyQuery(updateOp.getId());
+    private static QueryBuilder createQueryForUpdate(String key,
+                                                     Map<Key, Condition> conditions) {
+        QueryBuilder query = getByKeyQuery(key);
 
-        for (Entry<Key, Operation> entry : updateOp.getChanges().entrySet()) {
+        for (Entry<Key, Condition> entry : conditions.entrySet()) {
             Key k = entry.getKey();
-            Operation op = entry.getValue();
-            switch (op.type) {
-                case CONTAINS_MAP_ENTRY: {
-                    if (checkConditions) {
-                        query.and(k.toString()).exists(op.value);
-                    }
+            Condition c = entry.getValue();
+            switch (c.type) {
+                case EXISTS:
+                    query.and(k.toString()).exists(c.value);
                     break;
-                }
+                case EQUALS:
+                    query.and(k.toString()).is(c.value);
+                    break;
             }
         }
+
         return query;
     }
 

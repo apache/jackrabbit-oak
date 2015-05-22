@@ -56,12 +56,12 @@ public abstract class AbstractRepositoryTest {
 
     protected final NodeStoreFixture fixture;
 
-    private NodeStore nodeStore;
-    private Repository repository;
-    private Session adminSession;
+    private volatile NodeStore nodeStore;
+    private volatile Repository repository;
+    private volatile Session adminSession;
 
     /**
-     * The system property "ns-fixtures" can be used to provide a
+     * The system property "nsfixtures" can be used to provide a
      * whitespace-separated list of fixtures names for which the
      * tests should be run (the default is to use all fixtures).
      */
@@ -74,9 +74,6 @@ public abstract class AbstractRepositoryTest {
     @Parameterized.Parameters
     public static Collection<Object[]> fixtures() {
         Collection<Object[]> result = new ArrayList<Object[]>();
-        if (FIXTURES.contains(Fixture.DOCUMENT_MK)) {
-            result.add(new Object[] { NodeStoreFixture.DOCUMENT_MK });
-        }
         if (FIXTURES.contains(Fixture.DOCUMENT_NS)) {
             result.add(new Object[] { NodeStoreFixture.DOCUMENT_NS });
         }

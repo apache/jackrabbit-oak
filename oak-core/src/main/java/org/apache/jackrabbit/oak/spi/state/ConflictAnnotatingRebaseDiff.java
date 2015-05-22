@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.PropertyState;
 
 import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_CHANGED_PROPERTY;
@@ -31,7 +30,7 @@ import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_DELETED_NO
 
 /**
  * This implementation of {@code AbstractRebaseDiff} implements a {@link NodeStateDiff},
- * which performs the conflict handling as defined in {@link MicroKernel#rebase(String, String)}
+ * which performs the conflict handling as defined in {@link NodeStore#rebase(NodeBuilder)}
  * on the Oak SPI state level by annotating conflicting items with conflict
  * markers.
  */

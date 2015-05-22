@@ -68,6 +68,13 @@ public class UtilsTest {
         assertEquals("1:/foo",Utils.getParentId("2:/foo/bar"));
     }
 
+    @Test
+    public void getDepthFromId() throws Exception{
+        assertEquals(1, Utils.getDepthFromId("1:/x"));
+        assertEquals(2, Utils.getDepthFromId("2:/x"));
+        assertEquals(10, Utils.getDepthFromId("10:/x"));
+    }
+
     @Ignore("Performance test")
     @Test
     public void performance_getPreviousIdFor() {

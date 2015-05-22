@@ -87,8 +87,8 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
     @Property(boolValue = SolrServerConfigurationDefaults.PRIMARY_TYPES, label = "primary types restrictions")
     private static final String PRIMARY_TYPES_RESTRICTIONS = "primarytypes.restrictions";
 
-    @Property(value = SolrServerConfigurationDefaults.IGNORED_PROPERTIES, label = "ignored properties",
-            unbounded = PropertyUnbounded.ARRAY)
+    @Property(value = {"rep:members", "rep:authorizableId", "jcr:uuid", "rep:principalName", "rep:password"},
+            label = "ignored properties", unbounded = PropertyUnbounded.ARRAY)
     private static final String IGNORED_PROPERTIES = "ignored.properties";
 
     @Property(value = {}, label = "used properties", unbounded = PropertyUnbounded.ARRAY)
@@ -247,8 +247,8 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
                 @Nonnull
                 @Override
                 public Collection<String> getIgnoredProperties() {
-                    if (usedProperties != null && usedProperties.length > 0) {
-                        return Arrays.asList(usedProperties);
+                    if (ignoredProperties != null && ignoredProperties.length > 0) {
+                        return Arrays.asList(ignoredProperties);
                     } else {
                         return Collections.emptyList();
                     }
@@ -257,7 +257,11 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
                 @Nonnull
                 @Override
                 public Collection<String> getUsedProperties() {
-                    return Arrays.asList(usedProperties);
+                    if (usedProperties != null && usedProperties.length > 0) {
+                        return Arrays.asList(usedProperties);
+                    } else {
+                        return Collections.emptyList();
+                    }
                 }
             };
         }

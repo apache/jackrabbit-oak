@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Sets.newTreeSet;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_COUNT;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
@@ -134,18 +135,9 @@ public class SessionImpl implements JackrabbitSession {
         }
     }
 
-    @CheckForNull
-    private <T> T perform(@Nonnull SessionOperation<T> op) throws RepositoryException {
-        return sd.perform(op);
-    }
-
-    @CheckForNull
-    private <T> T safePerform(@Nonnull SessionOperation<T> op) {
-        return sd.safePerform(op);
-    }
-
     @Nonnull
-    private String getOakPathOrThrow(String absPath) throws RepositoryException {
+    private String getOakPathOrThrow(@Nonnull String absPath)
+            throws RepositoryException {
         String p = sessionContext.getOakPathOrThrow(absPath);
         if (!PathUtils.isAbsolute(p)) {
             throw new RepositoryException("Not an absolute path: " + absPath);
@@ -154,7 +146,8 @@ public class SessionImpl implements JackrabbitSession {
     }
 
     @Nonnull
-    private String getOakPathOrThrowNotFound(String absPath) throws PathNotFoundException {
+    private String getOakPathOrThrowNotFound(@Nonnull String absPath)
+            throws PathNotFoundException {
         return sessionContext.getOakPathOrThrowNotFound(absPath);
     }
 
@@ -163,7 +156,7 @@ public class SessionImpl implements JackrabbitSession {
             throws RepositoryException {
         ItemDelegate item = sd.getItem(oakPath);
         if (item instanceof NodeDelegate) {
-            return NodeImpl.createNodeOrNull((NodeDelegate) item, sessionContext);
+            return NodeImpl.createNode((NodeDelegate) item, sessionContext);
         } else if (item instanceof PropertyDelegate) {
             return new PropertyImpl((PropertyDelegate) item, sessionContext);
         } else {
@@ -181,9 +174,10 @@ public class SessionImpl implements JackrabbitSession {
      */
     @CheckForNull
     public Node getNodeOrNull(final String absPath) throws RepositoryException {
-        return perform(new ReadOperation<Node>("getNodeOrNull") {
+        checkNotNull(absPath);
+        return sd.performNullable(new ReadOperation<Node>("getNodeOrNull") {
             @Override
-            public Node perform() throws RepositoryException {
+            public Node performNullable() throws RepositoryException {
                 try {
                     return NodeImpl.createNodeOrNull(sd.getNode(getOakPathOrThrow(absPath)), sessionContext);
                 } catch (PathNotFoundException e) {
@@ -203,7 +197,7 @@ public class SessionImpl implements JackrabbitSession {
      */
     @CheckForNull
     public Property getPropertyOrNull(final String absPath) throws RepositoryException {
-        if (absPath.equals("/")) {
+        if (checkNotNull(absPath).equals("/")) {
             return null;
         } else {
             final String oakPath;
@@ -212,9 +206,9 @@ public class SessionImpl implements JackrabbitSession {
             } catch (PathNotFoundException e) {
                 return null;
             }
-            return perform(new ReadOperation<Property>("getPropertyOrNull") {
+            return sd.performNullable(new ReadOperation<Property>("getPropertyOrNull") {
                 @Override
-                public Property perform() throws RepositoryException {
+                public Property performNullable() {
                     PropertyDelegate pd = sd.getProperty(oakPath);
                     if (pd != null) {
                         return new PropertyImpl(pd, sessionContext);
@@ -237,9 +231,10 @@ public class SessionImpl implements JackrabbitSession {
      */
     @CheckForNull
     public Item getItemOrNull(final String absPath) throws RepositoryException {
-        return perform(new ReadOperation<Item>("getItemOrNull") {
+        checkNotNull(absPath);
+        return sd.performNullable(new ReadOperation<Item>("getItemOrNull") {
             @Override
-            public Item perform() throws RepositoryException {
+            public Item performNullable() throws RepositoryException {
                 return getItemInternal(getOakPathOrThrow(absPath));
             }
         });
@@ -284,7 +279,8 @@ public class SessionImpl implements JackrabbitSession {
     public Session impersonate(Credentials credentials) throws RepositoryException {
         sd.checkAlive();
 
-        ImpersonationCredentials impCreds = new ImpersonationCredentials(credentials, sd.getAuthInfo());
+        ImpersonationCredentials impCreds = new ImpersonationCredentials(
+                checkNotNull(credentials), sd.getAuthInfo());
         return getRepository().login(impCreds, sd.getWorkspaceName());
     }
 
@@ -298,21 +294,22 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     @Nonnull
     public Node getRootNode() throws RepositoryException {
-        return perform(new ReadOperation<Node>("getRootNode") {
+        return sd.perform(new ReadOperation<Node>("getRootNode") {
+            @Nonnull
             @Override
             public Node perform() throws RepositoryException {
                 NodeDelegate nd = sd.getRootNode();
                 if (nd == null) {
                     throw new AccessDeniedException("Root node is not accessible.");
                 }
-                return NodeImpl.createNodeOrNull(nd, sessionContext);
+                return NodeImpl.createNode(nd, sessionContext);
             }
         });
     }
 
     @Override
     public Node getNode(String absPath) throws RepositoryException {
-        Node node = getNodeOrNull(absPath);
+        Node node = getNodeOrNull(checkNotNull(absPath));
         if (node == null) {
             throw new PathNotFoundException("Node with path " + absPath + " does not exist.");
         }
@@ -321,19 +318,20 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public boolean nodeExists(String absPath) throws RepositoryException {
-        return getNodeOrNull(absPath) != null;
+        return getNodeOrNull(checkNotNull(absPath)) != null;
     }
 
     @Nonnull
-    private Node getNodeById(final String id) throws RepositoryException {
-        return perform(new ReadOperation<Node>("getNodeById") {
+    private Node getNodeById(@Nonnull final String id) throws RepositoryException {
+        return sd.perform(new ReadOperation<Node>("getNodeById") {
+            @Nonnull
             @Override
             public Node perform() throws RepositoryException {
                 NodeDelegate nd = sd.getNodeByIdentifier(id);
                 if (nd == null) {
                     throw new ItemNotFoundException("Node with id " + id + " does not exist.");
                 }
-                return NodeImpl.createNodeOrNull(nd, sessionContext);
+                return NodeImpl.createNode(nd, sessionContext);
             }
         });
     }
@@ -341,18 +339,18 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     @Nonnull
     public Node getNodeByUUID(String uuid) throws RepositoryException {
-        return getNodeById(uuid);
+        return getNodeById(checkNotNull(uuid));
     }
 
     @Override
     @Nonnull
     public Node getNodeByIdentifier(String id) throws RepositoryException {
-        return getNodeById(id);
+        return getNodeById(checkNotNull(id));
     }
 
     @Override
     public Property getProperty(String absPath) throws RepositoryException {
-        Property property = getPropertyOrNull(absPath);
+        Property property = getPropertyOrNull(checkNotNull(absPath));
         if (property == null) {
             throw new PathNotFoundException(absPath);
         }
@@ -361,12 +359,12 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public boolean propertyExists(String absPath) throws RepositoryException {
-        return getPropertyOrNull(absPath) != null;
+        return getPropertyOrNull(checkNotNull(absPath)) != null;
     }
 
     @Override
     public Item getItem(String absPath) throws RepositoryException {
-        Item item = getItemOrNull(absPath);
+        Item item = getItemOrNull(checkNotNull(absPath));
         if (item == null) {
             throw new PathNotFoundException(absPath);
         }
@@ -375,15 +373,15 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public boolean itemExists(String absPath) throws RepositoryException {
-        return getItemOrNull(absPath) != null;
+        return getItemOrNull(checkNotNull(absPath)) != null;
     }
 
     @Override
     public void move(String srcAbsPath, final String destAbsPath) throws RepositoryException {
-        checkIndexOnName(destAbsPath);
-        final String srcOakPath = getOakPathOrThrowNotFound(srcAbsPath);
+        checkIndexOnName(checkNotNull(destAbsPath));
+        final String srcOakPath = getOakPathOrThrowNotFound(checkNotNull(srcAbsPath));
         final String destOakPath = getOakPathOrThrowNotFound(destAbsPath);
-        sd.perform(new WriteOperation<Void>("move") {
+        sd.performVoid(new WriteOperation("move") {
             @Override
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
@@ -392,28 +390,25 @@ public class SessionImpl implements JackrabbitSession {
             }
 
             @Override
-            public Void perform() throws RepositoryException {
+            public void performVoid() throws RepositoryException {
                 sd.move(srcOakPath, destOakPath, true);
-                return null;
             }
         });
     }
 
     @Override
     public void removeItem(final String absPath) throws RepositoryException {
-        final String oakPath = getOakPathOrThrowNotFound(absPath);
-        perform(new WriteOperation<Void>("removeItem") {
+        final String oakPath = getOakPathOrThrowNotFound(checkNotNull(absPath));
+        sd.performVoid(new WriteOperation("removeItem") {
             @Override
-            public Void perform() throws RepositoryException {
+            public void performVoid() throws RepositoryException {
                 ItemDelegate item = sd.getItem(oakPath);
                 if (item == null) {
                     throw new PathNotFoundException(absPath);
                 } else if (item.isProtected()) {
                     throw new ConstraintViolationException(
                             item.getPath() + " is protected");
-                } else if (item.remove()) {
-                    return null;
-                } else {
+                } else if (!item.remove()) {
                     throw new RepositoryException(
                             item.getPath() + " could not be removed");
                 }
@@ -423,11 +418,10 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public void save() throws RepositoryException {
-        perform(new WriteOperation<Void>("save") {
+        sd.performVoid(new WriteOperation("save") {
             @Override
-            public Void perform() throws RepositoryException {
+            public void performVoid() throws RepositoryException {
                 sd.save(null);
-                return null;
             }
 
             @Override
@@ -439,11 +433,10 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public void refresh(final boolean keepChanges) throws RepositoryException {
-        perform(new WriteOperation<Void>("refresh") {
+        sd.performVoid(new WriteOperation("refresh") {
             @Override
-            public Void perform() {
+            public void performVoid() {
                 sd.refresh(keepChanges);
-                return null;
             }
 
             @Override
@@ -469,34 +462,39 @@ public class SessionImpl implements JackrabbitSession {
     public void logout() {
         if (sd.isAlive()) {
             sessionCounter.decrementAndGet();
-            safePerform(new SessionOperation<Void>("logout") {
-                @Override
-                public Void perform() {
-                    sessionContext.dispose();
-                    sd.logout();
-                    return null;
-                }
+            try {
+                sd.performVoid(new SessionOperation("logout") {
+                    @Override
+                    public void performVoid() {
+                        sessionContext.dispose();
+                        sd.logout();
+                    }
 
-                @Override
-                public boolean isLogout() {
-                    return true;
-                }
-            });
+                    @Override
+                    public boolean isLogout() {
+                        return true;
+                    }
+                });
+            } catch (RepositoryException e) {
+                throw new RuntimeException("Unexpected exception thrown by operation 'logout'", e);
+            }
         }
     }
 
     @Override
     @Nonnull
-    public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior)
-            throws RepositoryException {
-        return new ImportHandler(parentAbsPath, sessionContext, uuidBehavior, false);
+    public ContentHandler getImportContentHandler(String parentAbsPath,
+            int uuidBehavior) throws RepositoryException {
+        return new ImportHandler(checkNotNull(parentAbsPath), sessionContext,
+                uuidBehavior, false);
     }
 
     @Override
     public void importXML(String parentAbsPath, InputStream in, int uuidBehavior)
             throws IOException, RepositoryException {
         try {
-            ContentHandler handler = getImportContentHandler(parentAbsPath, uuidBehavior);
+            ContentHandler handler = getImportContentHandler(
+                    checkNotNull(parentAbsPath), uuidBehavior);
             new ParsingContentHandler(handler).parse(in);
         } catch (SAXException e) {
             Throwable exception = e.getException();
@@ -537,17 +535,21 @@ public class SessionImpl implements JackrabbitSession {
     }
 
     @Override
-    public void exportSystemView(String absPath, ContentHandler contentHandler, boolean skipBinary, boolean noRecurse)
-            throws SAXException, RepositoryException {
-        export(absPath, new SystemViewExporter(this, contentHandler, !noRecurse, !skipBinary));
+    public void exportSystemView(String absPath, ContentHandler contentHandler,
+            boolean skipBinary, boolean noRecurse) throws SAXException,
+            RepositoryException {
+        export(checkNotNull(absPath), new SystemViewExporter(this,
+                checkNotNull(contentHandler), !noRecurse, !skipBinary));
     }
 
     @Override
-    public void exportSystemView(String absPath, OutputStream out, boolean skipBinary, boolean noRecurse)
-            throws IOException, RepositoryException {
+    public void exportSystemView(String absPath, OutputStream out,
+            boolean skipBinary, boolean noRecurse) throws IOException,
+            RepositoryException {
         try {
-            ContentHandler handler = new ToXmlContentHandler(out);
-            export(absPath, new SystemViewExporter(this, handler, !noRecurse, !skipBinary));
+            ContentHandler handler = new ToXmlContentHandler(checkNotNull(out));
+            export(checkNotNull(absPath), new SystemViewExporter(this, handler,
+                    !noRecurse, !skipBinary));
         } catch (SAXException e) {
             Exception exception = e.getException();
             if (exception instanceof RepositoryException) {
@@ -555,23 +557,28 @@ public class SessionImpl implements JackrabbitSession {
             } else if (exception instanceof IOException) {
                 throw (IOException) exception;
             } else {
-                throw new RepositoryException("Error serializing system view XML", e);
+                throw new RepositoryException(
+                        "Error serializing system view XML", e);
             }
         }
     }
 
     @Override
-    public void exportDocumentView(String absPath, ContentHandler contentHandler, boolean skipBinary,
-                                   boolean noRecurse) throws SAXException, RepositoryException {
-        export(absPath, new DocumentViewExporter(this, contentHandler, !noRecurse, !skipBinary));
+    public void exportDocumentView(String absPath,
+            ContentHandler contentHandler, boolean skipBinary, boolean noRecurse)
+            throws SAXException, RepositoryException {
+        export(checkNotNull(absPath), new DocumentViewExporter(this,
+                checkNotNull(contentHandler), !noRecurse, !skipBinary));
     }
 
     @Override
-    public void exportDocumentView(String absPath, OutputStream out, boolean skipBinary, boolean noRecurse)
-            throws IOException, RepositoryException {
+    public void exportDocumentView(String absPath, OutputStream out,
+            boolean skipBinary, boolean noRecurse) throws IOException,
+            RepositoryException {
         try {
-            ContentHandler handler = new ToXmlContentHandler(out);
-            export(absPath, new DocumentViewExporter(this, handler, !noRecurse, !skipBinary));
+            ContentHandler handler = new ToXmlContentHandler(checkNotNull(out));
+            export(checkNotNull(absPath), new DocumentViewExporter(this,
+                    handler, !noRecurse, !skipBinary));
         } catch (SAXException e) {
             Exception exception = e.getException();
             if (exception instanceof RepositoryException) {
@@ -579,7 +586,8 @@ public class SessionImpl implements JackrabbitSession {
             } else if (exception instanceof IOException) {
                 throw (IOException) exception;
             } else {
-                throw new RepositoryException("Error serializing document view XML", e);
+                throw new RepositoryException(
+                        "Error serializing document view XML", e);
             }
         }
     }
@@ -587,7 +595,7 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     public void addLockToken(String lt) {
         try {
-            getWorkspace().getLockManager().addLockToken(lt);
+            getWorkspace().getLockManager().addLockToken(checkNotNull(lt));
         } catch (RepositoryException e) {
             log.warn("Unable to add lock token " + lt + " to session", e);
         }
@@ -606,7 +614,7 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     public void removeLockToken(String lt) {
         try {
-            getWorkspace().getLockManager().removeLockToken(lt);
+            getWorkspace().getLockManager().removeLockToken(checkNotNull(lt));
         } catch (RepositoryException e) {
             log.warn("Unable to remove lock token " + lt + " from session", e);
         }
@@ -614,8 +622,10 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public boolean hasPermission(String absPath, final String actions) throws RepositoryException {
-        final String oakPath = getOakPathOrThrow(absPath);
-        return perform(new ReadOperation<Boolean>("hasPermission") {
+        final String oakPath = getOakPathOrThrow(checkNotNull(absPath));
+        checkNotNull(actions);
+        return sd.perform(new ReadOperation<Boolean>("hasPermission") {
+            @Nonnull
             @Override
             public Boolean perform() throws RepositoryException {
                 return sessionContext.getAccessManager().hasPermissions(oakPath, actions);
@@ -625,23 +635,25 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public void checkPermission(String absPath, String actions) throws RepositoryException {
-        if (!hasPermission(absPath, actions)) {
+        if (!hasPermission(checkNotNull(absPath), checkNotNull(actions))) {
             throw new AccessControlException("Access denied.");
         }
     }
 
     @Override
     public boolean hasCapability(String methodName, Object target, Object[] arguments) throws RepositoryException {
+        checkNotNull(methodName);
+        checkNotNull(target);
         sd.checkAlive();
 
         if (target instanceof ItemImpl) {
-            ItemDelegate dlg = ((ItemImpl) target).dlg;
+            ItemDelegate dlg = ((ItemImpl<?>) target).dlg;
             if (dlg.isProtected()) {
                 return false;
             }
 
-            boolean isNode = ((ItemImpl) target).isNode();
-            Node parent = (isNode) ? (Node) target : ((ItemImpl) target).getParent();
+            boolean isNode = ((ItemImpl<?>) target).isNode();
+            Node parent = (isNode) ? (Node) target : ((ItemImpl<?>) target).getParent();
             if (!parent.isCheckedOut()) {
                 return false;
             }
@@ -676,13 +688,17 @@ public class SessionImpl implements JackrabbitSession {
                 }
                 return accessMgr.hasPermissions(tree, null, permission);
             } else {
-                if (methodName.equals("setValue")) {
+                if ("setValue".equals(methodName)) {
                     permission = Permissions.MODIFY_PROPERTY;
                 } else if ("remove".equals(methodName)) {
                     permission = Permissions.REMOVE_PROPERTY;
                 }
-                Tree tree = dlg.getParent().getTree();
-                return accessMgr.hasPermissions(tree, ((PropertyDelegate) dlg).getPropertyState(), permission);
+                NodeDelegate parentDelegate = dlg.getParent();
+                if (parentDelegate != null) {
+                    return accessMgr.hasPermissions(parentDelegate.getTree(), ((PropertyDelegate) dlg).getPropertyState(), permission);
+                } else {
+                    return accessMgr.hasPermissions(dlg.getPath(), (permission == Permissions.MODIFY_PROPERTY) ? Session.ACTION_SET_PROPERTY : Session.ACTION_REMOVE);
+                }
             }
         }
         // TODO: add more best-effort checks
@@ -707,8 +723,10 @@ public class SessionImpl implements JackrabbitSession {
     //---------------------------------------------------------< Namespaces >---
 
     @Override
-    public void setNamespacePrefix(String prefix, String uri) throws RepositoryException {
-        sessionContext.getNamespaces().setNamespacePrefix(prefix, uri);
+    public void setNamespacePrefix(String prefix, String uri)
+            throws RepositoryException {
+        sessionContext.getNamespaces().setNamespacePrefix(checkNotNull(prefix),
+                checkNotNull(uri));
     }
 
     @Override
@@ -718,12 +736,14 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public String getNamespaceURI(String prefix) throws RepositoryException {
-        return sessionContext.getNamespaces().getNamespaceURI(prefix);
+        return sessionContext.getNamespaces().getNamespaceURI(
+                checkNotNull(prefix));
     }
 
     @Override
     public String getNamespacePrefix(String uri) throws RepositoryException {
-        return sessionContext.getNamespaces().getNamespacePrefix(uri);
+        return sessionContext.getNamespaces().getNamespacePrefix(
+                checkNotNull(uri));
     }
 
     //--------------------------------------------------< JackrabbitSession >---

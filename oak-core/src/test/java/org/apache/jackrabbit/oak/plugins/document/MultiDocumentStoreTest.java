@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
@@ -117,5 +118,80 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
             assertEquals("qux", prev.get("foo"));
             assertEquals(oldn1 + 2, prev.getModCount().intValue());
         }
+    }
+
+    @Test
+    public void testInvalidateCache() {
+        // use a "proper" ID because otherwise Mongo's cache invalidation will fail
+        // see OAK-2588
+        String id = "1:/" + this.getClass().getName() + ".testInvalidateCache";
+
+        // remove if present
+        NodeDocument nd = super.ds1.find(Collection.NODES, id);
+        if (nd != null) {
+            super.ds1.remove(Collection.NODES, id);
+        }
+
+        UpdateOp up = new UpdateOp(id, true);
+        up.set("_id", id);
+        up.set("_foo", "bar");
+        assertTrue(super.ds1.create(Collection.NODES, Collections.singletonList(up)));
+
+        // fill both caches
+        NodeDocument nd1 = super.ds1.find(Collection.NODES, id);
+        NodeDocument nd2 = super.ds2.find(Collection.NODES, id);
+        assertNotNull(nd1);
+        assertNotNull(nd2);
+        long firstVersion = nd1.getModCount().longValue();
+        assertEquals(firstVersion, nd2.getModCount().longValue());
+
+        // letTimeElapse();
+
+        // update through ds1
+        UpdateOp upds1 = new UpdateOp(id, true);
+        upds1.set("_id", id);
+        upds1.set("foo", "qux");
+        super.ds1.update(Collection.NODES, Collections.singletonList(id), upds1);
+        nd1 = super.ds1.find(Collection.NODES, id);
+        assertEquals("modcount should have changed in ds1", firstVersion + 1, nd1.getModCount().longValue());
+
+        // check cached version in ds2
+        nd2 = super.ds2.find(Collection.NODES, id);
+        assertEquals("ds2 should still be on first version", firstVersion, nd2.getModCount().longValue());
+
+        // check uncached version in ds2
+        nd2 = super.ds2.find(Collection.NODES, id, 0);
+        assertEquals("ds2 should now see the second version", firstVersion + 1, nd2.getModCount().longValue());
+
+        // check cached version in ds2 (was the cache refreshed?)
+        NodeDocument nd2b = super.ds2.find(Collection.NODES, id);
+        assertEquals("ds2 should now see the second version", firstVersion + 1, nd2b.getModCount().longValue());
+
+        // update through ds2
+        UpdateOp upds2 = new UpdateOp(id, true);
+        upds2.set("_id", id);
+        upds2.set("foo", "blub");
+        super.ds2.update(Collection.NODES, Collections.singletonList(id), upds1);
+        nd2 = super.ds2.find(Collection.NODES, id);
+        assertEquals("modcount should have incremented again", firstVersion + 2, nd2.getModCount().longValue());
+
+        long ds1checktime = nd1.getLastCheckTime();
+        letTimeElapse();
+
+        // try the invalidation
+        ds1.invalidateCache();
+
+        // ds1 should see the same version even when doing a cached read
+        nd1 = super.ds1.find(Collection.NODES, id);
+        assertEquals("modcount should have incremented again", firstVersion + 2, nd1.getModCount().longValue());
+        assertTrue(nd1.getLastCheckTime() > ds1checktime);
+    }
+
+    private static long letTimeElapse() {
+        long ts = System.currentTimeMillis();
+        while (System.currentTimeMillis() == ts) {
+            // busy wait
+        }
+        return System.currentTimeMillis();
     }
 }

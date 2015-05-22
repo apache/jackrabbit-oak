@@ -17,14 +17,11 @@
 package org.apache.jackrabbit.oak.fixture;
 
 import java.io.File;
-import java.net.UnknownHostException;
 
 import javax.sql.DataSource;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.kernel.NodeStoreKernel;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
@@ -65,8 +62,6 @@ public abstract class OakFixture {
         return String.format("%s-%d", name, System.currentTimeMillis());
     }
 
-    public abstract MicroKernel getMicroKernel() throws Exception;
-
     public abstract Oak getOak(int clusterId) throws Exception;
 
     public abstract Oak[] setUpCluster(int n) throws Exception;
@@ -88,10 +83,6 @@ public abstract class OakFixture {
 
     public static OakFixture getMemory(String name, final long cacheSize) {
         return new OakFixture(name) {
-            @Override
-            public MicroKernel getMicroKernel() {
-                return new NodeStoreKernel(new MemoryNodeStore());
-            }
 
             @Override
             public Oak getOak(int clusterId) throws Exception {
@@ -160,23 +151,14 @@ public abstract class OakFixture {
             }
 
             @Override
-            public MicroKernel getMicroKernel() throws UnknownHostException {
-                MongoConnection mongo = new MongoConnection(uri);
-                DocumentMK.Builder mkBuilder = new DocumentMK.Builder().
-                        setMongoDB(mongo.getDB()).
-                        memoryCacheSize(cacheSize).
-                        setLogging(false);
-                setupBlobStore(mkBuilder);
-                return mkBuilder.open();
-            }
-
-            @Override
             public Oak getOak(int clusterId) throws Exception {
                 MongoConnection mongo = new MongoConnection(uri);
                 DocumentMK.Builder mkBuilder = new DocumentMK.Builder().
                         setMongoDB(mongo.getDB()).
                         memoryCacheSize(cacheSize).
-                        setClusterId(clusterId).setLogging(false);
+                        setPersistentCache("target/persistentCache,time").
+                        setClusterId(clusterId).
+                        setLogging(false);
                 setupBlobStore(mkBuilder);
                 DocumentMK dmk = mkBuilder.open();
                 return new Oak(dmk.getNodeStore());
@@ -191,7 +173,9 @@ public abstract class OakFixture {
                     DocumentMK.Builder mkBuilder = new DocumentMK.Builder().
                             setMongoDB(mongo.getDB()).
                             memoryCacheSize(cacheSize).
-                            setClusterId(i).setLogging(false);
+                            setPersistentCache("target/persistentCache,time").
+                            setClusterId(i).
+                            setLogging(false);
                     setupBlobStore(mkBuilder);
                     kernels[i] = mkBuilder.open();
                     cluster[i] = new Oak(kernels[i].getNodeStore());
@@ -246,19 +230,6 @@ public abstract class OakFixture {
                 }
 
                 return blobStore;
-            }
-
-            @Override
-            public MicroKernel getMicroKernel() {
-                DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcuri, jdbcuser, jdbcpasswd);
-                DocumentMK.Builder mkBuilder = new DocumentMK.Builder()
-                        .setRDBConnection(ds, getOptions(dropDBAfterTest, tablePrefix)).memoryCacheSize(cacheSize)
-                        .setLogging(false);
-                BlobStore blobStore = getBlobStore();
-                if (blobStore != null) {
-                    mkBuilder.setBlobStore(blobStore);
-                }
-                return mkBuilder.open();
             }
 
             @Override
@@ -335,12 +306,6 @@ public abstract class OakFixture {
             this.cacheSizeMB = cacheSizeMB;
             this.memoryMapping = memoryMapping;
             this.useBlobStore = useBlobStore;
-        }
-
-        @Override
-        public MicroKernel getMicroKernel() throws Exception {
-            FileStore fs = new FileStore(base, maxFileSizeMB, cacheSizeMB, memoryMapping);
-            return new NodeStoreKernel(new SegmentNodeStore(fs));
         }
 
         @Override

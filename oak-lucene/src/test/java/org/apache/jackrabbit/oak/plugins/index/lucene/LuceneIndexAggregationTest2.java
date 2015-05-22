@@ -88,7 +88,7 @@ public class LuceneIndexAggregationTest2 extends AbstractQueryTest {
             .with(new InitialContent() {
 
                 @Override
-                public void initialize(NodeBuilder builder) {
+                public void initialize(@Nonnull NodeBuilder builder) {
                     super.initialize(builder);
 
                     // registering additional node types for wider testing

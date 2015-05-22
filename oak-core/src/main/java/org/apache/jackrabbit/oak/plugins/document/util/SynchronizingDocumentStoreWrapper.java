@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document.util;
 
 import java.util.List;
+import java.util.Map;
 
 import javax.annotation.Nonnull;
 
@@ -25,6 +26,7 @@ import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
+import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 
 /**
  * Implements a <code>DocumentStore</code> wrapper which synchronizes on all
@@ -48,8 +50,8 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
         return store.find(collection, key, maxCacheAge);
     }
 
-    @Nonnull
     @Override
+    @Nonnull
     public synchronized <T extends Document> List<T> query(final Collection<T> collection, final String fromKey,
             final String toKey, final int limit) {
         return store.query(collection, fromKey, toKey, limit);
@@ -69,9 +71,13 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
 
     @Override
     public synchronized <T extends Document> void remove(Collection<T> collection, List<String> keys) {
-        for(String key : keys){
-            remove(collection, key);
-        }
+        store.remove(collection, keys);
+    }
+
+    @Override
+    public synchronized <T extends Document> int remove(Collection<T> collection,
+                                                        Map<String, Map<UpdateOp.Key, UpdateOp.Condition>> toRemove) {
+        return store.remove(collection, toRemove);
     }
 
     @Override
@@ -85,7 +91,6 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
         store.update(collection, keys, updateOp);
     }
 
-    @Nonnull
     @Override
     public synchronized <T extends Document> T createOrUpdate(final Collection<T> collection, final UpdateOp update) {
         return store.createOrUpdate(collection, update);
@@ -97,8 +102,8 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public synchronized void invalidateCache() {
-        store.invalidateCache();
+    public synchronized CacheInvalidationStats invalidateCache() {
+        return store.invalidateCache();
     }
 
     @Override
@@ -124,5 +129,10 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
     @Override
     public synchronized CacheStats getCacheStats() {
         return store.getCacheStats();
+    }
+
+    @Override
+    public Map<String, String> getMetadata() {
+        return store.getMetadata();
     }
 }

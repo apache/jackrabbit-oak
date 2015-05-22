@@ -17,14 +17,19 @@
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkState;
+import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toBoolean;
+import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toInteger;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CLEANUP_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CLONE_BINARIES_DEFAULT;
+import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.FORCE_AFTER_FAIL_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.MEMORY_THRESHOLD_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.PAUSE_DEFAULT;
+import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.RETRY_COUNT_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.TIMESTAMP_DEFAULT;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
 
 import java.io.ByteArrayInputStream;
 import java.io.Closeable;
@@ -32,7 +37,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Dictionary;
 import java.util.Hashtable;
-import java.util.concurrent.Callable;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.felix.scr.annotations.Activate;
@@ -56,21 +60,26 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType;
 import org.apache.jackrabbit.oak.plugins.identifier.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
-import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategyMBean;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.DefaultCompactionStrategyMBean;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.Builder;
+import org.apache.jackrabbit.oak.plugins.segment.file.FileStoreGCMonitor;
+import org.apache.jackrabbit.oak.plugins.segment.file.GCMonitorMBean;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
+import org.apache.jackrabbit.oak.spi.gc.GCMonitorTracker;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.ProxyNodeStore;
 import org.apache.jackrabbit.oak.spi.state.RevisionGC;
 import org.apache.jackrabbit.oak.spi.state.RevisionGCMBean;
+import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
@@ -80,60 +89,141 @@ import org.slf4j.LoggerFactory;
 /**
  * An OSGi wrapper for the segment node store.
  */
-@Component(policy = ConfigurationPolicy.REQUIRE)
+@Component(policy = ConfigurationPolicy.REQUIRE,
+        metatype = true,
+        label = "Apache Jackrabbit Oak Segment NodeStore Service",
+        description = "NodeStore implementation based on Document model. For configuration option refer " +
+                "to http://jackrabbit.apache.org/oak/docs/osgi_config.html#SegmentNodeStore. Note that for system " +
+                "stability purpose it is advisable to not change these settings at runtime. Instead the config change " +
+                "should be done via file system based config file and this view should ONLY be used to determine which " +
+                "options are supported"
+)
 public class SegmentNodeStoreService extends ProxyNodeStore
         implements Observable, SegmentStoreProvider {
 
-    @Property(description="The unique name of this instance")
     public static final String NAME = "name";
 
-    @Property(description="TarMK directory")
+    @Property(
+            label = "Directory",
+            description="Directory location used to store the segment tar files. If not specified then looks " +
+                    "for framework property 'repository.home' otherwise use a subdirectory with name 'tarmk'"
+    )
     public static final String DIRECTORY = "repository.home";
 
-    @Property(description="TarMK mode (64 for memory mapping, 32 for normal file access)")
+    @Property(
+            label = "Mode",
+            description="TarMK mode (64 for memory mapping, 32 for normal file access)"
+    )
     public static final String MODE = "tarmk.mode";
 
-    @Property(description="TarMK maximum file size (MB)", intValue=256)
+    @Property(
+            intValue = 256,
+            label = "Maximum Tar File Size (MB)",
+            description = "TarMK maximum file size (MB)"
+    )
     public static final String SIZE = "tarmk.size";
 
-    @Property(description="Cache size (MB)", intValue=256)
+    @Property(
+            intValue = 256,
+            label = "Cache size (MB)",
+            description = "Cache size for storing most recently used Segments"
+    )
     public static final String CACHE = "cache";
 
-    @Property(description = "TarMK compaction clone binaries flag", boolValue = CLONE_BINARIES_DEFAULT)
+    @Property(
+            boolValue = CLONE_BINARIES_DEFAULT,
+            label = "Clone Binaries",
+            description = "Clone the binary segments while performing compaction"
+    )
     public static final String COMPACTION_CLONE_BINARIES = "compaction.cloneBinaries";
 
     @Property(options = {
             @PropertyOption(name = "CLEAN_ALL", value = "CLEAN_ALL"),
             @PropertyOption(name = "CLEAN_NONE", value = "CLEAN_NONE"),
-            @PropertyOption(name = "CLEAN_OLD", value = "CLEAN_OLD") }, value = "CLEAN_OLD")
+            @PropertyOption(name = "CLEAN_OLD", value = "CLEAN_OLD") },
+            value = "CLEAN_OLD",
+            label = "Cleanup Strategy",
+            description = "Cleanup strategy used for live in memory segment references while performing cleanup. "+
+                    "1. CLEAN_NONE: All in memory references are considered valid, " +
+                    "2. CLEAN_OLD: Only in memory references older than a " +
+                    "certain age are considered valid (compaction.cleanup.timestamp), " +
+                    "3. CLEAN_ALL: None of the in memory references are considered valid"
+    )
     public static final String COMPACTION_CLEANUP = "compaction.cleanup";
 
-    @Property(description = "TarMK compaction strategy timestamp older (ms)", longValue = TIMESTAMP_DEFAULT)
+    @Property(
+            longValue = TIMESTAMP_DEFAULT,
+            label = "Reference expiry time (ms)",
+            description = "Time interval in ms beyond which in memory segment references would be ignored " +
+                    "while performing cleanup"
+    )
     public static final String COMPACTION_CLEANUP_TIMESTAMP = "compaction.cleanup.timestamp";
 
-    @Property(description = "TarMK compaction available memory multiplier needed to run compaction", byteValue = MEMORY_THRESHOLD_DEFAULT)
+    @Property(
+            byteValue = MEMORY_THRESHOLD_DEFAULT,
+            label = "Memory Multiplier",
+            description = "TarMK compaction available memory multiplier needed to run compaction"
+    )
     public static final String COMPACTION_MEMORY_THRESHOLD = "compaction.memoryThreshold";
 
-    @Property(description = "TarMK compaction paused flag", boolValue = PAUSE_DEFAULT)
+    @Property(
+            boolValue = PAUSE_DEFAULT,
+            label = "Pause Compaction",
+            description = "When enabled compaction would not be performed"
+    )
     public static final String PAUSE_COMPACTION = "pauseCompaction";
 
-    @Property(description = "Flag indicating that this component will not register as a NodeStore but just as a NodeStoreProvider", boolValue = false)
+    @Property(
+            intValue = RETRY_COUNT_DEFAULT,
+            label = "Compaction Retries",
+            description = "Number of tries to compact concurrent commits on top of already " +
+                    "compacted commits"
+    )
+    public static final String COMPACTION_RETRY_COUNT = "compaction.retryCount";
+
+    @Property(
+            boolValue = FORCE_AFTER_FAIL_DEFAULT,
+            label = "Force Compaction",
+            description = "Whether or not to force compact concurrent commits on top of already " +
+                    " compacted commits after the maximum number of retries has been reached. " +
+                    "Force committing tries to exclusively write lock the node store."
+    )
+    public static String COMPACTION_FORCE_AFTER_FAIL = "compaction.forceAfterFail";
+
+    public static final int COMPACTION_LOCK_WAIT_TIME_DEFAULT = 60;
+    @Property(
+            intValue = COMPACTION_LOCK_WAIT_TIME_DEFAULT,
+            label = "Compaction Lock Wait Time",
+            description = "Number of seconds to wait for the lock for committing compacted changes " +
+                    "respectively to wait for the exclusive write lock for force committing."
+    )
+    public static final String COMPACTION_LOCK_WAIT_TIME = "compaction.lockWaitTime";
+
+    @Property(
+            boolValue = false,
+            label = "Standby Mode",
+            description = "Flag indicating that this component will not register as a NodeStore but just as a NodeStoreProvider"
+    )
     public static final String STANDBY = "standby";
 
-    /**
-     * Boolean value indicating a blobStore is to be used
-     */
+    @Property(boolValue = false,
+            label = "Custom BlobStore",
+            description = "Boolean value indicating that a custom BlobStore is to be used. " +
+                    "By default large binary content would be stored within segment tar files"
+    )
     public static final String CUSTOM_BLOB_STORE = "customBlobStore";
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private String name;
 
-    private SegmentStore store;
+    private FileStore store;
 
     private SegmentNodeStore delegate;
 
     private ObserverTracker observerTracker;
+
+    private GCMonitorTracker gcMonitor;
 
     private ComponentContext context;
 
@@ -147,6 +237,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     private Registration revisionGCRegistration;
     private Registration blobGCRegistration;
     private Registration compactionStrategyRegistration;
+    private Registration fsgcMonitorMBean;
     private WhiteboardExecutor executor;
     private boolean customBlobStore;
 
@@ -170,13 +261,13 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
     public void registerNodeStore() throws IOException {
         if (registerSegmentStore()) {
-            Dictionary<String, String> props = new Hashtable<String, String>();
-            props.put(Constants.SERVICE_PID, SegmentNodeStore.class.getName());
-
             boolean standby = toBoolean(lookup(context, STANDBY), false);
             providerRegistration = context.getBundleContext().registerService(
-                    SegmentStoreProvider.class.getName(), this, props);
+                    SegmentStoreProvider.class.getName(), this, null);
             if (!standby) {
+                Dictionary<String, Object> props = new Hashtable<String, Object>();
+                props.put(Constants.SERVICE_PID, SegmentNodeStore.class.getName());
+                props.put("oak.nodestore.description", new String[]{"nodeStoreType=segment"});
                 storeRegistration = context.getBundleContext().registerService(
                         NodeStore.class.getName(), this, props);
             }
@@ -209,6 +300,11 @@ public class SegmentNodeStoreService extends ProxyNodeStore
             size = System.getProperty(SIZE, "256");
         }
 
+        String cache = lookup(context, CACHE);
+        if (cache == null) {
+            cache = System.getProperty(CACHE);
+        }
+
         boolean pauseCompaction = toBoolean(lookup(context, PAUSE_COMPACTION),
                 PAUSE_DEFAULT);
         boolean cloneBinaries = toBoolean(
@@ -216,6 +312,12 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                 CLONE_BINARIES_DEFAULT);
         long cleanupTs = toLong(lookup(context, COMPACTION_CLEANUP_TIMESTAMP),
                 TIMESTAMP_DEFAULT);
+        int retryCount = toInteger(lookup(context, COMPACTION_RETRY_COUNT),
+                RETRY_COUNT_DEFAULT);
+        boolean forceCommit = toBoolean(lookup(context, COMPACTION_FORCE_AFTER_FAIL),
+                FORCE_AFTER_FAIL_DEFAULT);
+        final int lockWaitTime = toInteger(lookup(context, COMPACTION_LOCK_WAIT_TIME),
+                COMPACTION_LOCK_WAIT_TIME_DEFAULT);
         String cleanup = lookup(context, COMPACTION_CLEANUP);
         if (cleanup == null) {
             cleanup = CLEANUP_DEFAULT.toString();
@@ -226,32 +328,39 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         if (memoryThresholdS != null) {
             memoryThreshold = Byte.valueOf(memoryThresholdS);
         }
-        CompactionStrategy compactionStrategy = new CompactionStrategy(
-                pauseCompaction, cloneBinaries, CleanupType.valueOf(cleanup), cleanupTs,
-                memoryThreshold) {
-            @Override
-            public boolean compacted(Callable<Boolean> setHead) throws Exception {
-                // Need to guard against concurrent commits to avoid
-                // mixed segments. See OAK-2192.
-                return delegate.locked(setHead);
-            }
-        };
 
         OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
+        gcMonitor = new GCMonitorTracker();
+        gcMonitor.start(whiteboard);
         Builder storeBuilder = FileStore.newFileStore(new File(directory))
-                .withCacheSize(Integer.parseInt(size))
+                .withCacheSize(Integer.parseInt(cache))
+                .withMaxFileSize(Integer.parseInt(size))
                 .withMemoryMapping("64".equals(mode))
-                .withWhiteBoard(whiteboard);
+                .withGCMonitor(gcMonitor);
         if (customBlobStore) {
             log.info("Initializing SegmentNodeStore with BlobStore [{}]", blobStore);
-            store = storeBuilder.withBlobStore(blobStore).create()
-                    .setCompactionStrategy(compactionStrategy);
+            store = storeBuilder.withBlobStore(blobStore).create();
         } else {
-            store = storeBuilder.create()
-                    .setCompactionStrategy(compactionStrategy);
+            store = storeBuilder.create();
         }
+        SegmentNodeStoreBuilder nodeStoreBuilder = SegmentNodeStore
+                .newSegmentNodeStore(store);
+        nodeStoreBuilder.withCompactionStrategy(pauseCompaction, cloneBinaries,
+                cleanup, cleanupTs, memoryThreshold, lockWaitTime, retryCount,
+                forceCommit);
+        delegate = nodeStoreBuilder.create();
 
-        delegate = new SegmentNodeStore(store);
+        CompactionStrategy compactionStrategy = nodeStoreBuilder
+                .getCompactionStrategy();
+        store.setCompactionStrategy(compactionStrategy);
+
+        FileStoreGCMonitor fsgcMonitor = new FileStoreGCMonitor(Clock.SIMPLE);
+        fsgcMonitorMBean = new CompositeRegistration(
+                whiteboard.register(GCMonitor.class, fsgcMonitor, emptyMap()),
+                registerMBean(whiteboard, GCMonitorMBean.class, fsgcMonitor, GCMonitorMBean.TYPE,
+                        "File Store garbage collection monitor"),
+                scheduleWithFixedDelay(whiteboard, fsgcMonitor, 1));
+
         observerTracker = new ObserverTracker(delegate);
         observerTracker.start(context.getBundleContext());
 
@@ -322,11 +431,17 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     public synchronized void deactivate() {
         unregisterNodeStore();
 
-        observerTracker.stop();
+        if (observerTracker != null) {
+            observerTracker.stop();
+        }
+        if (gcMonitor != null) {
+            gcMonitor.stop();
+        }
         delegate = null;
-
-        store.close();
-        store = null;
+        if (store != null) {
+            store.close();
+            store = null;
+        }
     }
 
     protected void bindBlobStore(BlobStore blobStore) throws IOException {
@@ -363,6 +478,10 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         if (compactionStrategyRegistration != null) {
             compactionStrategyRegistration.unregister();
             compactionStrategyRegistration = null;
+        }
+        if (fsgcMonitorMBean != null) {
+            fsgcMonitorMBean.unregister();
+            fsgcMonitorMBean = null;
         }
         if (executor != null) {
             executor.stop();

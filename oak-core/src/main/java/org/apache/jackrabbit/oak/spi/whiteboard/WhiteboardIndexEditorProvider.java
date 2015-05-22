@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.spi.whiteboard;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
@@ -39,8 +41,8 @@ public class WhiteboardIndexEditorProvider
     }
 
     @Override
-    public Editor getIndexEditor(String type, NodeBuilder builder,
-            NodeState root, IndexUpdateCallback callback)
+    public Editor getIndexEditor(@Nonnull String type, @Nonnull NodeBuilder builder,
+            @Nonnull NodeState root, @Nonnull IndexUpdateCallback callback)
             throws CommitFailedException {
         IndexEditorProvider composite = CompositeIndexEditorProvider
                 .compose(getServices());

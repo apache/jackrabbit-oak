@@ -26,6 +26,12 @@ Query Indices are defined under the `oak:index` node.
 
 ### Compatibility
 
+#### Result Size
+
+For NodeIterator.getSize(), some versions of Jackrabbit 2.x returned the estimated (raw)
+Lucene result set size, including nodes that are not accessible. 
+Oak does not do this; it either returns the correct result size, or -1.
+
 #### Quoting
 
 The query parser is now generally more strict about invalid syntax.
@@ -53,22 +59,21 @@ In Oak, this is no longer the case, and such queries search for an exact path ma
 
 Slow queries are logged as follows:
 
-    *WARN* Traversed 1000 nodes with filter Filter(query=select ...)
+    *WARN* Traversed 10000 nodes with filter Filter(query=select ...)
     consider creating an index or changing the query
 
 If this is the case, an index might need to be created, or the condition 
 of the query might need to be changed to take advantage of an existing index.
 
-If a query reads more than 10 thousand nodes in memory, then the query is cancelled
-with an UnsupportedOperationException saying that 
-"The query read more than 10000 nodes in memory. To avoid running out of memory, processing was stopped."
-As a workaround, this limit can be changed using the system property "oak.queryLimitInMemory".
-
-If a query traversed more than 100 thousand nodes (for example because there is no index
-at all and the whole repository is traversed), then the query is cancelled
-with an UnsupportedOperationException saying that 
-"The query read or traversed more than 10000 nodes. To avoid affecting other tasks, processing was stopped.".
-As a workaround, this limit can be changed using the system property "oak.queryLimitReads".
+Queries that traverse many nodes, or that read many nodes in memory, can be cancelled.
+The limits can be set at runtime (also while a slow query is running) using JMX,
+domain "org.apache.jackrabbit.oak", type "QueryEngineSettings", attribute names
+"LimitInMemory" and "LimitReads".
+These setting are not persisted, so in the next restart, the default values (unlimited) are used.
+As a workaround, these limits can be changed using the system properties 
+"oak.queryLimitInMemory" and "oak.queryLimitReads".
+Queries that exceed one of the limits are cancelled with an UnsupportedOperationException saying that 
+"The query read more than x nodes... To avoid running out of memory, processing was stopped."
 
 ### Full-Text Queries
 
@@ -189,28 +194,33 @@ Is useful whenever there is a query with a property constraint that is not full-
 To define a property index on a subtree you have to add an index definition node that:
 
 * must be of type `oak:QueryIndexDefinition`
-* must have the `type` property set to __`property`__
-* contains the `propertyNames` property.
+* `type` (String) must have the  property set to "property".
+* `propertyNames` (Name, multi-valued):
+    the  property to be indexed.
     This is a multi-valued property, and must not be empty.
-    It usually contains only one property name.
-    All nodes that have any of those properties are stored in this index.
+    It usually contains only _one_ property name.
+    All nodes that have _any_ of those properties are stored in this index.
     
 It is recommended to index one property per index.
 (If multiple properties are indexed within one index, 
 then the index contains all nodes that has either one of the properties,
 which can make the query less efficient, and can make the query pick the wrong index.)
 
-_Optionally_ you can specify
+Optionally you can specify:
 
-* a uniqueness constraint on a property index by setting the `unique` flag to `true`,
-* that the property index only applies to a certain node type by setting the 
-  `declaringNodeTypes` property,
-* the `entryCount` (a long), the estimated number of path entries in the index, 
-  which is used for the cost estimation (a high entry count means a high cost)
-* the `keyCount` (a long), the estimated number of keys in the index,
-  which is used for the cost estimation (a high key count means a lower cost,
-  when searching for specific keys; has no effect when searching for "is not null"),
-* the `reindex` flag which when set to `true`, triggers a full content re-index.
+* `declaringNodeTypes` (Name, multi-valued): the index only applies to a certain node type.
+* `unique` (Boolean): if set to `true`, a uniqueness constraint on this
+  property is added. Ensure you set declaringNodeTypes, 
+  otherwise all nodes of the repository are affected (which is most likely not what you want),
+  and you are not able to version the node.
+* `entryCount` (Long): the estimated number of path entries in the index, 
+  to override the cost estimation (a high entry count means a high cost).
+* `keyCount` (Long), the estimated number of keys in the index,
+  to override the cost estimation (a high key count means a lower cost,
+  when searching for specific keys; has no effect when searching for "is not null").
+* `reindex` (Boolean): if set to `true`, the full content is re-indexed.
+  This can take a long time, and is run synchronously with storing the index
+  (except with an async index). See "Reindexing" below for details.
 
 Example:
 
@@ -269,52 +279,23 @@ See [Solr Index](lucene.html) for details.
 The `NodeTypeIndex` implements a `QueryIndex` using `PropertyIndexLookup`s on `jcr:primaryType` `jcr:mixinTypes` to evaluate a node type restriction on the filter.
 The cost for this index is the sum of the costs of the `PropertyIndexLookup` for queries on `jcr:primaryType` and `jcr:mixinTypes`.
 
-### The Ordered Index
+### Temporarily Disabling an Index
 
-NOTE: This index type has been deprecated. 
-Please use the Lucene Property Index instead, which offers the same features.
+To temporarily disable an index (for example for testing), set the index type to `disabled`.
+Please note that while the index type is not set, the index is not updated, so if you enable it again,
+it might not be correct. This is specially important for synchronous indexes.
 
-Extension of the Property index will keep the order of the indexed
-property persisted in the repository.
+### The Ordered Index (deprecated since 1.1.8)
 
-Used to speed-up queries with `ORDER BY` clause, _equality_ and
-_range_ ones.
+This index has been deprecated in favour of Lucene Property
+index. Please refer to [Lucene Index documentation](lucene.html) for
+details.
 
-    SELECT * FROM [nt:base] ORDER BY jcr:lastModified
-    
-    SELECT * FROM [nt:base] WHERE jcr:lastModified > $date
-    
-    SELECT * FROM [nt:base] WHERE jcr:lastModified < $date
-    
-    SELECT * FROM [nt:base]
-    WHERE jcr:lastModified > $date1 AND jcr:lastModified < $date2
+For help on migrating to a Lucece index please refer to:
+[Migrate ordered index](ordered-index-migrate.html)
 
-    SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id
-
-To define a property index on a subtree you have to add an index
-definition node that:
-
-* must be of type `oak:QueryIndexDefinition`
-* must have the `type` property set to __`ordered`__
-* contains the `propertyNames` property that indicates what properties
-  will be stored in the index.  `propertyNames` has to be a single
-  value list of type `Name[]`
-
-_Optionally_ you can specify
-
-* the `reindex` flag which when set to `true`, triggers a full content
-  re-index.
-* The direction of the sorting by specifying a `direction` property of
-  type `String` of value `ascending` or `descending`. If not provided
-  `ascending` is the default.
-* The index can be defined as asynchronous by providing the property
-  `async=async`
-
-_Caveats_
-
-* In case deploying on the index on a clustered mongodb you have to
-  define it as asynchronous by providing `async=async` in the index
-  definition. This is to avoid cluster merges.
+For historical information around the index please refer to:
+[Ordered Index](ordered-index.html).
 
 ### Cost Calculation
 

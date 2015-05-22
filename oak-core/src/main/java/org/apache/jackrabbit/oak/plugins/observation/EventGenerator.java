@@ -115,7 +115,7 @@ public class EventGenerator {
             final long start = perfLogger
                     .start("generate: Starting event generation");
             c.run();
-            perfLogger.end(start, 1, "generate: Generated {} events in {} ms",
+            perfLogger.end(start, 1, "generate: Generated {} events",
                     c.counter);
         }
     }

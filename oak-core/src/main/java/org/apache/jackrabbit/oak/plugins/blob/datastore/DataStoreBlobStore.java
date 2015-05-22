@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -30,6 +31,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
@@ -230,7 +232,7 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
     }
 
     @Override
-    public String getBlobId(String reference) {
+    public String getBlobId(@Nonnull String reference) {
         checkNotNull(reference);
         DataRecord record;
         try {
@@ -245,7 +247,7 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
     }
 
     @Override
-    public String getReference(String encodedBlobId) {
+    public String getReference(@Nonnull String encodedBlobId) {
         checkNotNull(encodedBlobId);
         String blobId = extractBlobId(encodedBlobId);
         //Reference are not created for in memory record
@@ -459,7 +461,11 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
 
     private InputStream getStream(String blobId) throws IOException {
         try {
-            return getDataRecord(blobId).getStream();
+            InputStream in = getDataRecord(blobId).getStream();
+            if (!(in instanceof BufferedInputStream)){
+                in = new BufferedInputStream(in);
+            }
+            return in;
         } catch (DataStoreException e) {
             throw new IOException(e);
         }

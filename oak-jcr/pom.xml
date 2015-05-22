@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.1-SNAPSHOT</version>
+    <version>1.4-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -71,6 +71,7 @@
       <!-- Observation -->
       org.apache.jackrabbit.test.api.observation.NodeRemovedTest#testMultiNodesRemoved  <!-- OAK-1459 -->
       org.apache.jackrabbit.test.api.observation.NodeMovedTest#testMoveWithRemove       <!-- OAK-1459 -->
+      org.apache.jackrabbit.test.api.observation.GetInfoTest#testPropertyAdded          <!--OAK-2262-->
       org.apache.jackrabbit.test.api.observation.GetIdentifierTest#testNodeMoved  <!-- Move in 2nd session not reflected in nodes of 1st session -->
       org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderAddRemove          <!-- Uses SNS -->
       org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderSameName           <!-- Uses SNS -->
@@ -78,7 +79,6 @@
       org.apache.jackrabbit.core.observation.ReorderTest                                           <!-- Uses SNS -->
       org.apache.jackrabbit.core.observation.ShareableNodesTest#testAddShare                       <!-- OAK-118 workspace support needed -->
       org.apache.jackrabbit.core.observation.ShareableNodesTest#testRemoveShare                    <!-- OAK-118 workspace support needed -->
-      org.apache.jackrabbit.core.observation.MixinTest <!--FIXME OAK-2165 -->
 
       <!-- Versioning -->
       org.apache.jackrabbit.test.api.version.VersionTest#testMerge
@@ -193,17 +193,6 @@
         </configuration>
       </plugin>
     </plugins>
-    <pluginManagement>
-      <plugins>
-        <plugin>
-          <groupId>org.apache.rat</groupId>
-          <artifactId>apache-rat-plugin</artifactId>
-          <configuration>
-            <excludes />
-          </configuration>
-        </plugin>
-      </plugins>
-    </pluginManagement>
   </build>
 
   <dependencies>
@@ -327,6 +316,13 @@
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>jackrabbit-data</artifactId>
+      <version>${jackrabbit.version}</version>
+      <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
       <artifactId>jackrabbit-jcr-server</artifactId>
       <version>${jackrabbit.version}</version>
        <scope>test</scope>
@@ -340,7 +336,6 @@
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-math3</artifactId>
-      <version>3.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -354,6 +349,10 @@
       <artifactId>commons-dbcp</artifactId>
       <version>1.4</version>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.sling</groupId>
+      <artifactId>org.apache.sling.testing.osgi-mock</artifactId>
     </dependency>
   </dependencies>
 </project>

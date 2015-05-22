@@ -25,6 +25,9 @@ import java.util.Map.Entry;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Objects;
+
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 
@@ -96,31 +99,29 @@ public class UpdateUtils {
                     }
                     break;
                 }
-                case CONTAINS_MAP_ENTRY:
-                    // no effect
-                    break;
             }
         }
     }
 
-    public static boolean checkConditions(@Nonnull Document doc, @Nonnull UpdateOp update) {
-        for (Map.Entry<Key, Operation> change : update.getChanges().entrySet()) {
-            Operation op = change.getValue();
-            if (op.type == Operation.Type.CONTAINS_MAP_ENTRY) {
-                Key k = change.getKey();
-                Revision r = k.getRevision();
+    public static boolean checkConditions(@Nonnull Document doc,
+                                          @Nonnull Map<Key, Condition> conditions) {
+        for (Map.Entry<Key, Condition> entry : conditions.entrySet()) {
+            Condition c = entry.getValue();
+            Key k = entry.getKey();
+            Object value = doc.get(k.getName());
+            Revision r = k.getRevision();
+            if (c.type == Condition.Type.EXISTS) {
                 if (r == null) {
-                    throw new IllegalStateException("CONTAINS_MAP_ENTRY must not contain null revision");
+                    throw new IllegalStateException("EXISTS must not contain null revision");
                 }
-                Object value = doc.get(k.getName());
                 if (value == null) {
-                    if (Boolean.TRUE.equals(op.value)) {
+                    if (Boolean.TRUE.equals(c.value)) {
                         return false;
                     }
                 } else {
                     if (value instanceof Map) {
                         Map<?, ?> map = (Map<?, ?>) value;
-                        if (Boolean.TRUE.equals(op.value)) {
+                        if (Boolean.TRUE.equals(c.value)) {
                             if (!map.containsKey(r)) {
                                 return false;
                             }
@@ -133,6 +134,19 @@ public class UpdateUtils {
                         return false;
                     }
                 }
+            } else if (c.type == Condition.Type.EQUALS) {
+                if (r != null) {
+                    if (value instanceof Map) {
+                        value = ((Map) value).get(r);
+                    } else {
+                        value = null;
+                    }
+                }
+                if (!Objects.equal(value, c.value)) {
+                    return false;
+                }
+            } else {
+                throw new IllegalArgumentException("Unknown condition: " + c.type);
             }
         }
         return true;

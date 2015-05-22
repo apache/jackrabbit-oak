@@ -59,6 +59,7 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
     }
 
     //-----------------------------------------------< AccessControlManager >---
+    @Nonnull
     @Override
     public Privilege[] getSupportedPrivileges(String absPath) throws RepositoryException {
         ImmutableList.Builder<Privilege> privs = ImmutableList.builder();

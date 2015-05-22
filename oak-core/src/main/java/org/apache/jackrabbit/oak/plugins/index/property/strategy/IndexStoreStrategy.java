@@ -42,7 +42,16 @@ public interface IndexStoreStrategy {
         NodeBuilder index, String path,
         String indexName, NodeBuilder indexMeta,
         Set<String> beforeKeys, Set<String> afterKeys);
-    
+
+    /**
+     * Check whether an entry for the given key exists.
+     * 
+     * @param index the index
+     * @param key the key
+     * @return true if at least one entry exists
+     */
+    boolean exists(NodeBuilder index, String key);
+
     /**
      * Search for a given set of values.
      * 

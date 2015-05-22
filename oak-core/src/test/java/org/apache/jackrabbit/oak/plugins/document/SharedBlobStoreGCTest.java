@@ -23,6 +23,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -37,10 +38,12 @@ import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.MoreExecutors;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
@@ -55,19 +58,26 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Test for gc in a shared data store among hetrogeneous oak node stores.
  */
 public class SharedBlobStoreGCTest {
+    private static final Logger log = LoggerFactory.getLogger(SharedBlobStoreGCTest.class);
+
     private Cluster cluster1;
     private Cluster cluster2;
     private Clock clock;
 
     @Before
     public void setUp() throws Exception {
+        log.debug("In setUp()");
+
         clock = new Clock.Virtual();
         clock.waitUntil(Revision.getCurrentTimestamp());
+        DataStoreUtils.time = clock.getTime();
 
         BlobStore blobeStore1 = DataStoreUtils.getBlobStore();
         DocumentNodeStore ds1 = new DocumentMK.Builder()
@@ -95,8 +105,11 @@ public class SharedBlobStoreGCTest {
 
         cluster1 = new Cluster(ds1, repoId1, 20);
         cluster1.init();
+        log.debug("Initialized {}", cluster1);
+
         cluster2 = new Cluster(ds2, repoId2, 100);
         cluster2.init();
+        log.debug("Initialized {}", cluster2);
     }
 
     static InputStream randomStream(int seed, int size) {
@@ -108,6 +121,7 @@ public class SharedBlobStoreGCTest {
 
     @Test
     public void testGC() throws Exception {
+        log.debug("Running testGC()");
         // Only run the mark phase on both the clusters
         cluster1.gc.collectGarbage(true);
         cluster2.gc.collectGarbage(true);
@@ -122,21 +136,25 @@ public class SharedBlobStoreGCTest {
     @Test
     // GC should fail
     public void testOnly1ClusterMark() throws Exception {
+        log.debug("Running testOnly1ClusterMark()");
+
         // Only run the mark phase on one cluster
         cluster1.gc.collectGarbage(true);
 
         // Execute the gc with sweep
         cluster1.gc.collectGarbage(false);
 
-        Assert.assertTrue(
-            (cluster1.getInitBlobs().size() + cluster2.getInitBlobs().size()) < cluster1.getExistingBlobIds().size());
         Set<String> existing = cluster1.getExistingBlobIds();
+        log.debug("Existing blobs {}", existing);
+        Assert.assertTrue((cluster1.getInitBlobs().size() + cluster2.getInitBlobs().size()) <= existing.size());
         Assert.assertTrue(existing.containsAll(cluster2.getInitBlobs()));
         Assert.assertTrue(existing.containsAll(cluster1.getInitBlobs()));
     }
 
     @Test
     public void testRepeatedMarkWithSweep() throws Exception {
+        log.debug("Running testRepeatedMarkWithSweep()");
+
         // Only run the mark phase on one cluster
         cluster1.gc.collectGarbage(true);
         cluster2.gc.collectGarbage(true);
@@ -151,14 +169,17 @@ public class SharedBlobStoreGCTest {
     }
 
     @After
-    public void tearDown() throws IOException {
-        FileUtils.cleanDirectory(new File(DataStoreUtils.getHomeDir()));
+    public void tearDown() throws Exception {
+        DataStoreUtils.cleanup(cluster1.getDataStore(), cluster1.getDate());
+        FileUtils.cleanDirectory((new File(DataStoreUtils.getHomeDir())).getParentFile());
+        DataStoreUtils.time = -1;
     }
 
     class Cluster {
         private DocumentNodeStore ds;
         private int seed;
         private BlobGarbageCollector gc;
+        private Date startDate;
 
         private Set<String> initBlobs = new HashSet<String>();
 
@@ -180,7 +201,7 @@ public class SharedBlobStoreGCTest {
                     gc.collectGarbage(markOnly);
                 }
             };
-
+            this.startDate = new Date();
             this.seed = seed;
         }
 
@@ -203,7 +224,7 @@ public class SharedBlobStoreGCTest {
                 }
             }
             for (int i = 0; i < number; i++) {
-                Blob b = ds.createBlob(randomStream(i + seed, 4160));
+                Blob b = ds.createBlob(randomStream(i + seed, 16516));
                 if (!deletes.contains(i)) {
                     Iterator<String> idIter =
                             ((GarbageCollectableBlobStore) ds.getBlobStore())
@@ -228,6 +249,10 @@ public class SharedBlobStoreGCTest {
             VersionGarbageCollector vGC = ds.getVersionGarbageCollector();
             VersionGCStats stats = vGC.gc(0, TimeUnit.MILLISECONDS);
             Assert.assertEquals(deletes.size(), stats.deletedDocGCCount);
+
+            if (DataStoreUtils.isS3DataStore()) {
+                Thread.sleep(1000);
+            }
         }
 
         public Set<String> getExistingBlobIds() throws Exception {
@@ -239,6 +264,14 @@ public class SharedBlobStoreGCTest {
                 existing.add(cur.next());
             }
             return existing;
+        }
+
+        public DataStore getDataStore() {
+            return ((DataStoreBlobStore) ds.getBlobStore()).getDataStore();
+        }
+
+        public Date getDate() {
+            return startDate;
         }
     }
 }

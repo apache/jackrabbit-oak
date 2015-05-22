@@ -30,6 +30,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import java.util.Properties;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
@@ -74,7 +75,7 @@ public class LuceneOakRepositoryStub extends OakTarMKRepositoryStub {
         }
 
         @Override
-        public void initialize(NodeBuilder builder) {
+        public void initialize(@Nonnull NodeBuilder builder) {
             if (builder.hasChildNode(INDEX_DEFINITIONS_NAME)
                     && builder.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(name)) {
                 // do nothing
@@ -85,7 +86,7 @@ public class LuceneOakRepositoryStub extends OakTarMKRepositoryStub {
                         .setProperty(REINDEX_PROPERTY_NAME, true)
                         .setProperty(LuceneIndexConstants.TEST_MODE, true)
                         .setProperty(LuceneIndexConstants.EVALUATE_PATH_RESTRICTION, true)
-                        .setProperty(LuceneIndexConstants.SUGGEST_UPDATE_FREQUENCY_MINUTES, 0) // always update suggester
+                        .setProperty(LuceneIndexConstants.SUGGEST_UPDATE_FREQUENCY_MINUTES, 10)
                         .setProperty(LuceneIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
 
                 NodeBuilder props = index.child(LuceneIndexConstants.INDEX_RULES)

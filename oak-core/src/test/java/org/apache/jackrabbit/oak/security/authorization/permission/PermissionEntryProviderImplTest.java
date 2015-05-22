@@ -152,24 +152,25 @@ public class PermissionEntryProviderImplTest {
 
         @Override
         public Collection<PermissionEntry> load(
-                Collection<PermissionEntry> entries, String principalName,
-                String path) {
+                Collection<PermissionEntry> entries, @Nonnull String principalName,
+                @Nonnull String path) {
             return null;
         }
 
         @Override
-        public void load(Map<String, Collection<PermissionEntry>> entries,
-                String principalName) {
+        public void load(@Nonnull Map<String, Collection<PermissionEntry>> entries,
+                @Nonnull String principalName) {
             // ignore
         }
 
+        @Nonnull
         @Override
-        public PrincipalPermissionEntries load(String principalName) {
+        public PrincipalPermissionEntries load(@Nonnull String principalName) {
             return new PrincipalPermissionEntries(principalName);
         }
 
         @Override
-        public long getNumEntries(String principalName, long max) {
+        public long getNumEntries(@Nonnull String principalName, long max) {
             long cnt = 0;
             if (GROUP_LONG_MAX_MINUS_10.equals(principalName)) {
                 cnt = Long.MAX_VALUE - 10;

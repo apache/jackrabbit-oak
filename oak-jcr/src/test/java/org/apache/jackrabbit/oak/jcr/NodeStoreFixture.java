@@ -30,6 +30,7 @@ import com.mongodb.DB;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
@@ -44,33 +45,6 @@ public abstract class NodeStoreFixture {
 
     public static final NodeStoreFixture SEGMENT_MK = new SegmentFixture();
 
-    public static final NodeStoreFixture DOCUMENT_MK = new NodeStoreFixture() {
-        @Override
-        public DocumentNodeStore createNodeStore() {
-            return new DocumentMK.Builder().getNodeStore();
-        }
-
-        @Override
-        public DocumentNodeStore createNodeStore(int clusterNodeId) {
-            MongoConnection connection;
-            try {
-                connection = new MongoConnection("mongodb://localhost:27017/oak");
-                return new DocumentMK.Builder()
-                        .setMongoDB(connection.getDB())
-                        .getNodeStore();
-            } catch (Exception e) {
-                return null;
-            }
-        }
-
-        @Override
-        public void dispose(NodeStore nodeStore) {
-            if (nodeStore instanceof DocumentNodeStore) {
-                ((DocumentNodeStore) nodeStore).dispose();
-            }
-        }
-    };
-
     public static final NodeStoreFixture DOCUMENT_NS = createDocumentFixture("mongodb://localhost:27017/oak");
 
     public static final NodeStoreFixture DOCUMENT_RDB = new NodeStoreFixture() {
@@ -80,19 +54,18 @@ public abstract class NodeStoreFixture {
 
         @Override
         public NodeStore createNodeStore() {
-            String id = UUID.randomUUID().toString();
-            this.ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:file:./" + fname + id, "sa", "");
-            return new DocumentMK.Builder().setRDBConnection(this.ds).getNodeStore();
+            String prefix = "T" + UUID.randomUUID().toString().replace("-",  "");
+            RDBOptions options = new RDBOptions().tablePrefix(prefix).dropTablesOnClose(true);
+            this.ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:file:./" + fname + "oaktest", "sa", "");
+            return new DocumentMK.Builder().
+                    setPersistentCache("target/persistentCache,time").
+                    setRDBConnection(this.ds, options).
+                    getNodeStore();
         }
 
         @Override
         public NodeStore createNodeStore(int clusterNodeId) {
-            try {
-                this.ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:file:./" + fname + "oaknodes-" + clusterNodeId, "sa", "");
-                return new DocumentMK.Builder().setRDBConnection(this.ds).getNodeStore();
-            } catch (Exception e) {
-                return null;
-            }
+            throw new RuntimeException("clustered node store config not supported yet");
         }
 
         @Override
@@ -190,6 +163,7 @@ public abstract class NodeStoreFixture {
                 if(blobStore != null){
                     builder.setBlobStore(blobStore);
                 }
+                builder.setPersistentCache("target/persistentCache,time");
                 builder.setMongoDB(mongoDB);
                 return builder.getNodeStore();
             } catch (Exception e) {

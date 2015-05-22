@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
@@ -54,6 +55,15 @@ public abstract class AbstractBlob implements Blob {
             return false; // blobs not equal, given known and non-equal lengths
         }
 
+        String ai = a.getContentIdentity();
+        String bi = b.getContentIdentity();
+
+        //Check for identity first. If they are same then its
+        //definitely same blob. If not we need to check further.
+        if (ai != null && bi != null && ai.equals(bi)){
+            return true;
+        }
+
         try {
             return ByteStreams.equal(supplier(a), supplier(b));
         } catch (IOException e) {
@@ -71,6 +81,7 @@ public abstract class AbstractBlob implements Blob {
                 public long length() {
                     return blob.length();
                 }
+                @Nonnull
                 @Override
                 public InputStream getNewStream() {
                     return blob.getNewStream();

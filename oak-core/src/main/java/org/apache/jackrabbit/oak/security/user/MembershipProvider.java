@@ -261,7 +261,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
                         // filter by authorizable type, and/or get inherited members
                         if (next != null && (includeInherited || authorizableType != AuthorizableType.AUTHORIZABLE)) {
                             Tree auth = getByPath(next);
-                            AuthorizableType type = UserUtil.getType(auth);
+                            AuthorizableType type = (auth == null) ? null : UserUtil.getType(auth);
 
                             if (includeInherited && type == AuthorizableType.GROUP) {
                                 parent = getMembers(auth, authorizableType, true, processedRefs);
@@ -360,7 +360,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
     /**
      * Iterator that provides member references based on the rep:members properties of a underlying tree iterator.
      */
-    private class MemberReferenceIterator extends AbstractLazyIterator<String> {
+    private static final class MemberReferenceIterator extends AbstractLazyIterator<String> {
 
         private final Set<String> processedRefs;
 

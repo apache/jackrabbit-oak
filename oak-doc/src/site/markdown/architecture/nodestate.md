@@ -27,16 +27,13 @@ Oak extensions.
 Oak organizes all content in a large tree hierarchy that consists of nodes
 and properties. Each snapshot or revision of this content tree is immutable,
 and changes to the tree are expressed as a sequence of new revisions. The
-MicroKernel of an Oak repository is responsible for managing the content
+NodeStore of an Oak repository is responsible for managing the content
 tree and its revisions.
 
-The JSON-based MicroKernel API works well as a part of a remote protocol
-but is cumbersome to use directly in oak-core. There are also many cases
-where transient or virtual content that doesn't (yet) exist in the
-MicroKernel needs to be managed by Oak. The node state model as expressed
-in the NodeState interface in oak-core is designed for these purposes. It
-provides a unified low-level abstraction for managing all tree content and
-lays the foundation for the higher-level Oak API that's visible to clients.
+The node state model as expressed in the NodeState interface in oak-core is
+designed for these purposes. It provides a unified low-level abstraction for
+managing all tree content and lays the foundation for the higher-level Oak API
+that's visible to clients.
 
 ## The state of a node
 

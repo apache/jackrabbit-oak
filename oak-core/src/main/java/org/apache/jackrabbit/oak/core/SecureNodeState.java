@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.core;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -62,7 +63,7 @@ class SecureNodeState extends AbstractNodeState {
     }
 
     @Override @CheckForNull
-    public PropertyState getProperty(String name) {
+    public PropertyState getProperty(@Nonnull String name) {
         PropertyState property = state.getProperty(name);
         if (property != null && treePermission.canRead(property)) {
             return property;
@@ -108,6 +109,7 @@ class SecureNodeState extends AbstractNodeState {
         }
     }
 
+    @Nonnull
     @Override
     public NodeState getChildNode(@Nonnull String name) {
         NodeState child = state.getChildNode(name);
@@ -163,8 +165,8 @@ class SecureNodeState extends AbstractNodeState {
      */
     private class ReadablePropertyPredicate implements Predicate<PropertyState> {
         @Override
-        public boolean apply(@Nonnull PropertyState property) {
-            return treePermission.canRead(property);
+        public boolean apply(@Nullable PropertyState property) {
+            return property != null && treePermission.canRead(property);
         }
     }
 
@@ -173,8 +175,8 @@ class SecureNodeState extends AbstractNodeState {
      */
     private static class IterableNodePredicate implements Predicate<ChildNodeEntry> {
         @Override
-        public boolean apply(@Nonnull ChildNodeEntry input) {
-            return input.getNodeState().exists();
+        public boolean apply(@Nullable ChildNodeEntry input) {
+            return input != null && input.getNodeState().exists();
         }
     }
 

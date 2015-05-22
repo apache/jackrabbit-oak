@@ -23,6 +23,7 @@ import java.util.List;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.ConstraintViolationException;
@@ -56,14 +57,15 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
     private final AuthorizableImpl authorizable;
     private final NamePathMapper namePathMapper;
 
-    AuthorizablePropertiesImpl(AuthorizableImpl authorizable, NamePathMapper namePathMapper) {
+    AuthorizablePropertiesImpl(@Nonnull AuthorizableImpl authorizable, @Nonnull NamePathMapper namePathMapper) {
         this.authorizable = authorizable;
         this.namePathMapper = namePathMapper;
     }
 
     //---------------------------------------------< AuthorizableProperties >---
+    @Nonnull
     @Override
-    public Iterator<String> getNames(String relPath) throws RepositoryException {
+    public Iterator<String> getNames(@Nonnull String relPath) throws RepositoryException {
         String oakPath = getOakPath(relPath);
         Tree tree = getTree();
         TreeLocation location = getLocation(tree, oakPath);
@@ -86,7 +88,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
      * @see org.apache.jackrabbit.api.security.user.Authorizable#hasProperty(String)
      */
     @Override
-    public boolean hasProperty(String relPath) throws RepositoryException {
+    public boolean hasProperty(@Nonnull String relPath) throws RepositoryException {
         String oakPath = getOakPath(relPath);
         return isAuthorizableProperty(getTree(), getLocation(getTree(), oakPath), true);
     }
@@ -95,7 +97,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
      * @see org.apache.jackrabbit.api.security.user.Authorizable#getProperty(String)
      */
     @Override
-    public Value[] getProperty(String relPath) throws RepositoryException {
+    public Value[] getProperty(@Nonnull String relPath) throws RepositoryException {
         String oakPath = getOakPath(relPath);
         Tree tree = getTree();
         Value[] values = null;
@@ -115,7 +117,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
      * @see org.apache.jackrabbit.api.security.user.Authorizable#setProperty(String, javax.jcr.Value)
      */
     @Override
-    public void setProperty(String relPath, Value value) throws RepositoryException {
+    public void setProperty(@Nonnull String relPath, @Nullable Value value) throws RepositoryException {
         if (value == null) {
             removeProperty(relPath);
         } else {
@@ -135,7 +137,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
      * @see org.apache.jackrabbit.api.security.user.Authorizable#setProperty(String, javax.jcr.Value[])
      */
     @Override
-    public void setProperty(String relPath, Value[] values) throws RepositoryException {
+    public void setProperty(@Nonnull String relPath, Value[] values) throws RepositoryException {
         if (values == null) {
             removeProperty(relPath);
         } else {
@@ -156,7 +158,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
      * @see org.apache.jackrabbit.api.security.user.Authorizable#removeProperty(String)
      */
     @Override
-    public boolean removeProperty(String relPath) throws RepositoryException {
+    public boolean removeProperty(@Nonnull String relPath) throws RepositoryException {
         String oakPath = getOakPath(relPath);
         Tree node = getTree();
         TreeLocation propertyLocation = getLocation(node, oakPath);
@@ -263,7 +265,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
      *                             to a node that is outside of the scope of this authorizable.
      */
     @Nonnull
-    private Tree getOrCreateTargetTree(String relPath) throws RepositoryException {
+    private Tree getOrCreateTargetTree(@CheckForNull String relPath) throws RepositoryException {
         Tree targetTree;
         Tree userTree = getTree();
         if (relPath != null) {
@@ -286,7 +288,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
     }
 
     @Nonnull
-    private static TreeLocation getLocation(Tree tree, String relativePath) {
+    private static TreeLocation getLocation(@Nonnull Tree tree, @Nonnull String relativePath) {
         TreeLocation loc = TreeLocation.create(tree);
         for (String element : Text.explode(relativePath, '/', false)) {
             if (PathUtils.denotesParent(element)) {
@@ -298,7 +300,8 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
         return loc;
     }
 
-    private String getOakPath(String relPath) throws RepositoryException {
+    @Nonnull
+    private String getOakPath(@CheckForNull String relPath) throws RepositoryException {
         if (relPath == null || relPath.isEmpty() || relPath.charAt(0) == '/') {
             throw new RepositoryException("Relative path expected. Found " + relPath);
         }

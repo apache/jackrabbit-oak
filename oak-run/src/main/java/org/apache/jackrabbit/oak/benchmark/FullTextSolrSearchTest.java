@@ -43,7 +43,6 @@ import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndexProvider
 import org.apache.jackrabbit.oak.plugins.index.solr.server.EmbeddedSolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.util.SolrIndexInitializer;
-import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.slf4j.Logger;
@@ -79,8 +78,7 @@ public class FullTextSolrSearchTest extends FullTextSearchTest {
                             };
                         }
                     };
-                    SolrQueryIndexProvider solrPRovider = new SolrQueryIndexProvider(serverProvider, configurationProvider);
-                    oak.with((Observer) solrPRovider)
+                    oak.with(new SolrQueryIndexProvider(serverProvider, configurationProvider))
                         .with(new NodeStateSolrServersObserver())
                         .with(new SolrIndexEditorProvider(serverProvider, configurationProvider))
                         .with(new SolrIndexInitializer(false));

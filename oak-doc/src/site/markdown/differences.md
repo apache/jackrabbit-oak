@@ -61,6 +61,9 @@ relying on one session seeing the other session's changes. Oak requires explicit
 > details regarding session backwards compatibility and
 > [OAK-960](https://issues.apache.org/jira/browse/OAK-960) regarding in thread session
 > synchronisation.
+>
+> The `SessionMBean` provides further information on when a session is refreshed and wheter
+> a refresh will happen on the next access. 
 
 On Oak `Item.refresh()` is deprecated and will always cause an `Session.refresh()`. The former call
 will result in a warning written to the log in order to facilitate locating trouble spots.
@@ -294,3 +297,10 @@ Workspaces
 ----------
 
 An Oak repository only has one default workspace.
+
+Node Name Length Limit
+----------------------
+
+With the document storage backend (MongoDB, RDBMS), there is currently 
+a limit of 150 UTF-8 bytes on the length of the node names.
+See also OAK-2644.

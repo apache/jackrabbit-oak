@@ -22,7 +22,6 @@ import javax.jcr.Node;
 import javax.jcr.Session;
 import javax.jcr.security.AccessControlManager;
 
-import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 
 import static javax.jcr.security.Privilege.JCR_READ;
@@ -34,7 +33,7 @@ import static org.apache.jackrabbit.commons.jackrabbit.authorization.AccessContr
  */
 public class GetPoliciesTest extends AbstractTest {
 
-    Session session;
+    private Session session;
     private Node testRoot;
     private String path;
     private AccessControlManager acm;
@@ -44,8 +43,8 @@ public class GetPoliciesTest extends AbstractTest {
         session = loginWriter();
         testRoot = session.getRootNode().addNode(
                 getClass().getSimpleName() + TEST_ID, "nt:unstructured");
-        Node n = testRoot.addNode("node1");
 
+        Node n = testRoot.addNode("node1");
         path = n.getPath();
         addAccessControlEntry(session, n.getPath(),
                 EveryonePrincipal.getInstance(), new String[] { JCR_READ },
@@ -54,9 +53,7 @@ public class GetPoliciesTest extends AbstractTest {
         session.save();
         
         testRoot = loginWriter().getNode(testRoot.getPath());
-        acm = ((JackrabbitSession) testRoot.getSession()).getAccessControlManager();
-
-        session.logout();
+        acm = testRoot.getSession().getAccessControlManager();
     }
 
     @Override
@@ -69,11 +66,8 @@ public class GetPoliciesTest extends AbstractTest {
 
     @Override
     protected void afterSuite() throws Exception {
-        Session session = loginWriter();
-        session.getNode(testRoot.getPath()).remove();
-        testRoot.getSession().logout();
+        testRoot.remove();
         session.save();
         session.logout();
     }
-
 }

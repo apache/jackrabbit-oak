@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * {@link org.apache.jackrabbit.oak.spi.commit.ConflictHandler}
  * for resolving the conflicts.
  *
- * @see org.apache.jackrabbit.mk.api.MicroKernel#rebase(String, String)
+ * @see org.apache.jackrabbit.oak.spi.state.NodeStore#rebase(org.apache.jackrabbit.oak.spi.state.NodeBuilder)
  */
 public class ConflictHook implements CommitHook {
     private final ConflictHandler conflictHandler;

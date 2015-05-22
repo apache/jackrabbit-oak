@@ -109,6 +109,7 @@ public class RestrictionImplTest extends AbstractAccessControlTest {
                 return new RestrictionDefinitionImpl(name, Type.NAME, true);
             }
 
+            @Nonnull
             @Override
             public PropertyState getProperty() {
                 return createProperty(name, value);

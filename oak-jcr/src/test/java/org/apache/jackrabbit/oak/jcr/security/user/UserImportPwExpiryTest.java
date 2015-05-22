@@ -16,19 +16,18 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.user;
 
+import java.util.HashMap;
 import javax.annotation.CheckForNull;
 import javax.jcr.Node;
 import javax.jcr.Property;
+import javax.jcr.Session;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.junit.Test;
-
-import java.util.HashMap;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -57,7 +56,7 @@ public class UserImportPwExpiryTest extends AbstractImportTest {
         HashMap<String, Object> userParams = new HashMap<String, Object>() {{
             put(UserConstants.PARAM_PASSWORD_MAX_AGE, 10);
         }};
-        return ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams)));
+        return ConfigurationParameters.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams));
     }
 
     /**
@@ -89,8 +88,8 @@ public class UserImportPwExpiryTest extends AbstractImportTest {
 
         doImport(USERPATH, xml);
 
-        Authorizable authorizable = userMgr.getAuthorizable("x");
-        Node userNode = adminSession.getNode(authorizable.getPath());
+        Authorizable authorizable = getUserManager().getAuthorizable("x");
+        Node userNode = getImportSession().getNode(authorizable.getPath());
         assertTrue(userNode.hasNode(UserConstants.REP_PWD));
         Node pwdNode = userNode.getNode(UserConstants.REP_PWD);
         assertTrue(pwdNode.getDefinition().isProtected());
@@ -123,8 +122,8 @@ public class UserImportPwExpiryTest extends AbstractImportTest {
         doImport(USERPATH, xml);
 
         // verify that the pwd node has still been created
-        Authorizable authorizable = userMgr.getAuthorizable("x");
-        Node userNode = adminSession.getNode(authorizable.getPath());
+        Authorizable authorizable = getUserManager().getAuthorizable("x");
+        Node userNode = getImportSession().getNode(authorizable.getPath());
         assertTrue(userNode.hasNode(UserConstants.REP_PWD));
         Node pwdNode = userNode.getNode(UserConstants.REP_PWD);
         assertTrue(pwdNode.getDefinition().isProtected());
@@ -167,8 +166,8 @@ public class UserImportPwExpiryTest extends AbstractImportTest {
 
         doImport(USERPATH, xml);
 
-        Authorizable authorizable = userMgr.getAuthorizable("y");
-        Node userNode = adminSession.getNode(authorizable.getPath());
+        Authorizable authorizable = getUserManager().getAuthorizable("y");
+        Node userNode = getImportSession().getNode(authorizable.getPath());
         assertTrue(userNode.hasNode(UserConstants.REP_PWD));
 
         Node pwdNode = userNode.getNode(UserConstants.REP_PWD);
@@ -188,13 +187,14 @@ public class UserImportPwExpiryTest extends AbstractImportTest {
     public void testImportExistingUserWithoutExpiryProperty() throws Exception {
 
         String uid = "existing";
-        User user = userMgr.createUser(uid, uid);
+        User user = getUserManager().createUser(uid, uid);
 
+        Session s = getImportSession();
         // change password to force existence of password last modified property
         user.changePassword(uid);
-        adminSession.save();
+        s.save();
 
-        Node userNode = adminSession.getNode(user.getPath());
+        Node userNode = s.getNode(user.getPath());
         assertTrue(userNode.hasNode(UserConstants.REP_PWD));
         Node pwdNode = userNode.getNode(UserConstants.REP_PWD);
         assertTrue(pwdNode.hasProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED));
@@ -215,8 +215,8 @@ public class UserImportPwExpiryTest extends AbstractImportTest {
 
         doImport(USERPATH, xml);
 
-        Authorizable authorizable = userMgr.getAuthorizable(uid);
-        userNode = adminSession.getNode(authorizable.getPath());
+        Authorizable authorizable = getUserManager().getAuthorizable(uid);
+        userNode = s.getNode(authorizable.getPath());
         assertTrue(userNode.hasNode(UserConstants.REP_PWD));
 
         pwdNode = userNode.getNode(UserConstants.REP_PWD);

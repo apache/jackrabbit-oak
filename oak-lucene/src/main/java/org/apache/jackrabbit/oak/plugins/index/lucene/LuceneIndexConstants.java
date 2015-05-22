@@ -130,6 +130,8 @@ public interface LuceneIndexConstants {
 
     String PROP_ORDERED = "ordered";
 
+    String PROP_SCORER_PROVIDER = "scorerProviderName";
+
     /**
      * Integer property indicating that LuceneIndex should be
      * used in compat mode to specific version
@@ -247,4 +249,25 @@ public interface LuceneIndexConstants {
      * enabled for this property
      */
     String PROP_NULL_CHECK_ENABLED = "nullCheckEnabled";
+
+    /**
+     * Property definition config indicating that this property would be used with
+     * 'IS NOT NULL' constraint
+     */
+    String PROP_NOT_NULL_CHECK_ENABLED = "notNullCheckEnabled";
+
+    /**
+     * Boolean property indicating that Lucene directory content
+     * should be saved as part of NodeState itself as a multi value property
+     * to allow faster reads (OAK-2809)
+     */
+    String SAVE_DIR_LISTING = "saveDirectoryListing";
+
+    /**
+     * Optional  Property to store the path of index in the repository. Path at which index
+     * definition is defined is not known to IndexEditor. To make use of CopyOnWrite
+     * feature its required to know the indexPath to optimize the lookup and read of
+     * existing index files
+     */
+    String INDEX_PATH = "indexPath";
 }

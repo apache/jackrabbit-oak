@@ -171,8 +171,9 @@ public class WorkspaceDelegate {
         private void updateReferences(Tree src, Tree dest)
                 throws RepositoryException {
             for (PropertyState prop : src.getProperties()) {
-                if (isReferenceType(prop) && !VersionConstants.VERSION_PROPERTY_NAMES.contains(prop.getName()))
+                if (isReferenceType(prop) && !VersionConstants.VERSION_PROPERTY_NAMES.contains(prop.getName())) {
                     updateProperty(prop, dest);
+                }
             }
             for (Tree child : src.getChildren()) {
                 updateReferences(child, dest.getChild(child.getName()));

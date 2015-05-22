@@ -20,9 +20,17 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.annotation.Nonnull;
 import javax.management.NotCompliantMBeanException;
 
 import com.google.common.base.Strings;
@@ -38,12 +46,15 @@ import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.ReferencePolicyOption;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
+import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
+import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
+import org.apache.jackrabbit.oak.spi.commit.BackgroundObserverMBean;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
-import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
 import org.apache.lucene.analysis.util.CharFilterFactory;
 import org.apache.lucene.analysis.util.TokenFilterFactory;
 import org.apache.lucene.analysis.util.TokenizerFactory;
@@ -82,7 +93,7 @@ public class LuceneIndexProviderService {
     private static final String PROP_DEBUG = "debug";
 
     @Property(
-            boolValue = false,
+            boolValue = true,
             label = "Enable CopyOnRead",
             description = "Enable copying of Lucene index to local file system to improve query performance"
     )
@@ -95,22 +106,57 @@ public class LuceneIndexProviderService {
     )
     private static final String PROP_LOCAL_INDEX_DIR = "localIndexDir";
 
+    @Property(
+            boolValue = false,
+            label = "Enable CopyOnWrite",
+            description = "Enable copying of Lucene index to local file system to improve index writer performance"
+    )
+    private static final String PROP_COPY_ON_WRITE = "enableCopyOnWriteSupport";
+
+    @Property(
+            boolValue = true,
+            label = "Open index asynchronously",
+            description = "Enable opening of indexes in asynchronous mode"
+    )
+    private static final String PROP_ASYNC_INDEX_OPEN = "enableOpenIndexAsync";
+
+    private static final int PROP_THREAD_POOL_SIZE_DEFAULT = 5;
+    @Property(
+            intValue = PROP_THREAD_POOL_SIZE_DEFAULT,
+            label = "Thread pool size",
+            description = "Thread pool size used to perform various asynchronous task in Oak Lucene"
+    )
+    private static final String PROP_THREAD_POOL_SIZE = "threadPoolSize";
+
     private Whiteboard whiteboard;
 
-    private WhiteboardExecutor executor;
+    private BackgroundObserver backgroundObserver;
+
+    @Reference
+    ScorerProviderFactory scorerFactory;
+
+    private IndexCopier indexCopier;
+
+    private File indexDir;
+
+    private ExecutorService executorService;
+
+    private int threadPoolSize;
 
     @Activate
     private void activate(BundleContext bundleContext, Map<String, ?> config)
-            throws NotCompliantMBeanException {
+            throws NotCompliantMBeanException, IOException {
         initializeFactoryClassLoaders(getClass().getClassLoader());
         whiteboard = new OsgiWhiteboard(bundleContext);
+        threadPoolSize = PropertiesUtil.toInteger(config.get(PROP_THREAD_POOL_SIZE), PROP_THREAD_POOL_SIZE_DEFAULT);
 
-        indexProvider = new LuceneIndexProvider(createTracker(bundleContext, config));
+        indexProvider = new LuceneIndexProvider(createTracker(bundleContext, config), scorerFactory);
         initializeLogging(config);
         initialize();
 
         regs.add(bundleContext.registerService(QueryIndexProvider.class.getName(), indexProvider, null));
-        regs.add(bundleContext.registerService(Observer.class.getName(), indexProvider, null));
+        registerObserver(bundleContext, config);
+        registerIndexEditor(bundleContext, config);
 
         oakRegs.add(registerMBean(whiteboard,
                 LuceneIndexMBean.class,
@@ -120,7 +166,7 @@ public class LuceneIndexProviderService {
     }
 
     @Deactivate
-    private void deactivate() {
+    private void deactivate() throws InterruptedException {
         for (ServiceRegistration reg : regs) {
             reg.unregister();
         }
@@ -129,13 +175,18 @@ public class LuceneIndexProviderService {
             reg.unregister();
         }
 
+        if (backgroundObserver != null){
+            backgroundObserver.close();
+        }
+
         if (indexProvider != null) {
             indexProvider.close();
             indexProvider = null;
         }
 
-        if (executor != null){
-            executor.stop();
+        if (executorService != null){
+            executorService.shutdown();
+            executorService.awaitTermination(1, TimeUnit.MINUTES);
         }
 
         InfoStream.setDefault(InfoStream.NO_OUTPUT);
@@ -162,36 +213,105 @@ public class LuceneIndexProviderService {
         }
     }
 
-    private IndexTracker createTracker(BundleContext bundleContext, Map<String, ?> config) {
-        boolean enableCopyOnRead = PropertiesUtil.toBoolean(config.get(PROP_COPY_ON_READ), false);
+    private void registerIndexEditor(BundleContext bundleContext, Map<String, ?> config) throws IOException {
+        boolean enableCopyOnWrite = PropertiesUtil.toBoolean(config.get(PROP_COPY_ON_WRITE), false);
+        LuceneIndexEditorProvider editorProvider;
+        if (enableCopyOnWrite){
+            initializeIndexCopier(bundleContext, config);
+            editorProvider = new LuceneIndexEditorProvider(indexCopier);
+            log.info("Enabling CopyOnWrite support. Index files would be copied under {}", indexDir.getAbsolutePath());
+        } else {
+            editorProvider = new LuceneIndexEditorProvider();
+        }
+        regs.add(bundleContext.registerService(IndexEditorProvider.class.getName(), editorProvider, null));
+    }
+
+    private IndexTracker createTracker(BundleContext bundleContext, Map<String, ?> config) throws IOException {
+        boolean enableCopyOnRead = PropertiesUtil.toBoolean(config.get(PROP_COPY_ON_READ), true);
         if (enableCopyOnRead){
-            String indexDirPath = PropertiesUtil.toString(config.get(PROP_LOCAL_INDEX_DIR), null);
-            if (Strings.isNullOrEmpty(indexDirPath)) {
-                String repoHome = bundleContext.getProperty(REPOSITORY_HOME);
-                if (repoHome != null){
-                    indexDirPath = FilenameUtils.concat(repoHome, "index");
-                }
-            }
-
-            checkNotNull(indexDirPath, "Index directory cannot be determined as neither index " +
-                    "directory path [%s] nor repository home [%s] defined", PROP_LOCAL_INDEX_DIR, REPOSITORY_HOME);
-
-            File indexDir = new File(indexDirPath);
-            executor = new WhiteboardExecutor();
-            executor.start(whiteboard);
-            IndexCopier copier = new IndexCopier(executor, indexDir);
+            initializeIndexCopier(bundleContext, config);
             log.info("Enabling CopyOnRead support. Index files would be copied under {}", indexDir.getAbsolutePath());
-
-            oakRegs.add(registerMBean(whiteboard,
-                    CopyOnReadStatsMBean.class,
-                    copier,
-                    CopyOnReadStatsMBean.TYPE,
-                    "CopyOnRead support statistics"));
-
-            return new IndexTracker(copier);
+            return new IndexTracker(indexCopier);
         }
 
         return new IndexTracker();
+    }
+
+    private void initializeIndexCopier(BundleContext bundleContext, Map<String, ?> config) throws IOException {
+        if(indexCopier != null){
+            return;
+        }
+        String indexDirPath = PropertiesUtil.toString(config.get(PROP_LOCAL_INDEX_DIR), null);
+        if (Strings.isNullOrEmpty(indexDirPath)) {
+            String repoHome = bundleContext.getProperty(REPOSITORY_HOME);
+            if (repoHome != null){
+                indexDirPath = FilenameUtils.concat(repoHome, "index");
+            }
+        }
+
+        checkNotNull(indexDirPath, "Index directory cannot be determined as neither index " +
+                "directory path [%s] nor repository home [%s] defined", PROP_LOCAL_INDEX_DIR, REPOSITORY_HOME);
+
+        indexDir = new File(indexDirPath);
+        indexCopier = new IndexCopier(getExecutorService(), indexDir);
+
+        oakRegs.add(registerMBean(whiteboard,
+                CopyOnReadStatsMBean.class,
+                indexCopier,
+                CopyOnReadStatsMBean.TYPE,
+                "IndexCopier support statistics"));
+
+    }
+
+    private ExecutorService getExecutorService(){
+        if (executorService == null){
+            executorService = createExecutor();
+        }
+        return executorService;
+    }
+
+    private ExecutorService createExecutor() {
+        ThreadPoolExecutor executor = new ThreadPoolExecutor(0, 5, 60L, TimeUnit.SECONDS,
+                new LinkedBlockingQueue<Runnable>(), new ThreadFactory() {
+            private final AtomicInteger counter = new AtomicInteger();
+            private final Thread.UncaughtExceptionHandler handler = new Thread.UncaughtExceptionHandler() {
+                @Override
+                public void uncaughtException(Thread t, Throwable e) {
+                    log.warn("Error occurred in asynchronous processing ", e);
+                }
+            };
+            @Override
+            public Thread newThread(@Nonnull Runnable r) {
+                Thread thread = new Thread(r, createName());
+                thread.setDaemon(true);
+                thread.setPriority(Thread.MIN_PRIORITY);
+                thread.setUncaughtExceptionHandler(handler);
+                return thread;
+            }
+
+            private String createName() {
+                return "oak-lucene-" + counter.getAndIncrement();
+            }
+        });
+        executor.setKeepAliveTime(1, TimeUnit.MINUTES);
+        executor.allowCoreThreadTimeOut(true);
+        return executor;
+    }
+
+    private void registerObserver(BundleContext bundleContext, Map<String, ?> config) {
+        boolean enableAsyncIndexOpen = PropertiesUtil.toBoolean(config.get(PROP_ASYNC_INDEX_OPEN), true);
+        Observer observer = indexProvider;
+        if (enableAsyncIndexOpen) {
+            backgroundObserver = new BackgroundObserver(indexProvider, getExecutorService(), 5);
+            observer = backgroundObserver;
+            oakRegs.add(registerMBean(whiteboard,
+                    BackgroundObserverMBean.class,
+                    backgroundObserver.getMBean(),
+                    BackgroundObserverMBean.TYPE,
+                    "LuceneIndexConfigObserver queue stats"));
+            log.info("Registering the LuceneIndexProvider as a BackgroundObserver");
+        }
+        regs.add(bundleContext.registerService(Observer.class.getName(), observer, null));
     }
 
     private void initializeFactoryClassLoaders(ClassLoader classLoader) {

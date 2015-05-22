@@ -54,10 +54,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Maps;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.unshareString;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
@@ -83,27 +81,104 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
 
     final String path;
     final Revision rev;
-    final Map<String, PropertyState> properties = Maps.newHashMap();
     Revision lastRevision;
+    final Revision rootRevision;
+    final boolean fromExternalChange;
+    final Map<String, PropertyState> properties;
     final boolean hasChildren;
 
     private final DocumentNodeStore store;
 
-    DocumentNodeState(@Nonnull DocumentNodeStore store, @Nonnull String path,
+    DocumentNodeState(@Nonnull DocumentNodeStore store,
+                      @Nonnull String path,
                       @Nonnull Revision rev) {
         this(store, path, rev, false);
     }
 
     DocumentNodeState(@Nonnull DocumentNodeStore store, @Nonnull String path,
                       @Nonnull Revision rev, boolean hasChildren) {
+        this(store, path, rev, new HashMap<String, PropertyState>(),
+                hasChildren, null, null, false);
+    }
+
+    private DocumentNodeState(@Nonnull DocumentNodeStore store,
+                              @Nonnull String path,
+                              @Nonnull Revision rev,
+                              @Nonnull Map<String, PropertyState> properties,
+                              boolean hasChildren,
+                              @Nullable Revision lastRevision,
+                              @Nullable Revision rootRevision,
+                              boolean fromExternalChange) {
         this.store = checkNotNull(store);
         this.path = checkNotNull(path);
         this.rev = checkNotNull(rev);
+        this.lastRevision = lastRevision;
+        this.rootRevision = rootRevision != null ? rootRevision : rev;
+        this.fromExternalChange = fromExternalChange;
         this.hasChildren = hasChildren;
+        this.properties = checkNotNull(properties);
     }
 
+    /**
+     * Creates a copy of this {@code DocumentNodeState} with the
+     * {@link #rootRevision} set to the given {@code root} revision. This method
+     * returns {@code this} instance if the given {@code root} revision is
+     * the same as the one in this instance and the {@link #fromExternalChange}
+     * flags are equal.
+     *
+     * @param root the root revision for the copy of this node state.
+     * @param externalChange if the {@link #fromExternalChange} flag must be
+     *                       set on the returned node state.
+     * @return a copy of this node state with the given root revision and
+     *          external change flag.
+     */
+    private DocumentNodeState withRootRevision(@Nonnull Revision root,
+                                               boolean externalChange) {
+        if (rootRevision.equals(root) && fromExternalChange == externalChange) {
+            return this;
+        } else {
+            return new DocumentNodeState(store, path, rev, properties,
+                    hasChildren, lastRevision, root, externalChange);
+        }
+    }
+
+    /**
+     * @return a copy of this {@code DocumentNodeState} with the
+     *          {@link #fromExternalChange} flag set to {@code true}.
+     */
+    @Nonnull
+    DocumentNodeState fromExternalChange() {
+        return new DocumentNodeState(store, path, rev, properties, hasChildren,
+                lastRevision, rootRevision, true);
+    }
+
+    /**
+     * @return {@code true} if this node state was created as a result of an
+     *          external change; {@code false} otherwise.
+     */
+    boolean isFromExternalChange() {
+        return fromExternalChange;
+    }
+
+    @Nonnull
     Revision getRevision() {
         return rev;
+    }
+
+    /**
+     * Returns the root revision for this node state. This is the read revision
+     * passed from the parent node state. This revision therefore reflects the
+     * revision of the root node state where the traversal down the tree
+     * started. The returned revision is only maintained on a best effort basis
+     * and may be the same as {@link #getRevision()} if this node state is
+     * retrieved directly from the {@code DocumentNodeStore}.
+     *
+     * @return the revision of the root node state is available, otherwise the
+     *          same value as returned by {@link #getRevision()}.
+     */
+    @Nonnull
+    Revision getRootRevision() {
+        return rootRevision;
     }
 
     //--------------------------< NodeState >-----------------------------------
@@ -141,12 +216,12 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
     }
 
     @Override
-    public PropertyState getProperty(String name) {
+    public PropertyState getProperty(@Nonnull String name) {
         return properties.get(name);
     }
 
     @Override
-    public boolean hasProperty(String name) {
+    public boolean hasProperty(@Nonnull String name) {
         return properties.containsKey(name);
     }
 
@@ -157,7 +232,7 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
     }
 
     @Override
-    public boolean hasChildNode(String name) {
+    public boolean hasChildNode(@Nonnull String name) {
         if (!hasChildren || !isValidName(name)) {
             return false;
         } else {
@@ -179,7 +254,7 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
             checkValidName(name);
             return EmptyNodeState.MISSING_NODE;
         } else {
-            return child;
+            return child.withRootRevision(rootRevision, fromExternalChange);
         }
     }
 
@@ -265,8 +340,7 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
                         // use DocumentNodeStore compare
                         final long start = perfLogger.start();
                         try {
-                            return dispatch(store.diffChildren(this, mBase),
-                                    mBase, diff);
+                            return store.compare(this, mBase, diff);
                         } finally {
                             perfLogger
                                     .end(start,
@@ -322,10 +396,9 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
     @Override
     public String toString() {
         StringBuilder buff = new StringBuilder();
-        buff.append("path: ").append(path).append('\n');
-        buff.append("rev: ").append(rev).append('\n');
-        buff.append(properties);
-        buff.append('\n');
+        buff.append("{ path: '").append(path).append("', ");
+        buff.append("rev: '").append(rev).append("', ");
+        buff.append("properties: '").append(properties).append("' }");
         return buff.toString();
     }
 
@@ -375,7 +448,7 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
 
     @Override
     public int getMemory() {
-        int size = 180 + path.length() * 2;
+        int size = 212 + path.length() * 2;
         // rough approximation for properties
         for (Map.Entry<String, PropertyState> entry : properties.entrySet()) {
             // name
@@ -411,64 +484,6 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
                 || this.lastRevision.equals(other.lastRevision);
     }
 
-    private boolean dispatch(@Nonnull String jsonDiff,
-                             @Nonnull DocumentNodeState base,
-                             @Nonnull NodeStateDiff diff) {
-        if (!AbstractNodeState.comparePropertiesAgainstBaseState(this, base, diff)) {
-            return false;
-        }
-        if (jsonDiff.trim().isEmpty()) {
-            return true;
-        }
-        JsopTokenizer t = new JsopTokenizer(jsonDiff);
-        boolean continueComparison = true;
-        while (continueComparison) {
-            int r = t.read();
-            if (r == JsopReader.END) {
-                break;
-            }
-            switch (r) {
-                case '+': {
-                    String name = unshareString(t.readString());
-                    t.read(':');
-                    t.read('{');
-                    while (t.read() != '}') {
-                        // skip properties
-                    }
-                    continueComparison = diff.childNodeAdded(name, getChildNode(name));
-                    break;
-                }
-                case '-': {
-                    String name = unshareString(t.readString());
-                    continueComparison = diff.childNodeDeleted(name, base.getChildNode(name));
-                    break;
-                }
-                case '^': {
-                    String name = unshareString(t.readString());
-                    t.read(':');
-                    if (t.matches('{')) {
-                        t.read('}');
-                        continueComparison = diff.childNodeChanged(name,
-                                base.getChildNode(name), getChildNode(name));
-                    } else if (t.matches('[')) {
-                        // ignore multi valued property
-                        while (t.read() != ']') {
-                            // skip values
-                        }
-                    } else {
-                        // ignore single valued property
-                        t.read();
-                    }
-                    break;
-                }
-                default:
-                    throw new IllegalArgumentException("jsonDiff: illegal token '"
-                            + t.getToken() + "' at pos: " + t.getLastPos() + ' ' + jsonDiff);
-            }
-        }
-        return continueComparison;
-    }
-
     /**
      * Returns up to {@code limit} child node entries, starting after the given
      * {@code name}.
@@ -496,7 +511,7 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
                     @Nonnull
                     @Override
                     public NodeState getNodeState() {
-                        return input;
+                        return input.withRootRevision(rootRevision, fromExternalChange);
                     }
                 };
             }
@@ -583,9 +598,12 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
         @Override
         public int getMemory() {
             if (cachedMemory == 0) {
-                int size = 114;
-                for (String c : children) {
-                    size += c.length() * 2 + 56;
+                int size = 48;
+                if (!children.isEmpty()) {
+                    size = 114;
+                    for (String c : children) {
+                        size += c.length() * 2 + 56;
+                    }
                 }
                 cachedMemory = size;
             }

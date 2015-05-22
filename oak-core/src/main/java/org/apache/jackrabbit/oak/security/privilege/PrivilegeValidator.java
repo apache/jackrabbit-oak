@@ -105,7 +105,7 @@ class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants 
 
     @Override
     public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
-        if (isPrivilegeDefinition(before)) {
+        if (isPrivilegeDefinition(before) && !before.equals(after)) {
             throw new CommitFailedException(CONSTRAINT, 41, "Attempt to modify existing privilege definition " + name);
         } else {
             // not handled by this validator

@@ -189,7 +189,7 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
 
     //----------------------------------------------------------------< SCR >---
     @Activate
-    protected void activate(BundleContext context) throws Exception {
+    protected void activate(BundleContext context) {
         whiteboard = new OsgiWhiteboard(context);
         authorizableActionProvider.start(whiteboard);
         authorizableNodeName.start(whiteboard);
@@ -200,35 +200,38 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
     }
 
     @Deactivate
-    protected void deactivate() throws Exception {
+    protected void deactivate() {
         authorizableActionProvider.stop();
         authorizableNodeName.stop();
         restrictionProvider.stop();
         userAuthenticationFactory.stop();
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     protected void bindPrincipalConfiguration(@Nonnull PrincipalConfiguration reference) {
         principalConfiguration.addConfiguration(initConfiguration(reference));
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     protected void unbindPrincipalConfiguration(@Nonnull PrincipalConfiguration reference) {
         principalConfiguration.removeConfiguration(reference);
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     protected void bindTokenConfiguration(@Nonnull TokenConfiguration reference) {
         tokenConfiguration.addConfiguration(initConfiguration(reference));
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     protected void unbindTokenConfiguration(@Nonnull TokenConfiguration reference) {
         tokenConfiguration.removeConfiguration(reference);
     }
 
     //------------------------------------------------------------< private >---
     private void initializeConfigurations() {
-        Map<String, WhiteboardRestrictionProvider> authorizMap = ImmutableMap.of(
-                AccessControlConstants.PARAM_RESTRICTION_PROVIDER, restrictionProvider
+        initConfiguration(authorizationConfiguration, ConfigurationParameters.of(
+                AccessControlConstants.PARAM_RESTRICTION_PROVIDER, restrictionProvider)
         );
-        initConfiguration(authorizationConfiguration, ConfigurationParameters.of(authorizMap));
 
         Map<String, Object> userMap = ImmutableMap.<String,Object>of(
                 UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, authorizableActionProvider,

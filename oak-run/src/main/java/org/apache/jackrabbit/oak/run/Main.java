@@ -27,8 +27,6 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.InetAddress;
-import java.net.URL;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -113,7 +111,7 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 
-public class Main {
+public final class Main {
 
     public static final int PORT = 8080;
     public static final String URI = "http://localhost:" + PORT + "/";
@@ -367,7 +365,7 @@ public class Main {
             failoverServer = new StandbyServer(
                     options.has(port)? options.valueOf(port) : defaultPort,
                     store,
-                    admissibleSlaves.toArray(new String[0]),
+                    admissibleSlaves.toArray(new String[admissibleSlaves.size()]),
                     options.has(secure) && options.valueOf(secure));
             failoverServer.startAndWait();
         } finally {
@@ -709,6 +707,9 @@ public class Main {
                 "deep", "enable deep consistency checking. An optional long " +
                         "specifies the number of seconds between progress notifications")
                 .withOptionalArg().ofType(Long.class).defaultsTo(Long.MAX_VALUE);
+        ArgumentAcceptingOptionSpec<Long> bin = parser.accepts(
+                "bin", "read the n first bytes from binary properties. -1 for all bytes.")
+                .withOptionalArg().ofType(Long.class).defaultsTo(0L);
 
         OptionSet options = parser.parse(args);
 
@@ -727,8 +728,8 @@ public class Main {
         String journalFileName = journal.value(options);
         boolean fullTraversal = options.has(deep);
         long debugLevel = deep.value(options);
-
-         checkConsistency(dir, journalFileName, fullTraversal, debugLevel);
+        long binLen = bin.value(options);
+        checkConsistency(dir, journalFileName, fullTraversal, debugLevel, binLen);
     }
 
     private static void debugTarFile(FileStore store, String[] args) {
@@ -917,7 +918,7 @@ public class Main {
      */
     private static boolean isValidFileStore(String path) {
         File store = new File(path);
-        if (store == null || !store.isDirectory()) {
+        if (!store.isDirectory()) {
             return false;
         }
         // for now the only check is the existence of the journal file
@@ -992,7 +993,6 @@ public class Main {
     private static void server(String defaultUri, String[] args) throws Exception {
         OptionParser parser = new OptionParser();
 
-        OptionSpec<Void> mkServer = parser.accepts("mk", "MicroKernel server");
         OptionSpec<Integer> cache = parser.accepts("cache", "cache size (MB)").withRequiredArg().ofType(Integer.class).defaultsTo(100);
 
         // tar/h2 specific option
@@ -1065,14 +1065,7 @@ public class Main {
             throw new IllegalArgumentException("Unsupported repository setup " + fix);
         }
 
-        if (options.has(mkServer)) {
-            if (!cIds.isEmpty()) {
-                System.out.println("WARNING: clusterIds option is ignored when mk option is specified");
-            }
-            startMkServer(oakFixture, uri);
-        } else {
-            startOakServer(oakFixture, uri, cIds);
-        }
+        startOakServer(oakFixture, uri, cIds);
     }
 
     private static void startOakServer(OakFixture oakFixture, String uri, List<Integer> cIds) throws Exception {
@@ -1089,20 +1082,6 @@ public class Main {
             }
         }
         new HttpServer(uri, m);
-    }
-
-    private static void startMkServer(OakFixture oakFixture, String uri) throws Exception {
-        org.apache.jackrabbit.mk.server.Server server =
-            new org.apache.jackrabbit.mk.server.Server(oakFixture.getMicroKernel());
-
-        URL url = new URL(uri);
-        server.setBindAddress(InetAddress.getByName(url.getHost()));
-        if (url.getPort() > 0) {
-            server.setPort(url.getPort());
-        } else {
-            server.setPort(28080);
-        }
-        server.start();
     }
 
     public static class HttpServer {

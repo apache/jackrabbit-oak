@@ -37,6 +37,7 @@ public class WhiteboardAuthorizableActionProvider
         super(AuthorizableActionProvider.class);
     }
 
+    @Nonnull
     @Override
     public List<? extends AuthorizableAction> getAuthorizableActions(@Nonnull SecurityProvider securityProvider) {
         AuthorizableActionProvider actionProvider = new CompositeActionProvider(getServices());

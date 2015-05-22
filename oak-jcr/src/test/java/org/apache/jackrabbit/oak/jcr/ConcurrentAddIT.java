@@ -32,11 +32,14 @@ import javax.jcr.Session;
 
 import com.google.common.collect.Iterators;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 /**
  * <code>ConcurrentAddIT</code> adds nodes with multiple sessions in separate
  * locations of the repository and under the same parent.
  */
+@RunWith(Parameterized.class) // OAK-2704
 public class ConcurrentAddIT extends AbstractRepositoryTest {
 
     private static final int NUM_WORKERS = 10;

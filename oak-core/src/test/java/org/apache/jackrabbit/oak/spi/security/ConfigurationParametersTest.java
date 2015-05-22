@@ -52,7 +52,7 @@ public class ConfigurationParametersTest {
         ConfigurationParameters params = ConfigurationParameters.of(
                 ConfigurationParameters.EMPTY,
                 null,
-                ConfigurationParameters.of(Collections.singletonMap("a", "a")));
+                ConfigurationParameters.of("a", "a"));
         assertFalse(params.isEmpty());
         assertEquals(1, params.size());
         assertTrue(params.contains("a"));
@@ -137,7 +137,7 @@ public class ConfigurationParametersTest {
         assertEquals(0, result.length);
         assertArrayEquals(testArray, ConfigurationParameters.EMPTY.getConfigValue("test", testArray));
 
-        ConfigurationParameters options = ConfigurationParameters.of(Collections.singletonMap("test", testArray));
+        ConfigurationParameters options = ConfigurationParameters.of("test", testArray);
         assertArrayEquals(testArray, options.getConfigValue("test", new TestObject[] {new TestObject("s")}));
     }
 
@@ -151,7 +151,7 @@ public class ConfigurationParametersTest {
         assertArrayEquals(testArray, ConfigurationParameters.EMPTY.getConfigValue("test", testArray, null));
         assertArrayEquals(testArray, ConfigurationParameters.EMPTY.getConfigValue("test", testArray, TestObject[].class));
 
-        ConfigurationParameters options = ConfigurationParameters.of(Collections.singletonMap("test", testArray));
+        ConfigurationParameters options = ConfigurationParameters.of("test", testArray);
         assertArrayEquals(testArray, (TestObject[]) options.getConfigValue("test", null, null));
         assertArrayEquals(testArray, options.getConfigValue("test", null, TestObject[].class));
         assertArrayEquals(testArray, options.getConfigValue("test", new TestObject[]{new TestObject("s")}, null));
@@ -161,7 +161,7 @@ public class ConfigurationParametersTest {
     @Test
     public void testCollectionAsArray() throws Exception{
         String[] testArray = {"t"};
-        ConfigurationParameters options = ConfigurationParameters.of(Collections.singletonMap("test", Arrays.asList(testArray)));
+        ConfigurationParameters options = ConfigurationParameters.of("test", Arrays.asList(testArray));
         assertArrayEquals(testArray, options.getConfigValue("test", null, String[].class));
     }
 
@@ -298,7 +298,7 @@ public class ConfigurationParametersTest {
             if (value instanceof ConfigurationParameters) {
                 config = ConfigurationParameters.of((ConfigurationParameters) value);
             } else {
-                config = ConfigurationParameters.of(Collections.singletonMap("key", value));
+                config = ConfigurationParameters.of("key", value);
             }
 
             Set expected = configValues.get(value);
@@ -361,7 +361,7 @@ public class ConfigurationParametersTest {
             if (value instanceof ConfigurationParameters) {
                 config = ConfigurationParameters.of((ConfigurationParameters) value);
             } else {
-                config = ConfigurationParameters.of(Collections.singletonMap("key", value));
+                config = ConfigurationParameters.of("key", value);
             }
             Object[] expected = configValues.get(value);
 

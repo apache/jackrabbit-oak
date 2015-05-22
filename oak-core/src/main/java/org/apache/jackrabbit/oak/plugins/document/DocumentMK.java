@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.InputStream;
+import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
@@ -27,11 +28,10 @@ import javax.sql.DataSource;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.Weigher;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.mongodb.DB;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheValue;
@@ -43,7 +43,6 @@ import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState.Children;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDiffCache;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoVersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.CacheType;
@@ -51,6 +50,7 @@ import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCach
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
+import org.apache.jackrabbit.oak.plugins.document.util.RevisionsKey;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
@@ -62,9 +62,10 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkArgument;
 
 /**
- * A MicroKernel implementation that stores the data in a {@link DocumentStore}.
+ * A JSON-based wrapper around the NodeStore implementation that stores the
+ * data in a {@link DocumentStore}. It is used for testing purpose only.
  */
-public class DocumentMK implements MicroKernel {
+public class DocumentMK {
     
     static final Logger LOG = LoggerFactory.getLogger(DocumentMK.class);
     
@@ -81,10 +82,14 @@ public class DocumentMK implements MicroKernel {
             "oak.documentMK.manyChildren", 50);
 
     /**
-     * Enable the LIRS cache.
+     * Enable or disable the LIRS cache (null to use the default setting for this configuration).
      */
-    static final boolean LIRS_CACHE = Boolean.parseBoolean(
-            System.getProperty("oak.documentMK.lirsCache", "false"));
+    static final Boolean LIRS_CACHE;
+    
+    static {
+        String s = System.getProperty("oak.documentMK.lirsCache");
+        LIRS_CACHE = s == null ? null : Boolean.parseBoolean(s);
+    }
 
     /**
      * Enable fast diff operations.
@@ -141,48 +146,24 @@ public class DocumentMK implements MicroKernel {
         return nodeStore.getPendingWriteCount();
     }
 
-    @Override
-    public String getHeadRevision() throws MicroKernelException {
+    public String getHeadRevision() throws DocumentStoreException {
         return nodeStore.getHeadRevision().toString();
     }
 
-    @Override @Nonnull
-    public String checkpoint(long lifetime) throws MicroKernelException {
+    public String checkpoint(long lifetime) throws DocumentStoreException {
         try {
             return nodeStore.checkpoint(lifetime);
         } catch (DocumentStoreException e) {
-            throw new MicroKernelException(e);
+            throw new DocumentStoreException(e);
         }
     }
 
-    @Override
-    public String getRevisionHistory(long since, int maxEntries, String path)
-            throws MicroKernelException {
-        // not currently called by oak-core
-        throw new MicroKernelException("Not implemented");
-    }
-
-    @Override
-    public String waitForCommit(String oldHeadRevisionId, long timeout)
-            throws MicroKernelException, InterruptedException {
-        // not currently called by oak-core
-        throw new MicroKernelException("Not implemented");
-    }
-
-    @Override
-    public String getJournal(String fromRevisionId, String toRevisionId,
-            String path) throws MicroKernelException {
-        // not currently called by oak-core
-        throw new MicroKernelException("Not implemented");
-    }
-
-    @Override
     public String diff(String fromRevisionId,
                        String toRevisionId,
                        String path,
-                       int depth) throws MicroKernelException {
+                       int depth) throws DocumentStoreException {
         if (depth != 0) {
-            throw new MicroKernelException("Only depth 0 is supported, depth is " + depth);
+            throw new DocumentStoreException("Only depth 0 is supported, depth is " + depth);
         }
         if (path == null || path.equals("")) {
             path = "/";
@@ -190,15 +171,14 @@ public class DocumentMK implements MicroKernel {
         try {
             return nodeStore.diff(fromRevisionId, toRevisionId, path);
         } catch (DocumentStoreException e) {
-            throw new MicroKernelException(e);
+            throw new DocumentStoreException(e);
         }
     }
 
-    @Override
     public boolean nodeExists(String path, String revisionId)
-            throws MicroKernelException {
+            throws DocumentStoreException {
         if (!PathUtils.isAbsolute(path)) {
-            throw new MicroKernelException("Path is not absolute: " + path);
+            throw new DocumentStoreException("Path is not absolute: " + path);
         }
         revisionId = revisionId != null ? revisionId : nodeStore.getHeadRevision().toString();
         Revision rev = Revision.fromString(revisionId);
@@ -206,24 +186,16 @@ public class DocumentMK implements MicroKernel {
         try {
             n = nodeStore.getNode(path, rev);
         } catch (DocumentStoreException e) {
-            throw new MicroKernelException(e);
+            throw new DocumentStoreException(e);
         }
         return n != null;
     }
 
-    @Override
-    public long getChildNodeCount(String path, String revisionId)
-            throws MicroKernelException {
-        // not currently called by oak-core
-        throw new MicroKernelException("Not implemented");
-    }
-
-    @Override
     public String getNodes(String path, String revisionId, int depth,
             long offset, int maxChildNodes, String filter)
-            throws MicroKernelException {
+            throws DocumentStoreException {
         if (depth != 0) {
-            throw new MicroKernelException("Only depth 0 is supported, depth is " + depth);
+            throw new DocumentStoreException("Only depth 0 is supported, depth is " + depth);
         }
         revisionId = revisionId != null ? revisionId : nodeStore.getHeadRevision().toString();
         Revision rev = Revision.fromString(revisionId);
@@ -263,13 +235,12 @@ public class DocumentMK implements MicroKernel {
             json.endObject();
             return json.toString();
         } catch (DocumentStoreException e) {
-            throw new MicroKernelException(e);
+            throw new DocumentStoreException(e);
         }
     }
 
-    @Override
     public String commit(String rootPath, String jsonDiff, String baseRevId,
-            String message) throws MicroKernelException {
+            String message) throws DocumentStoreException {
         boolean success = false;
         boolean isBranch = false;
         Revision rev;
@@ -281,7 +252,7 @@ public class DocumentMK implements MicroKernel {
             rev = commit.apply();
             success = true;
         } catch (DocumentStoreException e) {
-            throw new MicroKernelException(e);
+            throw new DocumentStoreException(e);
         } finally {
             if (!success) {
                 nodeStore.canceled(commit);
@@ -292,8 +263,7 @@ public class DocumentMK implements MicroKernel {
         return rev.toString();
     }
 
-    @Override
-    public String branch(@Nullable String trunkRevisionId) throws MicroKernelException {
+    public String branch(@Nullable String trunkRevisionId) throws DocumentStoreException {
         // nothing is written when the branch is created, the returned
         // revision simply acts as a reference to the branch base revision
         Revision revision = trunkRevisionId != null
@@ -301,28 +271,26 @@ public class DocumentMK implements MicroKernel {
         return revision.asBranchRevision().toString();
     }
 
-    @Override
     public String merge(String branchRevisionId, String message)
-            throws MicroKernelException {
+            throws DocumentStoreException {
         // TODO improve implementation if needed
         Revision revision = Revision.fromString(branchRevisionId);
         if (!revision.isBranch()) {
-            throw new MicroKernelException("Not a branch: " + branchRevisionId);
+            throw new DocumentStoreException("Not a branch: " + branchRevisionId);
         }
         try {
             return nodeStore.merge(revision, null).toString();
         } catch (DocumentStoreException e) {
-            throw new MicroKernelException(e);
+            throw new DocumentStoreException(e);
         } catch (CommitFailedException e) {
-            throw new MicroKernelException(e);
+            throw new DocumentStoreException(e);
         }
     }
 
-    @Override
     @Nonnull
     public String rebase(@Nonnull String branchRevisionId,
                          @Nullable String newBaseRevisionId)
-            throws MicroKernelException {
+            throws DocumentStoreException {
         Revision r = Revision.fromString(branchRevisionId);
         Revision base = newBaseRevisionId != null ?
                 Revision.fromString(newBaseRevisionId) :
@@ -331,51 +299,47 @@ public class DocumentMK implements MicroKernel {
     }
 
     @Nonnull
-    @Override
     public String reset(@Nonnull String branchRevisionId,
                         @Nonnull String ancestorRevisionId)
-            throws MicroKernelException {
+            throws DocumentStoreException {
         Revision branch = Revision.fromString(branchRevisionId);
         if (!branch.isBranch()) {
-            throw new MicroKernelException("Not a branch revision: " + branchRevisionId);
+            throw new DocumentStoreException("Not a branch revision: " + branchRevisionId);
         }
         Revision ancestor = Revision.fromString(ancestorRevisionId);
         if (!ancestor.isBranch()) {
-            throw new MicroKernelException("Not a branch revision: " + ancestorRevisionId);
+            throw new DocumentStoreException("Not a branch revision: " + ancestorRevisionId);
         }
         try {
             return nodeStore.reset(branch, ancestor, null).toString();
         } catch (DocumentStoreException e) {
-            throw new MicroKernelException(e);
+            throw new DocumentStoreException(e);
         }
     }
 
-    @Override
-    public long getLength(String blobId) throws MicroKernelException {
+    public long getLength(String blobId) throws DocumentStoreException {
         try {
             return nodeStore.getBlobStore().getBlobLength(blobId);
         } catch (Exception e) {
-            throw new MicroKernelException(e);
+            throw new DocumentStoreException(e);
         }
     }
 
-    @Override
     public int read(String blobId, long pos, byte[] buff, int off, int length)
-            throws MicroKernelException {
+            throws DocumentStoreException {
         try {
             int read = nodeStore.getBlobStore().readBlob(blobId, pos, buff, off, length);
             return read < 0 ? 0 : read;
         } catch (Exception e) {
-            throw new MicroKernelException(e);
+            throw new DocumentStoreException(e);
         }
     }
 
-    @Override
-    public String write(InputStream in) throws MicroKernelException {
+    public String write(InputStream in) throws DocumentStoreException {
         try {
             return nodeStore.getBlobStore().writeBlob(in);
         } catch (Exception e) {
-            throw new MicroKernelException(e);
+            throw new DocumentStoreException(e);
         }
     }
 
@@ -390,6 +354,7 @@ public class DocumentMK implements MicroKernel {
     private void parseJsonDiff(Commit commit, String json, String rootPath) {
         Revision baseRev = commit.getBaseRevision();
         String baseRevId = baseRev != null ? baseRev.toString() : null;
+        Set<String> added = Sets.newHashSet();
         JsopReader t = new JsopTokenizer(json);
         while (true) {
             int r = t.read();
@@ -402,11 +367,12 @@ public class DocumentMK implements MicroKernel {
                     t.read(':');
                     t.read('{');
                     parseAddNode(commit, t, path);
+                    added.add(path);
                     break;
                 case '-':
                     DocumentNodeState toRemove = nodeStore.getNode(path, commit.getBaseRevision());
                     if (toRemove == null) {
-                        throw new MicroKernelException("Node not found: " + path + " in revision " + baseRevId);
+                        throw new DocumentStoreException("Node not found: " + path + " in revision " + baseRevId);
                     }
                     commit.removeNode(path);
                     nodeStore.markAsDeleted(toRemove, commit, true);
@@ -421,6 +387,9 @@ public class DocumentMK implements MicroKernel {
                         value = t.readRawValue().trim();
                     }
                     String p = PathUtils.getParentPath(path);
+                    if (!added.contains(p) && nodeStore.getNode(p, commit.getBaseRevision()) == null) {
+                        throw new DocumentStoreException("Node not found: " + path + " in revision " + baseRevId);
+                    }
                     String propertyName = PathUtils.getName(path);
                     commit.updateProperty(p, propertyName, value);
                     commit.updatePropertyDiff(p, propertyName, value);
@@ -434,9 +403,9 @@ public class DocumentMK implements MicroKernel {
                     }
                     DocumentNodeState source = nodeStore.getNode(path, baseRev);
                     if (source == null) {
-                        throw new MicroKernelException("Node not found: " + path + " in revision " + baseRevId);
+                        throw new DocumentStoreException("Node not found: " + path + " in revision " + baseRevId);
                     } else if (nodeExists(targetPath, baseRevId)) {
-                        throw new MicroKernelException("Node already exists: " + targetPath + " in revision " + baseRevId);
+                        throw new DocumentStoreException("Node already exists: " + targetPath + " in revision " + baseRevId);
                     }
                     commit.moveNode(path, targetPath);
                     nodeStore.moveNode(source, targetPath, commit);
@@ -451,16 +420,16 @@ public class DocumentMK implements MicroKernel {
                     }
                     DocumentNodeState source = nodeStore.getNode(path, baseRev);
                     if (source == null) {
-                        throw new MicroKernelException("Node not found: " + path + " in revision " + baseRevId);
+                        throw new DocumentStoreException("Node not found: " + path + " in revision " + baseRevId);
                     } else if (nodeExists(targetPath, baseRevId)) {
-                        throw new MicroKernelException("Node already exists: " + targetPath + " in revision " + baseRevId);
+                        throw new DocumentStoreException("Node already exists: " + targetPath + " in revision " + baseRevId);
                     }
                     commit.copyNode(path, targetPath);
                     nodeStore.copyNode(source, targetPath, commit);
                     break;
                 }
                 default:
-                    throw new MicroKernelException("token: " + (char) t.getTokenType());
+                    throw new DocumentStoreException("token: " + (char) t.getTokenType());
             }
         }
     }
@@ -544,10 +513,6 @@ public class DocumentMK implements MicroKernel {
                         s = p.wrapBlobStore(s);
                     }
                     this.blobStore = s;
-                }
-
-                if (this.diffCache == null) {
-                    this.diffCache = new MongoDiffCache(db, changesSizeMB, this);
                 }
             }
             return this;
@@ -664,7 +629,7 @@ public class DocumentMK implements MicroKernel {
 
         public DiffCache getDiffCache() {
             if (diffCache == null) {
-                diffCache = new MemoryDiffCache(this);
+                diffCache = new TieredDiffCache(this);
             }
             return diffCache;
         }
@@ -776,6 +741,14 @@ public class DocumentMK implements MicroKernel {
             return memoryCacheSize * diffCachePercentage / 100;
         }
 
+        public long getMemoryDiffCacheSize() {
+            return getDiffCacheSize() / 2;
+        }
+
+        public long getLocalDiffCacheSize() {
+            return getDiffCacheSize() / 2;
+        }
+
         public Builder setUseSimpleRevision(boolean useSimpleRevision) {
             this.useSimpleRevision = useSimpleRevision;
             return this;
@@ -876,8 +849,12 @@ public class DocumentMK implements MicroKernel {
             return buildCache(CacheType.DOC_CHILDREN, getDocChildrenCacheSize(), null, null);
         }
         
-        public Cache<PathRev, StringValue> buildDiffCache() {
-            return buildCache(CacheType.DIFF, getDiffCacheSize(), null, null);
+        public Cache<PathRev, StringValue> buildMemoryDiffCache() {
+            return buildCache(CacheType.DIFF, getMemoryDiffCacheSize(), null, null);
+        }
+
+        public Cache<RevisionsKey, LocalDiffCache.Diff> buildLocalDiffCache() {
+            return buildCache(CacheType.LOCAL_DIFF, getLocalDiffCacheSize(), null, null);
         }
 
         public Cache<CacheValue, NodeDocument> buildDocumentCache(DocumentStore docStore) {
@@ -918,7 +895,14 @@ public class DocumentMK implements MicroKernel {
         
         private <K extends CacheValue, V extends CacheValue> Cache<K, V> buildCache(
                 long maxWeight) {
-            if (LIRS_CACHE || persistentCacheURI != null) {
+            // by default, use the LIRS cache when using the persistent cache,
+            // but don't use it otherwise
+            boolean useLirs = persistentCacheURI != null;
+            // allow to override this by using the system property
+            if (LIRS_CACHE != null) {
+                useLirs = LIRS_CACHE;
+            }
+            if (useLirs) {
                 return CacheLIRS.newBuilder().
                         weigher(weigher).
                         averageWeight(2000).

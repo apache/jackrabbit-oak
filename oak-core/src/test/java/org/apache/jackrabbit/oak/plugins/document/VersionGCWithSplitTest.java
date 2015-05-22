@@ -137,7 +137,11 @@ public class VersionGCWithSplitTest {
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
-                stats.set(gc.gc(1, HOURS));
+                try {
+                    stats.set(gc.gc(1, HOURS));
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             }
         });
 

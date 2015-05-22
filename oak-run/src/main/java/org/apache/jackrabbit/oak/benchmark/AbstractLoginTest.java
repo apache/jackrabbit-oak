@@ -31,7 +31,6 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.fixture.JcrCreator;
@@ -78,7 +77,7 @@ abstract class AbstractLoginTest extends AbstractTest {
         try {
             AccessControlUtils.addAccessControlEntry(s, "/", EveryonePrincipal.getInstance(), new String[]{Privilege.JCR_READ}, true);
             if (USER.equals(runAsUser)) {
-                User user = ((JackrabbitSession) s).getUserManager().createUser(USER, USER);
+                ((JackrabbitSession) s).getUserManager().createUser(USER, USER);
             }
         } finally {
             s.save();
@@ -112,8 +111,7 @@ abstract class AbstractLoginTest extends AbstractTest {
                         Map<String, Integer> map = Collections.singletonMap(UserConstants.PARAM_PASSWORD_HASH_ITERATIONS, noIterations);
                         ConfigurationParameters conf = ConfigurationParameters.of(map);
                         SecurityProvider sp = new SecurityProviderImpl(ConfigurationParameters.of(ImmutableMap.of(configName, conf)));
-                        oak.with(sp);
-                        return new Jcr(oak);
+                        return new Jcr(oak).with(sp);
                     }
                 });
             } else {

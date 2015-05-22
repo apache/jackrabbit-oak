@@ -78,9 +78,9 @@ public class VersionManagerImpl implements VersionManager {
                         final boolean removeExisting)
             throws RepositoryException {
         final SessionDelegate sessionDelegate = sessionContext.getSessionDelegate();
-        sessionDelegate.perform(new SessionOperation<Void>("restore", true) {
+        sessionDelegate.performVoid(new SessionOperation("restore", true) {
             @Override
-            public Void perform() throws RepositoryException {
+            public void performVoid() throws RepositoryException {
                 String oakPath = getOakPathOrThrowNotFound(absPath);
                 NodeDelegate nodeDelegate = sessionDelegate.getNode(oakPath);
                 if (nodeDelegate != null) {
@@ -129,7 +129,6 @@ public class VersionManagerImpl implements VersionManager {
                         sessionDelegate.refresh(false);
                     }
                 }
-                return null;
             }
         });
     }
@@ -165,9 +164,9 @@ public class VersionManagerImpl implements VersionManager {
             throw new VersionException("Restore of root version not possible");
         }
         final SessionDelegate sessionDelegate = sessionContext.getSessionDelegate();
-        sessionDelegate.perform(new SessionOperation<Void>("restore", true) {
+        sessionDelegate.performVoid(new SessionOperation("restore", true) {
             @Override
-            public Void perform() throws RepositoryException {
+            public void performVoid() throws RepositoryException {
                 // check for pending changes
                 checkPendingChangesForRestore(sessionDelegate);
                 NodeDelegate n = sessionDelegate.getNodeByIdentifier(versionableId);
@@ -196,10 +195,8 @@ public class VersionManagerImpl implements VersionManager {
                         }
                     }
                     // ready for restore
-                    VersionDelegate vd = versionManagerDelegate.getVersionByIdentifier(
-                            version.getIdentifier());
-                    versionManagerDelegate.restore(
-                            n.getParent(), n.getName(), vd);
+                    VersionDelegate vd = versionManagerDelegate.getVersionByIdentifier(version.getIdentifier());
+                    versionManagerDelegate.restore(n.getParent(), n.getName(), vd);
                     sessionDelegate.commit();
                     success = true;
                 } catch (CommitFailedException e) {
@@ -210,7 +207,6 @@ public class VersionManagerImpl implements VersionManager {
                         sessionDelegate.refresh(false);
                     }
                 }
-                return null;
             }
         });
     }
@@ -252,6 +248,7 @@ public class VersionManagerImpl implements VersionManager {
     public boolean isCheckedOut(final String absPath) throws RepositoryException {
         final SessionDelegate sessionDelegate = sessionContext.getSessionDelegate();
         return sessionDelegate.perform(new SessionOperation<Boolean>("isCheckoutOut") {
+            @Nonnull
             @Override
             public Boolean perform() throws RepositoryException {
                 String oakPath = getOakPathOrThrowNotFound(absPath);
@@ -269,6 +266,7 @@ public class VersionManagerImpl implements VersionManager {
             throws RepositoryException {
         final SessionDelegate sessionDelegate = sessionContext.getSessionDelegate();
         return sessionDelegate.perform(new SessionOperation<VersionHistory>("getVersionHistory") {
+            @Nonnull
             @Override
             public VersionHistory perform() throws RepositoryException {
                 return new VersionHistoryImpl(
@@ -281,6 +279,7 @@ public class VersionManagerImpl implements VersionManager {
     public Version getBaseVersion(final String absPath) throws RepositoryException {
         final SessionDelegate sessionDelegate = sessionContext.getSessionDelegate();
         return sessionDelegate.perform(new SessionOperation<Version>("getBaseVersion") {
+            @Nonnull
             @Override
             public Version perform() throws RepositoryException {
                 String oakPath = getOakPathOrThrowNotFound(absPath);
@@ -326,9 +325,9 @@ public class VersionManagerImpl implements VersionManager {
     @Override
     public void checkout(final String absPath) throws RepositoryException {
         final SessionDelegate sessionDelegate = sessionContext.getSessionDelegate();
-        sessionDelegate.perform(new SessionOperation<Void>("checkout", true) {
+        sessionDelegate.performVoid(new SessionOperation("checkout", true) {
             @Override
-            public Void perform() throws RepositoryException {
+            public void performVoid() throws RepositoryException {
                 String oakPath = getOakPathOrThrowNotFound(absPath);
                 NodeDelegate nodeDelegate = sessionDelegate.getNode(oakPath);
                 if (nodeDelegate == null) {
@@ -336,7 +335,6 @@ public class VersionManagerImpl implements VersionManager {
                 }
                 checkNotLocked(absPath);
                 versionManagerDelegate.checkout(nodeDelegate);
-                return null;
             }
         });
     }
@@ -345,6 +343,7 @@ public class VersionManagerImpl implements VersionManager {
     public Version checkin(final String absPath) throws RepositoryException {
         final SessionDelegate sessionDelegate = sessionContext.getSessionDelegate();
         return sessionDelegate.perform(new SessionOperation<Version>("checkin", true) {
+            @Nonnull
             @Override
             public Version perform() throws RepositoryException {
                 String oakPath = getOakPathOrThrowNotFound(absPath);

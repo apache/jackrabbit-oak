@@ -34,13 +34,13 @@ import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
-import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
+import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.slf4j.Logger;
@@ -53,9 +53,6 @@ import org.slf4j.LoggerFactory;
  */
 class PrincipalProviderImpl implements PrincipalProvider {
 
-    /**
-     * logger instance
-     */
     private static final Logger log = LoggerFactory.getLogger(PrincipalProviderImpl.class);
 
     private final UserManager userManager;
@@ -68,7 +65,7 @@ class PrincipalProviderImpl implements PrincipalProvider {
 
     //--------------------------------------------------< PrincipalProvider >---
     @Override
-    public Principal getPrincipal(String principalName) {
+    public Principal getPrincipal(@Nonnull String principalName) {
         Authorizable authorizable = getAuthorizable(new PrincipalImpl(principalName));
         if (authorizable != null) {
             try {
@@ -82,8 +79,9 @@ class PrincipalProviderImpl implements PrincipalProvider {
         return (EveryonePrincipal.NAME.equals(principalName)) ? EveryonePrincipal.getInstance() : null;
     }
 
+    @Nonnull
     @Override
-    public Set<Group> getGroupMembership(Principal principal) {
+    public Set<Group> getGroupMembership(@Nonnull Principal principal) {
         Authorizable authorizable = getAuthorizable(principal);
         if (authorizable == null) {
             return Collections.emptySet();
@@ -92,8 +90,9 @@ class PrincipalProviderImpl implements PrincipalProvider {
         }
     }
 
+    @Nonnull
     @Override
-    public Set<? extends Principal> getPrincipals(String userID) {
+    public Set<? extends Principal> getPrincipals(@Nonnull String userID) {
         Set<Principal> principals = new HashSet<Principal>();
         try {
             Authorizable authorizable = userManager.getAuthorizable(userID);
@@ -107,13 +106,14 @@ class PrincipalProviderImpl implements PrincipalProvider {
         return principals;
     }
 
+    @Nonnull
     @Override
-    public Iterator<? extends Principal> findPrincipals(final String nameHint,
+    public Iterator<? extends Principal> findPrincipals(@Nullable final String nameHint,
                                                         final int searchType) {
         try {
             Iterator<Authorizable> authorizables = findAuthorizables(nameHint, searchType);
             Iterator<Principal> principals = Iterators.transform(
-                    Iterators.filter(authorizables, Predicates.<Object>notNull()),
+                    Iterators.filter(authorizables, Predicates.notNull()),
                     new AuthorizableToPrincipal());
 
             if (matchesEveryone(nameHint, searchType)) {
@@ -167,25 +167,10 @@ class PrincipalProviderImpl implements PrincipalProvider {
             @Override
             public <T> void build(QueryBuilder<T> builder) {
                 builder.setCondition(builder.like('@' +UserConstants.REP_PRINCIPAL_NAME, buildSearchPattern(nameHint)));
-                builder.setSelector(getAuthorizableClass(searchType));
+                builder.setSelector(AuthorizableType.getType(searchType).getAuthorizableClass());
             }
         };
         return userManager.findAuthorizables(userQuery);
-    }
-
-
-    private static Class<? extends Authorizable> getAuthorizableClass(int searchType) {
-        switch (searchType) {
-            case PrincipalManager.SEARCH_TYPE_GROUP:
-                return org.apache.jackrabbit.api.security.user.Group.class;
-            case PrincipalManager.SEARCH_TYPE_NOT_GROUP:
-                return User.class;
-            case PrincipalManager.SEARCH_TYPE_ALL:
-                return Authorizable.class;
-            default:
-                throw new IllegalArgumentException("Invalid search type " + searchType);
-
-        }
     }
 
     private static String buildSearchPattern(String nameHint) {

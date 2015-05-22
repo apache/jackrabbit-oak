@@ -35,6 +35,7 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.CheckForNull;
@@ -92,7 +93,22 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
     private long maximumBackoff = MILLISECONDS.convert(10, SECONDS);
 
+    @Nonnull
+    public static SegmentNodeStoreBuilder newSegmentNodeStore(
+            @Nonnull SegmentStore store) {
+        return SegmentNodeStoreBuilder.newSegmentNodeStore(checkNotNull(store));
+    }
+
+    /**
+     * @deprecated Use {@link SegmentNodeStore#newSegmentNodeStore(SegmentStore)} instead
+     * 
+     */
+    @Deprecated
     public SegmentNodeStore(SegmentStore store) {
+        this(store, false);
+    }
+
+    SegmentNodeStore(SegmentStore store, boolean internal) {
         this.store = store;
         this.head = new AtomicReference<SegmentNodeState>(store.getHead());
         this.changeDispatcher = new ChangeDispatcher(getRoot());
@@ -106,8 +122,35 @@ public class SegmentNodeStore implements NodeStore, Observable {
         this.maximumBackoff = max;
     }
 
+    /**
+     * Execute the passed callable with trying to acquire this store's commit lock.
+     * @param c  callable to execute
+     * @return  {@code false} if the store's commit lock cannot be acquired, the result
+     *          of {@code c.call()} otherwise.
+     * @throws Exception
+     */
     boolean locked(Callable<Boolean> c) throws Exception {
         if (commitSemaphore.tryAcquire()) {
+            try {
+                return c.call();
+            } finally {
+                commitSemaphore.release();
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Execute the passed callable with trying to acquire this store's commit lock.
+     * @param timeout the maximum time to wait for the store's commit lock
+     * @param unit the time unit of the {@code timeout} argument
+     * @param c  callable to execute
+     * @return  {@code false} if the store's commit lock cannot be acquired, the result
+     *          of {@code c.call()} otherwise.
+     * @throws Exception
+     */
+    boolean locked(Callable<Boolean> c, long timeout, TimeUnit unit) throws Exception {
+        if (commitSemaphore.tryAcquire(timeout, unit)) {
             try {
                 return c.call();
             } finally {

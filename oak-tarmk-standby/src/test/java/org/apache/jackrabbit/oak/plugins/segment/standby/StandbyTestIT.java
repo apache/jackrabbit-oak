@@ -18,14 +18,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.standby;
 
-import static org.apache.jackrabbit.oak.plugins.segment.SegmentTestUtils.createTmpTargetDir;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.util.Random;
 
@@ -103,11 +101,13 @@ public class StandbyTestIT extends TestBase {
 
         try {
 
-            for (int i = 0; i < 10; i++) {
+            for (int i = 0; i < 5; i++) {
                 String cp = store.checkpoint(Long.MAX_VALUE);
                 cl.run();
                 assertEquals(primary.getHead(), secondary.getHead());
                 assertTrue(store.release(cp));
+                cl.cleanup();
+                assertTrue(secondary.size() > blobSize);
             }
 
         } finally {

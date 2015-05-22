@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
 import java.util.Collection;
+import java.util.List;
+import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
@@ -26,11 +28,14 @@ import org.apache.jackrabbit.oak.query.fulltext.FullTextOr;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.plugins.index.solr.util.SolrUtils.getSortingField;
+import static org.apache.jackrabbit.oak.plugins.index.solr.util.SolrUtils.partialEscape;
 
 /**
  * the {@link org.apache.jackrabbit.oak.plugins.index.solr.query.FilterQueryParser} can parse {@link org.apache.jackrabbit.oak.spi.query.Filter}s
@@ -40,7 +45,7 @@ class FilterQueryParser {
 
     private static final Logger log = LoggerFactory.getLogger(FilterQueryParser.class);
 
-    static SolrQuery getQuery(Filter filter, OakSolrConfiguration configuration) {
+    static SolrQuery getQuery(Filter filter, List<QueryIndex.OrderEntry> sortOrder, OakSolrConfiguration configuration) {
 
         SolrQuery solrQuery = new SolrQuery();
         setDefaults(solrQuery, configuration);
@@ -55,6 +60,24 @@ class FilterQueryParser {
             Collection<String> fulltextConditions = filter.getFulltextConditions();
             for (String fulltextCondition : fulltextConditions) {
                 queryBuilder.append(fulltextCondition).append(" ");
+            }
+        }
+
+        if (sortOrder != null) {
+            for (QueryIndex.OrderEntry orderEntry : sortOrder) {
+                SolrQuery.ORDER order;
+                if (QueryIndex.OrderEntry.Order.ASCENDING.equals(orderEntry.getOrder())) {
+                    order = SolrQuery.ORDER.asc;
+                } else {
+                    order = SolrQuery.ORDER.desc;
+                }
+                String sortingField;
+                if ("jcr:path".equals(orderEntry.getPropertyName())) {
+                    sortingField = configuration.getPathField();
+                } else {
+                    sortingField = getSortingField(orderEntry.getPropertyType().tag(), orderEntry.getPropertyName());
+                }
+                solrQuery.addOrUpdateSort(partialEscape(sortingField).toString(), order);
             }
         }
 
@@ -216,21 +239,6 @@ class FilterQueryParser {
         }
 
         return solrQuery;
-    }
-
-    private static CharSequence partialEscape(CharSequence s) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < s.length(); i++) {
-            char c = s.charAt(i);
-            if (c == '\\' || c == '!' || c == '(' || c == ')' ||
-                    c == ':' || c == '^' || c == '[' || c == ']' || c == '/' ||
-                    c == '{' || c == '}' || c == '~' || c == '*' || c == '?' ||
-                    c == '-' || c == ' ') {
-                sb.append('\\');
-            }
-            sb.append(c);
-        }
-        return sb;
     }
 
     private static String parseFullTextExpression(FullTextExpression ft, final OakSolrConfiguration configuration) {

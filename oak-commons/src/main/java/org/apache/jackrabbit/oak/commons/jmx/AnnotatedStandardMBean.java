@@ -23,7 +23,6 @@ import javax.management.MBeanAttributeInfo;
 import javax.management.MBeanInfo;
 import javax.management.MBeanOperationInfo;
 import javax.management.MBeanParameterInfo;
-import javax.management.NotCompliantMBeanException;
 import javax.management.StandardMBean;
 
 /**
@@ -42,14 +41,12 @@ public class AnnotatedStandardMBean extends StandardMBean {
      *
      * @see {@link javax.management.StandardMBean#StandardMBean(Object, Class)}
      */
-    public <T> AnnotatedStandardMBean(T implementation, Class<T> mbeanInterface)
-            throws NotCompliantMBeanException {
-        super(implementation, mbeanInterface);
+    public <T> AnnotatedStandardMBean(T implementation, Class<T> mbeanInterface){
+        super(implementation, mbeanInterface, false);
     }
 
-    protected AnnotatedStandardMBean(Class<?> mbeanInterface)
-            throws NotCompliantMBeanException {
-        super(mbeanInterface);
+    protected AnnotatedStandardMBean(Class<?> mbeanInterface){
+        super(mbeanInterface, false);
     }
 
     @Override

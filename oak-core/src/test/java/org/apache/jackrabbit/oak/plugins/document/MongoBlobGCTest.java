@@ -47,8 +47,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Test;
 
-import static org.junit.Assert.assertTrue;
-
 /**
  * Tests for MongoMK GC
  */
@@ -73,7 +71,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
             }
         }
         for (int i = 0; i < number; i++) {
-            Blob b = s.createBlob(randomStream(i, 4160));
+            Blob b = s.createBlob(randomStream(i, 16516));
             if (!processed.contains(i)) {
                 Iterator<String> idIter =
                         ((GarbageCollectableBlobStore) s.getBlobStore())
@@ -165,6 +163,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
                 (GarbageCollectableBlobStore) store.getBlobStore(),
                 MoreExecutors.sameThreadExecutor(),
                 "./target", 5, 0, repoId);
+        Thread.sleep(4000);
         gc.collectGarbage(false);
 
         Set<String> existingAfterGC = iterate();

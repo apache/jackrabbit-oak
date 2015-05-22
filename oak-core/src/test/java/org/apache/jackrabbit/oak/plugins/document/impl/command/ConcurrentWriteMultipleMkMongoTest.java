@@ -22,7 +22,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.junit.Ignore;
@@ -108,7 +107,7 @@ public class ConcurrentWriteMultipleMkMongoTest extends
     private static class GenericWriteTask implements Runnable {
 
         private String id;
-        private MicroKernel mk;
+        private DocumentMK mk;
         private String diff;
         private int nodesPerCommit;
 

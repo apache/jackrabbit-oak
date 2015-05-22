@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.EmptyPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.CompositeRestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
@@ -38,7 +39,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
  * {@link CompositeAuthorizationConfiguration} that combines different
  * authorization models. This implementation has the following characteristics:
  *
- * TODO OAK-1268
+ * TODO This is work in progress (OAK-1268)
  */
 public class CompositeAuthorizationConfiguration extends CompositeConfiguration<AuthorizationConfiguration> implements AuthorizationConfiguration {
 
@@ -48,11 +49,11 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
 
     @Nonnull
     @Override
-    public AccessControlManager getAccessControlManager(final @Nonnull Root root,
-                                                        final @Nonnull NamePathMapper namePathMapper) {
+    public AccessControlManager getAccessControlManager(@Nonnull final Root root,
+                                                        @Nonnull final NamePathMapper namePathMapper) {
         List<AuthorizationConfiguration> configurations = getConfigurations();
         switch (configurations.size()) {
-            case 0: throw new IllegalArgumentException();
+            case 0: throw new IllegalStateException();
             case 1: return configurations.get(0).getAccessControlManager(root, namePathMapper);
             default:
                 List<AccessControlManager> mgrs = Lists.transform(configurations, new Function<AuthorizationConfiguration, AccessControlManager>() {
@@ -81,12 +82,12 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
 
     @Nonnull
     @Override
-    public PermissionProvider getPermissionProvider(final @Nonnull Root root,
-                                                    final @Nonnull String workspaceName,
-                                                    final @Nonnull Set<Principal> principals) {
+    public PermissionProvider getPermissionProvider(@Nonnull final Root root,
+                                                    @Nonnull final String workspaceName,
+                                                    @Nonnull final Set<Principal> principals) {
         List<AuthorizationConfiguration> configurations = getConfigurations();
         switch (configurations.size()) {
-            case 0: throw new IllegalArgumentException();
+            case 0: throw new IllegalStateException();
             case 1: return configurations.get(0).getPermissionProvider(root, workspaceName, principals);
             default:
                 List<AggregatedPermissionProvider> aggrPermissionProviders = Lists.newArrayListWithCapacity(configurations.size());
@@ -96,7 +97,18 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
                         aggrPermissionProviders.add((AggregatedPermissionProvider) pProvider);
                     }
                 }
-                return new CompositePermissionProvider(root, aggrPermissionProviders);
+                PermissionProvider pp;
+                switch (aggrPermissionProviders.size()) {
+                    case 0 :
+                        pp = EmptyPermissionProvider.getInstance();
+                        break;
+                    case 1 :
+                        pp = aggrPermissionProviders.get(0);
+                        break;
+                    default :
+                        pp = new CompositePermissionProvider(root, aggrPermissionProviders);
+                }
+                return pp;
         }
     }
 }

@@ -22,6 +22,8 @@ import static com.google.common.collect.Sets.newTreeSet;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ALIGN_BITS;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -80,8 +82,8 @@ public class CompactionMap {
     private short[] afterOffsets = new short[0];
 
     private int[] afterSegmentIds = new int[0];
-    private long[] amsbs = new long[0];
-    private long[] alsbs = new long[0];
+    private long[] afterMsbs = new long[0];
+    private long[] afterLsbs = new long[0];
 
     private long prevWeight;
     private CompactionMap prev;
@@ -113,13 +115,8 @@ public class CompactionMap {
     private boolean recursiveWasCompactedTo(RecordId before,
             RecordId after) {
         RecordId potentialAfter = recursiveGet(this, before);
-        if (potentialAfter == null) {
-            return false;
-        }
-        if (after.equals(potentialAfter)) {
-            return true;
-        }
-        return recursiveWasCompactedTo(potentialAfter, after);
+        return potentialAfter != null &&
+                (after.equals(potentialAfter) || recursiveWasCompactedTo(potentialAfter, after));
     }
 
     private static RecordId recursiveGet(CompactionMap map, RecordId before) {
@@ -147,14 +144,8 @@ public class CompactionMap {
     }
 
     private static boolean wasCompacted(CompactionMap map, long msb, long lsb) {
-        int find = map.findEntry(msb, lsb);
-        if (find != -1) {
-            return true;
-        }
-        if (map.prev != null) {
-            return wasCompacted(map.prev, msb, lsb);
-        }
-        return false;
+        return map.findEntry(msb, lsb) != -1 ||
+                map.prev != null && wasCompacted(map.prev, msb, lsb);
     }
 
     public RecordId get(RecordId before) {
@@ -201,7 +192,7 @@ public class CompactionMap {
 
     private SegmentId asSegmentId(int index) {
         int idx = afterSegmentIds[index];
-        return new SegmentId(tracker, amsbs[idx], alsbs[idx]);
+        return new SegmentId(tracker, afterMsbs[idx], afterLsbs[idx]);
     }
 
     private static UUID asUUID(SegmentId id) {
@@ -223,13 +214,34 @@ public class CompactionMap {
         }
     }
 
-    void compress() {
-        if (recent.isEmpty()) {
-            // noop
+    public void compress(Set<UUID> removed) {
+        CompactionMap cm = this;
+        while (cm != null) {
+            cm.compressInternal(removed);
+            cm = cm.prev;
+        }
+
+        cm = this;
+        while (cm != null) {
+            while (cm.prev != null && cm.prev.msbs.length == 0) {
+                cm.prev = cm.prev.prev;
+            }
+            cm = cm.prev;
+        }
+    }
+
+    public void compress() {
+        compressInternal(Collections.<UUID>emptySet());
+    }
+
+    private void compressInternal(Set<UUID> removed) {
+        if (recent.isEmpty() && removed.isEmpty()) {
+            // no-op
             return;
         }
-        Set<UUID> uuids = newTreeSet();
 
+        Set<UUID> uuids = newTreeSet();
+        int newSize = 0;
         Map<UUID, Map<Integer, RecordId>> mapping = newTreeMap();
         for (Entry<RecordId, RecordId> entry : recent.entrySet()) {
             RecordId before = entry.getKey();
@@ -238,7 +250,9 @@ public class CompactionMap {
             UUID uuid = new UUID(
                     id.getMostSignificantBits(),
                     id.getLeastSignificantBits());
-            uuids.add(uuid);
+            if (uuids.add(uuid) && !removed.contains(uuid)) {
+                newSize++;
+            }
 
             Map<Integer, RecordId> map = mapping.get(uuid);
             if (map == null) {
@@ -249,12 +263,15 @@ public class CompactionMap {
         }
 
         for (int i = 0; i < msbs.length; i++) {
-            uuids.add(new UUID(msbs[i], lsbs[i]));
+            UUID uuid = new UUID(msbs[i], lsbs[i]);
+            if (uuids.add(uuid) && !removed.contains(uuid)) {
+                newSize++;
+            }
         }
 
-        long[] newmsbs = new long[uuids.size()];
-        long[] newlsbs = new long[uuids.size()];
-        int[] newEntryIndex = new int[uuids.size() + 1];
+        long[] newMsbs = new long[newSize];
+        long[] newLsbs = new long[newSize];
+        int[] newEntryIndex = new int[newSize + 1];
 
         int newEntries = beforeOffsets.length + recent.size();
         short[] newBeforeOffsets = new short[newEntries];
@@ -267,36 +284,47 @@ public class CompactionMap {
         int newEntry = 0;
         int oldEntry = 0;
         for (UUID uuid : uuids) {
-            newmsbs[newEntry] = uuid.getMostSignificantBits();
-            newlsbs[newEntry] = uuid.getLeastSignificantBits();
+            long msb = uuid.getMostSignificantBits();
+            long lsb = uuid.getLeastSignificantBits();
+
+            if (removed.contains(uuid)) {
+                if (oldEntry < msbs.length
+                        && msbs[oldEntry] == msb
+                        && lsbs[oldEntry] == lsb) {
+                    oldEntry++;
+                }
+                continue;
+            }
 
             // offset -> record
-            Map<Integer, RecordId> newsegment = mapping.get(uuid);
-            if (newsegment == null) {
-                newsegment = newTreeMap();
+            Map<Integer, RecordId> newSegment = mapping.get(uuid);
+            if (newSegment == null) {
+                newSegment = newTreeMap();
             }
 
             if (oldEntry < msbs.length
-                    && msbs[oldEntry] == newmsbs[newEntry]
-                    && lsbs[oldEntry] == newlsbs[newEntry]) {
+                    && msbs[oldEntry] == msb
+                    && lsbs[oldEntry] == lsb) {
                 int index = entryIndex[oldEntry];
                 int limit = entryIndex[oldEntry + 1];
                 for (int i = index; i < limit; i++) {
-                    newsegment.put(decode(beforeOffsets[i]), new RecordId(
+                    newSegment.put(decode(beforeOffsets[i]), new RecordId(
                             asSegmentId(i), decode(afterOffsets[i])));
                 }
                 oldEntry++;
             }
 
+            newMsbs[newEntry] = msb;
+            newLsbs[newEntry] = lsb;
             newEntryIndex[newEntry++] = newIndex;
-            for (Entry<Integer, RecordId> entry : newsegment.entrySet()) {
+            for (Entry<Integer, RecordId> entry : newSegment.entrySet()) {
                 int key = entry.getKey();
                 RecordId id = entry.getValue();
                 newBeforeOffsets[newIndex] = encode(key);
                 newAfterOffsets[newIndex] = encode(id.getOffset());
 
                 UUID aUUID = asUUID(id.getSegmentId());
-                int aSIdx = -1;
+                int aSIdx;
                 if (newAfterSegments.containsKey(aUUID)) {
                     aSIdx = newAfterSegments.get(aUUID);
                 } else {
@@ -311,20 +339,26 @@ public class CompactionMap {
 
         newEntryIndex[newEntry] = newIndex;
 
-        this.msbs = newmsbs;
-        this.lsbs = newlsbs;
+        this.msbs = newMsbs;
+        this.lsbs = newLsbs;
         this.entryIndex = newEntryIndex;
 
-        this.beforeOffsets = newBeforeOffsets;
-        this.afterOffsets = newAfterOffsets;
+        if (newIndex < newBeforeOffsets.length) {
+            this.beforeOffsets = Arrays.copyOf(newBeforeOffsets, newIndex);
+            this.afterOffsets = Arrays.copyOf(newAfterOffsets, newIndex);
+            this.afterSegmentIds = Arrays.copyOf(newAfterSegmentIds, newIndex);
+        } else {
+            this.beforeOffsets = newBeforeOffsets;
+            this.afterOffsets = newAfterOffsets;
+            this.afterSegmentIds = newAfterSegmentIds;
+        }
 
-        this.afterSegmentIds = newAfterSegmentIds;
-        this.amsbs = new long[newAfterSegments.size()];
-        this.alsbs = new long[newAfterSegments.size()];
+        this.afterMsbs = new long[newAfterSegments.size()];
+        this.afterLsbs = new long[newAfterSegments.size()];
         for (Entry<UUID, Integer> entry : newAfterSegments.entrySet()) {
-            this.amsbs[entry.getValue()] = entry.getKey()
+            this.afterMsbs[entry.getValue()] = entry.getKey()
                     .getMostSignificantBits();
-            this.alsbs[entry.getValue()] = entry.getKey()
+            this.afterLsbs[entry.getValue()] = entry.getKey()
                     .getLeastSignificantBits();
         }
 
@@ -406,7 +440,7 @@ public class CompactionMap {
         StringBuilder sb = new StringBuilder();
         CompactionMap cm = this;
         while (cm != null) {
-            sb.append("[");
+            sb.append('[');
             sb.append(getCompactionStats(cm));
             sb.append("], ");
             cm = cm.prev;
@@ -415,16 +449,18 @@ public class CompactionMap {
     }
 
     private static String getCompactionStats(CompactionMap cm) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Estimated Weight: ");
-        sb.append(humanReadableByteCount(getEstimatedWeight(cm)));
-        sb.append(", Records: ");
-        sb.append(cm.afterOffsets.length);
-        sb.append(", Segments: ");
-        sb.append(cm.amsbs.length);
-        return sb.toString();
+        return "Estimated Weight: " +
+                humanReadableByteCount(getEstimatedWeight(cm)) +
+                ", Records: " +
+                cm.afterOffsets.length +
+                ", Segments: " +
+                cm.afterMsbs.length;
     }
 
+    /**
+     * The weight of the compaction map is its  memory consumption bytes
+     * @return  Estimated weight of the compaction map
+     */
     public long getEstimatedWeight() {
         long total = 0;
         CompactionMap cm = this;
@@ -433,6 +469,20 @@ public class CompactionMap {
             cm = cm.prev;
         }
         return total;
+    }
+
+    /**
+     * The depth of the compaction map is the total number of generations
+     * kept. That is this instance plus the number of all previous instances.
+     * @return  Depth of the compaction map
+     */
+    public int getDepth() {
+        if (prev == null) {
+            return 1;
+        } else {
+            return 1 + prev.getDepth();
+        }
+
     }
 
     public long getLastMergeWeight() {
@@ -457,10 +507,10 @@ public class CompactionMap {
 
         // afterSegmentIds
         total += 24 + cm.afterSegmentIds.length * 4;
-        // amsbs
-        total += 24 + cm.amsbs.length * 8;
-        // alsbs
-        total += 24 + cm.alsbs.length * 8;
+        // afterMsbs
+        total += 24 + cm.afterMsbs.length * 8;
+        // afterLsbs
+        total += 24 + cm.afterLsbs.length * 8;
 
         return total;
     }

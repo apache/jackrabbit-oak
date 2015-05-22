@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import javax.annotation.Nonnull;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -67,7 +69,7 @@ class PropertyTemplate implements Comparable<PropertyTemplate> {
     //--------------------------------------------------------< Comparable >--
 
     @Override
-    public int compareTo(PropertyTemplate template) {
+    public int compareTo(@Nonnull PropertyTemplate template) {
         checkNotNull(template);
         return ComparisonChain.start()
                 .compare(hashCode(), template.hashCode()) // important

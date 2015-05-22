@@ -29,6 +29,8 @@ import static org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry.Order;
 import java.util.List;
 import java.util.Set;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -141,8 +143,9 @@ public class OrderedPropertyIndexLookup {
         return fallback;
     }
 
-    private static Set<String> getSuperTypes(Filter filter) {
-        if (filter != null && !filter.matchesAllTypes()) {
+    @CheckForNull
+    private static Set<String> getSuperTypes(@Nonnull Filter filter) {
+        if (!filter.matchesAllTypes()) {
             return filter.getSupertypes();
         }
         return null;
@@ -266,24 +269,19 @@ public class OrderedPropertyIndexLookup {
         String propertyName = PathUtils.getName(pr.propertyName);
         NodeState definition = getIndexNode(root, propertyName, filter);
         if (definition != null) {
-            PropertyValue value = null;
             boolean createPlan = false;
-            if (pr.isNotNullRestriction()) {
+            if (pr.isNotNullRestriction() || pr.list != null) {
                 // open query: [property] is not null
-                value = null;
                 createPlan = true;
             } else if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding
                     && pr.lastIncluding) {
                 // [property]=[value]
-                value = pr.first;
                 createPlan = true;
             } else if (pr.first != null && !pr.first.equals(pr.last)) {
                 // '>' & '>=' use cases
-                value = pr.first;
                 createPlan = true;
             } else if (pr.last != null && !pr.last.equals(pr.first)) {
                 // '<' & '<='
-                value = pr.last;
                 createPlan = true;
             }
             if (createPlan) {

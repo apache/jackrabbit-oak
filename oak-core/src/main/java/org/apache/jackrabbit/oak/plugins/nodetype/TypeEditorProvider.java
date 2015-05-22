@@ -24,9 +24,15 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_N
 
 import java.util.Set;
 
+import javax.jcr.RepositoryException;
+import javax.jcr.nodetype.NoSuchNodeTypeException;
+import javax.jcr.nodetype.NodeType;
+
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
@@ -34,10 +40,14 @@ import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Component
 @Service(EditorProvider.class)
 public class TypeEditorProvider implements EditorProvider {
+
+    private static final Logger LOG = LoggerFactory.getLogger(TypeEditorProvider.class);
 
     private final boolean strict;
 
@@ -64,20 +74,37 @@ public class TypeEditorProvider implements EditorProvider {
         TypeRegistration registration = new TypeRegistration();
         afterTypes.compareAgainstBaseState(beforeTypes, registration);
         if (registration.isModified()) {
+            ReadOnlyNodeTypeManager ntBefore = ReadOnlyNodeTypeManager.getInstance(RootFactory.createReadOnlyRoot(before), NamePathMapper.DEFAULT);
+            ReadOnlyNodeTypeManager ntAfter = ReadOnlyNodeTypeManager.getInstance(RootFactory.createReadOnlyRoot(after), NamePathMapper.DEFAULT);
+
             afterTypes = registration.apply(builder);
 
             Set<String> modifiedTypes =
                     registration.getModifiedTypes(beforeTypes);
             if (!modifiedTypes.isEmpty()) {
-                // Some node types were modified, so scan the repository
-                // to make sure that the modified definitions still apply.
-                Editor editor = new VisibleEditor(new TypeEditor(
-                        strict, modifiedTypes, afterTypes,
-                        primary, mixins, builder));
-                CommitFailedException exception =
-                        EditorDiff.process(editor, MISSING_NODE, after);
-                if (exception != null) {
-                    throw exception;
+                boolean modified = false;
+                for (String t : modifiedTypes) {
+                    boolean mod = !isTrivialChange(ntBefore, ntAfter, t);
+                    modified = modified || mod;
+                }
+
+                if (!modified) {
+                    LOG.info("Node type changes: " + modifiedTypes + " appear to be trivial, repository will not be scanned");
+                }
+                else {
+                    long start = System.currentTimeMillis();
+                    // Some node types were modified, so scan the repository
+                    // to make sure that the modified definitions still apply.
+                    Editor editor = new VisibleEditor(new TypeEditor(
+                            strict, modifiedTypes, afterTypes,
+                            primary, mixins, builder));
+                    CommitFailedException exception =
+                            EditorDiff.process(editor, MISSING_NODE, after);
+                    LOG.info("Node type changes: " + modifiedTypes + "; repository scan took " + (System.currentTimeMillis() - start)
+                            + "ms" + (exception == null ? "" : "; failed with " + exception.getMessage()));
+                    if (exception != null) {
+                        throw exception;
+                    }
                 }
             }
         }
@@ -86,4 +113,40 @@ public class TypeEditorProvider implements EditorProvider {
                 strict, null, afterTypes, primary, mixins, builder));
     }
 
+    private boolean isTrivialChange(ReadOnlyNodeTypeManager ntBefore, ReadOnlyNodeTypeManager ntAfter, String nodeType) {
+
+        NodeType nb, na;
+
+        try {
+            nb = ntBefore.getNodeType(nodeType);
+        } catch (NoSuchNodeTypeException ex) {
+            LOG.info(nodeType + " not present in 'before' state");
+            return true;
+        } catch (RepositoryException ex) {
+            LOG.info("getting node type", ex);
+            return false;
+        }
+
+        try {
+            na = ntAfter.getNodeType(nodeType);
+        } catch (NoSuchNodeTypeException ex) {
+            LOG.info(nodeType + " was removed");
+            return false;
+        } catch (RepositoryException ex) {
+            LOG.info("getting node type", ex);
+            return false;
+        }
+
+        NodeTypeDefDiff diff = NodeTypeDefDiff.create(nb, na);
+        if (!diff.isModified()) {
+            LOG.info("Node type " + nodeType + " was not changed");
+            return true;
+        } else if (diff.isTrivial()) {
+            LOG.info("Node type change for " + nodeType + " appears to be trivial");
+            return true;
+        } else {
+            LOG.info("Node type change for " + nodeType + " requires repository scan: " + diff);
+            return false;
+        }
+    }
 }

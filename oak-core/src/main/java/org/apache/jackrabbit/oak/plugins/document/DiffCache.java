@@ -20,6 +20,8 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.oak.cache.CacheStats;
+
 /**
  * A cache for child node diffs.
  */
@@ -60,7 +62,13 @@ public interface DiffCache {
     Entry newEntry(@Nonnull Revision from,
                    @Nonnull Revision to);
 
-    public interface Entry {
+    /**
+     * @return the statistics for this cache.
+     */
+    @Nonnull
+    Iterable<CacheStats> getStats();
+
+    interface Entry {
 
         /**
          * Appends changes about children of the node at the given path.
@@ -81,7 +89,7 @@ public interface DiffCache {
         boolean done();
     }
 
-    public interface Loader {
+    interface Loader {
 
         String call();
     }

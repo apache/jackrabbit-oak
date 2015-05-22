@@ -73,8 +73,9 @@ public class NodeTypeIndexTest {
         // remove "rep:security" as it interferes with tests
         root.getChildNode("rep:security").remove();
         
-        // remove "entryCount", so the node type index cost is not fixed
-        root.getChildNode("oak:index").getChildNode("nodetype").removeProperty("entryCount");
+        // set "entryCount", so the node type index counts the nodes
+        // and the approximation is not used
+        root.getChildNode("oak:index").getChildNode("nodetype").setProperty("entryCount", -1);
 
         addFolder(root, "folder-1");
         addFolder(root, "folder-2");

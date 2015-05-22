@@ -26,6 +26,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -69,6 +70,7 @@ public class SegmentDataStoreBlobGCTest {
     SegmentNodeStore nodeStore;
     FileStore store;
     DataStoreBlobStore blobStore;
+    Date startDate;
 
     protected SegmentNodeStore getNodeStore(BlobStore blobStore) throws IOException {
         if (nodeStore == null) {
@@ -94,6 +96,7 @@ public class SegmentDataStoreBlobGCTest {
     public HashSet<String> setUp() throws Exception {
         blobStore = DataStoreUtils.getBlobStore();
         nodeStore = getNodeStore(blobStore);
+        startDate = new Date();
 
         HashSet<String> set = new HashSet<String>();
 
@@ -208,10 +211,11 @@ public class SegmentDataStoreBlobGCTest {
     }
 
     @After
-    public void close() throws IOException {
+    public void close() throws Exception {
         if (store != null) {
             store.close();
         }
+        DataStoreUtils.cleanup(blobStore.getDataStore(), startDate);
         FileUtils.deleteDirectory(getWorkDir());
         FileUtils.deleteDirectory(new File(DataStoreUtils.getHomeDir()));
     }

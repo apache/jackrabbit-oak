@@ -43,5 +43,35 @@ public interface CompactionStrategyMBean {
 
     void setMemoryThreshold(byte memory);
 
+    /**
+     * Get whether or not to force compact concurrent commits on top of already
+     * compacted commits after the maximum number of retries has been reached.
+     * Force committing tries to exclusively write lock the node store.
+     * @return  {@code true} if force commit is on, {@code false} otherwise
+     */
+    boolean getForceAfterFail();
+
+    /**
+     * Set whether or not to force compact concurrent commits on top of already
+     * compacted commits after the maximum number of retries has been reached.
+     * Force committing tries to exclusively write lock the node store.
+     * @param forceAfterFail
+     */
+    void setForceAfterFail(boolean forceAfterFail);
+
+    /**
+     * Get the number of tries to compact concurrent commits on top of already
+     * compacted commits
+     * @return  retry count
+     */
+    int getRetryCount();
+
+    /**
+     * Set the number of tries to compact concurrent commits on top of already
+     * compacted commits
+     * @param retryCount
+     */
+    void setRetryCount(int retryCount);
+
     String getCompactionMapStats();
 }

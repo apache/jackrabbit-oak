@@ -64,7 +64,7 @@ class DocumentNodeBuilder extends AbstractDocumentNodeBuilder {
     }
 
     @Override
-    public boolean moveTo(NodeBuilder newParent, String newName) {
+    public boolean moveTo(@Nonnull NodeBuilder newParent, @Nonnull String newName) {
         checkNotNull(newParent);
         checkValidName(newName);
         if (isRoot() || !exists() || newParent.hasChildNode(newName)) {

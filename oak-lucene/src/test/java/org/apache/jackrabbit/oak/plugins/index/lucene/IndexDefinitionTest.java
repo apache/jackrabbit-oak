@@ -71,6 +71,12 @@ public class IndexDefinitionTest {
     private NodeBuilder builder = root.builder();
 
     @Test
+    public void defaultConfig() throws Exception{
+        IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState());
+        assertTrue(idxDefn.saveDirListing());
+    }
+
+    @Test
     public void fullTextEnabled() throws Exception{
         IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState());
         IndexingRule rule = idxDefn.getApplicableIndexingRule(NT_BASE);
@@ -327,6 +333,29 @@ public class IndexDefinitionTest {
     }
 
     @Test
+    public void propertyConfigCaseInsensitive() throws Exception{
+        NodeBuilder rules = builder.child(INDEX_RULES);
+        rules.child("nt:folder");
+        TestUtil.child(rules, "nt:folder/properties/foo")
+                .setProperty(LuceneIndexConstants.PROP_NAME, "Foo")
+                .setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true);
+        TestUtil.child(rules, "nt:folder/properties/bar")
+                .setProperty(LuceneIndexConstants.PROP_NAME, "BAR")
+                .setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true);
+
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+
+        IndexingRule rule1 = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
+        assertNotNull(rule1);
+
+        assertTrue(rule1.isIndexed("Foo"));
+        assertTrue(rule1.isIndexed("foo"));
+        assertTrue(rule1.isIndexed("fOO"));
+        assertTrue(rule1.isIndexed("bar"));
+        assertFalse(rule1.isIndexed("baz"));
+    }
+
+    @Test
     public void skipTokenization() throws Exception{
         NodeBuilder rules = builder.child(INDEX_RULES);
         rules.child("nt:folder");
@@ -398,7 +427,7 @@ public class IndexDefinitionTest {
     @Test
     public void formatUpdate() throws Exception{
         NodeBuilder defnb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "lucene", of(TYPENAME_STRING), of("foo"), "async");
+                "lucene", of(TYPENAME_STRING), of("foo", "Bar"), "async");
         IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState());
         assertTrue(defn.isOfOldFormat());
 
@@ -409,6 +438,7 @@ public class IndexDefinitionTest {
         IndexingRule rule = defn2.getApplicableIndexingRule(newTree(newNode("nt:base")));
         assertNotNull(rule);
         assertFalse(rule.getConfig("foo").index);
+        assertFalse(rule.getConfig("Bar").index);
     }
 
     @Test
@@ -548,6 +578,51 @@ public class IndexDefinitionTest {
         root = registerTestNodeType(builder).getNodeState();
         IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState());
         assertTrue(!idxDefn.getApplicableIndexingRule(TestUtil.NT_TEST).getNullCheckEnabledProperties().isEmpty());
+    }
+
+    @Test
+    public void notNullCheckEnabledWithTestNode() throws Exception{
+        NodeBuilder rules = builder.child(INDEX_RULES);
+        TestUtil.child(rules, "oak:TestNode/properties/prop2")
+                .setProperty(LuceneIndexConstants.PROP_NAME, "foo")
+                .setProperty(LuceneIndexConstants.PROP_NOT_NULL_CHECK_ENABLED, true);
+        root = registerTestNodeType(builder).getNodeState();
+        IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState());
+        assertTrue(!idxDefn.getApplicableIndexingRule(TestUtil.NT_TEST).getNotNullCheckEnabledProperties().isEmpty());
+    }
+
+    @Test
+    public void testSuggestEnabledOnNamedProp() throws Exception {
+        NodeBuilder rules = builder.child(INDEX_RULES);
+        TestUtil.child(rules, "oak:TestNode/properties/prop2")
+                .setProperty(LuceneIndexConstants.PROP_NAME, "foo")
+                .setProperty(LuceneIndexConstants.PROP_USE_IN_SUGGEST, true);
+        root = registerTestNodeType(builder).getNodeState();
+        IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState());
+        assertTrue(idxDefn.isSuggestEnabled());
+    }
+
+    @Test
+    public void testSuggestEnabledOnRegexProp() throws Exception {
+        NodeBuilder rules = builder.child(INDEX_RULES);
+        rules.child(TestUtil.NT_TEST);
+        TestUtil.child(rules, "oak:TestNode/properties/prop2")
+                .setProperty(LuceneIndexConstants.PROP_NAME, ".*")
+                .setProperty(LuceneIndexConstants.PROP_IS_REGEX, true)
+                .setProperty(LuceneIndexConstants.PROP_USE_IN_SUGGEST, true);
+        root = registerTestNodeType(builder).getNodeState();
+        IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState());
+        assertTrue(idxDefn.isSuggestEnabled());
+    }
+
+    @Test
+    public void testSuggestDisabled() throws Exception {
+        NodeBuilder rules = builder.child(INDEX_RULES);
+        TestUtil.child(rules, "oak:TestNode/properties/prop2")
+                .setProperty(LuceneIndexConstants.PROP_NAME, "foo");
+        root = registerTestNodeType(builder).getNodeState();
+        IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState());
+        assertFalse(idxDefn.isSuggestEnabled());
     }
 
     //TODO indexesAllNodesOfMatchingType - with nullCheckEnabled

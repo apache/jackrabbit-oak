@@ -46,11 +46,13 @@ public final class NoPermissions implements CompiledPermissions {
         // nop
     }
 
+    @Nonnull
     @Override
     public RepositoryPermission getRepositoryPermission() {
         return RepositoryPermission.EMPTY;
     }
 
+    @Nonnull
     @Override
     public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
         return TreePermission.EMPTY;
@@ -66,13 +68,14 @@ public final class NoPermissions implements CompiledPermissions {
         return false;
     }
 
+    @Nonnull
     @Override
     public Set<String> getPrivileges(@Nullable Tree tree) {
         return Collections.emptySet();
     }
 
     @Override
-    public boolean hasPrivileges(@Nullable Tree tree, String... privilegeNames) {
+    public boolean hasPrivileges(@Nullable Tree tree, @Nonnull String... privilegeNames) {
         return false;
     }
 }

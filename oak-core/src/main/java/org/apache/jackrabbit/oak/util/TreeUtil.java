@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.util.ISO8601;
 
 import static com.google.common.collect.Iterables.contains;
@@ -430,5 +431,20 @@ public final class TreeUtil {
         }
 
         return false;
+    }
+
+
+    /**
+     * Returns {@code true} if the specified {@code tree} is a read-only tree
+     * such as obtained through {@link org.apache.jackrabbit.oak.plugins.tree.TreeFactory}
+     * or a {@link org.apache.jackrabbit.oak.plugins.tree.RootFactory read-only Root}.
+     *
+     * @param tree The tree object to be tested.
+     * @return {@code true} if the specified tree is an immutable read-only tree.
+     * @see org.apache.jackrabbit.oak.plugins.tree.TreeFactory#createReadOnlyTree(org.apache.jackrabbit.oak.spi.state.NodeState)
+     * @see org.apache.jackrabbit.oak.plugins.tree.RootFactory#createReadOnlyRoot(org.apache.jackrabbit.oak.spi.state.NodeState)
+     */
+    public static boolean isReadOnlyTree(@Nonnull Tree tree) {
+        return tree instanceof ImmutableTree;
     }
 }

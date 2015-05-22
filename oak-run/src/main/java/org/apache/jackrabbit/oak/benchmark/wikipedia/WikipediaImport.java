@@ -48,6 +48,12 @@ public class WikipediaImport extends Benchmark {
     private final boolean doReport;
 
     private final boolean flat;
+    
+    /**
+     * Used in {@link #importWikipedia(Session)}. If set to true it will stop the loop for the
+     * import. Use {@link #issueHaltImport()} to issue an halt request.
+     */
+    private boolean haltImport;
 
     public WikipediaImport(File dump, boolean flat, boolean doReport) {
         this.dump = dump;
@@ -103,6 +109,14 @@ public class WikipediaImport extends Benchmark {
         }
     }
 
+    /**
+     * will issue an halt request for the {@link #importWikipedia(Session)} so that it will stop
+     * importing.
+     */
+    public void issueHaltImport() {
+        haltImport = true;
+    }
+    
     public int importWikipedia(Session session) throws Exception {
         long start = System.currentTimeMillis();
         int count = 0;
@@ -138,8 +152,9 @@ public class WikipediaImport extends Benchmark {
             source = new StreamSource(csf.createCompressorInputStream(
                     new BufferedInputStream(new FileInputStream(dump))));
         }
+        haltImport = false;
         XMLStreamReader reader = factory.createXMLStreamReader(source);
-        while (reader.hasNext()) {
+        while (reader.hasNext() && !haltImport) {
             switch (reader.next()) {
             case XMLStreamConstants.START_ELEMENT:
                 if ("title".equals(reader.getLocalName())) {

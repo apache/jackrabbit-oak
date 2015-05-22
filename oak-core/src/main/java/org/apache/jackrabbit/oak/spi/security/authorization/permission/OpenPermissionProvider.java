@@ -51,15 +51,17 @@ public final class OpenPermissionProvider implements PermissionProvider {
     }
 
     @Override
-    public boolean hasPrivileges(@Nullable Tree tree, String... privilegeNames) {
+    public boolean hasPrivileges(@Nullable Tree tree, @Nonnull String... privilegeNames) {
         return true;
     }
 
+    @Nonnull
     @Override
     public RepositoryPermission getRepositoryPermission() {
         return RepositoryPermission.ALL;
     }
 
+    @Nonnull
     @Override
     public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
         return TreePermission.ALL;

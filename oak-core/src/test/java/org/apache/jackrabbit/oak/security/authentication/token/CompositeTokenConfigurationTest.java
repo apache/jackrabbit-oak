@@ -35,7 +35,7 @@ public class CompositeTokenConfigurationTest extends AbstractCompositeConfigurat
     @Override
     public void before() throws Exception {
         super.before();
-        setCompositeConfiguration(new CompositeTokenConfiguration(getSecurityProvider()));
+        compositeConfiguration = new CompositeTokenConfiguration(getSecurityProvider());
     }
 
     @Test
@@ -102,7 +102,7 @@ public class CompositeTokenConfigurationTest extends AbstractCompositeConfigurat
 
     @Test
     public void testGetTokenProvider() {
-        CompositeTokenConfiguration ctc = (CompositeTokenConfiguration) getCompositeConfiguration();
+        CompositeTokenConfiguration ctc = (CompositeTokenConfiguration) compositeConfiguration;
 
         TokenProvider tp = ctc.getTokenProvider(root);
         assertNotNull(tp);

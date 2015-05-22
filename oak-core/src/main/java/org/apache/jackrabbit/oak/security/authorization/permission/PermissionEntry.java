@@ -82,7 +82,7 @@ final class PermissionEntry implements Comparable<PermissionEntry>, PermissionCo
     }
 
     @Override
-    public int compareTo(PermissionEntry pe) {
+    public int compareTo(@Nonnull PermissionEntry pe) {
         if (Objects.equal(path, pe.path)) {
             // reverse order
             if (index == pe.index) {

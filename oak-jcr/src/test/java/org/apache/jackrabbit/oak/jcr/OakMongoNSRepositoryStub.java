@@ -74,9 +74,12 @@ public class OakMongoNSRepositoryStub extends OakRepositoryStub {
     }
 
     private static Repository createRepository(MongoConnection connection) {
-        DocumentNodeStore store = new DocumentMK.Builder().setClusterId(1).
+        DocumentNodeStore store = new DocumentMK.Builder().
+                setClusterId(1).
                 memoryCacheSize(64 * 1024 * 1024).
-                setMongoDB(connection.getDB()).getNodeStore();
+                setPersistentCache("target/persistentCache,time").                
+                setMongoDB(connection.getDB()).
+                getNodeStore();
         QueryEngineSettings qs = new QueryEngineSettings();
         qs.setFullTextComparisonWithoutIndex(true);
         return new Jcr(store).with(qs).createRepository();

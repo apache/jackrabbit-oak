@@ -22,15 +22,7 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 
 public abstract class AbstractCompositeConfigurationTest<T extends SecurityConfiguration> extends AbstractSecurityTest {
 
-    private CompositeConfiguration<T> compositeConfiguration;
-
-    public void setCompositeConfiguration(CompositeConfiguration<T> compositeConfiguration) {
-        this.compositeConfiguration = compositeConfiguration;
-    }
-
-    public CompositeConfiguration getCompositeConfiguration() {
-        return compositeConfiguration;
-    }
+    protected CompositeConfiguration<T> compositeConfiguration;
 
     public List<T> getConfigurations() {
         return compositeConfiguration.getConfigurations();
