@@ -93,6 +93,10 @@ Below is the canonical index definition structure
       - evaluatePathRestrictions (boolean) = false
       - name (string)
       - compatVersion (long) = 2
+      - includedPaths (string) multiple
+      - excludedPaths (string) multiple
+      - indexPath (string)
+      - codec (string)
       + indexRules (nt:unstructured)
       + aggregates (nt:unstructured)
       + analyzers (nt:unstructured)
@@ -117,6 +121,23 @@ functionName
 evaluatePathRestrictions
 : Optional boolean property defaults to `false`
 : If enabled the index can evaluate [path restrictions](#path-restrictions)
+
+includedPaths
+: Optional multi value property. Defaults to '/'
+: List of paths which should be [included](#include-exclude) in indexing. 
+
+excludedPaths
+: Optional multi value property. Defaults to empty
+: List of paths which should be [excluded](#include-exclude) from indexing. 
+
+indexPath
+: Optional string property to specify [index path](#copy-on-write)
+: Path of the index definition in the repository. For e.g. if the index
+  definition is specified at `/oak:index/lucene` then set this path in `indexPath` 
+
+codec
+: Optional string property
+: Name of the [Lucene codec](#codec) to use
 
 name
 : Optional property
@@ -335,6 +356,33 @@ would only return nodes which are under _/content/app/old_.
 Enabling this feature would incur cost in terms of slight increase in index
 size. Refer to [OAK-2306][OAK-2306] for more details.
 
+<a name="include-exclude"></a>
+##### Include and Exclude paths from indexing
+
+_Since 1.0.14+ and 1.2.3+_
+
+By default the indexer would index all the nodes under the subtree where the 
+index  definition is defined as per the indexingRule. In some cases its required
+to index nodes under certain path. For e.g. if index is defined for global
+fulltext index which include the complete repository you might want to exclude
+certain path which contains transient system data. 
+
+For example if you application stores certain logs under `/var/log` and it is 
+not supposed to be indexed as part of fulltext index then it can be excluded
+
+    /oak:index/assetType
+      - jcr:primaryType = "oak:QueryIndexDefinition"
+      - compatVersion = 2
+      - type = "lucene"
+      - excludedPaths = ["/var/log"]
+      
+Above index definition would cause nodes under `/var/log` not to be indexed.
+In majority of case `excludedPaths` only makes sense. However in some cases
+it might be required to also specify explicit set of path which should be 
+indexed. In that case make use of `includedPaths`
+
+Refer to [OAK-2599][OAK-2599] for more details.
+
 <a name="aggregation"></a>
 #### Aggregation
 
@@ -509,6 +557,22 @@ Points to note
       file content can be provided via creating child `nt:file` node of the
       filename
 
+<a name="codec"></a>
+#### Codec
+
+Name of [Lucene Codec][lucene-codec] to use. By default if the index involves 
+fulltext indexing then Oak Lucene uses `OakCodec` which disables compression.
+Due to this the index size may grow large. To enable compression you can set
+the codec to `Lucene46`
+
+    /oak:index/assetType
+      - jcr:primaryType = "oak:QueryIndexDefinition"
+      - compatVersion = 2
+      - type = "lucene"
+      - codec = "Lucene46"
+      
+Refer to [OAK-2853][OAK-2853] for details. Enabling the `Lucene46` codec
+would lead to smaller and compact indexes.
 
 <a name="osgi-config"></a>
 ### LuceneIndexProvider Configuration
@@ -522,6 +586,10 @@ configuration. The configuration needs to be done for PID `org.apache
 enableCopyOnReadSupport
 : Enable copying of Lucene index to local file system to improve query 
 performance. See [Copy Indexes On Read](#copy-on-read)
+
+enableCopyOnWriteSupport
+: Enable copying of Lucene index to local file system to improve indexing 
+performance. See [Copy Indexes On Write](#copy-on-write)
 
 localIndexDir
 : Directory to be used for when copy index files to local file system. To be 
@@ -631,6 +699,29 @@ between local index directory and JCR path refer to the MBean details
 ![CopyOnReadStats](lucene-copy-on-read.png)
   
 For more details refer to [OAK-1724][OAK-1724]. This feature can be enabled via
+[Lucene Index provider service configuration](#osgi-config)
+
+_With Oak 1.0.13 this feature is now enabled by default._
+
+<a name="copy-on-write"></a>
+### CopyOnWrite
+
+_Since 1.0.15 and 1.2.3_
+
+Similar to _CopyOnRead_ feature Oak Lucene also supports _CopyOnWrite_ to enable
+faster indexing by first buffering the writes to local filesystem and transferring
+them to remote storage asynchronously as the indexing proceeds. This should
+provide better performance and hence faster indexing times.
+
+**indexPath**
+
+To speed up the indexing with CopyOnWrite you would also need to set `indexPath`
+in index definition to the path of index in the repository. For e.g. if your
+index is defined at `/oak:index/lucene` then value of `indexPath` should be set 
+to `/oak:index/lucene`. This would enable the indexer to perform any read 
+during the indexing process locally and thus avoid costly read from remote
+
+For more details refer to [OAK-2247][OAK-2247]. This feature can be enabled via
 [Lucene Index provider service configuration](#osgi-config)
 
 ### Lucene Index MBeans
@@ -1094,9 +1185,13 @@ such fields
 [OAK-2470]: https://issues.apache.org/jira/browse/OAK-2470
 [OAK-2463]: https://issues.apache.org/jira/browse/OAK-2463
 [OAK-2895]: https://issues.apache.org/jira/browse/OAK-2895
+[OAK-2599]: https://issues.apache.org/jira/browse/OAK-2599
+[OAK-2247]: https://issues.apache.org/jira/browse/OAK-2247
+[OAK-2853]: https://issues.apache.org/jira/browse/OAK-2853
 [luke]: https://code.google.com/p/luke/
 [tika]: http://tika.apache.org/
 [oak-console]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run#console
 [JCR-2989]: https://issues.apache.org/jira/browse/JCR-2989?focusedCommentId=13051101
 [solr-analyzer]: https://wiki.apache.org/solr/AnalyzersTokenizersTokenFilters#Specifying_an_Analyzer_in_the_schema
 [default-config]: https://github.com/apache/jackrabbit-oak/blob/trunk/oak-lucene/src/main/resources/org/apache/jackrabbit/oak/plugins/index/lucene/tika-config.xml
+[lucene-codec]: https://lucene.apache.org/core/4_7_1/core/org/apache/lucene/codecs/Codec.html
