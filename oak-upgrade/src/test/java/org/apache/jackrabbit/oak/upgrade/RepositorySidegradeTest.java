@@ -69,8 +69,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class RepositorySidegradeTest {
@@ -83,35 +81,22 @@ public class RepositorySidegradeTest {
         new Random().nextBytes(BINARY);
     }
     
-    protected static final Credentials CREDENTIALS = new SimpleCredentials("admin", "admin".toCharArray());
+    private static final Credentials CREDENTIALS = new SimpleCredentials("admin", "admin".toCharArray());
 
     private NodeStore targetNodeStore;
-    private static Repository targetRepository;
-
-    
-    @BeforeClass
-    public static void init() {
-        // ensure that we create a new repository for the next test
-        targetRepository = null;
-    }
+    private Repository targetRepository;
 
     @Before
     public synchronized void upgradeRepository() throws Exception {
-        if (targetRepository == null) {
-            targetNodeStore = new SegmentNodeStore();
-            targetRepository = new Jcr(new Oak(targetNodeStore)).createRepository();
-            NodeStore source = createSourceContent();
-            RepositorySidegrade sidegrade = new RepositorySidegrade(source, targetNodeStore);
-            sidegrade.copy();
-        }
-    }
-    
-    public Repository getTargetRepository() {
-        return targetRepository;
+        targetNodeStore = new SegmentNodeStore();
+        targetRepository = new Jcr(new Oak(targetNodeStore)).createRepository();
+        NodeStore source = createSourceContent();
+        RepositorySidegrade sidegrade = new RepositorySidegrade(source, targetNodeStore);
+        sidegrade.copy();
     }
     
     public JackrabbitSession createAdminSession() throws RepositoryException {
-        return (JackrabbitSession) getTargetRepository().login(CREDENTIALS);
+        return (JackrabbitSession) targetRepository.login(CREDENTIALS);
     }
     
     // OAK-2869
@@ -123,7 +108,6 @@ public class RepositorySidegradeTest {
     
     // OAK-2869
     @Test
-    @Ignore("OAK-2876")  // FIXME See OAK-2876
     public void verifyAsync() throws Exception {
         NodeState state = targetNodeStore.getRoot().getChildNode(":async");
         assertFalse(state.hasProperty("test"));
