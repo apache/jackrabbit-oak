@@ -23,13 +23,17 @@ import javax.management.openmbean.TabularData;
 
 @SuppressWarnings("UnusedDeclaration")
 public interface CopyOnReadStatsMBean {
-    String TYPE = "CopyOnReadStats";
+    String TYPE = "IndexCopierStats";
 
     TabularData getIndexPathMapping();
 
-    int getLocalReadCount();
+    int getReaderLocalReadCount();
 
-    int getRemoteReadCount();
+    int getReaderRemoteReadCount();
+
+    int getWriterLocalReadCount();
+
+    int getWriterRemoteReadCount();
 
     int getScheduledForCopyCount();
 
@@ -47,6 +51,14 @@ public interface CopyOnReadStatsMBean {
 
     long getDownloadTime();
 
+    int getDownloadCount();
+
+    String getUploadSize();
+
+    long getUploadTime();
+
+    int getUploadCount();
+
     String getLocalIndexSize();
 
     String[] getGarbageDetails();
@@ -56,4 +68,6 @@ public interface CopyOnReadStatsMBean {
     int getDeletedFilesCount();
 
     String getGarbageCollectedSize();
+
+    String getSkippedFromUploadSize();
 }

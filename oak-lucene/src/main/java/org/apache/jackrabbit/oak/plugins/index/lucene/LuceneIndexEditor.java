@@ -34,6 +34,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.annotation.Nullable;
+
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
@@ -118,12 +120,12 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
     private final PathFilter.Result pathFilterResult;
 
     LuceneIndexEditor(NodeState root, NodeBuilder definition,
-        IndexUpdateCallback updateCallback) throws CommitFailedException {
+        IndexUpdateCallback updateCallback,@Nullable IndexCopier indexCopier) throws CommitFailedException {
         this.parent = null;
         this.name = null;
         this.path = "/";
         this.context = new LuceneIndexEditorContext(root, definition,
-                updateCallback);
+                updateCallback, indexCopier);
         this.root = root;
         this.isDeleted = false;
         this.matcherState = MatcherState.NONE;

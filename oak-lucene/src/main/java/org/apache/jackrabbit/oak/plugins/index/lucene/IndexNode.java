@@ -48,7 +48,7 @@ class IndexNode {
         if (data.exists()) {
             directory = new OakDirectory(new ReadOnlyBuilder(data), definition, true);
             if (cloner != null){
-                directory = cloner.wrap(indexPath, definition, directory);
+                directory = cloner.wrapForRead(indexPath, definition, directory);
             }
         } else if (PERSISTENCE_FILE.equalsIgnoreCase(defnNodeState.getString(PERSISTENCE_NAME))) {
             String path = defnNodeState.getString(PERSISTENCE_PATH);

@@ -262,4 +262,12 @@ public interface LuceneIndexConstants {
      * to allow faster reads (OAK-2809)
      */
     String SAVE_DIR_LISTING = "saveDirectoryListing";
+
+    /**
+     * Optional  Property to store the path of index in the repository. Path at which index
+     * definition is defined is not known to IndexEditor. To make use of CopyOnWrite
+     * feature its required to know the indexPath to optimize the lookup and read of
+     * existing index files
+     */
+    String INDEX_PATH = "indexPath";
 }

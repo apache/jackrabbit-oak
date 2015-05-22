@@ -17,11 +17,10 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
@@ -37,19 +36,29 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * @see IndexEditorProvider
  * 
  */
-@Component
-@Service(IndexEditorProvider.class)
 public class LuceneIndexEditorProvider implements IndexEditorProvider {
+    private final IndexCopier indexCopier;
+
+    public LuceneIndexEditorProvider() {
+        this(null);
+    }
+
+    public LuceneIndexEditorProvider(@Nullable IndexCopier indexCopier) {
+        this.indexCopier = indexCopier;
+    }
 
     @Override
     public Editor getIndexEditor(
-            @Nonnull String type, @Nonnull NodeBuilder definition, @Nonnull NodeState root, @Nonnull IndexUpdateCallback callback)
+            @Nonnull String type, @Nonnull NodeBuilder definition, @Nonnull NodeState root,
+            @Nonnull IndexUpdateCallback callback)
             throws CommitFailedException {
         if (TYPE_LUCENE.equals(type)) {
-            return new LuceneIndexEditor(root, definition, callback);
+            return new LuceneIndexEditor(root, definition, callback, indexCopier);
         }
         return null;
     }
 
-
+    IndexCopier getIndexCopier() {
+        return indexCopier;
+    }
 }
