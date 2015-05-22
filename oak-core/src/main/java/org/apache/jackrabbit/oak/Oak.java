@@ -129,7 +129,7 @@ public class Oak {
     public static final String DEFAULT_WORKSPACE_NAME = "default";
 
     private final NodeStore store;
-    
+
     private final List<RepositoryInitializer> initializers = newArrayList();
 
     private QueryEngineSettings queryEngineSettings = new QueryEngineSettings();
@@ -647,8 +647,12 @@ public class Oak {
 		RevisionGC revisionGC = new RevisionGC(new Runnable() {
 			@Override
 			public void run() {
-				dns.getVersionGarbageCollector().gc(TimeUnit.DAYS.toSeconds(1),
-						TimeUnit.SECONDS);
+				try {
+					dns.getVersionGarbageCollector().gc(TimeUnit.DAYS.toSeconds(1),
+							TimeUnit.SECONDS);
+				} catch (IOException e) {
+					new RuntimeException(e);
+				}
 			}
 		}, executor);
 
