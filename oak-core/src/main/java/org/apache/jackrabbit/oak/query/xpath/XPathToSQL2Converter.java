@@ -432,7 +432,7 @@ public class XPathToSQL2Converter {
         while (readIf("and")) {
             a = new Expression.AndCondition(a, parseCondition());
         }
-        return a;
+        return a.optimize();
     }
 
     private Expression parseCondition() throws ParseException {
@@ -461,7 +461,7 @@ public class XPathToSQL2Converter {
             }
             a = parseCondition(e);
         }
-        return a;
+        return a.optimize();
     }
 
     private Expression.Condition parseCondition(Expression left) throws ParseException {
