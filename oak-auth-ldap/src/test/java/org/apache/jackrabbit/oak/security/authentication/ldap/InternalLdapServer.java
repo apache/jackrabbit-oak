@@ -16,17 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap;
 
-import java.io.File;
-import java.io.InputStream;
-
 import javax.naming.directory.BasicAttributes;
 import javax.naming.directory.DirContext;
 import javax.naming.ldap.LdapContext;
 
 import org.apache.directory.server.constants.ServerDNConstants;
-import org.apache.directory.server.unit.AbstractServerTest;
 
-class InternalLdapServer extends AbstractServerTest {
+class InternalLdapServer extends AbstractServer {
 
     public static final String GROUP_MEMBER_ATTR = "member";
     public static final String GROUP_CLASS_ATTR = "groupOfNames";
@@ -40,12 +36,6 @@ class InternalLdapServer extends AbstractServerTest {
 
     public void tearDown() throws Exception {
         super.tearDown();
-    }
-
-    @Override
-    protected void configureDirectoryService() throws Exception {
-        directoryService.setWorkingDirectory(new File("target", "apacheds"));
-        doDelete(directoryService.getWorkingDirectory());
     }
 
     public int getPort() {
@@ -63,7 +53,7 @@ class InternalLdapServer extends AbstractServerTest {
                 .append('\n').append("givenName:").append(firstName)
                 .append('\n').append("uid: ").append(userId)
                 .append('\n').append("userPassword: ").append(password).append("\n\n");
-        injectEntries(entries.toString());
+        addEntry(entries.toString());
         return dn;
     }
 
@@ -73,7 +63,7 @@ class InternalLdapServer extends AbstractServerTest {
         entries.append("dn: ").append(dn).append('\n').append("objectClass: ")
                 .append(GROUP_CLASS_ATTR).append('\n').append(GROUP_MEMBER_ATTR)
                 .append(":\n").append("cn: ").append(name).append("\n\n");
-        injectEntries(entries.toString());
+        addEntry(entries.toString());
         return dn;
     }
 
@@ -89,10 +79,6 @@ class InternalLdapServer extends AbstractServerTest {
         BasicAttributes attrs = new BasicAttributes();
         attrs.put("member", memberDN);
         ctxt.modifyAttributes(groupDN, DirContext.REMOVE_ATTRIBUTE, attrs);
-    }
-
-    public void loadLdif(InputStream in) throws Exception {
-        super.loadLdif(in, false);
     }
 
     private static String buildDn(String name, boolean isGroup) {

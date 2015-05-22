@@ -60,7 +60,7 @@ class CugImporter implements ProtectedPropertyImporter, CugConstants {
 
     //----------------------------------------------< ProtectedItemImporter >---
     @Override
-    public boolean init(@Nonnull Session session, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper, boolean isWorkspaceImport, int uuidBehavior, @Nonnull ReferenceChangeTracker referenceTracker, SecurityProvider securityProvider) {
+    public boolean init(@Nonnull Session session, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper, boolean isWorkspaceImport, int uuidBehavior, @Nonnull ReferenceChangeTracker referenceTracker, @Nonnull SecurityProvider securityProvider) {
         if (initialized) {
             throw new IllegalStateException("Already initialized");
         }

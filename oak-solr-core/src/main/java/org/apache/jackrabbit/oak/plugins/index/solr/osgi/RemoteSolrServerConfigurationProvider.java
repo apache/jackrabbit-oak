@@ -59,8 +59,8 @@ public class RemoteSolrServerConfigurationProvider implements SolrServerConfigur
     private String solrHttpUrl;
     private String solrZkHost;
     private String solrCollection;
-    private int solrShardsNo;
-    private int solrReplicationFactor;
+    private Integer solrShardsNo;
+    private Integer solrReplicationFactor;
     private String solrConfDir;
     private RemoteSolrServerConfiguration remoteSolrServerConfiguration;
 

@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
 import org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames;
-import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.spell.DirectSpellChecker;

@@ -16,20 +16,23 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import com.google.common.collect.Iterables;
-import com.google.common.io.ByteStreams;
 import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+import com.google.common.io.ByteStreams;
 import com.google.common.primitives.Ints;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
@@ -37,7 +40,9 @@ import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.Lock;
 import org.apache.lucene.store.LockFactory;
 import org.apache.lucene.store.NoLockFactory;
+import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkElementIndex;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
@@ -46,37 +51,45 @@ import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
 /**
  * Implementation of the Lucene {@link Directory} (a flat list of files)
  * based on an Oak {@link NodeBuilder}.
  */
 class OakDirectory extends Directory {
-
+    static final PerfLogger PERF_LOGGER = new PerfLogger(LoggerFactory.getLogger(OakDirectory.class.getName() + ".perf"));
+    static final String PROP_DIR_LISTING = "dirListing";
     static final String PROP_BLOB_SIZE = "blobSize";
     protected final NodeBuilder directoryBuilder;
     private final IndexDefinition definition;
     private LockFactory lockFactory;
+    private final boolean readOnly;
+    private final Set<String> fileNames = Sets.newConcurrentHashSet();
 
-    public OakDirectory(NodeBuilder directoryBuilder, IndexDefinition definition) {
+    public OakDirectory(NodeBuilder directoryBuilder, IndexDefinition definition, boolean readOnly) {
         this.lockFactory = NoLockFactory.getNoLockFactory();
         this.directoryBuilder = directoryBuilder;
         this.definition = definition;
+        this.readOnly = readOnly;
+        this.fileNames.addAll(getListing());
     }
 
     @Override
     public String[] listAll() throws IOException {
-        return Iterables.toArray(
-                directoryBuilder.getChildNodeNames(), String.class);
+        return fileNames.toArray(new String[fileNames.size()]);
     }
 
     @Override
     public boolean fileExists(String name) throws IOException {
-        return directoryBuilder.hasChildNode(name);
+        return fileNames.contains(name);
     }
 
     @Override
     public void deleteFile(String name) throws IOException {
+        checkArgument(!readOnly, "Read only directory");
+        fileNames.remove(name);
         directoryBuilder.getChildNode(name).remove();
     }
 
@@ -94,6 +107,7 @@ class OakDirectory extends Directory {
     @Override
     public IndexOutput createOutput(String name, IOContext context)
             throws IOException {
+        checkArgument(!readOnly, "Read only directory");
         NodeBuilder file;
         if (!directoryBuilder.hasChildNode(name)) {
             file = directoryBuilder.child(name);
@@ -101,6 +115,7 @@ class OakDirectory extends Directory {
         } else {
             file = directoryBuilder.child(name);
         }
+        fileNames.add(name);
         return new OakIndexOutput(name, file);
     }
 
@@ -133,7 +148,9 @@ class OakDirectory extends Directory {
 
     @Override
     public void close() throws IOException {
-        // do nothing
+        if (!readOnly && definition.saveDirListing()) {
+            directoryBuilder.setProperty(createProperty(PROP_DIR_LISTING, fileNames, STRINGS));
+        }
     }
 
     @Override
@@ -144,6 +161,24 @@ class OakDirectory extends Directory {
     @Override
     public LockFactory getLockFactory() {
         return lockFactory;
+    }
+
+    private Set<String> getListing(){
+        long start = PERF_LOGGER.start();
+        Iterable<String> fileNames = null;
+        if (definition.saveDirListing()) {
+            PropertyState listing = directoryBuilder.getProperty(PROP_DIR_LISTING);
+            if (listing != null) {
+                fileNames = listing.getValue(Type.STRINGS);
+            }
+        }
+
+        if (fileNames == null){
+            fileNames = directoryBuilder.getChildNodeNames();
+        }
+        Set<String> result = ImmutableSet.copyOf(fileNames);
+        PERF_LOGGER.end(start, 100, "Directory listing performed. Total {} files", result.size());
+        return result;
     }
 
     /**
@@ -164,13 +199,13 @@ class OakDirectory extends Directory {
 
         private long length;
 
-        private final List<Blob> data;
+        private List<Blob> data;
 
         private boolean dataModified = false;
 
         private int index = -1;
 
-        private final byte[] blob;
+        private byte[] blob;
 
         private boolean blobModified = false;
 
@@ -374,7 +409,8 @@ class OakDirectory extends Directory {
 
         @Override
         public void close() {
-            // do nothing
+            file.blob = null;
+            file.data = null;
         }
 
     }
@@ -421,6 +457,8 @@ class OakDirectory extends Directory {
         @Override
         public void close() throws IOException {
             flush();
+            file.blob = null;
+            file.data = null;
         }
 
     }

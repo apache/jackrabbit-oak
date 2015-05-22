@@ -220,10 +220,9 @@ See the relevant documentation for more details.
 Oak server mode
 ---------------
 
-The Oak server mode starts a MicroKernel or full Oak instance with the 
+The Oak server mode starts a NodeStore or full Oak instance with the
 standard JCR plugins and makes it available over a simple HTTP mapping 
-defined in the `oak-http` and `oak-mk-remote` components. To start this 
-mode, use:
+defined in the `oak-http` component. To start this mode, use:
 
     $ java -jar oak-run-*.jar server [uri] [fixture] [options]
 
@@ -243,7 +242,6 @@ to be used. The following fixtures are currently supported:
 | Oak-Mongo     | Oak with the default Mongo backend                    |
 | Oak-Mongo-FDS | Oak with the default Mongo backend and FileDataStore  |
 | Oak-MongoNS   | Oak with the Mongo NodeStore                          |
-| Oak-MongoMK   | Oak with the Mongo MicroKernel                        |
 | Oak-Tar       | Oak with the Tar backend (aka Segment NodeStore)      |
 | Oak-Tar-FDS   | Oak with the Tar backend and FileDataStore            |
 
@@ -258,7 +256,6 @@ Depending on the fixture the following options are available:
     --clusterIds           - Cluster Ids for the Mongo setup: a comma separated list of integers
     --base <file>          - Tar: Path to the base file
     --mmap <64bit?>        - TarMK memory mapping (the default on 64 bit JVMs)
-    --mk                   - Start in MicroKernel mode exposing the MicroKernel API 
     --rdbjdbcuri           - JDBC URL for RDB persistence
     --rdbjdbcuser          - JDBC username (defaults to "")
     --rdbjdbcpasswd        - JDBC password (defaults to "")
@@ -267,12 +264,10 @@ Depending on the fixture the following options are available:
 Examples:
 
     $ java -jar oak-run-*.jar server
-    $ java -jar oak-run-*.jar server -mk
     $ java -jar oak-run-*.jar server http://localhost:4503 Oak-Tar --base myOak
     $ java -jar oak-run-*.jar server http://localhost:4502 Oak-Mongo --db myOak --clusterIds c1,c2,c3
 
-See the documentation in the `oak-http` and `oak-mk-remote` components for details 
-about the available functionality.
+See the documentation in the `oak-http` component for details about the available functionality.
 
 
 Benchmark mode
@@ -354,7 +349,6 @@ Finally the benchmark runner supports the following repository fixtures:
 | Oak-Mongo     | Oak with the default Mongo backend                    |
 | Oak-Mongo-FDS | Oak with the default Mongo backend and FileDataStore  |
 | Oak-MongoNS   | Oak with the Mongo NodeStore                          |
-| Oak-MongoMK   | Oak with the Mongo MicroKernel                        |
 | Oak-Tar       | Oak with the Tar backend (aka Segment NodeStore)      |
 | Oak-RDB       | Oak with the DocumentMK/RDB persistence               |
 
@@ -529,7 +523,6 @@ Finally the scalability runner supports the following repository fixtures:
 | Oak-Mongo     | Oak with the default Mongo backend                    |
 | Oak-Mongo-FDS | Oak with the default Mongo backend and FileDataStore  |
 | Oak-MongoNS   | Oak with the Mongo NodeStore                          |
-| Oak-MongoMK   | Oak with the Mongo MicroKernel                        |
 | Oak-Tar       | Oak with the Tar backend (aka Segment NodeStore)      |
 | Oak-RDB       | Oak with the DocumentMK/RDB persistence               |
 
@@ -707,3 +700,26 @@ can be dumped to a file
     $ mongo localhost/oak --eval "load('/path/to/oak-mongo.js');printjson(oak.systemStats());" --quiet > oak-stats.json
 
 [1]: http://jackrabbit.apache.org/oak/docs/oak-mongo-js/oak.html
+
+
+License
+-------
+
+(see the top-level [LICENSE.txt](../LICENSE.txt) for full license details)
+
+Collective work: Copyright 2012 The Apache Software Foundation.
+
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.

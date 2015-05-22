@@ -39,7 +39,7 @@ final class UserContext implements Context, UserConstants {
 
     //------------------------------------------------------------< Context >---
     @Override
-    public boolean definesProperty(Tree parent, PropertyState property) {
+    public boolean definesProperty(@Nonnull Tree parent, @Nonnull PropertyState property) {
         String propName = property.getName();
         String ntName = TreeUtil.getPrimaryTypeName(parent);
         if (NT_REP_USER.equals(ntName)) {
@@ -62,13 +62,13 @@ final class UserContext implements Context, UserConstants {
     }
 
     @Override
-    public boolean definesTree(Tree tree) {
+    public boolean definesTree(@Nonnull Tree tree) {
         String ntName = TreeUtil.getPrimaryTypeName(tree);
         return NT_NAMES.contains(ntName);
     }
 
     @Override
-    public boolean definesLocation(TreeLocation location) {
+    public boolean definesLocation(@Nonnull TreeLocation location) {
         Tree tree = location.getTree();
         if (tree != null && location.exists()) {
             PropertyState p = location.getProperty();

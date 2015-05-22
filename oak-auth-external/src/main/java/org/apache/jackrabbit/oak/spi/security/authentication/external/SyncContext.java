@@ -66,8 +66,9 @@ public interface SyncContext {
      *
      * @param identity the identity to sync.
      * @return the result of the operation
-     * @throws SyncException if an error occurrs
+     * @throws SyncException if an error occurs
      */
+    @Nonnull
     SyncResult sync(@Nonnull ExternalIdentity identity) throws SyncException;
 
     /**
@@ -78,6 +79,7 @@ public interface SyncContext {
      * @return the result of the operation
      * @throws SyncException if an error occurrs
      */
+    @Nonnull
     SyncResult sync(@Nonnull String id) throws SyncException;
 
 

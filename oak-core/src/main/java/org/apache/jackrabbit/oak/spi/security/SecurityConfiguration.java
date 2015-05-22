@@ -142,14 +142,14 @@ public interface SecurityConfiguration {
 
         @Nonnull
         @Override
-        public List<? extends CommitHook> getCommitHooks(String workspaceName) {
+        public List<? extends CommitHook> getCommitHooks(@Nonnull String workspaceName) {
             return Collections.emptyList();
         }
 
         @Nonnull
         @Override
         public List<? extends ValidatorProvider> getValidators(
-                String workspaceName, Set<Principal> principals, MoveTracker moveTracker) {
+                @Nonnull String workspaceName, @Nonnull Set<Principal> principals, @Nonnull MoveTracker moveTracker) {
             return Collections.emptyList();
         }
 
@@ -159,6 +159,7 @@ public interface SecurityConfiguration {
             return Collections.emptyList();
         }
 
+        @Nonnull
         @Override
         public Context getContext() {
             return new Context.Default();

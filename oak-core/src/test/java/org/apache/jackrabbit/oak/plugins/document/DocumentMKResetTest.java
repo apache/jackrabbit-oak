@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -24,7 +23,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
- * Tests DocumentMKs implementation of MicroKernel.reset(String, String).
+ * Tests DocumentMKs implementation of NodeStore.reset(String, String).
  */
 public class DocumentMKResetTest extends BaseDocumentMKTest {
 
@@ -41,8 +40,8 @@ public class DocumentMKResetTest extends BaseDocumentMKTest {
         String rev = addNodes(null, "/foo");
         try {
             mk.reset(rev, rev);
-            fail("MicroKernelException expected");
-        } catch (MicroKernelException expected) {}
+            fail("DocumentStoreException expected");
+        } catch (DocumentStoreException expected) {}
     }
 
     @Test
@@ -53,8 +52,8 @@ public class DocumentMKResetTest extends BaseDocumentMKTest {
         branch = addNodes(branch, "/bar");
         try {
             mk.reset(branch, rev);
-            fail("MicroKernelException expected");
-        } catch (MicroKernelException expected) {}
+            fail("DocumentStoreException expected");
+        } catch (DocumentStoreException expected) {}
     }
 
     @Test
@@ -76,7 +75,7 @@ public class DocumentMKResetTest extends BaseDocumentMKTest {
         try {
             mk.merge(b2, null);
             fail("merge with conflict must fail");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
         String b3 = mk.reset(b2, b1);
@@ -95,7 +94,7 @@ public class DocumentMKResetTest extends BaseDocumentMKTest {
         try {
             mk.merge(b2, null);
             fail("merge with conflict must fail");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
         String b3 = mk.reset(b2, b1);
@@ -115,7 +114,7 @@ public class DocumentMKResetTest extends BaseDocumentMKTest {
         try {
             mk.merge(b2, null);
             fail("merge with conflict must fail");
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
         String b3 = mk.reset(b2, b1);

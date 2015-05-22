@@ -73,8 +73,7 @@ public class ValueFactoryImpl implements ValueFactory {
      * @param namePathMapper The name/path mapping used for converting JCR names/paths to
      * the internal representation.
      */
-    public ValueFactoryImpl(
-            @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) {
+    public ValueFactoryImpl(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper) {
         this.root = checkNotNull(root);
         this.namePathMapper = checkNotNull(namePathMapper);
     }
@@ -99,8 +98,13 @@ public class ValueFactoryImpl implements ValueFactory {
      * @return  New {@code Value} instance
      * @throws IllegalArgumentException if {@code property.isArray()} is {@code true}.
      */
-    public static Value createValue(PropertyValue property, NamePathMapper namePathMapper) {
-        return newValue(PropertyValues.create(property), namePathMapper);
+    @Nonnull
+    public static Value createValue(@Nonnull PropertyValue property, @Nonnull NamePathMapper namePathMapper) {
+        PropertyState ps = PropertyValues.create(property);
+        if (ps == null) {
+            throw new IllegalArgumentException("Failed to convert the specified property value to a property state.");
+        }
+        return newValue(ps, namePathMapper);
     }
 
     /**

@@ -33,6 +33,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.DebugTimer;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -132,7 +133,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
         }
 
         String idpName = options.getConfigValue(PARAM_IDP_NAME, "");
-        if (idpName.length() == 0) {
+        if (idpName.isEmpty()) {
             log.error("External login module needs IPD name. Will not be used for login.");
         } else {
             ExternalIdentityProviderManager idpMgr = WhiteboardUtils.getService(whiteboard, ExternalIdentityProviderManager.class);
@@ -147,7 +148,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
         }
 
         String syncHandlerName = options.getConfigValue(PARAM_SYNC_HANDLER_NAME, "");
-        if (syncHandlerName.length() == 0) {
+        if (syncHandlerName.isEmpty()) {
             log.error("External login module needs SyncHandler name. Will not be used for login.");
         } else {
             SyncManager syncMgr = WhiteboardUtils.getService(whiteboard, SyncManager.class);
@@ -259,6 +260,8 @@ public class ExternalLoginModule extends AbstractLoginModule {
     @Override
     public boolean commit() throws LoginException {
         if (externalUser == null) {
+            // login attempt in this login module was not successful
+            clearState();
             return false;
         }
         Set<? extends Principal> principals = getPrincipals(externalUser.getId());
@@ -274,6 +277,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
             }
             return true;
         }
+        clearState();
         return false;
     }
 
@@ -394,6 +398,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
     /**
      * @return An immutable set containing only the {@link SimpleCredentials} class.
      */
+    @Nonnull
     @Override
     protected Set<Class> getSupportedCredentials() {
         // TODO: maybe delegate getSupportedCredentials to IDP

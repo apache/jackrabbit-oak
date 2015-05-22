@@ -25,8 +25,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -112,7 +110,7 @@ public class ConcurrentConflictTest extends BaseDocumentMKTest {
         final List<Exception> exceptions = Collections.synchronizedList(
                 new ArrayList<Exception>());
         List<Thread> writers = new ArrayList<Thread>();
-        for (final MicroKernel mk : kernels) {
+        for (final DocumentMK mk : kernels) {
             writers.add(new Thread(new Runnable() {
                 Random random = new Random();
                 Map<Integer, JSONObject> nodes = new HashMap<Integer, JSONObject>();
@@ -126,7 +124,7 @@ public class ConcurrentConflictTest extends BaseDocumentMKTest {
                                 if (!transfer()) {
                                     continue;
                                 }
-                            } catch (MicroKernelException e) {
+                            } catch (DocumentStoreException e) {
                                 log("Failed transfer @" + mk.getHeadRevision());
                                 // assume conflict
                                 conflicts.incrementAndGet();
@@ -214,7 +212,7 @@ public class ConcurrentConflictTest extends BaseDocumentMKTest {
         mk.dispose();
     }
 
-    static long calculateSum(MicroKernel mk, String rev) throws Exception {
+    static long calculateSum(DocumentMK mk, String rev) throws Exception {
         long sum = 0;
         for (int i = 0; i < NUM_NODES; i++) {
             String json = mk.getNodes("/node-" + i, rev, 0, 0, 1000, null);

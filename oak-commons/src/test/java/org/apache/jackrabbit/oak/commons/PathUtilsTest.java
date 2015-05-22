@@ -16,10 +16,15 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
+import java.util.Set;
+
 import junit.framework.AssertionFailedError;
 import junit.framework.TestCase;
 import org.junit.Assert;
 import org.junit.Test;
+
+import static com.google.common.collect.Sets.newHashSet;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Test the PathUtils class.
@@ -476,4 +481,30 @@ public class PathUtilsTest extends TestCase {
         assertEquals(3, k);
     }
 
+    public void testOptimizeForIncludes() throws Exception{
+        Set<String> includes = newHashSet("/a", "/a/b");
+        Set<String> excludes = newHashSet("/a/b");
+        PathUtils.unifyInExcludes(includes, excludes);
+        assertEquals("Excludes supercedes include", newHashSet("/a"), includes);
+        assertEquals(newHashSet("/a/b"), excludes);
+
+        includes = newHashSet("/a", "/a/b/c");
+        excludes = newHashSet("/a/b");
+        PathUtils.unifyInExcludes(includes, excludes);
+        assertEquals("Excludes supercedes include", newHashSet("/a"), includes);
+        assertEquals(newHashSet("/a/b"), excludes);
+
+        includes = newHashSet("/a", "/a/b/c");
+        excludes = newHashSet();
+        PathUtils.unifyInExcludes(includes, excludes);
+        assertEquals(newHashSet("/a"), includes);
+    }
+
+    public void testOptimizeForExcludes() throws Exception{
+        Set<String> includes = newHashSet("/a", "/b");
+        Set<String> excludes = newHashSet("/c");
+        PathUtils.unifyInExcludes(includes, excludes);
+        assertEquals(newHashSet("/a", "/b"), includes);
+        assertEquals(newHashSet(), excludes);
+    }
 }

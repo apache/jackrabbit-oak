@@ -41,11 +41,8 @@ import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.api.jmx.RepositoryStatsMBean;
 import org.apache.jackrabbit.stats.TimeSeriesStatsUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class RepositoryStats implements RepositoryStatsMBean {
-    private static final Logger LOG = LoggerFactory.getLogger(RepositoryStats.class);
 
     private final RepositoryStatistics repoStats;
     private final TimeSeries maxQueueLength;

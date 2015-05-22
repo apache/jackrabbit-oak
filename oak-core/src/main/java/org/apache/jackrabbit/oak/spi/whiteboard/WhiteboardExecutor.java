@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.spi.whiteboard;
 
 import java.util.concurrent.Executor;
+import javax.annotation.Nonnull;
 
 /**
  * Dynamic {@link Executor} based on the available whiteboard services.
@@ -36,7 +37,7 @@ public class WhiteboardExecutor extends AbstractServiceTracker<Executor>
     //----------------------------------------------------------< Executor >--
 
     @Override
-    public void execute(Runnable command) {
+    public void execute(@Nonnull Runnable command) {
         for (Executor executor : getServices()) {
             // use the first executor to run the command
             executor.execute(command);

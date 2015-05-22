@@ -651,12 +651,13 @@ public class FileStore implements SegmentStore {
                     id.getMostSignificantBits(),
                     id.getLeastSignificantBits()));
         }
-        writer.cleanup(ids);
+        writer.collectReferences(ids);
 
         CompactionMap cm = tracker.getCompactionMap();
         List<TarReader> list = newArrayListWithCapacity(readers.size());
+        Set<UUID> cleanedIds = newHashSet();
         for (TarReader reader : readers) {
-            TarReader cleaned = reader.cleanup(ids, cm);
+            TarReader cleaned = reader.cleanup(ids, cm, cleanedIds);
             if (cleaned == reader) {
                 list.add(reader);
             } else {
@@ -668,13 +669,15 @@ public class FileStore implements SegmentStore {
                 toBeRemoved.addLast(file);
             }
         }
+        cm.compress(cleanedIds);
         readers = list;
         long finalSize = size();
         gcMonitor.cleaned(initialSize - finalSize, finalSize);
         gcMonitor.info("TarMK revision cleanup completed in {}. Post cleanup size is {} " +
-                "and space reclaimed {}", watch,
+                "and space reclaimed {}. Compaction map weight/depth is {}/{}.", watch,
                 humanReadableByteCount(finalSize),
-                humanReadableByteCount(initialSize - finalSize));
+                humanReadableByteCount(initialSize - finalSize),
+                humanReadableByteCount(cm.getEstimatedWeight()), cm.getDepth());
     }
 
     /**
@@ -703,19 +706,45 @@ public class FileStore implements SegmentStore {
 
         Callable<Boolean> setHead = new SetHead(before, after, compactor);
         try {
-            while(!compactionStrategy.compacted(setHead)) {
+            int cycles = 0;
+            boolean success = false;
+            while(cycles++ < compactionStrategy.getRetryCount()
+                    && !(success = compactionStrategy.compacted(setHead))) {
                 // Some other concurrent changes have been made.
                 // Rebase (and compact) those changes on top of the
                 // compacted state before retrying to set the head.
+                gcMonitor.info("TarMK compaction detected concurrent commits while compacting. " +
+                        "Compacting these commits. Cycle {}", cycles);
                 SegmentNodeState head = getHead();
                 after = compactor.compact(after, head);
                 setHead = new SetHead(head, after, compactor);
             }
-            gcMonitor.info("TarMK compaction completed in {}ms",
-                    System.currentTimeMillis() - start);
+            if (!success) {
+                gcMonitor.info("TarMK compaction gave up compacting concurrent commits after " +
+                        "{} cycles.", cycles - 1);
+                if (compactionStrategy.getForceAfterFail()) {
+                    gcMonitor.info("TarMK compaction force compacting remaining commits");
+                    if (!forceCompact(after, compactor)) {
+                        gcMonitor.warn("TarMK compaction failed to force compact remaining commits. " +
+                                "Most likely compaction didn't get exclusive access to the store.");
+                    }
+                }
+            }
+
+            gcMonitor.info("TarMK compaction completed after {} cycles in {}ms",
+                    cycles - 1, System.currentTimeMillis() - start);
         } catch (Exception e) {
             gcMonitor.error("Error while running TarMK compaction", e);
         }
+    }
+
+    private boolean forceCompact(final SegmentNodeState before, final Compactor compactor) throws Exception {
+        return compactionStrategy.compacted(new Callable<Boolean>() {
+            @Override
+            public Boolean call() throws Exception {
+                return new SetHead(getHead(), compactor.compact(before, getHead()), compactor).call();
+            }
+        });
     }
 
     public synchronized Iterable<SegmentId> getSegmentIds() {
@@ -929,7 +958,10 @@ public class FileStore implements SegmentStore {
                 for (UUID uuid : reader.getUUIDs()) {
                     graph.put(uuid, null);
                 }
-                graph.putAll(reader.getGraph());
+                Map<UUID, List<UUID>> g = reader.getGraph();
+                if (g != null) {
+                    graph.putAll(g);
+                }
                 return graph;
             }
         }

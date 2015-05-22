@@ -105,7 +105,7 @@ public class SegmentNodeState extends Record implements NodeState {
     }
 
     @Override
-    public boolean hasProperty(String name) {
+    public boolean hasProperty(@Nonnull String name) {
         checkNotNull(name);
         Template template = getTemplate();
         if (JCR_PRIMARYTYPE.equals(name)) {
@@ -118,7 +118,7 @@ public class SegmentNodeState extends Record implements NodeState {
     }
 
     @Override @CheckForNull
-    public PropertyState getProperty(String name) {
+    public PropertyState getProperty(@Nonnull String name) {
         checkNotNull(name);
         Template template = getTemplate();
         PropertyState property = null;
@@ -214,7 +214,7 @@ public class SegmentNodeState extends Record implements NodeState {
     }
 
     @Override
-    public boolean getBoolean(String name) {
+    public boolean getBoolean(@Nonnull String name) {
         return Boolean.TRUE.toString().equals(getValueAsString(name, BOOLEAN));
     }
 
@@ -234,17 +234,17 @@ public class SegmentNodeState extends Record implements NodeState {
     }
 
     @Override @Nonnull
-    public Iterable<String> getStrings(String name) {
+    public Iterable<String> getStrings(@Nonnull String name) {
         return getValuesAsStrings(name, STRINGS);
     }
 
     @Override @CheckForNull
-    public String getName(String name) {
+    public String getName(@Nonnull String name) {
         return getValueAsString(name, NAME);
     }
 
     @Override @Nonnull
-    public Iterable<String> getNames(String name) {
+    public Iterable<String> getNames(@Nonnull String name) {
         return getValuesAsStrings(name, NAMES);
     }
 
@@ -365,7 +365,7 @@ public class SegmentNodeState extends Record implements NodeState {
     }
 
     @Override
-    public boolean hasChildNode(String name) {
+    public boolean hasChildNode(@Nonnull String name) {
         String childName = getTemplate().getChildName();
         if (childName == Template.ZERO_CHILD_NODES) {
             return false;
@@ -377,7 +377,7 @@ public class SegmentNodeState extends Record implements NodeState {
     }
 
     @Override @Nonnull
-    public NodeState getChildNode(String name) {
+    public NodeState getChildNode(@Nonnull String name) {
         String childName = getTemplate().getChildName();
         if (childName == Template.MANY_CHILD_NODES) {
             MapEntry child = getChildNodeMap().getEntry(name);

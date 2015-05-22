@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.1-SNAPSHOT</version>
+    <version>1.4-SNAPSHOT</version>
     <relativePath>oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -40,9 +40,6 @@
     <module>oak-commons</module>
     <module>oak-blob</module>
     <module>oak-blob-cloud</module>
-    <module>oak-mk-api</module>
-    <module>oak-mk</module>
-    <module>oak-mk-remote</module>
     <module>oak-core</module>
     <module>oak-jcr</module>
     <module>oak-upgrade</module>
@@ -66,27 +63,25 @@
   </scm>
 
   <build>
-    <pluginManagement>
-      <plugins>
-        <plugin>
-          <groupId>org.apache.rat</groupId>
-          <artifactId>apache-rat-plugin</artifactId>
-          <configuration>
-            <excludes>
-              <exclude>release.properties</exclude>
-              <exclude>.git/**</exclude>
-              <exclude>.idea/**</exclude>
-              <exclude>.gitignore</exclude>
-              <exclude>oak-doc/*.uxf</exclude>
-              <exclude>oak-doc/.*/**</exclude>
-              <exclude>oak-doc/*.iml</exclude>
-              <exclude>oak-doc/target/**</exclude>
-              <exclude>oak-js/package.json</exclude>
-            </excludes>
-          </configuration>
-        </plugin>
-      </plugins>
-    </pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.rat</groupId>
+        <artifactId>apache-rat-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>release.properties</exclude>
+            <exclude>.git/**</exclude>
+            <exclude>.idea/**</exclude>
+            <exclude>.gitignore</exclude>
+            <exclude>oak-doc/*.uxf</exclude>
+            <exclude>oak-doc/.*/**</exclude>
+            <exclude>oak-doc/*.iml</exclude>
+            <exclude>oak-doc/target/**</exclude>
+            <exclude>oak-js/package.json</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+    </plugins>
   </build>
 
   <reporting>

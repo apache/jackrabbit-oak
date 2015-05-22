@@ -68,6 +68,7 @@ public final class AuthInfoImpl implements AuthInfo {
         return attributes.get(attributeName);
     }
 
+    @Nonnull
     @Override
     public Set<Principal> getPrincipals() {
         return principals;

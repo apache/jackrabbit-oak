@@ -133,10 +133,9 @@
         <field name=":suggest" type="string" indexed="true" stored="true" multiValued="true" />
 
         <!-- sorting dynamic fields -->
-        <!--<dynamicField name="*_long_sort" type="tlong" indexed="false" stored="false" multiValued="false" docValues="true"/>-->
-        <!--<dynamicField name="*_double_sort" type="tdouble" indexed="false" stored="false" multiValued="false" docValues="true"/>-->
-        <!--<dynamicField name="*_date_sort" type="tdate" indexed="false" stored="false" multiValued="false" docValues="true"/>-->
+        <dynamicField name="*_double_sort" type="tdouble" indexed="false" stored="false" multiValued="false" docValues="true"/>
         <dynamicField name="*_string_sort" type="string" indexed="false" stored="false" multiValued="false" docValues="true"/>
+        <dynamicField name="*_binary_sort" type="string" indexed="true" stored="false" multiValued="false" omitNorms="true"/>
 
         <dynamicField name="*" type="text_general" indexed="true" stored="true" multiValued="true"/>
     </fields>

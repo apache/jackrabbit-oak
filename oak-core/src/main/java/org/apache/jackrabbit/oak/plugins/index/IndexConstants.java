@@ -61,4 +61,10 @@ public interface IndexConstants {
     String DECLARING_NODE_TYPES = "declaringNodeTypes";
 
     String INDEX_CONTENT_NODE_NAME = ":index";
+
+    /**
+     * MVP to define the paths for which the index can be used to perform
+     * queries. Defaults to ['/'].
+     */
+    String QUERY_PATHS = "queryPaths";
 }

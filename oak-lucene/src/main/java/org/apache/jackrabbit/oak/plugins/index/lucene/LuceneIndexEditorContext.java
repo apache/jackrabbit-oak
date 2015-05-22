@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
@@ -27,6 +28,9 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.Calendar;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
+import javax.annotation.Nullable;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -36,6 +40,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
@@ -55,14 +60,19 @@ public class LuceneIndexEditorContext {
     private static final Logger log = LoggerFactory
             .getLogger(LuceneIndexEditorContext.class);
 
-    private static IndexWriterConfig getIndexWriterConfig(IndexDefinition definition) {
+    private static final PerfLogger PERF_LOGGER =
+            new PerfLogger(LoggerFactory.getLogger(LuceneIndexEditorContext.class.getName() + ".perf"));
+
+    static IndexWriterConfig getIndexWriterConfig(IndexDefinition definition, boolean remoteDir) {
         // FIXME: Hack needed to make Lucene work in an OSGi environment
         Thread thread = Thread.currentThread();
         ClassLoader loader = thread.getContextClassLoader();
         thread.setContextClassLoader(IndexWriterConfig.class.getClassLoader());
         try {
             IndexWriterConfig config = new IndexWriterConfig(VERSION, definition.getAnalyzer());
-            config.setMergeScheduler(new SerialMergeScheduler());
+            if (remoteDir) {
+                config.setMergeScheduler(new SerialMergeScheduler());
+            }
             if (definition.getCodec() != null) {
                 config.setCodec(definition.getCodec());
             }
@@ -72,11 +82,11 @@ public class LuceneIndexEditorContext {
         }
     }
 
-    private static Directory newIndexDirectory(IndexDefinition indexDefinition, NodeBuilder definition)
+    static Directory newIndexDirectory(IndexDefinition indexDefinition, NodeBuilder definition)
             throws IOException {
         String path = definition.getString(PERSISTENCE_PATH);
         if (path == null) {
-            return new OakDirectory(definition.child(INDEX_DATA_CHILD_NAME), indexDefinition);
+            return new OakDirectory(definition.child(INDEX_DATA_CHILD_NAME), indexDefinition, false);
         } else {
             // try {
             File file = new File(path);
@@ -96,8 +106,6 @@ public class LuceneIndexEditorContext {
         }
     }
 
-    private final IndexWriterConfig config;
-
     private static final Parser defaultParser = createDefaultParser();
 
     private final IndexDefinition definition;
@@ -114,15 +122,24 @@ public class LuceneIndexEditorContext {
 
     private Parser parser;
 
+    @Nullable
+    private final IndexCopier indexCopier;
+
+
+    private Directory directory;
+
+    private final TextExtractionStats textExtractionStats = new TextExtractionStats();
+
     /**
      * The media types supported by the parser used.
      */
     private Set<MediaType> supportedMediaTypes;
 
-    LuceneIndexEditorContext(NodeState root, NodeBuilder definition, IndexUpdateCallback updateCallback) {
+    LuceneIndexEditorContext(NodeState root, NodeBuilder definition, IndexUpdateCallback updateCallback,
+                             @Nullable IndexCopier indexCopier) {
         this.definitionBuilder = definition;
+        this.indexCopier = indexCopier;
         this.definition = new IndexDefinition(root, definition);
-        this.config = getIndexWriterConfig(this.definition);
         this.indexedNodes = 0;
         this.updateCallback = updateCallback;
         if (this.definition.isOfOldFormat()){
@@ -139,7 +156,17 @@ public class LuceneIndexEditorContext {
 
     IndexWriter getWriter() throws IOException {
         if (writer == null) {
-            writer = new IndexWriter(newIndexDirectory(definition, definitionBuilder), config);
+            final long start = PERF_LOGGER.start();
+            directory = newIndexDirectory(definition, definitionBuilder);
+            IndexWriterConfig config;
+            if (indexCopier != null){
+                directory = indexCopier.wrapForWrite(definition, directory, reindex);
+                config = getIndexWriterConfig(definition, false);
+            } else {
+                config = getIndexWriterConfig(definition, true);
+            }
+            writer = new IndexWriter(directory, config);
+            PERF_LOGGER.end(start, -1, "Created IndexWriter for directory {}", definition);
         }
         return writer;
     }
@@ -157,10 +184,12 @@ public class LuceneIndexEditorContext {
         }
 
         if (writer != null) {
-
+            final long start = PERF_LOGGER.start();
             updateSuggester();
 
             writer.close();
+
+            directory.close();
 
             //OAK-2029 Record the last updated status so
             //as to make IndexTracker detect changes when index
@@ -168,6 +197,9 @@ public class LuceneIndexEditorContext {
             NodeBuilder status = definitionBuilder.child(":status");
             status.setProperty("lastUpdated", ISO8601.format(Calendar.getInstance()), Type.DATE);
             status.setProperty("indexedNodes",indexedNodes);
+            PERF_LOGGER.end(start, -1, "Closed IndexWriter for directory {}", definition);
+
+            textExtractionStats.log(reindex);
         }
     }
 
@@ -237,23 +269,35 @@ public class LuceneIndexEditorContext {
         return definition;
     }
 
+    public void recordTextExtractionStats(long timeInMillis, long size) {
+        textExtractionStats.addStats(timeInMillis, size);
+    }
+
     private static Parser initializeTikaParser(IndexDefinition definition) {
-        if (definition.hasCustomTikaConfig()){
-            InputStream is = definition.getTikaConfig();
-            try {
-                return new AutoDetectParser(getTikaConfig(is, definition));
-            } finally {
-                IOUtils.closeQuietly(is);
+        ClassLoader current = Thread.currentThread().getContextClassLoader();
+        try {
+            if (definition.hasCustomTikaConfig()) {
+                Thread.currentThread().setContextClassLoader(LuceneIndexEditorContext.class.getClassLoader());
+                InputStream is = definition.getTikaConfig();
+                try {
+                    return new AutoDetectParser(getTikaConfig(is, definition));
+                } finally {
+                    IOUtils.closeQuietly(is);
+                }
             }
+        }finally {
+            Thread.currentThread().setContextClassLoader(current);
         }
         return defaultParser;
     }
 
     private static AutoDetectParser createDefaultParser() {
+        ClassLoader current = Thread.currentThread().getContextClassLoader();
         URL configUrl = LuceneIndexEditorContext.class.getResource("tika-config.xml");
         InputStream is = null;
         if (configUrl != null) {
             try {
+                Thread.currentThread().setContextClassLoader(LuceneIndexEditorContext.class.getClassLoader());
                 is = configUrl.openStream();
                 TikaConfig config = new TikaConfig(is);
                 log.info("Loaded default Tika Config from classpath {}", configUrl);
@@ -262,6 +306,7 @@ public class LuceneIndexEditorContext {
                 log.warn("Tika configuration not available : " + configUrl, e);
             } finally {
                 IOUtils.closeQuietly(is);
+                Thread.currentThread().setContextClassLoader(current);
             }
         } else {
             log.warn("Default Tika configuration not found from {}", configUrl);
@@ -276,5 +321,51 @@ public class LuceneIndexEditorContext {
             log.warn("Tika configuration not available : "+source, e);
         }
         return TikaConfig.getDefaultConfig();
+    }
+
+    static class TextExtractionStats {
+        /**
+         * Log stats only if time spent is more than 2 min
+         */
+        private static final long LOGGING_THRESHOLD = TimeUnit.MINUTES.toMillis(2);
+        private int count;
+        private long totalSize;
+        private long totalTime;
+
+        public void addStats(long timeInMillis, long size) {
+            count++;
+            totalSize += size;
+            totalTime += timeInMillis;
+        }
+
+        public void log(boolean reindex) {
+            if (log.isDebugEnabled()) {
+                log.debug("Text extraction stats {}", this);
+            } else if (anyParsingDone() && (reindex || isTakingLotsOfTime())) {
+                log.info("Text extraction stats {}", this);
+            }
+        }
+
+        private boolean isTakingLotsOfTime() {
+            return totalTime > LOGGING_THRESHOLD;
+        }
+
+        private boolean anyParsingDone() {
+            return count > 0;
+        }
+
+        @Override
+        public String toString() {
+            return String.format(" %d (%s, %s)", count,
+                    timeInWords(totalTime), humanReadableByteCount(totalSize));
+        }
+
+        private static String timeInWords(long millis) {
+            return String.format("%d min, %d sec",
+                    TimeUnit.MILLISECONDS.toMinutes(millis),
+                    TimeUnit.MILLISECONDS.toSeconds(millis) -
+                            TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis))
+            );
+        }
     }
 }

@@ -29,6 +29,9 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.stats.Clock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -45,6 +48,8 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
  * a background thread.
  */
 class UnsavedModifications {
+
+    private static final Logger LOG = LoggerFactory.getLogger(UnsavedModifications.class);
 
     /**
      * The maximum number of document to update at once in a multi update.
@@ -131,17 +136,24 @@ class UnsavedModifications {
      * @param store the document node store.
      * @param lock the lock to acquire to get a consistent snapshot of the
      *             revisions to write back.
+     * @return stats about the write operation.
      */
-    public void persist(@Nonnull DocumentNodeStore store,
-                        @Nonnull Lock lock) {
+    public BackgroundWriteStats persist(@Nonnull DocumentNodeStore store,
+                                        @Nonnull Lock lock) {
+        BackgroundWriteStats stats = new BackgroundWriteStats();
         if (map.size() == 0) {
-            return;
+            return stats;
         }
         checkNotNull(store);
         checkNotNull(lock);
 
-        // get a copy of the map while holding the lock
+        Clock clock = store.getClock();
+
+        long time = clock.getTime();
+                // get a copy of the map while holding the lock
         lock.lock();
+        stats.lock = clock.getTime() - time;
+        time = clock.getTime();
         Map<String, Revision> pending;
         try {
             pending = Maps.newTreeMap(PathComparator.INSTANCE);
@@ -149,6 +161,7 @@ class UnsavedModifications {
         } finally {
             lock.unlock();
         }
+        stats.num = pending.size();
         UpdateOp updateOp = null;
         Revision lastRev = null;
         PeekingIterator<String> paths = Iterators.peekingIterator(
@@ -188,6 +201,7 @@ class UnsavedModifications {
                     ids.add(Utils.getIdFromPath(path));
                 }
                 store.getDocumentStore().update(NODES, ids, updateOp);
+                LOG.debug("Updated _lastRev to {} on {}", lastRev, ids);
                 for (String path : pathList) {
                     map.remove(path, lastRev);
                 }
@@ -196,6 +210,8 @@ class UnsavedModifications {
                 lastRev = null;
             }
         }
+        stats.write = clock.getTime() - time;
+        return stats;
     }
 
     @Override

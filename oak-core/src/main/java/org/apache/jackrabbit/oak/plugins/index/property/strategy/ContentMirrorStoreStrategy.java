@@ -78,7 +78,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
     /**
      * logging a warning every {@code oak.traversing.warn} traversed nodes. Default {@code 10000}
      */
-    static final int TRAVERSING_WARN = Integer.getInteger("oak.traversing.warn", 10000);
+    public static final int TRAVERSING_WARN = Integer.getInteger("oak.traversing.warn", 10000);
 
     @Override
     public void update(
@@ -307,6 +307,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         private final Deque<Iterator<? extends ChildNodeEntry>> nodeIterators =
                 Queues.newArrayDeque();
         private int readCount;
+        private int intermediateNodeReadCount;
         private boolean init;
         private boolean closed;
         private String filterPath;
@@ -385,12 +386,6 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                 if (iterator.hasNext()) {
                     ChildNodeEntry entry = iterator.next();
 
-                    readCount++;
-                    if (readCount % TRAVERSING_WARN == 0) {
-                        FilterIterators.checkReadLimit(readCount, settings);
-                        LOG.warn("Traversed " + readCount + " nodes using index " + indexName + " with filter " + filter);
-                    }
-
                     NodeState node = entry.getNodeState();
 
                     String name = entry.getName();
@@ -422,7 +417,14 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                     parentPath = currentPath;
 
                     if (node.getBoolean("match")) {
+                        readCount++;
+                        if (readCount % TRAVERSING_WARN == 0) {
+                            FilterIterators.checkReadLimit(readCount, settings);
+                            LOG.warn("Traversed {} nodes ({} index entries) using index {} with filter {}", readCount, intermediateNodeReadCount, indexName, filter);
+                        }
                         return;
+                    } else {
+                        intermediateNodeReadCount++;
                     }
 
                 } else {
@@ -574,4 +576,14 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
             }
         }
     }
+
+    @Override
+    public boolean exists(NodeBuilder index, String key) {
+        // This is currently not implemented, because there is no test case for it,
+        // and because there is currently no need for this method with this class.
+        // We would need to traverse the tree and search for an entry "match".
+        // See also OAK-2663 for a potential (but untested) implementation.
+        throw new UnsupportedOperationException();
+   }
+
 }

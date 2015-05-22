@@ -27,7 +27,6 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.security.auth.Subject;
-import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.api.JackrabbitSession;
@@ -56,9 +55,6 @@ import org.slf4j.LoggerFactory;
  */
 public class SyncMBeanImpl implements SynchronizationMBean {
 
-    /**
-     * default logger
-     */
     private static final Logger log = LoggerFactory.getLogger(SyncMBeanImpl.class);
 
     private final Repository repository;
@@ -99,7 +95,7 @@ public class SyncMBeanImpl implements SynchronizationMBean {
         }
     }
 
-    private class Delegatee {
+    private final class Delegatee {
 
         private SyncHandler handler;
 
@@ -111,13 +107,13 @@ public class SyncMBeanImpl implements SynchronizationMBean {
 
         private Session systemSession;
 
-        private Delegatee(SyncHandler handler, ExternalIdentityProvider idp) throws SyncException {
+        private Delegatee(@Nonnull SyncHandler handler, @Nonnull ExternalIdentityProvider idp) throws SyncException {
             this.handler = handler;
             this.idp = idp;
             try {
                 systemSession = Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<Session>() {
                     @Override
-                    public Session run() throws LoginException, RepositoryException {
+                    public Session run() throws RepositoryException {
                         if (repository instanceof JackrabbitRepository) {
                             // this is to bypass GuestCredentials injection in the "AbstractSlingRepository2"
                             return ((JackrabbitRepository) repository).login(null, null, null);
@@ -275,7 +271,8 @@ public class SyncMBeanImpl implements SynchronizationMBean {
                 while (iter.hasNext()) {
                     SyncedIdentity id = iter.next();
                     if (isMyIDP(id)) {
-                        ExternalIdentity extId = idp.getIdentity(id.getExternalIdRef());
+                        ExternalIdentityRef exIdRef = id.getExternalIdRef();
+                        ExternalIdentity extId = (exIdRef == null) ? null : idp.getIdentity(exIdRef);
                         if (extId == null) {
                             list.add(id.getId());
                         }
@@ -310,16 +307,16 @@ public class SyncMBeanImpl implements SynchronizationMBean {
             return result.toArray(new String[result.size()]);
         }
 
-        private boolean isMyIDP(SyncedIdentity id) {
-            String idpName = id.getExternalIdRef() == null
+        private boolean isMyIDP(@Nonnull SyncedIdentity id) {
+            String providerName = id.getExternalIdRef() == null
                     ? null
                     : id.getExternalIdRef().getProviderName();
-            return (idpName == null || idpName.length() ==0 || idpName.equals(idp.getName()));
+            return (providerName == null || providerName.isEmpty() || providerName.equals(idp.getName()));
         }
     }
 
-    private static String getJSONString(SyncResult r) {
-        String op = "";
+    private static String getJSONString(@Nonnull SyncResult r) {
+        String op;
         switch (r.getStatus()) {
             case NOP:
                 op = "nop";
@@ -345,19 +342,19 @@ public class SyncMBeanImpl implements SynchronizationMBean {
             case FOREIGN:
                 op = "for";
                 break;
+            default:
+                op = "";
         }
-        String uid = JsonUtil.getJsonString(r.getIdentity().getId());
-        String eid = r.getIdentity().getExternalIdRef() == null
-                ? "\"\""
-                : JsonUtil.getJsonString(r.getIdentity().getExternalIdRef().getString());
+        SyncedIdentity syncedIdentity = r.getIdentity();
+        String uid = JsonUtil.getJsonString((syncedIdentity == null ? null : syncedIdentity.getId()));
+        ExternalIdentityRef externalIdentityRef = (syncedIdentity == null) ? null : syncedIdentity.getExternalIdRef();
+        String eid = (externalIdentityRef == null) ? "\"\"" : JsonUtil.getJsonString(externalIdentityRef.getString());
         return String.format("{op:\"%s\",uid:%s,eid:%s}", op, uid, eid);
     }
 
-    private static String getJSONString(SyncedIdentity id, Exception e) {
+    private static String getJSONString(@Nonnull SyncedIdentity id, @Nonnull Exception e) {
         String uid = JsonUtil.getJsonString(id.getId());
-        String eid = id.getExternalIdRef() == null
-                ? "\"\""
-                : JsonUtil.getJsonString(id.getExternalIdRef().getString());
+        String eid = (id.getExternalIdRef() == null) ? "\"\"" : JsonUtil.getJsonString(id.getExternalIdRef().getString());
         String msg = JsonUtil.getJsonString(e.toString());
         return String.format("{op:\"ERR\",uid:%s,eid:%s,msg:%s}", uid, eid, msg);
     }

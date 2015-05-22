@@ -91,7 +91,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
 
     public AccessControlPolicy[] getPolicies(String absPath) throws RepositoryException {
         String oakPath = getOakPath(absPath);
-        if (isSupportedPath(oakPath)) {
+        if (oakPath != null && isSupportedPath(oakPath)) {
             CugPolicy cug = getCugPolicy(oakPath);
             if (cug != null) {
                 return new AccessControlPolicy[]{cug};
@@ -107,7 +107,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
         Root r = getRoot().getContentSession().getLatestRoot();
         List<AccessControlPolicy> effective = new ArrayList<AccessControlPolicy>();
         while (!Strings.isNullOrEmpty(oakPath)) {
-            if (isSupportedPath(oakPath)) {
+            if (oakPath != null && isSupportedPath(oakPath)) {
                 CugPolicy cug = getCugPolicy(oakPath, r.getTree(oakPath));
                 if (cug != null) {
                     effective.add(cug);
@@ -120,7 +120,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
 
     public AccessControlPolicyIterator getApplicablePolicies(String absPath) throws RepositoryException {
         String oakPath = getOakPath(absPath);
-        if (!isSupportedPath(oakPath)) {
+        if (oakPath == null || !isSupportedPath(oakPath)) {
             return AccessControlPolicyIteratorAdapter.EMPTY;
         } else {
             CugPolicy cug = getCugPolicy(oakPath);

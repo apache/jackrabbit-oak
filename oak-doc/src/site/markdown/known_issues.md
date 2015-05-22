@@ -26,3 +26,12 @@ Changes with respect to Jackrabbit-core are collected in [OAK-14]
       See [OAK-118](https://issues.apache.org/jira/browse/OAK-118)
     * Workspace Management (creating/deleting workspaces) is not implemented yet
       See [OAK-118](https://issues.apache.org/jira/browse/OAK-118)
+
+* Observation queues handling
+    * With an excessively large commit rate, the observation queues can fill up
+      and if not prevented and the queue hits a certain threshold and/or the limit
+      then it would result in Local events reported as external event
+      [OAK-2683][OAK-2683]​
+    
+[OAK-300]: https://issues.apache.org/jira/browse/OAK-300
+[OAK-2683]: https://issues.apache.org/jira/browse/OAK-2683

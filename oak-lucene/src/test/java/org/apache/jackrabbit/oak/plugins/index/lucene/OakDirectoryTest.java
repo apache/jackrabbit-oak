@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
@@ -38,6 +39,7 @@ import org.apache.lucene.store.IndexOutput;
 import org.junit.Test;
 
 import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
@@ -57,21 +59,21 @@ public class OakDirectoryTest {
 
     @Test
     public void writes_DefaultSetup() throws Exception{
-        Directory dir = createDir(builder);
+        Directory dir = createDir(builder, false);
         assertWrites(dir, IndexDefinition.DEFAULT_BLOB_SIZE);
     }
 
     @Test
     public void writes_CustomBlobSize() throws Exception{
         builder.setProperty(LuceneIndexConstants.BLOB_SIZE, 300);
-        Directory dir = createDir(builder);
+        Directory dir = createDir(builder, false);
         assertWrites(dir, 300);
     }
 
     @Test
     public void testCompatibility() throws Exception{
         builder.setProperty(LuceneIndexConstants.BLOB_SIZE, OakDirectory.DEFAULT_BLOB_SIZE);
-        Directory dir = createDir(builder);
+        Directory dir = createDir(builder, false);
         byte[] data = assertWrites(dir, OakDirectory.DEFAULT_BLOB_SIZE);
 
         NodeBuilder testNode = builder.child(INDEX_DATA_CHILD_NAME).child("test");
@@ -90,7 +92,7 @@ public class OakDirectoryTest {
 
     @Test //OAK-2388
     public void testOverflow() throws Exception{
-        Directory dir = createDir(builder);
+        Directory dir = createDir(builder, false);
         NodeBuilder file = builder.child(INDEX_DATA_CHILD_NAME).child("test.txt");
         int blobSize = 32768;
         int dataSize = 90844;
@@ -103,7 +105,23 @@ public class OakDirectoryTest {
         file.setProperty(PropertyStates.createProperty("jcr:data", blobs, Type.BINARIES));
 
         IndexInput input  = dir.openInput("test.txt", IOContext.DEFAULT);
-        assertEquals((long)blobSize * (dataSize - 1), input.length());
+        assertEquals((long) blobSize * (dataSize - 1), input.length());
+    }
+
+    @Test
+    public void saveListing() throws Exception{
+        builder.setProperty(LuceneIndexConstants.SAVE_DIR_LISTING, true);
+        Directory dir = createDir(builder, false);
+        Set<String> fileNames = newHashSet();
+        for (int i = 0; i < 10; i++) {
+            String fileName = "foo" + i;
+            createFile(dir, fileName);
+            fileNames.add(fileName);
+        }
+        dir.close();
+
+        dir = createDir(builder, true);
+        assertEquals(fileNames, newHashSet(dir.listAll()));
     }
 
     byte[] assertWrites(Directory dir, int blobSize) throws IOException {
@@ -132,8 +150,18 @@ public class OakDirectoryTest {
         return data;
     }
 
-    private Directory createDir(NodeBuilder builder){
-        return new OakDirectory(builder.child(INDEX_DATA_CHILD_NAME), new IndexDefinition(root, builder.getNodeState()));
+    private int createFile(Directory dir, String fileName) throws IOException {
+        int size = rnd.nextInt(1000) + 1;
+        byte[] data = randomBytes(size);
+        IndexOutput o = dir.createOutput(fileName, IOContext.DEFAULT);
+        o.writeBytes(data, data.length);
+        o.close();
+        return size;
+    }
+
+    private Directory createDir(NodeBuilder builder, boolean readOnly){
+        return new OakDirectory(builder.child(INDEX_DATA_CHILD_NAME),
+                new IndexDefinition(root, builder.getNodeState()), readOnly);
     }
 
     byte[] randomBytes(int size) {

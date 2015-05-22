@@ -35,6 +35,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Set;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -419,8 +421,8 @@ public class IndexUpdateTest {
     private static IndexEditorProvider emptyProvider() {
         return new IndexEditorProvider() {
             @Override
-            public Editor getIndexEditor(String type, NodeBuilder definition,
-                    NodeState root, IndexUpdateCallback callback)
+            public Editor getIndexEditor(@Nonnull String type, @Nonnull NodeBuilder definition,
+                    @Nonnull NodeState root, @Nonnull IndexUpdateCallback callback)
                     throws CommitFailedException {
                 return null;
             }

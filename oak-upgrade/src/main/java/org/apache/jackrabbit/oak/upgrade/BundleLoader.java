@@ -30,6 +30,8 @@ import org.apache.jackrabbit.core.state.NodeState;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.commons.name.NameConstants;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 class BundleLoader {
 
     private final PersistenceManager pm;
@@ -57,7 +59,8 @@ class BundleLoader {
     NodePropBundle loadBundle(NodeId id) throws ItemStateException {
         if (loadBundle != null) {
             try {
-                return (NodePropBundle) loadBundle.invoke(pm, id);
+                return checkNotNull((NodePropBundle) loadBundle.invoke(pm, id),
+                        "Could not load NodePropBundle for id [%s]", id);
             } catch (InvocationTargetException e) {
                 if (e.getCause() instanceof ItemStateException) {
                     throw (ItemStateException) e.getCause();
@@ -71,6 +74,7 @@ class BundleLoader {
         }
 
         NodeState state = pm.load(id);
+        checkNotNull(state, "Could not load NodeState for id [%s]", id);
         NodePropBundle bundle = new NodePropBundle(state);
         for (Name name : state.getPropertyNames()) {
             if (NameConstants.JCR_UUID.equals(name)) {

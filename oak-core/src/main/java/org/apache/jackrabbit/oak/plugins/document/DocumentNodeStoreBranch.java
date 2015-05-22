@@ -27,6 +27,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 
 import javax.annotation.CheckForNull;
@@ -35,7 +36,6 @@ import javax.annotation.Nonnull;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
@@ -54,6 +54,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
     private static final PerfLogger perfLogger = new PerfLogger(
             LoggerFactory.getLogger(DocumentNodeStoreBranch.class.getName()
                     + ".perf"));
+    private static final int MAX_LOCK_TRY_TIME_MULTIPLIER = Integer.getInteger("oak.maxLockTryTimeMultiplier", 30);
 
     private static final ConcurrentMap<Thread, DocumentNodeStoreBranch> BRANCHES = Maps.newConcurrentMap();
     private static final Random RANDOM = new Random();
@@ -61,9 +62,6 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
 
     /** The underlying store to which this branch belongs */
     protected final DocumentNodeStore store;
-
-    /** The dispatcher to report changes */
-    protected final ChangeDispatcher dispatcher;
 
     protected final long maximumBackoff;
 
@@ -84,10 +82,9 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                             DocumentNodeState base,
                             ReadWriteLock mergeLock) {
         this.store = checkNotNull(store);
-        this.dispatcher = new ChangeDispatcher(store.getRoot());
         this.branchState = new Unmodified(checkNotNull(base));
         this.maximumBackoff = Math.max((long) store.getMaxBackOffMillis(), MIN_BACKOFF);
-        this.maxLockTryTimeMS = (long) (store.getMaxBackOffMillis() * 3);
+        this.maxLockTryTimeMS = (long) (store.getMaxBackOffMillis() * MAX_LOCK_TRY_TIME_MULTIPLIER);
         this.mergeLock = mergeLock;
     }
 
@@ -171,7 +168,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
     public NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info)
             throws CommitFailedException {
         try {
-            return merge0(hook, info);
+            return merge0(hook, info, false);
         } catch (CommitFailedException e) {
             if (!e.isOfType(MERGE)) {
                 throw e;
@@ -179,21 +176,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         }
         // retry with exclusive lock, blocking other
         // concurrent writes
-        // do not wait forever
-        boolean acquired = false;
-        try {
-            acquired = mergeLock.writeLock()
-                    .tryLock(maxLockTryTimeMS, MILLISECONDS);
-        } catch (InterruptedException e) {
-            // ignore and proceed with shared lock used in base class
-        }
-        try {
-            return merge0(hook, info);
-        } finally {
-            if (acquired) {
-                mergeLock.writeLock().unlock();
-            }
-        }
+        return merge0(hook, info, true);
     }
 
     @Override
@@ -209,7 +192,9 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
     //------------------------------< internal >--------------------------------
 
     @Nonnull
-    private NodeState merge0(@Nonnull CommitHook hook, @Nonnull CommitInfo info)
+    private NodeState merge0(@Nonnull CommitHook hook,
+                             @Nonnull CommitInfo info,
+                             boolean exclusive)
             throws CommitFailedException {
         CommitFailedException ex = null;
         long time = System.currentTimeMillis();
@@ -228,9 +213,9 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             }
             try {
                 final long start = perfLogger.start();
-                boolean acquired = mergeLock.readLock().tryLock(maxLockTryTimeMS, MILLISECONDS);
-                perfLogger.end(start, 1, "Merge - Acquired lock");
+                Lock lock = acquireMergeLock(exclusive);
                 try {
+                    perfLogger.end(start, 1, "Merge - Acquired lock");
                     return branchState.merge(checkNotNull(hook), checkNotNull(info));
                 } catch (CommitFailedException e) {
                     LOG.trace("Merge Error", e);
@@ -242,8 +227,8 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                         throw e;
                     }
                 } finally {
-                    if (acquired) {
-                        mergeLock.readLock().unlock();
+                    if (lock != null) {
+                        lock.unlock();
                     }
                 }
             } catch (InterruptedException e) {
@@ -256,6 +241,33 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         String msg = ex.getMessage() + " (retries " + numRetries + ", " + time + " ms)";
         throw new CommitFailedException(ex.getSource(), ex.getType(),
                 ex.getCode(), msg, ex.getCause());
+    }
+
+    /**
+     * Acquires the merge lock either exclusive or shared.
+     *
+     * @param exclusive whether to acquire the merge lock exclusive.
+     * @return the acquired merge lock or {@code null} if the operation timed
+     * out.
+     * @throws InterruptedException if the current thread is interrupted while
+     *                              acquiring the lock
+     */
+    @CheckForNull
+    private Lock acquireMergeLock(boolean exclusive)
+            throws InterruptedException {
+        Lock lock;
+        if (exclusive) {
+            lock = mergeLock.writeLock();
+        } else {
+            lock = mergeLock.readLock();
+        }
+        boolean acquired = lock.tryLock(maxLockTryTimeMS, MILLISECONDS);
+        if (!acquired) {
+            String mode = exclusive ? "exclusive" : "shared";
+            LOG.info("Time out while acquiring merge lock ({})", mode);
+            lock = null;
+        }
+        return lock;
     }
 
     private interface Changes {
@@ -365,7 +377,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         }
 
         /**
-         * Persist this branch to an underlying branch in the {@code MicroKernel}.
+         * Persist this branch to an underlying branch in the {@code NodeStore}.
          */
         Persisted persist() {
             Persisted p = new Persisted(base);
@@ -512,29 +524,23 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 throws CommitFailedException {
             checkNotNull(hook);
             checkNotNull(info);
+            rebase();
+            NodeState toCommit = hook.processCommit(base, head, info);
             try {
-                rebase();
-                dispatcher.contentChanged(base, null);
-                NodeState toCommit = hook.processCommit(base, head, info);
-                try {
-                    NodeState newHead = DocumentNodeStoreBranch.this.persist(toCommit, base, info);
-                    dispatcher.contentChanged(newHead, info);
-                    branchState = new Merged(base);
-                    return newHead;
-                } catch(DocumentStoreException e) {
-                    throw new CommitFailedException(MERGE, 1, "Failed to merge changes to the underlying store", e);
-                } catch (Exception e) {
-                    throw new CommitFailedException(OAK, 1, "Failed to merge changes to the underlying store", e);
-                }
-            } finally {
-                dispatcher.contentChanged(store.getRoot(), null);
+                NodeState newHead = DocumentNodeStoreBranch.this.persist(toCommit, base, info);
+                branchState = new Merged(base);
+                return newHead;
+            } catch(DocumentStoreException e) {
+                throw new CommitFailedException(MERGE, 1, "Failed to merge changes to the underlying store", e);
+            } catch (Exception e) {
+                throw new CommitFailedException(OAK, 1, "Failed to merge changes to the underlying store", e);
             }
         }
     }
 
     /**
      * Instances of this class represent a branch whose head is persisted to an
-     * underlying branch in the {@code MicroKernel}.
+     * underlying branch in the {@code NodeStore}.
      * <p>
      * Transitions to:
      * <ul>
@@ -554,12 +560,6 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         Persisted(DocumentNodeState base) {
             super(base);
             this.head = createBranch(base);
-        }
-
-        Persisted(DocumentNodeState base, DocumentNodeState head) {
-            super(base);
-            createBranch(base);
-            this.head = head;
         }
 
         /**
@@ -625,7 +625,6 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             try {
                 rebase();
                 previousHead = head;
-                dispatcher.contentChanged(base, null);
                 DocumentNodeState newRoot = withCurrentBranch(new Callable<DocumentNodeState>() {
                     @Override
                     public DocumentNodeState call() throws Exception {
@@ -636,7 +635,6 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 });
                 branchState = new Merged(base);
                 success = true;
-                dispatcher.contentChanged(newRoot, info);
                 return newRoot;
             } catch (CommitFailedException e) {
                 throw e;
@@ -647,7 +645,6 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 if (!success) {
                     resetBranch(head, previousHead);
                 }
-                dispatcher.contentChanged(store.getRoot(), null);
             }
         }
 

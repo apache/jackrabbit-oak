@@ -19,14 +19,18 @@
 
 package org.apache.jackrabbit.oak.plugins.segment.compaction;
 
+import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.plugins.segment.CompactionMap;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType;
 
-public class DefaultCompactionStrategyMBean implements CompactionStrategyMBean {
+public class DefaultCompactionStrategyMBean
+        extends AnnotatedStandardMBean
+        implements CompactionStrategyMBean {
 
     private final CompactionStrategy strategy;
 
     public DefaultCompactionStrategyMBean(CompactionStrategy strategy) {
+        super(CompactionStrategyMBean.class);
         this.strategy = strategy;
     }
 
@@ -78,6 +82,26 @@ public class DefaultCompactionStrategyMBean implements CompactionStrategyMBean {
     @Override
     public void setMemoryThreshold(byte memory) {
         strategy.setMemoryThreshold(memory);
+    }
+
+    @Override
+    public boolean getForceAfterFail() {
+        return strategy.getForceAfterFail();
+    }
+
+    @Override
+    public void setForceAfterFail(boolean forceAfterFail) {
+        strategy.setForceAfterFail(forceAfterFail);
+    }
+
+    @Override
+    public int getRetryCount() {
+        return strategy.getRetryCount();
+    }
+
+    @Override
+    public void setRetryCount(int retryCount) {
+        strategy.setRetryCount(retryCount);
     }
 
     @Override

@@ -102,6 +102,7 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
                                                   final @Nonnull RestrictionProvider restrictionProvider) {
         String path = (jcrPath == null) ? null : namePathMapper.getOakPath(jcrPath);
         return new ACL(path, entries, namePathMapper) {
+            @Nonnull
             @Override
             public RestrictionProvider getRestrictionProvider() {
                 return restrictionProvider;

@@ -29,5 +29,6 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
  */
 public interface AuthorizableActionProvider {
 
+    @Nonnull
     List<? extends AuthorizableAction> getAuthorizableActions(@Nonnull SecurityProvider securityProvider);
 }

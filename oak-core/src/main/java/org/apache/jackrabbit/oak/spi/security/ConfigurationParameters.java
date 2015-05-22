@@ -369,7 +369,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
      * {@inheritDoc}
      */
     @Override
-    public void putAll(Map<? extends String, ?> m) {
+    public void putAll(@Nonnull Map<? extends String, ?> m) {
         // we rely on the immutability of the delegated map to throw the correct exceptions.
         options.putAll(m);
     }
@@ -386,6 +386,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
     /**
      * {@inheritDoc}
      */
+    @Nonnull
     @Override
     public Set<String> keySet() {
         return options.keySet();
@@ -394,6 +395,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
     /**
      * {@inheritDoc}
      */
+    @Nonnull
     @Override
     public Collection<Object> values() {
         return options.values();
@@ -402,6 +404,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
     /**
      * {@inheritDoc}
      */
+    @Nonnull
     @Override
     public Set<Entry<String,Object>> entrySet() {
         return options.entrySet();
@@ -489,6 +492,35 @@ public final class ConfigurationParameters implements Map<String, Object> {
                 current += value;
             }
             return current < 0 ? null : new Milliseconds(current + 1);
+        }
+
+        @Nonnull
+        public static Milliseconds of(@Nullable String str, @Nonnull Milliseconds defaultValue) {
+            if (str == null) {
+                return defaultValue;
+            }
+            Matcher m = pattern.matcher(str);
+            long current = -1;
+            while (m.find()) {
+                String number = m.group(1);
+                String decimal = m.group(2);
+                if (decimal != null) {
+                    number += decimal;
+                }
+                String unit = m.group(3);
+                double value = Double.valueOf(number);
+                if ("s".equals(unit)) {
+                    value *= 1000.0;
+                } else if ("m".equals(unit)) {
+                    value *= 60 * 1000.0;
+                } else if ("h".equals(unit)) {
+                    value *= 60 * 60 * 1000.0;
+                } else if ("d".equals(unit)) {
+                    value *= 24 * 60 * 60 * 1000.0;
+                }
+                current += value;
+            }
+            return current < 0 ? defaultValue : new Milliseconds(current + 1);
         }
 
         @Override

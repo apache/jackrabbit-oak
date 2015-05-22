@@ -17,16 +17,19 @@
 package org.apache.jackrabbit.oak;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerObserver;
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -53,7 +56,6 @@ import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
 import org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
@@ -63,6 +65,7 @@ import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexMBeanRegistration;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounterMBean;
@@ -138,6 +141,11 @@ public class Oak {
 
     private Executor executor;
 
+    private final Closer closer = Closer.create();
+
+    private boolean initialized;
+
+
     /**
      * Default {@code ScheduledExecutorService} used for scheduling background tasks.
      * This default spawns up to 32 background thread on an as need basis. Idle
@@ -149,7 +157,7 @@ public class Oak {
             private final AtomicInteger counter = new AtomicInteger();
 
             @Override
-            public Thread newThread(Runnable r) {
+            public Thread newThread(@Nonnull Runnable r) {
                 Thread thread = new Thread(r, createName());
                 thread.setDaemon(true);
                 return thread;
@@ -176,7 +184,7 @@ public class Oak {
             private final AtomicInteger counter = new AtomicInteger();
 
             @Override
-            public Thread newThread(Runnable r) {
+            public Thread newThread(@Nonnull Runnable r) {
                 Thread thread = new Thread(r, createName());
                 thread.setDaemon(true);
                 thread.setPriority(Thread.MIN_PRIORITY);
@@ -195,13 +203,16 @@ public class Oak {
     private synchronized ScheduledExecutorService getScheduledExecutor() {
         if (scheduledExecutor == null) {
             scheduledExecutor = defaultScheduledExecutor();
+            closer.register(new ExecutorCloser(scheduledExecutor));
         }
         return scheduledExecutor;
     }
 
     private synchronized Executor getExecutor() {
         if (executor == null) {
-            executor = defaultExecutorService();
+            ExecutorService executorService = defaultExecutorService();
+            executor = executorService;
+            closer.register(new ExecutorCloser(executorService));
         }
         return executor;
     }
@@ -297,11 +308,11 @@ public class Oak {
     };
 
     /**
-     * Flag controlling the asynchronous indexing behavior. If false (default)
-     * there will be no background indexing happening.
-     * 
+     * Map containing the (names -> delayInSecods) of the background indexing
+     * tasks that need to be started with this repository. A {@code null} value
+     * means no background tasks will run.
      */
-    private boolean asyncIndexing = false;
+    private Map<String, Long> asyncTasks;
 
     public Oak(NodeStore store) {
         this.store = checkNotNull(store);
@@ -493,15 +504,38 @@ public class Oak {
     }
 
     /**
+     * <p>
      * Enable the asynchronous (background) indexing behavior.
-     *
-     * Please not that when enabling the background indexer, you need to take
+     * </p>
+     * <p>
+     * Please note that when enabling the background indexer, you need to take
      * care of calling
      * <code>#shutdown<code> on the <code>executor<code> provided for this Oak instance.
-     *
+     * </p>
+     * @deprecated Use {@link Oak#withAsyncIndexing(String, long)} instead
      */
+    @Deprecated
     public Oak withAsyncIndexing() {
-        this.asyncIndexing = true;
+        return withAsyncIndexing("async", 5);
+    }
+
+    /**
+     * <p>
+     * Enable the asynchronous (background) indexing behavior for the provided
+     * task name.
+     * </p>
+     * <p>
+     * Please note that when enabling the background indexer, you need to take
+     * care of calling
+     * <code>#shutdown<code> on the <code>executor<code> provided for this Oak instance.
+     * </p>
+     */
+    public Oak withAsyncIndexing(@Nonnull String name, long delayInSeconds) {
+        if (this.asyncTasks == null) {
+            asyncTasks = new HashMap<String, Long>();
+        }
+        checkState(delayInSeconds > 0, "delayInSeconds value must be > 0");
+        asyncTasks.put(checkNotNull(name), delayInSeconds);
         return this;
     }
 
@@ -511,6 +545,9 @@ public class Oak {
     }
 
     public ContentRepository createContentRepository() {
+        //TODO FIXME OAK-2736
+        //checkState(!initialized, "Oak instance should be used only once to create the ContentRepository instance");
+        initialized = true;
         final List<Registration> regs = Lists.newArrayList();
         regs.add(whiteboard.register(Executor.class, getExecutor(), Collections.emptyMap()));
 
@@ -523,25 +560,25 @@ public class Oak {
         initHooks.add(new EditorHook(CompositeEditorProvider
                 .compose(editorProviders)));
 
-        if (asyncIndexing) {
-            String name = "async";
-            AsyncIndexUpdate task = new AsyncIndexUpdate(name, store,
-                    indexEditors);
-            regs.add(scheduleWithFixedDelay(whiteboard, task, 5, true));
-            regs.add(registerMBean(whiteboard, IndexStatsMBean.class,
-                    task.getIndexStats(), IndexStatsMBean.TYPE, name));
-            // Register AsyncIndexStats for execution stats update
-            regs.add(
-                scheduleWithFixedDelay(whiteboard, task.getIndexStats(), 1, false));
+        if (asyncTasks != null) {
+            IndexMBeanRegistration indexRegistration = new IndexMBeanRegistration(
+                    whiteboard);
+            regs.add(indexRegistration);
+            for (Entry<String, Long> t : asyncTasks.entrySet()) {
+                AsyncIndexUpdate task = new AsyncIndexUpdate(t.getKey(), store,
+                        indexEditors);
+                indexRegistration.registerAsyncIndexer(task, t.getValue());
+            }
 
+            // TODO verify how this fits in with OAK-2749
             PropertyIndexAsyncReindex asyncPI = new PropertyIndexAsyncReindex(
                     new AsyncIndexUpdate(IndexConstants.ASYNC_REINDEX_VALUE,
                             store, indexEditors, true), getExecutor());
             regs.add(registerMBean(whiteboard,
                     PropertyIndexAsyncReindexMBean.class, asyncPI,
-                    PropertyIndexAsyncReindexMBean.TYPE, name));
+                    PropertyIndexAsyncReindexMBean.TYPE, "async"));
         }
-        
+
         regs.add(registerMBean(whiteboard, NodeCounterMBean.class,
                 new NodeCounter(store), NodeCounterMBean.TYPE, "nodeCounter"));
 
@@ -585,6 +622,7 @@ public class Oak {
             public void close() throws IOException {
                 super.close();
                 new CompositeRegistration(regs).unregister();
+                closer.close();
             }
         };
     }
@@ -635,6 +673,30 @@ public class Oak {
      */
     public Root createRoot() {
         return createContentSession().getLatestRoot();
+    }
+
+    private static class ExecutorCloser implements Closeable {
+        final ExecutorService executorService;
+
+        private ExecutorCloser(ExecutorService executorService) {
+            this.executorService = executorService;
+        }
+
+        @Override
+        public void close() throws IOException {
+            try {
+                executorService.shutdown();
+                executorService.awaitTermination(5, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                LOG.error("Error while shutting down the executorService", e);
+                Thread.currentThread().interrupt();
+            } finally {
+                if (!executorService.isTerminated()) {
+                    LOG.warn("executorService didn't shutdown properly. Will be forced now.");
+                }
+                executorService.shutdownNow();
+            }
+        }
     }
 
 }

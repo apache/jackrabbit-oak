@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Test;
 
@@ -153,7 +152,7 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
         try {
             mk.commit("/test", "^\"prop\":\"v2\"", head, null);
             fail();
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             // expected
         }
         doc = docStore.find(NODES, Utils.getIdFromPath("/test"));

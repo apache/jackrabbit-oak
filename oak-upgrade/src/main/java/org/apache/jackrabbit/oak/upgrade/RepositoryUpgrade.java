@@ -28,7 +28,6 @@ import static org.apache.jackrabbit.core.RepositoryImpl.VERSION_STORAGE_NODE_ID;
 import static org.apache.jackrabbit.oak.plugins.name.Namespaces.addCustomMapping;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_ALL;
-import static org.apache.jackrabbit.spi.commons.name.NameConstants.ANY_NAME;
 
 import java.io.File;
 import java.io.IOException;
@@ -138,6 +137,10 @@ public class RepositoryUpgrade {
 
     private boolean copyBinariesByReference = false;
 
+    private boolean skipOnError = false;
+
+    private List<CommitHook> customCommitHooks = null;
+
     /**
      * Copies the contents of the repository in the given source directory
      * to the given target node store.
@@ -188,6 +191,34 @@ public class RepositoryUpgrade {
 
     public void setCopyBinariesByReference(boolean copyBinariesByReference) {
         this.copyBinariesByReference = copyBinariesByReference;
+    }
+
+    public boolean isSkipOnError() {
+        return skipOnError;
+    }
+
+    public void setSkipOnError(boolean skipOnError) {
+        this.skipOnError = skipOnError;
+    }
+
+    /**
+     * Returns the list of custom CommitHooks to be applied before the final
+     * type validation, reference and indexing hooks.
+     *
+     * @return the list of custom CommitHooks
+     */
+    public List<CommitHook> getCustomCommitHooks() {
+        return customCommitHooks;
+    }
+
+    /**
+     * Sets the list of custom CommitHooks to be applied before the final
+     * type validation, reference and indexing hooks.
+     *
+     * @param customCommitHooks the list of custom CommitHooks
+     */
+    public void setCustomCommitHooks(List<CommitHook> customCommitHooks) {
+        this.customCommitHooks = customCommitHooks;
     }
 
     /**
@@ -296,6 +327,10 @@ public class RepositoryUpgrade {
             // security-related hooks
             for (SecurityConfiguration sc : security.getConfigurations()) {
                 hooks.addAll(sc.getCommitHooks(workspaceName));
+            }
+
+            if (customCommitHooks != null) {
+                hooks.addAll(customCommitHooks);
             }
 
             // type validation, reference and indexing hooks
@@ -579,7 +614,7 @@ public class RepositoryUpgrade {
         NodeDefinitionTemplate tmpl = ntMgr.createNodeDefinitionTemplate();
 
         Name name = def.getName();
-        if (name != null && !name.equals(ANY_NAME)) {
+        if (name != null) {
             tmpl.setName(getOakName(name));
         }
         tmpl.setAutoCreated(def.isAutoCreated());
@@ -606,7 +641,7 @@ public class RepositoryUpgrade {
         PropertyDefinitionTemplate tmpl = ntMgr.createPropertyDefinitionTemplate();
 
         Name name = def.getName();
-        if (name != null && !name.equals(ANY_NAME)) {
+        if (name != null) {
             tmpl.setName(getOakName(name));
         }
         tmpl.setAutoCreated(def.isAutoCreated());
@@ -652,13 +687,13 @@ public class RepositoryUpgrade {
         copyState(system, JCR_VERSIONSTORAGE, new JackrabbitNodeState(
                 pm, root, uriToPrefix, VERSION_STORAGE_NODE_ID,
                 "/jcr:system/jcr:versionStorage",
-                workspaceName, versionablePaths, copyBinariesByReference));
+                workspaceName, versionablePaths, copyBinariesByReference, skipOnError));
 
         logger.info("Copying activities");
         copyState(system, "jcr:activities", new JackrabbitNodeState(
                 pm, root, uriToPrefix, ACTIVITIES_NODE_ID,
                 "/jcr:system/jcr:activities",
-                workspaceName, versionablePaths, copyBinariesByReference));
+                workspaceName, versionablePaths, copyBinariesByReference, skipOnError));
     }
 
     private String copyWorkspace(
@@ -672,7 +707,7 @@ public class RepositoryUpgrade {
 
         NodeState state = new JackrabbitNodeState(
                 pm, root, uriToPrefix, ROOT_NODE_ID, "/",
-                workspaceName, versionablePaths, copyBinariesByReference);
+                workspaceName, versionablePaths, copyBinariesByReference, skipOnError);
 
         for (PropertyState property : state.getProperties()) {
             builder.setProperty(property);

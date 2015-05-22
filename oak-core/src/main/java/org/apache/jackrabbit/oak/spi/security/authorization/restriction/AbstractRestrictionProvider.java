@@ -60,8 +60,9 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
         }
     }
 
+    @Nonnull
     @Override
-    public Restriction createRestriction(String oakPath, String oakName, Value value) throws RepositoryException {
+    public Restriction createRestriction(String oakPath, @Nonnull String oakName, @Nonnull Value value) throws RepositoryException {
         RestrictionDefinition definition = getDefinition(oakPath, oakName);
         Type<?> requiredType = definition.getRequiredType();
         int tag = requiredType.tag();
@@ -77,8 +78,9 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
         return createRestriction(propertyState, definition);
     }
 
+    @Nonnull
     @Override
-    public Restriction createRestriction(String oakPath, String oakName, Value... values) throws RepositoryException {
+    public Restriction createRestriction(String oakPath, @Nonnull String oakName, @Nonnull Value... values) throws RepositoryException {
         RestrictionDefinition definition = getDefinition(oakPath, oakName);
         Type<?> requiredType = definition.getRequiredType();
         for (Value v : values) {
@@ -99,8 +101,9 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
         return createRestriction(propertyState, definition);
     }
 
+    @Nonnull
     @Override
-    public Set<Restriction> readRestrictions(String oakPath, Tree aceTree) {
+    public Set<Restriction> readRestrictions(String oakPath, @Nonnull Tree aceTree) {
         if (isUnsupportedPath(oakPath)) {
             return Collections.emptySet();
         } else {
@@ -132,7 +135,7 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
     }
 
     @Override
-    public void validateRestrictions(String oakPath, Tree aceTree) throws AccessControlException {
+    public void validateRestrictions(String oakPath, @Nonnull Tree aceTree) throws AccessControlException {
         Map<String, PropertyState> restrictionProperties = getRestrictionProperties(aceTree);
         if (isUnsupportedPath(oakPath)) {
             if (!restrictionProperties.isEmpty()) {

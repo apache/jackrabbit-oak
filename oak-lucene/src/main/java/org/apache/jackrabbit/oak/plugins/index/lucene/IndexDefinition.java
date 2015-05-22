@@ -47,6 +47,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.PathFilter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -56,6 +58,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.miscellaneous.LimitTokenCountAnalyzer;
@@ -197,6 +200,15 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
     private final int suggesterUpdateFrequencyMinutes;
 
+    private final long reindexCount;
+
+    private final PathFilter pathFilter;
+
+    @Nullable
+    private final String[] queryPaths;
+
+    private final boolean saveDirListing;
+
     public IndexDefinition(NodeState root, NodeState defn) {
         this(root, defn, null);
     }
@@ -257,6 +269,10 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         this.maxExtractLength = determineMaxExtractLength();
         this.suggesterUpdateFrequencyMinutes = getOptionalValue(defn, LuceneIndexConstants.SUGGEST_UPDATE_FREQUENCY_MINUTES, 60);
         this.scorerProviderName = getOptionalValue(defn, LuceneIndexConstants.PROP_SCORER_PROVIDER, null);
+        this.reindexCount = determineReindexCount(defn, defnb);
+        this.pathFilter = PathFilter.from(new ReadOnlyBuilder(defn));
+        this.queryPaths = getQueryPaths(defn);
+        this.saveDirListing = getOptionalValue(defn, LuceneIndexConstants.SAVE_DIR_LISTING, true);
     }
 
     public boolean isFullTextEnabled() {
@@ -284,10 +300,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
     }
 
     public long getReindexCount(){
-        if(definition.hasProperty(REINDEX_COUNT)){
-            return definition.getProperty(REINDEX_COUNT).getValue(Type.LONG);
-        }
-        return 0;
+        return reindexCount;
     }
 
     public long getEntryCount() {
@@ -359,6 +372,19 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
     public String getScorerProviderName() {
         return scorerProviderName;
+    }
+
+    public boolean saveDirListing() {
+        return saveDirListing;
+    }
+
+    public PathFilter getPathFilter() {
+        return pathFilter;
+    }
+
+    @Nullable
+    public String[] getQueryPaths() {
+        return queryPaths;
     }
 
     @Override
@@ -581,6 +607,11 @@ class IndexDefinition implements Aggregate.AggregateMapper{
             }
         }
         return suggestEnabled;
+    }
+
+    @CheckForNull
+    public String getIndexPathFromConfig() {
+        return definition.getString(LuceneIndexConstants.INDEX_PATH);
     }
 
     public class IndexingRule {
@@ -1123,6 +1154,9 @@ class IndexDefinition implements Aggregate.AggregateMapper{
     private static String determineIndexName(NodeState defn, String indexPath) {
         String indexName = defn.getString(PROP_NAME);
         if (indexName ==  null){
+            if (indexPath == null){
+                indexPath = defn.getString(LuceneIndexConstants.INDEX_PATH);
+            }
             if (indexPath != null) {
                 return indexPath;
             }
@@ -1303,12 +1337,32 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         return result;
     }
 
+    private String[] getQueryPaths(NodeState defn) {
+        PropertyState ps = defn.getProperty(IndexConstants.QUERY_PATHS);
+        if (ps != null){
+            return Iterables.toArray(ps.getValue(Type.STRINGS), String.class);
+        }
+        return null;
+    }
+
     private static IndexFormatVersion versionFrom(PropertyState ps){
         return IndexFormatVersion.getVersion(Ints.checkedCast(ps.getValue(Type.LONG)));
     }
 
     private static boolean hasIndexingRules(NodeState defn) {
         return defn.getChildNode(LuceneIndexConstants.INDEX_RULES).exists();
+    }
+
+    private static long determineReindexCount(NodeState defn, NodeBuilder defnb) {
+        //Give precedence to count from builder as that reflects the latest state
+        //and might be higher than one from nodeState which is the base state
+        if (defnb != null && defnb.hasProperty(REINDEX_COUNT)) {
+            return defnb.getProperty(REINDEX_COUNT).getValue(Type.LONG);
+        }
+        if (defn.hasProperty(REINDEX_COUNT)) {
+            return defn.getProperty(REINDEX_COUNT).getValue(Type.LONG);
+        }
+        return 0;
     }
 
 }

@@ -62,11 +62,17 @@ public class DefaultSolrServerProvider implements SolrServerProvider {
     @Override
     public void close() throws IOException {
         try {
-            getSolrServer().shutdown();
+            SolrServer solrServer = getSolrServer();
+            if (solrServer != null) {
+                solrServer.shutdown();
+            }
         } catch (Exception e) {
             // do nothing
         } try {
-            getIndexingSolrServer().shutdown();
+            SolrServer indexingSolrServer = getIndexingSolrServer();
+            if (indexingSolrServer != null) {
+                indexingSolrServer.shutdown();
+            }
         } catch (Exception e) {
             // do nothing
         } try {

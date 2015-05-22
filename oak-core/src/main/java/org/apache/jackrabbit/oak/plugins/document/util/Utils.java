@@ -582,4 +582,11 @@ public class Utils {
         };
     }
 
+    /**
+     * @return if {@code path} represent oak's internal path. That is, a path
+     *          element start with a colon.
+     */
+    public static boolean isHiddenPath(@Nonnull String path) {
+        return path.contains("/:");
+    }
 }

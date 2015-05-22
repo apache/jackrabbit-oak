@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.1-SNAPSHOT</version>
+    <version>1.4-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -50,7 +50,6 @@
               org.apache.jackrabbit.oak.api.jmx,
               org.apache.jackrabbit.oak.stats,
               org.apache.jackrabbit.oak.json,
-              org.apache.jackrabbit.oak.kernel,
               org.apache.jackrabbit.oak.management,
               org.apache.jackrabbit.oak.util,
               org.apache.jackrabbit.oak.namepath,
@@ -145,22 +144,16 @@
           </systemPropertyVariables>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>org.apache.rat</groupId>
+        <artifactId>apache-rat-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>**/test.json</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
     </plugins>
-    <pluginManagement>
-      <plugins>
-        <plugin>
-          <groupId>org.apache.rat</groupId>
-          <artifactId>apache-rat-plugin</artifactId>
-          <configuration>
-            <excludes>
-              <exclude>
-                src/test/resources/org/apache/jackrabbit/oak/util/test.json
-              </exclude>
-            </excludes>
-          </configuration>
-        </plugin>
-      </plugins>
-    </pluginManagement>
   </build>
 
   <dependencies>
@@ -187,11 +180,6 @@
     </dependency>
 
     <!-- Dependencies to other Oak components -->
-    <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-mk-api</artifactId>
-      <version>${project.version}</version>
-    </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-commons</artifactId>
@@ -352,6 +340,11 @@
       <artifactId>oak-blob</artifactId>
       <version>${project.version}</version>
       <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>commons-lang</groupId>
+      <artifactId>commons-lang</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

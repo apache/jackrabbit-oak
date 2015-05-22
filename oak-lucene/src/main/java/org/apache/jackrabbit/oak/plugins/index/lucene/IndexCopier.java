@@ -20,15 +20,25 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
@@ -40,14 +50,15 @@ import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.hash.Hashing;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
-import org.apache.lucene.store.BaseDirectory;
+import org.apache.jackrabbit.oak.commons.concurrent.NotifyingFutureTask;
+import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.FilterDirectory;
@@ -58,42 +69,102 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Iterables.toArray;
+import static com.google.common.collect.Iterables.transform;
 import static com.google.common.collect.Maps.newConcurrentMap;
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
-class IndexCopier implements CopyOnReadStatsMBean {
+public class IndexCopier implements CopyOnReadStatsMBean {
     private static final Set<String> REMOTE_ONLY = ImmutableSet.of("segments.gen");
+    private static final int MAX_FAILURE_ENTRIES = 10000;
+    private static final AtomicInteger UNIQUE_COUNTER = new AtomicInteger();
+    private static final String WORK_DIR_NAME = "indexWriterDir";
 
     private final Logger log = LoggerFactory.getLogger(getClass());
+    private final PerfLogger PERF_LOGGER = new PerfLogger(LoggerFactory.getLogger(log.getName() + ".perf"));
     private final Executor executor;
     private final File indexRootDir;
+    private final File indexWorkDir;
 
-    private final AtomicInteger localReadCount = new AtomicInteger();
-    private final AtomicInteger remoteReadCount = new AtomicInteger();
+    private final AtomicInteger readerLocalReadCount = new AtomicInteger();
+    private final AtomicInteger writerLocalReadCount = new AtomicInteger();
+    private final AtomicInteger readerRemoteReadCount = new AtomicInteger();
+    private final AtomicInteger writerRemoteReadCount = new AtomicInteger();
     private final AtomicInteger invalidFileCount = new AtomicInteger();
+    private final AtomicInteger deletedFileCount = new AtomicInteger();
+    private final AtomicInteger scheduledForCopyCount = new AtomicInteger();
+    private final AtomicInteger copyInProgressCount = new AtomicInteger();
+    private final AtomicInteger maxCopyInProgressCount = new AtomicInteger();
+    private final AtomicInteger maxScheduledForCopyCount = new AtomicInteger();
+    private final AtomicInteger uploadCount = new AtomicInteger();
+    private final AtomicInteger downloadCount = new AtomicInteger();
+    private final AtomicLong copyInProgressSize = new AtomicLong();
     private final AtomicLong downloadSize = new AtomicLong();
+    private final AtomicLong uploadSize = new AtomicLong();
+    private final AtomicLong garbageCollectedSize = new AtomicLong();
+    private final AtomicLong skippedFromUploadSize = new AtomicLong();
     private final AtomicLong downloadTime = new AtomicLong();
+    private final AtomicLong uploadTime = new AtomicLong();
 
-    private final Map<String, String> indexPathMapping = Maps.newConcurrentMap();
-    private final Map<String, String> indexPathVersionMapping = Maps.newConcurrentMap();
 
-    public IndexCopier(Executor executor, File indexRootDir) {
+    private final Map<String, String> indexPathMapping = newConcurrentMap();
+    private final Map<String, String> indexPathVersionMapping = newConcurrentMap();
+    private final ConcurrentMap<String, LocalIndexFile> failedToDeleteFiles = newConcurrentMap();
+    private final Set<LocalIndexFile> copyInProgressFiles = Collections.newSetFromMap(new ConcurrentHashMap<LocalIndexFile, Boolean>());
+
+    public IndexCopier(Executor executor, File indexRootDir) throws IOException {
         this.executor = executor;
         this.indexRootDir = indexRootDir;
+        this.indexWorkDir = initializerWorkDir(indexRootDir);
     }
 
-    public Directory wrap(String indexPath, IndexDefinition definition, Directory remote) throws IOException {
-        Directory local = createLocalDir(indexPath, definition);
+    public Directory wrapForRead(String indexPath, IndexDefinition definition, Directory remote) throws IOException {
+        Directory local = createLocalDirForIndexReader(indexPath, definition);
         return new CopyOnReadDirectory(remote, local);
     }
 
-    protected Directory createLocalDir(String indexPath, IndexDefinition definition) throws IOException {
+    public Directory wrapForWrite(IndexDefinition definition, Directory remote, boolean reindexMode) throws IOException {
+        Directory local = createLocalDirForIndexWriter(definition);
+        return new CopyOnWriteDirectory(remote, local, reindexMode);
+    }
+
+    File getIndexWorkDir() {
+        return indexWorkDir;
+    }
+
+    File getIndexRootDir() {
+        return indexRootDir;
+    }
+
+    protected Directory createLocalDirForIndexWriter(IndexDefinition definition) throws IOException {
+        String indexPath = definition.getIndexPathFromConfig();
+        File indexWriterDir;
+        if (indexPath == null){
+            //If indexPath is not known create a unique directory for work
+            indexWriterDir = new File(indexWorkDir, String.valueOf(UNIQUE_COUNTER.incrementAndGet()));
+        } else {
+            File indexDir = getIndexDir(indexPath);
+            String newVersion = String.valueOf(definition.getReindexCount());
+            indexWriterDir = getVersionedDir(indexPath, indexDir, newVersion);
+        }
+        Directory dir = FSDirectory.open(indexWriterDir);
+
+        log.debug("IndexWriter would use {}", indexWriterDir);
+
+        if (indexPath == null) {
+            dir = new DeleteOldDirOnClose(dir, indexWriterDir);
+            log.debug("IndexPath [{}] not configured in index definition {}. Writer would create index " +
+                    "files in temporary dir {} which would be deleted upon close. For better performance do " +
+                    "configure the 'indexPath' as part of your index definition", LuceneIndexConstants.INDEX_PATH,
+                    definition, indexWriterDir);
+        }
+        return dir;
+    }
+
+    protected Directory createLocalDirForIndexReader(String indexPath, IndexDefinition definition) throws IOException {
         File indexDir = getIndexDir(indexPath);
         String newVersion = String.valueOf(definition.getReindexCount());
-        File versionedIndexDir = new File(indexDir, newVersion);
-        if (!versionedIndexDir.exists()) {
-            checkState(versionedIndexDir.mkdirs(), "Cannot create directory %s", versionedIndexDir);
-        }
-        indexPathMapping.put(indexPath, indexDir.getAbsolutePath());
+        File versionedIndexDir = getVersionedDir(indexPath, indexDir, newVersion);
         Directory result = FSDirectory.open(versionedIndexDir);
 
         String oldVersion = indexPathVersionMapping.put(indexPath, newVersion);
@@ -103,34 +174,83 @@ class IndexCopier implements CopyOnReadStatsMBean {
         return result;
     }
 
+    private File getVersionedDir(String indexPath, File indexDir, String newVersion) {
+        File versionedIndexDir = new File(indexDir, newVersion);
+        if (!versionedIndexDir.exists()) {
+            checkState(versionedIndexDir.mkdirs(), "Cannot create directory %s", versionedIndexDir);
+        }
+        indexPathMapping.put(indexPath, indexDir.getAbsolutePath());
+        return versionedIndexDir;
+    }
+
     public File getIndexDir(String indexPath) {
         String subDir = Hashing.sha256().hashString(indexPath, Charsets.UTF_8).toString();
         return new File(indexRootDir, subDir);
+    }
+
+    Map<String, LocalIndexFile> getFailedToDeleteFiles() {
+        return Collections.unmodifiableMap(failedToDeleteFiles);
+    }
+
+    private void failedToDelete(LocalIndexFile file){
+        //Limit the size on best effort basis
+        if (failedToDeleteFiles.size() < MAX_FAILURE_ENTRIES) {
+            LocalIndexFile failedToDeleteFile = failedToDeleteFiles.putIfAbsent(file.getKey(), file);
+            if (failedToDeleteFile == null){
+                failedToDeleteFile = file;
+            }
+            failedToDeleteFile.incrementAttemptToDelete();
+        } else {
+            log.warn("Not able to delete {}. Currently more than {} file with total size {} are pending delete.",
+                    file.deleteLog(), failedToDeleteFiles.size(), getGarbageSize());
+        }
+    }
+
+    private void successfullyDeleted(LocalIndexFile file, boolean fileExisted){
+        LocalIndexFile failedToDeleteFile = failedToDeleteFiles.remove(file.getKey());
+        if (failedToDeleteFile != null){
+            log.debug("Deleted : {}", failedToDeleteFile.deleteLog());
+        }
+
+        if (fileExisted){
+            garbageCollectedSize.addAndGet(file.size);
+            deletedFileCount.incrementAndGet();
+        }
+    }
+
+    /**
+     * Creates the workDir. If it exists then it is cleaned
+     *
+     * @param indexRootDir root directory under which all indexing related files are managed
+     * @return work directory. Always empty
+     */
+    private static File initializerWorkDir(File indexRootDir) throws IOException {
+        File workDir = new File(indexRootDir, WORK_DIR_NAME);
+        FileUtils.deleteDirectory(workDir);
+        checkState(workDir.mkdirs(), "Cannot create directory %s", workDir);
+        return workDir;
     }
 
     /**
      * Directory implementation which lazily copies the index files from a
      * remote directory in background.
      */
-    private class CopyOnReadDirectory extends BaseDirectory {
+    private class CopyOnReadDirectory extends FilterDirectory {
         private final Directory remote;
         private final Directory local;
 
-        private final ConcurrentMap<String, FileReference> files = newConcurrentMap();
+        private final ConcurrentMap<String, CORFileReference> files = newConcurrentMap();
+        /**
+         * Set of fileNames bound to current local dir. It is updated with any new file
+         * which gets added by this directory
+         */
+        private final Set<String> localFileNames = Sets.newConcurrentHashSet();
 
         public CopyOnReadDirectory(Directory remote, Directory local) throws IOException {
+            super(remote);
             this.remote = remote;
             this.local = local;
-        }
-
-        @Override
-        public String[] listAll() throws IOException {
-            return remote.listAll();
-        }
-
-        @Override
-        public boolean fileExists(String name) throws IOException {
-            return remote.fileExists(name);
+            this.localFileNames.addAll(Arrays.asList(local.listAll()));
         }
 
         @Override
@@ -139,18 +259,8 @@ class IndexCopier implements CopyOnReadStatsMBean {
         }
 
         @Override
-        public long fileLength(String name) throws IOException {
-            return remote.fileLength(name);
-        }
-
-        @Override
         public IndexOutput createOutput(String name, IOContext context) throws IOException {
             throw new UnsupportedOperationException("Cannot write in a ReadOnly directory");
-        }
-
-        @Override
-        public void sync(Collection<String> names) throws IOException {
-            remote.sync(names);
         }
 
         @Override
@@ -159,18 +269,18 @@ class IndexCopier implements CopyOnReadStatsMBean {
                 return remote.openInput(name, context);
             }
 
-            FileReference ref = files.get(name);
+            CORFileReference ref = files.get(name);
             if (ref != null) {
                 if (ref.isLocalValid()) {
                     return files.get(name).openLocalInput(context);
                 } else {
-                    remoteReadCount.incrementAndGet();
+                    readerRemoteReadCount.incrementAndGet();
                     return remote.openInput(name, context);
                 }
             }
 
-            FileReference toPut = new FileReference(name);
-            FileReference old = files.putIfAbsent(name, toPut);
+            CORFileReference toPut = new CORFileReference(name);
+            CORFileReference old = files.putIfAbsent(name, toPut);
             if (old == null) {
                 copy(toPut);
             }
@@ -183,7 +293,8 @@ class IndexCopier implements CopyOnReadStatsMBean {
             return remote.openInput(name, context);
         }
 
-        private void copy(final FileReference reference) {
+        private void copy(final CORFileReference reference) {
+            updateMaxScheduled(scheduledForCopyCount.incrementAndGet());
             executor.execute(new Runnable() {
                 @Override
                 public void run() {
@@ -191,13 +302,17 @@ class IndexCopier implements CopyOnReadStatsMBean {
                     boolean success = false;
                     boolean copyAttempted = false;
                     try {
+                        scheduledForCopyCount.decrementAndGet();
                         if (!local.fileExists(name)) {
-                            long start = System.currentTimeMillis();
+                            long fileSize = remote.fileLength(name);
+                            LocalIndexFile file = new LocalIndexFile(local, name, fileSize, true);
+                            long start = startCopy(file);
                             copyAttempted = true;
+
                             remote.copy(local, name, name, IOContext.READ);
                             reference.markValid();
-                            downloadTime.addAndGet(System.currentTimeMillis() - start);
-                            downloadSize.addAndGet(remote.fileLength(name));
+
+                            doneCopy(file, start);
                         } else {
                             long localLength = local.fileLength(name);
                             long remoteLength = remote.fileLength(name);
@@ -282,24 +397,18 @@ class IndexCopier implements CopyOnReadStatsMBean {
         private void removeDeletedFiles() throws IOException {
             //Files present in dest but not present in source have to be deleted
             Set<String> filesToBeDeleted = Sets.difference(
-                    ImmutableSet.copyOf(local.listAll()),
+                    ImmutableSet.copyOf(localFileNames),
                     ImmutableSet.copyOf(remote.listAll())
             );
 
             Set<String> failedToDelete = Sets.newHashSet();
 
             for (String fileName : filesToBeDeleted) {
-                try {
-                    local.deleteFile(fileName);
-                } catch (IOException e) {
+                boolean deleted = IndexCopier.this.deleteFile(local, fileName, true);
+                if (!deleted){
                     failedToDelete.add(fileName);
-                    log.debug("Error occurred while removing deleted file {} from Local {} ", fileName, local, e);
                 }
             }
-
-            log.info("Error occurred while deleting following files from the local index directory [{}]. " +
-                    "This can happen on Windows based system. Attempt would be made to remove them " +
-                    "in next attempt ", local, failedToDelete);
 
             filesToBeDeleted = new HashSet<String>(filesToBeDeleted);
             filesToBeDeleted.removeAll(failedToDelete);
@@ -309,11 +418,11 @@ class IndexCopier implements CopyOnReadStatsMBean {
             }
         }
 
-        private class FileReference {
+        private class CORFileReference {
             final String name;
             private volatile boolean valid;
 
-            private FileReference(String name) {
+            private CORFileReference(String name) {
                 this.name = name;
             }
 
@@ -322,12 +431,484 @@ class IndexCopier implements CopyOnReadStatsMBean {
             }
 
             IndexInput openLocalInput( IOContext context) throws IOException {
-                localReadCount.incrementAndGet();
+                readerLocalReadCount.incrementAndGet();
                 return local.openInput(name, context);
             }
 
             void markValid(){
                 this.valid = true;
+                localFileNames.add(name);
+            }
+        }
+    }
+
+    private class CopyOnWriteDirectory extends FilterDirectory {
+        /**
+         * Signal for the background thread to stop processing changes.
+         */
+        private final Callable<Void> STOP = new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                return null;
+            }
+        };
+        private final Directory remote;
+        private final Directory local;
+        private final ConcurrentMap<String, COWFileReference> fileMap = newConcurrentMap();
+        private final Set<String> deletedFilesLocal = Sets.newConcurrentHashSet();
+        private final Set<String> skippedFiles = Sets.newConcurrentHashSet();
+
+        private final BlockingQueue<Callable<Void>> queue = new LinkedBlockingQueue<Callable<Void>>();
+        private final AtomicReference<Throwable> errorInCopy = new AtomicReference<Throwable>();
+        private final CountDownLatch copyDone = new CountDownLatch(1);
+        private final boolean reindexMode;
+
+        /**
+         * Current background task
+         */
+        private volatile NotifyingFutureTask currentTask =  NotifyingFutureTask.completed();
+
+        /**
+         * Completion handler: set the current task to the next task and schedules that one
+         * on the background thread.
+         */
+        private final Runnable completionHandler = new Runnable() {
+            Callable<Void> task = new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    try {
+                        Callable<Void> task = queue.poll();
+                        if (task != null && task != STOP) {
+                            if (errorInCopy.get() != null) {
+                                log.trace("Skipping task {} as some exception occurred in previous run", task);
+                            } else {
+                                task.call();
+                            }
+                            currentTask.onComplete(completionHandler);
+                        }
+
+                        //Signal that all tasks completed
+                        if (task == STOP){
+                            copyDone.countDown();
+                        }
+                    } catch (Throwable t) {
+                        errorInCopy.set(t);
+                        log.debug("Error occurred while copying files. Further processing would be skipped", t);
+                        currentTask.onComplete(completionHandler);
+                    }
+                    return null;
+                }
+            };
+
+            @Override
+            public void run() {
+                currentTask = new NotifyingFutureTask(task);
+                executor.execute(currentTask);
+            }
+        };
+
+        public CopyOnWriteDirectory(Directory remote, Directory local, boolean reindexMode) throws IOException {
+            super(local);
+            this.remote = remote;
+            this.local = local;
+            this.reindexMode = reindexMode;
+            initialize();
+        }
+
+        @Override
+        public String[] listAll() throws IOException {
+            return Iterables.toArray(fileMap.keySet(), String.class);
+        }
+
+        @Override
+        public boolean fileExists(String name) throws IOException {
+            return fileMap.containsKey(name);
+        }
+
+        @Override
+        public void deleteFile(String name) throws IOException {
+            log.trace("[COW] Deleted file {}", name);
+            COWFileReference ref = fileMap.remove(name);
+            if (ref != null) {
+                ref.delete();
+            }
+        }
+
+        @Override
+        public long fileLength(String name) throws IOException {
+            COWFileReference ref = fileMap.get(name);
+            if (ref == null) {
+                throw new FileNotFoundException(name);
+            }
+            return ref.fileLength();
+        }
+
+        @Override
+        public IndexOutput createOutput(String name, IOContext context) throws IOException {
+            COWFileReference ref = fileMap.remove(name);
+            if (ref != null) {
+                ref.delete();
+            }
+            ref = new COWLocalFileReference(name);
+            fileMap.put(name, ref);
+            return ref.createOutput(context);
+        }
+
+        @Override
+        public void sync(Collection<String> names) throws IOException {
+            for (String name : names){
+                COWFileReference file = fileMap.get(name);
+                if (file != null){
+                    file.sync();
+                }
+            }
+        }
+
+        @Override
+        public IndexInput openInput(String name, IOContext context) throws IOException {
+            COWFileReference ref = fileMap.get(name);
+            if (ref == null) {
+                throw new FileNotFoundException(name);
+            }
+            return ref.openInput(context);
+        }
+
+        @Override
+        public void close() throws IOException {
+            int pendingCopies = queue.size();
+            addTask(STOP);
+
+            //Wait for all pending copy task to finish
+            try {
+                long start = PERF_LOGGER.start();
+                copyDone.await();
+                PERF_LOGGER.end(start, -1, "Completed pending copying task {}", pendingCopies);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IOException(e);
+            }
+
+            Throwable t = errorInCopy.get();
+            if (t != null){
+                throw new IOException("Error occurred while copying files", t);
+            }
+
+            long skippedFilesSize = getSkippedFilesSize();
+
+            for (String fileName : deletedFilesLocal){
+                deleteLocalFile(fileName);
+            }
+
+            skippedFromUploadSize.addAndGet(skippedFilesSize);
+
+            String msg = "CopyOnWrite stats : Skipped copying {} files with total size {}";
+            if (reindexMode || skippedFilesSize > 10 * FileUtils.ONE_MB){
+                log.info(msg, skippedFiles.size(), humanReadableByteCount(skippedFilesSize));
+            } else {
+                log.debug(msg, skippedFiles.size(), humanReadableByteCount(skippedFilesSize));
+            }
+
+            if (log.isTraceEnabled()){
+                log.trace("File listing - Upon completion {}", Arrays.toString(remote.listAll()));
+            }
+
+            local.close();
+            remote.close();
+        }
+
+        private long getSkippedFilesSize() {
+            long size = 0;
+            for (String name : skippedFiles){
+                try{
+                    if (local.fileExists(name)){
+                        size += local.fileLength(name);
+                    }
+                } catch (Exception ignore){
+
+                }
+            }
+            return size;
+        }
+
+        private void deleteLocalFile(String fileName) {
+            IndexCopier.this.deleteFile(local, fileName, false);
+        }
+
+        private void initialize() throws IOException {
+            for (String name : remote.listAll()) {
+                fileMap.put(name, new COWRemoteFileReference(name));
+            }
+
+            if (log.isTraceEnabled()){
+                log.trace("File listing - Start" + Arrays.toString(remote.listAll()));
+            }
+        }
+
+        private void addCopyTask(final String name){
+            updateMaxScheduled(scheduledForCopyCount.incrementAndGet());
+            addTask(new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    scheduledForCopyCount.decrementAndGet();
+                    if (deletedFilesLocal.contains(name)){
+                        skippedFiles.add(name);
+                        log.trace("[COW] Skip copying of deleted file {}", name);
+                        return null;
+                    }
+                    long fileSize = local.fileLength(name);
+                    LocalIndexFile file = new LocalIndexFile(local, name, fileSize, false);
+                    long perfStart = PERF_LOGGER.start();
+                    long start = startCopy(file);
+
+                    local.copy(remote, name, name, IOContext.DEFAULT);
+
+                    doneCopy(file, start);
+                    PERF_LOGGER.end(perfStart, 0, "Copied to remote {} ", name);
+                    return null;
+                }
+
+                @Override
+                public String toString() {
+                    return "Copy: " + name;
+                }
+            });
+        }
+
+        private void addDeleteTask(final String name){
+            addTask(new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    if (!skippedFiles.contains(name)) {
+                        log.trace("[COW] Marking as deleted {}", name);
+                        remote.deleteFile(name);
+                    }
+                    return null;
+                }
+
+                @Override
+                public String toString() {
+                    return "Delete : " + name;
+                }
+            });
+        }
+
+        private void addTask(Callable<Void> task){
+            queue.add(task);
+            currentTask.onComplete(completionHandler);
+        }
+
+        private abstract class COWFileReference {
+            protected final String name;
+
+            public COWFileReference(String name) {
+                this.name = name;
+            }
+
+            public abstract long fileLength() throws IOException;
+
+            public abstract IndexInput openInput(IOContext context) throws IOException;
+
+            public abstract IndexOutput createOutput(IOContext context) throws IOException;
+
+            public abstract void delete() throws IOException;
+
+            public void sync() throws IOException {
+
+            }
+        }
+
+        private class COWRemoteFileReference extends COWFileReference {
+            private boolean validLocalCopyPresent;
+            private final long length;
+
+            public COWRemoteFileReference(String name) throws IOException {
+                super(name);
+                this.length = remote.fileLength(name);
+            }
+
+            @Override
+            public long fileLength() throws IOException {
+                return length;
+            }
+
+            @Override
+            public IndexInput openInput(IOContext context) throws IOException {
+                checkIfLocalValid();
+                if (validLocalCopyPresent && !REMOTE_ONLY.contains(name)) {
+                    writerLocalReadCount.incrementAndGet();
+                    return local.openInput(name, context);
+                }
+                writerRemoteReadCount.incrementAndGet();
+                return remote.openInput(name, context);
+            }
+
+            @Override
+            public IndexOutput createOutput(IOContext context) throws IOException {
+                throw new UnsupportedOperationException("Cannot create output for existing remote file " + name);
+            }
+
+            @Override
+            public void delete() throws IOException {
+                //Remote file should not be deleted locally as it might be
+                //in use by existing opened IndexSearcher. It would anyway
+                //get deleted by CopyOnRead later
+                //For now just record that these need to be deleted to avoid
+                //potential concurrent access of the NodeBuilder
+                addDeleteTask(name);
+            }
+
+            private void checkIfLocalValid() throws IOException {
+                validLocalCopyPresent = local.fileExists(name)
+                        && local.fileLength(name) == remote.fileLength(name);
+            }
+        }
+
+        private class COWLocalFileReference extends COWFileReference {
+            public COWLocalFileReference(String name) {
+                super(name);
+            }
+
+            @Override
+            public long fileLength() throws IOException {
+                return local.fileLength(name);
+            }
+
+            @Override
+            public IndexInput openInput(IOContext context) throws IOException {
+                return local.openInput(name, context);
+            }
+
+            @Override
+            public IndexOutput createOutput(IOContext context) throws IOException {
+                log.debug("[COW] Creating output {}", name);
+                return new CopyOnCloseIndexOutput(local.createOutput(name, context));
+            }
+
+            @Override
+            public void delete() throws IOException {
+                addDeleteTask(name);
+                deletedFilesLocal.add(name);
+            }
+
+            @Override
+            public void sync() throws IOException {
+                local.sync(Collections.singleton(name));
+            }
+
+            /**
+             * Implementation note - As we are decorating existing implementation
+             * we would need to ensure that we also override methods (non abstract)
+             * which might be implemented in say FSIndexInput like setLength
+             */
+            private class CopyOnCloseIndexOutput extends IndexOutput {
+                private final IndexOutput delegate;
+
+                public CopyOnCloseIndexOutput(IndexOutput delegate) {
+                    this.delegate = delegate;
+                }
+
+                @Override
+                public void flush() throws IOException {
+                    delegate.flush();
+                }
+
+                @Override
+                public void close() throws IOException {
+                    delegate.close();
+                    //Schedule this file to be copied in background
+                    addCopyTask(name);
+                }
+
+                @Override
+                public long getFilePointer() {
+                    return delegate.getFilePointer();
+                }
+
+                @Override
+                public void seek(long pos) throws IOException {
+                    delegate.seek(pos);
+                }
+
+                @Override
+                public long length() throws IOException {
+                    return delegate.length();
+                }
+
+                @Override
+                public void writeByte(byte b) throws IOException {
+                    delegate.writeByte(b);
+                }
+
+                @Override
+                public void writeBytes(byte[] b, int offset, int length) throws IOException {
+                    delegate.writeBytes(b, offset, length);
+                }
+
+                @Override
+                public void setLength(long length) throws IOException {
+                    delegate.setLength(length);
+                }
+            }
+        }
+    }
+
+    private boolean deleteFile(Directory dir, String fileName, boolean copiedFromRemote){
+        LocalIndexFile file = new LocalIndexFile(dir, fileName, getFileLength(dir, fileName), copiedFromRemote);
+        boolean successFullyDeleted = false;
+        try {
+            boolean fileExisted = false;
+            if (dir.fileExists(fileName)) {
+                fileExisted = true;
+                dir.deleteFile(fileName);
+            }
+            successfullyDeleted(file, fileExisted);
+            successFullyDeleted = true;
+        } catch (IOException e) {
+            failedToDelete(file);
+            log.debug("Error occurred while removing deleted file {} from Local {}. " +
+                    "Attempt would be maid to delete it on next run ", fileName, dir, e);
+        }
+        return successFullyDeleted;
+    }
+
+    private long startCopy(LocalIndexFile file) {
+        updateMaxInProgress(copyInProgressCount.incrementAndGet());
+        copyInProgressSize.addAndGet(file.size);
+        copyInProgressFiles.add(file);
+        return System.currentTimeMillis();
+    }
+
+    private void doneCopy(LocalIndexFile file, long start) {
+        copyInProgressFiles.remove(file);
+        copyInProgressCount.decrementAndGet();
+        copyInProgressSize.addAndGet(-file.size);
+
+        if(file.copyFromRemote) {
+            downloadTime.addAndGet(System.currentTimeMillis() - start);
+            downloadSize.addAndGet(file.size);
+            downloadCount.incrementAndGet();
+        } else {
+            uploadSize.addAndGet(file.size);
+            uploadTime.addAndGet(System.currentTimeMillis() - start);
+            uploadCount.incrementAndGet();
+        }
+
+    }
+
+    private void updateMaxScheduled(int val) {
+        synchronized (maxScheduledForCopyCount){
+            int current = maxScheduledForCopyCount.get();
+            if (val > current){
+                maxScheduledForCopyCount.set(val);
+            }
+        }
+    }
+
+    private void updateMaxInProgress(int val) {
+        synchronized (maxCopyInProgressCount){
+            int current = maxCopyInProgressCount.get();
+            if (val > current){
+                maxCopyInProgressCount.set(val);
             }
         }
     }
@@ -342,13 +923,122 @@ class IndexCopier implements CopyOnReadStatsMBean {
 
         @Override
         public void close() throws IOException {
-            try{
-                FileUtils.deleteDirectory(oldIndexDir);
-                log.debug("Removed old index content from {} ", oldIndexDir);
-            } catch (IOException e){
-                log.warn("Not able to remove old version of copied index at {}", oldIndexDir, e);
+            try {
+                super.close();
+            } finally {
+                //Clean out the local dir irrespective of any error occurring upon
+                //close in wrapped directory
+                try{
+                    FileUtils.deleteDirectory(oldIndexDir);
+                    log.debug("Removed old index content from {} ", oldIndexDir);
+                } catch (IOException e){
+                    log.warn("Not able to remove old version of copied index at {}", oldIndexDir, e);
+                }
             }
-            super.close();
+        }
+    }
+    
+    static final class LocalIndexFile {
+        final File dir;
+        final String name;
+        final long size;
+        final boolean copyFromRemote;
+        private volatile int deleteAttemptCount;
+        final long creationTime = System.currentTimeMillis();
+        
+        public LocalIndexFile(Directory dir, String fileName,
+                              long size, boolean copyFromRemote){
+            this.copyFromRemote = copyFromRemote;
+            this.dir = getFSDir(dir);
+            this.name = fileName;
+            this.size = size;
+        }
+
+        public LocalIndexFile(Directory dir, String fileName){
+            this(dir, fileName, getFileLength(dir, fileName), true);
+        }
+
+        public String getKey(){
+            if (dir != null){
+                return new File(dir, name).getAbsolutePath();
+            }
+            return name;
+        }
+
+        public void incrementAttemptToDelete(){
+            deleteAttemptCount++;
+        }
+
+        public int getDeleteAttemptCount() {
+            return deleteAttemptCount;
+        }
+
+        public String deleteLog(){
+            return String.format("%s (%s, %d attempts, %d s)", name,
+                    humanReadableByteCount(size), deleteAttemptCount, timeTaken());
+        }
+
+        public String copyLog(){
+            return String.format("%s (%s, %1.1f%%, %s, %d s)", name,
+                    humanReadableByteCount(actualSize()),
+                    copyProgress(),
+                    humanReadableByteCount(size), timeTaken());
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            LocalIndexFile localIndexFile = (LocalIndexFile) o;
+
+            if (dir != null ? !dir.equals(localIndexFile.dir) : localIndexFile.dir != null)
+                return false;
+            return name.equals(localIndexFile.name);
+
+        }
+
+        @Override
+        public int hashCode() {
+            int result = dir != null ? dir.hashCode() : 0;
+            result = 31 * result + name.hashCode();
+            return result;
+        }
+
+        private long timeTaken(){
+            return TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - creationTime);
+        }
+
+        private float copyProgress(){
+            return actualSize() * 1.0f / size * 100;
+        }
+
+        private long actualSize(){
+            return dir != null ? new File(dir, name).length() : 0;
+        }
+    }
+
+    static File getFSDir(Directory dir) {
+        if (dir instanceof FilterDirectory){
+            dir = ((FilterDirectory) dir).getDelegate();
+        }
+
+        if (dir instanceof FSDirectory){
+            return ((FSDirectory) dir).getDirectory();
+        }
+
+        return null;
+    }
+
+    /**
+     * Get the file length in best effort basis.
+     * @return actual fileLength. -1 if cannot determine
+     */
+    private static long getFileLength(Directory dir, String fileName){
+        try{
+            return dir.fileLength(fileName);
+        } catch (Exception e){
+            return -1;
         }
     }
 
@@ -362,9 +1052,10 @@ class IndexCopier implements CopyOnReadStatsMBean {
                     "Lucene Index Stats", IndexMappingData.TYPE, new String[]{"jcrPath"});
             tds = new TabularDataSupport(tt);
             for (Map.Entry<String, String> e : indexPathMapping.entrySet()){
+                String size = humanReadableByteCount(FileUtils.sizeOfDirectory(new File(e.getValue())));
                 tds.put(new CompositeDataSupport(IndexMappingData.TYPE,
                         IndexMappingData.FIELD_NAMES,
-                        new String[] {e.getKey(), e.getValue()}));
+                        new String[]{e.getKey(), e.getValue(), size}));
             }
         } catch (OpenDataException e){
             throw new IllegalStateException(e);
@@ -373,13 +1064,23 @@ class IndexCopier implements CopyOnReadStatsMBean {
     }
 
     @Override
-    public int getLocalReadCount() {
-        return localReadCount.get();
+    public int getReaderLocalReadCount() {
+        return readerLocalReadCount.get();
     }
 
     @Override
-    public int getRemoteReadCount() {
-        return remoteReadCount.get();
+    public int getReaderRemoteReadCount() {
+        return readerRemoteReadCount.get();
+    }
+
+    @Override
+    public int getWriterLocalReadCount() {
+        return writerLocalReadCount.get();
+    }
+
+    @Override
+    public int getWriterRemoteReadCount() {
+        return writerRemoteReadCount.get();
     }
 
     public int getInvalidFileCount(){
@@ -388,7 +1089,7 @@ class IndexCopier implements CopyOnReadStatsMBean {
 
     @Override
     public String getDownloadSize() {
-        return IOUtils.humanReadableByteCount(downloadSize.get());
+        return humanReadableByteCount(downloadSize.get());
     }
 
     @Override
@@ -397,22 +1098,115 @@ class IndexCopier implements CopyOnReadStatsMBean {
     }
 
     @Override
+    public int getDownloadCount() {
+        return downloadCount.get();
+    }
+
+    @Override
+    public int getUploadCount() {
+        return uploadCount.get();
+    }
+
+    @Override
+    public String getUploadSize() {
+        return humanReadableByteCount(uploadSize.get());
+    }
+
+    @Override
+    public long getUploadTime() {
+        return uploadTime.get();
+    }
+
+    @Override
     public String getLocalIndexSize() {
-        return IOUtils.humanReadableByteCount(FileUtils.sizeOfDirectory(indexRootDir));
+        return humanReadableByteCount(FileUtils.sizeOfDirectory(indexRootDir));
+    }
+
+    @Override
+    public String[] getGarbageDetails() {
+        return toArray(transform(failedToDeleteFiles.values(),
+                new Function<LocalIndexFile, String>() {
+                    @Override
+                    public String apply(LocalIndexFile input) {
+                        return input.deleteLog();
+                    }
+                }), String.class);
+    }
+
+    @Override
+    public String getGarbageSize() {
+        long garbageSize = 0;
+        for (LocalIndexFile failedToDeleteFile : failedToDeleteFiles.values()){
+            garbageSize += failedToDeleteFile.size;
+        }
+        return humanReadableByteCount(garbageSize);
+    }
+
+    @Override
+    public int getScheduledForCopyCount() {
+        return scheduledForCopyCount.get();
+    }
+
+    @Override
+    public int getCopyInProgressCount() {
+        return copyInProgressCount.get();
+    }
+
+    @Override
+    public String getCopyInProgressSize() {
+        return humanReadableByteCount(copyInProgressSize.get());
+    }
+
+    @Override
+    public int getMaxCopyInProgressCount() {
+        return maxCopyInProgressCount.get();
+    }
+
+    @Override
+    public int getMaxScheduledForCopyCount() {
+        return maxScheduledForCopyCount.get();
+    }
+
+    public String getSkippedFromUploadSize() {
+        return humanReadableByteCount(skippedFromUploadSize.get());
+    }
+
+    @Override
+    public String[] getCopyInProgressDetails() {
+        return toArray(transform(copyInProgressFiles,
+                new Function<LocalIndexFile, String>() {
+                    @Override
+                    public String apply(LocalIndexFile input) {
+                        return input.copyLog();
+                    }
+                }), String.class);
+    }
+
+    @Override
+    public int getDeletedFilesCount() {
+        return deletedFileCount.get();
+    }
+
+    @Override
+    public String getGarbageCollectedSize() {
+        return humanReadableByteCount(garbageCollectedSize.get());
     }
 
     private static class IndexMappingData {
         static final String[] FIELD_NAMES = new String[]{
                 "jcrPath",
                 "fsPath",
+                "size",
         };
 
         static final String[] FIELD_DESCRIPTIONS = new String[]{
                 "JCR Path",
                 "Filesystem Path",
+                "Size",
         };
 
         static final OpenType[] FIELD_TYPES = new OpenType[]{
+                SimpleType.STRING,
                 SimpleType.STRING,
                 SimpleType.STRING,
         };

@@ -51,6 +51,7 @@ public class Statement {
     String xpathQuery;
     
     public Statement optimize() {
+        ignoreOrderByScoreDesc();
         if (explain || measure) {
             return this;
         }
@@ -182,6 +183,23 @@ public class Statement {
         // leave original xpath string as a comment
         appendXPathAsComment(buff, xpathQuery);
         return buff.toString();        
+    }
+    
+    private void ignoreOrderByScoreDesc() {
+        if (orderList.size() != 1) {
+            return;
+        }
+        Order order = orderList.get(0);
+        if (!order.descending) {
+            return;
+        }
+        if (!order.expr.toString().equals("[jcr:score]")) {
+            return;
+        }
+        // so we have just one expression, 
+        // and it is "order by @jcr:score desc"
+        // this we can remove
+        orderList.remove(0);
     }
 
     public void setExplain(boolean explain) {

@@ -126,32 +126,6 @@ bg=yellow</panel_attributes>
   <element>
     <type>com.umlet.element.Class</type>
     <coordinates>
-      <x>430</x>
-      <y>590</y>
-      <w>190</w>
-      <h>30</h>
-    </coordinates>
-    <panel_attributes>MicroKernel interface
-bg=green
-fg=gray</panel_attributes>
-    <additional_attributes/>
-  </element>
-  <element>
-    <type>com.umlet.element.Class</type>
-    <coordinates>
-      <x>550</x>
-      <y>650</y>
-      <w>70</w>
-      <h>60</h>
-    </coordinates>
-    <panel_attributes>"H2" MK
-bg=yellow
-fg=gray</panel_attributes>
-    <additional_attributes/>
-  </element>
-  <element>
-    <type>com.umlet.element.Class</type>
-    <coordinates>
       <x>470</x>
       <y>750</y>
       <w>130</w>
@@ -261,30 +235,6 @@ bg=gray</panel_attributes>
   <element>
     <type>com.umlet.element.Relation</type>
     <coordinates>
-      <x>550</x>
-      <y>590</y>
-      <w>50</w>
-      <h>80</h>
-    </coordinates>
-    <panel_attributes>lt=&lt;&lt;-
-fg=gray</panel_attributes>
-    <additional_attributes>30;30;30;60</additional_attributes>
-  </element>
-  <element>
-    <type>com.umlet.element.Relation</type>
-    <coordinates>
-      <x>430</x>
-      <y>590</y>
-      <w>50</w>
-      <h>80</h>
-    </coordinates>
-    <panel_attributes>lt=&lt;&lt;-
-fg=gray</panel_attributes>
-    <additional_attributes>30;30;30;60</additional_attributes>
-  </element>
-  <element>
-    <type>com.umlet.element.Relation</type>
-    <coordinates>
       <x>360</x>
       <y>470</y>
       <w>50</w>
@@ -342,18 +292,6 @@ bg=green</panel_attributes>
       <h>90</h>
     </coordinates>
     <panel_attributes>lt=&lt;-</panel_attributes>
-    <additional_attributes>30;70;30;30</additional_attributes>
-  </element>
-  <element>
-    <type>com.umlet.element.Relation</type>
-    <coordinates>
-      <x>540</x>
-      <y>680</y>
-      <w>50</w>
-      <h>90</h>
-    </coordinates>
-    <panel_attributes>lt=&lt;-
-fg=gray</panel_attributes>
     <additional_attributes>30;70;30;30</additional_attributes>
   </element>
   <element>

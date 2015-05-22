@@ -173,7 +173,7 @@ class SecureNodeBuilder implements NodeBuilder {
 
 
     @Override
-    public boolean moveTo(NodeBuilder newParent, String newName) {
+    public boolean moveTo(@Nonnull NodeBuilder newParent, @Nonnull String newName) {
         return exists() && builder.moveTo(newParent, newName);
     }
 
@@ -216,7 +216,7 @@ class SecureNodeBuilder implements NodeBuilder {
     }
 
     @Override
-    public boolean getBoolean(String name) {
+    public boolean getBoolean(@Nonnull String name) {
         PropertyState property = getProperty(name);
         return property != null
                 && property.getType() == BOOLEAN
@@ -317,11 +317,12 @@ class SecureNodeBuilder implements NodeBuilder {
     }
 
     @Override @Nonnull
-    public NodeBuilder setChildNode(String name, @Nonnull NodeState nodeState) {
+    public NodeBuilder setChildNode(@Nonnull String name, @Nonnull NodeState nodeState) {
         builder.setChildNode(name, nodeState);
         return new SecureNodeBuilder(this, name);
     }
 
+    @Nonnull
     @Override
     public NodeBuilder getChildNode(@Nonnull String name) {
         return new SecureNodeBuilder(this, name);
@@ -369,9 +370,12 @@ class SecureNodeBuilder implements NodeBuilder {
      */
     private class ReadablePropertyPredicate implements Predicate<PropertyState> {
         @Override
-        public boolean apply(@Nonnull PropertyState property) {
-            return getTreePermission().canRead(property)
-                    || isNew(property.getName());
+        public boolean apply(@Nullable PropertyState property) {
+            if (property != null) {
+                return getTreePermission().canRead(property) || isNew(property.getName());
+            } else {
+                return false;
+            }
         }
     }
 

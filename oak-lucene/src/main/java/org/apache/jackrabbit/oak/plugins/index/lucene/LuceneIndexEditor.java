@@ -28,17 +28,19 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPath
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil.getPrimaryTypeName;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.annotation.Nullable;
+
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import com.google.common.collect.Sets;
+import com.google.common.io.CountingInputStream;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -46,14 +48,17 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.io.LazyInputStream;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.PathFilter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.Aggregate.Matcher;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.util.BlobByteSource;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.DoubleDocValuesField;
 import org.apache.lucene.document.DoubleField;
@@ -112,20 +117,24 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
     private final MatcherState matcherState;
 
+    private final PathFilter.Result pathFilterResult;
+
     LuceneIndexEditor(NodeState root, NodeBuilder definition,
-        IndexUpdateCallback updateCallback) throws CommitFailedException {
+        IndexUpdateCallback updateCallback,@Nullable IndexCopier indexCopier) throws CommitFailedException {
         this.parent = null;
         this.name = null;
         this.path = "/";
         this.context = new LuceneIndexEditorContext(root, definition,
-                updateCallback);
+                updateCallback, indexCopier);
         this.root = root;
         this.isDeleted = false;
         this.matcherState = MatcherState.NONE;
+        this.pathFilterResult = context.getDefinition().getPathFilter().doFiler(getPath());
     }
 
     private LuceneIndexEditor(LuceneIndexEditor parent, String name,
                               MatcherState matcherState,
+                              PathFilter.Result pathFilterResult,
             boolean isDeleted) {
         this.parent = parent;
         this.name = name;
@@ -134,6 +143,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         this.root = parent.root;
         this.isDeleted = isDeleted;
         this.matcherState = matcherState;
+        this.pathFilterResult = pathFilterResult;
     }
 
     public String getPath() {
@@ -159,12 +169,17 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
             beforeTree = parent.beforeTree.getChild(name);
         }
 
-        //For traversal in deleted sub tree before state has to be used
-        Tree current = afterTree.exists() ? afterTree : beforeTree;
-        indexingRule = getDefinition().getApplicableIndexingRule(current);
+        //Only check for indexing if the result is include.
+        //In case like TRAVERSE nothing needs to be indexed for those
+        //path
+        if (pathFilterResult == PathFilter.Result.INCLUDE) {
+            //For traversal in deleted sub tree before state has to be used
+            Tree current = afterTree.exists() ? afterTree : beforeTree;
+            indexingRule = getDefinition().getApplicableIndexingRule(current);
 
-        if (indexingRule != null) {
-            currentMatchers = indexingRule.getAggregate().createMatchers(this);
+            if (indexingRule != null) {
+                currentMatchers = indexingRule.getAggregate().createMatchers(this);
+            }
         }
     }
 
@@ -218,18 +233,30 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
     @Override
     public Editor childNodeAdded(String name, NodeState after) {
-        return new LuceneIndexEditor(this, name, getMatcherState(name, after), false);
+        PathFilter.Result filterResult = getPathFilterResult(name);
+        if (filterResult != PathFilter.Result.EXCLUDE) {
+            return new LuceneIndexEditor(this, name, getMatcherState(name, after), filterResult, false);
+        }
+        return null;
     }
 
     @Override
     public Editor childNodeChanged(
             String name, NodeState before, NodeState after) {
-        return new LuceneIndexEditor(this, name, getMatcherState(name, after), false);
+        PathFilter.Result filterResult = getPathFilterResult(name);
+        if (filterResult != PathFilter.Result.EXCLUDE) {
+            return new LuceneIndexEditor(this, name, getMatcherState(name, after), filterResult, false);
+        }
+        return null;
     }
 
     @Override
     public Editor childNodeDeleted(String name, NodeState before)
             throws CommitFailedException {
+        PathFilter.Result filterResult = getPathFilterResult(name);
+        if (filterResult == PathFilter.Result.EXCLUDE) {
+            return null;
+        }
 
         if (!isDeleted) {
             // tree deletion is handled on the parent node
@@ -249,7 +276,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
         MatcherState ms = getMatcherState(name, before);
         if (!ms.isEmpty()){
-            return new LuceneIndexEditor(this, name, ms, true);
+            return new LuceneIndexEditor(this, name, ms, filterResult, true);
         }
         return null; // no need to recurse down the removed subtree
     }
@@ -767,17 +794,24 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         return indexingRule != null;
     }
 
+    private PathFilter.Result getPathFilterResult(String childNodeName) {
+        return context.getDefinition().getPathFilter().doFiler(concat(getPath(), childNodeName));
+    }
+
     private boolean isSupportedMediaType(String type) {
         return context.isSupportedMediaType(type);
     }
 
     private String parseStringValue(Blob v, Metadata metadata, String path) {
         WriteOutContentHandler handler = new WriteOutContentHandler(context.getDefinition().getMaxExtractLength());
+        long start = System.currentTimeMillis();
+        long size = 0;
         try {
-            InputStream stream = v.getNewStream();
+            CountingInputStream stream = new CountingInputStream(new LazyInputStream(new BlobByteSource(v)));
             try {
                 context.getParser().parse(stream, handler, metadata, new ParseContext());
             } finally {
+                size = stream.getCount();
                 stream.close();
             }
         } catch (LinkageError e) {
@@ -797,7 +831,9 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                 return "TextExtractionError";
             }
         }
-        return handler.toString();
+        String result = handler.toString();
+        context.recordTextExtractionStats(System.currentTimeMillis() - start, size);
+        return result;
     }
 
 }

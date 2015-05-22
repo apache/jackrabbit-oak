@@ -217,12 +217,12 @@ public abstract class AbstractNodeState implements NodeState {
     }
 
     @Override
-    public boolean hasProperty(String name) {
+    public boolean hasProperty(@Nonnull String name) {
         return getProperty(name) != null;
     }
 
     @Override
-    public boolean getBoolean(String name) {
+    public boolean getBoolean(@Nonnull String name) {
         return getBoolean(this, name);
     }
 
@@ -236,8 +236,9 @@ public abstract class AbstractNodeState implements NodeState {
         return getString(this, name);
     }
 
+    @Nonnull
     @Override
-    public Iterable<String> getStrings(String name) {
+    public Iterable<String> getStrings(@Nonnull String name) {
         return getStrings(this, name);
     }
 
@@ -252,7 +253,7 @@ public abstract class AbstractNodeState implements NodeState {
     }
 
     @Override
-    public PropertyState getProperty(String name) {
+    public PropertyState getProperty(@Nonnull String name) {
         for (PropertyState property : getProperties()) {
             if (name.equals(property.getName())) {
                 return property;

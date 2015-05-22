@@ -88,7 +88,7 @@ public class OakRepositoryFixture implements RepositoryFixture {
 
     @Override
     public final Repository[] setUpCluster(int n) throws Exception {
-        return setUpCluster(n,JcrCreator.DEFAULT);
+        return setUpCluster(n, JcrCreator.DEFAULT);
     }
 
     public Repository[] setUpCluster(int n, JcrCreator customizer) throws Exception {

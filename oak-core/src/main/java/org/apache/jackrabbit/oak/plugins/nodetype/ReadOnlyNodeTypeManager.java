@@ -343,6 +343,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
 
     //-------------------------------------------------< DefinitionProvider >---
 
+    @Nonnull
     @Override
     public NodeDefinition getRootDefinition() throws RepositoryException {
         return new RootNodeDefinition(this);
@@ -358,6 +359,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         return effective.getNodeDefinition(nodeName, null);
     }
 
+    @Nonnull
     @Override
     public NodeDefinition getDefinition(
             @Nonnull Tree parent, @Nonnull Tree targetNode)

@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.lock;
 
+import javax.annotation.Nonnull;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 
@@ -32,24 +33,13 @@ import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 public abstract class LockOperation<T> extends SessionOperation<T> {
 
     protected final SessionDelegate session;
-
-    private final NodeDelegate node;
-
     private final String path;
-
-    protected LockOperation(SessionDelegate session, NodeDelegate node, String name) {
-        super(name);
-        this.session = session;
-        this.path = null;
-        this.node = node;
-    }
 
     protected LockOperation(SessionContext context, String absPath, String name)
             throws PathNotFoundException {
         super(name);
         this.session = context.getSessionDelegate();
         this.path = context.getOakPathOrThrowNotFound(absPath);
-        this.node = null;
     }
 
     @Override
@@ -57,23 +47,38 @@ public abstract class LockOperation<T> extends SessionOperation<T> {
         return true;
     }
 
+    @Nonnull
     @Override
     public T perform() throws RepositoryException {
         session.refresh(true);
+
+        NodeDelegate node = session.getNode(path);
         if (node != null) {
             return perform(node);
         } else {
-            NodeDelegate node = session.getNode(path);
-            if (node != null) {
-                return perform(node);
-            } else {
-                throw new PathNotFoundException(
-                        "Node " + path + " not found");
-            }
+            throw new PathNotFoundException("Node " + path + " not found");
         }
     }
 
-    protected abstract T perform(NodeDelegate node)
-            throws RepositoryException;
+    @Override
+    public void performVoid() throws RepositoryException {
+        session.refresh(true);
+
+        NodeDelegate node = session.getNode(path);
+        if (node != null) {
+            performVoid(node);
+        } else {
+            throw new PathNotFoundException("Node " + path + " not found");
+        }
+    }
+
+    @Nonnull
+    protected T perform(@Nonnull NodeDelegate node) throws RepositoryException {
+        throw new UnsupportedOperationException();
+    }
+
+    protected void performVoid(@Nonnull NodeDelegate node) throws RepositoryException {
+        throw new UnsupportedOperationException();
+    }
 
 }

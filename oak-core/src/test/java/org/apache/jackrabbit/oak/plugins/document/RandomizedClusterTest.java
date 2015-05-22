@@ -27,7 +27,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 
-import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
@@ -356,7 +355,7 @@ public class RandomizedClusterTest {
             try {
                 mk.commit("/", diff, rev, null);
                 fail("Should fail: " + diff + " with " + ex);
-            } catch (MicroKernelException e2) {
+            } catch (DocumentStoreException e2) {
                 // expected
                 revList[mkId] = mk.getHeadRevision();
                 // it might have been not a conflict with another cluster node

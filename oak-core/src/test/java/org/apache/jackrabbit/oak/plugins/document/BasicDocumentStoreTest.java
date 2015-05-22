@@ -37,6 +37,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -428,8 +434,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             cnt += 1;
         }
 
-        LOG.info("document creation with property of size " + size + " and batch size " + amount + " for " + super.dsname + " was "
-                + cnt + " in " + duration + "ms (" + (cnt / (duration / 1000f)) + "/s)");
+        LOG.info("document creation with property of size " + size + " and batch size " + amount + " for " + super.dsname + " was " + cnt + " in " + duration + "ms (" + (cnt / (duration / 1000f)) + "/s)");
     }
 
     @Test
@@ -644,8 +649,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             assertTrue(m.keySet().equals(expectedRevs));
         }
 
-        LOG.info("document updates with property of size " + size + (growing ? " (growing)" : "") + " for " + super.dsname
-                + " was " + cnt + " in " + duration + "ms (" + (cnt / (duration / 1000f)) + "/s)");
+        LOG.info("document updates with property of size " + size + (growing ? " (growing)" : "") + " for " + super.dsname + " was " + cnt + " in " + duration + "ms (" + (cnt / (duration / 1000f)) + "/s)");
     }
 
     private static String generateString(int length, boolean ascii) {
@@ -708,6 +712,8 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             try {
                 connection = super.rdbDataSource.getConnection();
                 connection.setAutoCommit(false);
+                // we use the same pool as the document store, and the connection might have been returned in read-only mode
+                connection.setReadOnly(false);
                 PreparedStatement stmt = connection.prepareStatement("insert into " + table
                         + " (ID, MODCOUNT, DATA) values (?, ?, ?)");
                 try {
@@ -884,7 +890,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                     try {
                         setIdInStatement(stmt, 1, key);
                         ResultSet rs = stmt.executeQuery();
-                        assertTrue(rs.next());
+                        assertTrue("test record " + key + " not found in " + super.dsname, rs.next());
                         String got = rs.getString(1);
                         long modc = rs.getLong(2);
                         LOG.info("column reset " + modc + " times");
@@ -982,5 +988,54 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     public void description() throws Exception{
         Map<String, String> desc = ds.getMetadata();
         assertNotNull(desc.get("type"));
+    }
+
+    @Test
+    public void removeWithCondition() throws Exception {
+        List<UpdateOp> docs = Lists.newArrayList();
+        docs.add(newDocument("/foo", 100));
+        removeMe.add(Utils.getIdFromPath("/foo"));
+        docs.add(newDocument("/bar", 200));
+        removeMe.add(Utils.getIdFromPath("/bar"));
+        docs.add(newDocument("/baz", 300));
+        removeMe.add(Utils.getIdFromPath("/baz"));
+        ds.create(Collection.NODES, docs);
+
+        for (UpdateOp op : docs) {
+            assertNotNull(ds.find(Collection.NODES, op.getId()));
+        }
+
+        Map<String, Map<Key, Condition>> toRemove = Maps.newHashMap();
+        removeDocument(toRemove, "/foo", 100); // matches
+        removeDocument(toRemove, "/bar", 300); // modified differs
+        removeDocument(toRemove, "/qux", 100); // does not exist
+        removeDocument(toRemove, "/baz", 300); // matches
+
+        int removed = ds.remove(Collection.NODES, toRemove);
+
+        assertEquals(2, removed);
+        assertNotNull(ds.find(Collection.NODES, Utils.getIdFromPath("/bar")));
+        for (NodeDocument doc : Utils.getAllDocuments(ds)) {
+            if (!doc.getPath().equals("/bar")) {
+                fail("document must not exist: " + doc.getId());
+            }
+        }
+    }
+
+    private UpdateOp newDocument(String path, long modified) {
+        String id = Utils.getIdFromPath(path);
+        UpdateOp op = new UpdateOp(id, true);
+        op.set(NodeDocument.MODIFIED_IN_SECS, modified);
+        op.set(Document.ID, id);
+        return op;
+    }
+
+    private void removeDocument(Map<String, Map<Key, Condition>> toRemove,
+                                String path,
+                                long modified) {
+        toRemove.put(Utils.getIdFromPath(path),
+                Collections.singletonMap(
+                        new Key(NodeDocument.MODIFIED_IN_SECS, null),
+                        Condition.newEqualsCondition(modified)));
     }
 }

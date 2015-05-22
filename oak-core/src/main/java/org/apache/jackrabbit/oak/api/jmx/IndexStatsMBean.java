@@ -19,6 +19,9 @@ package org.apache.jackrabbit.oak.api.jmx;
 
 import javax.management.openmbean.CompositeData;
 
+import org.apache.jackrabbit.oak.commons.jmx.Description;
+import org.apache.jackrabbit.oak.commons.jmx.Name;
+
 public interface IndexStatsMBean {
 
     String TYPE = "IndexStats";
@@ -140,4 +143,23 @@ public interface IndexStatsMBean {
      * Resets the consolidated stats.
      */
     void resetConsolidatedExecutionStats();
+
+    /**
+     * Splits the current indexing tasks into 2, indexes that are passed in as
+     * an input will have their 'async' property updated to
+     * {@code newIndexTaskName}.
+     * 
+     * Note that this call will *not* bootstrap a new indexing task for the
+     * given name.
+     */
+    void splitIndexingTask(
+            @Name("paths") @Description("Comma separated list of paths of the index definitions") String paths,
+            @Name("newIndexTaskName") @Description("The indexing task name set on the async property") String newIndexTaskName);
+
+    /**
+     * Starts a new background indexing task and registers the JMX MBeans for it
+     * 
+     */
+    void registerAsyncIndexer(@Name("name") String name,
+            @Name("delayInSeconds") long delayInSeconds);
 }

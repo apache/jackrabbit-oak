@@ -286,6 +286,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             private ScoreDoc lastDoc;
             private int nextBatchSize = LUCENE_QUERY_BATCH_SIZE;
             private boolean noDocs = false;
+            private long lastSearchIndexerVersion;
 
             @Override
             protected LuceneResultRow computeNext() {
@@ -347,23 +348,32 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                         Query query = (Query) luceneRequestFacade.getLuceneRequest();
                         TopDocs docs;
                         long time = System.currentTimeMillis();
-                        if (lastDoc != null) {
-                            LOG.debug("loading the next {} entries for query {}", nextBatchSize, query);
-                            docs = searcher.searchAfter(lastDoc, query, nextBatchSize);
-                        } else {
-                            LOG.debug("loading the first {} entries for query {}", nextBatchSize, query);
-                            docs = searcher.search(query, nextBatchSize);
-                        }
-                        time = System.currentTimeMillis() - time;
-                        LOG.debug("... took {} ms", time);
-                        nextBatchSize = (int) Math.min(nextBatchSize * 2L, 100000);
-
-                        for (ScoreDoc doc : docs.scoreDocs) {
-                            LuceneResultRow row = convertToRow(doc, searcher);
-                            if (row != null) {
-                                queue.add(row);
+                        checkForIndexVersionChange(searcher);
+                        while (true) {
+                            if (lastDoc != null) {
+                                LOG.debug("loading the next {} entries for query {}", nextBatchSize, query);
+                                docs = searcher.searchAfter(lastDoc, query, nextBatchSize);
+                            } else {
+                                LOG.debug("loading the first {} entries for query {}", nextBatchSize, query);
+                                docs = searcher.search(query, nextBatchSize);
                             }
-                            lastDocToRecord = doc;
+                            time = System.currentTimeMillis() - time;
+                            LOG.debug("... took {} ms", time);
+                            nextBatchSize = (int) Math.min(nextBatchSize * 2L, 100000);
+
+                            for (ScoreDoc doc : docs.scoreDocs) {
+                                LuceneResultRow row = convertToRow(doc, searcher);
+                                if (row != null) {
+                                    queue.add(row);
+                                }
+                                lastDocToRecord = doc;
+                            }
+
+                            if (queue.isEmpty() && docs.scoreDocs.length > 0) {
+                                lastDoc = lastDocToRecord;
+                            } else {
+                                break;
+                            }
                         }
                     } else if (luceneRequestFacade.getLuceneRequest() instanceof SpellcheckHelper.SpellcheckQuery) {
                         SpellcheckHelper.SpellcheckQuery spellcheckQuery = (SpellcheckHelper.SpellcheckQuery) luceneRequestFacade.getLuceneRequest();
@@ -423,6 +433,16 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                 }
 
                 return !queue.isEmpty();
+            }
+
+            private void checkForIndexVersionChange(IndexSearcher searcher) {
+                long currentVersion = LucenePropertyIndex.getVersion(searcher);
+                if (currentVersion != lastSearchIndexerVersion && lastDoc != null){
+                    lastDoc = null;
+                    LOG.debug("Change in index version detected {} => {}. Query would be performed without " +
+                            "offset", currentVersion, lastSearchIndexerVersion);
+                }
+                this.lastSearchIndexerVersion = currentVersion;
             }
         };
         return new LucenePathCursor(itr, settings);
@@ -896,6 +916,12 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             List<Term> terms = new ArrayList<Term>();
             Term onTerm = newFulltextTerm(token, fieldName);
             Terms t = MultiFields.getTerms(reader, onTerm.field());
+
+            //No existing field with given name indexed so no possible term values
+            if (t == null){
+                return new Term[0];
+            }
+
             Automaton a = WildcardQuery.toAutomaton(onTerm);
             CompiledAutomaton ca = new CompiledAutomaton(a);
             TermsEnum te = ca.getTermsEnum(t);

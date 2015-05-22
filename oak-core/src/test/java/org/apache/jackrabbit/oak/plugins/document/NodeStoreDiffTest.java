@@ -22,6 +22,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.io.IOException;
 import java.util.List;
 
+import javax.annotation.Nonnull;
+
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -108,6 +110,7 @@ public class NodeStoreDiffTest {
         tds.reset();
         //3. Merge which does a rebase
         ns.merge(b2, new CommitHook() {
+            @Nonnull
             public NodeState processCommit(NodeState before, NodeState after, CommitInfo info) throws CommitFailedException {
                 NodeBuilder rb = after.builder();
                 createNodes(rb, "/oak:index/prop-a/a1");

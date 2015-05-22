@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
 
-/**
-* {@code SyncedIdentityImpl}...
-*/
 public class SyncedIdentityImpl implements SyncedIdentity {
 
     private final String id;
@@ -34,7 +33,7 @@ public class SyncedIdentityImpl implements SyncedIdentity {
 
     private final long lastSynced;
 
-    public SyncedIdentityImpl(String id, ExternalIdentityRef ref, boolean isGroup, long lastSynced) {
+    public SyncedIdentityImpl(@Nonnull String id, @Nullable ExternalIdentityRef ref, boolean isGroup, long lastSynced) {
         this.id = id;
         this.ref = ref;
         this.isGroup = isGroup;
@@ -47,6 +46,7 @@ public class SyncedIdentityImpl implements SyncedIdentity {
         return id;
     }
 
+    @CheckForNull
     @Override
     public ExternalIdentityRef getExternalIdRef() {
         return ref;

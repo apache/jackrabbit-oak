@@ -16,8 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.Collections;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
+import org.apache.jackrabbit.oak.cache.CacheStats;
 
 /**
  * A diff cache implementation, which immediately forgets the diff.
@@ -54,5 +58,11 @@ class AmnesiaDiffCache implements DiffCache {
                 return false;
             }
         };
+    }
+
+    @Nonnull
+    @Override
+    public Iterable<CacheStats> getStats() {
+        return Collections.emptyList();
     }
 }

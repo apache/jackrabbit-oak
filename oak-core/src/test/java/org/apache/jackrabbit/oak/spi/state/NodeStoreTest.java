@@ -255,6 +255,7 @@ public class NodeStoreTest extends OakBaseTest {
         testBuilder.getChildNode("a").remove();
 
         store.merge(rootBuilder, new CommitHook() {
+            @Nonnull
             @Override
             public NodeState processCommit(
                     NodeState before, NodeState after, CommitInfo info) {

@@ -58,6 +58,7 @@ public class RestrictionDefinitionImpl implements RestrictionDefinition {
         return name;
     }
 
+    @Nonnull
     @Override
     public Type<?> getRequiredType() {
         return type;

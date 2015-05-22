@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.1-SNAPSHOT</version>
+    <version>1.4-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -63,19 +63,29 @@
           </dependency>
         </dependencies>
       </plugin>
+      <plugin>
+        <groupId>org.apache.rat</groupId>
+        <artifactId>apache-rat-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>**/org.apache.felix.jaas.Configuration.factory-GuestLoginModule.config</exclude>
+            <exclude>**/org.apache.felix.jaas.Configuration.factory-LoginModuleImpl.config</exclude>
+            <exclude>**/org.apache.felix.jaas.Configuration.factory-TokenLoginModule.config</exclude>
+            <exclude>**/org.apache.felix.jaas.ConfigurationSpi.config</exclude>
+            <exclude>**/org.apache.jackrabbit.oak.jcr.osgi.RepositoryManager.config</exclude>
+            <exclude>**/org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl.config</exclude>
+            <exclude>**/org.apache.jackrabbit.oak.security.user.UserConfigurationImpl.config</exclude>
+            <exclude>**/org.apache.jackrabbit.oak.spi.security.user.action.DefaultAuthorizableActionProvider.config</exclude>
+            <exclude>**/org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.config</exclude>
+            <exclude>**/org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService.config</exclude>
+            <exclude>**/oak-base-config.json</exclude>
+            <exclude>**/oak-tar-config.json</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
     </plugins>
     <pluginManagement>
       <plugins>
-        <plugin>
-          <groupId>org.apache.rat</groupId>
-          <artifactId>apache-rat-plugin</artifactId>
-          <configuration>
-            <excludes>
-              <exclude>README.md</exclude>
-              <exclude>src/test/resources/**/*.*</exclude>
-            </excludes>
-          </configuration>
-        </plugin>
         <!-- Some component is creating derby.log in test. Need to be deleted-->
         <plugin>
           <artifactId>maven-clean-plugin</artifactId>
@@ -138,6 +148,12 @@
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
+    </dependency>
+
+    <!-- Findbugs annotations -->
+    <dependency>
+      <groupId>com.google.code.findbugs</groupId>
+      <artifactId>jsr305</artifactId>
     </dependency>
 
     <!-- Pojo SR -->

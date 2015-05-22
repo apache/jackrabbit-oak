@@ -34,6 +34,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.plugins.index.solr.util.SolrUtils.getSortingField;
+import static org.apache.jackrabbit.oak.plugins.index.solr.util.SolrUtils.partialEscape;
 
 /**
  * the {@link org.apache.jackrabbit.oak.plugins.index.solr.query.FilterQueryParser} can parse {@link org.apache.jackrabbit.oak.spi.query.Filter}s
@@ -237,36 +239,6 @@ class FilterQueryParser {
         }
 
         return solrQuery;
-    }
-
-    private static String getSortingField(int tag, String s) {
-//        switch (tag) {
-//            case PropertyType.LONG:
-//                return s+"_long_sort";
-//            case PropertyType.DATE:
-//                return s+"_date_sort";
-//            case PropertyType.DOUBLE:
-//                return s+"_double_sort";
-//            case PropertyType.STRING:
-//                return s+"_string_sort";
-//            default:
-                return s+"_string_sort";
-//        }
-    }
-
-    private static CharSequence partialEscape(CharSequence s) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < s.length(); i++) {
-            char c = s.charAt(i);
-            if (c == '\\' || c == '!' || c == '(' || c == ')' ||
-                    c == ':' || c == '^' || c == '[' || c == ']' || c == '/' ||
-                    c == '{' || c == '}' || c == '~' || c == '*' || c == '?' ||
-                    c == '-' || c == ' ') {
-                sb.append('\\');
-            }
-            sb.append(c);
-        }
-        return sb;
     }
 
     private static String parseFullTextExpression(FullTextExpression ft, final OakSolrConfiguration configuration) {

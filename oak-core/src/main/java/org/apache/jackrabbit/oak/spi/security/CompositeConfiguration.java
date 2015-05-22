@@ -153,7 +153,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
 
     @Nonnull
     @Override
-    public List<? extends CommitHook> getCommitHooks(final String workspaceName) {
+    public List<? extends CommitHook> getCommitHooks(@Nonnull final String workspaceName) {
         return ImmutableList.copyOf(Iterables.concat(Lists.transform(getConfigurations(), new Function<T, List<? extends CommitHook>>() {
             @Override
             public List<? extends CommitHook> apply(T securityConfiguration) {
@@ -164,7 +164,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
 
     @Nonnull
     @Override
-    public List<? extends ValidatorProvider> getValidators(final String workspaceName, final Set<Principal> principals, final MoveTracker moveTracker) {
+    public List<? extends ValidatorProvider> getValidators(@Nonnull final String workspaceName, @Nonnull final Set<Principal> principals, @Nonnull final MoveTracker moveTracker) {
         return ImmutableList.copyOf(Iterables.concat(Lists.transform(getConfigurations(), new Function<T, List<? extends ValidatorProvider>>() {
             @Override
             public List<? extends ValidatorProvider> apply(T securityConfiguration) {
@@ -184,6 +184,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
         })));
     }
 
+    @Nonnull
     @Override
     public Context getContext() {
         final List<T> configs = getConfigurations();

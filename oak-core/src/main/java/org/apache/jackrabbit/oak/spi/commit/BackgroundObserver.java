@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.spi.commit;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Iterables.size;
 import static com.google.common.collect.Queues.newArrayBlockingQueue;
 
 import java.io.Closeable;
@@ -28,12 +30,12 @@ import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.base.Predicate;
+import org.apache.jackrabbit.oak.commons.concurrent.NotifyingFutureTask;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,7 +53,6 @@ import org.slf4j.LoggerFactory;
  * to just one change.
  */
 public class BackgroundObserver implements Observer, Closeable {
-    private static final Logger LOG = LoggerFactory.getLogger(BackgroundObserver.class);
 
     /**
      * Signal for the background thread to stop processing changes.
@@ -107,7 +108,7 @@ public class BackgroundObserver implements Observer, Closeable {
     /**
      * Current background task
      */
-    private volatile ListenableFutureTask currentTask = ListenableFutureTask.completed();
+    private volatile NotifyingFutureTask currentTask = NotifyingFutureTask.completed();
 
     /**
      * Completion handler: set the current task to the next task and schedules that one
@@ -132,7 +133,7 @@ public class BackgroundObserver implements Observer, Closeable {
 
         @Override
         public void run() {
-            currentTask = new ListenableFutureTask(task);
+            currentTask = new NotifyingFutureTask(task);
             executor.execute(currentTask);
         }
     };
@@ -179,15 +180,10 @@ public class BackgroundObserver implements Observer, Closeable {
     protected void added(int queueSize) { }
 
     /**
-     * Private utility to report queue size to observers
-     * @param queueSize current size of the queue
+     * @return  The max queue length used for this observer's queue
      */
-    private void reportAdded(int queueSize){
-        if(queueSize == maxQueueLength ){
-            LOG.warn("Revision queue for observer {} is full (max = {}). Further revisions will be compacted.",
-                    observer != null ? observer.getClass().getName(): "", maxQueueLength);
-        }
-        added(queueSize);
+    public int getMaxQueueLength() {
+        return maxQueueLength;
     }
 
     /**
@@ -206,6 +202,46 @@ public class BackgroundObserver implements Observer, Closeable {
         queue.clear();
         queue.add(STOP);
         stopped = true;
+    }
+
+    @Nonnull
+    public BackgroundObserverMBean getMBean(){
+        return new BackgroundObserverMBean() {
+            @Override
+            public String getClassName() {
+                return observer.getClass().getName();
+            }
+
+            @Override
+            public int getQueueSize() {
+                return queue.size();
+            }
+
+            @Override
+            public int getMaxQueueSize() {
+                return getMaxQueueLength();
+            }
+
+            @Override
+            public int getLocalEventCount() {
+                return size(filter(queue, new Predicate<ContentChange>() {
+                    @Override
+                    public boolean apply(ContentChange input) {
+                        return input.info != null;
+                    }
+                }));
+            }
+
+            @Override
+            public int getExternalEventCount() {
+                return size(filter(queue, new Predicate<ContentChange>() {
+                    @Override
+                    public boolean apply(ContentChange input) {
+                        return input.info == null;
+                    }
+                }));
+            }
+        };
     }
 
     //----------------------------------------------------------< Observer >--
@@ -251,7 +287,7 @@ public class BackgroundObserver implements Observer, Closeable {
         // to onComplete are not a problem here since we always pass the same value.
         // Thus there is no question as to which of the handlers will effectively run.
         currentTask.onComplete(completionHandler);
-        reportAdded(queue.size());
+        added(queue.size());
     }
 
     //------------------------------------------------------------< internal >---
@@ -259,61 +295,4 @@ public class BackgroundObserver implements Observer, Closeable {
     private static Logger getLogger(@Nonnull Observer observer) {
         return LoggerFactory.getLogger(checkNotNull(observer).getClass());
     }
-
-    /**
-     * A future task with a on complete handler.
-     */
-    private static class ListenableFutureTask extends FutureTask<Void> {
-        private final AtomicBoolean completed = new AtomicBoolean(false);
-
-        private volatile Runnable onComplete;
-
-        public ListenableFutureTask(Callable<Void> callable) {
-            super(callable);
-        }
-
-        public ListenableFutureTask(Runnable task) {
-            super(task, null);
-        }
-
-        /**
-         * Set the on complete handler. The handler will run exactly once after
-         * the task terminated. If the task has already terminated at the time of
-         * this method call the handler will execute immediately.
-         * <p>
-         * Note: there is no guarantee to which handler will run when the method
-         * is called multiple times with different arguments.
-         * @param onComplete
-         */
-        public void onComplete(Runnable onComplete) {
-            this.onComplete = onComplete;
-            if (isDone()) {
-                run(onComplete);
-            }
-        }
-
-        @Override
-        protected void done() {
-            run(onComplete);
-        }
-
-        private void run(Runnable onComplete) {
-            if (onComplete != null && completed.compareAndSet(false, true)) {
-                onComplete.run();
-            }
-        }
-
-        private static final Runnable NOP = new Runnable() {
-            @Override
-            public void run() {
-            }
-        };
-
-        public static ListenableFutureTask completed() {
-            ListenableFutureTask f = new ListenableFutureTask(NOP);
-            f.run();
-            return f;
-        }
-    }
-
 }

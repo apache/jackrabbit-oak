@@ -134,6 +134,19 @@ public final class DocumentNodeStore
             Integer.getInteger("oak.documentMK.revisionAge", 60 * 1000);
 
     /**
+     * Feature flag to enable concurrent add/remove operations of hidden empty
+     * nodes. See OAK-2673.
+     */
+    private boolean enableConcurrentAddRemove =
+            Boolean.getBoolean("oak.enableConcurrentAddRemove");
+
+    /**
+     * Use fair mode for background operation lock.
+     */
+    private boolean fairBackgroundOperationLock =
+            Boolean.getBoolean("oak.fairBackgroundOperationLock");
+
+    /**
      * How long to remember the relative order of old revision of all cluster
      * nodes, in milliseconds. The default is one hour.
      */
@@ -259,7 +272,8 @@ public final class DocumentNodeStore
      * Read/Write lock for background operations. Regular commits will acquire
      * a shared lock, while a background write acquires an exclusive lock.
      */
-    private final ReadWriteLock backgroundOperationLock = new ReentrantReadWriteLock();
+    private final ReadWriteLock backgroundOperationLock =
+            new ReentrantReadWriteLock(fairBackgroundOperationLock);
 
     /**
      * Read/Write lock to coordinate merges. In most cases merges acquire a
@@ -439,7 +453,12 @@ public final class DocumentNodeStore
         getRevisionComparator().add(headRevision, Revision.newRevision(0));
 
         dispatcher = new ChangeDispatcher(getRoot());
-        commitQueue = new CommitQueue(this, dispatcher);
+        commitQueue = new CommitQueue() {
+            @Override
+            protected Revision newRevision() {
+                return DocumentNodeStore.this.newRevision();
+            }
+        };
         batchCommitQueue = new BatchCommitQueue(store, revisionComparator);
         backgroundReadThread = new Thread(
                 new BackgroundReadOperation(this, isDisposed),
@@ -575,19 +594,11 @@ public final class DocumentNodeStore
         if (base == null) {
             base = headRevision;
         }
-        backgroundOperationLock.readLock().lock();
-        checkOpen();
-        boolean success = false;
-        Commit c;
-        try {
-            c = new Commit(this, commitQueue.createRevision(), base, branch);
-            success = true;
-        } finally {
-            if (!success) {
-                backgroundOperationLock.readLock().unlock();
-            }
+        if (base.isBranch()) {
+            return newBranchCommit(base, branch);
+        } else {
+            return newTrunkCommit(base);
         }
-        return c;
     }
 
     /**
@@ -606,10 +617,10 @@ public final class DocumentNodeStore
             base = headRevision;
         }
         backgroundOperationLock.readLock().lock();
-        checkOpen();
         boolean success = false;
         MergeCommit c;
         try {
+            checkOpen();
             c = new MergeCommit(this, base, commitQueue.createRevisions(numBranchCommits));
             success = true;
         } finally {
@@ -620,19 +631,37 @@ public final class DocumentNodeStore
         return c;
     }
 
-    void done(@Nonnull Commit c, boolean isBranch, @Nullable CommitInfo info) {
-        try {
-            commitQueue.done(c, isBranch, info);
-        } finally {
-            backgroundOperationLock.readLock().unlock();
+    void done(final @Nonnull Commit c, boolean isBranch, final @Nullable CommitInfo info) {
+        if (commitQueue.contains(c.getRevision())) {
+            try {
+                commitQueue.done(c.getRevision(), new CommitQueue.Callback() {
+                    @Override
+                    public void headOfQueue(@Nonnull Revision revision) {
+                        // remember before revision
+                        Revision before = getHeadRevision();
+                        // apply changes to cache based on before revision
+                        c.applyToCache(before, false);
+                        // update head revision
+                        setHeadRevision(c.getRevision());
+                        dispatcher.contentChanged(getRoot(), info);
+                    }
+                });
+            } finally {
+                backgroundOperationLock.readLock().unlock();
+            }
+        } else {
+            // branch commit
+            c.applyToCache(c.getBaseRevision(), isBranch);
         }
     }
 
     void canceled(Commit c) {
-        try {
-            commitQueue.canceled(c.getRevision());
-        } finally {
-            backgroundOperationLock.readLock().unlock();
+        if (commitQueue.contains(c.getRevision())) {
+            try {
+                commitQueue.canceled(c.getRevision());
+            } finally {
+                backgroundOperationLock.readLock().unlock();
+            }
         }
     }
 
@@ -652,6 +681,14 @@ public final class DocumentNodeStore
         return maxBackOffMillis;
     }
 
+    void setEnableConcurrentAddRemove(boolean b) {
+        enableConcurrentAddRemove = b;
+    }
+
+    boolean getEnableConcurrentAddRemove() {
+        return enableConcurrentAddRemove;
+    }
+
     @CheckForNull
     public ClusterNodeInfo getClusterInfo() {
         return clusterNodeInfo;
@@ -667,6 +704,11 @@ public final class DocumentNodeStore
 
     public CacheStats getDocChildrenCacheStats() {
         return docChildrenCacheStats;
+    }
+
+    @Nonnull
+    public Iterable<CacheStats> getDiffCacheStats() {
+        return diffCache.getStats();
     }
 
     void invalidateDocChildrenCache() {
@@ -1309,31 +1351,21 @@ public final class DocumentNodeStore
      */
     boolean compare(@Nonnull final DocumentNodeState node,
                     @Nonnull final DocumentNodeState base,
-                    @Nonnull final NodeStateDiff diff) {
+                    @Nonnull NodeStateDiff diff) {
         if (!AbstractNodeState.comparePropertiesAgainstBaseState(node, base, diff)) {
             return false;
         }
         if (node.hasNoChildren() && base.hasNoChildren()) {
             return true;
         }
-        boolean useReadRevision = true;
-        // first lookup with read revisions of nodes and without loader
-        String jsop = diffCache.getChanges(base.getRevision(), 
-                node.getRevision(), node.getPath(), null);
-        if (jsop == null) {
-            useReadRevision = false;
-            // fall back to last revisions with loader, this
-            // guarantees we get a diff
-            jsop = diffCache.getChanges(base.getLastRevision(),
-                    node.getLastRevision(), node.getPath(),
-                    new DiffCache.Loader() {
-                        @Override
-                        public String call() {
-                            return diffImpl(base, node);
-                        }
-                    });
-        }
-        return dispatch(jsop, node, base, diff, useReadRevision);
+        return dispatch(diffCache.getChanges(base.getRootRevision(),
+                node.getRootRevision(), node.getPath(),
+                new DiffCache.Loader() {
+                    @Override
+                    public String call() {
+                        return diffImpl(base, node);
+                    }
+                }), node, base, diff);
     }
 
     String diff(@Nonnull final String fromRevisionId,
@@ -1582,16 +1614,16 @@ public final class DocumentNodeStore
         // split documents (does not create new revisions)
         backgroundSplit();
         long splitTime = clock.getTime() - time;
-        time = clock.getTime();
         // write back pending updates to _lastRev
-        backgroundWrite();
-        long writeTime = clock.getTime() - time;
-        String msg = "Background operations stats (clean:{}, split:{}, write:{})";
+        BackgroundWriteStats stats = backgroundWrite();
+        stats.split = splitTime;
+        stats.clean = cleanTime;
+        String msg = "Background operations stats ({})";
         if (clock.getTime() - start > TimeUnit.SECONDS.toMillis(10)) {
             // log as info if it took more than 10 seconds
-            LOG.info(msg, cleanTime, splitTime, writeTime);
+            LOG.info(msg, stats);
         } else {
-            LOG.debug(msg, cleanTime, splitTime, writeTime);
+            LOG.debug(msg, stats);
         }
     }
 
@@ -1729,15 +1761,18 @@ public final class DocumentNodeStore
         if (!externalChanges.isEmpty()) {
             // invalidate caches
             stats.cacheStats = store.invalidateCache();
-            stats.cacheInvalidationTime = clock.getTime() - time;
-            time = clock.getTime();
             // TODO only invalidate affected items
             docChildrenCache.invalidateAll();
+            stats.cacheInvalidationTime = clock.getTime() - time;
+            time = clock.getTime();
 
             // make sure update to revision comparator is atomic
             // and no local commit is in progress
             backgroundOperationLock.writeLock().lock();
             try {
+                stats.lock = clock.getTime() - time;
+                time = clock.getTime();
+
                 // the latest revisions of the current cluster node
                 // happened before the latest revisions of other cluster nodes
                 revisionComparator.add(newRevision(), headSeen);
@@ -1748,7 +1783,7 @@ public final class DocumentNodeStore
                 // the new head revision is after other revisions
                 setHeadRevision(newRevision());
                 if (dispatchChange) {
-                    dispatcher.contentChanged(getRoot(), null);
+                    dispatcher.contentChanged(getRoot().fromExternalChange(), null);
                 }
             } finally {
                 backgroundOperationLock.writeLock().unlock();
@@ -1766,6 +1801,7 @@ public final class DocumentNodeStore
         CacheInvalidationStats cacheStats;
         long readHead;
         long cacheInvalidationTime;
+        long lock;
         long dispatchChanges;
         long purge;
 
@@ -1779,6 +1815,7 @@ public final class DocumentNodeStore
                     "cacheStats:" + cacheStatsMsg +
                     ", head:" + readHead +
                     ", cache:" + cacheInvalidationTime +
+                    ", lock:" + lock +
                     ", dispatch:" + dispatchChanges +
                     ", purge:" + purge +
                     '}';
@@ -1861,11 +1898,41 @@ public final class DocumentNodeStore
         }
     }
 
-    void backgroundWrite() {
-        unsavedLastRevisions.persist(this, backgroundOperationLock.writeLock());
+    BackgroundWriteStats backgroundWrite() {
+        return unsavedLastRevisions.persist(this, backgroundOperationLock.writeLock());
     }
 
     //-----------------------------< internal >---------------------------------
+
+    @Nonnull
+    private Commit newTrunkCommit(@Nonnull Revision base) {
+        checkArgument(!checkNotNull(base).isBranch(),
+                "base must not be a branch revision: " + base);
+
+        backgroundOperationLock.readLock().lock();
+        boolean success = false;
+        Commit c;
+        try {
+            checkOpen();
+            c = new Commit(this, commitQueue.createRevision(), base, null);
+            success = true;
+        } finally {
+            if (!success) {
+                backgroundOperationLock.readLock().unlock();
+            }
+        }
+        return c;
+    }
+
+    @Nonnull
+    private Commit newBranchCommit(@Nonnull Revision base,
+                                   @Nullable DocumentNodeStoreBranch branch) {
+        checkArgument(checkNotNull(base).isBranch(),
+                "base must be a branch revision: " + base);
+
+        checkOpen();
+        return new Commit(this, newRevision(), base, branch);
+    }
 
     /**
      * Checks if this store is still open and throws an
@@ -1883,13 +1950,10 @@ public final class DocumentNodeStore
     private boolean dispatch(@Nonnull String jsonDiff,
                              @Nonnull DocumentNodeState node,
                              @Nonnull DocumentNodeState base,
-                             @Nonnull NodeStateDiff diff,
-                             boolean useReadRevision) {
+                             @Nonnull NodeStateDiff diff) {
         if (jsonDiff.trim().isEmpty()) {
             return true;
         }
-        Revision nodeRev = useReadRevision ? node.getRevision() : node.getLastRevision();
-        Revision baseRev = useReadRevision ? base.getRevision() : base.getLastRevision();
         JsopTokenizer t = new JsopTokenizer(jsonDiff);
         boolean continueComparison = true;
         while (continueComparison) {
@@ -1905,14 +1969,14 @@ public final class DocumentNodeStore
                     while (t.read() != '}') {
                         // skip properties
                     }
-                    NodeState child = getNode(concat(node.getPath(), name), nodeRev);
-                    continueComparison = diff.childNodeAdded(name, child);
+                    continueComparison = diff.childNodeAdded(name,
+                            node.getChildNode(name));
                     break;
                 }
                 case '-': {
                     String name = unshareString(t.readString());
-                    NodeState child = getNode(concat(base.getPath(), name), baseRev);
-                    continueComparison = diff.childNodeDeleted(name, child);
+                    continueComparison = diff.childNodeDeleted(name,
+                            base.getChildNode(name));
                     break;
                 }
                 case '^': {
@@ -1920,10 +1984,9 @@ public final class DocumentNodeStore
                     t.read(':');
                     if (t.matches('{')) {
                         t.read('}');
-                        NodeState nodeChild = getNode(concat(node.getPath(), name), nodeRev);
-                        NodeState baseChild = getNode(concat(base.getPath(), name), baseRev);
-                        continueComparison = diff.childNodeChanged(
-                                name, baseChild, nodeChild);
+                        continueComparison = diff.childNodeChanged(name,
+                                base.getChildNode(name),
+                                node.getChildNode(name));
                     } else if (t.matches('[')) {
                         // ignore multi valued property
                         while (t.read() != ']') {
@@ -2024,29 +2087,32 @@ public final class DocumentNodeStore
         final long getChildrenDoneIn = debug ? now() : 0;
 
         String diffAlgo;
+        Revision fromRev = from.getLastRevision();
+        Revision toRev = to.getLastRevision();
         if (!fromChildren.hasMore && !toChildren.hasMore) {
             diffAlgo = "diffFewChildren";
             diffFewChildren(w, from.getPath(), fromChildren,
-                    from.getLastRevision(), toChildren, to.getLastRevision());
+                    fromRev, toChildren, toRev);
         } else {
             if (FAST_DIFF) {
                 diffAlgo = "diffManyChildren";
-                diffManyChildren(w, from.getPath(),
-                        from.getLastRevision(), to.getLastRevision());
+                fromRev = from.getRootRevision();
+                toRev = to.getRootRevision();
+                diffManyChildren(w, from.getPath(), fromRev, toRev);
             } else {
                 diffAlgo = "diffAllChildren";
                 max = Integer.MAX_VALUE;
                 fromChildren = getChildren(from, null, max);
                 toChildren = getChildren(to, null, max);
                 diffFewChildren(w, from.getPath(), fromChildren,
-                        from.getLastRevision(), toChildren, to.getLastRevision());
+                        fromRev, toChildren, toRev);
             }
         }
 
         if (debug) {
             long end = now();
             LOG.debug("Diff performed via '{}' at [{}] between revisions [{}] => [{}] took {} ms ({} ms)",
-                    diffAlgo, from.getPath(), from.getLastRevision(), to.getLastRevision(),
+                    diffAlgo, from.getPath(), fromRev, toRev,
                     end - start, getChildrenDoneIn - start);
         }
         return w.toString();

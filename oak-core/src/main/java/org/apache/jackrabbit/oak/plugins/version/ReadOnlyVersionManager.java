@@ -205,8 +205,6 @@ public abstract class ReadOnlyVersionManager {
      *
      * @param tree the tree to check.
      * @return whether the {@code tree} is versionable.
-     * @throws RepositoryException if an error occurs while checking the node
-     *                             type of the tree.
      */
     protected boolean isVersionable(@Nonnull Tree tree) {
         return getNodeTypeManager().isNodeType(

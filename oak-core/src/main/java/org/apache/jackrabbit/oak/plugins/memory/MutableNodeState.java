@@ -245,12 +245,12 @@ class MutableNodeState extends AbstractNodeState {
     }
 
     @Override
-    public boolean hasProperty(String name) {
+    public boolean hasProperty(@Nonnull String name) {
         return ModifiedNodeState.hasProperty(base, properties, name);
     }
 
     @Override
-    public PropertyState getProperty(String name) {
+    public PropertyState getProperty(@Nonnull String name) {
         return ModifiedNodeState.getProperty(base, properties, name);
     }
 
@@ -266,7 +266,7 @@ class MutableNodeState extends AbstractNodeState {
     }
 
     @Override
-    public boolean hasChildNode(String name) {
+    public boolean hasChildNode(@Nonnull String name) {
         assert base != null;
         NodeState child = nodes.get(name);
         if (child != null) {
@@ -294,8 +294,9 @@ class MutableNodeState extends AbstractNodeState {
         return child;
     }
 
+    @Nonnull
     @Override
-    public NodeState getChildNode(String name) {
+    public NodeState getChildNode(@Nonnull String name) {
         NodeState child = nodes.get(name);
         if (child == null) {
             child = base.getChildNode(name);

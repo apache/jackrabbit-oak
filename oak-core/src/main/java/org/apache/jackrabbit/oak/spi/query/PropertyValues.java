@@ -25,6 +25,7 @@ import java.net.URI;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.Blob;
@@ -51,15 +52,20 @@ public final class PropertyValues {
     }
 
     @CheckForNull
-    public static PropertyValue create(PropertyState property) {
+    public static PropertyValue create(@CheckForNull PropertyState property) {
         if (property == null) {
             return null;
         }
+        return newValue(property);
+    }
+
+    @Nonnull
+    private static PropertyValue newValue(@Nonnull PropertyState property) {
         return new PropertyStateValue(property);
     }
 
     @CheckForNull
-    public static PropertyState create(PropertyValue value) {
+    public static PropertyState create(@CheckForNull PropertyValue value) {
         if (value == null) {
             return null;
         }
@@ -70,27 +76,27 @@ public final class PropertyValues {
     }
 
     @Nonnull
-    public static PropertyValue newString(String value) {
+    public static PropertyValue newString(@Nonnull String value) {
         return new PropertyStateValue(StringPropertyState.stringProperty("", value));
     }
 
     @Nonnull
-    public static PropertyValue newString(Iterable<String> value) {
+    public static PropertyValue newString(@Nonnull Iterable<String> value) {
         return new PropertyStateValue(MultiStringPropertyState.stringProperty("", value));
     }
 
     @Nonnull
-    public static PropertyValue newLong(Long value) {
+    public static PropertyValue newLong(@Nonnull Long value) {
         return new PropertyStateValue(LongPropertyState.createLongProperty("", value));
     }
 
     @Nonnull
-    public static PropertyValue newDouble(Double value) {
+    public static PropertyValue newDouble(@Nonnull Double value) {
         return new PropertyStateValue(DoublePropertyState.doubleProperty("", value));
     }
 
     @Nonnull
-    public static PropertyValue newDecimal(BigDecimal value) {
+    public static PropertyValue newDecimal(@Nonnull BigDecimal value) {
         return new PropertyStateValue(DecimalPropertyState.decimalProperty("", value));
     }
 
@@ -100,61 +106,61 @@ public final class PropertyValues {
     }
 
     @Nonnull
-    public static PropertyValue newDate(String value) {
+    public static PropertyValue newDate(@Nonnull String value) {
         return new PropertyStateValue(GenericPropertyState.dateProperty("", value));
     }
 
     @Nonnull
-    public static PropertyValue newName(String value) {
+    public static PropertyValue newName(@Nonnull String value) {
         return new PropertyStateValue(GenericPropertyState.nameProperty("", value));
     }
 
     @Nonnull
-    public static PropertyValue newName(Iterable<String> value) {
+    public static PropertyValue newName(@Nonnull Iterable<String> value) {
         return new PropertyStateValue(MultiGenericPropertyState.nameProperty("", value));
     }
 
     @Nonnull
-    public static PropertyValue newPath(String value) {
+    public static PropertyValue newPath(@Nonnull String value) {
         return new PropertyStateValue(GenericPropertyState.pathProperty("", value));
     }
 
     @Nonnull
-    public static PropertyValue newReference(String value) {
+    public static PropertyValue newReference(@Nonnull String value) {
         return new PropertyStateValue(GenericPropertyState.referenceProperty("", value));
     }
 
     @Nonnull
-    public static PropertyValue newWeakReference(String value) {
+    public static PropertyValue newWeakReference(@Nonnull String value) {
         return new PropertyStateValue(GenericPropertyState.weakreferenceProperty("", value));
     }
 
     @Nonnull
-    public static PropertyValue newUri(String value) {
+    public static PropertyValue newUri(@Nonnull String value) {
         return new PropertyStateValue(GenericPropertyState.uriProperty("", value));
     }
 
     @Nonnull
-    public static PropertyValue newBinary(byte[] value) {
+    public static PropertyValue newBinary(@Nonnull byte[] value) {
         return new PropertyStateValue(BinaryPropertyState.binaryProperty("", value));
     }
     
     @Nonnull
-    public static PropertyValue newBinary(Blob value) {
+    public static PropertyValue newBinary(@Nonnull Blob value) {
         return new PropertyStateValue(BinaryPropertyState.binaryProperty("", value));
     }
 
     // --
 
-    public static boolean match(PropertyValue p1, PropertyState p2) {
-        return match(p1, create(p2));
+    public static boolean match(@Nonnull PropertyValue p1, @Nonnull PropertyState p2) {
+        return match(p1, newValue(p2));
     }
 
-    public static boolean match(PropertyState p1, PropertyValue p2) {
-        return match(create(p1), p2);
+    public static boolean match(@Nonnull PropertyState p1, @Nonnull PropertyValue p2) {
+        return match(newValue(p1), p2);
     }
 
-    public static boolean match(PropertyValue p1, PropertyValue p2) {
+    public static boolean match(@Nonnull PropertyValue p1, @Nonnull PropertyValue p2) {
         if (p1.getType().tag() != p2.getType().tag()) {
             return false;
         }
@@ -185,7 +191,7 @@ public final class PropertyValues {
 
     }
 
-    public static boolean notMatch(PropertyValue p1, PropertyValue p2) {
+    public static boolean notMatch(@Nonnull PropertyValue p1, @Nonnull PropertyValue p2) {
         if (p1.getType().tag() != p2.getType().tag()) {
             return true;
         }
@@ -241,12 +247,11 @@ public final class PropertyValues {
      * 
      * @param value the value to convert
      * @param targetType the target property type 
-     * @param mapper the name mapper
+     * @param mapper the name mapper or {@code null} if no name/path mapping is required.
      * @return the converted value
      * @throws IllegalArgumentException if mapping is illegal
      */
-    public static PropertyValue convert(PropertyValue value, int targetType,
-            NamePathMapper mapper) {
+    public static PropertyValue convert(@Nonnull PropertyValue value, int targetType, @Nullable NamePathMapper mapper) {
         int sourceType = value.getType().tag();
         if (sourceType == targetType) {
             return value;
@@ -390,7 +395,7 @@ public final class PropertyValues {
         return false;
     }
 
-    public static String getOakPath(String jcrPath, NamePathMapper mapper) {
+    public static String getOakPath(@Nonnull String jcrPath, @CheckForNull NamePathMapper mapper) {
         if (mapper == null) {
             // to simplify testing, a getNamePathMapper isn't required
             return jcrPath;

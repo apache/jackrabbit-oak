@@ -88,7 +88,7 @@ final class MutableTree extends AbstractMutableTree {
 
     @Override
     @Nonnull
-    protected MutableTree createChild(String name) throws IllegalArgumentException {
+    protected MutableTree createChild(@Nonnull String name) throws IllegalArgumentException {
         return new MutableTree(root, pendingMoves, this,
                 nodeBuilder.getChildNode(checkNotNull(name)), name);
     }

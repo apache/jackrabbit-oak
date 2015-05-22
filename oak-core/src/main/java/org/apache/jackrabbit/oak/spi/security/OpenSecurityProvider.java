@@ -50,7 +50,7 @@ public class OpenSecurityProvider implements SecurityProvider {
 
     @Nonnull
     @Override
-    public <T> T getConfiguration(Class<T> configClass) {
+    public <T> T getConfiguration(@Nonnull Class<T> configClass) {
         if (AuthenticationConfiguration.class == configClass) {
             return (T) new OpenAuthenticationConfiguration();
         } else if (AuthorizationConfiguration.class == configClass) {

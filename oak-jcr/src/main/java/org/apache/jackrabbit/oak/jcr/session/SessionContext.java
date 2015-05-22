@@ -285,7 +285,7 @@ public class SessionContext implements NamePathMapper {
 
     @Override
     @Nonnull
-    public String getOakName(String jcrName) throws RepositoryException {
+    public String getOakName(@Nonnull String jcrName) throws RepositoryException {
         return namePathMapper.getOakName(jcrName);
     }
 
@@ -295,6 +295,7 @@ public class SessionContext implements NamePathMapper {
         return namePathMapper.getOakNameOrNull(jcrName);
     }
 
+    @Nonnull
     @Override
     public String getJcrName(@Nonnull String oakName) {
         return namePathMapper.getJcrName(oakName);
@@ -383,9 +384,9 @@ public class SessionContext implements NamePathMapper {
      */
     // TODO: should this be in SessionImpl?
     private void unlockAllSessionScopedLocks() throws RepositoryException {
-        delegate.perform(new SessionOperation<Void>("unlockAllSessionScopedLocks") {
+        delegate.performVoid(new SessionOperation("unlockAllSessionScopedLocks") {
             @Override
-            public Void perform() {
+            public void performVoid() {
                 Iterator<String> iterator = sessionScopedLocks.iterator();
                 while (iterator.hasNext()) {
                     NodeDelegate node = delegate.getNode(iterator.next());
@@ -398,7 +399,6 @@ public class SessionContext implements NamePathMapper {
                     }
                     iterator.remove();
                 }
-                return null;
             }
         });
     }

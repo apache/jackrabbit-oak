@@ -24,7 +24,6 @@ import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Maps.newTreeMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.newHashSetWithExpectedSize;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.REF_COUNT_OFFSET;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentId.isDataSegmentId;
@@ -426,64 +425,16 @@ class TarReader {
         }
     }
 
-    /**
-     * Loads the optional pre-compiled graph entry from the given tar file.
-     *
-     * @return graph buffer, or {@code null} if one was not found
-     * @throws IOException if the tar file could not be read
-     */
-    private static ByteBuffer loadGraph(
-            File file, FileAccess access, ByteBuffer index) throws IOException {
-        // read the graph metadata just before the tar index entry
-        int pos = access.length() - 2 * BLOCK_SIZE - getEntrySize(index.remaining());
-        ByteBuffer meta = access.read(pos - 16, 16);
-        int crc32 = meta.getInt();
-        int count = meta.getInt();
-        int bytes = meta.getInt();
-        int magic = meta.getInt();
-
-        if (magic != GRAPH_MAGIC) {
-            return null; // magic byte mismatch
-        }
-
-        if (count < 0 || bytes < count * 16 + 16 || BLOCK_SIZE + bytes > pos) {
-            log.warn("Invalid graph metadata in tar file {}", file);
-            return null; // impossible uuid and/or byte counts
-        }
-
-        // this involves seeking backwards in the file, which might not
-        // perform well, but that's OK since we only do this once per file
-        ByteBuffer graph = access.read(pos - bytes, bytes);
-
-        byte[] b = new byte[bytes - 16];
-        graph.mark();
-        graph.get(b);
-        graph.reset();
-
-        CRC32 checksum = new CRC32();
-        checksum.update(b);
-        if (crc32 != (int) checksum.getValue()) {
-            log.warn("Invalid graph checksum in tar file {}", file);
-            return null; // checksum mismatch
-        }
-
-        return graph;
-    }
-
     private final File file;
 
     private final FileAccess access;
 
     private final ByteBuffer index;
 
-    private final ByteBuffer graph;
-
-    private TarReader(File file, FileAccess access, ByteBuffer index)
-            throws IOException {
+    private TarReader(File file, FileAccess access, ByteBuffer index) {
         this.file = file;
         this.access = access;
         this.index = index;
-        this.graph = loadGraph(file, access, index);
     }
 
     long size() {
@@ -617,15 +568,17 @@ class TarReader {
      * for memory mapped files).
      * 
      * @param referencedIds the referenced segment ids (input and output).
+     * @param cm the compaction map
+     * @param removed a set which will receive the uuids of all segments that
+     *                have been cleaned.
      * @return this (if the file is kept as is), or the new generation file, or
      *         null if the file is fully garbage
      */
-    synchronized TarReader cleanup(Set<UUID> referencedIds, CompactionMap cm) throws IOException {
+    synchronized TarReader cleanup(Set<UUID> referencedIds, CompactionMap cm, Set<UUID> removed)
+            throws IOException {
         Set<UUID> cleaned = newHashSet();
-        Map<UUID, List<UUID>> graph = null;
-        if (this.graph != null) {
-            graph = parseGraph();
-        }
+        Map<UUID, List<UUID>> graph = getGraph();
+
         TarEntry[] sorted = new TarEntry[index.remaining() / 24];
         int position = index.position();
         for (int i = 0; position < index.limit(); i++) {
@@ -709,6 +662,7 @@ class TarReader {
 
         if (count == 0) {
             // none of the entries within this tar file are referenceable
+            removed.addAll(cleaned);
             logCleanedSegments(cleaned);
             return null;
         } else if (size >= access.length() * 3 / 4 && graph != null) {
@@ -746,6 +700,7 @@ class TarReader {
                 singletonList(newFile), access.isMemoryMapped());
         if (reader != null) {
             logCleanedSegments(cleaned);
+            removed.addAll(cleaned);
             return reader;
         } else {
             log.warn("Failed to open cleaned up tar file {}", file);
@@ -778,19 +733,70 @@ class TarReader {
 
     //-----------------------------------------------------------< private >--
 
+    /**
+     * Loads and parses the optional pre-compiled graph entry from the given tar
+     * file.
+     *
+     * @return the parsed graph, or {@code null} if one was not found
+     * @throws IOException if the tar file could not be read
+     */
     Map<UUID, List<UUID>> getGraph() throws IOException {
+        ByteBuffer graph = loadGraph();
         if (graph == null) {
-            return emptyMap();
+            return null;
         } else {
-            return parseGraph();
+            return parseGraph(graph);
         }
     }
 
-    private Map<UUID, List<UUID>> parseGraph() throws IOException {
-        int count = graph.getInt(graph.limit() - 12);
+    /**
+     * Loads the optional pre-compiled graph entry from the given tar file.
+     *
+     * @return graph buffer, or {@code null} if one was not found
+     * @throws IOException if the tar file could not be read
+     */
+    private ByteBuffer loadGraph() throws IOException {
+        // read the graph metadata just before the tar index entry
+        int pos = access.length() - 2 * BLOCK_SIZE - getEntrySize(index.remaining());
+        ByteBuffer meta = access.read(pos - 16, 16);
+        int crc32 = meta.getInt();
+        int count = meta.getInt();
+        int bytes = meta.getInt();
+        int magic = meta.getInt();
 
-        ByteBuffer buffer = graph.duplicate();
-        buffer.limit(graph.limit() - 16);
+        if (magic != GRAPH_MAGIC) {
+            return null; // magic byte mismatch
+        }
+
+        if (count < 0 || bytes < count * 16 + 16 || BLOCK_SIZE + bytes > pos) {
+            log.warn("Invalid graph metadata in tar file {}", file);
+            return null; // impossible uuid and/or byte counts
+        }
+
+        // this involves seeking backwards in the file, which might not
+        // perform well, but that's OK since we only do this once per file
+        ByteBuffer graph = access.read(pos - bytes, bytes);
+
+        byte[] b = new byte[bytes - 16];
+        graph.mark();
+        graph.get(b);
+        graph.reset();
+
+        CRC32 checksum = new CRC32();
+        checksum.update(b);
+        if (crc32 != (int) checksum.getValue()) {
+            log.warn("Invalid graph checksum in tar file {}", file);
+            return null; // checksum mismatch
+        }
+
+        return graph;
+    }
+
+    private static Map<UUID, List<UUID>> parseGraph(ByteBuffer graphByteBuffer) {
+        int count = graphByteBuffer.getInt(graphByteBuffer.limit() - 12);
+
+        ByteBuffer buffer = graphByteBuffer.duplicate();
+        buffer.limit(graphByteBuffer.limit() - 16);
 
         List<UUID> uuids = newArrayListWithCapacity(count);
         for (int i = 0; i < count; i++) {

@@ -77,8 +77,9 @@ public class RestrictionProviderImpl extends AbstractRestrictionProvider {
 
     //------------------------------------------------< RestrictionProvider >---
 
+    @Nonnull
     @Override
-    public RestrictionPattern getPattern(String oakPath, Tree tree) {
+    public RestrictionPattern getPattern(String oakPath, @Nonnull Tree tree) {
         if (oakPath == null) {
             return RestrictionPattern.EMPTY;
         } else {
@@ -123,7 +124,7 @@ public class RestrictionProviderImpl extends AbstractRestrictionProvider {
     }
 
     @Override
-    public void validateRestrictions(String oakPath, Tree aceTree) throws AccessControlException {
+    public void validateRestrictions(String oakPath, @Nonnull Tree aceTree) throws AccessControlException {
         super.validateRestrictions(oakPath, aceTree);
 
         Tree restrictionsTree = getRestrictionsTree(aceTree);

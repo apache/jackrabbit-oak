@@ -235,27 +235,25 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
 
             private SolrResultRow convertToRow(SolrDocument doc) {
                 String path = String.valueOf(doc.getFieldValue(configuration.getPathField()));
-                if (path != null) {
-                    if ("".equals(path)) {
-                        path = "/";
-                    }
-                    if (!parent.isEmpty()) {
-                        path = getAncestorPath(path, parentDepth);
-                        // avoid duplicate entries
-                        if (seenPaths.contains(path)) {
-                            return null;
-                        }
-                        seenPaths.add(path);
-                    }
-
-                    float score = 0f;
-                    Object scoreObj = doc.get("score");
-                    if (scoreObj != null) {
-                        score = (Float) scoreObj;
-                    }
-                    return new SolrResultRow(path, score, doc);
+                if ("".equals(path)) {
+                    path = "/";
                 }
-                return null;
+                if (!parent.isEmpty()) {
+                    path = getAncestorPath(path, parentDepth);
+                    // avoid duplicate entries
+                    if (seenPaths.contains(path)) {
+                        return null;
+                    }
+                    seenPaths.add(path);
+                }
+
+                float score = 0f;
+                Object scoreObj = doc.get("score");
+                if (scoreObj != null) {
+                    score = (Float) scoreObj;
+                }
+                return new SolrResultRow(path, score, doc);
+
             }
 
             /**
@@ -465,10 +463,6 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
         final double score;
         final SolrDocument doc;
 
-        SolrResultRow(String path, double score) {
-            this(path, score, null);
-        }
-
         SolrResultRow(String path, double score, SolrDocument doc) {
             this.path = path;
             this.score = score;
@@ -541,10 +535,8 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                     if (QueryImpl.JCR_SCORE.equals(columnName)) {
                         return PropertyValues.newDouble(currentRow.score);
                     }
-                    // TODO : make inclusion of doc configurable
                     Collection<Object> fieldValues = currentRow.doc.getFieldValues(columnName);
-                    return currentRow.doc != null ? PropertyValues.newString(
-                            Iterables.toString(fieldValues != null ? fieldValues : Collections.emptyList())) : null;
+                    return PropertyValues.newString(Iterables.toString(fieldValues != null ? fieldValues : Collections.emptyList()));
                 }
 
             };

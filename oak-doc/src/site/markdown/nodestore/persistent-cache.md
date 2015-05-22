@@ -70,10 +70,11 @@ To disable this option, use "-children".
 * Diff caching. By default, the list of differences between two
 revisions is cached. To disable this option, use "-diff".
 
-* Compaction. By default, when a cache file is closed, 
-it is compacted and compressed (at a rate of around 100 MB per second).
+* Compaction. The cache file can be compacted and compressed (at a rate of
+around 100 MB per second) when it is closed.
 That way, the disk space is used more efficiently. 
-To disable this option, use "-compact".
+To enable this option, use "+compact".
+(Please note this feature was enabled by default in versions 1.2.1, 1.0.13, and older.)
 
 * Compression. By default, the cache is compressed, saving space. 
 To disable this option, use "-compress".

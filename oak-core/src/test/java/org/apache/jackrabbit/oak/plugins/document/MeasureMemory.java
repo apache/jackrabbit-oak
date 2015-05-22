@@ -23,6 +23,8 @@ import java.util.LinkedList;
 import java.util.concurrent.Callable;
 
 import com.mongodb.BasicDBObject;
+
+import org.apache.jackrabbit.oak.plugins.document.util.RevisionsKey;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Test;
 
@@ -122,6 +124,18 @@ public class MeasureMemory {
             public Object[] call() {
                 Children n = generateNodeChild(0);
                 return new Object[]{n, n.getMemory() + OVERHEAD};
+            }
+        });
+    }
+
+    @Test
+    public void revisionsKey() throws Exception {
+        measureMemory(new Callable<Object[]>() {
+            @Override
+            public Object[] call() {
+                RevisionsKey k = new RevisionsKey(
+                        Revision.newRevision(0), Revision.newRevision(0));
+                return new Object[]{k, k.getMemory() + OVERHEAD};
             }
         });
     }

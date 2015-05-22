@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -28,7 +27,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 /**
- * Tests for {@code MicroKernel#branch}
+ * Tests for {@code NodeStore#branch}
  */
 public class DocumentMKBranchMergeTest extends BaseDocumentMKTest {
 
@@ -424,7 +423,7 @@ public class DocumentMKBranchMergeTest extends BaseDocumentMKTest {
                             branchRev = mk.commit(path, "+\"node" + i + "\":{}", branchRev, null);
                             mk.merge(branchRev, null);
                         }
-                    } catch (MicroKernelException e) {
+                    } catch (DocumentStoreException e) {
                         exceptions.add(e);
                     }
                 }

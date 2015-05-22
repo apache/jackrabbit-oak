@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.document.UpdateUtils.checkConditions;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -35,6 +36,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -60,6 +62,7 @@ import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
@@ -73,10 +76,11 @@ import com.google.common.base.Objects;
 import com.google.common.cache.Cache;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Striped;
 
 /**
- * Implementation of {@link CachingDocumentStore} for relational databases.
+ * Implementation of {@link DocumentStore} for relational databases.
  * 
  * <h3>Supported Databases</h3>
  * <p>
@@ -242,6 +246,16 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     @Override
+    public <T extends Document> int remove(Collection<T> collection,
+                                            Map<String, Map<Key, Condition>> toRemove) {
+        int num = delete(collection, toRemove);
+        for (String id : toRemove.keySet()) {
+            invalidateCache(collection, id, true);
+        }
+        return num;
+    }
+
+    @Override
     public <T extends Document> boolean create(Collection<T> collection, List<UpdateOp> updateOps) {
         return internalCreate(collection, updateOps);
     }
@@ -393,6 +407,30 @@ public class RDBDocumentStore implements DocumentStore {
             public String getTableCreationStatement(String tableName) {
                 return ("create table " + tableName + " (ID varchar(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA bytea)");
             }
+
+            @Override
+            public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
+                Connection con = null;
+                Map<String, String> result = new HashMap<String, String>();
+                try {
+                    con = ch.getROConnection();
+                    String cat = con.getCatalog();
+                    PreparedStatement stmt = con.prepareStatement("SELECT pg_encoding_to_char(encoding), datcollate FROM pg_database WHERE datname=?");
+                    stmt.setString(1, cat);
+                    ResultSet rs = stmt.executeQuery();
+                    while (rs.next()) {
+                        result.put("pg_encoding_to_char(encoding)", rs.getString(1));
+                        result.put("datcollate", rs.getString(2));
+                    }
+                    stmt.close();
+                    con.commit();
+                } catch (SQLException ex) {
+                    LOG.debug("while getting diagnostics", ex);
+                } finally {
+                    ch.closeConnection(con);
+                }
+                return result.toString();
+            }
         },
 
         DB2("DB2") {
@@ -400,7 +438,35 @@ public class RDBDocumentStore implements DocumentStore {
             public void checkVersion(DatabaseMetaData md) throws SQLException {
                 versionCheck(md, 10, 5, description);
             }
-        },
+
+            @Override
+            public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
+                Connection con = null;
+                Map<String, String> result = new HashMap<String, String>();
+                try {
+                    con = ch.getROConnection();
+                    // we can't look up by schema as con.getSchema is JDK 1.7
+                    PreparedStatement stmt = con.prepareStatement("SELECT CODEPAGE, COLLATIONSCHEMA, COLLATIONNAME, TABSCHEMA FROM SYSCAT.COLUMNS WHERE COLNAME=? and COLNO=0 AND UPPER(TABNAME)=UPPER(?)");
+                    stmt.setString(1, "ID");
+                    stmt.setString(2, tableName);
+                    ResultSet rs = stmt.executeQuery();
+                    while (rs.next() && result.size() < 20) {
+                        // thus including the schema name here
+                        String schema = rs.getString("TABSCHEMA").trim();
+                        result.put(schema + ".CODEPAGE", rs.getString("CODEPAGE").trim());
+                        result.put(schema + ".COLLATIONSCHEMA", rs.getString("COLLATIONSCHEMA").trim());
+                        result.put(schema + ".COLLATIONNAME", rs.getString("COLLATIONNAME").trim());
+                    }
+                    stmt.close();
+                    con.commit();
+                } catch (SQLException ex) {
+                    LOG.debug("while getting diagnostics", ex);
+                } finally {
+                    ch.closeConnection(con);
+                }
+                return result.toString();
+            }
+},
 
         ORACLE("Oracle") {
             @Override
@@ -419,6 +485,27 @@ public class RDBDocumentStore implements DocumentStore {
             public String getTableCreationStatement(String tableName) {
                 // see https://issues.apache.org/jira/browse/OAK-1914
                 return ("create table " + tableName + " (ID varchar(512) not null primary key, MODIFIED number, HASBINARY number, DELETEDONCE number, MODCOUNT number, CMODCOUNT number, DSIZE number, DATA varchar(4000), BDATA blob)");
+            }
+
+            @Override
+            public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
+                Connection con = null;
+                Map<String, String> result = new HashMap<String, String>();
+                try {
+                    con = ch.getROConnection();
+                    Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery("SELECT PARAMETER, VALUE from NLS_DATABASE_PARAMETERS WHERE PARAMETER IN ('NLS_COMP', 'NLS_CHARACTERSET')");
+                    while (rs.next()) {
+                        result.put(rs.getString(1), rs.getString(2));
+                    }
+                    stmt.close();
+                    con.commit();
+                } catch (SQLException ex) {
+                    LOG.debug("while getting diagnostics", ex);
+                } finally {
+                    ch.closeConnection(con);
+                }
+                return result.toString();
             }
         },
 
@@ -448,6 +535,28 @@ public class RDBDocumentStore implements DocumentStore {
             @Override
             public String getConcatQueryString(int dataOctetLimit, int dataLength) {
                 return "CONCAT(DATA, ?)";
+            }
+
+            @Override
+            public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
+                Connection con = null;
+                Map<String, String> result = new HashMap<String, String>();
+                try {
+                    con = ch.getROConnection();
+                    PreparedStatement stmt = con.prepareStatement("SHOW TABLE STATUS LIKE ?");
+                    stmt.setString(1, tableName);
+                    ResultSet rs = stmt.executeQuery();
+                    while (rs.next()) {
+                        result.put("collation", rs.getString("Collation"));
+                    }
+                    stmt.close();
+                    con.commit();
+                } catch (SQLException ex) {
+                    LOG.debug("while getting diagnostics", ex);
+                } finally {
+                    ch.closeConnection(con);
+                }
+                return result.toString();
             }
         },
 
@@ -488,6 +597,29 @@ public class RDBDocumentStore implements DocumentStore {
             @Override
             public String getGreatestQueryString(String column) {
                 return "(select MAX(mod) from (VALUES (" + column + "), (?)) AS ALLMOD(mod))";
+            }
+
+            @Override
+            public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
+                Connection con = null;
+                Map<String, String> result = new HashMap<String, String>();
+                try {
+                    con = ch.getROConnection();
+                    String cat = con.getCatalog();
+                    PreparedStatement stmt = con.prepareStatement("SELECT collation_name FROM sys.databases WHERE name=?");
+                    stmt.setString(1, cat);
+                    ResultSet rs = stmt.executeQuery();
+                    while (rs.next()) {
+                        result.put("collation_name", rs.getString(1));
+                    }
+                    stmt.close();
+                    con.commit();
+                } catch (SQLException ex) {
+                    LOG.debug("while getting diagnostics", ex);
+                } finally {
+                    ch.closeConnection(con);
+                }
+                return result.toString();
             }
         };
 
@@ -567,6 +699,10 @@ public class RDBDocumentStore implements DocumentStore {
                     + tableName
                     + " (ID varchar(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA blob("
                     + 1024 * 1024 * 1024 + "))";
+        }
+
+        public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
+            return "";
         }
 
         protected String description;
@@ -704,8 +840,10 @@ public class RDBDocumentStore implements DocumentStore {
             tablesToBeDropped.addAll(tablesCreated);
         }
 
+        String diag = db.getAdditionalDiagnostics(this.ch, this.tnNodes);
+
         LOG.info("RDBDocumentStore instantiated for database " + dbDesc + ", using driver: " + driverDesc + ", connecting to: "
-                + dbUrl);
+                + dbUrl + (diag.isEmpty() ? "" : (", properties: " + diag)));
         if (!tablesPresent.isEmpty()) {
             LOG.info("Tables present upon startup: " + tablesPresent);
         }
@@ -881,7 +1019,7 @@ public class RDBDocumentStore implements DocumentStore {
                 throw new DocumentStoreException("Document does not exist: " + update.getId());
             }
             T doc = collection.newDocument(this);
-            if (checkConditions && !UpdateUtils.checkConditions(doc, update)) {
+            if (checkConditions && !checkConditions(doc, update.getConditions())) {
                 return null;
             }
             update.increment(MODCOUNT, 1);
@@ -981,7 +1119,7 @@ public class RDBDocumentStore implements DocumentStore {
     private <T extends Document> T applyChanges(Collection<T> collection, T oldDoc, UpdateOp update, boolean checkConditions) {
         T doc = collection.newDocument(this);
         oldDoc.deepCopy(doc);
-        if (checkConditions && !UpdateUtils.checkConditions(doc, update)) {
+        if (checkConditions && !checkConditions(doc, update.getConditions())) {
             return null;
         }
         if (hasChangesToCollisions(update)) {
@@ -1025,7 +1163,7 @@ public class RDBDocumentStore implements DocumentStore {
                 }
                 if (success) {
                     for (Entry<String, NodeDocument> entry : cachedDocs.entrySet()) {
-                        T oldDoc = (T) (entry.getValue());
+                        T oldDoc = castAsT(entry.getValue());
                         if (oldDoc == null) {
                             // make sure concurrently loaded document is
                             // invalidated
@@ -1113,7 +1251,7 @@ public class RDBDocumentStore implements DocumentStore {
                 if (lastmodcount == row.getModcount()) {
                     // we can re-use the cached document
                     cachedDoc.markUpToDate(System.currentTimeMillis());
-                    return (T) cachedDoc;
+                    return castAsT(cachedDoc);
                 } else {
                     return SR.fromRow(collection, row);
                 }
@@ -1139,13 +1277,14 @@ public class RDBDocumentStore implements DocumentStore {
         }
     }
 
-    private <T extends Document> void delete(Collection<T> collection, List<String> ids) {
+    private <T extends Document> int delete(Collection<T> collection, List<String> ids) {
+        int numDeleted = 0;
         for (List<String> sublist : Lists.partition(ids, 64)) {
             Connection connection = null;
             String tableName = getTable(collection);
             try {
                 connection = this.ch.getRWConnection();
-                dbDelete(connection, tableName, sublist);
+                numDeleted += dbDelete(connection, tableName, sublist);
                 connection.commit();
             } catch (Exception ex) {
                 throw new DocumentStoreException(ex);
@@ -1153,6 +1292,33 @@ public class RDBDocumentStore implements DocumentStore {
                 this.ch.closeConnection(connection);
             }
         }
+        return numDeleted;
+    }
+
+    private <T extends Document> int delete(Collection<T> collection,
+                                            Map<String, Map<Key, Condition>> toRemove) {
+        int numDeleted = 0;
+        String tableName = getTable(collection);
+        Map<String, Map<Key, Condition>> subMap = Maps.newHashMap();
+        Iterator<Entry<String, Map<Key, Condition>>> it = toRemove.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, Map<Key, Condition>> entry = it.next();
+            subMap.put(entry.getKey(), entry.getValue());
+            if (subMap.size() == 64 || !it.hasNext()) {
+                Connection connection = null;
+                try {
+                    connection = this.ch.getRWConnection();
+                    numDeleted += dbDelete(connection, tableName, subMap);
+                    connection.commit();
+                } catch (Exception ex) {
+                    throw DocumentStoreException.convert(ex);
+                } finally {
+                    this.ch.closeConnection(connection);
+                }
+                subMap.clear();
+            }
+        }
+        return numDeleted;
     }
 
     private <T extends Document> boolean updateDocument(@Nonnull Collection<T> collection, @Nonnull T document,
@@ -1222,12 +1388,7 @@ public class RDBDocumentStore implements DocumentStore {
      * state
      */
     private static boolean requiresPreviousState(UpdateOp update) {
-        for (Map.Entry<Key, Operation> change : update.getChanges().entrySet()) {
-            Operation op = change.getValue();
-            if (op.type == UpdateOp.Operation.Type.CONTAINS_MAP_ENTRY)
-                return true;
-        }
-        return false;
+        return !update.getConditions().isEmpty();
     }
 
     private static long getModifiedFromUpdate(UpdateOp update) {
@@ -1611,7 +1772,7 @@ public class RDBDocumentStore implements DocumentStore {
         }
     }
 
-    private void dbDelete(Connection connection, String tableName, List<String> ids) throws SQLException {
+    private int dbDelete(Connection connection, String tableName, List<String> ids) throws SQLException {
 
         PreparedStatement stmt;
         int cnt = ids.size();
@@ -1637,6 +1798,52 @@ public class RDBDocumentStore implements DocumentStore {
             if (result != cnt) {
                 LOG.debug("DB delete failed for " + tableName + "/" + ids);
             }
+            return result;
+        } finally {
+            stmt.close();
+        }
+    }
+
+    private int dbDelete(Connection connection, String tableName,
+                         Map<String, Map<Key, Condition>> toDelete)
+            throws SQLException, DocumentStoreException {
+        String or = "";
+        StringBuilder whereClause = new StringBuilder();
+        for (Entry<String, Map<Key, Condition>> entry : toDelete.entrySet()) {
+            whereClause.append(or);
+            or = " or ";
+            whereClause.append("ID=?");
+            for (Entry<Key, Condition> c : entry.getValue().entrySet()) {
+                if (!c.getKey().getName().equals(MODIFIED)) {
+                    throw new DocumentStoreException(
+                            "Unsupported condition: " + c);
+                }
+                whereClause.append(" and MODIFIED");
+                if (c.getValue().type == Condition.Type.EQUALS
+                        && c.getValue().value instanceof Long) {
+                    whereClause.append("=?");
+                } else if (c.getValue().type == Condition.Type.EXISTS) {
+                    whereClause.append(" is not null");
+                } else {
+                    throw new DocumentStoreException(
+                            "Unsupported condition: " + c);
+                }
+            }
+        }
+
+        PreparedStatement stmt= connection.prepareStatement(
+                "delete from " + tableName + " where " + whereClause);
+        try {
+            int i = 1;
+            for (Entry<String, Map<Key, Condition>> entry : toDelete.entrySet()) {
+                setIdInStatement(stmt, i++, entry.getKey());
+                for (Entry<Key, Condition> c : entry.getValue().entrySet()) {
+                    if (c.getValue().type == Condition.Type.EQUALS) {
+                        stmt.setLong(i++, (Long) c.getValue().value);
+                    }
+                }
+            }
+            return stmt.executeUpdate();
         } finally {
             stmt.close();
         }
@@ -1790,7 +1997,7 @@ public class RDBDocumentStore implements DocumentStore {
             if (modCount.longValue() <= cachedModCount.longValue()) {
                 // we can use the cached document
                 inCache.markUpToDate(now);
-                return (T) inCache;
+                return castAsT(inCache);
             }
         }
 
@@ -1817,7 +2024,7 @@ public class RDBDocumentStore implements DocumentStore {
         } finally {
             lock.unlock();
         }
-        return (T) fresh;
+        return castAsT(fresh);
     }
 
     private boolean hasChangesToCollisions(UpdateOp update) {

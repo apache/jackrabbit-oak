@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import java.io.IOException;
 import java.io.InputStream;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -91,6 +93,7 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
 
     //-------------------------------------------------------< NodeBuilder >--
 
+    @Nonnull
     @Override
     public SegmentNodeState getNodeState() {
         NodeState state = super.getNodeState();

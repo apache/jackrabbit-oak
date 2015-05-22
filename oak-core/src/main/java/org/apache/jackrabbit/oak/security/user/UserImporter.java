@@ -50,6 +50,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
@@ -157,7 +158,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     /**
      * Remember all new principals for impersonation handling.
      */
-    private Map<String, Principal> principals = new HashMap<String, Principal>();;
+    private Map<String, Principal> principals = new HashMap<String, Principal>();
 
     UserImporter(ConfigurationParameters config) {
         String importBehaviorStr = config.getConfigValue(PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_IGNORE);
@@ -166,9 +167,9 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
 
     //----------------------------------------------< ProtectedItemImporter >---
     @Override
-    public boolean init(Session session, Root root, NamePathMapper namePathMapper,
+    public boolean init(@Nonnull Session session, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper,
             boolean isWorkspaceImport, int uuidBehavior,
-            ReferenceChangeTracker referenceTracker, SecurityProvider securityProvider) {
+            @Nonnull ReferenceChangeTracker referenceTracker, @Nonnull SecurityProvider securityProvider) {
 
         if (!(session instanceof JackrabbitSession)) {
             log.debug("Importing protected user content requires a JackrabbitSession");
@@ -217,7 +218,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
 
     // -----------------------------------------< ProtectedPropertyImporter >---
     @Override
-    public boolean handlePropInfo(Tree parent, PropInfo propInfo, PropertyDefinition def) throws RepositoryException {
+    public boolean handlePropInfo(@Nonnull Tree parent, @Nonnull PropInfo propInfo, @Nonnull PropertyDefinition def) throws RepositoryException {
         checkInitialized();
 
         String propName = propInfo.getName();
@@ -375,7 +376,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
 
     // ---------------------------------------------< ProtectedNodeImporter >---
     @Override
-    public boolean start(Tree protectedParent) throws RepositoryException {
+    public boolean start(@Nonnull Tree protectedParent) throws RepositoryException {
         if (isMemberNode(protectedParent)) {
             Tree groupTree = protectedParent;
             while (isMemberNode(groupTree) && !groupTree.isRoot()) {
@@ -404,7 +405,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     }
 
     @Override
-    public void startChildInfo(NodeInfo childInfo, List<PropInfo> propInfos) throws RepositoryException {
+    public void startChildInfo(@Nonnull NodeInfo childInfo, @Nonnull List<PropInfo> propInfos) throws RepositoryException {
         checkNotNull(currentMembership);
 
         String ntName = childInfo.getPrimaryTypeName();
@@ -433,7 +434,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     }
 
     @Override
-    public void end(Tree protectedParent) throws RepositoryException {
+    public void end(@Nonnull Tree protectedParent) throws RepositoryException {
         currentMembership = null;
     }
 
@@ -487,6 +488,13 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
 
     private static boolean importPwdNodeProperty(@Nonnull Tree parent, @Nonnull PropInfo propInfo, @Nonnull PropertyDefinition def) throws RepositoryException {
         String propName = propInfo.getName();
+        if (propName == null) {
+            propName = def.getName();
+            if (propName == null || NodeTypeConstants.RESIDUAL_NAME.equals(propName)) {
+                return false;
+            }
+        }
+
         // overwrite any properties generated underneath the rep:pwd node
         // by "UserManagerImpl#setPassword" by the properties defined by
         // the XML to be imported. see OAK-1943 for the corresponding discussion.

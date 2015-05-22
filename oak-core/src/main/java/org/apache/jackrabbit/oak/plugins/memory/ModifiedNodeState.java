@@ -274,6 +274,7 @@ public class ModifiedNodeState extends AbstractNodeState {
 
     //---------------------------------------------------------< NodeState >--
 
+    @Nonnull
     @Override
     public NodeBuilder builder() {
         return new MemoryNodeBuilder(this);
@@ -290,15 +291,16 @@ public class ModifiedNodeState extends AbstractNodeState {
     }
 
     @Override
-    public boolean hasProperty(String name) {
+    public boolean hasProperty(@Nonnull String name) {
         return hasProperty(base, properties, name);
     }
 
     @Override
-    public PropertyState getProperty(String name) {
+    public PropertyState getProperty(@Nonnull String name) {
         return getProperty(base, properties, name);
     }
 
+    @Nonnull
     @Override
     public Iterable<? extends PropertyState> getProperties() {
         return getProperties(base, properties, false);
@@ -310,7 +312,7 @@ public class ModifiedNodeState extends AbstractNodeState {
     }
 
     @Override
-    public boolean hasChildNode(String name) {
+    public boolean hasChildNode(@Nonnull String name) {
         NodeState child = nodes.get(name);
         if (child != null) {
             return child.exists();
@@ -319,8 +321,9 @@ public class ModifiedNodeState extends AbstractNodeState {
         }
     }
 
+    @Nonnull
     @Override
-    public NodeState getChildNode(String name) {
+    public NodeState getChildNode(@Nonnull String name) {
         NodeState child = nodes.get(name);
         if (child == null) {
             child = base.getChildNode(name);
@@ -333,6 +336,7 @@ public class ModifiedNodeState extends AbstractNodeState {
         return getChildNodeNames(base, nodes, false);
     }
 
+    @Nonnull
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         if (!base.exists()) {

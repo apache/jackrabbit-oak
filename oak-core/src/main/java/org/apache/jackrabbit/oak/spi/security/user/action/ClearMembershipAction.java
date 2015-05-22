@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
 import java.util.Iterator;
+import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -34,7 +35,7 @@ public class ClearMembershipAction extends AbstractAuthorizableAction {
 
     //-------------------------------------------------< AuthorizableAction >---
     @Override
-    public void onRemove(Authorizable authorizable, Root root, NamePathMapper namePathMapper) throws RepositoryException {
+    public void onRemove(@Nonnull Authorizable authorizable, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
         clearMembership(authorizable);
     }
 

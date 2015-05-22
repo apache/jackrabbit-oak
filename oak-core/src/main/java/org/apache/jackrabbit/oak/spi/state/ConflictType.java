@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.spi.state;
 /**
  * Enum to define various types of conflicts.
  *
- * @see org.apache.jackrabbit.mk.api.MicroKernel#rebase(String, String)
+ * @see org.apache.jackrabbit.oak.spi.state.NodeStore#rebase(NodeBuilder)
  */
 public enum ConflictType {
 
@@ -83,13 +83,13 @@ public enum ConflictType {
         return effectsNode;
     }
 
-    public static ConflictType fromName(String name){
-        for(ConflictType t : values()){
-            if(t.getName().equals(name)){
+    public static ConflictType fromName(String name) {
+        for (ConflictType t : values()) {
+            if (t.getName().equals(name)) {
                 return t;
             }
         }
-        throw new IllegalArgumentException("Unrecognized conflictType: "+name);
+        throw new IllegalArgumentException("Unrecognized conflictType: " + name);
     }
 
     private final String name;

@@ -30,6 +30,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 
 /**
  * Implementation of the user management that allows to set the autosave flag.
@@ -67,6 +68,11 @@ public class AutoSaveEnabledManager implements UserManager {
     @Override
     public Authorizable getAuthorizable(String id) throws RepositoryException {
         return wrap(dlg.getAuthorizable(id));
+    }
+
+    @Override
+    public <T extends Authorizable> T getAuthorizable(String id, Class<T> authorizableClass) throws RepositoryException {
+        return UserUtil.castAuthorizable(wrap(dlg.getAuthorizable(id)), authorizableClass);
     }
 
     @Override

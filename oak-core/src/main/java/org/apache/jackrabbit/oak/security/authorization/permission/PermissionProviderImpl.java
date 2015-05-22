@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
-import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -78,27 +77,29 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     @Nonnull
     @Override
     public Set<String> getPrivileges(@Nullable Tree tree) {
-        return compiledPermissions.getPrivileges(getImmutableTree(tree));
+        return compiledPermissions.getPrivileges(PermissionUtil.getImmutableTree(tree, immutableRoot));
     }
 
     @Override
     public boolean hasPrivileges(@Nullable Tree tree, @Nonnull String... privilegeNames) {
-        return compiledPermissions.hasPrivileges(getImmutableTree(tree), privilegeNames);
+        return compiledPermissions.hasPrivileges(PermissionUtil.getImmutableTree(tree, immutableRoot), privilegeNames);
     }
 
+    @Nonnull
     @Override
     public RepositoryPermission getRepositoryPermission() {
         return compiledPermissions.getRepositoryPermission();
     }
 
+    @Nonnull
     @Override
     public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
-        return compiledPermissions.getTreePermission(getImmutableTree(tree), parentPermission);
+        return compiledPermissions.getTreePermission(PermissionUtil.getImmutableTree(tree, immutableRoot), parentPermission);
     }
 
     @Override
     public boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
-        return compiledPermissions.isGranted(getImmutableTree(tree), property, permissions);
+        return compiledPermissions.isGranted(PermissionUtil.getImmutableTree(tree, immutableRoot), property, permissions);
     }
 
     @Override
@@ -125,7 +126,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     }
 
     @Override
-    public boolean handles(@Nonnull Tree tree, PrivilegeBits privilegeBits) {
+    public boolean handles(@Nonnull Tree tree, @Nonnull PrivilegeBits privilegeBits) {
         return true;
     }
 
@@ -154,14 +155,6 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
             }
         }
         return false;
-    }
-
-    private ImmutableTree getImmutableTree(@Nullable Tree tree) {
-        if (tree instanceof ImmutableTree) {
-            return (ImmutableTree) tree;
-        } else {
-            return (tree == null) ? null : (ImmutableTree) immutableRoot.getTree(tree.getPath());
-        }
     }
 
     private static boolean isVersionStorePath(@Nonnull String oakPath) {

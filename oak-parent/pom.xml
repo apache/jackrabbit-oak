@@ -30,7 +30,7 @@
   <groupId>org.apache.jackrabbit</groupId>
   <artifactId>oak-parent</artifactId>
   <name>Oak Parent POM</name>
-  <version>1.1-SNAPSHOT</version>
+  <version>1.4-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
@@ -42,7 +42,7 @@
     <project.reporting.outputEncoding>
       ${project.build.sourceEncoding}
     </project.reporting.outputEncoding>
-    <jackrabbit.version>2.10.0</jackrabbit.version>
+    <jackrabbit.version>2.10.1</jackrabbit.version>
     <mongo.host>127.0.0.1</mongo.host>
     <mongo.port>27017</mongo.port>
     <mongo.db>MongoMKDB</mongo.db>
@@ -58,7 +58,7 @@
     <slf4j.api.version>1.7.6</slf4j.api.version>
     <slf4j.version>1.7.6</slf4j.version> <!-- sync with logback version -->
     <logback.version>1.1.0</logback.version>
-    <h2.version>1.4.182</h2.version>
+    <h2.version>1.4.185</h2.version>
     <findbugs.version>3.0.0</findbugs.version>
 
    <!-- specifies on which fixture to run the integration testing tests. 
@@ -169,7 +169,7 @@
         <plugin>
           <groupId>org.apache.rat</groupId>
           <artifactId>apache-rat-plugin</artifactId>
-          <version>0.10</version>
+          <version>0.11</version>
         </plugin>
         <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
@@ -446,6 +446,16 @@
             <artifactId>slf4j-simple</artifactId>
           </exclusion>
         </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>commons-lang</groupId>
+        <artifactId>commons-lang</artifactId>
+        <version>2.6</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-math3</artifactId>
+        <version>3.2</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
