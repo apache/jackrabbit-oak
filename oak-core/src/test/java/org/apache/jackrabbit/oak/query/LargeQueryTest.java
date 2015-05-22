@@ -21,7 +21,6 @@ import static org.junit.Assert.assertEquals;
 import java.text.ParseException;
 
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
-import org.h2.util.Profiler;
 import org.junit.Test;
 
 public class LargeQueryTest {
@@ -79,12 +78,7 @@ public class LargeQueryTest {
         buff2.append(")");
         String xpath = buff.toString();
         XPathToSQL2Converter conv = new XPathToSQL2Converter();
-        long start = System.currentTimeMillis();
-        Profiler prof = new Profiler().startCollecting();
         String sql2 = conv.convert(xpath);
-        long time = System.currentTimeMillis() - start;
-        System.out.println("time: " + time);
-        System.out.println(prof.getTop(5));
         buff2.append(" /* xpath: ").append(xpath).append(" */");
         assertEquals(buff2.toString(), sql2);
     }
