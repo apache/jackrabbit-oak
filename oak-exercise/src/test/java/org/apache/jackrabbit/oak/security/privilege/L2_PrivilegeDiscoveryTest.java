@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.security.privilege;
 
 import org.apache.jackrabbit.test.AbstractJCRTest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * <pre>

@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.authentication;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
-
 import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;

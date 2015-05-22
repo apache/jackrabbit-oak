@@ -16,36 +16,247 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.security.Principal;
+import javax.jcr.Node;
+import javax.jcr.Property;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.SimpleCredentials;
+import javax.jcr.security.Privilege;
+
+import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.apache.jackrabbit.test.AbstractJCRTest;
 
 /**
  * <pre>
  * Module: Authorization (Permission Evaluation)
  * =============================================================================
  *
- * Title: PrecedenceRulesTest
+ * Title: Basic Precedence Rules in Permission Evaluation
  * -----------------------------------------------------------------------------
  *
  * Goal:
- * TODO
+ * The aim of this exercise is to make you familiar with some implementations
+ * details of the default permission evaluation.
  *
  * Exercises:
  *
- * - {@link #TODO}
+ * - Overview
+ *   Read the on the Oak documentation about the default permission evaluation
+ *   implementation such that the following test cases are easy to solve.
  *
  *
- * Additional Exercises:
+ * - {@link #testGroupMembership()}
+ *   Test illustrating that permissions granted/denied to groups are inherited
+ *   to the group members.
+ *
+ * - {@link #testHierarchy()}
+ *   Test illustrating that in the default implemenation permissions are inherited
+ *   though the item hierarchy.
+ *   Create the correct permission setup to verify this.
+ *
+ * - {@link #testAceOrder()}
+ *   This case shows how the order of ACEs within a given ACL affect the resulting
+ *   permissions. Fix the test case without dropping either of the two ACEs such
+ *   that the test passes and look at the ACEs present on the list before and
+ *   after the fix.
+ *
+ *   Question: How many ways to you find to fix the test?
+ *
+ * - {@link #testPrecedenceOfUserPrincipals()}
+ *   The goal of this test is to make you aware of the precendence of user principals
+ *   during permission evaluation.
+ *   Fix the test according to the instructions.
+ *
+ *   Question: How many ways to you find to fix the test?
+ *
+ * - {@link #testCombination()} and {@link #testCombination2()}
+ *   Additional tests combining the different rules testes above.
+ *   Fill in the correct values and explain the behaviour.
+ *
+ *
+ * Additional Exercise
  * -----------------------------------------------------------------------------
  *
- * TODO
+ * So far the test-cases only modify read permissions.
+ *
+ * - Write additional test-cases playing with different privileges
+ *
+ * - Once you feel comfortable with the basics include restrictions in your
+ *   tests and verify your expectations.
+ *
+ * - Create a test setting up permission at the 'null' path and describe the
+ *   result.
+ *   Question: What can you say about the inheritance rules you learned so far
+ *             when it comes to repository level permissions?
+ *
+ * HINT: there are plenty of test-cases present with oak-jcr and oak-core. Use
+ *       the tests already present to invent new exercises.
+ *
  *
  * </pre>
  *
- * @see TODO
+ * @see <a href="http://jackrabbit.apache.org/oak/docs/security/permission/evaluation.html">Permission Evaluation in the Oak Docu</a>
  */
-public class L3_PrecedenceRulesTest extends AbstractSecurityTest {
+public class L3_PrecedenceRulesTest extends AbstractJCRTest {
 
+    private Principal testPrincipal;
+    private Principal testGroupPrincipal;
+    private Session testSession;
 
+    private String childPath;
+    private String propertyPath;
+
+    @Override
+    protected void setUp() throws Exception {
+        super.setUp();
+
+        Property p = testRootNode.setProperty(propertyName1, "val");
+        propertyPath = p.getPath();
+
+        Node child = testRootNode.addNode(nodeName1);
+        childPath = child.getPath();
+
+        User testUser = ((JackrabbitSession) superuser).getUserManager().createUser("testUser", "pw", new PrincipalImpl("testPrincipal"), null);
+        Group testGroup = ((JackrabbitSession) superuser).getUserManager().createGroup("testGroup");
+        testGroup.addMember(testUser);
+        superuser.save();
+
+        testPrincipal = testUser.getPrincipal();
+        testGroupPrincipal = testGroup.getPrincipal();
+
+        testSession = superuser.getRepository().login(new SimpleCredentials("testUser", "pw".toCharArray()));
+    }
+
+    @Override
+    protected void tearDown() throws Exception {
+        try {
+            if (testSession != null && testSession.isLive()) {
+                testSession.logout();
+            }
+            UserManager uMgr = ((JackrabbitSession) superuser).getUserManager();
+            Authorizable testUser = uMgr.getAuthorizable(testPrincipal);
+            if (testUser != null) {
+                testUser.remove();
+            }
+            Authorizable testGroup = uMgr.getAuthorizable(testGroupPrincipal);
+            if (testGroup != null) {
+                testGroup.remove();
+            }
+            superuser.save();
+        } finally {
+            super.tearDown();
+        }
+    }
+
+    public void testGroupMembership() throws RepositoryException {
+        assertFalse(testSession.nodeExists(testRoot));
+
+        assertTrue(((java.security.acl.Group) testGroupPrincipal).isMember(testPrincipal));
+
+        AccessControlUtils.addAccessControlEntry(superuser, testRoot, testGroupPrincipal, AccessControlUtils.privilegesFromNames(superuser, Privilege.JCR_READ), true);
+        superuser.save();
+
+        testSession.refresh(false);
+        boolean expected = false; // TODO
+        assertEquals(expected, testSession.nodeExists(testRoot));
+    }
+
+    public void testHierarchy() throws RepositoryException {
+        assertFalse(testSession.nodeExists(testRoot));
+        assertFalse(testSession.nodeExists(childPath));
+        assertFalse(testSession.propertyExists(propertyPath));
+
+        Principal principal = testPrincipal;
+        // TODO : create the correct permission setup such that the test session can read all items below.
+        // TODO : how many entries do you need to create?
+        superuser.save();
+
+        testSession.refresh(false);
+        assertTrue(testSession.nodeExists(testRoot));
+        assertTrue(testSession.nodeExists(childPath));
+        assertTrue(testSession.propertyExists(propertyPath));
+
+    }
+
+    public void testAceOrder() throws RepositoryException {
+        assertFalse(testSession.nodeExists(testRoot));
+
+        Privilege[] readPrivs = AccessControlUtils.privilegesFromNames(superuser, Privilege.JCR_READ);
+
+        // TODO: fix the permission setup such that the test success without dropping either ACE
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(superuser, testRoot);
+        acl.addEntry(testGroupPrincipal, readPrivs, true);
+        acl.addEntry(EveryonePrincipal.getInstance(), readPrivs, false);
+        superuser.getAccessControlManager().setPolicy(acl.getPath(), acl);
+        superuser.save();
+
+        testSession.refresh(false);
+        assertTrue(testSession.nodeExists(testRoot));
+        assertTrue(testSession.propertyExists(propertyPath));
+
+    }
+
+    public void testPrecedenceOfUserPrincipals() throws RepositoryException {
+        Privilege[] readPrivs = AccessControlUtils.privilegesFromNames(superuser, Privilege.JCR_READ);
+
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(superuser, testRoot);
+        acl.addEntry(testPrincipal, readPrivs, false);
+        acl.addEntry(testGroupPrincipal, readPrivs, true);
+        superuser.getAccessControlManager().setPolicy(acl.getPath(), acl);
+        superuser.save();
+
+        // TODO what is the expected result?
+        testSession.refresh(false);
+        Boolean canRead = null; // TODO
+        assertEquals(canRead.booleanValue(), testSession.nodeExists(testRoot));
+        assertEquals(canRead.booleanValue(), testSession.nodeExists(childPath));
+
+        // TODO: now change the permission setup such that the testSession has read access
+        // TODO: how many ways to you find to achieve this?
+    }
+
+    public void testCombination() throws RepositoryException {
+        Privilege[] readPrivs = AccessControlUtils.privilegesFromNames(superuser, Privilege.JCR_READ);
+
+        AccessControlUtils.addAccessControlEntry(superuser, testRoot, testPrincipal, readPrivs, false);
+        AccessControlUtils.addAccessControlEntry(superuser, childPath, testGroupPrincipal, readPrivs, true);
+        superuser.save();
+
+        // TODO what is the expected result?
+        testSession.refresh(false);
+        Boolean canRead = null; // TODO
+        assertEquals(canRead.booleanValue(), testSession.nodeExists(testRoot));
+        assertEquals(canRead.booleanValue(), testSession.propertyExists(propertyPath));
+        assertEquals(canRead.booleanValue(), testSession.nodeExists(childPath));
+    }
+
+    public void testCombination2() throws RepositoryException {
+        Privilege[] readPrivs = AccessControlUtils.privilegesFromNames(superuser, Privilege.JCR_READ);
+
+        AccessControlUtils.addAccessControlEntry(superuser, testRoot, testPrincipal, readPrivs, false);
+        AccessControlUtils.addAccessControlEntry(superuser, testRoot, testPrincipal, new String[] {PrivilegeConstants.REP_READ_PROPERTIES}, true);
+        AccessControlUtils.addAccessControlEntry(superuser, childPath, testGroupPrincipal, readPrivs, false);
+        superuser.save();
+
+        // TODO what is the expected result?
+        testSession.refresh(false);
+        Boolean canRead = null; // TODO
+        assertEquals(canRead.booleanValue(), testSession.nodeExists(testRoot));
+        canRead = null; // TODO
+        assertEquals(canRead.booleanValue(), testSession.propertyExists(propertyPath));
+        canRead = null; // TODO
+        assertEquals(canRead.booleanValue(), testSession.nodeExists(childPath));
+        canRead = null; // TODO
+        assertEquals(canRead.booleanValue(), testSession.propertyExists(childPath+"/jcr:primaryType"));
+    }
 }

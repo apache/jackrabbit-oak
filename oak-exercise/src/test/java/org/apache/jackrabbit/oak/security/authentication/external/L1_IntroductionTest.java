@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.user;
+package org.apache.jackrabbit.oak.security.authentication.external;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.slf4j.Logger;
@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
  * Module: TODO
  * =============================================================================
  *
- * Title: AuthorizableActionTest
+ * Title: L1_IntroductionTest
  * -----------------------------------------------------------------------------
  *
  * Goal:
@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
  *
  * @see TODO
  */
-public class L9_AuthorizableActionTest extends AbstractSecurityTest {
+public class L1_IntroductionTest extends AbstractSecurityTest {
 
-    // TODO
+
 }

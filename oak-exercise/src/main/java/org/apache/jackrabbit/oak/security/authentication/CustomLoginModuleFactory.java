@@ -16,27 +16,16 @@
  */
 package org.apache.jackrabbit.oak.security.authentication;
 
-import java.util.Hashtable;
-import javax.jcr.Repository;
-import javax.management.MalformedObjectNameException;
-import javax.management.ObjectName;
-import javax.security.auth.login.AppConfigurationEntry;
-import javax.security.auth.login.Configuration;
 import javax.security.auth.spi.LoginModule;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.felix.jaas.LoginModuleFactory;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
-import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
-import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

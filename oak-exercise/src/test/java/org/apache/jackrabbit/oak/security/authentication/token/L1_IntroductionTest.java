@@ -14,18 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.user;
+package org.apache.jackrabbit.oak.security.authentication.token;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * <pre>
  * Module: TODO
  * =============================================================================
  *
- * Title: PasswordExpiryTest
+ * Title: L1_IntroductionTest
  * -----------------------------------------------------------------------------
  *
  * Goal:
@@ -45,7 +43,7 @@ import org.slf4j.LoggerFactory;
  *
  * @see TODO
  */
-public class L4b_PasswordExpiryTest extends AbstractSecurityTest {
+public class L1_IntroductionTest extends AbstractSecurityTest {
 
 
 }

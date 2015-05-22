@@ -16,15 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.principal;
 
-import java.security.Principal;
-import java.security.acl.Group;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-
 import javax.annotation.Nonnull;
 
-import com.sun.org.apache.xerces.internal.parsers.SecurityConfiguration;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Property;
@@ -32,18 +25,10 @@ import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
-import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
-import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
-import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
-import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

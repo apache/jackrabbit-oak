@@ -23,47 +23,27 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
  * Module: Authorization (Permission Evaluation)
  * =============================================================================
  *
- * Title: Representation of Permissions in the Repository
+ * Title: Administrative Permissions
  * -----------------------------------------------------------------------------
  *
  * Goal:
- * Understand how the default implementation represents permissions in the repository.
+ * TODO
  *
  * Exercises:
  *
- * - Overview
- *   Look {@code org/apache/jackrabbit/oak/plugins/nodetype/write/builtin_nodetypes.cnd}
- *   and try to identify the built in node types used to store permission
- *   content.
- *
- *   Question: Can explain the meaning of all types?
- *   Question: Why are most item definitions protected?
- *   Question: Can you identify node types that are not used? Can you explain why?
- *
- * - {@link #testReadOnly()}
- *   // TODO
- *
- *   Question: Can you explain why the permission store is read-only?
- *   Question: Can you identify the class(es) responsible for enforcing the read-only nature?
- *
- * - {@link #testAdministrativeAccessOnly()}
- *   // TODO
- *
- *   Question: Can you explain why the permission store is only accessible to administrative principals?
- *   Question: Can you identify the class(es) that actually enforce this?
- *
  * - {@link #TODO}
  *
+ *
+ * Additional Exercises:
+ * -----------------------------------------------------------------------------
+ *
+ * TODO
+ *
  * </pre>
+ *
+ * @see TODO
  */
-public class L6_PermissionContentTest extends AbstractSecurityTest {
+public class L5_AdministratativeAccessTest extends AbstractSecurityTest {
 
-    public void testReadOnly() {
-        // TODO
-    }
-
-    public void testAdministrativeAccessOnly() {
-        // TODO
-    }
 
 }

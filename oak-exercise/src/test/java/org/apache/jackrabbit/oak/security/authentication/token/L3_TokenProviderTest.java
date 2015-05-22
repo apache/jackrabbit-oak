@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.security.authentication.token;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * <pre>
@@ -45,7 +43,7 @@ import org.slf4j.LoggerFactory;
  *
  * @see TODO
  */
-public class TokenProviderTest extends AbstractSecurityTest {
+public class L3_TokenProviderTest extends AbstractSecurityTest {
 
 
 }

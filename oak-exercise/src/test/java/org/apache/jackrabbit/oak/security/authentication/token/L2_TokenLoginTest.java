@@ -14,18 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authorization.permission;
+package org.apache.jackrabbit.oak.security.authentication.token;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * <pre>
- * Module: Authorization (Permission Evaluation)
+ * Module: TODO
  * =============================================================================
  *
- * Title: Administrative Permissions
+ * Title: L2_TokenLoginTest
  * -----------------------------------------------------------------------------
  *
  * Goal:
@@ -45,7 +43,7 @@ import org.slf4j.LoggerFactory;
  *
  * @see TODO
  */
-public class L5_AdministratorsTest extends AbstractSecurityTest {
+public class L2_TokenLoginTest extends AbstractSecurityTest {
 
 
 }

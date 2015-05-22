@@ -98,7 +98,7 @@ import org.apache.jackrabbit.test.NotExecutableException;
  * Related Exercises:
  * -----------------------------------------------------------------------------
  *
- * - {@link L8_RemovalAndMembershipTest ()}
+ * - {@link L8_RemovalAndMembershipTest()}
  *
  * </pre>
  *

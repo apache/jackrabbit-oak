@@ -18,18 +18,13 @@ package org.apache.jackrabbit.oak.security.user;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.test.api.util.Text;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
@@ -62,16 +57,23 @@ import static org.junit.Assert.assertTrue;
  *   configured.
  *
  *
- * Additional Exercises:
+ * Advanced Exercises:
  * -----------------------------------------------------------------------------
  *
- * TODO
+ * - Create a custom implementation of the {@link org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName}
+ *   interface.
+ *
+ * - Make your implementation a OSGi service as described in the documentation
+ *   and deploy it in your Sling (Granite|CQ) repository.
+ *   Verify that creating a new user or group actually makes use of your
+ *   implementation.
  *
  * </pre>
  *
- * @see TODO
+ * @see org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName
+ * @see org.apache.jackrabbit.oak.security.user.RandomAuthorizableNodeName
  */
-public class LL3_AuthorizableNodeNameTest extends AbstractSecurityTest {
+public class L13_AuthorizableNodeNameTest extends AbstractSecurityTest {
 
     private UserManager userManager;
     private User testUser;

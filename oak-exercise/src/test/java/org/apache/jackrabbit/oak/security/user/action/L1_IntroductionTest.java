@@ -14,34 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authentication;
+package org.apache.jackrabbit.oak.security.user.action;
 
-import java.util.Map;
-import javax.jcr.Credentials;
+import org.apache.jackrabbit.oak.AbstractSecurityTest;
 
-import com.google.common.collect.ImmutableMap;
+/**
+ * <pre>
+ * Module: User Management
+ * =============================================================================
+ *
+ * Title: Introduction to Authorizable Actions
+ * -----------------------------------------------------------------------------
+ *
+ * Goal:
+ * TODO
+ *
+ * Exercises:
+ *
+ * - {@link #TODO}
+ *
+ *
+ * Additional Exercises:
+ * -----------------------------------------------------------------------------
+ *
+ * TODO
+ *
+ * </pre>
+ *
+ * @see TODO
+ */
+public class L1_IntroductionTest extends AbstractSecurityTest {
 
-class CustomCredentials implements Credentials {
 
-    private final String loginID;
-    private final String password;
-    private final Map<String, String> attributes;
-
-    CustomCredentials(String loginID, String password, Map<String,String> attributes) {
-        this.loginID = loginID;
-        this.password = password;
-        this.attributes = ImmutableMap.copyOf(attributes);
-    }
-
-    String getLoginID() {
-        return loginID;
-    }
-
-    String getPassword() {
-        return password;
-    }
-
-    Map<String, String> getAttributes() {
-        return attributes;
-    }
 }

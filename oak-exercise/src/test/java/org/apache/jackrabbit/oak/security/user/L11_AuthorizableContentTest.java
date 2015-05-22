@@ -88,9 +88,9 @@ import static org.junit.Assert.assertArrayEquals;
  * Related Exercises:
  * -----------------------------------------------------------------------------
  *
- * - {@link LL2_UuidTest ()}
+ * - {@link L12_UuidTest ()}
  * - {@link L4_PasswordTest}
- * - {@link L4b_PasswordExpiryTest}
+ * - {@link L10_PasswordExpiryTest}
  * - {@link L5_MembershipTest}
  *
  * </pre>
@@ -99,7 +99,7 @@ import static org.junit.Assert.assertArrayEquals;
  * @see org.apache.jackrabbit.api.security.user.Group
  * @see org.apache.jackrabbit.oak.spi.security.user.UserConstants
  */
-public class LL1_AuthorizableContentTest extends AbstractJCRTest {
+public class L11_AuthorizableContentTest extends AbstractJCRTest {
 
     private final static String EMAIL_REL_PATH = "properties/email";
     private final static String PETS_REL_PATH = "pets";

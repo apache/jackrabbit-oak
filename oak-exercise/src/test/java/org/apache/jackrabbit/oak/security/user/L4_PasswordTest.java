@@ -95,8 +95,8 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  * Related Exercises:
  * -----------------------------------------------------------------------------
  *
- * - {@link L4b_PasswordExpiryTest ()}
- * - {@link L9_AuthorizableActionTest ()}
+ * - {@link L10_PasswordExpiryTest ()}
+ * - {@link org.apache.jackrabbit.oak.security.user.action.L2_AuthorizableActionTest ()}
  *
  * </pre>
  *
