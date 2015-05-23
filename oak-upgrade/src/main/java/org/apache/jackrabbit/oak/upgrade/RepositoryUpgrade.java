@@ -137,6 +137,8 @@ public class RepositoryUpgrade {
 
     private boolean copyBinariesByReference = false;
 
+    private boolean earlyShutdown = false;
+
     private List<CommitHook> customCommitHooks = null;
 
     /**
@@ -189,6 +191,14 @@ public class RepositoryUpgrade {
 
     public void setCopyBinariesByReference(boolean copyBinariesByReference) {
         this.copyBinariesByReference = copyBinariesByReference;
+    }
+
+    public boolean isEarlyShutdown() {
+        return earlyShutdown;
+    }
+
+    public void setEarlyShutdown(boolean earlyShutdown) {
+        this.earlyShutdown = earlyShutdown;
     }
 
     /**
@@ -329,7 +339,7 @@ public class RepositoryUpgrade {
                 createIndexEditorProvider()
             )));
 
-            target.merge(builder, new LoggingCompositeHook(hooks), CommitInfo.EMPTY);
+            target.merge(builder, new LoggingCompositeHook(hooks, source, earlyShutdown), CommitInfo.EMPTY);
             logger.debug("Repository upgrade completed.");
         } catch (Exception e) {
             throw new RepositoryException("Failed to copy content", e);
@@ -743,9 +753,15 @@ public class RepositoryUpgrade {
 
     private static class LoggingCompositeHook implements CommitHook {
         private final Collection<CommitHook> hooks;
+        private boolean started = false;
+        private final boolean earlyShutdown;
+        private final RepositoryContext source;
 
-        public LoggingCompositeHook(Collection<CommitHook> hooks) {
+        public LoggingCompositeHook(Collection<CommitHook> hooks,
+                  RepositoryContext source, boolean earlyShutdown) {
             this.hooks = hooks;
+            this.earlyShutdown = earlyShutdown;
+            this.source = source;
         }
 
         @Nonnull
@@ -753,6 +769,11 @@ public class RepositoryUpgrade {
         public NodeState processCommit(NodeState before, NodeState after, CommitInfo info) throws CommitFailedException {
             NodeState newState = after;
             Stopwatch watch = Stopwatch.createStarted();
+            if (earlyShutdown && !started) {
+                logger.info("Shutting down source repository.");
+                source.getRepository().shutdown();
+                started = true;
+            }
             for (CommitHook hook : hooks) {
                 logger.info("Processing commit via {}", hook);
                 newState = hook.processCommit(before, newState, info);
