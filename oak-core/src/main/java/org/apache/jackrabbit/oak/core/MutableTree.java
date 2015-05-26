@@ -281,7 +281,7 @@ final class MutableTree extends AbstractMutableTree {
      * @param path the path to the tree
      * @return a {@link Tree} instance for the child at {@code path}.
      */
-    @CheckForNull
+    @Nonnull
     MutableTree getTree(@Nonnull String path) {
         checkArgument(isAbsolute(checkNotNull(path)));
         beforeRead();
