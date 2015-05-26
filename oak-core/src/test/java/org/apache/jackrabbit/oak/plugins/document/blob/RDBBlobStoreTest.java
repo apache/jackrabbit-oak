@@ -21,19 +21,21 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStoreFriend;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStoreTest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,24 +44,38 @@ import com.google.common.collect.Lists;
 /**
  * Tests the RDBBlobStore implementation.
  */
+@RunWith(Parameterized.class)
 public class RDBBlobStoreTest extends AbstractBlobStoreTest {
 
+    @Parameterized.Parameters
+    public static Collection<Object[]> fixtures() {
+        Collection<Object[]> result = new ArrayList<Object[]>();
+        RDBBlobStoreFixture candidates[] = new RDBBlobStoreFixture[] { RDBBlobStoreFixture.RDB_DB2, RDBBlobStoreFixture.RDB_H2,
+                RDBBlobStoreFixture.RDB_MSSQL, RDBBlobStoreFixture.RDB_MYSQL, RDBBlobStoreFixture.RDB_ORACLE,
+                RDBBlobStoreFixture.RDB_PG };
+
+        for (RDBBlobStoreFixture bsf : candidates) {
+            if (bsf.isAvailable()) {
+                result.add(new Object[] { bsf });
+            }
+        }
+
+        return result;
+    }
+
     private RDBBlobStore blobStore;
-
-    private static final String URL = System.getProperty("rdb.jdbc-url", 
-                    "jdbc:h2:file:./target/db/RDBBlobStoreTest");
-
-    private static final String USERNAME = System.getProperty("rdb.jdbc-user", "sa");
-
-    private static final String PASSWD = System.getProperty("rdb.jdbc-passwd", "");
+    private String blobStoreName;
 
     private static final Logger LOG = LoggerFactory.getLogger(RDBBlobStoreTest.class);
+
+    public RDBBlobStoreTest(RDBBlobStoreFixture bsf) {
+        blobStore = bsf.createRDBBlobStore();
+        blobStoreName = bsf.getName();
+    }
 
     @Before
     @Override
     public void setUp() throws Exception {
-        blobStore = new RDBBlobStore(RDBDataSourceFactory.forJdbcUrl(URL, USERNAME, PASSWD), new RDBOptions().tablePrefix("test")
-                .dropTablesOnClose(true));
         blobStore.setBlockSize(128);
         blobStore.setBlockSizeMin(48);
         this.store = blobStore;
@@ -109,7 +125,7 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
             }
         }
 
-        LOG.info("max blob length for " + URL + " was " + test);
+        LOG.info("max blob length for " + blobStoreName + " was " + test);
 
         int expected = Math.max(blobStore.getBlockSize(), 2 * 1024 * 1024);
         assertTrue("expected supported block size is " + expected + ", but measured: " + test, test >= expected);
