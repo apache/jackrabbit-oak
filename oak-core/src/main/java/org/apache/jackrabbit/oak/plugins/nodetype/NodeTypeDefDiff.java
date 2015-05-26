@@ -72,7 +72,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <b><code>MAJOR</code></b>.
  *
  * <p>
- * <em>This class duplicates code from org.apache.jackrabbit.spi.commons.nodetype.NodeTypeDefDiff; both should be update in sync,
+ * <em>This class duplicates code from org.apache.jackrabbit.spi.commons.nodetype.NodeTypeDefDiff; both should be updated in sync,
  * see <a href="https://issues.apache.org/jira/browse/OAK-2802">OAK-2802</a></em>
  */
 public class NodeTypeDefDiff {
