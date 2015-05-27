@@ -23,6 +23,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.security.ExerciseUtility;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
@@ -63,8 +64,6 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  */
 public class L12_UuidTest extends AbstractJCRTest {
 
-    private static final String USER_ID = "testUser";
-
     private UserManager userManager;
     private User testUser;
 
@@ -73,7 +72,7 @@ public class L12_UuidTest extends AbstractJCRTest {
         super.setUp();
 
         userManager = ((JackrabbitSession) superuser).getUserManager();
-        testUser = userManager.createUser(USER_ID, "pw");
+        testUser = ExerciseUtility.createTestUser(userManager);
         superuser.save();
     }
 
@@ -127,7 +126,7 @@ public class L12_UuidTest extends AbstractJCRTest {
         superuser.save();
 
         // recreate the same user again
-        testUser = userManager.createUser(USER_ID, "pw");
+        testUser = userManager.createUser(testUser.getID(), ExerciseUtility.TEST_PW);
 
         // TODO: fill the expected identifier.
         // Q: can you predict the expected identifier?

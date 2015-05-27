@@ -21,7 +21,6 @@ import java.util.Set;
 import javax.jcr.GuestCredentials;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.RepositoryException;
-import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.api.security.user.Group;
@@ -31,9 +30,12 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.security.ExerciseUtility;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.security.ExerciseUtility.createTestGroup;
+import static org.apache.jackrabbit.oak.security.ExerciseUtility.createTestUser;
+import static org.apache.jackrabbit.oak.security.ExerciseUtility.getTestCredentials;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -141,10 +143,10 @@ public class L2_AuthInfoTest extends AbstractSecurityTest {
 
     @Test
     public void testUserAuthInfo() throws LoginException, RepositoryException, CommitFailedException {
-        testUser = userManager.createUser("testUser", "pw", new PrincipalImpl("testPrincipal"), null);
+        testUser = createTestUser(userManager);
         root.commit();
 
-        contentSession = login(new SimpleCredentials("testUser", "pw".toCharArray()));
+        contentSession = login(ExerciseUtility.getTestCredentials(testUser.getID()));
 
         AuthInfo authInfo = contentSession.getAuthInfo();
 
@@ -161,12 +163,12 @@ public class L2_AuthInfoTest extends AbstractSecurityTest {
 
     @Test
     public void testUserAuthInfoWithGroupMembership() throws LoginException, RepositoryException, CommitFailedException {
-        testUser = userManager.createUser("testUser", "pw", new PrincipalImpl("testPrincipal"), null);
-        testGroup = userManager.createGroup("testGroup", new PrincipalImpl("testGroupPrincipal"), null);
+        testUser = createTestUser(userManager);
+        testGroup = createTestGroup(userManager);
         testGroup.addMember(testUser);
         root.commit();
 
-        contentSession = login(new SimpleCredentials("testUser", "pw".toCharArray()));
+        contentSession = login(getTestCredentials(testUser.getID()));
 
         AuthInfo authInfo = contentSession.getAuthInfo();
 

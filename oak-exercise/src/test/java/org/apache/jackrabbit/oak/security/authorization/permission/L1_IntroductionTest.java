@@ -16,7 +16,25 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import java.security.Principal;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.jcr.security.AccessControlManager;
+
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.apache.jackrabbit.oak.util.NodeUtil;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * <pre>
@@ -70,6 +88,35 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
  *             And what would be the consequences for the whole authorization module?
  *
  *
+ * Advanced Exercises:
+ * -----------------------------------------------------------------------------
+ *
+ * - Read Permission Walkthrough
+ *   Use {@link #testReadPermissionWalkThrough()} to become familiar with the
+ *   very internals of the permission evaluation. Walk through the item read
+ *   methods (for simplicity reduced to oak-core only) and be aware of
+ *   permission-evaluation related parts.
+ *
+ *   Question: Can you list the relevant steps wrt permission evalution?
+ *   Question: What is the nature of the returned tree objects?
+ *   Question: How can you verify if the editing test session can actually read those trees without using the permission-evalution code?
+ *   Question: How can you verify if the properties are accessible.
+ *
+ * - Write Permission Walkthrough
+ *   Use {@link #testWritePermissionWalkThrough()} to become familiar with the
+ *   internals of the permission evaluation with respect to writing. Walk through
+ *   the item write methods (for simplicity reduced to oak-core only) and the
+ *   subsequent {@link org.apache.jackrabbit.oak.api.Root#commit()} and be aware
+ *   of permission-evaluation related parts.
+ *
+ *   Question: Can you list the relevant steps wrt permission evalution?
+ *   Question: What can you say about write permissions for special (protected) items?
+ *
+ * - Extending {@link #testReadPermissionWalkThrough()} and {@link #testWritePermissionWalkThrough()}
+ *   Use the two test-cases and play with additional access/writes and or
+ *   additional (more complex) permission setup.
+ *
+ *
  * Related Exercises:
  * -----------------------------------------------------------------------------
  *
@@ -79,4 +126,101 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
  */
 public class L1_IntroductionTest extends AbstractSecurityTest {
 
+    ContentSession testSession;
+
+    @Override
+    public void before() throws Exception {
+        super.before();
+        testSession = createTestSession();
+
+
+        Principal testPrincipal = getTestUser().getPrincipal();
+
+        NodeUtil rootNode = new NodeUtil(root.getTree("/"));
+        NodeUtil a = rootNode.addChild("a", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        a.setString("aProp", "aValue");
+
+        NodeUtil b = a.addChild("b", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        b.setString("bProp", "bValue");
+        // sibling
+        NodeUtil bb = a.addChild("bb", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        bb.setString("bbProp", "bbValue");
+
+        NodeUtil c = b.addChild("c", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        c.setString("cProp", "cValue");
+
+        setupPermission(root, "/a", testPrincipal, true, PrivilegeConstants.JCR_READ);
+        setupPermission(root, "/a/b", testPrincipal, true, PrivilegeConstants.JCR_ADD_CHILD_NODES);
+        setupPermission(root, "/a/b/c", testPrincipal, true, PrivilegeConstants.JCR_ALL);
+
+        root.commit();
+
+
+    }
+
+    @Override
+    public void after() throws Exception {
+        try {
+            if (testSession != null) {
+                testSession.close();
+            }
+            root.getTree("/a").remove();
+            root.commit();
+        } finally {
+            super.after();
+        }
+    }
+
+    /**
+     * Setup simple allow/deny permissions (without restrictions).
+     *
+     * @param root The editing root.
+     * @param path The path of the access controlled tree.
+     * @param principal The principal for which new ACE is being created.
+     * @param isAllow {@code true} if privileges are granted; {@code false} otherwise.
+     * @param privilegeNames The privilege names.
+     * @throws Exception If an error occurs.
+     */
+    private void setupPermission(@Nonnull Root root,
+                                 @Nullable String path,
+                                 @Nonnull Principal principal,
+                                 boolean isAllow,
+                                 @Nonnull String... privilegeNames) throws Exception {
+        AccessControlManager acMgr = getAccessControlManager(root);
+        JackrabbitAccessControlList acl = checkNotNull(AccessControlUtils.getAccessControlList(acMgr, path));
+        acl.addEntry(principal, AccessControlUtils.privilegesFromNames(acMgr, privilegeNames), isAllow);
+        acMgr.setPolicy(path, acl);
+        root.commit();
+    }
+
+    public void testReadPermissionWalkThrough() {
+        Root testRoot = testSession.getLatestRoot();
+
+        // TODO verify if these tree are accessible. Q: what method to use here?
+        Tree rootTree = testRoot.getTree("/");
+        Tree bTree = testRoot.getTree("/a/b");
+        Tree cTree = testRoot.getTree("/a/b/c");
+
+        // TODO verify if this is an accessible property? Q: how to do this?
+        PropertyState bProp = bTree.getProperty("bProp");
+        PropertyState cProp = cTree.getProperty("cProp");
+    }
+
+    public void testWritePermissionWalkThrough() throws CommitFailedException {
+        Root testRoot = testSession.getLatestRoot();
+
+        // TODO walk through the test and fix it such that it passes.
+
+        Tree bTree = testRoot.getTree("/a/b");
+        bTree.addChild("childName");
+        bTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        testRoot.commit();
+
+        Tree cTree = bTree.getChild("c");
+        cTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        testRoot.commit();
+
+        root.refresh();
+        // TODO use the superuser-root instance to verify that persisting the changes was successfull
+    }
 }

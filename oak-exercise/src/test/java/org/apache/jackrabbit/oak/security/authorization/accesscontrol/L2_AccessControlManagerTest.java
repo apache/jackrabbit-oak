@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 import java.security.Principal;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlList;
@@ -33,10 +32,11 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
+import org.apache.jackrabbit.oak.security.ExerciseUtility;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
 /**
@@ -165,6 +165,7 @@ public class L2_AccessControlManagerTest extends AbstractJCRTest {
 
     private AccessControlManager acMgr;
     private Principal testPrincipal;
+    private String testID;
 
     private Session testSession;
 
@@ -174,7 +175,9 @@ public class L2_AccessControlManagerTest extends AbstractJCRTest {
 
         acMgr = superuser.getAccessControlManager();
 
-        testPrincipal = ((JackrabbitSession) superuser).getUserManager().createUser("testUser", "pw", new PrincipalImpl("testPrincipal"), null).getPrincipal();
+        User testUser = ExerciseUtility.createTestUser(((JackrabbitSession) superuser).getUserManager());
+        testPrincipal = testUser.getPrincipal();
+        testID = testUser.getID();
         superuser.save();
     }
 
@@ -350,7 +353,7 @@ public class L2_AccessControlManagerTest extends AbstractJCRTest {
     }
 
     public void testRetrievePoliciesAsReadOnlySession() throws RepositoryException {
-        testSession = superuser.getRepository().login(new SimpleCredentials("testUser", "pw".toCharArray()));
+        testSession = superuser.getRepository().login(ExerciseUtility.getTestCredentials(testID));
 
         // TODO: Fix the test and explain your fix.
         AccessControlPolicyIterator policyIterator = testSession.getAccessControlManager().getApplicablePolicies(testRoot);
@@ -358,7 +361,7 @@ public class L2_AccessControlManagerTest extends AbstractJCRTest {
     }
 
     public void testWritePoliciesAsReadOnlySession() throws RepositoryException {
-        testSession = superuser.getRepository().login(new SimpleCredentials("testUser", "pw".toCharArray()));
+        testSession = superuser.getRepository().login(ExerciseUtility.getTestCredentials(testID));
 
         // TODO: Fix the test and explain your fix.
         // NOTE: that obviously is prone to cause troubles as the policies is retrieved with a different session!

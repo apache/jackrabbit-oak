@@ -24,8 +24,10 @@ import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.security.ExerciseUtility;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
+import static org.apache.jackrabbit.oak.security.ExerciseUtility.TEST_PW;
 /**
  * <pre>
  * Module: User Management
@@ -109,6 +111,7 @@ public class L4_PasswordTest extends AbstractJCRTest {
 
     private UserManager userManager;
 
+    private String testId;
     private User testUser;
 
     @Override
@@ -116,6 +119,7 @@ public class L4_PasswordTest extends AbstractJCRTest {
         super.setUp();
 
         userManager = ((JackrabbitSession) superuser).getUserManager();
+        testId = ExerciseUtility.getTestId("testUser");
     }
 
     @Override
@@ -131,7 +135,7 @@ public class L4_PasswordTest extends AbstractJCRTest {
     }
 
     public void testPasswordInContent() throws RepositoryException {
-        testUser = userManager.createUser("testUser", "pw");
+        testUser = userManager.createUser(testId, TEST_PW);
         superuser.save();
 
         Node userNode = superuser.getNode(testUser.getPath());
@@ -140,11 +144,11 @@ public class L4_PasswordTest extends AbstractJCRTest {
         Property pwProperty = userNode.getProperty(pwPropertyName);
 
         // TODO: explain why the password property doesn't contain the 'pw' string
-        assertFalse("pw".equals(pwProperty.getString()));
+        assertFalse(TEST_PW.equals(pwProperty.getString()));
     }
 
     public void testCreateUserAndLogin() throws RepositoryException {
-        testUser = userManager.createUser("testUser", "pw");
+        testUser = userManager.createUser(testId, TEST_PW);
         superuser.save();
 
         Credentials creds = null; // TODO build the credentials
@@ -152,7 +156,7 @@ public class L4_PasswordTest extends AbstractJCRTest {
     }
 
     public void testCreateUserWithoutPassword() throws RepositoryException {
-        testUser = userManager.createUser("testUser", null);
+        testUser = userManager.createUser(testId, null);
         superuser.save();
 
         // TODO: look at the user node. does it have a password property set?
@@ -161,7 +165,7 @@ public class L4_PasswordTest extends AbstractJCRTest {
     }
 
     public void testCreateUserWithoutPasswordAndLogin() throws RepositoryException {
-        testUser = userManager.createUser("testUser", null);
+        testUser = userManager.createUser(testId, null);
         superuser.save();
 
         // TODO: build the credentials and fix the test-case such that it no longer fails
@@ -170,7 +174,7 @@ public class L4_PasswordTest extends AbstractJCRTest {
     }
 
     public void testChangePassword() throws RepositoryException {
-        testUser = userManager.createUser("testUser", null);
+        testUser = userManager.createUser(testId, null);
         superuser.save();
 
         String newPassword = null; // TODO : define valid value(s)

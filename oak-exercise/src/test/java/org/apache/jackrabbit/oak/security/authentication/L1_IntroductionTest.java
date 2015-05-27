@@ -20,11 +20,13 @@ import javax.jcr.Credentials;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.test.AbstractJCRTest;
+
+import static org.apache.jackrabbit.oak.security.ExerciseUtility.createTestUser;
+import static org.apache.jackrabbit.oak.security.ExerciseUtility.getTestCredentials;
 
 /**
  * <pre>
@@ -48,11 +50,9 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  * Questions:
  *
  * - What is the Oak API correspondent of {@link Repository#login(javax.jcr.Credentials)}?
- *   Answer: TODO
  *
  * - Identify those parts/classes/configurations in the repository authentication
  *   that can be customized
- *   Answer: TODO
  *
  *
  * Additional Exercises:
@@ -79,9 +79,6 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  */
 public class L1_IntroductionTest extends AbstractJCRTest {
 
-    private static final String TEST_USER_ID = "testUser";
-    private static final String TEST_USER_PW = "pw";
-
     private Repository repository;
     private User user;
     private Session testSession;
@@ -91,7 +88,7 @@ public class L1_IntroductionTest extends AbstractJCRTest {
         super.setUp();
 
         repository = getHelper().getRepository();
-        user = ((JackrabbitSession) superuser).getUserManager().createUser(TEST_USER_ID, TEST_USER_PW);
+        user = createTestUser(((JackrabbitSession) superuser).getUserManager());;
         superuser.save();
     }
 
@@ -109,7 +106,7 @@ public class L1_IntroductionTest extends AbstractJCRTest {
     }
 
     public void testUserLogin() throws RepositoryException {
-        testSession = repository.login(new SimpleCredentials(TEST_USER_ID, TEST_USER_PW.toCharArray()));
+        testSession = repository.login(getTestCredentials(user.getID()));
     }
 
     public void testAdminLogin() throws RepositoryException {

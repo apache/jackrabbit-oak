@@ -27,7 +27,7 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.security.ExerciseUtility;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -114,10 +114,10 @@ public class L11_AuthorizableContentTest extends AbstractJCRTest {
         super.setUp();
 
         userManager = ((JackrabbitSession) superuser).getUserManager();
-        testUser = userManager.createUser("testUser", null, new PrincipalImpl("testPrincipal"), null);
+        testUser = ExerciseUtility.createTestUser(userManager);
         testUser.disable("no longer active");
 
-        testGroup = userManager.createGroup("testGroup", new PrincipalImpl("testGroupPrincipal"), null);
+        testGroup = ExerciseUtility.createTestGroup(userManager);
 
         superuser.save();
     }

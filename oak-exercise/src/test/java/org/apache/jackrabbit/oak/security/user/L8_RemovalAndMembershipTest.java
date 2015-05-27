@@ -22,6 +22,7 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.security.ExerciseUtility;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -146,7 +147,7 @@ public class L8_RemovalAndMembershipTest extends AbstractSecurityTest {
         root.commit();
 
         // create a new user with the same ID
-        User u = getUserManager(root).createUser(id, "pw");
+        User u = getUserManager(root).createUser(id, ExerciseUtility.TEST_PW);
         root.commit();
 
         // TODO: explain why this user cannot be added as member?
@@ -168,7 +169,7 @@ public class L8_RemovalAndMembershipTest extends AbstractSecurityTest {
         root.commit();
 
         // create a new user with the same ID
-        User u = getUserManager(root).createUser(id, "pw");
+        User u = getUserManager(root).createUser(id, ExerciseUtility.TEST_PW);
         root.commit();
 
         assertFalse(administrators.isDeclaredMember(u));

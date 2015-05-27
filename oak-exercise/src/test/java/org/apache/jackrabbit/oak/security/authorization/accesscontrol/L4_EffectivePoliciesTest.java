@@ -23,7 +23,6 @@ import java.util.Set;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
@@ -32,11 +31,11 @@ import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
-import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.security.ExerciseUtility;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.test.NotExecutableException;
 
@@ -127,6 +126,7 @@ public class L4_EffectivePoliciesTest extends AbstractJCRTest {
     private JackrabbitAccessControlManager acMgr;
     private JackrabbitAccessControlList acl;
 
+    private User testUser;
     private Principal testPrincipal;
     private Privilege[] testPrivileges;
 
@@ -139,7 +139,8 @@ public class L4_EffectivePoliciesTest extends AbstractJCRTest {
         Node child = testRootNode.addNode(nodeName1);
         childPath = child.getPath();
 
-        testPrincipal = ((JackrabbitSession) superuser).getUserManager().createUser("testUser", "pw", new PrincipalImpl("testPrincipal"), null).getPrincipal();
+        testUser = ExerciseUtility.createTestUser(((JackrabbitSession) superuser).getUserManager());
+        testPrincipal = testUser.getPrincipal();
         superuser.save();
 
         acMgr = (JackrabbitAccessControlManager) superuser.getAccessControlManager();
@@ -157,7 +158,6 @@ public class L4_EffectivePoliciesTest extends AbstractJCRTest {
             if (testSession != null && testSession.isLive()) {
                 testSession.logout();
             }
-            Authorizable testUser = ((JackrabbitSession) superuser).getUserManager().getAuthorizable(testPrincipal);
             if (testUser != null) {
                 testUser.remove();
                 superuser.save();
@@ -179,7 +179,7 @@ public class L4_EffectivePoliciesTest extends AbstractJCRTest {
     }
 
     private Session getTestSession() throws RepositoryException {
-        return superuser.getRepository().login(new SimpleCredentials("testUser", "pw".toCharArray()));
+        return superuser.getRepository().login(ExerciseUtility.getTestCredentials(testUser.getID()));
     }
 
     public void testGetEffectivePolicies() throws Exception {

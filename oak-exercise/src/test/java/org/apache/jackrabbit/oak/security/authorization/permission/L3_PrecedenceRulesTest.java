@@ -21,7 +21,6 @@ import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
@@ -31,8 +30,8 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.security.ExerciseUtility;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
@@ -126,15 +125,15 @@ public class L3_PrecedenceRulesTest extends AbstractJCRTest {
         Node child = testRootNode.addNode(nodeName1);
         childPath = child.getPath();
 
-        User testUser = ((JackrabbitSession) superuser).getUserManager().createUser("testUser", "pw", new PrincipalImpl("testPrincipal"), null);
-        Group testGroup = ((JackrabbitSession) superuser).getUserManager().createGroup("testGroup");
+        User testUser = ExerciseUtility.createTestUser(((JackrabbitSession) superuser).getUserManager());
+        Group testGroup = ExerciseUtility.createTestGroup(((JackrabbitSession) superuser).getUserManager());
         testGroup.addMember(testUser);
         superuser.save();
 
         testPrincipal = testUser.getPrincipal();
         testGroupPrincipal = testGroup.getPrincipal();
 
-        testSession = superuser.getRepository().login(new SimpleCredentials("testUser", "pw".toCharArray()));
+        testSession = superuser.getRepository().login(ExerciseUtility.getTestCredentials(testUser.getID()));
     }
 
     @Override
@@ -185,7 +184,6 @@ public class L3_PrecedenceRulesTest extends AbstractJCRTest {
         assertTrue(testSession.nodeExists(testRoot));
         assertTrue(testSession.nodeExists(childPath));
         assertTrue(testSession.propertyExists(propertyPath));
-
     }
 
     public void testAceOrder() throws RepositoryException {

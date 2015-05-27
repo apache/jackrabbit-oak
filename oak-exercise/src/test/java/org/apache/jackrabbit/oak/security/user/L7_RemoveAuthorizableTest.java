@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.user;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.Privilege;
@@ -32,6 +31,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.plugins.lock.LockConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.security.ExerciseUtility;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.test.NotExecutableException;
 
@@ -115,7 +115,7 @@ public class L7_RemoveAuthorizableTest extends AbstractJCRTest {
         super.setUp();
 
         userManager = ((JackrabbitSession) superuser).getUserManager();
-        testUser = userManager.createUser("testUser", "pw");
+        testUser = ExerciseUtility.createTestUser(userManager);
 
         superuser.save();
 
@@ -126,7 +126,7 @@ public class L7_RemoveAuthorizableTest extends AbstractJCRTest {
         }
         superuser.save();
 
-        testSession = getHelper().getRepository().login(new SimpleCredentials("testUser", "pw".toCharArray()));
+        testSession = getHelper().getRepository().login(ExerciseUtility.getTestCredentials(testUser.getID()));
     }
 
     @Override

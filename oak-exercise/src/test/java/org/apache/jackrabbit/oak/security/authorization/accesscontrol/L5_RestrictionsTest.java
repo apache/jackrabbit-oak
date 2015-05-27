@@ -32,6 +32,7 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.security.ExerciseUtility;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.test.NotExecutableException;
@@ -117,7 +118,7 @@ public class L5_RestrictionsTest extends AbstractJCRTest {
 
         acMgr = superuser.getAccessControlManager();
 
-        testPrincipal = ((JackrabbitSession) superuser).getUserManager().createGroup("testGroup").getPrincipal();
+        testPrincipal = ExerciseUtility.createTestGroup(((JackrabbitSession) superuser).getUserManager()).getPrincipal();
         superuser.save();
 
         acl = AccessControlUtils.getAccessControlList(superuser, testRoot);

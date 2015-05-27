@@ -22,15 +22,15 @@ import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
 import javax.jcr.security.Privilege;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.security.ExerciseUtility;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.test.NotExecutableException;
@@ -136,7 +136,8 @@ public class L2_PermissionDiscoveryTest extends AbstractJCRTest {
         Node child = testRootNode.addNode(nodeName1);
         childPath = child.getPath();
 
-        testPrincipal = ((JackrabbitSession) superuser).getUserManager().createUser("testUser", "pw", new PrincipalImpl("testPrincipal"), null).getPrincipal();
+        User testUser = ExerciseUtility.createTestUser(((JackrabbitSession) superuser).getUserManager());
+        testPrincipal = testUser.getPrincipal();
 
         Privilege[] privs = AccessControlUtils.privilegesFromNames(superuser, Privilege.JCR_READ, PrivilegeConstants.REP_ADD_PROPERTIES);
         Privilege[] privs2 = AccessControlUtils.privilegesFromNames(superuser, Privilege.JCR_ADD_CHILD_NODES);
@@ -146,7 +147,7 @@ public class L2_PermissionDiscoveryTest extends AbstractJCRTest {
         }
 
         superuser.save();
-        testSession = superuser.getRepository().login(new SimpleCredentials("testUser", "pw".toCharArray()));
+        testSession = superuser.getRepository().login(ExerciseUtility.getTestCredentials(testUser.getID()));
     }
 
     @Override

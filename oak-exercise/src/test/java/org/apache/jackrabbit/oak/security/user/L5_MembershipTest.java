@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.security.user;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.security.ExerciseUtility;
 
 /**
  * <pre>
@@ -58,7 +59,7 @@ public class L5_MembershipTest extends AbstractSecurityTest {
 
         user = getTestUser();
 
-        group = getUserManager(root).createGroup("testGroup");
+        group = ExerciseUtility.createTestGroup(getUserManager(root));
         group.addMember(user);
 
         root.commit();
