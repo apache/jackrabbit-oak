@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
@@ -47,6 +48,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.OakDirectory.PROP_B
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class OakDirectoryTest {
     private Random rnd = new Random();
@@ -168,5 +170,126 @@ public class OakDirectoryTest {
         byte[] data = new byte[size];
         rnd.nextBytes(data);
         return data;
+    }
+
+    @Test
+    public void testCloseOnOriginalIndexInput() throws Exception {
+        Directory dir = createDir(builder, false);
+        NodeBuilder file = builder.child(INDEX_DATA_CHILD_NAME).child("test.txt");
+        int dataSize = 1024;
+        List<? super Blob> blobs = new ArrayList<Blob>(dataSize);
+        for (int i = 0; i < dataSize; i++) {
+            blobs.add(new ArrayBasedBlob(new byte[0]));
+        }
+        file.setProperty(PropertyStates.createProperty("jcr:data", blobs, Type.BINARIES));
+        IndexInput input = dir.openInput("test.txt", IOContext.DEFAULT);
+        input.close();
+        assertClosed(input);
+    }
+
+    @Test
+    public void testCloseOnClonedIndexInputs() throws Exception {
+        Directory dir = createDir(builder, false);
+        NodeBuilder file = builder.child(INDEX_DATA_CHILD_NAME).child("test.txt");
+        int dataSize = 1024;
+        List<? super Blob> blobs = new ArrayList<Blob>(dataSize);
+        for (int i = 0; i < dataSize; i++) {
+            blobs.add(new ArrayBasedBlob(new byte[0]));
+        }
+        file.setProperty(PropertyStates.createProperty("jcr:data", blobs, Type.BINARIES));
+        IndexInput input = dir.openInput("test.txt", IOContext.DEFAULT);
+        IndexInput clone1 = input.clone();
+        IndexInput clone2 = input.clone();
+        input.close();
+        assertClosed(input);
+        assertClosed(clone1);
+        assertClosed(clone2);
+    }
+
+    private void assertClosed(IndexInput input) throws IOException {
+        try {
+            input.length();
+            fail("cannot use IndexInput once closed");
+        } catch (AlreadyClosedException e) {
+            // expected exception
+        }
+        try {
+            input.seek(0);
+            fail("cannot use IndexInput once closed");
+        } catch (AlreadyClosedException e) {
+            // expected exception
+        }
+        try {
+            input.getFilePointer();
+            fail("cannot use IndexInput once closed");
+        } catch (AlreadyClosedException e) {
+            // expected exception
+        }
+        try {
+            input.readInt();
+            fail("cannot use IndexInput once closed");
+        } catch (AlreadyClosedException e) {
+            // expected exception
+        }
+        try {
+            input.readShort();
+            fail("cannot use IndexInput once closed");
+        } catch (AlreadyClosedException e) {
+            // expected exception
+        }
+        try {
+            input.readLong();
+            fail("cannot use IndexInput once closed");
+        } catch (AlreadyClosedException e) {
+            // expected exception
+        }
+        try {
+            input.readByte();
+            fail("cannot use IndexInput once closed");
+        } catch (AlreadyClosedException e) {
+            // expected exception
+        }
+        try {
+            input.readString();
+            fail("cannot use IndexInput once closed");
+        } catch (AlreadyClosedException e) {
+            // expected exception
+        }
+        try {
+            input.readStringSet();
+            fail("cannot use IndexInput once closed");
+        } catch (AlreadyClosedException e) {
+            // expected exception
+        }
+        try {
+            input.readStringStringMap();
+            fail("cannot use IndexInput once closed");
+        } catch (AlreadyClosedException e) {
+            // expected exception
+        }
+        try {
+            input.readVInt();
+            fail("cannot use IndexInput once closed");
+        } catch (AlreadyClosedException e) {
+            // expected exception
+        }
+        try {
+            input.readVLong();
+            fail("cannot use IndexInput once closed");
+        } catch (AlreadyClosedException e) {
+            // expected exception
+        }
+        try {
+            input.readBytes(null, 0, 0);
+            fail("cannot use IndexInput once closed");
+        } catch (AlreadyClosedException e) {
+            // expected exception
+        }
+        try {
+            input.readBytes(null, 0, 0, false);
+            fail("cannot use IndexInput once closed");
+        } catch (AlreadyClosedException e) {
+            // expected exception
+        }
     }
 }
