@@ -21,6 +21,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -33,6 +34,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.util.PerfLogger;
+import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
@@ -40,6 +42,7 @@ import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.Lock;
 import org.apache.lucene.store.LockFactory;
 import org.apache.lucene.store.NoLockFactory;
+import org.apache.lucene.util.WeakIdentityMap;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -364,29 +367,41 @@ class OakDirectory extends Directory {
     private static class OakIndexInput extends IndexInput {
 
         private final OakIndexFile file;
+        private boolean isClone = false;
+        private final WeakIdentityMap<OakIndexInput, Boolean> clones;
 
         public OakIndexInput(String name, NodeBuilder file) {
             super(name);
             this.file = new OakIndexFile(name, file);
+            clones = WeakIdentityMap.newConcurrentHashMap();
         }
 
         private OakIndexInput(OakIndexInput that) {
             super(that.toString());
             this.file = new OakIndexFile(that.file);
+            clones = null;
         }
 
         @Override
         public OakIndexInput clone() {
-            return new OakIndexInput(this);
+            // TODO : shouldn't we call super#clone ?
+            OakIndexInput clonedIndexInput = new OakIndexInput(this);
+            clonedIndexInput.isClone = true;
+            if (clones != null) {
+                clones.put(clonedIndexInput, Boolean.TRUE);
+            }
+            return clonedIndexInput;
         }
 
         @Override
         public void readBytes(byte[] b, int o, int n) throws IOException {
+            checkNotClosed();
             file.readBytes(b, o, n);
         }
 
         @Override
         public byte readByte() throws IOException {
+            checkNotClosed();
             byte[] b = new byte[1];
             readBytes(b, 0, 1);
             return b[0];
@@ -394,16 +409,19 @@ class OakDirectory extends Directory {
 
         @Override
         public void seek(long pos) throws IOException {
+            checkNotClosed();
             file.seek(pos);
         }
 
         @Override
         public long length() {
+            checkNotClosed();
             return file.length;
         }
 
         @Override
         public long getFilePointer() {
+            checkNotClosed();
             return file.position;
         }
 
@@ -411,6 +429,20 @@ class OakDirectory extends Directory {
         public void close() {
             file.blob = null;
             file.data = null;
+
+            if (clones != null) {
+                for (Iterator<OakIndexInput> it = clones.keyIterator(); it.hasNext();) {
+                    final OakIndexInput clone = it.next();
+                    assert clone.isClone;
+                    clone.close();
+                }
+            }
+        }
+
+        private void checkNotClosed() {
+            if (file.blob == null && file.data == null) {
+                throw new AlreadyClosedException("Already closed: " + this);
+            }
         }
 
     }
