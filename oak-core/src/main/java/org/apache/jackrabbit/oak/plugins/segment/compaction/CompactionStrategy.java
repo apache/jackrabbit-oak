@@ -89,7 +89,7 @@ public abstract class CompactionStrategy {
     /**
      * No compaction at all
      */
-    public static CompactionStrategy NO_COMPACTION = new CompactionStrategy(
+    public static final CompactionStrategy NO_COMPACTION = new CompactionStrategy(
             true, false, CleanupType.CLEAN_NONE, 0, MEMORY_THRESHOLD_DEFAULT) {
         @Override
         public boolean compacted(@Nonnull Callable<Boolean> setHead) throws Exception {

@@ -97,11 +97,11 @@ public class Segment {
      */
     public static final int MEDIUM_LIMIT = (1 << (16 - 2)) + SMALL_LIMIT;
 
-    public static int REF_COUNT_OFFSET = 5;
+    public static final int REF_COUNT_OFFSET = 5;
 
-    static int ROOT_COUNT_OFFSET = 6;
+    static final int ROOT_COUNT_OFFSET = 6;
 
-    static int BLOBREF_COUNT_OFFSET = 8;
+    static final int BLOBREF_COUNT_OFFSET = 8;
 
     private final SegmentTracker tracker;
 
@@ -420,7 +420,7 @@ public class Segment {
             RecordId primaryId = readRecordId(offset);
             primaryType = PropertyStates.createProperty(
                     "jcr:primaryType", readString(primaryId), Type.NAME);
-            offset += Segment.RECORD_ID_BYTES;
+            offset += RECORD_ID_BYTES;
         }
 
         PropertyState mixinTypes = null;
@@ -429,7 +429,7 @@ public class Segment {
             for (int i = 0; i < mixins.length; i++) {
                 RecordId mixinId = readRecordId(offset);
                 mixins[i] =  readString(mixinId);
-                offset += Segment.RECORD_ID_BYTES;
+                offset += RECORD_ID_BYTES;
             }
             mixinTypes = PropertyStates.createProperty(
                     "jcr:mixinTypes", Arrays.asList(mixins), Type.NAMES);
@@ -441,7 +441,7 @@ public class Segment {
         } else if (!zeroChildNodes) {
             RecordId childNameId = readRecordId(offset);
             childName = readString(childNameId);
-            offset += Segment.RECORD_ID_BYTES;
+            offset += RECORD_ID_BYTES;
         }
 
         PropertyTemplate[] properties;
@@ -457,7 +457,7 @@ public class Segment {
         PropertyTemplate[] properties = new PropertyTemplate[propertyCount];
         for (int i = 0; i < propertyCount; i++) {
             RecordId propertyNameId = readRecordId(offset);
-            offset += Segment.RECORD_ID_BYTES;
+            offset += RECORD_ID_BYTES;
             byte type = readByte(offset++);
             properties[i] = new PropertyTemplate(i, readString(propertyNameId),
                     Type.fromTag(Math.abs(type), type < 0));
@@ -470,7 +470,7 @@ public class Segment {
         if (propertyCount > 0) {
             RecordId id = readRecordId(offset);
             ListRecord propertyNames = new ListRecord(id, properties.length);
-            offset += Segment.RECORD_ID_BYTES;
+            offset += RECORD_ID_BYTES;
             for (int i = 0; i < propertyCount; i++) {
                 byte type = readByte(offset++);
                 properties[i] = new PropertyTemplate(i,
