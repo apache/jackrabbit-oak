@@ -78,5 +78,5 @@ public interface GCMonitor {
         @Override public void skipped(String reason, Object[] arguments) { }
         @Override public void compacted() { }
         @Override public void cleaned(long reclaimedSize, long currentSize) { }
-    };
+    }
 }

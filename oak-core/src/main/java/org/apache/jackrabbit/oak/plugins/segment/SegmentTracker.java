@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import static com.google.common.collect.Lists.newLinkedList;
 import static com.google.common.collect.Queues.newArrayDeque;
 import static com.google.common.collect.Sets.newHashSet;
-import static com.google.common.collect.Sets.newIdentityHashSet;
 
 import java.security.SecureRandom;
 import java.util.LinkedList;
@@ -29,7 +28,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
 
-import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.slf4j.Logger;
@@ -82,7 +80,7 @@ public class SegmentTracker {
     /**
      * Hash table of weak references to segment identifiers that are
      * currently being accessed. The size of the table is always a power
-     * of two, which optimizes the {@link #expand()} operation. The table is
+     * of two, which optimizes the {@code refresh} operation. The table is
      * indexed by the random identifier bits, which guarantees uniform
      * distribution of entries. Each table entry is either {@code null}
      * (when there are no matching identifiers) or a list of weak references
@@ -251,8 +249,8 @@ public class SegmentTracker {
     }
 
     public synchronized void clearSegmentIdTables(CompactionStrategy strategy) {
-        for (int i = 0; i < tables.length; i++) {
-            tables[i].clearSegmentIdTables(strategy);
+        for (SegmentIdTable table : tables) {
+            table.clearSegmentIdTables(strategy);
         }
     }
 

@@ -188,7 +188,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                     " compacted commits after the maximum number of retries has been reached. " +
                     "Force committing tries to exclusively write lock the node store."
     )
-    public static String COMPACTION_FORCE_AFTER_FAIL = "compaction.forceAfterFail";
+    public static final String COMPACTION_FORCE_AFTER_FAIL = "compaction.forceAfterFail";
 
     public static final int COMPACTION_LOCK_WAIT_TIME_DEFAULT = 60;
     @Property(
@@ -493,6 +493,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
      * needed for situations where you have to unwrap the
      * SegmentNodeStoreService, to get the SegmentStore, like the failover
      */
+    @Override
     public SegmentStore getSegmentStore() {
         return store;
     }

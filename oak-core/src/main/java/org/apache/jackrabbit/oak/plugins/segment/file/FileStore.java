@@ -482,8 +482,7 @@ public class FileStore implements SegmentStore {
         return compacted;
     }
 
-    static Map<Integer, Map<Character, File>> collectFiles(File directory)
-            throws IOException {
+    static Map<Integer, Map<Character, File>> collectFiles(File directory) {
         Map<Integer, Map<Character, File>> dataFiles = newHashMap();
         Map<Integer, File> bulkFiles = newHashMap();
 
