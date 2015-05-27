@@ -23,6 +23,7 @@ import javax.security.auth.login.LoginException;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
@@ -82,6 +83,7 @@ public class L5_AnonymousIdTest extends AbstractSecurityTest {
         }
     }
 
+    @Test
     public void testAnonymousID() throws RepositoryException, LoginException {
         testSession = login(new GuestCredentials());
 
@@ -100,6 +102,7 @@ public class L5_AnonymousIdTest extends AbstractSecurityTest {
         return ConfigurationParameters.EMPTY;
     }
 
+    @Test
     public void testDifferentAnonymousID() throws Exception {
         // TODO : use built-in oak configuration settings to have a different anonymous ID -> uncomment the configuration parameters in 'getSecurityConfigParameters' above
 

@@ -46,7 +46,7 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  * Related Exercises:
  * -----------------------------------------------------------------------------
  *
- * - {@link org.apache.jackrabbit.oak.security.privilege.L6_CustomPrivilegeTest()}
+ * - {@link L5_CustomPrivilegeTest ()}
  *
  * </pre>
  *

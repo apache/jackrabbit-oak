@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.test.NotExecutableException;
+import org.junit.Test;
 
 /**
  * <pre>
@@ -101,6 +102,7 @@ public class L4_PrincipalProviderTest extends AbstractSecurityTest {
         super.after();
     }
 
+    @Test
     public void testCorrespondance() {
         boolean exists = principalManager.hasPrincipal(testPrincipalName);
         Principal principal = principalManager.getPrincipal(testPrincipalName);

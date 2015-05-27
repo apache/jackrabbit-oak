@@ -26,6 +26,7 @@ import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.junit.Test;
 
 /**
  * <pre>
@@ -115,11 +116,13 @@ public class L6_LoginModuleTest extends AbstractSecurityTest {
         return super.getConfiguration();
     }
 
+    @Test
     public void testLogin() throws LoginException, NoSuchWorkspaceException, IOException {
         ContentSession contentSession = login(new GuestCredentials());
         contentSession.close();
     }
 
+    @Test
     public void testCustomCredentialsLogin() throws LoginException, RepositoryException, IOException {
         String loginID = null; // TODO
         String pw = null; // TODO

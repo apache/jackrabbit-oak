@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.security.ExerciseUtility;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.apache.jackrabbit.oak.security.ExerciseUtility.TEST_USER_HINT;
@@ -149,6 +150,7 @@ public class L3_UserVsPrincipalTest extends AbstractSecurityTest {
         }
     }
 
+    @Test
     public void testLookupByID() throws RepositoryException {
         Map<String, Object[]> resultMap = ImmutableMap.of(
                 testId, new Object[]{null, null},
@@ -172,6 +174,7 @@ public class L3_UserVsPrincipalTest extends AbstractSecurityTest {
         }
     }
 
+    @Test
     public void testLookupByPrincipal() throws RepositoryException {
         Map<String, Principal> resultMap = ImmutableMap.<String, Principal>of(
                 testId, null,
@@ -196,6 +199,7 @@ public class L3_UserVsPrincipalTest extends AbstractSecurityTest {
         }
     }
 
+    @Test
     public void testCreateUserWithGroupPrincipalName() throws RepositoryException, CommitFailedException {
         // TODO: fix the test-case with the correct assertions and exception catching! And explain why...
         User user2 = null;
@@ -210,6 +214,7 @@ public class L3_UserVsPrincipalTest extends AbstractSecurityTest {
         }
     }
 
+    @Test
     public void testCreateGroupWithTestUserID() throws RepositoryException, CommitFailedException {
         // TODO: fix the test-case with the correct assertions and exception catching! And explain why...
         Group group2 = null;
@@ -224,6 +229,7 @@ public class L3_UserVsPrincipalTest extends AbstractSecurityTest {
         }
     }
 
+    @Test
     public void testCreateWithReverse() throws RepositoryException, CommitFailedException {
         // TODO: fix the test-case with the correct assertions and exception catching!
         // TODO: if creating the user suceeds : verify if the testUser and user2 are equal. explain why!
@@ -243,16 +249,19 @@ public class L3_UserVsPrincipalTest extends AbstractSecurityTest {
         }
     }
 
+    @Test
     public void testLoginWithID() throws Exception {
         // TODO fix the test case and add proper verification
         login(ExerciseUtility.getTestCredentials(testId)).close();
     }
 
+    @Test
     public void testLoginWithPrincipalName() throws Exception {
         // TODO fix the test case and add proper verification
         login(ExerciseUtility.getTestCredentials(testPrincipal.getName())).close();
     }
 
+    @Test
     public void testAccessControlEntryWithId() throws RepositoryException {
         AccessControlManager acMgr = getAccessControlManager(root);
 

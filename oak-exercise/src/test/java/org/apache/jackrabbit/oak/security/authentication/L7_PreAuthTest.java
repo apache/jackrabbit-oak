@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.junit.Test;
 
 /**
  * <pre>
@@ -97,6 +98,7 @@ public class L7_PreAuthTest extends AbstractSecurityTest {
         };
     }
 
+    @Test
     public void testPreAuthenticatedLogin() throws IOException, LoginException, NoSuchWorkspaceException {
         // TODO: adjust the CustomLoginModule such that the following test passes, the jaas configuration has already been adjusted for you above.
 

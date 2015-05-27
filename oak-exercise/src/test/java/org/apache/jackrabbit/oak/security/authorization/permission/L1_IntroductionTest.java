@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.junit.Test;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -193,6 +194,7 @@ public class L1_IntroductionTest extends AbstractSecurityTest {
         root.commit();
     }
 
+    @Test
     public void testReadPermissionWalkThrough() {
         Root testRoot = testSession.getLatestRoot();
 
@@ -206,6 +208,7 @@ public class L1_IntroductionTest extends AbstractSecurityTest {
         PropertyState cProp = cTree.getProperty("cProp");
     }
 
+    @Test
     public void testWritePermissionWalkThrough() throws CommitFailedException {
         Root testRoot = testSession.getLatestRoot();
 

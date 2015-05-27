@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.junit.Test;
 
 /**
  * <pre>
@@ -58,10 +59,12 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
  */
 public class L6_PermissionContentTest extends AbstractSecurityTest {
 
+    @Test
     public void testReadOnly() {
         // TODO
     }
 
+    @Test
     public void testAdministrativeAccessOnly() {
         // TODO
     }

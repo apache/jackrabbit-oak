@@ -20,6 +20,7 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.security.ExerciseUtility;
+import org.junit.Test;
 
 /**
  * <pre>
@@ -77,14 +78,17 @@ public class L5_MembershipTest extends AbstractSecurityTest {
         }
     }
 
+    @Test
     public void testInheritedMembership() {
         // TODO
     }
 
+    @Test
     public void testDeclaredMembership() {
         // TODO
     }
 
+    @Test
     public void testMembersContentStructure() {
         // TODO
     }

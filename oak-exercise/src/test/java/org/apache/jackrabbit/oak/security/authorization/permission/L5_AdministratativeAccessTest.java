@@ -16,7 +16,17 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import javax.jcr.AccessDeniedException;
+
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.junit.Test;
 
 /**
  * <pre>
@@ -27,23 +37,73 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
  * -----------------------------------------------------------------------------
  *
  * Goal:
- * TODO
+ * Learn how the default implementation handles administrative access and makes
+ * sure administrative session always have full access to the repository and
+ * cannot be locked out.
  *
  * Exercises:
  *
- * - {@link #TODO}
+ * - {@link #testAdmininistrativePermissions()}
+ *   Use this test to walk through both read and write access with an administrative
+ *   session.
+ *
+ *   Question: Can you identify where there administrative permissions are being evaluated?
+ *   Question: Can you list the differences compared to regular permission evaluation?
+ *   Question: Can you explain, where the different handling is started and what are the criteria?
  *
  *
  * Additional Exercises:
  * -----------------------------------------------------------------------------
  *
- * TODO
+ * - {@link #testAdministrativeConfiguration()}
+ *   For this test you have to modify the default configuration such that the
+ *   test principal is treated as administrative principal upon evaluation.
+ *   Make sure the test passes and verify the expected result.
  *
  * </pre>
- *
- * @see TODO
  */
 public class L5_AdministratativeAccessTest extends AbstractSecurityTest {
 
+    @Test
+    public void testAdmininistrativePermissions() throws AccessDeniedException, CommitFailedException {
+        // TODO walk through the read access
+        Tree rootTree = root.getTree("/");
 
+        // TODO walk through the add + remove
+        NodeUtil child = new NodeUtil(rootTree).addChild("test", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        root.commit();
+
+        child.getTree().remove();
+        root.commit();
+    }
+
+    @Override
+    protected ConfigurationParameters getSecurityConfigParameters() {
+        // TODO : change the configuration to make the test principal being treated as 'administrative' principal
+        return super.getSecurityConfigParameters();
+    }
+
+    @Test
+    public void testAdministrativeConfiguration() throws Exception {
+        // TODO once you have defined the right permission-eval configuration options
+        // TODO the test principal should be treated as 'administrative' principal and the test should pass.
+
+        ContentSession testSession = createTestSession();
+        try {
+            Root testRoot = testSession.getLatestRoot();
+            Tree rootTree = testRoot.getTree("/");
+
+            // TODO walk through the add + remove
+            NodeUtil child = new NodeUtil(rootTree).addChild("test", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+            child.setString("prop", "val");
+            testRoot.commit();
+
+            child.getTree().remove();
+            testRoot.commit();
+
+        } finally {
+            testSession.close();
+        }
+
+    }
 }

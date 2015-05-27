@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.test.api.util.Text;
+import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
@@ -107,6 +108,7 @@ public class L13_AuthorizableNodeNameTest extends AbstractSecurityTest {
         return ConfigurationParameters.EMPTY;
     }
 
+    @Test
     public void testAuthorizableNodeName() throws RepositoryException {
         testUser = userManager.createUser("test/:User", null);
 
@@ -116,6 +118,7 @@ public class L13_AuthorizableNodeNameTest extends AbstractSecurityTest {
         assertEquals(expectedNodeName, nodeName);
     }
 
+    @Test
     public void testRandomAuthorizableNodeName() throws RepositoryException {
         // TODO: uncomment the setup in 'getSecurityConfigParameters' before running this test.
 

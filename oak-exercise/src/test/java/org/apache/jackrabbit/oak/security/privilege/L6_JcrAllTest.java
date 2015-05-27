@@ -16,7 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
+import javax.jcr.security.Privilege;
+
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.junit.Test;
 
 /**
  * <pre>
@@ -32,21 +35,30 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
  *
  * Exercises:
  *
- * - {@link #TODO}
+ * - Overview
+ *   Read again what JSR 283 states about {@link Privilege#JCR_ALL) and review
+ *   again the result of {@link L5_CustomPrivilegeTest#testJcrAll()}
  *
+ * - {@link #testManualModification()}
+ *   TODO
  *
- * Additional Exercises:
+ * Advanced Exercise
  * -----------------------------------------------------------------------------
  *
- * TODO
+ * - {@link #testJcrAllInPermissionStore()}
+ *   TODO
  *
  * </pre>
- *
- * @see TODO
  */
-public class L5_JcrAllTest extends AbstractSecurityTest {
+public class L6_JcrAllTest extends AbstractSecurityTest {
 
-    // TODO: -1 in permission store
-    // TODO: dynamic nature of jcr:all
-    // TODO: manually update jcr:all
+    @Test
+    public void testManualModification() {
+        // TODO
+    }
+
+    @Test
+    public void testJcrAllInPermissionStore() {
+        // TODO
+    }
 }

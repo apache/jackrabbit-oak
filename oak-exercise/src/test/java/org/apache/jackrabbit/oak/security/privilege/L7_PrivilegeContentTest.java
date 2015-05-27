@@ -20,14 +20,14 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 
 /**
  * <pre>
- * Module: TODO
+ * Module: Privilege Management
  * =============================================================================
  *
- * Title: L7_PrivilegeContentTest
+ * Title: Representation of Privileges in the Repository
  * -----------------------------------------------------------------------------
  *
  * Goal:
- * TODO
+ * Understand how privileges are represented in the repository content.
  *
  * Exercises:
  *
@@ -44,6 +44,9 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
  * @see TODO
  */
 public class L7_PrivilegeContentTest extends AbstractSecurityTest {
+
+
+        // TODO: -1 in permission store
 
 
 }
