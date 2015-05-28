@@ -16,9 +16,11 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package org.apache.jackrabbit.oak.scalability;
+package org.apache.jackrabbit.oak.scalability.benchmarks;
 
-import org.apache.jackrabbit.oak.scalability.ScalabilityAbstractSuite.ExecutionContext;
+import org.apache.jackrabbit.oak.scalability.suites.ScalabilityBlobSearchSuite;
+import org.apache.jackrabbit.oak.scalability.suites.ScalabilityNodeSuite;
+import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
 
 import javax.annotation.Nonnull;
 import javax.jcr.Node;
@@ -29,7 +31,7 @@ import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
 
 /**
- * Splits the search in {@link org.apache.jackrabbit.oak.scalability.OrderBySearcher} to multiple
+ * Splits the search in {@link org.apache.jackrabbit.oak.scalability.benchmarks.OrderBySearcher} to multiple
  * queries and unions the results.
  *
  */
