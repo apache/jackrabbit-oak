@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import static org.apache.jackrabbit.oak.commons.CIHelper.buildBotLinuxTrunk;
-import static org.junit.Assume.assumeTrue;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Set;
@@ -38,7 +35,6 @@ import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -84,12 +80,6 @@ public abstract class AbstractRepositoryTest {
             result.add(new Object[] { NodeStoreFixture.DOCUMENT_RDB });
         }
         return result;
-    }
-
-    @Before
-    public void checkAssumptions() {
-        // FIXME OAK-2379. Don't run the tests for now on the Linux BuildBot for DOCUMENT_RDB
-        assumeTrue(!buildBotLinuxTrunk() || fixture != NodeStoreFixture.DOCUMENT_RDB);
     }
 
     @After
