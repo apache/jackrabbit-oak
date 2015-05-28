@@ -58,7 +58,7 @@ public class RDBConnectionHandler {
     public @Nonnull Connection getROConnection() throws SQLException {
         Connection c = this.ds.getConnection();
         c.setAutoCommit(false);
-        c.setReadOnly(true);
+        setReadOnly(c, true);
         return c;
     }
 
@@ -68,7 +68,7 @@ public class RDBConnectionHandler {
     public @Nonnull Connection getRWConnection() throws SQLException {
         Connection c = this.ds.getConnection();
         c.setAutoCommit(false);
-        c.setReadOnly(false);
+        setReadOnly(c, false);
         return c;
     }
 
@@ -93,8 +93,8 @@ public class RDBConnectionHandler {
             try {
                 if (CHECKCONNECTIONONCLOSE) {
                     try {
-                        c.setReadOnly(!c.isReadOnly());
-                        c.setReadOnly(!c.isReadOnly());
+                        setReadOnly(c, !c.isReadOnly());
+                        setReadOnly(c, !c.isReadOnly());
                     } catch (SQLException ex2) {
                         LOG.error("got dirty connection", ex2);
                         throw new DocumentStoreException("dirty connection on close", ex2);
@@ -137,5 +137,30 @@ public class RDBConnectionHandler {
         }
 
         return null;
+    }
+
+
+    // workaround for broken connection wrappers
+    // see https://issues.apache.org/jira/browse/OAK-2918
+
+    private Boolean setReadOnlyThrows = null;    // null if we haven't checked yet
+    private Boolean setReadWriteThrows = null;    // null if we haven't checked yet
+
+    private void setReadOnly(Connection c, boolean ro) throws SQLException {
+
+        Boolean flag = ro ? setReadOnlyThrows : setReadWriteThrows;
+
+        if (flag == null) {
+            // we don't know yet, so we try once
+            try {
+                c.setReadOnly(ro);
+                flag = Boolean.FALSE;
+            } catch (SQLException ex) {
+                flag = Boolean.TRUE;
+                LOG.error("Connection " + c.getClass() + " throws SQLException on setReadOnly(" + ro + "); not trying again");
+            }
+        } else if (!flag) {
+            c.setReadOnly(ro);
+        }
     }
 }
