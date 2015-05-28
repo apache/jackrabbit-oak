@@ -98,12 +98,12 @@ import org.apache.jackrabbit.test.NotExecutableException;
  * Related Exercises:
  * -----------------------------------------------------------------------------
  *
- * - {@link L8_RemovalAndMembershipTest()}
+ * - {@link L10_RemovalAndMembershipTest ()}
  *
  * </pre>
  *
  */
-public class L7_RemoveAuthorizableTest extends AbstractJCRTest {
+public class L9_RemoveAuthorizableTest extends AbstractJCRTest {
 
     private UserManager userManager;
 

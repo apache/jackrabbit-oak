@@ -106,7 +106,7 @@ import static org.apache.jackrabbit.oak.security.ExerciseUtility.TEST_GROUP_PRIN
  * - {@link org.apache.jackrabbit.oak.security.authentication.L2_AuthInfoTest}
  *   For tests related to exposure of principal and ID upon successful login.
  *
- * - {@link org.apache.jackrabbit.oak.security.user.L11_AuthorizableContentTest}
+ * - {@link L6_AuthorizableContentTest}
  *   for tests related to the content structure of users/groups and how the
  *   ID and the principal name are represented there.
  *

@@ -97,7 +97,7 @@ import static org.apache.jackrabbit.oak.security.ExerciseUtility.TEST_PW;
  * Related Exercises:
  * -----------------------------------------------------------------------------
  *
- * - {@link L10_PasswordExpiryTest ()}
+ * - {@link L11_PasswordExpiryTest ()}
  * - {@link org.apache.jackrabbit.oak.security.user.action.L2_AuthorizableActionTest ()}
  *
  * </pre>

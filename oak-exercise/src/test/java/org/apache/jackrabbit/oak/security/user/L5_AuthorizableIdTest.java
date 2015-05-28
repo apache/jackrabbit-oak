@@ -43,7 +43,7 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
  *
  * @see TODO
  */
-public class L6_AuthorizableIdTest extends AbstractSecurityTest {
+public class L5_AuthorizableIdTest extends AbstractSecurityTest {
 
 
 }

@@ -70,7 +70,7 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  * -----------------------------------------------------------------------------
  *
  * - {@link L5_AnonymousIdTest ()}
- * - {@link org.apache.jackrabbit.oak.security.user.L14_RepositoryWithoutAnonymousTest ()}
+ * - {@link org.apache.jackrabbit.oak.security.user.L15_RepositoryWithoutAnonymousTest ()}
  * - {@link L8_NullLoginTest ()}
  *
  * </pre>

@@ -100,7 +100,7 @@ import static org.junit.Assert.assertTrue;
  * Related Exercises:
  * -----------------------------------------------------------------------------
  *
- * - {@link L7_RemoveAuthorizableTest ()}
+ * - {@link L9_RemoveAuthorizableTest ()}
  *
  * </pre>
  *
@@ -110,7 +110,7 @@ import static org.junit.Assert.assertTrue;
  * @see org.apache.jackrabbit.api.security.user.Authorizable#memberOf()
  * @see org.apache.jackrabbit.oak.spi.security.user.action.ClearMembershipAction
  */
-public class L8_RemovalAndMembershipTest extends AbstractSecurityTest {
+public class L10_RemovalAndMembershipTest extends AbstractSecurityTest {
 
     private User user;
     private Group administrators;

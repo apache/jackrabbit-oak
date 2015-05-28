@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.user;
 import java.util.List;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
-import javax.jcr.Value;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.JackrabbitSession;
@@ -71,12 +70,6 @@ import static org.junit.Assert.assertArrayEquals;
  *   What is the primary type of a group node?
  *   Which mixin types are present in addition?
  *
- * - {@link #testUserProperties()}
- *   Become familiar with the API to read arbitrary properties with an user
- *   or group. Also fill in a list of properties defined by JCR and the
- *   authorizable node types that cannot be obtained using the methods define
- *   on {@link org.apache.jackrabbit.api.security.user.Authorizable}.
- *
  *
  * Additional Exercises:
  * -----------------------------------------------------------------------------
@@ -90,8 +83,8 @@ import static org.junit.Assert.assertArrayEquals;
  *
  * - {@link L12_UuidTest ()}
  * - {@link L4_PasswordTest}
- * - {@link L10_PasswordExpiryTest}
- * - {@link L5_MembershipTest}
+ * - {@link L11_PasswordExpiryTest}
+ * - {@link L8_MembershipTest}
  *
  * </pre>
  *
@@ -99,10 +92,7 @@ import static org.junit.Assert.assertArrayEquals;
  * @see org.apache.jackrabbit.api.security.user.Group
  * @see org.apache.jackrabbit.oak.spi.security.user.UserConstants
  */
-public class L11_AuthorizableContentTest extends AbstractJCRTest {
-
-    private final static String EMAIL_REL_PATH = "properties/email";
-    private final static String PETS_REL_PATH = "pets";
+public class L6_AuthorizableContentTest extends AbstractJCRTest {
 
     private UserManager userManager;
 
@@ -176,12 +166,6 @@ public class L11_AuthorizableContentTest extends AbstractJCRTest {
         String principalPropertyName = null; // TODO
         assertEquals(testGroup.getPrincipal().getName(), node.getProperty(principalPropertyName).getString());
 
-        String emailPropertyPath = null; // TODO
-        assertEquals(testUser.getProperty(EMAIL_REL_PATH)[0], node.getProperty(emailPropertyPath).getValue());
-
-        String petsPropertyPath = null; // TODO
-        assertEquals(testUser.getProperty(PETS_REL_PATH), node.getProperty(petsPropertyPath).getValues());
-
         String expectedNodeTypeName = null; // TODO
         assertEquals(expectedNodeTypeName, node.getPrimaryNodeType().getName());
     }
@@ -196,48 +180,5 @@ public class L11_AuthorizableContentTest extends AbstractJCRTest {
         for (String mixin : mixinTypes) {
             assertTrue(node.isNodeType(mixin));
         }
-    }
-
-    public void testUserProperties() throws RepositoryException {
-        // set 2 different properties (single and multivalued)
-        testUser.setProperty(EMAIL_REL_PATH, superuser.getValueFactory().createValue("testUser@oak.apache.org"));
-        testUser.setProperty(PETS_REL_PATH, new Value[]{
-                superuser.getValueFactory().createValue("cat"), superuser.getValueFactory().createValue("rabbit")
-        });
-        superuser.save();
-
-
-        Node node = getAuthorizableNode(testUser);
-
-        // TODO: build the list of existing user properties rel paths
-        List<String> userPropertiesPath = ImmutableList.of();
-        for (String relPath : userPropertiesPath) {
-            assertTrue(testUser.hasProperty(relPath));
-        }
-
-        Value[] emailsExpected = testUser.getProperty(EMAIL_REL_PATH);
-        String expectedRelPath = null; // TODO
-        assertEquals(emailsExpected[0], node.getProperty(expectedRelPath).getValue());
-
-        Value[] petsExpected = testUser.getProperty(PETS_REL_PATH);
-        expectedRelPath = null; // TODO
-        assertArrayEquals(petsExpected, node.getProperty(expectedRelPath).getValues());
-
-        // TODO: build a list of protected JCR properties that cannot be accessed using the Authorizable interface
-        List<String> protectedJcrPropertyNames = ImmutableList.of();
-        for (String relPath : protectedJcrPropertyNames) {
-            assertFalse(testUser.hasProperty(relPath));
-        }
-
-        // TODO: build a list of protected properties defined by the authorizable or user node type definitions that cannot be accessed using the Authorizable interface
-        List<String> protectedAuthorizablePropertyNames = ImmutableList.of();
-        for (String relPath : protectedAuthorizablePropertyNames) {
-            assertFalse(testUser.hasProperty(relPath));
-        }
-
-        // remove the properties again
-        testUser.removeProperty(EMAIL_REL_PATH);
-        testUser.removeProperty(PETS_REL_PATH);
-        superuser.save();
     }
 }

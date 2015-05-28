@@ -74,7 +74,7 @@ import static org.junit.Assert.assertTrue;
  * @see org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName
  * @see org.apache.jackrabbit.oak.security.user.RandomAuthorizableNodeName
  */
-public class L13_AuthorizableNodeNameTest extends AbstractSecurityTest {
+public class L14_AuthorizableNodeNameTest extends AbstractSecurityTest {
 
     private UserManager userManager;
     private User testUser;

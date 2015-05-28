@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.security.privilege;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.junit.Test;
 
 /**
  * <pre>
@@ -31,7 +32,17 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
  *
  * Exercises:
  *
- * - {@link #TODO}
+ * - {@link #testPrivilegeRoot()}
+ *   TODO
+ *
+ * - {@link #testPrivilegeDefinition()}
+ *   TODO
+ *
+ * - {@link #testPrivilegeBits()}
+ *   TODO
+ *
+ * - {@link #testNext()}
+ *   TODO
  *
  *
  * Additional Exercises:
@@ -46,7 +57,24 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 public class L7_PrivilegeContentTest extends AbstractSecurityTest {
 
 
-        // TODO: -1 in permission store
+    @Test
+    public void testPrivilegeRoot() {
+        // TODO
+    }
 
 
+    @Test
+    public void testPrivilegeDefinition() {
+        // TODO
+    }
+
+    @Test
+    public void testPrivilegeBits() {
+        // TODO
+    }
+
+    @Test
+    public void testNext() {
+        // TODO
+    }
 }

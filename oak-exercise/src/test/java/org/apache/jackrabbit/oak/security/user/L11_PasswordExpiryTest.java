@@ -16,18 +16,14 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.api.security.user.Group;
-import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.security.ExerciseUtility;
-import org.junit.Test;
 
 /**
  * <pre>
  * Module: TODO
  * =============================================================================
  *
- * Title: Group Membership
+ * Title: PasswordExpiryTest
  * -----------------------------------------------------------------------------
  *
  * Goal:
@@ -36,8 +32,6 @@ import org.junit.Test;
  * Exercises:
  *
  * - {@link #TODO}
- *
- * -
  *
  *
  * Additional Exercises:
@@ -49,47 +43,7 @@ import org.junit.Test;
  *
  * @see TODO
  */
-public class L5_MembershipTest extends AbstractSecurityTest {
+public class L11_PasswordExpiryTest extends AbstractSecurityTest {
 
-    private User user;
-    private Group group;
 
-    @Override
-    public void before() throws Exception {
-        super.before();
-
-        user = getTestUser();
-
-        group = ExerciseUtility.createTestGroup(getUserManager(root));
-        group.addMember(user);
-
-        root.commit();
-    }
-
-    @Override
-    public void after() throws Exception {
-        try {
-            if (group != null) {
-                group.remove();
-                root.commit();
-            }
-        } finally {
-            super.after();
-        }
-    }
-
-    @Test
-    public void testInheritedMembership() {
-        // TODO
-    }
-
-    @Test
-    public void testDeclaredMembership() {
-        // TODO
-    }
-
-    @Test
-    public void testMembersContentStructure() {
-        // TODO
-    }
 }
