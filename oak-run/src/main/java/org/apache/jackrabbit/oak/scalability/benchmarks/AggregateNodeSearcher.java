@@ -17,19 +17,23 @@
  *  under the License.
  */
 
-package org.apache.jackrabbit.oak.scalability;
+package org.apache.jackrabbit.oak.scalability.benchmarks;
 
 import com.google.common.collect.Lists;
+
 import org.apache.jackrabbit.api.security.user.Authorizable;
 
 import javax.annotation.Nonnull;
 import javax.jcr.*;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
+
 import java.util.List;
 import java.util.Random;
 
-import org.apache.jackrabbit.oak.scalability.ScalabilityAbstractSuite.ExecutionContext;
+import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite;
+import org.apache.jackrabbit.oak.scalability.suites.ScalabilityNodeRelationshipSuite;
+import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
 
 /**
  * Retrieves search property by iterating over nodes and then executes search using the retrieved

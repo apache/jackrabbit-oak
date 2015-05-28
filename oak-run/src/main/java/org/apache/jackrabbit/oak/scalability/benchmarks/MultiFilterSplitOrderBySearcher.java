@@ -17,16 +17,19 @@
  *  under the License.
  */
 
-package org.apache.jackrabbit.oak.scalability;
+package org.apache.jackrabbit.oak.scalability.benchmarks;
 
 import javax.annotation.Nonnull;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.query.*;
-import org.apache.jackrabbit.oak.scalability.ScalabilityAbstractSuite.ExecutionContext;
+
+import org.apache.jackrabbit.oak.scalability.suites.ScalabilityBlobSearchSuite;
+import org.apache.jackrabbit.oak.scalability.suites.ScalabilityNodeSuite;
+import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
 
 /**
- * Splits the query in {@link org.apache.jackrabbit.oak.scalability.MultiFilterOrderBySearcher}
+ * Splits the query in {@link org.apache.jackrabbit.oak.scalability.benchmarks.MultiFilterOrderBySearcher}
  * into multiple queries and unions the results.
  */
 public class MultiFilterSplitOrderBySearcher extends MultiFilterOrderBySearcher {

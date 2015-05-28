@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.scalability;
+package org.apache.jackrabbit.oak.scalability.suites;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newConcurrentMap;
@@ -40,11 +40,14 @@ import javax.jcr.SimpleCredentials;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Stopwatch;
+
 import org.apache.commons.math.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math.stat.descriptive.SynchronizedDescriptiveStatistics;
 import org.apache.jackrabbit.oak.benchmark.CSVResultGenerator;
 import org.apache.jackrabbit.oak.benchmark.util.Profiler;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
+import org.apache.jackrabbit.oak.scalability.ScalabilitySuite;
+import org.apache.jackrabbit.oak.scalability.benchmarks.ScalabilityBenchmark;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -491,7 +494,7 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
     /**
      * Execution context to be pass information to and from the suite to the benchmarks.
      */
-    static class ExecutionContext {
+    public static class ExecutionContext {
         private Profiler profiler;
         private final AtomicLong iteration = new AtomicLong();
         private Map<Object, Object> map = newConcurrentMap();

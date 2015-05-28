@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.scalability;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
+import org.apache.jackrabbit.oak.scalability.benchmarks.ScalabilityBenchmark;
 
 /**
  * Interface for scalability suite for load testing.

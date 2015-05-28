@@ -33,15 +33,38 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.benchmark.CSVResultGenerator;
 import org.apache.jackrabbit.oak.benchmark.util.Date;
 import org.apache.jackrabbit.oak.fixture.JackrabbitRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
+import org.apache.jackrabbit.oak.scalability.benchmarks.AggregateNodeSearcher;
+import org.apache.jackrabbit.oak.scalability.benchmarks.FormatSearcher;
+import org.apache.jackrabbit.oak.scalability.benchmarks.FullTextSearcher;
+import org.apache.jackrabbit.oak.scalability.benchmarks.LastModifiedSearcher;
+import org.apache.jackrabbit.oak.scalability.benchmarks.MultiFilterOrderByKeysetPageSearcher;
+import org.apache.jackrabbit.oak.scalability.benchmarks.MultiFilterOrderByOffsetPageSearcher;
+import org.apache.jackrabbit.oak.scalability.benchmarks.MultiFilterOrderBySearcher;
+import org.apache.jackrabbit.oak.scalability.benchmarks.MultiFilterSplitOrderByKeysetPageSearcher;
+import org.apache.jackrabbit.oak.scalability.benchmarks.MultiFilterSplitOrderByOffsetPageSearcher;
+import org.apache.jackrabbit.oak.scalability.benchmarks.MultiFilterSplitOrderBySearcher;
+import org.apache.jackrabbit.oak.scalability.benchmarks.NodeTypeSearcher;
+import org.apache.jackrabbit.oak.scalability.benchmarks.OrderByDate;
+import org.apache.jackrabbit.oak.scalability.benchmarks.OrderByKeysetPageSearcher;
+import org.apache.jackrabbit.oak.scalability.benchmarks.OrderByOffsetPageSearcher;
+import org.apache.jackrabbit.oak.scalability.benchmarks.OrderBySearcher;
+import org.apache.jackrabbit.oak.scalability.benchmarks.SplitOrderByKeysetPageSearcher;
+import org.apache.jackrabbit.oak.scalability.benchmarks.SplitOrderByOffsetPageSearcher;
+import org.apache.jackrabbit.oak.scalability.benchmarks.SplitOrderBySearcher;
+import org.apache.jackrabbit.oak.scalability.suites.ScalabilityBlobSearchSuite;
+import org.apache.jackrabbit.oak.scalability.suites.ScalabilityNodeRelationshipSuite;
+import org.apache.jackrabbit.oak.scalability.suites.ScalabilityNodeSuite;
 
 /**
  * Main class for running scalability/longevity tests.

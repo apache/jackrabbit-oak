@@ -16,21 +16,20 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package org.apache.jackrabbit.oak.scalability;
+package org.apache.jackrabbit.oak.scalability.benchmarks;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.query.QueryManager;
 
-import org.apache.jackrabbit.oak.scalability.ScalabilityAbstractSuite.ExecutionContext;
+import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
 
 /**
- * Simulates keyset pagination over the search {@link org.apache.jackrabbit.oak.scalability
- * .MultiFilterOrderBySearcher}
+ * Simulates offset pagination over the search {@link org.apache.jackrabbit.oak.scalability.benchmarks.OrderBySearcher}
  */
-public class MultiFilterOrderByKeysetPageSearcher extends MultiFilterOrderBySearcher {
+public class OrderByOffsetPageSearcher extends OrderBySearcher {
     @Override
     protected void search(QueryManager qm, ExecutionContext context) throws RepositoryException {
-        processResultsKeysetPagination(qm, context);
+        processResultsOffsetPagination(qm, context);
     }
 }
 
