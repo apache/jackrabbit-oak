@@ -31,24 +31,6 @@ public final class CIHelper {
 
     /**
      * @return  {@code true} iff running on
-     * http://ci.apache.org/builders/oak-trunk-win7
-     */
-    public static boolean buildBotWin7Trunk() {
-        String build = getenv("BUILD_NAME");
-        return build != null && build.startsWith("buildbot-win7-oak-trunk");
-    }
-
-    /**
-     * @return  {@code true} iff running on
-     * http://ci.apache.org/builders/oak-trunk
-     */
-    public static boolean buildBotLinuxTrunk() {
-        String build = getenv("BUILD_NAME");
-        return build != null && build.startsWith("buildbot-linux-oak-trunk");
-    }
-
-    /**
-     * @return  {@code true} iff running on
      * https://travis-ci.org/
      */
     public static boolean travis() {
