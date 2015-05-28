@@ -57,20 +57,15 @@ import static org.apache.jackrabbit.oak.security.ExerciseUtility.TEST_GROUP_PRIN
  *
  * Exercises:
  *
- * - {@link #testLookupByID()}
- *   Test case illustrating
- *
- * - {@link #testLookupByPrincipal()}
- *   TODO
- *
- * - {@link #TODO}
- * - {@link #TODO}
+ * - {@link #testLookup()}
+ *   Test case illustrating lookup of principals and authorizables by principal
+ *   name and ID as well as authorizable lookup by principal.
+ *   Fix the test-case and making you familiar with the distiction between
+ *   the ID and the principal name in the first place.
  *
  * - {@link #testCreateUserWithGroupPrincipalName()}
- *   TODO
- *
- * - {@link #testCreateGroupWithTestUserID()}
- *   TODO
+ *   This test attempts to create a new user with a principal that is already
+ *   used by a Group. Complete the test-case such that it passes.
  *
  * - {@link #testCreateWithReverse()}
  *   Test case that attempts to create a user using the principal name of another
@@ -81,11 +76,6 @@ import static org.apache.jackrabbit.oak.security.ExerciseUtility.TEST_GROUP_PRIN
  * Additional Exercises:
  * -----------------------------------------------------------------------------
  *
- * - {@link #testLoginWithID()}
- *   Test case creating SimpleCredentials from userID + password and create a
- *   new ContentSession from these credentials. Fix the case and make the
- *   appropriate assertions.
- *
  * - {@link #testLoginWithPrincipalName()}
  *   Test case creating SimpleCredentials from principal name + password and create a
  *   new ContentSession from these credentials. Fix the case and make the
@@ -94,10 +84,6 @@ import static org.apache.jackrabbit.oak.security.ExerciseUtility.TEST_GROUP_PRIN
  * - {@link #testAccessControlEntryWithId()}
  *   Test case attempting to create a new access control entry for a principal
  *   based from an authorizable ID. Fix the case and make the appropriate assertions.
- *
- * - {@link #testAccessControlEntryWithPrincipalName()}
- *   Test case attempting to create a new access control entry for a principal
- *   based from an principal name. Fix the case and make the appropriate assertions.
  *
  *
  * Related Exercises:
@@ -151,51 +137,34 @@ public class L3_UserVsPrincipalTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testLookupByID() throws RepositoryException {
+    public void testLookup() throws RepositoryException {
         Map<String, Object[]> resultMap = ImmutableMap.of(
-                testId, new Object[]{null, null},
-                testPrincipal.getName(), new Object[]{null, null},
+                testId, new Object[]{null, null, null},
+                testPrincipal.getName(), new Object[]{null, null, null},
                 testGroupId, new Object[]{null, null},
                 testGroupPrincipal.getName(), new Object[]{null, null}
         );
 
-        for (String id : resultMap.keySet()) {
-            Object[] result = resultMap.get(id);
+        for (String key : resultMap.keySet()) {
+            Object[] result = resultMap.get(key);
 
             // lookup principal by "ID"
             Principal expectedP = (Principal) result[0];
-            Principal principal = principalManager.getPrincipal(id);
+            Principal principal = principalManager.getPrincipal(key);
             assertEquals(expectedP, principal);
+
+            // lookup authorizable by "principal"
+            Principal p = new PrincipalImpl(key);
+            Authorizable a = getUserManager(root).getAuthorizable(p);
+            if (a != null) {
+                assertEquals(expectedP, a.getPrincipal());
+            }
 
             // lookup Authorizable by "ID"
             Authorizable expectedA = (Authorizable) result[1];
-            Authorizable a = getUserManager(root).getAuthorizable(id);
+            a = getUserManager(root).getAuthorizable(key);
             assertEquals(expectedA, a);
-        }
-    }
 
-    @Test
-    public void testLookupByPrincipal() throws RepositoryException {
-        Map<String, Principal> resultMap = ImmutableMap.<String, Principal>of(
-                testId, null,
-                testPrincipal.getName(), null,
-                testGroupId, null,
-                testGroupPrincipal.getName(), null
-        );
-
-        for (String principalName : resultMap.keySet()) {
-
-            // look up principal by "principalName"
-            Principal expected = resultMap.get(principalName);
-            Principal principal = principalManager.getPrincipal(principalName);
-            assertEquals(expected, principal);
-
-            // lookup authorizable by "principal"
-            Principal p = new PrincipalImpl(principalName);
-            Authorizable a = getUserManager(root).getAuthorizable(p);
-            if (a != null) {
-                assertEquals(p, a.getPrincipal());
-            }
         }
     }
 
@@ -209,21 +178,6 @@ public class L3_UserVsPrincipalTest extends AbstractSecurityTest {
         } finally {
             if (user2 != null) {
                 user2.remove();
-                root.commit();
-            }
-        }
-    }
-
-    @Test
-    public void testCreateGroupWithTestUserID() throws RepositoryException, CommitFailedException {
-        // TODO: fix the test-case with the correct assertions and exception catching! And explain why...
-        Group group2 = null;
-        try {
-            group2 = getUserManager(root).createGroup(testGroupId, testPrincipal, null);
-            root.commit();
-        } finally {
-            if (group2 != null) {
-                group2.remove();
                 root.commit();
             }
         }
@@ -250,12 +204,6 @@ public class L3_UserVsPrincipalTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testLoginWithID() throws Exception {
-        // TODO fix the test case and add proper verification
-        login(ExerciseUtility.getTestCredentials(testId)).close();
-    }
-
-    @Test
     public void testLoginWithPrincipalName() throws Exception {
         // TODO fix the test case and add proper verification
         login(ExerciseUtility.getTestCredentials(testPrincipal.getName())).close();
@@ -270,17 +218,6 @@ public class L3_UserVsPrincipalTest extends AbstractSecurityTest {
         for (String id : ids) {
             AccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/");
             acl.addAccessControlEntry(new PrincipalImpl(id), AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.JCR_READ));
-        }
-    }
-
-    public void testAccessControlEntryWithPrincipalName() throws RepositoryException {
-        AccessControlManager acMgr = getAccessControlManager(root);
-
-        // TODO fix the test case
-        String[] principalNames = new String[] {testPrincipal.getName(), testGroupPrincipal.getName()};
-        for (String principalName : principalNames) {
-            AccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/");
-            acl.addAccessControlEntry(new PrincipalImpl(principalName), AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.JCR_READ));
         }
     }
 }

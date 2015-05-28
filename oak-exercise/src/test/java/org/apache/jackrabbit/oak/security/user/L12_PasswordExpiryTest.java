@@ -20,14 +20,15 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 
 /**
  * <pre>
- * Module: TODO
+ * Module: User Management
  * =============================================================================
  *
- * Title: PasswordExpiryTest
+ * Title: Password Expiration
  * -----------------------------------------------------------------------------
  *
  * Goal:
- * TODO
+ * Understand the password expiration feature how it can be enabled in the
+ * repository.
  *
  * Exercises:
  *
@@ -43,7 +44,7 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
  *
  * @see TODO
  */
-public class L11_PasswordExpiryTest extends AbstractSecurityTest {
+public class L12_PasswordExpiryTest extends AbstractSecurityTest {
 
 
 }

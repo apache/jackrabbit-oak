@@ -28,6 +28,8 @@ import org.apache.jackrabbit.oak.security.ExerciseUtility;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
 import static org.apache.jackrabbit.oak.security.ExerciseUtility.TEST_PW;
+import static org.junit.Assert.assertEquals;
+
 /**
  * <pre>
  * Module: User Management
@@ -41,6 +43,13 @@ import static org.apache.jackrabbit.oak.security.ExerciseUtility.TEST_PW;
  * get to know some implementation details.
  *
  * Exercises:
+ *
+ * - {@link #testGetCredentials()}
+ *   Understand that the password is not exposed as plain-word property from
+ *   the user. Look at the return-value of the {@link org.apache.jackrabbit.api.security.user.User#getCredentials()}
+ *   call and what it looks like. Fix the test-case accordingly.
+ *
+ *   Question: Can you use the exposed Credentials to login to the repository?
  *
  * - {@link #testPasswordInContent()}
  *   Creates a new user with a valid password. Inspect how the password is being
@@ -97,7 +106,7 @@ import static org.apache.jackrabbit.oak.security.ExerciseUtility.TEST_PW;
  * Related Exercises:
  * -----------------------------------------------------------------------------
  *
- * - {@link L11_PasswordExpiryTest ()}
+ * - {@link L12_PasswordExpiryTest ()}
  * - {@link org.apache.jackrabbit.oak.security.user.action.L2_AuthorizableActionTest ()}
  *
  * </pre>
@@ -107,7 +116,7 @@ import static org.apache.jackrabbit.oak.security.ExerciseUtility.TEST_PW;
  * @see org.apache.jackrabbit.oak.spi.security.user.action.PasswordValidationAction
  * @see org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil
  */
-public class L4_PasswordTest extends AbstractJCRTest {
+public class L11_PasswordTest extends AbstractJCRTest {
 
     private UserManager userManager;
 
@@ -132,6 +141,17 @@ public class L4_PasswordTest extends AbstractJCRTest {
         } finally {
             super.tearDown();
         }
+    }
+
+    public void testGetCredentials() throws RepositoryException {
+        Credentials creds = testUser.getCredentials();
+
+        // TODO fix the expectation
+        Credentials expected = null;
+        assertEquals(expected, creds);
+
+        // TODO : complete and explain the expected behavior
+        getHelper().getRepository().login(creds).logout();
     }
 
     public void testPasswordInContent() throws RepositoryException {

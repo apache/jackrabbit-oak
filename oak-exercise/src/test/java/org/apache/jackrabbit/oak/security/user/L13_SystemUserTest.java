@@ -20,6 +20,7 @@ import java.security.Principal;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import javax.jcr.Credentials;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
@@ -73,14 +74,6 @@ import static org.junit.Assert.assertTrue;
  *   Question: Can you explain what the 'memberOf' method will return if there
  *             exists an everyone authorizable group?
  *
- * - {@link #testSetPassword()}
- *   This test attempts to set a password to the system user created in the
- *   setup. Fix the test and the assertion and explain the behavior.
- *
- *   Question: How is setting passwords different for system users compared to regular users?
- *   Question: Look at the node type definition again. What can you state wrt rep:password in the effective node type?
- *   Question: Walk through the test again. Can you identify the exact location(s) for special handling?
- *
  * - {@link #testSystemUserPrincipal()}
  *   Look at the principal associated with the system user created in the setup.
  *   Verify your expectations wrt principal name and type of principal and the
@@ -90,6 +83,18 @@ import static org.junit.Assert.assertTrue;
  *             permission evaluation for system users?
  *             Use {@link org.apache.jackrabbit.oak.security.authorization.permission.L3_PrecedenceRulesTest}
  *             to verify your expectations or to get some more insight.
+ *
+ * - {@link #testSetPassword()}
+ *   This test attempts to set a password to the system user created in the
+ *   setup. Fix the test and the assertion and explain the behavior.
+ *
+ *   Question: How is setting passwords different for system users compared to regular users?
+ *   Question: Look at the node type definition again. What can you state wrt rep:password in the effective node type?
+ *   Question: Walk through the test again. Can you identify the exact location(s) for special handling?
+ *
+ * - {@link #testGetCredentials()}
+ *   Look at the credentials object exposed by the system user and compare it
+ *   with the result as return in {@link L11_PasswordTest#testGetCredentials()}
  *
  * </pre>
  *
@@ -193,5 +198,16 @@ public class L13_SystemUserTest extends AbstractSecurityTest {
 
         systemUserTree.setProperty(UserConstants.REP_PASSWORD, "anotherPw");
         root.commit();
+    }
+
+    @Test
+    public void testGetCredentials() throws RepositoryException {
+        // TODO look at the Credentials object returned from the system user and compare it with the result from PasswordTest#getCredentials()
+
+        Credentials creds = systemUser.getCredentials();
+
+        // TODO fix the expectation
+        Credentials expected = null;
+        assertEquals(expected, creds);
     }
 }

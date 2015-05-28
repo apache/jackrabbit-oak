@@ -29,8 +29,6 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.security.ExerciseUtility;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
-import static org.junit.Assert.assertArrayEquals;
-
 /**
  * <pre>
  * Module: User Management
@@ -81,9 +79,9 @@ import static org.junit.Assert.assertArrayEquals;
  * Related Exercises:
  * -----------------------------------------------------------------------------
  *
- * - {@link L12_UuidTest ()}
- * - {@link L4_PasswordTest}
- * - {@link L11_PasswordExpiryTest}
+ * - {@link L5_UuidTest ()}
+ * - {@link L11_PasswordTest}
+ * - {@link L12_PasswordExpiryTest}
  * - {@link L8_MembershipTest}
  *
  * </pre>

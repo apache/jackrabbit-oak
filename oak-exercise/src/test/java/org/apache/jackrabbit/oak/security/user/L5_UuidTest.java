@@ -21,6 +21,7 @@ import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.security.ExerciseUtility;
@@ -62,7 +63,7 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  *
  * </pre>
  */
-public class L12_UuidTest extends AbstractJCRTest {
+public class L5_UuidTest extends AbstractJCRTest {
 
     private UserManager userManager;
     private User testUser;
@@ -115,6 +116,9 @@ public class L12_UuidTest extends AbstractJCRTest {
         // TODO: what id do you have to use for the lookup on the user manager?
         String idForLookup = null;
         User user = userManager.getAuthorizable(idForLookup, User.class);
+
+        Authorizable expectedAuthorizable = null; // TODO
+        assertEquals(expectedAuthorizable, userManager.getAuthorizable(uuid));
     }
 
     public void testUuidUponCreation() throws RepositoryException {
