@@ -158,7 +158,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
         DB2("DB2") {
             @Override
             public void checkVersion(DatabaseMetaData md) throws SQLException {
-                versionCheck(md, 10, 5, description);
+                versionCheck(md, 10, 1, description);
             }
 
             @Override
@@ -265,8 +265,10 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
         this.ch = new RDBConnectionHandler(ds);
         Connection con = this.ch.getRWConnection();
         DatabaseMetaData md = con.getMetaData();
-        String dbDesc = md.getDatabaseProductName() + " " + md.getDatabaseProductVersion();
-        String driverDesc = md.getDriverName() + " " + md.getDriverVersion();
+        String dbDesc = String.format("%s %s (%d.%d)", md.getDatabaseProductName(), md.getDatabaseProductVersion(),
+                md.getDatabaseMajorVersion(), md.getDatabaseMinorVersion());
+        String driverDesc = String.format("%s %s (%d.%d)", md.getDriverName(), md.getDriverVersion(), md.getDriverMajorVersion(),
+                md.getDriverMinorVersion());
         String dbUrl = md.getURL();
 
         List<String> tablesCreated = new ArrayList<String>();
