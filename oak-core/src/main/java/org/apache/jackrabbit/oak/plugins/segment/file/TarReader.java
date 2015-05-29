@@ -601,26 +601,14 @@ class TarReader {
                 cleaned.add(id);
                 sorted[i] = null;
             } else {
+                size += getEntrySize(entry.size());
+                count += 1;
                 if (isDataSegmentId(entry.lsb())) {
-                    size += getEntrySize(entry.size());
-                    count += 1;
-
                     // this is a referenced data segment, so follow the graph
                     if (graph != null) {
                         List<UUID> refids = graph.get(id);
                         if (refids != null) {
-                            for (UUID r : refids) {
-                                if (isDataSegmentId(r.getLeastSignificantBits())) {
-                                    referencedIds.add(r);
-                                } else {
-                                    if (cm != null && cm.wasCompacted(id)) {
-                                        // skip bulk compacted segment
-                                        // references
-                                    } else {
-                                        referencedIds.add(r);
-                                    }
-                                }
-                            }
+                            referencedIds.addAll(refids);
                         }
                     } else {
                         // a pre-compiled graph is not available, so read the
@@ -632,27 +620,10 @@ class TarReader {
                         int refcount = segment.get(pos + REF_COUNT_OFFSET) & 0xff;
                         int refend = pos + 16 * (refcount + 1);
                         for (int refpos = pos + 16; refpos < refend; refpos += 16) {
-                            UUID r = new UUID(segment.getLong(refpos),
-                                    segment.getLong(refpos + 8));
-                            if (isDataSegmentId(r.getLeastSignificantBits())) {
-                                referencedIds.add(r);
-                            } else {
-                                if (cm != null && cm.wasCompacted(id)) {
-                                    // skip bulk compacted segment references
-                                } else {
-                                    referencedIds.add(r);
-                                }
-                            }
+                            referencedIds.add(new UUID(
+                                    segment.getLong(refpos),
+                                    segment.getLong(refpos + 8)));
                         }
-                    }
-                } else {
-                    // bulk segments compaction check
-                    if (cm != null && cm.wasCompacted(id)) {
-                        cleaned.add(id);
-                        sorted[i] = null;
-                    } else {
-                        size += getEntrySize(entry.size());
-                        count += 1;
                     }
                 }
             }

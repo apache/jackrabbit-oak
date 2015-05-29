@@ -640,6 +640,9 @@ public class FileStore implements SegmentStore {
         gcMonitor.info("TarMK revision cleanup started. Current repository size {}",
                 humanReadableByteCount(initialSize));
 
+        newWriter();
+        tracker.clearCache();
+
         // Suggest to the JVM that now would be a good time
         // to clear stale weak references in the SegmentTracker
         System.gc();
@@ -901,22 +904,28 @@ public class FileStore implements SegmentStore {
                     id.getLeastSignificantBits(),
                     data, offset, length);
             if (size >= maxFileSize) {
-                writer.close();
-
-                List<TarReader> list =
-                        newArrayListWithCapacity(1 + readers.size());
-                list.add(TarReader.open(writeFile, memoryMapping));
-                list.addAll(readers);
-                readers = list;
-
-                writeNumber++;
-                writeFile = new File(
-                        directory,
-                        String.format(FILE_NAME_FORMAT, writeNumber, "a"));
-                writer = new TarWriter(writeFile);
+                newWriter();
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private void newWriter() throws IOException {
+        if (writer.isDirty()) {
+            writer.close();
+
+            List<TarReader> list =
+                    newArrayListWithCapacity(1 + readers.size());
+            list.add(TarReader.open(writeFile, memoryMapping));
+            list.addAll(readers);
+            readers = list;
+
+            writeNumber++;
+            writeFile = new File(
+                    directory,
+                    String.format(FILE_NAME_FORMAT, writeNumber, "a"));
+            writer = new TarWriter(writeFile);
         }
     }
 
