@@ -39,10 +39,10 @@ import static org.junit.Assert.fail;
 
 /**
  * <pre>
- * Module: TODO
+ * Module: Privilege Management
  * =============================================================================
  *
- * Title: L6_CustomPrivilegeTest
+ * Title: Custom Privileges
  * -----------------------------------------------------------------------------
  *
  * Goal:

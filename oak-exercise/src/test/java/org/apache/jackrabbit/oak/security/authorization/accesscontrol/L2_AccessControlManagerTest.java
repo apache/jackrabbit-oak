@@ -154,7 +154,7 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  *
  * - {@link L3_AccessControlListTest}
  * - {@link L4_EffectivePoliciesTest}
- * - {@link L5_RestrictionsTest}
+ * - {@link L7_RestrictionsTest}
  *
  * </pre>
  *

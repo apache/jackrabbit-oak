@@ -103,7 +103,7 @@ import org.apache.jackrabbit.test.NotExecutableException;
  *
  * @see <a href="http://jackrabbit.apache.org/oak/docs/security/accesscontrol/restriction.html">Restriction Management Documentation</a>
  */
-public class L5_RestrictionsTest extends AbstractJCRTest {
+public class L7_RestrictionsTest extends AbstractJCRTest {
 
 
     private AccessControlManager acMgr;

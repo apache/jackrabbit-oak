@@ -72,8 +72,11 @@ import org.apache.jackrabbit.test.NotExecutableException;
  * Related Exercises:
  * -----------------------------------------------------------------------------
  *
- * - {@link L6_AccessControlListImplTest}
- * - {@link L5_RestrictionsTest}
+ * - {@link L5_AccessControlListImplTest}
+ * - {@link L7_RestrictionsTest}
+ * - {@link org.apache.jackrabbit.oak.security.privilege.L4_BuiltInPrivilegesTest}
+ * - {@link org.apache.jackrabbit.oak.security.authorization.permission.L4_PrivilegesAndPermissionsTest}
+ *
  *
  * </pre>
  *

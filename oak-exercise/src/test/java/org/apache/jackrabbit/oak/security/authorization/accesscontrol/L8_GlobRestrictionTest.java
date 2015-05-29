@@ -14,20 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authorization.permission;
+package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 
 /**
  * <pre>
- * Module: Authorization (Permission Evaluation)
+ * Module: Authorization (Access Control Management)
  * =============================================================================
  *
- * Title: PermissionStore
+ * Title: The Globbing Restriction
  * -----------------------------------------------------------------------------
  *
  * Goal:
- * TODO
+ * After having completed this exercises you should be familiar with the rep:glob
+ * restriction as present in the default implementation and able to use it to
+ * limit the effect of a given ACE to a given subtree.
  *
  * Exercises:
  *
@@ -41,9 +43,9 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
  *
  * </pre>
  *
- * @see TODO
+ * @see org.apache.jackrabbit.oak.security.authorization.restriction.GlobPattern
  */
-public class L7_PermissionStoreTest extends AbstractSecurityTest {
+public class L8_GlobRestrictionTest extends AbstractSecurityTest {
 
 
 }

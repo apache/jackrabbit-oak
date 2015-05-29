@@ -65,7 +65,7 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
  * Advanced Exercises:
  * -----------------------------------------------------------------------------
  *
- * See {@link L5_RestrictionsTest}
+ * See {@link L7_RestrictionsTest}
  * for some advanced exercises with respect to custom restrictions.
  *
  *
@@ -75,7 +75,7 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
  * - {@link L2_AccessControlManagerTest}
  * - {@link L3_AccessControlListTest}
  * - {@link L4_EffectivePoliciesTest}
- * - {@link L5_RestrictionsTest}
+ * - {@link L7_RestrictionsTest}
  *
  * </pre>
  */

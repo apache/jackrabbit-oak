@@ -101,11 +101,11 @@ import static org.junit.Assert.assertArrayEquals;
  * Related Exercises:
  * -----------------------------------------------------------------------------
  *
- * - {@link L7_AccessControlContentTest}
+ * - {@link L6_AccessControlContentTest}
  *
  * </pre>
  */
-public class L6_AccessControlListImplTest extends AbstractJCRTest {
+public class L5_AccessControlListImplTest extends AbstractJCRTest {
 
     private AccessControlManager acMgr;
     private JackrabbitAccessControlList acl;

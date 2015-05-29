@@ -101,7 +101,7 @@ import static org.junit.Assert.assertArrayEquals;
  *
  * </pre>
  */
-public class L7_AccessControlContentTest extends AbstractJCRTest {
+public class L6_AccessControlContentTest extends AbstractJCRTest {
 
     private AccessControlManager acMgr;
     private JackrabbitAccessControlList acl;

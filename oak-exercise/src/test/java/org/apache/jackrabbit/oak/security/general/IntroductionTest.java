@@ -27,7 +27,8 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
  * -----------------------------------------------------------------------------
  *
  * Goal:
- * TODO
+ * Get an overview over the various security related parts and modules present
+ * in Oak and how they interact.
  *
  * Exercises:
  *

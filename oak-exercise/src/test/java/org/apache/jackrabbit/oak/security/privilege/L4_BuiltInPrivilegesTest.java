@@ -36,6 +36,8 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Test;
 
@@ -72,6 +74,7 @@ import static org.junit.Assert.assertEquals;
  *   This allows you to become familiar with the mapping of individual privileges
  *   to items. Use the Oak API to change those items directly (instead of using
  *   the corresponding JCR API call.
+ *   Use the JCR specification, the privilege definitions and {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions}
  *
  *   Question: Can you map the items to the corresponding JCR API calls? (see additional exercises below)
  *   Question: Can you extract the rules when a dedicated specific privilege is
@@ -103,6 +106,7 @@ public class L4_BuiltInPrivilegesTest extends AbstractSecurityTest {
     private Root testRoot;
 
     private AccessControlManager acMgr;
+    private PrivilegeBitsProvider privilegeBitsProvider;
 
     @Override
     public void before() throws Exception {

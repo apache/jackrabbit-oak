@@ -17,13 +17,16 @@
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
+import org.junit.Test;
 
 /**
  * <pre>
  * Module: Authorization (Permission Evaluation)
  * =============================================================================
  *
- * Title: EveryoneTest
+ * Title: Privileges and Permissions
  * -----------------------------------------------------------------------------
  *
  * Goal:
@@ -31,7 +34,16 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
  *
  * Exercises:
  *
- * - {@link #TODO}
+ * - TODO
+ *
+ * - {@link #testAddAndRemoveChildNodes()}
+ *   TODO
+ *
+ * - {@link #testPrivilegeBitsToPermissions()}
+ *   Understand the internal mechanism to map {@link javax.jcr.security.Privilege}
+ *   to {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions}
+ *   in the {@link org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits}
+ *   object.
  *
  *
  * Additional Exercises:
@@ -43,9 +55,22 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
  *
  * @see TODO
  */
-public class L4_EveryoneTest extends AbstractSecurityTest {
+public class L4_PrivilegesAndPermissionsTest extends AbstractSecurityTest {
 
-    // TODO : administrators member of everyone
-    // TODO : system-users -> member of everyone but user principal
+    @Test
+    public void testAddAndRemoveChildNodes() throws Exception {
+        // TODO
+    }
 
+    @Test
+    public void testPrivilegeBitsToPermissions() throws Exception {
+        // TODO : angela make a sensible test
+
+        PrivilegeBits pb = null; // TODO
+        PrivilegeBits parentPb = null; // TODO
+        boolean isAllow = false; // TODO
+
+        long permissions = PrivilegeBits.calculatePermissions(pb, parentPb, isAllow);
+        String permStr = Permissions.getString(permissions);
+    }
 }

@@ -29,6 +29,9 @@ import org.junit.Test;
  *
  * Goal:
  * Understand how the default implementation represents permissions in the repository.
+ * This advanced exercise aims to provide you with some insights to the permission
+ * store and how permissions are being evaluated from the content stored
+ * therein.
  *
  * Exercises:
  *
@@ -41,17 +44,23 @@ import org.junit.Test;
  *   Question: Why are most item definitions protected?
  *   Question: Can you identify node types that are not used? Can you explain why?
  *
+ * - {@link #testAdministrativeAccessOnly()}
+ *   The permission store is hidden from regular users and can only be
+ *   accessed using an administrative session. Use to test to find out how this
+ *   is enforced by the implementation.
+ *
+ *   Question: Can you imagine why the permission store should only be accessible
+ *   to administrative sessions?
+ *   Question: Can you identify the class(es) that actually enforce this?
+ *   Question: Can you explain why the permission store is not 'hidden' like the
+ *   index content? Compare these different approaches and discuss your findings.
+ *
  * - {@link #testReadOnly()}
- *   // TODO
+ *   The permission store is a system maintained structure and cannot be edited
+ *   using JCR or Oak API calls. This test aims to illustrate this behavior.
  *
  *   Question: Can you explain why the permission store is read-only?
  *   Question: Can you identify the class(es) responsible for enforcing the read-only nature?
- *
- * - {@link #testAdministrativeAccessOnly()}
- *   // TODO
- *
- *   Question: Can you explain why the permission store is only accessible to administrative principals?
- *   Question: Can you identify the class(es) that actually enforce this?
  *
  * - {@link #TODO}
  *
