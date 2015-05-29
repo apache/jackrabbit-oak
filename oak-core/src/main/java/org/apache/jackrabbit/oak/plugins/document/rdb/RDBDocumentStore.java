@@ -1198,7 +1198,7 @@ public class RDBDocumentStore implements DocumentStore {
             String indexedProperty, long startValue, int limit) {
         Connection connection = null;
         String tableName = getTable(collection);
-        List<T> result = new ArrayList<T>();
+        List<T> result = Collections.emptyList();
         if (indexedProperty != null && (!INDEXEDPROPERTIES.contains(indexedProperty))) {
             String message = "indexed property " + indexedProperty + " not supported, query was '>= '" + startValue
                     + "'; supported properties are " + INDEXEDPROPERTIES;
@@ -1210,8 +1210,12 @@ public class RDBDocumentStore implements DocumentStore {
             connection = this.ch.getROConnection();
             List<RDBRow> dbresult = dbQuery(connection, tableName, fromKey, toKey, indexedProperty, startValue, limit);
             connection.commit();
-            for (RDBRow r : dbresult) {
-                T doc = runThroughCache(collection, r, now);
+
+            int size = dbresult.size();
+            result = new ArrayList<T>(size);
+            for (int i = 0; i < size; i++) {
+                RDBRow row = dbresult.set(i, null); // free RDBRow ASAP
+                T doc = runThroughCache(collection, row, now);
                 result.add(doc);
             }
         } catch (Exception ex) {
@@ -1442,6 +1446,9 @@ public class RDBDocumentStore implements DocumentStore {
     // Number of documents to insert at once for batch create
     private static final int CHUNKSIZE = Integer.getInteger(
             "org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.CHUNKSIZE", 64);
+    // Number of query hits above which a diagnostic warning is generated
+    private static final int QUERYHITSLIMIT = Integer.getInteger(
+            "org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QUERYHITSLIMIT", 4096);
 
     private static byte[] asBytes(String data) {
         byte[] bytes;
@@ -1558,6 +1565,7 @@ public class RDBDocumentStore implements DocumentStore {
 
     private List<RDBRow> dbQuery(Connection connection, String tableName, String minId, String maxId, String indexedProperty,
             long startValue, int limit) throws SQLException {
+        long start = System.currentTimeMillis();
         String t = "select ";
         if (limit != Integer.MAX_VALUE && this.db.getFetchFirstSyntax() == FETCHFIRSTSYNTAX.TOP) {
             t += "TOP " + limit +  " ";
@@ -1629,6 +1637,14 @@ public class RDBDocumentStore implements DocumentStore {
         } finally {
             stmt.close();
         }
+
+        if (result.size() > QUERYHITSLIMIT) {
+            long elapsed = System.currentTimeMillis() - start;
+            String message = String.format("Potentially excessive query with %d hits, limit was %d, elapsed time %dms, check calling method.",
+                    result.size(), limit, elapsed);
+            LOG.info(message, new Exception("call stack"));
+        }
+
         return result;
     }
 
