@@ -347,7 +347,11 @@ public class RDBDocumentStore implements DocumentStore {
             }
             this.droppedTables = dropped.trim();
         }
-        this.ch = null;
+        try {
+            this.ch.close();
+        } catch (IOException ex) {
+            LOG.error("closing connection handler", ex);
+        }
     }
 
     @Override
@@ -911,7 +915,7 @@ public class RDBDocumentStore implements DocumentStore {
 
     @Override
     protected void finalize() {
-        if (this.ch != null && this.callStack != null) {
+        if (!this.ch.isClosed() && this.callStack != null) {
             LOG.debug("finalizing RDBDocumentStore that was not disposed", this.callStack);
         }
     }
