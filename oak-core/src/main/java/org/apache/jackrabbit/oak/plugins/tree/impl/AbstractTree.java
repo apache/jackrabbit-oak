@@ -32,6 +32,7 @@ import static org.apache.jackrabbit.oak.api.Tree.Status.UNCHANGED;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants.OAK_CHILD_ORDER;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -149,6 +150,10 @@ public abstract class AbstractTree implements Tree {
 
     @Override
     public String toString() {
+        return toString(5);
+    }
+
+    private String toString(int childNameCountLimit) {
         StringBuilder sb = new StringBuilder();
         sb.append(getPath()).append(": ");
 
@@ -156,9 +161,17 @@ public abstract class AbstractTree implements Tree {
         for (PropertyState p : getProperties()) {
             sb.append(' ').append(p).append(',');
         }
-        for (String n : this.getChildNames()) {
-            sb.append(' ').append(n).append( " = { ... },");
+
+        Iterator<String> names = this.getChildNames().iterator();
+        int count = 0;
+        while (names.hasNext() && ++count <= childNameCountLimit) {
+            sb.append(' ').append(names.next()).append(" = { ... },");
         }
+
+        if (names.hasNext()) {
+            sb.append(" ...");
+        }
+
         if (sb.charAt(sb.length() - 1) == ',') {
             sb.deleteCharAt(sb.length() - 1);
         }
