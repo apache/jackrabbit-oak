@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -32,9 +34,10 @@ import org.slf4j.LoggerFactory;
 /**
  * Utility functions for connection handling.
  */
-public class RDBConnectionHandler {
+public class RDBConnectionHandler implements Closeable {
 
-    private final DataSource ds;
+    private DataSource ds;
+    private long closedTime = 0L;
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(RDBConnectionHandler.class);
 
@@ -56,7 +59,7 @@ public class RDBConnectionHandler {
      * Obtain a {@link Connection} suitable for read-only operations.
      */
     public @Nonnull Connection getROConnection() throws SQLException {
-        Connection c = this.ds.getConnection();
+        Connection c = getDataSource().getConnection();
         c.setAutoCommit(false);
         setReadOnly(c, true);
         return c;
@@ -66,7 +69,7 @@ public class RDBConnectionHandler {
      * Obtain a {@link Connection} suitable for read-write operations.
      */
     public @Nonnull Connection getRWConnection() throws SQLException {
-        Connection c = this.ds.getConnection();
+        Connection c = getDataSource().getConnection();
         c.setAutoCommit(false);
         setReadOnly(c, false);
         return c;
@@ -139,6 +142,24 @@ public class RDBConnectionHandler {
         return null;
     }
 
+    public boolean isClosed() {
+        return this.ds == null;
+    }
+
+    @Override
+    public void close() throws IOException {
+        this.ds = null;
+        this.closedTime = System.currentTimeMillis();
+    }
+
+    private DataSource getDataSource() throws IllegalStateException {
+        DataSource result = this.ds;
+        if (result == null) {
+            throw new IllegalStateException("Connection handler is already closed ("
+                    + (System.currentTimeMillis() - this.closedTime) + "ms ago)");
+        }
+        return result;
+    }
 
     // workaround for broken connection wrappers
     // see https://issues.apache.org/jira/browse/OAK-2918
