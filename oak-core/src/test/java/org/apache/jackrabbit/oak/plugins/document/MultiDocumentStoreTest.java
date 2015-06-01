@@ -77,6 +77,7 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
 
         UpdateOp up = new UpdateOp(id, true);
         up.set("_id", id);
+        up.set("_modified", 1L);
         assertTrue(super.ds1.create(Collection.NODES, Collections.singletonList(up)));
         nd1 = super.ds1.find(Collection.NODES, id, 0);
         Number n = nd1.getModCount();
@@ -92,6 +93,7 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
             UpdateOp upds1 = new UpdateOp(id, true);
             upds1.set("_id", id);
             upds1.set("foo", "bar");
+            upds1.set("_modified", 2L);
             super.ds1.update(Collection.NODES, Collections.singletonList(id), upds1);
             nd1 = super.ds1.find(Collection.NODES, id);
             int oldn1 = n1;
@@ -103,6 +105,7 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
             UpdateOp upds2 = new UpdateOp(id, true);
             upds2.set("_id", id);
             upds2.set("foo", "qux");
+            upds2.set("_modified", 3L);
             super.ds2.update(Collection.NODES, Collections.singletonList(id), upds2);
             nd2 = super.ds2.find(Collection.NODES, id);
             n2 = nd2.getModCount().intValue();
@@ -113,10 +116,16 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
             upds1 = new UpdateOp(id, true);
             upds1.set("_id", id);
             upds1.set("foo", "barbar");
+            upds1.max("_modified", 0L);
             NodeDocument prev = super.ds1.findAndUpdate(Collection.NODES, upds1);
             // prev document should contain mod from DS2
             assertEquals("qux", prev.get("foo"));
             assertEquals(oldn1 + 2, prev.getModCount().intValue());
+            assertEquals(3L, prev.getModified().intValue());
+
+            // the new document must not have a _modified time smaller than before the update
+            nd1 = super.ds1.find(Collection.NODES, id, 0);
+            assertEquals(super.dsname + ": _modified value must never ever get smaller", 3L, nd1.getModified().intValue());
         }
     }
 
