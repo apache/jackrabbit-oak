@@ -46,6 +46,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.io.LazyInputStream;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
@@ -116,6 +117,8 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
     private final MatcherState matcherState;
 
     private final PathFilter.Result pathFilterResult;
+
+    private long extractedTextSize;
 
     LuceneIndexEditor(NodeState root, NodeBuilder definition,
         IndexUpdateCallback updateCallback,@Nullable IndexCopier indexCopier) throws CommitFailedException {
@@ -207,6 +210,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
             if (context.getIndexedNodes() > 0) {
                 log.debug("{} => Indexed {} nodes, done.", context.getDefinition().getIndexName(), context.getIndexedNodes());
             }
+            log.info("Extrcated text size {}", IOUtils.humanReadableByteCount(extractedTextSize));
         }
     }
 
@@ -784,6 +788,8 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
             }
         }
         String result = handler.toString();
+        extractedTextSize += result.length();
+        log.info("Extrcated text size {}", IOUtils.humanReadableByteCount(extractedTextSize));
         context.recordTextExtractionStats(System.currentTimeMillis() - start, size);
         return result;
     }

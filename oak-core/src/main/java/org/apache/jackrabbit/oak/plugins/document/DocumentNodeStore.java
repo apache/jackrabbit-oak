@@ -446,7 +446,12 @@ public final class DocumentNodeStore
         getRevisionComparator().add(headRevision, Revision.newRevision(0));
 
         dispatcher = new ChangeDispatcher(getRoot());
-        commitQueue = new CommitQueue(this, dispatcher);
+        commitQueue = new CommitQueue() {
+            @Override
+            protected Revision newRevision() {
+                return DocumentNodeStore.this.newRevision();
+            }
+        };
         batchCommitQueue = new BatchCommitQueue(store, revisionComparator);
         backgroundReadThread = new Thread(
                 new BackgroundReadOperation(this, isDisposed),
@@ -582,19 +587,11 @@ public final class DocumentNodeStore
         if (base == null) {
             base = headRevision;
         }
-        backgroundOperationLock.readLock().lock();
-        boolean success = false;
-        Commit c;
-        try {
-            checkOpen();
-            c = new Commit(this, commitQueue.createRevision(), base, branch);
-            success = true;
-        } finally {
-            if (!success) {
-                backgroundOperationLock.readLock().unlock();
-            }
+        if (base.isBranch()) {
+            return newBranchCommit(base, branch);
+        } else {
+            return newTrunkCommit(base);
         }
-        return c;
     }
 
     /**
@@ -627,19 +624,37 @@ public final class DocumentNodeStore
         return c;
     }
 
-    void done(@Nonnull Commit c, boolean isBranch, @Nullable CommitInfo info) {
-        try {
-            commitQueue.done(c, isBranch, info);
-        } finally {
-            backgroundOperationLock.readLock().unlock();
+    void done(final @Nonnull Commit c, boolean isBranch, final @Nullable CommitInfo info) {
+        if (commitQueue.contains(c.getRevision())) {
+            try {
+                commitQueue.done(c.getRevision(), new CommitQueue.Callback() {
+                    @Override
+                    public void headOfQueue(@Nonnull Revision revision) {
+                        // remember before revision
+                        Revision before = getHeadRevision();
+                        // apply changes to cache based on before revision
+                        c.applyToCache(before, false);
+                        // update head revision
+                        setHeadRevision(c.getRevision());
+                        dispatcher.contentChanged(getRoot(), info);
+                    }
+                });
+            } finally {
+                backgroundOperationLock.readLock().unlock();
+            }
+        } else {
+            // branch commit
+            c.applyToCache(c.getBaseRevision(), isBranch);
         }
     }
 
     void canceled(Commit c) {
-        try {
-            commitQueue.canceled(c.getRevision());
-        } finally {
-            backgroundOperationLock.readLock().unlock();
+        if (commitQueue.contains(c.getRevision())) {
+            try {
+                commitQueue.canceled(c.getRevision());
+            } finally {
+                backgroundOperationLock.readLock().unlock();
+            }
         }
     }
 
@@ -1862,6 +1877,36 @@ public final class DocumentNodeStore
     }
 
     //-----------------------------< internal >---------------------------------
+
+    @Nonnull
+    private Commit newTrunkCommit(@Nonnull Revision base) {
+        checkArgument(!checkNotNull(base).isBranch(),
+                "base must not be a branch revision: " + base);
+
+        backgroundOperationLock.readLock().lock();
+        boolean success = false;
+        Commit c;
+        try {
+            checkOpen();
+            c = new Commit(this, commitQueue.createRevision(), base, null);
+            success = true;
+        } finally {
+            if (!success) {
+                backgroundOperationLock.readLock().unlock();
+            }
+        }
+        return c;
+    }
+
+    @Nonnull
+    private Commit newBranchCommit(@Nonnull Revision base,
+                                   @Nullable DocumentNodeStoreBranch branch) {
+        checkArgument(checkNotNull(base).isBranch(),
+                "base must be a branch revision: " + base);
+
+        checkOpen();
+        return new Commit(this, newRevision(), base, branch);
+    }
 
     /**
      * Checks if this store is still open and throws an
