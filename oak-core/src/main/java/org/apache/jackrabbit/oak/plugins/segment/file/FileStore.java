@@ -432,7 +432,7 @@ public class FileStore implements SegmentStore {
         long avail = runtime.totalMemory() - runtime.freeMemory();
         long delta = 0;
         if (compactionStrategy.getCompactionMap() != null) {
-            delta = compactionStrategy.getCompactionMap().getLastMergeWeight();
+            delta = compactionStrategy.getCompactionMap().getLastWeight();
         }
         long needed = delta * compactionStrategy.getMemoryThreshold();
         if (needed >= avail) {
