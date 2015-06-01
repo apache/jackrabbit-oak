@@ -427,15 +427,8 @@
       <dependency>
         <groupId>org.apache.sling</groupId>
         <artifactId>org.apache.sling.testing.osgi-mock</artifactId>
-        <version>1.2.0</version>
+        <version>1.3.0</version>
         <scope>test</scope>
-        <exclusions>
-          <!-- Need to exclude it due to SLING-4470 -->
-          <exclusion>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-          </exclusion>
-        </exclusions>
       </dependency>
       <dependency>
         <groupId>commons-lang</groupId>
