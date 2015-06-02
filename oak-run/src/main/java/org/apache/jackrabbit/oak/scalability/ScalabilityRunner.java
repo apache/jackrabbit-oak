@@ -91,6 +91,14 @@ public class ScalabilityRunner {
                 parser.accepts("dropDBAfterTest",
                         "Whether to drop the MongoDB database after the test")
                         .withOptionalArg().ofType(Boolean.class).defaultsTo(true);
+        OptionSpec<String> rdbjdbcuri = parser.accepts("rdbjdbcuri", "RDB JDBC URI")
+            .withOptionalArg().defaultsTo("jdbc:h2:./target/benchmark");
+        OptionSpec<String> rdbjdbcuser = parser.accepts("rdbjdbcuser", "RDB JDBC user")
+            .withOptionalArg().defaultsTo("");
+        OptionSpec<String> rdbjdbcpasswd = parser.accepts("rdbjdbcpasswd", "RDB JDBC password")
+            .withOptionalArg().defaultsTo("");
+        OptionSpec<String> rdbjdbctableprefix = parser.accepts("rdbjdbctableprefix", "RDB JDBC table prefix")
+            .withOptionalArg().defaultsTo("");
         OptionSpec<Boolean> mmap = parser.accepts("mmap", "TarMK memory mapping")
                 .withOptionalArg().ofType(Boolean.class)
                 .defaultsTo("64".equals(System.getProperty("sun.arch.data.model")));
@@ -135,7 +143,11 @@ public class ScalabilityRunner {
                 OakRepositoryFixture.getTar(
                         base.value(options), 256, cacheSize, mmap.value(options)),
                 OakRepositoryFixture.getTarWithBlobStore(
-                        base.value(options), 256, cacheSize, mmap.value(options))
+                        base.value(options), 256, cacheSize, mmap.value(options)),
+            OakRepositoryFixture.getRDB(rdbjdbcuri.value(options), rdbjdbcuser.value(options),
+                rdbjdbcpasswd.value(options), rdbjdbctableprefix.value(options),
+                dropDBAfterTest.value(options), cacheSize * MB)
+
         };
         ScalabilitySuite[] allSuites =
                 new ScalabilitySuite[] {
