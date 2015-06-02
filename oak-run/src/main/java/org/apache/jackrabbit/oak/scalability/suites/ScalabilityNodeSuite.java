@@ -91,9 +91,9 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
             .omitEmptyStrings().splitToList(System.getProperty("nodeLevels", "10,5,2"));
 
     /**
-     * Controls the number of concurrent thread for searching
+     * Controls the number of concurrent tester threads
      */
-    protected static final int SEARCHERS = Integer.getInteger("searchers", 1);
+    protected static final int TESTERS = Integer.getInteger("testers", 1);
 
     /**
      * Controls the percentage of root nodes which will have sub nodes created.
@@ -125,8 +125,6 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
      * Controls if a customType is to be created
      */
     protected static final boolean CUSTOM_TYPE = Boolean.getBoolean("customType");
-
-    public static final String CTX_SEARCH_PATHS_PROP = "searchPaths";
 
     public static final String CTX_DESC_SEARCH_PATHS_PROP = "descPaths";
 
@@ -370,14 +368,18 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
     @Override
     protected void executeBenchmark(final ScalabilityBenchmark benchmark,
             final ExecutionContext context) throws Exception {
-      LOG.info("Stated execution : " + benchmark.toString());
+
+        LOG.info("Started pre benchmark hook : {}", benchmark);
+        benchmark.beforeExecute(getRepository(), CREDENTIALS, context);
+
+        LOG.info("Started execution : {}", benchmark);
         if (PROFILE) {
             context.startProfiler();
         }
         //Execute the benchmark with the number threads configured 
-        List<Thread> threads = newArrayListWithCapacity(SEARCHERS);
-        for (int idx = 0; idx < SEARCHERS; idx++) {
-            Thread t = new Thread("Search-" + idx) {
+        List<Thread> threads = newArrayListWithCapacity(TESTERS);
+        for (int idx = 0; idx < TESTERS; idx++) {
+            Thread t = new Thread("Tester-" + idx) {
                 @Override
                 public void run() {
                     try {
@@ -399,6 +401,9 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
             }
         }
         context.stopProfiler();
+
+        LOG.info("Started post benchmark hook : {}", benchmark);
+        benchmark.afterExecute(getRepository(), CREDENTIALS, context);
     }
 
     @Override
@@ -430,14 +435,20 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
     }
 
     private synchronized void addRootSearchPath(String path) {
-        if (!searchRootPaths.contains(path)) {
+        int limit = 1000;
+        if (searchRootPaths.size() < limit) {
             searchRootPaths.add(path);
+        } else if (random.nextDouble() < 0.5) {
+            searchRootPaths.set(random.nextInt(limit), path);
         }
     }
 
     private synchronized void addDescSearchPath(String path) {
-        if (!searchDescPaths.contains(path)) {
+        int limit = 1000;
+        if (searchDescPaths.size() < limit) {
             searchDescPaths.add(path);
+        } else if (random.nextDouble() < 0.5) {
+            searchDescPaths.set(random.nextInt(limit), path);
         }
     }
 

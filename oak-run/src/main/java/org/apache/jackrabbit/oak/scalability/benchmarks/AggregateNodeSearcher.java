@@ -84,7 +84,7 @@ public class AggregateNodeSearcher extends SearchScalabilityBenchmark {
 
     @Override
     public void execute(Repository repository, Credentials credentials,
-        ScalabilityAbstractSuite.ExecutionContext context) throws Exception {
+        ExecutionContext context) throws Exception {
         Session session = repository.login(credentials);
         QueryManager qm;
         try {
