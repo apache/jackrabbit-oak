@@ -75,14 +75,14 @@ import org.junit.Test;
  * -----------------------------------------------------------------------------
  *
  * - {@link L6_LoginModuleTest}
- * - {@link L8_NullLoginTest}
+ * - {@link L9_NullLoginTest}
  *
  * </pre>
  *
  * @see org.apache.jackrabbit.oak.spi.security.authentication.PreAuthenticatedLogin
  * @see <a href="http://jackrabbit.apache.org/oak/docs/security/authentication/preauthentication.html">Pre-Authentication Documentation</a>
  */
-public class L7_PreAuthTest extends AbstractSecurityTest {
+public class L8_PreAuthTest extends AbstractSecurityTest {
 
     @Override
     protected Configuration getConfiguration() {

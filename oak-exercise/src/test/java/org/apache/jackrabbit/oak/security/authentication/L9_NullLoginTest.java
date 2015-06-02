@@ -67,13 +67,13 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  * -----------------------------------------------------------------------------
  *
  * - {@link L6_LoginModuleTest}
- * - {@link L7_PreAuthTest}
+ * - {@link L8_PreAuthTest}
  *
  * </pre>
  *
  * @see <a href="http://jackrabbit.apache.org/oak/docs/security/authentication/preauthentication.html">Pre-Authentication Documentation</a>
  */
-public class L8_NullLoginTest extends AbstractJCRTest {
+public class L9_NullLoginTest extends AbstractJCRTest {
 
     private Repository repository;
     private Session testSession;

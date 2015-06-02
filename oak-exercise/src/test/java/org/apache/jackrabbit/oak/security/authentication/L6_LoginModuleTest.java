@@ -96,8 +96,8 @@ import org.junit.Test;
  * Related Exercises
  * -----------------------------------------------------------------------------
  *
- * - {@link L7_PreAuthTest}
- * - {@link L8_NullLoginTest}
+ * - {@link L8_PreAuthTest}
+ * - {@link L9_NullLoginTest}
  *
  * </pre>
  *

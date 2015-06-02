@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import javax.jcr.security.Privilege;
+
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
@@ -30,14 +32,29 @@ import org.junit.Test;
  * -----------------------------------------------------------------------------
  *
  * Goal:
- * TODO
+ * The aim of this is test is to make you familiar with the subtle differences
+ * between privileges (that are always granted on an existing node) and effective
+ * permissions on the individual items (nodes, properties or even non-existing
+ * items).
+ * Having completed this exercise you should also be familiar with the oddities
+ * of those privileges that allow modify the parent collection, while the effective
+ * permission is evaluated the target item.
  *
  * Exercises:
  *
- * - TODO
- *
- * - {@link #testAddAndRemoveChildNodes()}
+ * - {@link #testAddNodes()}
  *   TODO
+ *
+ * - {@link #testAddProperties()}
+ *   TODO
+ *
+ * - {@link #testRemoveNodes()} ()}
+ *   TODO
+ *
+ * - {@link #testRemoveProperties()} ()}
+ *   TODO
+ *
+ * TODO
  *
  * - {@link #testPrivilegeBitsToPermissions()}
  *   Understand the internal mechanism to map {@link javax.jcr.security.Privilege}
@@ -49,7 +66,11 @@ import org.junit.Test;
  * Additional Exercises:
  * -----------------------------------------------------------------------------
  *
- * TODO
+ * - Modifying Nodes
+ *   Discuss why there is no dedicated privilege (and test case) for "modify nodes".
+ *   Explain how {@link Privilege#JCR_NODE_TYPE_MANAGEMENT, {@link Privilege#JCR_ADD_CHILD_NODES},
+ *   {@link Privilege#JCR_REMOVE_CHILD_NODES} (and maybe others) are linked to
+ *   node modification.
  *
  * </pre>
  *
@@ -58,7 +79,32 @@ import org.junit.Test;
 public class L4_PrivilegesAndPermissionsTest extends AbstractSecurityTest {
 
     @Test
-    public void testAddAndRemoveChildNodes() throws Exception {
+    public void testAddNodes() throws Exception {
+        // TODO
+    }
+
+    @Test
+    public void testAddProperties() throws Exception {
+        // TODO
+    }
+
+    @Test
+    public void testRemoveNodes() throws Exception {
+        // TODO
+    }
+
+    @Test
+    public void testRemoveProperties() throws Exception {
+        // TODO
+    }
+
+    @Test
+    public void testModifyNodes() throws Exception {
+        // TODO
+    }
+
+    @Test
+    public void testModifyProperties() throws Exception {
         // TODO
     }
 
