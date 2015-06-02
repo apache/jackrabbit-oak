@@ -72,6 +72,8 @@ import org.slf4j.LoggerFactory;
  * 
  */
 public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVResultGenerator {
+    public static final String CTX_SEARCH_PATHS_PROP = "searchPaths";
+
     protected static final Logger LOG = LoggerFactory.getLogger(ScalabilityAbstractSuite.class);
 
     /**
@@ -320,7 +322,7 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
 
             watch.stop();
             result.getBenchmarkStatistics(benchmark).addValue(watch.elapsed(TimeUnit.MILLISECONDS));
-            
+
             if (LOG.isDebugEnabled()) {
                 LOG.debug("Execution time for " + benchmark + "-"
                                             + watch.elapsed(TimeUnit.MILLISECONDS));
@@ -359,6 +361,7 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
                 }
             }
         };
+        thread.setDaemon(true);
         thread.start();
         threads.add(thread);
     }

@@ -30,6 +30,7 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.commons.math.stat.descriptive.SynchronizedDescriptiveStatistics;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -93,13 +94,20 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
     protected static final List<String> NODE_LEVELS = Splitter.on(",").trimResults()
         .omitEmptyStrings().splitToList(System.getProperty("nodeLevels", "10,5,2,1"));
 
-    private static final int NUM_USERS = Integer.parseInt(NODE_LEVELS.get(0));
+    protected static final List<String> NODE_LEVELS_DEFAULT = ImmutableList.of("10","5","2","1");
 
-    private static final int NUM_GROUPS = Integer.parseInt(NODE_LEVELS.get(1));
+    private static final int NUM_USERS =
+        (NODE_LEVELS.size() >= 1 ? Integer.parseInt(NODE_LEVELS.get(0)) : Integer.parseInt(NODE_LEVELS_DEFAULT.get(0)));
 
-    private static final int NUM_RELATIONSHIPS = Integer.parseInt(NODE_LEVELS.get(2));
+    private static final int NUM_GROUPS =
+        (NODE_LEVELS.size() >= 2 ? Integer.parseInt(NODE_LEVELS.get(1)) : Integer.parseInt(NODE_LEVELS_DEFAULT.get(1)));
 
-    private static final int NUM_ACTIVITIES = Integer.parseInt(NODE_LEVELS.get(3));
+    private static final int NUM_RELATIONSHIPS =
+        (NODE_LEVELS.size() >= 3 ? Integer.parseInt(NODE_LEVELS.get(2)) : Integer.parseInt(NODE_LEVELS_DEFAULT.get(2)));
+
+    private static final int NUM_ACTIVITIES =
+        (NODE_LEVELS.size() >= 4 ? Integer.parseInt(NODE_LEVELS.get(3)) : Integer.parseInt(NODE_LEVELS_DEFAULT.get(3)));
+
 
     private static final long BUCKET_SIZE = 100;
 

@@ -38,12 +38,34 @@ public abstract class ScalabilityBenchmark {
 
     /**
      * Runs the benchmark against the given repository.
-     * 
-     * @param fixtures repository fixtures
-     * @throws Exception 
+     *
+     * @param repository the repository instance
+     * @param credentials the credentials
+     * @param context the execution context
+     * @throws Exception
      */
     public abstract void execute(Repository repository, Credentials credentials,
             ExecutionContext context) throws Exception;
+
+    /**
+     * Run any preparatory steps before the benchmark.
+     *
+     * @param repository the repository instance
+     * @param credentials the credentials
+     * @param context the execution context
+     */
+    public void beforeExecute(Repository repository, Credentials credentials,
+        ExecutionContext context) throws Exception {}
+
+    /**
+     * Run any cleanup necessary after the benchmark
+     *
+     * @param repository the repository instance
+     * @param credentials the credentials
+     * @param context the execution context
+     */
+    public void afterExecute(Repository repository, Credentials credentials,
+        ExecutionContext context) {}
 
     @Override
     public String toString() {

@@ -45,6 +45,8 @@ import org.apache.jackrabbit.oak.fixture.JackrabbitRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.scalability.benchmarks.AggregateNodeSearcher;
+import org.apache.jackrabbit.oak.scalability.benchmarks.ConcurrentReader;
+import org.apache.jackrabbit.oak.scalability.benchmarks.ConcurrentWriter;
 import org.apache.jackrabbit.oak.scalability.benchmarks.FormatSearcher;
 import org.apache.jackrabbit.oak.scalability.benchmarks.FullTextSearcher;
 import org.apache.jackrabbit.oak.scalability.benchmarks.LastModifiedSearcher;
@@ -159,7 +161,9 @@ public class ScalabilityRunner {
                                         new MultiFilterOrderByOffsetPageSearcher(),
                                         new MultiFilterSplitOrderByOffsetPageSearcher(),
                                         new MultiFilterOrderByKeysetPageSearcher(),
-                                        new MultiFilterSplitOrderByKeysetPageSearcher()),
+                                        new MultiFilterSplitOrderByKeysetPageSearcher(),
+                                        new ConcurrentReader(),
+                                        new ConcurrentWriter()),
                         new ScalabilityNodeRelationshipSuite(withStorage.value(options))
                                 .addBenchmarks(new AggregateNodeSearcher())
                 };
