@@ -599,11 +599,6 @@ public class RDBDocumentStore implements DocumentStore {
             }
 
             @Override
-            public String getGreatestQueryString(String column) {
-                return "(select MAX(mod) from (VALUES (" + column + "), (?)) AS ALLMOD(mod))";
-            }
-
-            @Override
             public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
                 Connection con = null;
                 Map<String, String> result = new HashMap<String, String>();
@@ -671,16 +666,6 @@ public class RDBDocumentStore implements DocumentStore {
          */
         public String getConcatQueryString(int dataOctetLimit, int dataLength) {
             return "DATA || CAST(? AS varchar(" + dataOctetLimit + "))";
-        }
-
-        /**
-         * Returns the GREATEST function or its equivalent function or sub-query
-         * supported.
-         *
-         * @return the greatest query string
-         */
-        public String getGreatestQueryString(String column) {
-            return "GREATEST(" + column + ", ?)";
         }
 
         /**
@@ -1697,8 +1682,8 @@ public class RDBDocumentStore implements DocumentStore {
     private boolean dbAppendingUpdate(Connection connection, String tableName, String id, Long modified, Boolean hasBinary,
             Boolean deletedOnce, Long modcount, Long cmodcount, Long oldmodcount, String appendData) throws SQLException {
         StringBuilder t = new StringBuilder();
-        t.append("update " + tableName + " set MODIFIED = " + this.db.getGreatestQueryString("MODIFIED")
-                + ", HASBINARY = ?, DELETEDONCE = ?, MODCOUNT = ?, CMODCOUNT = ?, DSIZE = DSIZE + ?, ");
+        t.append("update " + tableName + " set MODIFIED = case when ? > MODIFIED then ? else MODIFIED end, "
+                + "HASBINARY = ?, DELETEDONCE = ?, MODCOUNT = ?, CMODCOUNT = ?, DSIZE = DSIZE + ?, ");
         t.append("DATA = " + this.db.getConcatQueryString(this.dataLimitInOctets, appendData.length()) + " ");
         t.append("where ID = ?");
         if (oldmodcount != null) {
@@ -1707,6 +1692,7 @@ public class RDBDocumentStore implements DocumentStore {
         PreparedStatement stmt = connection.prepareStatement(t.toString());
         try {
             int si = 1;
+            stmt.setObject(si++, modified, Types.BIGINT);
             stmt.setObject(si++, modified, Types.BIGINT);
             stmt.setObject(si++, hasBinary ? 1 : 0, Types.SMALLINT);
             stmt.setObject(si++, deletedOnce ? 1 : 0, Types.SMALLINT);
@@ -1732,8 +1718,7 @@ public class RDBDocumentStore implements DocumentStore {
     private boolean dbBatchedAppendingUpdate(Connection connection, String tableName, List<String> ids, Long modified,
             String appendData) throws SQLException {
         StringBuilder t = new StringBuilder();
-        t.append("update " + tableName + " set MODIFIED = " + this.db.getGreatestQueryString("MODIFIED")
-                + ", MODCOUNT = MODCOUNT + 1, DSIZE = DSIZE + ?, ");
+        t.append("update " + tableName + " set MODIFIED = case when ? > MODIFIED then ? else MODIFIED end, MODCOUNT = MODCOUNT + 1, DSIZE = DSIZE + ?, ");
         t.append("DATA = " + this.db.getConcatQueryString(this.dataLimitInOctets, appendData.length()) + " ");
         t.append("where ID in (");
         for (int i = 0; i < ids.size(); i++) {
@@ -1746,6 +1731,7 @@ public class RDBDocumentStore implements DocumentStore {
         PreparedStatement stmt = connection.prepareStatement(t.toString());
         try {
             int si = 1;
+            stmt.setObject(si++, modified, Types.BIGINT);
             stmt.setObject(si++, modified, Types.BIGINT);
             stmt.setObject(si++, 1 + appendData.length(), Types.BIGINT);
             stmt.setString(si++, "," + appendData);
