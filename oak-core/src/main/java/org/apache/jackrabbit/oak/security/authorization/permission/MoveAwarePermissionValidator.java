@@ -73,10 +73,11 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
     private Validator visibleValidator(@Nonnull ImmutableTree source,
                                        @Nonnull ImmutableTree dest) {
         // TODO improve: avoid calculating the 'before' permissions in case the current parent permissions already point to the correct tree.
-        ImmutableTree parent = moveCtx.rootBefore.getTree("/");
-        TreePermission tp = getPermissionProvider().getTreePermission(parent, TreePermission.EMPTY);
+        ImmutableTree immutableTree = moveCtx.rootBefore.getTree("/");
+        TreePermission tp = getPermissionProvider().getTreePermission(immutableTree, TreePermission.EMPTY);
         for (String n : PathUtils.elements(source.getPath())) {
-            tp = tp.getChildPermission(n, parent.getChild(n).getNodeState());
+            immutableTree = immutableTree.getChild(n);
+            tp = tp.getChildPermission(n, immutableTree.getNodeState());
         }
         Validator validator = createValidator(source, dest, tp, this);
         return new VisibleValidator(validator, true, false);
