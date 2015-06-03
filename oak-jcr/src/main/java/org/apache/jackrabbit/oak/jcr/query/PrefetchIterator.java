@@ -22,6 +22,9 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
+import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.api.Result.SizePrecision;
+
 /**
  * An iterator that pre-fetches a number of items in order to calculate the size
  * of the result if possible. This iterator loads at least a number of items,
@@ -33,7 +36,11 @@ import java.util.NoSuchElementException;
  * @param <K> the iterator data type
  */
 public class PrefetchIterator<K> implements Iterator<K> {
-
+    
+    private final boolean fastSize = Boolean.getBoolean("oak.fastQuerySize");
+    
+    private final Result result;
+    
     private final Iterator<K> it;
     private final long minPrefetch, timeout, maxPrefetch;
     private boolean prefetchDone;
@@ -48,13 +55,19 @@ public class PrefetchIterator<K> implements Iterator<K> {
      * @param timeout the maximum time to pre-fetch in milliseconds
      * @param max the maximum number of items to pre-fetch
      * @param size the size (prefetching is only required if -1)
+     * @param result (optional) the result to get the size from
      */
-    PrefetchIterator(Iterator<K> it, long min, long timeout, long max, long size) {
+    PrefetchIterator(Iterator<K> it, long min, long timeout, long max, 
+            long size, Result result) {
         this.it = it;
         this.minPrefetch = min;
+        if (fastSize) {
+            timeout = 0;
+        }
         this.timeout = timeout;
         this.maxPrefetch = max;
         this.size = size;
+        this.result = result;
     }
 
     @Override
@@ -97,8 +110,13 @@ public class PrefetchIterator<K> implements Iterator<K> {
      * @return the size, or -1 if unknown
      */
     public long size() {
-        if (size != -1 || prefetchDone || position > maxPrefetch) {
+        if (size != -1) {
             return size;
+        }
+        if (!fastSize) {
+            if (prefetchDone || position > maxPrefetch) {
+                return -1;
+            }
         }
         prefetchDone = true;
         ArrayList<K> list = new ArrayList<K>();
@@ -125,6 +143,11 @@ public class PrefetchIterator<K> implements Iterator<K> {
         if (list.size() > 0) {
             prefetchIterator = list.iterator();
             position -= list.size();
+        }
+        if (size == -1 && fastSize) {
+            if (result != null) {
+                size = result.getSize(SizePrecision.EXACT, Long.MAX_VALUE);
+            }
         }
         return size;
     }
