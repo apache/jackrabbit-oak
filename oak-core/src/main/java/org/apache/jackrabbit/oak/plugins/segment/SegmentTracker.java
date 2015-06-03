@@ -129,7 +129,7 @@ public class SegmentTracker {
         } catch (SegmentNotFoundException snfe) {
             long delta = System.currentTimeMillis() - id.getCreationTime();
             log.error("Segment not found: {}. Creation date delta is {} ms.",
-                    id, delta);
+                    id, delta, snfe);
             throw snfe;
         }
     }
