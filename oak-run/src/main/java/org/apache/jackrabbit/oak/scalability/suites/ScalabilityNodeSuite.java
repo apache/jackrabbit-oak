@@ -72,8 +72,41 @@ import org.slf4j.LoggerFactory;
  * Each test run thus adds nodes and executes different benchmarks. This way we measure time taken for
  * benchmark execution.
  *
- * {# NODE_LEVELS} is a comma separated string property and governs the depth and the number of
- * nodes in the hierarchy.
+ * <p>
+ * The following system JVM properties can be defined to configure the suite.
+ * <ul>
+ * <li>
+ *     <code>loaders</code> - Controls the number of concurrent threads for loading blobs initially.
+ *     Defaults to 1.
+ * </li>
+ * <li>
+ *     <code>testers</code> - Controls the number of concurrent tester threads. Defaults to 1.
+ * </li>
+ * <li>
+ *     <code>nodeLevels</code> - Comma separated string property that governs the depth and the number of
+ *     nodes in the hierarchy. Defaults to 10, 5, 2.
+ * </li>
+ * <li>
+ *     <code>densityLevel</code> - Controls the percentage of root nodes which will have sub nodes created.
+ *     Defaults to 100.
+ * </li>
+ * <li>
+ *     <code>index</code> - Controls if the index definitions are to be created. Defaults to false.
+ * </li>
+ * <li>
+ *      <code>asyncIndex</code> - Controls whether the indexing is async. Defaults to false.
+ * </li>
+ * <li>
+ *     <code>noFullIndex</code> - Controls whether fulltext indexing is enabled or disabled. Defaults to false.
+ * </li>
+ * <li>
+ *     <code>randDate</code> - Controls whether to generate random dates in a range. Defaults to false.
+ * </li>
+ * <li>
+ *     <code>customType</code> - Controls if nodes created in the load have a custom node type. Defaults to false.
+ * </li>
+ * </ul>
+ * </p>
  *
  */
 public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
@@ -452,6 +485,28 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
         }
     }
 
+    /**
+     * Creates a node hierarchy as follows:
+     *
+     * <pre>
+     * {@code
+     *  /LongevitySearchAssets<ID>
+     *      /writer<ID>
+     *          /Node<ID>
+     *              jcr:primaryType : <oak:Unstructured|rootType|nt:unstructured>
+     *              added : <DATE>
+     *              viewed : <true|false>
+     *              filter : <true|false>
+     *              title : Node<ID>
+     *              /SubNode<ID>
+     *                  jcr:primaryType : <oak:Unstructured|descendantTypeType|nt:unstructured>
+     *                  added : <DATE>
+     *                  viewed : <true|false>
+     *                  filter : <true|false>
+     *                  title : SubNode<ID>
+     * }
+     * </pre>
+     */
     class Writer implements Runnable {
 
         final Node parent;

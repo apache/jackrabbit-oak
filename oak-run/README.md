@@ -566,6 +566,8 @@ the `ScalabilitySuite` interface and add an instance of the new suite to the
 in the `org.apache.jackrabbit.oak.scalability` package.
 To implement the test benchmarks, it is required to extend the `ScalabilityBenchmark` 
 abstract class and implement the `execute()` method.
+In addition, the methods `beforeExecute()` and `afterExecute()` can overridden to do processing 
+before and after the benchmark executes.
 
 The best way to implement the `ScalabilitySuite` interface is to extend the
 `ScalabilityAbstractSuite` base class that takes care of most of the benchmarking
