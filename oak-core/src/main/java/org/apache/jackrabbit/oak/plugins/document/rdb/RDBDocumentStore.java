@@ -401,6 +401,17 @@ public class RDBDocumentStore implements DocumentStore {
             }
         },
 
+        DERBY("Apache Derby") {
+            @Override
+            public void checkVersion(DatabaseMetaData md) throws SQLException {
+                versionCheck(md, 10, 11, description);
+            }
+
+            public boolean allowsCaseInSelect() {
+                return false;
+            }
+        },
+
         POSTGRES("PostgreSQL") {
             @Override
             public void checkVersion(DatabaseMetaData md) throws SQLException {

@@ -36,8 +36,8 @@ public abstract class DocumentStoreFixture {
     private static final Logger LOG = LoggerFactory.getLogger(DocumentStoreFixture.class);
 
     public static final DocumentStoreFixture MEMORY = new MemoryFixture();
-    public static final DocumentStoreFixture RDB_H2 = new RDBFixture("RDB-H2(file)", "jdbc:h2:file:./target/ds-test", "sa", "");
-    public static final DocumentStoreFixture RDB_PG = new RDBFixture("RDB-Postgres", "jdbc:postgresql:oak", "postgres", "geheim");
+    public static final DocumentStoreFixture RDB_H2 = new RDBFixture("RDB-H2(file)", "jdbc:h2:file:./target/h2-ds-test", "sa", "");
+    public static final DocumentStoreFixture RDB_DERBY = new RDBFixture("RDB-Derby(embedded)", "jdbc:derby:./target/derby-ds-test;create=true", "", "");    public static final DocumentStoreFixture RDB_PG = new RDBFixture("RDB-Postgres", "jdbc:postgresql:oak", "postgres", "geheim");
     public static final DocumentStoreFixture RDB_DB2 = new RDBFixture("RDB-DB2", "jdbc:db2://localhost:50000/OAK", "oak", "geheim");
     public static final DocumentStoreFixture RDB_MYSQL = new RDBFixture("RDB-MySQL", "jdbc:mysql://localhost:3306/oak", "root", "geheim");
     public static final DocumentStoreFixture RDB_ORACLE = new RDBFixture("RDB-Oracle", "jdbc:oracle:thin:@localhost:1521:orcl", "system", "geheim");
