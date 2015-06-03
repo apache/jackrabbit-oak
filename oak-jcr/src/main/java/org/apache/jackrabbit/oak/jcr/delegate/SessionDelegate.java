@@ -141,7 +141,7 @@ public class SessionDelegate {
         this.idManager = new IdentifierManager(root);
         this.clock = checkNotNull(clock);
         this.sessionStats = new SessionStats(contentSession.toString(),
-                contentSession.getAuthInfo(), clock, refreshStrategy);
+                contentSession.getAuthInfo(), clock, refreshStrategy, this);
         this.sessionCounters = sessionStats.getCounters();
         checkNotNull(statisticManager);
         readCounter = statisticManager.getCounter(SESSION_READ_COUNTER);
@@ -391,6 +391,7 @@ public class SessionDelegate {
         isAlive = false;
         // TODO
 
+        sessionStats.close();
         try {
             contentSession.close();
         } catch (IOException e) {

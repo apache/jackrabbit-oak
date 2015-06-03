@@ -121,4 +121,10 @@ public interface SessionMBean {
      * @return  stack trace of the last exception that occurred during a save operation
      */
     String getLastFailedSave();
+
+    /**
+     * Refresh this session.
+     * <em>Warning</em>: this operation might be disruptive to the owner of this session
+     */
+    void refresh();
 }

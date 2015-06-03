@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.api.jmx;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
+import javax.management.openmbean.TabularData;
 
 import org.apache.jackrabbit.oak.commons.jmx.Description;
 import org.apache.jackrabbit.oak.commons.jmx.Name;
@@ -204,5 +205,12 @@ public interface RepositoryManagementMBean {
      */
     @Nonnull
     CompositeData getPropertyIndexAsyncReindexStatus();
+
+    /**
+     * Refresh all currently open sessions.
+     * <em>Warning</em>: this operation might be disruptive to the owner of the affected sessions
+     */
+    @Nonnull
+    TabularData refreshAllSessions();
 
 }

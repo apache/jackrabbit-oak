@@ -34,6 +34,8 @@ import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.jmx.SessionMBean;
+import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
+import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.stats.Clock;
 
 public class SessionStats implements SessionMBean {
@@ -48,14 +50,22 @@ public class SessionStats implements SessionMBean {
     private final Clock clock;
     private final RefreshStrategy refreshStrategy;
 
+    private volatile SessionDelegate sessionDelegate;
+
     private Map<String, Object> attributes = Collections.emptyMap();
 
-    public SessionStats(String sessionId, AuthInfo authInfo, Clock clock, RefreshStrategy refreshStrategy) {
+    public SessionStats(String sessionId, AuthInfo authInfo, Clock clock,
+            RefreshStrategy refreshStrategy, SessionDelegate sessionDelegate) {
         this.counters = new Counters(clock);
         this.sessionId = sessionId;
         this.authInfo = authInfo;
         this.clock = clock;
         this.refreshStrategy = refreshStrategy;
+        this.sessionDelegate = sessionDelegate;
+    }
+
+    public void close() {
+        sessionDelegate = null;
     }
 
     public static class Counters {
@@ -245,6 +255,26 @@ public class SessionStats implements SessionMBean {
     @Override
     public String getLastFailedSave() {
         return format(lastFailedSave.get());
+    }
+
+    @Override
+    public void refresh() {
+        final SessionDelegate sd = sessionDelegate;
+        if (sd != null) {
+            sd.safePerform(new SessionOperation<Void>("MBean initiated refresh", true) {
+                @Override
+                public Void perform() {
+                    sd.refresh(true);
+                    return null;
+                }
+
+                @Override
+                public void checkPreconditions() throws RepositoryException {
+                    sd.checkAlive();
+                }
+            });
+            sd.refresh(true);
+        }
     }
 
     //------------------------------------------------------------< internal >---
