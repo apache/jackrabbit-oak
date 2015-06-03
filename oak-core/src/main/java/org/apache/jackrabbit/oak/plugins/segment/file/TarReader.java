@@ -431,6 +431,8 @@ class TarReader {
 
     private final ByteBuffer index;
 
+    private volatile boolean closed;
+
     private TarReader(File file, FileAccess access, ByteBuffer index) {
         this.file = file;
         this.access = access;
@@ -697,7 +699,16 @@ class TarReader {
         GC_LOG.info("Cleaned segments from {}: {}", file.getName(), uuids);
     }
 
+    /**
+     * @return  {@code true} iff this reader has been closed
+     * @see #close()
+     */
+    boolean isClosed() {
+        return closed;
+    }
+
     File close() throws IOException {
+        closed = true;
         access.close();
         return file;
     }

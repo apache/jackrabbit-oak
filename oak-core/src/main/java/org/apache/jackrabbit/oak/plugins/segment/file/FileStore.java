@@ -859,6 +859,13 @@ public class FileStore implements SegmentStore {
 
         for (TarReader reader : readers) {
             try {
+                if (reader.isClosed()) {
+                    // Cleanup might already have closed the file.
+                    // The segment should be available from another file.
+                    log.info("Skipping closed tar file {}", reader);
+                    continue;
+                }
+
                 ByteBuffer buffer = reader.readEntry(msb, lsb);
                 if (buffer != null) {
                     return new Segment(tracker, id, buffer);
@@ -883,6 +890,13 @@ public class FileStore implements SegmentStore {
         // so we need to re-check the readers
         for (TarReader reader : readers) {
             try {
+                if (reader.isClosed()) {
+                    // Cleanup might already have closed the file.
+                    // The segment should be available from another file.
+                    log.info("Skipping closed tar file {}", reader);
+                    continue;
+                }
+
                 ByteBuffer buffer = reader.readEntry(msb, lsb);
                 if (buffer != null) {
                     return new Segment(tracker, id, buffer);
