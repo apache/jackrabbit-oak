@@ -35,12 +35,14 @@ import java.io.IOException;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.concurrent.Callable;
+import java.util.Map;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Deactivate;
+import org.apache.felix.scr.annotations.Modified;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.PropertyOption;
 import org.apache.felix.scr.annotations.Reference;
@@ -214,6 +216,20 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     private WhiteboardExecutor executor;
     private boolean customBlobStore;
 
+    /**
+     * Blob modified before this time duration would be considered for Blob GC
+     */
+    private static final long DEFAULT_BLOB_GC_MAX_AGE = 24 * 60 * 60;
+    @Property (longValue = DEFAULT_BLOB_GC_MAX_AGE,
+        label = "Blob GC Max Age (in secs)",
+        description = "Blob Garbage Collector (GC) logic will only consider those blobs for GC which " +
+            "are not accessed recently (currentTime - lastModifiedTime > blobGcMaxAgeInSecs). For " +
+            "example as per default only those blobs which have been created 24 hrs ago will be " +
+            "considered for GC"
+    )
+    public static final String PROP_BLOB_GC_MAX_AGE = "blobGcMaxAgeInSecs";
+    private long blobGcMaxAgeInSecs = DEFAULT_BLOB_GC_MAX_AGE;
+
     @Override
     protected synchronized SegmentNodeStore getNodeStore() {
         checkState(delegate != null, "service must be activated when used");
@@ -221,9 +237,10 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     }
 
     @Activate
-    private void activate(ComponentContext context) throws IOException {
+    private void activate(ComponentContext context, Map<String, ?> config) throws IOException {
         this.context = context;
         this.customBlobStore = Boolean.parseBoolean(lookup(context, CUSTOM_BLOB_STORE));
+        modified(config);
 
         if (blobStore == null && customBlobStore) {
             log.info("BlobStore use enabled. SegmentNodeStore would be initialized when BlobStore would be available");
@@ -367,7 +384,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                     MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector(
                             new SegmentBlobReferenceRetriever(store.getTracker()),
                             (GarbageCollectableBlobStore) store.getBlobStore(),
-                            executor,
+                            executor, blobGcMaxAgeInSecs,
                             ClusterRepositoryInfo.getId(delegate));
                     gc.collectGarbage(sweep);
                 }
@@ -395,6 +412,14 @@ public class SegmentNodeStoreService extends ProxyNodeStore
             return context.getBundleContext().getProperty(property);
         }
         return null;
+    }
+
+    /**
+     * At runtime SegmentNodeStore only picks up modification of certain properties
+     */
+    @Modified
+    protected void modified(Map<String, ?> config){
+        blobGcMaxAgeInSecs = toLong(config.get(PROP_BLOB_GC_MAX_AGE), DEFAULT_BLOB_GC_MAX_AGE);
     }
 
     @Deactivate
