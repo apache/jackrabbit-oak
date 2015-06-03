@@ -1495,29 +1495,29 @@ public class RDBDocumentStore implements DocumentStore {
     @CheckForNull
     private RDBRow dbRead(Connection connection, String tableName, String id, long lastmodcount) throws SQLException {
         PreparedStatement stmt;
+
         boolean useCaseStatement = lastmodcount != -1 && this.db.allowsCaseInSelect();
         if (useCaseStatement) {
-            // either we don't have a previous version of the document
-            // or the database does not support CASE in SELECT
-            stmt = connection.prepareStatement("select MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, DATA, BDATA from "
-                    + tableName + " where ID = ?");
-        } else {
             // the case statement causes the actual row data not to be
             // sent in case we already have it
             stmt = connection
                     .prepareStatement("select MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, case MODCOUNT when ? then null else DATA end as DATA, "
                             + "case MODCOUNT when ? then null else BDATA end as BDATA from " + tableName + " where ID = ?");
+        } else {
+            // either we don't have a previous version of the document
+            // or the database does not support CASE in SELECT
+            stmt = connection.prepareStatement("select MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, DATA, BDATA from "
+                    + tableName + " where ID = ?");
         }
 
         try {
+            int si = 1;
             if (useCaseStatement) {
-                setIdInStatement(stmt, 1, id);
+                stmt.setLong(si++, lastmodcount);
+                stmt.setLong(si++, lastmodcount);
             }
-            else {
-                stmt.setLong(1, lastmodcount);
-                stmt.setLong(2, lastmodcount);
-                setIdInStatement(stmt, 3, id);
-            }
+            setIdInStatement(stmt, si, id);
+
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
                 long modified = rs.getLong(1);
