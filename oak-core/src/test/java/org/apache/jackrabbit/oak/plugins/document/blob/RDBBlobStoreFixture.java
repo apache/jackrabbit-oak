@@ -50,8 +50,11 @@ public abstract class RDBBlobStoreFixture {
             "jdbc:sqlserver://localhost:1433;databaseName=OAK"), System.getProperty("rdb-mssql-jdbc-user", "sa"),
             System.getProperty("rdb-mssql-jdbc-passwd", "geheim"));
     public static final RDBBlobStoreFixture RDB_H2 = new MyFixture("RDB-H2(file)", System.getProperty("rdb-h2-jdbc-url",
-            "jdbc:h2:file:./target/ds-test"), System.getProperty("rdb-h2-jdbc-user", "sa"), System.getProperty(
-            "rdb-postgres-jdbc-passwd", ""));
+            "jdbc:h2:file:./target/hs-bs-test"), System.getProperty("rdb-h2-jdbc-user", "sa"), System.getProperty(
+            "rdb-h2-jdbc-passwd", ""));
+    public static final RDBBlobStoreFixture RDB_DERBY = new MyFixture("RDB-Derby(embedded)", System.getProperty(
+            "rdb-derby-jdbc-url", "jdbc:derby:./target/derby-bs-test;create=true"),
+            System.getProperty("rdb-derby-jdbc-user", "sa"), System.getProperty("rdb-derby-jdbc-passwd", ""));
     public static final RDBBlobStoreFixture RDB_PG = new MyFixture("RDB-Postgres", System.getProperty("rdb-postgres-jdbc-url",
             "jdbc:postgresql:oak"), System.getProperty("rdb-postgres-jdbc-user", "postgres"), System.getProperty(
             "rdb-postgres-jdbc-passwd", "geheim"));

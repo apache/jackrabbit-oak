@@ -579,6 +579,16 @@
       </build>
     </profile>
     <profile>
+      <id>rdb-derby</id>
+      <dependencies>
+        <dependency>
+          <groupId>org.apache.derby</groupId>
+          <artifactId>derby</artifactId>
+          <version>10.11.1.1</version>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
       <id>rdb-mysql</id>
       <dependencies>
         <dependency>

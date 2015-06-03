@@ -159,6 +159,13 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
             }
         },
 
+        DERBY("Apache Derby") {
+            @Override
+            public void checkVersion(DatabaseMetaData md) throws SQLException {
+                versionCheck(md, 10, 11, description);
+            }
+        },
+
         DB2("DB2") {
             @Override
             public void checkVersion(DatabaseMetaData md) throws SQLException {
