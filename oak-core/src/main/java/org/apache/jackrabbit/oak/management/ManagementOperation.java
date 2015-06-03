@@ -22,12 +22,12 @@ package org.apache.jackrabbit.oak.management;
 import static com.google.common.base.Objects.toStringHelper;
 import static java.lang.Thread.currentThread;
 import static java.util.concurrent.TimeUnit.DAYS;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.HOURS;
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static javax.management.openmbean.SimpleType.INTEGER;
 import static javax.management.openmbean.SimpleType.STRING;
 import static org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean.StatusCode;
@@ -53,6 +53,9 @@ import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
 import javax.management.openmbean.OpenDataException;
 import javax.management.openmbean.OpenType;
+import javax.management.openmbean.TabularData;
+import javax.management.openmbean.TabularDataSupport;
+import javax.management.openmbean.TabularType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -372,6 +375,21 @@ public class ManagementOperation<R> extends FutureTask<R> {
             try {
                 Object[] values = new Object[] {code.ordinal(), id, message};
                 return new CompositeDataSupport(ITEM_TYPES, ITEM_NAMES, values);
+            } catch (OpenDataException e) {
+                // should never happen
+                throw new IllegalStateException(e);
+            }
+        }
+
+        public static TabularData toTabularData(Iterable<Status> statuses) {
+            try {
+                TabularDataSupport tab = new TabularDataSupport(
+                    new TabularType("Statuses", "List of statuses", ITEM_TYPES, new String[] {ITEM_ID}));
+
+                for (Status status : statuses) {
+                    tab.put(status.toCompositeData());
+                }
+                return tab;
             } catch (OpenDataException e) {
                 // should never happen
                 throw new IllegalStateException(e);
