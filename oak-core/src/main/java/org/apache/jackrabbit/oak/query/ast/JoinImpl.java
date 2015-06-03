@@ -16,6 +16,7 @@ package org.apache.jackrabbit.oak.query.ast;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.query.plan.ExecutionPlan;
 import org.apache.jackrabbit.oak.query.plan.JoinExecutionPlan;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -264,6 +265,12 @@ public class JoinImpl extends SourceImpl {
     @Override
     public boolean isOuterJoinRightHandSide() {
         return left.isOuterJoinRightHandSide() || right.isOuterJoinRightHandSide();
+    }
+
+    @Override
+    public long getSize(SizePrecision precision, long max) {
+        // we don't know
+        return -1;
     }
 
 }
