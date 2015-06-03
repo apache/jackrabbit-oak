@@ -164,24 +164,39 @@ public class RDBConnectionHandler implements Closeable {
     // workaround for broken connection wrappers
     // see https://issues.apache.org/jira/browse/OAK-2918
 
-    private Boolean setReadOnlyThrows = null;    // null if we haven't checked yet
-    private Boolean setReadWriteThrows = null;    // null if we haven't checked yet
+    private Boolean setReadOnlyThrows = null; // null if we haven't checked yet
+    private Boolean setReadWriteThrows = null; // null if we haven't checked yet
 
     private void setReadOnly(Connection c, boolean ro) throws SQLException {
 
-        Boolean flag = ro ? setReadOnlyThrows : setReadWriteThrows;
-
-        if (flag == null) {
-            // we don't know yet, so we try once
-            try {
-                c.setReadOnly(ro);
-                flag = Boolean.FALSE;
-            } catch (SQLException ex) {
-                flag = Boolean.TRUE;
-                LOG.error("Connection " + c.getClass() + " throws SQLException on setReadOnly(" + ro + "); not trying again");
+        if (ro) {
+            if (this.setReadOnlyThrows == null) {
+                // we don't know yet, so we try at least once
+                try {
+                    c.setReadOnly(true);
+                    this.setReadOnlyThrows = Boolean.FALSE;
+                } catch (SQLException ex) {
+                    LOG.error("Connection class " + c.getClass()
+                            + " erroneously throws SQLException on setReadOnly(true); not trying again");
+                    this.setReadOnlyThrows = Boolean.TRUE;
+                }
+            } else if (!this.setReadOnlyThrows) {
+                c.setReadOnly(true);
             }
-        } else if (!flag) {
-            c.setReadOnly(ro);
+        } else {
+            if (this.setReadWriteThrows == null) {
+                // we don't know yet, so we try at least once
+                try {
+                    c.setReadOnly(false);
+                    this.setReadWriteThrows = Boolean.FALSE;
+                } catch (SQLException ex) {
+                    LOG.error("Connection class " + c.getClass()
+                            + " erroneously throws SQLException on setReadOnly(false); not trying again");
+                    this.setReadWriteThrows = Boolean.TRUE;
+                }
+            } else if (!this.setReadWriteThrows) {
+                c.setReadOnly(false);
+            }
         }
     }
 }
