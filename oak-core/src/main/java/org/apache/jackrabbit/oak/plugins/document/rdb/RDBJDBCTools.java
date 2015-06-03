@@ -44,6 +44,8 @@ public class RDBJDBCTools {
     protected static String driverForDBType(String type) {
         if ("h2".equals(type)) {
             return "org.h2.Driver";
+        } else if ("derby".equals(type)) {
+            return "org.apache.derby.jdbc.EmbeddedDriver";
         } else if ("postgresql".equals(type)) {
             return "org.postgresql.Driver";
         } else if ("db2".equals(type)) {
