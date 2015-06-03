@@ -51,8 +51,8 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
     public static Collection<Object[]> fixtures() {
         Collection<Object[]> result = new ArrayList<Object[]>();
         RDBBlobStoreFixture candidates[] = new RDBBlobStoreFixture[] { RDBBlobStoreFixture.RDB_DB2, RDBBlobStoreFixture.RDB_H2,
-                RDBBlobStoreFixture.RDB_MSSQL, RDBBlobStoreFixture.RDB_MYSQL, RDBBlobStoreFixture.RDB_ORACLE,
-                RDBBlobStoreFixture.RDB_PG };
+                RDBBlobStoreFixture.RDB_DERBY, RDBBlobStoreFixture.RDB_MSSQL, RDBBlobStoreFixture.RDB_MYSQL,
+                RDBBlobStoreFixture.RDB_ORACLE, RDBBlobStoreFixture.RDB_PG };
 
         for (RDBBlobStoreFixture bsf : candidates) {
             if (bsf.isAvailable()) {
@@ -128,7 +128,7 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
         LOG.info("max blob length for " + blobStoreName + " was " + test);
 
         int expected = Math.max(blobStore.getBlockSize(), 2 * 1024 * 1024);
-        assertTrue("expected supported block size is " + expected + ", but measured: " + test, test >= expected);
+        assertTrue(blobStoreName + ": expected supported block size is " + expected + ", but measured: " + test, test >= expected);
     }
 
     @Test
