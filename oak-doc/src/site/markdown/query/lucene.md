@@ -208,6 +208,22 @@ includePropertyTypes
 : String array of property types which should be indexed. The values can be one
   specified in [PropertyType Names][1]
 
+##### Cost Overrides
+
+By default, the cost of using this index is calculated follows: For each query,
+the overhead is one operation. For each entry in the index, the cost is one.
+The following only applies to `compatVersion` 2 only:
+To use use a lower or higher cost, you can set the following optional properties
+in the index definition:
+
+    - costPerExecution (Double) = 1.0
+    - costPerEntry (Double) = 1.0
+
+Please note that typically, those settings don't need to be explicitly set.
+Cost per execution is the overhead of one query. 
+Cost per entry is the cost per node in the index. 
+Using 0.5 means the cost is half, which means the index would be used used more often 
+(that is, even if there is a different index with similar cost).
 
 ##### Indexing Rule inheritance
 
