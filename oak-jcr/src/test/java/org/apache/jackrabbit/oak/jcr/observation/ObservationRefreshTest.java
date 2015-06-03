@@ -27,6 +27,7 @@ import static javax.jcr.observation.Event.PROPERTY_CHANGED;
 import static javax.jcr.observation.Event.PROPERTY_REMOVED;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -75,6 +76,11 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
 
     public ObservationRefreshTest(NodeStoreFixture fixture) {
         super(fixture);
+    }
+
+    {
+        // FIXME See OAK-2858
+        assumeTrue(fixture != NodeStoreFixture.DOCUMENT_RDB);
     }
 
     @Override
