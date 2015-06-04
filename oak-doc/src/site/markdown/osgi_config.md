@@ -121,6 +121,16 @@ docChildrenCachePercentage
 : Default 3
 : Percentage of `cache` allocated for `docChildrenCache`. See [Caching][doc-cache]
 
+cacheSegmentCount
+: Default 16
+: The number of segments in the LIRS cache
+: Since 1.0.15, 1.2.3, 1.3.0
+
+cacheStackMoveDistance
+: Default 16
+: The delay to move entries to the head of the queue in the LIRS cache
+: Since 1.0.15, 1.2.3, 1.3.0
+
 Example config file
 
     mongouri=mongodb://localhost:27017
