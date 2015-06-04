@@ -45,6 +45,7 @@ import javax.jcr.security.NamedAccessControlPolicy;
 import javax.jcr.security.Privilege;
 
 import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -65,7 +66,9 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.security.authorization.permission.PermissionUtil;
 import org.apache.jackrabbit.oak.security.authorization.restriction.PrincipalRestrictionProvider;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ACE;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlManager;
@@ -75,7 +78,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
-import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
@@ -103,6 +105,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
     private final PrincipalManager principalManager;
     private final RestrictionProvider restrictionProvider;
 
+    private final ConfigurationParameters configParams;
     private final Set<String> readPaths;
 
     public AccessControlManagerImpl(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper,
@@ -115,7 +118,8 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         principalManager = securityProvider.getConfiguration(PrincipalConfiguration.class).getPrincipalManager(root, namePathMapper);
         restrictionProvider = getConfig().getRestrictionProvider();
 
-        readPaths = getConfig().getParameters().getConfigValue(PermissionConstants.PARAM_READ_PATHS, PermissionConstants.DEFAULT_READ_PATHS);
+        configParams = getConfig().getParameters();
+        readPaths = configParams.getConfigValue(PermissionConstants.PARAM_READ_PATHS, PermissionConstants.DEFAULT_READ_PATHS);
     }
 
     //-----------------------------------------------< AccessControlManager >---
@@ -323,7 +327,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
     @Nonnull
     @Override
     public JackrabbitAccessControlPolicy[] getApplicablePolicies(@Nonnull Principal principal) throws RepositoryException {
-        Util.checkValidPrincipal(principal, principalManager, true);
+        Util.checkValidPrincipal(principal, principalManager);
 
         String oakPath = (principal instanceof ItemBasedPrincipal) ? ((ItemBasedPrincipal) principal).getPath() : null;
         JackrabbitAccessControlPolicy policy = createPrincipalACL(oakPath, principal);
@@ -338,7 +342,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
     @Nonnull
     @Override
     public JackrabbitAccessControlPolicy[] getPolicies(@Nonnull Principal principal) throws RepositoryException {
-        Util.checkValidPrincipal(principal, principalManager, true);
+        Util.checkValidPrincipal(principal, principalManager);
 
         String oakPath = (principal instanceof ItemBasedPrincipal) ? ((ItemBasedPrincipal) principal).getPath() : null;
         JackrabbitAccessControlPolicy policy = createPrincipalACL(oakPath, principal);
@@ -565,9 +569,11 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         @Override
         boolean checkValidPrincipal(Principal principal) throws AccessControlException {
             int importBehavior = Util.getImportBehavior(getConfig());
-            Util.checkValidPrincipal(principal, principalManager, ImportBehavior.BESTEFFORT != importBehavior);
+            if (!Util.checkValidPrincipal(principal, principalManager, importBehavior)) {
+                return false;
+            }
 
-            if (principal instanceof AdminPrincipal) {
+            if (PermissionUtil.isAdminOrSystem(ImmutableSet.of(principal), configParams)) {
                 log.warn("Attempt to create an ACE for the admin principal which always has full access.");
                 switch (Util.getImportBehavior(getConfig())) {
                     case ImportBehavior.ABORT:
@@ -643,7 +649,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
 
         @Override
         boolean checkValidPrincipal(Principal principal) throws AccessControlException {
-            Util.checkValidPrincipal(principal, principalManager, true);
+            Util.checkValidPrincipal(principal, principalManager);
             return true;
         }
 

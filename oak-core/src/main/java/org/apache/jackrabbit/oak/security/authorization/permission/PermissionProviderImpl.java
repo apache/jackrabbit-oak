@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.security.Principal;
-import java.util.Collections;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -37,8 +36,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
-import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
-import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 
 public class PermissionProviderImpl implements PermissionProvider, AccessControlConstants, PermissionConstants, AggregatedPermissionProvider {
@@ -61,7 +58,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
         immutableRoot = RootFactory.createReadOnlyRoot(root);
 
-        if (principals.contains(SystemPrincipal.INSTANCE) || isAdmin(principals)) {
+        if (PermissionUtil.isAdminOrSystem(principals, acConfig.getParameters())) {
             compiledPermissions = AllPermissions.getInstance();
         } else {
             compiledPermissions = CompiledPermissionImpl.create(immutableRoot, workspaceName, principals, acConfig);
@@ -146,16 +143,6 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     }
 
     //--------------------------------------------------------------------------
-
-    private boolean isAdmin(Set<Principal> principals) {
-        Set<String> adminNames = acConfig.getParameters().getConfigValue(PARAM_ADMINISTRATIVE_PRINCIPALS, Collections.EMPTY_SET);
-        for (Principal principal : principals) {
-            if (principal instanceof AdminPrincipal || adminNames.contains(principal.getName())) {
-                return true;
-            }
-        }
-        return false;
-    }
 
     private static boolean isVersionStorePath(@Nonnull String oakPath) {
         if (oakPath.indexOf(JcrConstants.JCR_SYSTEM) == 1) {
