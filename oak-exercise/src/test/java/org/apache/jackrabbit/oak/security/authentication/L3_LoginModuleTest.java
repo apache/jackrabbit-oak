@@ -104,7 +104,7 @@ import org.junit.Test;
  * @see javax.security.auth.spi.LoginModule
  * @see javax.security.auth.login.Configuration
  */
-public class L6_LoginModuleTest extends AbstractSecurityTest {
+public class L3_LoginModuleTest extends AbstractSecurityTest {
 
 
     @Override

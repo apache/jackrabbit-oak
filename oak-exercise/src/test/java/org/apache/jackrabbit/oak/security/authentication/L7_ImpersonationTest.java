@@ -86,7 +86,7 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  *   module, discuss how replacing the default login module chain will affect
  *   how {@link Session#impersonate(javax.jcr.Credentials)} works.
  *
- *   Question: Can you invent a different mechanism on how to validate if a given
+ *   Question: Can you think of a different mechanism on how to validate if a given
  *             impersonation requestion should succeed?
  *   Question: What are the classes present with Oak that you need to deal with
  *             in your custom implementation?

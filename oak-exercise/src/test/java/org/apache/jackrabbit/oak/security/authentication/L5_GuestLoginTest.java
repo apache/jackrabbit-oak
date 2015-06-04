@@ -69,7 +69,7 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  * Related Exercises:
  * -----------------------------------------------------------------------------
  *
- * - {@link L5_AnonymousIdTest ()}
+ * - {@link L6_AnonymousIdTest ()}
  * - {@link org.apache.jackrabbit.oak.security.user.L15_RepositoryWithoutAnonymousTest ()}
  * - {@link L9_NullLoginTest ()}
  *
@@ -80,7 +80,7 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  * @see org.apache.jackrabbit.api.security.user.User#changePassword(String, String)
  * @see org.apache.jackrabbit.api.security.user.User#disable(String)
  */
-public class L4_GuestLoginTest extends AbstractJCRTest {
+public class L5_GuestLoginTest extends AbstractJCRTest {
 
     private Repository repository;
     private Session testSession;

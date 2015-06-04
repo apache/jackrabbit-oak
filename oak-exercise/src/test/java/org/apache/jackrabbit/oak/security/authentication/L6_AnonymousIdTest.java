@@ -63,7 +63,7 @@ import static org.junit.Assert.assertEquals;
  *
  * @see javax.jcr.GuestCredentials
  */
-public class L5_AnonymousIdTest extends AbstractSecurityTest {
+public class L6_AnonymousIdTest extends AbstractSecurityTest {
 
     private ContentSession testSession;
 

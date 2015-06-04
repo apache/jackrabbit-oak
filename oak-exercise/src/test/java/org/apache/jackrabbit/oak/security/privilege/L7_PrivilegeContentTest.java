@@ -50,6 +50,12 @@ import org.junit.Test;
  *
  * TODO
  *
+ * Related Exercises:
+ * -----------------------------------------------------------------------------
+ *
+ * - {@link org.apache.jackrabbit.oak.security.authorization.permission.L4_PrivilegesAndPermissionsTest}
+ * - {@link org.apache.jackrabbit.oak.security.authorization.permission.L6_PermissionContentTest}
+ *
  * </pre>
  *
  * @see TODO

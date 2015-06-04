@@ -74,7 +74,7 @@ import org.junit.Test;
  * Related Exercises:
  * -----------------------------------------------------------------------------
  *
- * - {@link L6_LoginModuleTest}
+ * - {@link L3_LoginModuleTest}
  * - {@link L9_NullLoginTest}
  *
  * </pre>

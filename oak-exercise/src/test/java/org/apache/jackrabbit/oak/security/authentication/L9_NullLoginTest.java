@@ -66,7 +66,7 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  * Related Exercises:
  * -----------------------------------------------------------------------------
  *
- * - {@link L6_LoginModuleTest}
+ * - {@link L3_LoginModuleTest}
  * - {@link L8_PreAuthTest}
  *
  * </pre>

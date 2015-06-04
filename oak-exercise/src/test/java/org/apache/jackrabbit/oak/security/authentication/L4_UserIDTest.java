@@ -72,7 +72,7 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  * @see org.apache.jackrabbit.api.security.user.User#getID()
  * @see org.apache.jackrabbit.oak.api.AuthInfo#getUserID()
  */
-public class L3_UserIDTest extends AbstractJCRTest {
+public class L4_UserIDTest extends AbstractJCRTest {
 
     private Repository repository;
 
