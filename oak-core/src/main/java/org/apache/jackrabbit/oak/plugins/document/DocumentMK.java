@@ -502,6 +502,8 @@ public class DocumentMK implements MicroKernel {
         public static final int DEFAULT_CHILDREN_CACHE_PERCENTAGE = 10;
         public static final int DEFAULT_DIFF_CACHE_PERCENTAGE = 5;
         public static final int DEFAULT_DOC_CHILDREN_CACHE_PERCENTAGE = 3;
+        public static final int DEFAULT_CACHE_SEGMENT_COUNT = 16;
+        public static final int DEFAULT_CACHE_STACK_MOVE_DISTANCE = 16;
         private DocumentNodeStore nodeStore;
         private DocumentStore documentStore;
         private DiffCache diffCache;
@@ -518,6 +520,8 @@ public class DocumentMK implements MicroKernel {
         private int childrenCachePercentage = DEFAULT_CHILDREN_CACHE_PERCENTAGE;
         private int diffCachePercentage = DEFAULT_DIFF_CACHE_PERCENTAGE;
         private int docChildrenCachePercentage = DEFAULT_DOC_CHILDREN_CACHE_PERCENTAGE;
+        private int cacheSegmentCount = DEFAULT_CACHE_SEGMENT_COUNT;
+        private int cacheStackMoveDistance = DEFAULT_CACHE_STACK_MOVE_DISTANCE;
         private boolean useSimpleRevision;
         private long splitDocumentAgeMillis = 5 * 60 * 1000;
         private long offHeapCacheSize = -1;
@@ -721,6 +725,16 @@ public class DocumentMK implements MicroKernel {
          */
         public Builder setClusterId(int clusterId) {
             this.clusterId = clusterId;
+            return this;
+        }
+        
+        public Builder setCacheSegmentCount(int cacheSegmentCount) {
+            this.cacheSegmentCount = cacheSegmentCount;
+            return this;
+        }
+        
+        public Builder setCacheStackMoveDistance(int cacheSegmentCount) {
+            this.cacheStackMoveDistance = cacheSegmentCount;
             return this;
         }
 
@@ -947,6 +961,8 @@ public class DocumentMK implements MicroKernel {
                         weigher(weigher).
                         averageWeight(2000).
                         maximumWeight(maxWeight).
+                        segmentCount(cacheSegmentCount).
+                        stackMoveDistance(cacheStackMoveDistance).
                         recordStats().
                         build();
             }
