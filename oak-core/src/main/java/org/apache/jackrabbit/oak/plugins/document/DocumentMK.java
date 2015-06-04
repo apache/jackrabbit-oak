@@ -83,10 +83,14 @@ public class DocumentMK implements MicroKernel {
             "oak.documentMK.manyChildren", 50);
 
     /**
-     * Enable the LIRS cache.
+     * Enable or disable the LIRS cache (null to use the default setting for this configuration).
      */
-    static final boolean LIRS_CACHE = Boolean.parseBoolean(
-            System.getProperty("oak.documentMK.lirsCache", "false"));
+    static final Boolean LIRS_CACHE;
+    
+    static {
+        String s = System.getProperty("oak.documentMK.lirsCache");
+        LIRS_CACHE = s == null ? null : Boolean.parseBoolean(s);
+    }
 
     /**
      * Enable fast diff operations.
@@ -503,6 +507,8 @@ public class DocumentMK implements MicroKernel {
         public static final int DEFAULT_CHILDREN_CACHE_PERCENTAGE = 10;
         public static final int DEFAULT_DIFF_CACHE_PERCENTAGE = 5;
         public static final int DEFAULT_DOC_CHILDREN_CACHE_PERCENTAGE = 3;
+        public static final int DEFAULT_CACHE_SEGMENT_COUNT = 16;
+        public static final int DEFAULT_CACHE_STACK_MOVE_DISTANCE = 16;
         private DocumentNodeStore nodeStore;
         private DocumentStore documentStore;
         private DiffCache diffCache;
@@ -519,6 +525,8 @@ public class DocumentMK implements MicroKernel {
         private int childrenCachePercentage = DEFAULT_CHILDREN_CACHE_PERCENTAGE;
         private int diffCachePercentage = DEFAULT_DIFF_CACHE_PERCENTAGE;
         private int docChildrenCachePercentage = DEFAULT_DOC_CHILDREN_CACHE_PERCENTAGE;
+        private int cacheSegmentCount = DEFAULT_CACHE_SEGMENT_COUNT;
+        private int cacheStackMoveDistance = DEFAULT_CACHE_STACK_MOVE_DISTANCE;
         private boolean useSimpleRevision;
         private long splitDocumentAgeMillis = 5 * 60 * 1000;
         private long offHeapCacheSize = -1;
@@ -722,6 +730,16 @@ public class DocumentMK implements MicroKernel {
          */
         public Builder setClusterId(int clusterId) {
             this.clusterId = clusterId;
+            return this;
+        }
+        
+        public Builder setCacheSegmentCount(int cacheSegmentCount) {
+            this.cacheSegmentCount = cacheSegmentCount;
+            return this;
+        }
+        
+        public Builder setCacheStackMoveDistance(int cacheSegmentCount) {
+            this.cacheStackMoveDistance = cacheSegmentCount;
             return this;
         }
 
@@ -943,11 +961,20 @@ public class DocumentMK implements MicroKernel {
         
         private <K extends CacheValue, V extends CacheValue> Cache<K, V> buildCache(
                 long maxWeight) {
-            if (LIRS_CACHE || persistentCacheURI != null) {
+            // by default, use the LIRS cache when using the persistent cache,
+            // but don't use it otherwise
+            boolean useLirs = persistentCacheURI != null;
+            // allow to override this by using the system property
+            if (LIRS_CACHE != null) {
+                useLirs = LIRS_CACHE;
+            }
+            if (useLirs) {
                 return CacheLIRS.newBuilder().
                         weigher(weigher).
                         averageWeight(2000).
                         maximumWeight(maxWeight).
+                        segmentCount(cacheSegmentCount).
+                        stackMoveDistance(cacheStackMoveDistance).
                         recordStats().
                         build();
             }

@@ -24,9 +24,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nullable;
 
@@ -94,6 +94,15 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     private final Weigher<K, V> weigher;
     
     private final CacheLoader<K, V> loader;
+    
+    /**
+     * A concurrent hash map of keys where loading is in progress. Key: the
+     * cache key. Value: a synchronization object. The threads that wait for the
+     * value to be loaded need to wait on the synchronization object. The
+     * loading thread will notify all waiting threads once loading is done.
+     */
+    final ConcurrentHashMap<K, Object> loadingInProgress = 
+            new ConcurrentHashMap<K, Object>();
     
     /**
      * Create a new cache with the given number of entries, and the default
@@ -692,11 +701,6 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
          * The number of times any item was moved to the top of the stack.
          */
         private int stackMoveCounter;
-        
-        /**
-         * Whether the current segment is currently calling a value loader.
-         */
-        private AtomicBoolean isLoading = new AtomicBoolean();
 
         /**
          * Create a new cache.
@@ -842,38 +846,62 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         }
         
         V get(K key, int hash, Callable<? extends V> valueLoader) throws ExecutionException {
-            // we can not synchronize on a per-segment object while loading, as
-            // the value loader could access the cache (for example, using put,
-            // or another get with a loader), which might result in a deadlock
-            
-            // for at most 100 ms (100 x 1 ms), we avoid concurrent loading of
-            // multiple values in the same segment
-            for (int i = 0; i < 100; i++) {
+            // we can not synchronize on a per-segment object while loading,
+            // because we don't want to block cache access while loading, and
+            // because the value loader could access the cache (for example,
+            // using put, or another get with a loader), which might result in a
+            // deadlock
+            // we loop here because another thread might load the value,
+            // but loading might fail there, so we might need to repeat this
+            while (true) {
                 V value = get(key, hash);
+                // the (hopefully) normal case
                 if (value != null) {
                     return value;
                 }
-                if (!isLoading.getAndSet(true)) {
-                    value = load(key, hash, valueLoader);
-                    isLoading.set(false);
-                    synchronized (isLoading) {
-                        // notify the other thread
-                        isLoading.notifyAll();
-                    }
-                } else {
-                    // wait a bit, but at most until the other thread completed
-                    // loading
-                    synchronized (isLoading) {
+                ConcurrentHashMap<K, Object> loading = cache.loadingInProgress;
+                // the object we have to wait for in case another thread loads
+                // this value
+                Object alreadyLoading;
+                // synchronized on this object, even before we put it in the
+                // cache, so that all other threads that get this object can
+                // synchronized and wait for it
+                Object loadNow = new Object();
+                // we synchronize a bit early here, but that's fine (we don't
+                // optimize for the case where loading is extremely quick)
+                synchronized (loadNow) {
+                    alreadyLoading = loading.putIfAbsent(key, loadNow);
+                    if (alreadyLoading == null) {
+                        // we are loading ourselves
                         try {
-                            isLoading.wait(1);
-                        } catch (InterruptedException e) {
-                            // ignore
+                            return load(key, hash, valueLoader);
+                        } finally {
+                            loading.remove(key);
+                            // notify other threads
+                            loadNow.notifyAll();
                         }
+                    }
+                }             
+                // another thread is (or was) already loading
+                synchronized (alreadyLoading) {
+                    // loading might have been finished, so check again
+                    Object alreadyLoading2 = loading.get(key);
+                    if (alreadyLoading2 != alreadyLoading) {
+                        // loading has completed before we could synchronize,
+                        // so we repeat
+                        continue;
+                    }
+                    // still loading: wait
+                    try {
+                        // we could wait longer than 10 ms, but we are
+                        // in case notify is not called for some weird reason
+                        // (for example out of memory)
+                        alreadyLoading.wait(10);
+                    } catch (InterruptedException e) {
+                        // ignore
                     }
                 }
             }
-            // give up (that means, the same value might be loaded concurrently)
-            return load(key, hash, valueLoader);
         }
             
         V load(K key, int hash, Callable<? extends V> valueLoader) throws ExecutionException {
@@ -1375,6 +1403,8 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         private Weigher<?, ?> weigher;
         private long maxWeight;
         private int averageWeight = 100;
+        private int segmentCount = 16;
+        private int stackMoveDistance = 16;
 
         public Builder recordStats() {
             return this;
@@ -1401,6 +1431,24 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             return this;
         }
 
+        public Builder segmentCount(int segmentCount) {
+            if (Integer.bitCount(segmentCount) != 1 || segmentCount < 0 || segmentCount > 65536) {
+                LOG.warn("Illegal segment count: " + segmentCount + ", using 16");
+                segmentCount = 16;
+            }
+            this.segmentCount = segmentCount;
+            return this;
+        }
+
+        public Builder stackMoveDistance(int stackMoveDistance) {
+            if (stackMoveDistance < 0) {
+                LOG.warn("Illegal stack move distance: " + stackMoveDistance + ", using 16");
+                stackMoveDistance = 16;
+            }            
+            this.stackMoveDistance = stackMoveDistance;
+            return this;
+        }
+
         public <K, V> CacheLIRS<K, V> build() {
             return build(null);
         }
@@ -1409,7 +1457,8 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
                 CacheLoader<K, V> cacheLoader) {
             @SuppressWarnings("unchecked")
             Weigher<K, V> w = (Weigher<K, V>) weigher;
-            return new CacheLIRS<K, V>(w, maxWeight, averageWeight, 16, 16, cacheLoader);
+            return new CacheLIRS<K, V>(w, maxWeight, averageWeight, 
+                    segmentCount, stackMoveDistance, cacheLoader);
         }
 
     }
