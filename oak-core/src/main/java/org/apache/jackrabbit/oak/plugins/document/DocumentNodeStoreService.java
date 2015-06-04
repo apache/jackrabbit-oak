@@ -88,6 +88,8 @@ public class DocumentNodeStoreService {
     private static final int DEFAULT_BLOB_CACHE_SIZE = 16;
     private static final String DEFAULT_DB = "oak";
     private static final String DEFAULT_PERSISTENT_CACHE = "";
+    private static final int DEFAULT_CACHE_SEGMENT_COUNT = 16;
+    private static final int DEFAULT_CACHE_STACK_MOVE_DISTANCE = 16;
     private static final String PREFIX = "oak.documentstore.";
     private static final String DESCRIPTION = "oak.nodestore.description";
 
@@ -127,6 +129,23 @@ public class DocumentNodeStoreService {
     
     @Property(intValue = DEFAULT_DOC_CHILDREN_CACHE_PERCENTAGE)
     private static final String PROP_DOC_CHILDREN_CACHE_PERCENTAGE = "docChildrenCachePercentage";
+
+    @Property(intValue = DocumentMK.Builder.DEFAULT_CACHE_SEGMENT_COUNT,
+            label = "LIRS Cache Segment Count",
+            description = "The number of segments in the LIRS cache " + 
+                    "(default 16, a higher count means higher concurrency " + 
+                    "but slightly lower cache hit rate)"
+    )
+    private static final String PROP_CACHE_SEGMENT_COUNT = "cacheSegmentCount";
+
+    @Property(intValue = DocumentMK.Builder.DEFAULT_CACHE_STACK_MOVE_DISTANCE,
+            label = "LIRS Cache Stack Move Distance",
+            description = "The delay to move entries to the head of the queue " + 
+                    "in the LIRS cache " +
+                    "(default 16, a higher value means higher concurrency " + 
+                    "but slightly lower cache hit rate)"
+    )
+    private static final String PROP_CACHE_STACK_MOVE_DISTANCE = "cacheStackMoveDistance";
 
     @Property(intValue = DEFAULT_OFF_HEAP_CACHE)
     private static final String PROP_OFF_HEAP_CACHE = "offHeapCache";
@@ -264,6 +283,8 @@ public class DocumentNodeStoreService {
         int changesSize = toInteger(prop(PROP_CHANGES_SIZE), DEFAULT_CHANGES_SIZE);
         int blobCacheSize = toInteger(prop(PROP_BLOB_CACHE_SIZE), DEFAULT_BLOB_CACHE_SIZE);
         String persistentCache = PropertiesUtil.toString(prop(PROP_PERSISTENT_CACHE), DEFAULT_PERSISTENT_CACHE);
+        int cacheSegmentCount = toInteger(prop(PROP_CACHE_SEGMENT_COUNT), DEFAULT_CACHE_SEGMENT_COUNT);
+        int cacheStackMoveDistance = toInteger(prop(PROP_CACHE_STACK_MOVE_DISTANCE), DEFAULT_CACHE_STACK_MOVE_DISTANCE);
         boolean useMK = toBoolean(context.getProperties().get(PROP_USE_MK), false);
 
         DocumentMK.Builder mkBuilder =
@@ -274,6 +295,8 @@ public class DocumentNodeStoreService {
                         childrenCachePercentage, 
                         docChildrenCachePercentage, 
                         diffCachePercentage).
+                setCacheSegmentCount(cacheSegmentCount).
+                setCacheStackMoveDistance(cacheStackMoveDistance).
                 offHeapCacheSize(offHeapCache * MB);
         
         if (persistentCache != null && persistentCache.length() > 0) {
