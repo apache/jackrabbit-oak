@@ -52,15 +52,6 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  *
  *   Question: Is it possible to combine different user management implementations?
  *
- *
- * Advanced Exercises:
- * -----------------------------------------------------------------------------
- *
- * - Define an repository setup that doesn't require a user management implementation.
- *
- *   Question: Which parts need to be modified?
- *   Question: What are the consequences for Jcr/Jackrabbit API consumers?
- *
  * </pre>
  */
 public class L1_IntroductionTest extends AbstractJCRTest {
