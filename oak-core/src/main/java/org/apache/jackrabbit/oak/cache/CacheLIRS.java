@@ -1403,6 +1403,8 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         private Weigher<?, ?> weigher;
         private long maxWeight;
         private int averageWeight = 100;
+        private int segmentCount = 16;
+        private int stackMoveDistance = 16;
 
         public Builder recordStats() {
             return this;
@@ -1429,6 +1431,24 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             return this;
         }
 
+        public Builder segmentCount(int segmentCount) {
+            if (Integer.bitCount(segmentCount) != 1 || segmentCount < 0 || segmentCount > 65536) {
+                LOG.warn("Illegal segment count: " + segmentCount + ", using 16");
+                segmentCount = 16;
+            }
+            this.segmentCount = segmentCount;
+            return this;
+        }
+
+        public Builder stackMoveDistance(int stackMoveDistance) {
+            if (stackMoveDistance < 0) {
+                LOG.warn("Illegal stack move distance: " + stackMoveDistance + ", using 16");
+                stackMoveDistance = 16;
+            }            
+            this.stackMoveDistance = stackMoveDistance;
+            return this;
+        }
+
         public <K, V> CacheLIRS<K, V> build() {
             return build(null);
         }
@@ -1437,7 +1457,8 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
                 CacheLoader<K, V> cacheLoader) {
             @SuppressWarnings("unchecked")
             Weigher<K, V> w = (Weigher<K, V>) weigher;
-            return new CacheLIRS<K, V>(w, maxWeight, averageWeight, 16, 16, cacheLoader);
+            return new CacheLIRS<K, V>(w, maxWeight, averageWeight, 
+                    segmentCount, stackMoveDistance, cacheLoader);
         }
 
     }
