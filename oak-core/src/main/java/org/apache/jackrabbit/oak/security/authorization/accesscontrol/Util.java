@@ -43,15 +43,29 @@ final class Util implements AccessControlConstants {
     private Util() {}
 
     public static void checkValidPrincipal(@Nullable Principal principal,
-                                           @Nonnull PrincipalManager principalManager,
-                                           boolean verifyExists) throws AccessControlException {
+                                           @Nonnull PrincipalManager principalManager) throws AccessControlException {
+        checkValidPrincipal(principal, principalManager, ImportBehavior.ABORT);
+    }
+
+    public static boolean checkValidPrincipal(@Nullable Principal principal,
+                                              @Nonnull PrincipalManager principalManager,
+                                              int importBehavior) throws AccessControlException {
         String name = (principal == null) ? null : principal.getName();
         if (name == null || name.isEmpty()) {
             throw new AccessControlException("Invalid principal " + name);
         }
-        if (verifyExists && !(principal instanceof PrincipalImpl) && !principalManager.hasPrincipal(name)) {
-            throw new AccessControlException("Unknown principal " + name);
+        if (!(principal instanceof PrincipalImpl) && !principalManager.hasPrincipal(name)) {
+            switch (importBehavior) {
+                case ImportBehavior.ABORT:
+                    throw new AccessControlException("Unknown principal " + name);
+                case ImportBehavior.IGNORE:
+                    return false;
+                case ImportBehavior.BESTEFFORT:
+                    return true;
+                default: throw new IllegalArgumentException("Invalid import behavior " + importBehavior);
+            }
         }
+        return true;
     }
 
     public static void checkValidPrincipals(@Nullable Set<Principal> principals,
@@ -60,7 +74,7 @@ final class Util implements AccessControlConstants {
             throw new AccessControlException("Valid principals expected. Found null.");
         }
         for (Principal principal : principals) {
-            checkValidPrincipal(principal, principalManager, true);
+            checkValidPrincipal(principal, principalManager);
         }
     }
 
