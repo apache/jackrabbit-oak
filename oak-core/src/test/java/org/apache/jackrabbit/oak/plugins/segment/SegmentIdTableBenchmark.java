@@ -109,8 +109,11 @@ public class SegmentIdTableBenchmark {
                             return id;
                         }
                     }
+                    // guaranteed to work for power of 2 table sizes, see
+                    // http://stackoverflow.com/questions/2348187/moving-from-linear-probing-to-quadratic-probing-hash-collisons
+                    // http://stackoverflow.com/questions/12121217/limit-for-quadratic-probing-a-hash-table
                     index = (index + increment) & (length - 1);
-                    increment += increment;
+                    increment++;
                     if (increment > 100) {
                         System.out.println("inc " + increment);
                     }
