@@ -54,6 +54,11 @@ public final class FieldNames {
     public static final String FULLTEXT = ":fulltext";
 
     /**
+     * Name of the field that contains the suggest index.
+     */
+    public static final String SUGGEST = ":suggest";
+
+    /**
      * Name of the field that contains the spellcheck index.
      */
     public static final String SPELLCHECK = ":spellcheck";

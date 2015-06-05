@@ -16,31 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
-import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newDepthField;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newFulltextField;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newAncestorsField;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPropertyField;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil.getPrimaryTypeName;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import javax.annotation.Nullable;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-
-import com.google.common.collect.Sets;
-import com.google.common.io.CountingInputStream;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -67,7 +50,6 @@ import org.apache.lucene.document.LongField;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.SortedDocValuesField;
 import org.apache.lucene.document.StringField;
-import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.search.PrefixQuery;
 import org.apache.lucene.util.BytesRef;
@@ -76,6 +58,22 @@ import org.apache.tika.parser.ParseContext;
 import org.apache.tika.sax.WriteOutContentHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import com.google.common.io.CountingInputStream;
+
+import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newAncestorsField;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newDepthField;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newFulltextField;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPropertyField;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil.getPrimaryTypeName;
 
 /**
  * {@link IndexEditor} implementation that is responsible for keeping the
@@ -359,8 +357,21 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
             document.add(newDepthField(path));
         }
 
+        // because of LUCENE-5833 we have to merge the suggest fields into a single one
+        Field suggestField = null;
         for (Field f : fields) {
-            document.add(f);
+            if (FieldNames.SUGGEST.endsWith(f.name())) {
+                if (suggestField == null) {
+                    suggestField = f;
+                } else {
+                    suggestField = FieldFactory.newSuggestField(suggestField.stringValue(), f.stringValue());
+                }
+            } else {
+                document.add(f);
+            }
+        }
+        if (suggestField != null) {
+            document.add(suggestField);
         }
 
         //TODO Boost at document level
@@ -391,6 +402,10 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                     if (pd.analyzed && pd.includePropertyType(property.getType().tag())) {
                         String analyzedPropName = constructAnalyzedPropertyName(pname);
                         fields.add(newPropertyField(analyzedPropName, value, !pd.skipTokenization(pname), pd.stored));
+                    }
+
+                    if (pd.useInSuggest) {
+                        fields.add(newPropertyField(FieldNames.SUGGEST, value, true, false));
                     }
 
                     if (pd.useInSpellcheck) {
