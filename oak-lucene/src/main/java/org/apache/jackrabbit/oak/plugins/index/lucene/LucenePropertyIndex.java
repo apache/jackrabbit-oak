@@ -38,6 +38,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
@@ -92,6 +93,7 @@ import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.TotalHitCountCollector;
 import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.search.spell.SuggestWord;
 import org.apache.lucene.search.suggest.Lookup;
@@ -449,7 +451,31 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 this.lastSearchIndexerVersion = currentVersion;
             }
         };
-        return new LucenePathCursor(itr, plan, settings);
+        SizeEstimator sizeEstimator = new SizeEstimator() {
+            @Override
+            public long getSize() {
+                IndexNode indexNode = acquireIndexNode(plan);
+                checkState(indexNode != null);
+                try {
+                    IndexSearcher searcher = indexNode.getSearcher();
+                    LuceneRequestFacade luceneRequestFacade = getLuceneRequest(plan, searcher.getIndexReader());
+                    if (luceneRequestFacade.getLuceneRequest() instanceof Query) {
+                        Query query = (Query) luceneRequestFacade.getLuceneRequest();
+                        LOG.debug("estimate size for query " + query);
+                        TotalHitCountCollector collector = new TotalHitCountCollector();
+                        searcher.search(query, collector);
+                        return collector.getTotalHits();
+                    }
+                    LOG.debug("estimate size: not a Query: " + luceneRequestFacade.getLuceneRequest());
+                } catch (IOException e) {
+                    LOG.warn("query via {} failed.", LucenePropertyIndex.this, e);
+                } finally {
+                    indexNode.release();
+                }
+                return -1;
+            }
+        };
+        return new LucenePathCursor(itr, plan, settings, sizeEstimator);
     }
 
     @Override
@@ -1169,9 +1195,12 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         private final Cursor pathCursor;
         private final String pathPrefix;
         LuceneResultRow currentRow;
+        private final SizeEstimator sizeEstimator;
+        private long estimatedSize;
 
-        LucenePathCursor(final Iterator<LuceneResultRow> it, final IndexPlan plan, QueryEngineSettings settings) {
+        LucenePathCursor(final Iterator<LuceneResultRow> it, final IndexPlan plan, QueryEngineSettings settings, SizeEstimator sizeEstimator) {
             pathPrefix = plan.getPathPrefix();
+            this.sizeEstimator = sizeEstimator;
             Iterator<String> pathIterator = new Iterator<String>() {
 
                 @Override
@@ -1234,6 +1263,15 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 }
 
             };
+        }
+
+
+        @Override
+        public long getSize(SizePrecision precision, long max) {
+            if (estimatedSize != 0) {
+                return estimatedSize;
+            }
+            return estimatedSize = sizeEstimator.getSize();
         }
     }
 

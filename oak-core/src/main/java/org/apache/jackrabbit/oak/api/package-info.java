@@ -18,7 +18,7 @@
 /**
  * Oak repository API
  */
-@Version("1.0")
+@Version("2.0")
 @Export(optional = "provide:=true")
 package org.apache.jackrabbit.oak.api;
 
