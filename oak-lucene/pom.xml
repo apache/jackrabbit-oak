@@ -222,8 +222,18 @@
 
     <!-- Test Dependencies -->
     <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mongodb</groupId>
+      <artifactId>mongo-java-driver</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -242,6 +252,13 @@
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-jcr</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-commons</artifactId>
       <version>${project.version}</version>
       <type>test-jar</type>
       <scope>test</scope>
