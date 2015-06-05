@@ -55,7 +55,21 @@ public interface Query {
 
     Iterator<ResultRowImpl> getRows();
 
+    /**
+     * Get the size if known.
+     * 
+     * @return the size, or -1 if unknown
+     */
     long getSize();
+    
+    /**
+     * Get the size if known.
+     * 
+     * @param precision the required precision
+     * @param max the maximum nodes read (for an exact size)
+     * @return the size, or -1 if unknown
+     */
+    long getSize(Result.SizePrecision precision, long max);
 
     void setExplain(boolean explain);
 

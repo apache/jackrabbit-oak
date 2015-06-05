@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -264,6 +265,23 @@ public abstract class AbstractQueryTest {
 
     protected List<String> assertQuery(String sql, List<String> expected) {
         return assertQuery(sql, SQL2, expected);
+    }
+    
+    protected void assertResultSize(String query, String language, long expected) {
+        long time = System.currentTimeMillis();
+        try {
+            Result result = executeQuery(query, language, NO_BINDINGS);
+            // currently needed to iterate to really execute the query
+            result.getRows().iterator().hasNext();
+            long got = result.getSize(SizePrecision.APPROXIMATION, 0);
+            assertEquals(expected, got);
+        } catch (ParseException e) {
+            throw new RuntimeException(e);
+        }
+        time = System.currentTimeMillis() - time;
+        if (time > 10000 && !isDebugModeEnabled()) {
+            fail("Query took too long: " + query + " took " + time + " ms");
+        }
     }
 
     protected List<String> assertQuery(String sql, String language,

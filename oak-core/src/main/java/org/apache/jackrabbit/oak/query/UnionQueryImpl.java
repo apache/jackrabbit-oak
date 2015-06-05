@@ -22,6 +22,7 @@ import java.util.List;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
 import org.apache.jackrabbit.oak.query.ast.OrderingImpl;
@@ -143,7 +144,16 @@ public class UnionQueryImpl implements Query {
     public long getSize() {
         return size;
     }
-
+    
+    @Override
+    public long getSize(SizePrecision precision, long max) {
+        // Note: this does not respect the "unionAll == false" case
+        // (this can result in a larger reported size, but it is not a security problem)
+        return QueryImpl.saturatedAdd(
+                left.getSize(precision, max),
+                right.getSize(precision, max));
+    }
+    
     @Override
     public void setExplain(boolean explain) {
         this.explain = explain;

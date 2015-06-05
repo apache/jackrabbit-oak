@@ -59,4 +59,43 @@ public interface Result {
      */
     long getSize();
 
+    /**
+     * Get the number of rows, if known. If the size is not known, -1 is
+     * returned.
+     * 
+     * @param precision the required precision
+     * @param max the maximum number that should be returned (Long.MAX_VALUE for
+     *            unlimited). For EXACT, the cost of the operation is at most
+     *            O(max). For approximations, the cost of the operation should
+     *            be at most O(log max).
+     * @return the (approximate) size. If an implementation does know the exact
+     *         value, it returns it (even if the value is higher than max). If
+     *         the implementation does not know the value, and the child node
+     *         count is higher than max, it returns Long.MAX_VALUE.
+     */
+    long getSize(SizePrecision precision, long max);
+    
+    enum SizePrecision {
+   
+        /**
+         * If the exact number is needed.
+         */
+        EXACT,
+        
+        /**
+         * If a good, and secure estimate is needed (the actual number can be
+         * lower or higher). This is supposed to be faster than exact count, but
+         * slower than a fast approximation.
+         */
+        APPROXIMATION,
+        
+        /**
+         * If a rough estimate is needed (the actual number can be lower or
+         * higher). This is supposed to be faster than a good approximation. It
+         * could be (for example) the expected cost of the query.
+         */
+        FAST_APPROXIMATION,
+        
+    }
+
 }
