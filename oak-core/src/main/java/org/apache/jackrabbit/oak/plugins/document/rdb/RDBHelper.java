@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.plugins.document.rdb;
  */
 public class RDBHelper {
 
-    private static String[] databases = { "DB2", "Microsoft SQL Server", "MySQL", "Oracle", "PostgreSQL" };
+    private static String[] databases = { "Apache Derby", "DB2", "H2", "Microsoft SQL Server", "MySQL", "Oracle", "PostgreSQL", "default" };
 
     public static void main(String[] args) {
         for (String database : databases) {
