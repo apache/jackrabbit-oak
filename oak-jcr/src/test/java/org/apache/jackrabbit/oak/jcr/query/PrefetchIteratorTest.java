@@ -36,7 +36,7 @@ public class PrefetchIteratorTest {
         Iterable<Integer> s;
         PrefetchIterator<Integer> it;
         s = seq(0, 100);
-        it = new PrefetchIterator<Integer>(s.iterator(), 5, 0, 10, 200);
+        it = new PrefetchIterator<Integer>(s.iterator(), 5, 0, 10, 200, null);
         // reports the 'wrong' value as it was set manually
         assertEquals(200, it.size());
     }
@@ -49,12 +49,12 @@ public class PrefetchIteratorTest {
         // long delay (10 ms per row)
         long timeout = 10;
         s = seq(0, 100, 10);
-        it = new PrefetchIterator<Integer>(s.iterator(), 5, timeout, 1000, -1);
+        it = new PrefetchIterator<Integer>(s.iterator(), 5, timeout, 1000, -1, null);
         assertEquals(-1, it.size());
 
         // no delay
         s = seq(0, 100);
-        it = new PrefetchIterator<Integer>(s.iterator(), 5, timeout, 1000, -1);
+        it = new PrefetchIterator<Integer>(s.iterator(), 5, timeout, 1000, -1, null);
         assertEquals(100, it.size());
     }
 
@@ -68,7 +68,7 @@ public class PrefetchIteratorTest {
                 long timeout = size % 3 == 0 ? 100 : 0;
                 Iterable<Integer> s = seq(0, size);
                 PrefetchIterator<Integer> it = 
-                        new PrefetchIterator<Integer>(s.iterator(), 20, timeout, 30, -1);
+                        new PrefetchIterator<Integer>(s.iterator(), 20, timeout, 30, -1, null);
                 for (int x : seq(0, readBefore)) {
                     boolean hasNext = it.hasNext();
                     if (!hasNext) {

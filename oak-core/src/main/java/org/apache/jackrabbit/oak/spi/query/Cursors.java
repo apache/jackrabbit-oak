@@ -24,6 +24,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.query.FilterIterators;
@@ -124,6 +125,11 @@ public class Cursors {
             throw new UnsupportedOperationException();
         }
         
+        @Override
+        public long getSize(SizePrecision precision, long max) {
+            return -1;
+        }
+
     }
 
     /**

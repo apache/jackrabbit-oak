@@ -13,6 +13,7 @@
  */
 package org.apache.jackrabbit.oak.query;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -25,6 +26,7 @@ import java.util.Set;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.namepath.JcrPathParser;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.ast.AndImpl;
@@ -979,6 +981,12 @@ public class QueryImpl implements Query {
     public long getSize() {
         return size;
     }
+    
+    @Override
+    public long getSize(SizePrecision precision, long max) {
+        // Note: DISTINCT is ignored
+        return Math.min(limit, source.getSize(precision, max));
+    }
 
     public String getStatement() {
         return statement;
@@ -995,6 +1003,21 @@ public class QueryImpl implements Query {
 
     public ExecutionContext getExecutionContext() {
         return context;
+    }
+    
+    /**
+     * Add two values, but don't let it overflow or underflow.
+     * 
+     * @param x the first value
+     * @param y the second value
+     * @return the sum, or Long.MIN_VALUE for underflow, or Long.MAX_VALUE for
+     *         overflow
+     */
+    public static long saturatedAdd(long x, long y) {
+        BigInteger min = BigInteger.valueOf(Long.MIN_VALUE);
+        BigInteger max = BigInteger.valueOf(Long.MAX_VALUE);
+        BigInteger sum = BigInteger.valueOf(x).add(BigInteger.valueOf(y));
+        return sum.min(max).max(min).longValue();
     }
 
 }

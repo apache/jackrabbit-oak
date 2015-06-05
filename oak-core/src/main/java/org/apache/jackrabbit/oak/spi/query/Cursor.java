@@ -20,6 +20,8 @@ package org.apache.jackrabbit.oak.spi.query;
 
 import java.util.Iterator;
 
+import org.apache.jackrabbit.oak.api.Result.SizePrecision;
+
 /**
  * A cursor to read a number of nodes sequentially.
  */
@@ -50,5 +52,14 @@ public interface Cursor extends Iterator<IndexRow> {
      */
     @Override
     IndexRow next();
+
+    /**
+     * Get the size if known.
+     * 
+     * @param precision the required precision
+     * @param max the maximum nodes read (for an exact size)
+     * @return the size, or -1 if unknown
+     */
+    long getSize(SizePrecision precision, long max);
     
 }

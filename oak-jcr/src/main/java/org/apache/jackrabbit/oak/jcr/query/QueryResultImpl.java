@@ -137,7 +137,7 @@ public class QueryResultImpl implements QueryResult {
         final PrefetchIterator<RowImpl> prefIt = new  PrefetchIterator<RowImpl>(
                 sessionDelegate.sync(rowIterator),
                 PREFETCH_MIN, PREFETCH_TIMEOUT, PREFETCH_MAX, 
-                result.getSize());
+                result.getSize(), result);
         return new RowIteratorAdapter(prefIt) {
             @Override
             public long getSize() {
@@ -151,9 +151,8 @@ public class QueryResultImpl implements QueryResult {
         if (tree != null && tree.exists()) {
             NodeDelegate node = new NodeDelegate(sessionDelegate, tree);
             return NodeImpl.createNode(node, sessionContext);
-        } else {
-            return null;
         }
+        return null;
     }
 
     @Override
@@ -217,8 +216,8 @@ public class QueryResultImpl implements QueryResult {
         };
         final PrefetchIterator<NodeImpl<? extends NodeDelegate>> prefIt = new  PrefetchIterator<NodeImpl<? extends NodeDelegate>>(
                 sessionDelegate.sync(nodeIterator),
-                PREFETCH_MIN, PREFETCH_TIMEOUT, PREFETCH_MAX,
-                result.getSize());
+                PREFETCH_MIN, PREFETCH_TIMEOUT, PREFETCH_MAX, 
+                result.getSize(), result);
         return new NodeIteratorAdapter(prefIt) {
             @Override
             public long getSize() {
