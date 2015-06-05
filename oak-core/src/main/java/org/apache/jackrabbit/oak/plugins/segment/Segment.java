@@ -134,6 +134,24 @@ public class Segment {
 
     private volatile long accessed = 0;
 
+    /**
+     * Decode a 4 byte aligned segment offset.
+     * @param offset  4 byte aligned segment offset
+     * @return decoded segment offset
+     */
+    public static int decode(short offset) {
+        return (offset & 0xffff) << RECORD_ALIGN_BITS;
+    }
+
+    /**
+     * Encode a segment offset into a 4 byte aligned address packed into a {@code short}.
+     * @param offset  segment offset
+     * @return  encoded segment offset packed into a {@code short}
+     */
+    public static short encode(int offset) {
+        return (short) (offset >> RECORD_ALIGN_BITS);
+    }
+
     public Segment(SegmentTracker tracker, SegmentId id, ByteBuffer data) {
         this(tracker, id, data, V_11);
     }
@@ -344,7 +362,7 @@ public class Segment {
         return new RecordId(refid, offset << RECORD_ALIGN_BITS);
     }
 
-    String readString(final RecordId id) {
+    static String readString(final RecordId id) {
         return id.getSegmentId().getSegment().readString(id.getOffset());
     }
 

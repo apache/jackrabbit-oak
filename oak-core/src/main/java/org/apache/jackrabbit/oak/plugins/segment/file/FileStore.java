@@ -29,6 +29,7 @@ import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.segment.CompactionMap.sum;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.NO_COMPACTION;
 
 import java.io.File;
@@ -56,8 +57,9 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
-import org.apache.jackrabbit.oak.plugins.segment.CompactionMap;
 import org.apache.jackrabbit.oak.plugins.segment.Compactor;
+import org.apache.jackrabbit.oak.plugins.segment.CompactionMap;
+import org.apache.jackrabbit.oak.plugins.segment.PersistedCompactionMap;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
@@ -432,10 +434,10 @@ public class FileStore implements SegmentStore {
 
         Runtime runtime = Runtime.getRuntime();
         long avail = runtime.totalMemory() - runtime.freeMemory();
-        long delta = 0;
-        if (compactionStrategy.getCompactionMap() != null) {
-            delta = compactionStrategy.getCompactionMap().getLastWeight();
-        }
+        long[] weights = tracker.getCompactionMap().getEstimatedWeights();
+        long delta = weights.length > 0
+            ? weights[0]
+            : 0;
         long needed = delta * compactionStrategy.getMemoryThreshold();
         if (needed >= avail) {
             gcMonitor.skipped(
@@ -453,8 +455,12 @@ public class FileStore implements SegmentStore {
         compactionStrategy.setCompactionStart(System.currentTimeMillis());
         boolean compacted = false;
 
+        long offset = compactionStrategy.getPersistCompactionMap()
+            ? sum(tracker.getCompactionMap().getRecordCounts()) * PersistedCompactionMap.BYTES_PER_ENTRY
+            : 0;
+
         CompactionGainEstimate estimate = estimateCompactionGain();
-        long gain = estimate.estimateCompactionGain();
+        long gain = estimate.estimateCompactionGain(offset);
         if (gain >= 10) {
             gcMonitor.info(
                     "Estimated compaction in {}, gain is {}% ({}/{}) or ({}/{}), so running compaction",
@@ -671,15 +677,16 @@ public class FileStore implements SegmentStore {
                 toBeRemoved.addLast(file);
             }
         }
-        cm.compress(cleanedIds);
         readers = list;
+        cm.remove(cleanedIds);
         long finalSize = size();
         gcMonitor.cleaned(initialSize - finalSize, finalSize);
         gcMonitor.info("TarMK revision cleanup completed in {}. Post cleanup size is {} " +
                 "and space reclaimed {}. Compaction map weight/depth is {}/{}.", watch,
                 humanReadableByteCount(finalSize),
                 humanReadableByteCount(initialSize - finalSize),
-                humanReadableByteCount(cm.getEstimatedWeight()), cm.getDepth());
+                humanReadableByteCount(sum(cm.getEstimatedWeights())),
+                cm.getDepth());
     }
 
     /**
@@ -694,7 +701,10 @@ public class FileStore implements SegmentStore {
 
         long start = System.currentTimeMillis();
         SegmentWriter writer = new SegmentWriter(this, tracker, getVersion());
-        final Compactor compactor = new Compactor(writer, compactionStrategy.cloneBinaries());
+        SegmentWriter mapWriter = compactionStrategy.getPersistCompactionMap()
+            ? new SegmentWriter(this, tracker, getVersion())
+            : null;
+        final Compactor compactor = new Compactor(writer, mapWriter, compactionStrategy.cloneBinaries());
         SegmentNodeState before = getHead();
         long existing = before.getChildNode(SegmentNodeStore.CHECKPOINTS)
                 .getChildNodeCount(Long.MAX_VALUE);
@@ -992,6 +1002,7 @@ public class FileStore implements SegmentStore {
 
     public FileStore setCompactionStrategy(CompactionStrategy strategy) {
         this.compactionStrategy = strategy;
+        log.info("Compaction strategy set to: {}", strategy);
         return this;
     }
 
@@ -1076,16 +1087,16 @@ public class FileStore implements SegmentStore {
             // needs to be called inside the commitSemaphore as doing otherwise
             // might result in mixed segments. See OAK-2192.
             if (setHead(before, after)) {
-                CompactionMap cm = compactor.getCompactionMap();
-                tracker.setCompactionMap(cm);
-                compactionStrategy.setCompactionMap(cm);
+                tracker.setCompactionMap(compactor.getCompactionMap());
 
                 // Drop the SegmentWriter caches and flush any existing state
                 // in an attempt to prevent new references to old pre-compacted
-                // content. TODO: There should be a cleaner way to do this.
+                // content. TODO: There should be a cleaner way to do this. (implement GCMonitor!?)
                 tracker.getWriter().dropCache();
                 tracker.getWriter().flush();
-                gcMonitor.compacted();
+
+                CompactionMap cm = tracker.getCompactionMap();
+                gcMonitor.compacted(cm.getSegmentCounts(), cm.getRecordCounts(), cm.getEstimatedWeights());
                 tracker.clearSegmentIdTables(compactionStrategy);
                 return true;
             } else {
@@ -1125,8 +1136,8 @@ public class FileStore implements SegmentStore {
         }
 
         @Override
-        public void compacted() {
-            delegatee.compacted();
+        public void compacted(long[] segmentCounts, long[] recordCounts, long[] compactionMapWeights) {
+            delegatee.compacted(segmentCounts, recordCounts, compactionMapWeights);
         }
 
         @Override

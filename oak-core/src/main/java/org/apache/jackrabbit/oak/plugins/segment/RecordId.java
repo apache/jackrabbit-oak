@@ -77,6 +77,13 @@ public final class RecordId implements Comparable<RecordId> {
         return offset;
     }
 
+    /**
+     * @return  the segment id part of this record id as UUID
+     */
+    public UUID asUUID() {
+        return segmentId.asUUID();
+    }
+
     public Segment getSegment() {
         return segmentId.getSegment();
     }

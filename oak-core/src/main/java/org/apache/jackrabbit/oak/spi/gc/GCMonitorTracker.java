@@ -60,9 +60,9 @@ public class GCMonitorTracker extends AbstractServiceTracker<GCMonitor> implemen
     }
 
     @Override
-    public void compacted() {
+    public void compacted(long[] segmentCounts, long[] recordCounts, long[] compactionMapWeights) {
         for (GCMonitor gcMonitor : getServices()) {
-            gcMonitor.compacted();
+            gcMonitor.compacted(segmentCounts, recordCounts, compactionMapWeights);
         }
     }
 

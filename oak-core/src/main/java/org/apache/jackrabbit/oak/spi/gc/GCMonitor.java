@@ -61,8 +61,12 @@ public interface GCMonitor {
 
     /**
      * The compaction phase of the garbage collection process terminated successfully.
+     * @param segmentCounts    number of segments in the individual generations of the map
+     * @param recordCounts     number of records in the individual generations of the map
+     * @param compactionMapWeights   weights of the individual generations of the map
+     * @see org.apache.jackrabbit.oak.plugins.segment.PartialCompactionMap
      */
-    void compacted();
+    void compacted(long[] segmentCounts, long[] recordCounts, long[] compactionMapWeights);
 
     /**
      * The cleanup phase of the garbage collection process terminated successfully.
@@ -76,7 +80,7 @@ public interface GCMonitor {
         @Override public void warn(String message, Object[] arguments) { }
         @Override public void error(String message, Exception e) { }
         @Override public void skipped(String reason, Object[] arguments) { }
-        @Override public void compacted() { }
+        @Override public void compacted(long[] segmentCounts, long[] recordCounts, long[] compactionMapWeights) { }
         @Override public void cleaned(long reclaimedSize, long currentSize) { }
     }
 }

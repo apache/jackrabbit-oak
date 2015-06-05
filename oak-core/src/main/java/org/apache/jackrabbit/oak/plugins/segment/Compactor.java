@@ -61,7 +61,7 @@ public class Compactor {
 
     private final SegmentWriter writer;
 
-    private final CompactionMap map;
+    private final PartialCompactionMap map;
 
     /**
      * Map from {@link #getBlobKey(Blob) blob keys} to matching compacted
@@ -77,12 +77,16 @@ public class Compactor {
     private final boolean cloneBinaries;
 
     public Compactor(SegmentWriter writer) {
-        this(writer, false);
+        this(writer, null, false);
     }
 
-    public Compactor(SegmentWriter writer, boolean cloneBinaries) {
+    public Compactor(SegmentWriter writer, SegmentWriter mapWriter, boolean cloneBinaries) {
         this.writer = writer;
-        this.map = new CompactionMap(100000, writer.getTracker());
+        if (mapWriter != null) {
+            this.map = new PersistedCompactionMap(mapWriter);
+        } else {
+            this.map = new InMemoryCompactionMap(writer.getTracker());
+        }
         this.cloneBinaries = cloneBinaries;
     }
 
@@ -99,7 +103,7 @@ public class Compactor {
         return compacted;
     }
 
-    public CompactionMap getCompactionMap() {
+    public PartialCompactionMap getCompactionMap() {
         map.compress();
         return map;
     }

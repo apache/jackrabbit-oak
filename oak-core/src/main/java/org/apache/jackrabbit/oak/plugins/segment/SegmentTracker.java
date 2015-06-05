@@ -80,7 +80,7 @@ public class SegmentTracker {
     /**
      * Hash table of weak references to segment identifiers that are
      * currently being accessed. The size of the table is always a power
-     * of two, which optimizes the {@code refresh} operation. The table is
+     * of two, which optimizes the {@code refresh()} operation. The table is
      * indexed by the random identifier bits, which guarantees uniform
      * distribution of entries. Each table entry is either {@code null}
      * (when there are no matching identifiers) or a list of weak references
@@ -90,7 +90,7 @@ public class SegmentTracker {
 
     private final LinkedList<Segment> segments = newLinkedList();
 
-    private long currentSize = 0;
+    private long currentSize;
 
     public SegmentTracker(SegmentStore store, int cacheSizeMB,
             SegmentVersion version) {
@@ -102,7 +102,7 @@ public class SegmentTracker {
         this.writer = new SegmentWriter(store, this, version);
         this.cacheSize = cacheSizeMB * MB;
         this.compactionMap = new AtomicReference<CompactionMap>(
-                new CompactionMap(1, this));
+                CompactionMap.EMPTY);
     }
 
     public SegmentTracker(SegmentStore store, SegmentVersion version) {
@@ -177,9 +177,8 @@ public class SegmentTracker {
         }
     }
 
-    public void setCompactionMap(CompactionMap compaction) {
-        compaction.merge(compactionMap.get());
-        compactionMap.set(compaction);
+    public void setCompactionMap(PartialCompactionMap map) {
+        compactionMap.set(compactionMap.get().cons(map));
     }
 
     @Nonnull

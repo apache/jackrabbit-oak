@@ -24,10 +24,8 @@ import static java.lang.System.currentTimeMillis;
 
 import java.util.concurrent.Callable;
 
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.plugins.segment.CompactionMap;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 
 public abstract class CompactionStrategy {
@@ -76,6 +74,8 @@ public abstract class CompactionStrategy {
 
     public static final byte MEMORY_THRESHOLD_DEFAULT = 5;
 
+    public static final boolean PERSIST_COMPACTION_MAP_DEFAULT = true;
+
     /**
      * Default value for {@link #getRetryCount()}
      */
@@ -114,11 +114,11 @@ public abstract class CompactionStrategy {
 
     private byte memoryThreshold = MEMORY_THRESHOLD_DEFAULT;
 
+    private boolean persistedCompactionMap = PERSIST_COMPACTION_MAP_DEFAULT;
+
     private int retryCount = RETRY_COUNT_DEFAULT;
 
     private boolean forceAfterFail = FORCE_AFTER_FAIL_DEFAULT;
-
-    private CompactionMap compactionMap;
 
     private long compactionStart = currentTimeMillis();
 
@@ -169,10 +169,6 @@ public abstract class CompactionStrategy {
         this.olderThan = olderThan;
     }
 
-    public void setCompactionMap(@Nonnull CompactionMap compactionMap) {
-        this.compactionMap = checkNotNull(compactionMap);
-    }
-
     String getCleanupType() {
         return cleanupType.toString();
     }
@@ -181,16 +177,20 @@ public abstract class CompactionStrategy {
         return olderThan;
     }
 
-    @CheckForNull
-    public CompactionMap getCompactionMap() {
-        return this.compactionMap;
-    }
 
     @Override
     public String toString() {
-        return "DefaultCompactionStrategy [pauseCompaction=" + paused
-                + ", cloneBinaries=" + cloneBinaries + ", cleanup=" + cleanupType
-                + ", olderThan=" + olderThan + ']';
+        return "CompactionStrategy{" +
+                "paused=" + paused +
+                ", cloneBinaries=" + cloneBinaries +
+                ", cleanupType=" + cleanupType +
+                ", olderThan=" + olderThan +
+                ", memoryThreshold=" + memoryThreshold +
+                ", persistedCompactionMap=" + persistedCompactionMap +
+                ", retryCount=" + retryCount +
+                ", forceAfterFail=" + forceAfterFail +
+                ", compactionStart=" + compactionStart +
+                '}';
     }
 
     public void setCompactionStart(long ms) {
@@ -203,6 +203,14 @@ public abstract class CompactionStrategy {
 
     public void setMemoryThreshold(byte memoryThreshold) {
         this.memoryThreshold = memoryThreshold;
+    }
+
+    public boolean getPersistCompactionMap() {
+        return persistedCompactionMap;
+    }
+
+    public void setPersistCompactionMap(boolean persist) {
+        persistedCompactionMap = persist;
     }
 
     /**

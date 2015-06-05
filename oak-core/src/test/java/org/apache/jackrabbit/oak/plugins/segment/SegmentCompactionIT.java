@@ -33,6 +33,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.commons.io.FileUtils.deleteDirectory;
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
+import static org.apache.jackrabbit.oak.plugins.segment.CompactionMap.sum;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType.CLEAN_OLD;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.MEMORY_THRESHOLD_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.segment.file.FileStore.newFileStore;
@@ -98,6 +99,8 @@ import org.slf4j.LoggerFactory;
  * TODO Leverage longeivity test support from OAK-2771 once we have it.
  */
 public class SegmentCompactionIT {
+    private static final boolean PERSIST_COMPACTION_MAP = Boolean.getBoolean("persist-compaction-map");
+
     /** Only run if explicitly asked to via -Dtest=SegmentCompactionIT */
     private static final boolean ENABLED =
             SegmentCompactionIT.class.getSimpleName().equals(getProperty("test"));
@@ -218,11 +221,12 @@ public class SegmentCompactionIT {
 
         fileStore = newFileStore(directory).withGCMonitor(gcMonitor).create();
         nodeStore = new SegmentNodeStore(fileStore);
+        compactionStrategy.setPersistCompactionMap(PERSIST_COMPACTION_MAP);
         fileStore.setCompactionStrategy(compactionStrategy);
     }
 
     @After
-    public void tearDown() throws InterruptedException {
+    public void tearDown() {
         try {
             if (mBeanRegistration != null) {
                 mBeanRegistration.unregister();
@@ -469,7 +473,7 @@ public class SegmentCompactionIT {
             return child;
         }
 
-        protected final PropertyState chooseRandomProperty(NodeState node) throws Exception {
+        protected final PropertyState chooseRandomProperty(NodeState node) {
             int count = (int) node.getPropertyCount();
             if (count > 0) {
                 return get(node.getProperties(), rnd.nextInt(count));
@@ -570,8 +574,8 @@ public class SegmentCompactionIT {
         }
 
         @Override
-        public void compacted() {
-            delegate.compacted();
+        public void compacted(long[] segmentCounts, long[] recordCounts, long[] compactionMapWeights) {
+            delegate.compacted(segmentCounts, recordCounts, compactionMapWeights);
             lastCompacted = System.currentTimeMillis();
         }
 
@@ -715,6 +719,11 @@ public class SegmentCompactionIT {
         }
 
         @Override
+        public boolean getPersistCompactionMap() {
+            return compactionStrategy.getPersistCompactionMap();
+        }
+
+        @Override
         public int getReaderCount() {
             return readers.size();
         }
@@ -739,14 +748,28 @@ public class SegmentCompactionIT {
             }
         }
 
+        private CompactionMap getCompactionMap() {
+            return fileStore.getTracker().getCompactionMap();
+        }
+
         @Override
         public long getCompactionMapWeight() {
-            return fileStore.getTracker().getCompactionMap().getEstimatedWeight();
+            return sum(getCompactionMap().getEstimatedWeights());
+        }
+
+        @Override
+        public long getSegmentCount() {
+            return sum(getCompactionMap().getSegmentCounts());
+        }
+
+        @Override
+        public long getRecordCount() {
+            return sum(getCompactionMap().getRecordCounts());
         }
 
         @Override
         public int getCompactionMapDepth() {
-            return fileStore.getTracker().getCompactionMap().getDepth();
+             return getCompactionMap().getDepth();
         }
 
         @Override

@@ -28,6 +28,7 @@ import static org.junit.Assume.assumeTrue;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -35,6 +36,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.FixturesHelper;
@@ -49,10 +51,25 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class HeavyWriteIT {
     private static final Set<Fixture> FIXTURES = FixturesHelper.getFixtures();
+
+    private final boolean usePersistedMap;
+
     private File directory;
+
+    @Parameterized.Parameters
+    public static List<Boolean[]> fixtures() {
+        return ImmutableList.of(new Boolean[] {true}, new Boolean[] {false});
+    }
+
+    public HeavyWriteIT(boolean usePersistedMap) {
+        this.usePersistedMap = usePersistedMap;
+    }
 
     @BeforeClass
     public static void checkFixtures() {
@@ -77,13 +94,15 @@ public class HeavyWriteIT {
     public void heavyWrite() throws IOException, CommitFailedException, InterruptedException {
         final FileStore store = new FileStore(directory, 128, false);
         final SegmentNodeStore nodeStore = new SegmentNodeStore(store);
-        store.setCompactionStrategy(new CompactionStrategy(false, false,
+        CompactionStrategy custom = new CompactionStrategy(false, false,
                 CLEAN_OLD, 30000, (byte) 0) {
             @Override
             public boolean compacted(@Nonnull Callable<Boolean> setHead) throws Exception {
                 return nodeStore.locked(setHead);
             }
-        });
+        };
+        custom.setPersistCompactionMap(usePersistedMap);
+        store.setCompactionStrategy(custom);
 
         int writes = 100;
         final AtomicBoolean run = new AtomicBoolean(true);

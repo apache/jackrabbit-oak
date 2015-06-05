@@ -98,6 +98,9 @@ public class CompactionAndCleanupTest {
                 return nodeStore.locked(setHead);
             }
         };
+        // Use in memory compaction map as gains asserted later on
+        // do not take additional space of the compaction map into consideration
+        custom.setPersistCompactionMap(false);
         fileStore.setCompactionStrategy(custom);
 
         // 1a. Create a bunch of data
