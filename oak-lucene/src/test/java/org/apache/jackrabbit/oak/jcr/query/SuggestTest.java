@@ -28,14 +28,33 @@ import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
 
 import org.apache.jackrabbit.core.query.AbstractQueryTest;
+import org.junit.After;
+import org.junit.Before;
 
 /**
  * Tests the suggest support.
  */
 public class SuggestTest extends AbstractQueryTest {
 
+    @Before
+    public void setUp() throws Exception {
+        super.setUp();
+
+        // change suggester update frequency
+        superuser.getNode("/oak:index/luceneGlobal").setProperty("suggestUpdateFrequencyMinutes", 0);
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        // reset suggester update frequency
+        superuser.getNode("/oak:index/luceneGlobal").setProperty("suggestUpdateFrequencyMinutes", 10);
+
+        super.tearDown();
+    }
+
     public void testSuggestSql() throws Exception {
         Session session = superuser;
+
         QueryManager qm = session.getWorkspace().getQueryManager();
         Node n1 = testRootNode.addNode("node1");
         n1.setProperty("jcr:title", "in 2015 my fox is red, like mike's fox and john's fox");
