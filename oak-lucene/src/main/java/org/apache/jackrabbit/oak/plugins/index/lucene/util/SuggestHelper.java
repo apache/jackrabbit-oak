@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
+import java.io.IOException;
 import java.io.Reader;
 import java.util.Collections;
 import java.util.List;
@@ -25,6 +26,8 @@ import java.util.List;
 import org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.MultiFields;
+import org.apache.lucene.index.Terms;
 import org.apache.lucene.search.suggest.DocumentDictionary;
 import org.apache.lucene.search.suggest.Lookup;
 import org.apache.lucene.search.suggest.analyzing.FreeTextSuggester;
@@ -47,14 +50,25 @@ public class SuggestHelper {
         }
     };
 
+    private static final Lookup suggester = new FreeTextSuggester(analyzer);
+
+    public static void updateSuggester(IndexReader reader) throws IOException {
+//        Terms terms = MultiFields.getTerms(reader, FieldNames.SUGGEST);
+//        long size = terms.size() * 2;
+//        if (size < 0) {
+//            size = terms.getDocCount() / 3;
+//        }
+//        long count = suggester.getCount();
+//        if (size  > count) {
+            try {
+                suggester.build(new DocumentDictionary(reader, FieldNames.SUGGEST, FieldNames.PATH_DEPTH));
+            } catch (RuntimeException e) {
+                log.debug("could not update the suggester", e);
+            }
+//        }
+    }
+
     public static List<Lookup.LookupResult> getSuggestions(SuggestQuery suggestQuery) {
-        FreeTextSuggester suggester = new FreeTextSuggester(analyzer);
-        try {
-            DocumentDictionary dictionary = suggestQuery.getDictionary();
-            suggester.build(dictionary); // TODO : it should be possible to avoid rebuilding the index every time
-        } catch (Exception e) {
-            log.warn("could not build suggester from the passed dictionary ", e);
-        }
         try {
             long count = suggester.getCount();
             if (count > 0) {
@@ -67,7 +81,7 @@ public class SuggestHelper {
         }
     }
 
-    public static SuggestQuery getSuggestQuery(String suggestQueryString, IndexReader reader) {
+    public static SuggestQuery getSuggestQuery(String suggestQueryString) {
         try {
             String text = null;
             for (String param : suggestQueryString.split("&")) {
@@ -81,7 +95,7 @@ public class SuggestHelper {
                 }
             }
             if (text != null) {
-                return new SuggestQuery(new DocumentDictionary(reader, FieldNames.SUGGEST, FieldNames.PATH_DEPTH), text, analyzer);
+                return new SuggestQuery(text);
             } else {
                 return null;
             }
@@ -93,33 +107,20 @@ public class SuggestHelper {
 
     public static class SuggestQuery {
 
-        private final DocumentDictionary dictionary;
         private final String text;
-        private final Analyzer analyzer;
 
-        public SuggestQuery(DocumentDictionary dictionary, String text, Analyzer analyzer) {
-            this.dictionary = dictionary;
+        public SuggestQuery(String text) {
             this.text = text;
-            this.analyzer = analyzer;
-        }
-
-        public DocumentDictionary getDictionary() {
-            return dictionary;
         }
 
         public String getText() {
             return text;
         }
 
-        public Analyzer getAnalyzer() {
-            return analyzer;
-        }
-
         @Override
         public String toString() {
             return "SuggestQuery{" +
-                    "dictionary=" + dictionary +
-                    ", text='" + text + '\'' +
+                    "text='" + text + '\'' +
                     '}';
         }
     }

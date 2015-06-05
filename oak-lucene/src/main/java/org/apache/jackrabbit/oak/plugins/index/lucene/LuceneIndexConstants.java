@@ -210,6 +210,11 @@ public interface LuceneIndexConstants {
     String PROP_USE_IN_SUGGEST = "useInSuggest";
 
     /**
+     * update frequency of the suggester in minutes
+     */
+    String SUGGEST_UPDATE_FREQUENCY_MINUTES = "suggestUpdateFrequencyMinutes";
+
+    /**
      * Boolean property indicating that Lucene directory content
      * should be saved as part of NodeState itself as a multi value property
      * to allow faster reads (OAK-2809)

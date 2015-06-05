@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
 import org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames;
+import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.spell.DirectSpellChecker;
@@ -29,9 +30,11 @@ import org.apache.lucene.search.spell.SuggestWord;
  * under the hood.
  */
 public class SpellcheckHelper {
+
+    private static final DirectSpellChecker spellChecker = new DirectSpellChecker();
+
     public static SuggestWord[] getSpellcheck(SpellcheckQuery spellcheckQuery) {
         try {
-            DirectSpellChecker spellChecker = new DirectSpellChecker();
             return spellChecker.suggestSimilar(spellcheckQuery.getTerm(), spellcheckQuery.getCount(), spellcheckQuery.getReader());
         } catch (Exception e) {
             throw new RuntimeException("could not handle Spellcheck query " + spellcheckQuery, e);
