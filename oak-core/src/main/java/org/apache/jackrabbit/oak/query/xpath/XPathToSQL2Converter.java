@@ -215,6 +215,10 @@ public class XPathToSQL2Converter {
                         read(")");                        
                         Expression.Property p = new Expression.Property(currentSelector, "rep:spellcheck()", false);
                         statement.addSelectColumn(p);
+                    } else if (readIf("rep:suggest")) {
+                        readExcerpt();
+                        Expression.Property p = new Expression.Property(currentSelector, "rep:suggest()", false);
+                        statement.addSelectColumn(p);
                     }
                 } while (readIf("|"));
                 read(")");
@@ -635,9 +639,13 @@ public class XPathToSQL2Converter {
             Expression term = parseExpression();
             read(")");
             return new Expression.Spellcheck(term);
+        } else if ("rep:suggest".equals(functionName)) {
+            Expression term = parseExpression();
+            read(")");
+            return new Expression.Suggest(term);
         } else {
             throw getSyntaxError("jcr:like | jcr:contains | jcr:score | xs:dateTime | " + 
-                    "fn:lower-case | fn:upper-case | fn:name | rep:similar | rep:spellcheck");
+                    "fn:lower-case | fn:upper-case | fn:name | rep:similar | rep:spellcheck | rep:suggest");
         }
     }
 

@@ -85,4 +85,5 @@ public interface AstVisitor {
     
     boolean visit(SpellcheckImpl node);
 
+    boolean visit(SuggestImpl suggest);
 }
