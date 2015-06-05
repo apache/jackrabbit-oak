@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -29,15 +28,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-
 import javax.annotation.CheckForNull;
 import javax.jcr.PropertyType;
 
-import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Queues;
-import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.api.Type;
@@ -47,6 +40,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRu
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexPlanner.PlanResult;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.MoreLikeThisHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SpellcheckHelper;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
@@ -97,12 +91,19 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.TotalHitCountCollector;
 import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.search.spell.SuggestWord;
+import org.apache.lucene.search.suggest.Lookup;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Version;
 import org.apache.lucene.util.automaton.Automaton;
 import org.apache.lucene.util.automaton.CompiledAutomaton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Queues;
+import com.google.common.collect.Sets;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
@@ -392,6 +393,15 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
 
                         queue.add(new LuceneResultRow(suggestedWords));
                         noDocs = true;
+                    } else if (luceneRequestFacade.getLuceneRequest() instanceof SuggestHelper.SuggestQuery) {
+                        SuggestHelper.SuggestQuery suggestQuery = (SuggestHelper.SuggestQuery) luceneRequestFacade.getLuceneRequest();
+                        List<Lookup.LookupResult> lookupResults = SuggestHelper.getSuggestions(suggestQuery);
+                        Collection<String> suggestedWords = new ArrayList<String>(lookupResults.size());
+                        for (Lookup.LookupResult suggestWord : lookupResults) {
+                            suggestedWords.add("{term=" + suggestWord.key + ",weight=" + suggestWord.value + "}");
+                            }
+                        queue.add(new LuceneResultRow(suggestedWords));
+                        noDocs = true;
                     }
                 } catch (IOException e) {
                     LOG.warn("query via {} failed.", LucenePropertyIndex.this, e);
@@ -565,6 +575,12 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 String spellcheckQueryString = query.replace("spellcheck?", "");
                 if (reader != null) {
                     return new LuceneRequestFacade<SpellcheckHelper.SpellcheckQuery>(SpellcheckHelper.getSpellcheckQuery(spellcheckQueryString, reader));
+                }
+            } else if (query.startsWith("suggest?")) {
+                String suggestQueryString = query.replace("suggest?", "");
+                if (reader != null) {
+                    return new LuceneRequestFacade<SuggestHelper.SuggestQuery>(SuggestHelper.getSuggestQuery(suggestQueryString,
+                            reader));
                 }
             } else {
                 try {
@@ -1303,7 +1319,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                     if (QueryImpl.JCR_SCORE.equals(columnName)) {
                         return PropertyValues.newDouble(currentRow.score);
                     }
-                    if (QueryImpl.REP_SPELLCHECK.equals(columnName)) {
+                    if (QueryImpl.REP_SPELLCHECK.equals(columnName) || QueryImpl.REP_SUGGEST.equals(columnName)) {
                         return PropertyValues.newString(Iterables.toString(currentRow.suggestWords));
                     }
                     return pathRow.getValue(columnName);

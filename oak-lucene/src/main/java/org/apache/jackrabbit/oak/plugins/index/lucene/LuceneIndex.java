@@ -16,26 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static com.google.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getAncestorPath;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getDepth;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newFulltextTerm;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.skipTokenization;
-import static org.apache.jackrabbit.oak.query.QueryImpl.JCR_PATH;
-import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
-import static org.apache.lucene.search.BooleanClause.Occur.MUST;
-import static org.apache.lucene.search.BooleanClause.Occur.MUST_NOT;
-import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
-
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -48,12 +28,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
-
-import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Queues;
-import com.google.common.collect.Sets;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
@@ -61,6 +35,7 @@ import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.MoreLikeThisHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SpellcheckHelper;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
@@ -104,12 +79,38 @@ import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.search.spell.SuggestWord;
+import org.apache.lucene.search.suggest.Lookup;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Version;
 import org.apache.lucene.util.automaton.Automaton;
 import org.apache.lucene.util.automaton.CompiledAutomaton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Queues;
+import com.google.common.collect.Sets;
+
+import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getAncestorPath;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getDepth;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newFulltextTerm;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.skipTokenization;
+import static org.apache.jackrabbit.oak.query.QueryImpl.JCR_PATH;
+import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
+import static org.apache.lucene.search.BooleanClause.Occur.MUST;
+import static org.apache.lucene.search.BooleanClause.Occur.MUST_NOT;
+import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
 
 /**
  * Provides a QueryIndex that does lookups against a Lucene-based index
@@ -196,7 +197,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
         if (indexPath == null) { // unusable index
             return Collections.emptyList();
         }
-        Set<String> relPaths = getRelativePaths(ft);
+        final Set<String> relPaths = getRelativePaths(ft);
         if (relPaths.size() > 1) {
             LOG.warn("More than one relative parent for query " + filter.getQueryStatement());
             // there are multiple "parents", as in
@@ -396,6 +397,15 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
 
                         queue.add(new LuceneResultRow(suggestedWords));
                         noDocs = true;
+                    } else if (luceneRequestFacade.getLuceneRequest() instanceof SuggestHelper.SuggestQuery) {
+                        SuggestHelper.SuggestQuery suggestQuery = (SuggestHelper.SuggestQuery) luceneRequestFacade.getLuceneRequest();
+                        List<Lookup.LookupResult> lookupResults = SuggestHelper.getSuggestions(suggestQuery);
+                        Collection<String> suggestedWords = new ArrayList<String>(lookupResults.size());
+                        for (Lookup.LookupResult suggestWord : lookupResults) {
+                            suggestedWords.add("{term=" + suggestWord.key + ",weight=" + suggestWord.value + "}");
+                        }
+                        queue.add(new LuceneResultRow(suggestedWords));
+                        noDocs = true;
                     }
                 } catch (IOException e) {
                     LOG.warn("query via {} failed.", LuceneIndex.this, e);
@@ -520,6 +530,11 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                 String spellcheckQueryString = query.replace("spellcheck?", "");
                 if (reader != null) {
                     return new LuceneRequestFacade<SpellcheckHelper.SpellcheckQuery>(SpellcheckHelper.getSpellcheckQuery(spellcheckQueryString, reader));
+                }
+            } else if (query.startsWith("suggest?")) {
+                String suggestQueryString = query.replace("suggest?", "");
+                if (reader != null) {
+                    return new LuceneRequestFacade<SuggestHelper.SuggestQuery>(SuggestHelper.getSuggestQuery(suggestQueryString, reader));
                 }
             } else {
                 try {
@@ -1089,7 +1104,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                     if (QueryImpl.JCR_SCORE.equals(columnName)) {
                         return PropertyValues.newDouble(currentRow.score);
                     }
-                    if (QueryImpl.REP_SPELLCHECK.equals(columnName)) {
+                    if (QueryImpl.REP_SPELLCHECK.equals(columnName) || QueryImpl.REP_SUGGEST.equals(columnName)) {
                         return PropertyValues.newString(Iterables.toString(currentRow.suggestWords));
                     }
                     return pathRow.getValue(columnName);

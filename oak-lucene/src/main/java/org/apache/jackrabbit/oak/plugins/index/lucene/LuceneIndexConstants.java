@@ -205,6 +205,11 @@ public interface LuceneIndexConstants {
     String PROP_USE_IN_SPELLCHECK = "useInSpellcheck";
 
     /**
+     * whether use this property values for suggestions
+     */
+    String PROP_USE_IN_SUGGEST = "useInSuggest";
+
+    /**
      * Boolean property indicating that Lucene directory content
      * should be saved as part of NodeState itself as a multi value property
      * to allow faster reads (OAK-2809)
