@@ -71,15 +71,17 @@ public final class MicroBenchmark {
             System.out.println(this);
             if (statistics.getN() > 0) {
                 System.out.format(
-                        "%6s  %6s  %6s  %6s  %6s  %6s%n",
-                        "min", "10%", "50%", "90%", "max", "N");
+                        "%6s  %6s  %6s  %6s  %6s  %6s  %6s  %6s%n",
+                        "min", "10%", "50%", "90%", "max", "mean", "stdev", "N");
                 System.out.format(
-                        "%6.0f  %6.0f  %6.0f  %6.0f  %6.0f  %6d%n",
+                        "%6.0f  %6.0f  %6.0f  %6.0f  %6.0f  %6.0f  %6.0f  %6d%n",
                         statistics.getMin() / 1000000,
                         statistics.getPercentile(10.0) / 1000000,
                         statistics.getPercentile(50.0) / 1000000,
                         statistics.getPercentile(90.0) / 1000000,
                         statistics.getMax() / 1000000,
+                        statistics.getMean() / 1000000,
+                        statistics.getStandardDeviation() / 1000000,
                         statistics.getN());
             } else {
                 System.out.println("No results");

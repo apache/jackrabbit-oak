@@ -72,6 +72,4 @@ public interface CompactionStrategyMBean {
      * @param retryCount
      */
     void setRetryCount(int retryCount);
-
-    String getCompactionMapStats();
 }

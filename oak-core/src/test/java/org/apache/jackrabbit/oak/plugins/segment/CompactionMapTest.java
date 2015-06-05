@@ -16,26 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.collect.Iterables.get;
-import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
-import static com.google.common.collect.Maps.newLinkedHashMap;
-import static com.google.inject.internal.util.$Sets.newHashSet;
-import static java.io.File.createTempFile;
-import static junit.framework.Assert.assertTrue;
-import static org.apache.jackrabbit.oak.commons.benchmark.MicroBenchmark.run;
-import static org.apache.jackrabbit.oak.plugins.segment.Segment.MAX_SEGMENT_SIZE;
-import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ALIGN_BITS;
+import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.plugins.segment.CompactionMap.sum;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.V_11;
-import static org.apache.jackrabbit.oak.plugins.segment.file.FileStore.newFileStore;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assume.assumeTrue;
+import static org.apache.jackrabbit.oak.plugins.segment.TestUtils.randomRecordIdMap;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -43,265 +36,136 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
-import com.google.common.base.Stopwatch;
-import org.apache.jackrabbit.oak.commons.benchmark.MicroBenchmark.Benchmark;
-import org.junit.After;
-import org.junit.Before;
+import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class CompactionMapTest {
-    private static final boolean BENCH = Boolean.getBoolean("benchmark");
-    private static final int SEED = Integer.getInteger("SEED", new Random().nextInt());
+    private final SegmentStore store = new MemoryStore();
+    private final SegmentTracker tracker = new SegmentTracker(store);
+    private final Random rnd = new Random();
 
-    private final Random rnd = new Random(SEED);
+    private final Map<RecordId, RecordId> referenceMap1;
+    private final Map<RecordId, RecordId> referenceMap2;
+    private final Map<RecordId, RecordId> referenceMap3;
+    private final Map<RecordId, RecordId> referenceMap = newHashMap();
 
-    private File directory;
-    private SegmentStore segmentStore;
+    private final PartialCompactionMap compactionMap1;
+    private final PartialCompactionMap compactionMap2;
+    private final PartialCompactionMap compactionMap3;
+    private final CompactionMap compactionMap;
 
-    private CompactionMap map;
-    private Map<RecordId, RecordId> reference;
-
-    @Before
-    public void setup() throws IOException {
-        directory = createTempFile(CompactionMapTest.class.getSimpleName(), "dir", new File("target"));
-        directory.delete();
-        directory.mkdir();
-
-        segmentStore = newFileStore(directory).create();
-        SegmentWriter writer = new SegmentWriter(segmentStore, getTracker(), V_11);
-        map = new CompactionMap(100000, writer.getTracker());
-        reference = newLinkedHashMap();
+    @Parameterized.Parameters
+    public static List<Boolean[]> fixtures() {
+        return ImmutableList.of(new Boolean[] {true}, new Boolean[] {false});
     }
 
-    @After
-    public void tearDown() {
-        segmentStore.close();
-        directory.delete();
-    }
-
-    private SegmentTracker getTracker() {
-        return segmentStore.getTracker();
-    }
-
-    /**
-     * Returns a new valid record offset, between {@code a} and {@code b},
-     * exclusive.
-     */
-    private static int newValidOffset(Random random, int a, int b) {
-        int p = (a >> RECORD_ALIGN_BITS) + 1;
-        int q = (b >> RECORD_ALIGN_BITS);
-        return (p + random.nextInt(q - p)) << RECORD_ALIGN_BITS;
-    }
-
-    private Map<RecordId, RecordId> randomMap(int maxSegments, int maxEntriesPerSegment) {
-        Map<RecordId, RecordId> map = newHashMap();
-        int segments = rnd.nextInt(maxSegments);
-        for (int i = 0; i < segments; i++) {
-            SegmentId id = getTracker().newDataSegmentId();
-            int n = rnd.nextInt(maxEntriesPerSegment);
-            int offset = MAX_SEGMENT_SIZE;
-            for (int j = 0; j < n; j++) {
-                offset = newValidOffset(rnd, (n - j) << RECORD_ALIGN_BITS, offset);
-                RecordId before = new RecordId(id, offset);
-                RecordId after = new RecordId(
-                        getTracker().newDataSegmentId(),
-                        newValidOffset(rnd, 0, MAX_SEGMENT_SIZE));
-                map.put(before, after);
-            }
-        }
-        return map;
-    }
-
-    private void addRandomEntries(int maxSegments, int maxEntriesPerSegment) {
-        for (Entry<RecordId, RecordId> tuple : randomMap(maxSegments, maxEntriesPerSegment).entrySet()) {
-            reference.put(tuple.getKey(), tuple.getValue());
-            map.put(tuple.getKey(), tuple.getValue());
+    private static PartialCompactionMap createCompactionMap(SegmentTracker tracker, SegmentWriter writer) {
+        if (writer != null) {
+            return new PersistedCompactionMap(writer);
+        } else {
+            return new InMemoryCompactionMap(tracker);
         }
     }
 
-    private void removeRandomEntries(int count) {
-        Set<SegmentId> remove = newHashSet();
-        for (int k = 0; k < count && !reference.isEmpty(); k++) {
-            int j = rnd.nextInt(reference.size());
-            remove.add(get(reference.keySet(), j).getSegmentId());
-        }
+    public CompactionMapTest(boolean usePersistedMap) {
+        SegmentWriter writer = usePersistedMap
+            ? new SegmentWriter(store, tracker, V_11)
+            : null;
+        compactionMap1 = createCompactionMap(tracker, writer);
+        referenceMap1 = randomRecordIdMap(rnd, tracker, 10, 10);
+        putAll(compactionMap1, referenceMap1);
+        referenceMap.putAll(referenceMap1);
 
-        Set<UUID> removeUUIDs = newHashSet();
-        for (SegmentId sid : remove) {
-            removeUUIDs.add(new UUID(sid.getMostSignificantBits(), sid.getLeastSignificantBits()));
-            Iterator<RecordId> it = reference.keySet().iterator();
-            while (it.hasNext()) {
-                if (sid.equals(it.next().getSegmentId())) {
-                    it.remove();
-                }
-            }
-        }
+        compactionMap2 = createCompactionMap(tracker, writer);
+        referenceMap2 = randomRecordIdMap(rnd, tracker, 10, 10);
+        putAll(compactionMap2, referenceMap2);
+        referenceMap.putAll(referenceMap2);
 
-        map.compress(removeUUIDs);
+        compactionMap3 = createCompactionMap(tracker, writer);
+        referenceMap3 = randomRecordIdMap(rnd, tracker, 10, 10);
+        putAll(compactionMap3, referenceMap3);
+        referenceMap.putAll(referenceMap3);
+
+        this.compactionMap = CompactionMap.EMPTY.cons(compactionMap3).cons(compactionMap2).cons(compactionMap1);
     }
 
-    private void checkMap() {
-        for (Entry<RecordId, RecordId> entry : reference.entrySet()) {
-            assertTrue("Failed with seed " + SEED,
-                    map.wasCompactedTo(entry.getKey(), entry.getValue()));
-            assertFalse("Failed with seed " + SEED,
-                    map.wasCompactedTo(entry.getValue(), entry.getKey()));
+    private static void putAll(PartialCompactionMap map1, Map<RecordId, RecordId> recordIdRecordIdMap) {
+        for (Entry<RecordId, RecordId> tuple : recordIdRecordIdMap.entrySet()) {
+            map1.put(tuple.getKey(), tuple.getValue());
         }
     }
 
     @Test
-    public void randomTest() {
-        int maxSegments = 10000;
-        int maxEntriesPerSegment = 10;
-
-        for (int k = 0; k < 10; k++) {
-            addRandomEntries(rnd.nextInt(maxSegments) + 1, rnd.nextInt(maxEntriesPerSegment) + 1);
-            if (!reference.isEmpty()) {
-                removeRandomEntries(rnd.nextInt(reference.size()));
-            }
-            checkMap();
+    public void checkExistingKeys() {
+        for (Entry<RecordId, RecordId> reference : referenceMap.entrySet()) {
+            assertEquals(reference.getValue(), compactionMap.get((reference.getKey())));
         }
-        map.compress();
-        checkMap();
     }
 
     @Test
-    public void benchLargeMap() {
-        assumeTrue(BENCH);
-
-        // check the memory use of really large mappings, 1M compacted segments with 10 records each.
-        Runtime runtime = Runtime.getRuntime();
-        Stopwatch timer = Stopwatch.createStarted();
-        for (int i = 0; i < 1000000; i++) {
-            if (i % 100000 == 0) {
-                System.gc();
-                System.out.println(
-                        i + ": " + (runtime.totalMemory() - runtime.freeMemory()) /
-                                (1024 * 1024) + "MB, " + timer.toString());
-                timer.reset();
-                timer.start();
-            }
-            SegmentId sid = getTracker().newDataSegmentId();
-            for (int j = 0; j < 10; j++) {
-                RecordId rid = new RecordId(sid, j << RECORD_ALIGN_BITS);
-                map.put(rid, rid);
+    public void checkNonExistingKeys() {
+        for (RecordId keys : randomRecordIdMap(rnd, tracker, 10, 10).keySet()) {
+            if (!referenceMap.containsKey(keys)) {
+                assertNull(compactionMap.get(keys));
             }
         }
-        map.compress();
-
-        System.gc();
-        System.out.println(
-                "final: " + (runtime.totalMemory() - runtime.freeMemory()) /
-                        (1024 * 1024) + "MB, " + timer.toString());
     }
 
     @Test
-    public void benchPut() throws Exception {
-        assumeTrue(BENCH);
+    public void removeSome() {
+        Set<UUID> removedUUIDs = newHashSet();
+        for (int k = 0; k < 1 + rnd.nextInt(referenceMap.size()); k++) {
+            RecordId key = get(referenceMap.keySet(), rnd.nextInt(referenceMap.size()));
+            removedUUIDs.add(key.asUUID());
+        }
 
-        run(new PutBenchmark(0, 0));
-        run(new PutBenchmark(1000, 10));
-        run(new PutBenchmark(10000, 10));
-        run(new PutBenchmark(100000, 10));
-        run(new PutBenchmark(1000000, 10));
+        compactionMap.remove(removedUUIDs);
+
+        for (Entry<RecordId, RecordId> reference : referenceMap.entrySet()) {
+            RecordId key = reference.getKey();
+            if (removedUUIDs.contains(key.asUUID())) {
+                assertNull(compactionMap.get(key));
+            } else {
+                assertEquals(reference.getValue(), compactionMap.get(key));
+            }
+        }
+    }
+
+    private static long countUUIDs(Set<RecordId> recordIds) {
+        Set<UUID> uuids = newHashSet();
+        for (RecordId recordId : recordIds) {
+            uuids.add(recordId.asUUID());
+        }
+        return uuids.size();
     }
 
     @Test
-    public void benchGet() throws Exception {
-        assumeTrue(BENCH);
+    public void removeGeneration() {
+        compactionMap1.compress();
+        compactionMap2.compress();
+        compactionMap3.compress();
 
-        run(new GetBenchmark(1000, 10));
-        run(new GetBenchmark(10000, 10));
-        run(new GetBenchmark(100000, 10));
-        run(new GetBenchmark(1000000, 10));
-    }
+        assertArrayEquals(new long[]{10, 10, 10}, compactionMap.getSegmentCounts());
+        assertArrayEquals(new long[] {100, 100, 100}, compactionMap.getRecordCounts());
 
-    private class PutBenchmark extends Benchmark {
-        private final int maxSegments;
-        private final int maxEntriesPerSegment;
+        int expectedDepth = 3;
+        long expectedSize = countUUIDs(referenceMap.keySet());
+        assertEquals(expectedDepth, compactionMap.getDepth());
+        assertEquals(expectedSize, sum(compactionMap.getSegmentCounts()));
 
-        private Map<RecordId, RecordId> putIds;
-
-        public PutBenchmark(int maxSegments, int maxEntriesPerSegment) {
-            this.maxSegments = maxSegments;
-            this.maxEntriesPerSegment = maxEntriesPerSegment;
-        }
-
-        @Override
-        public void setup() throws IOException {
-            if (maxSegments > 0) {
-                addRandomEntries(maxSegments, maxEntriesPerSegment);
+        for (Map<RecordId, RecordId> referenceMap : ImmutableList.of(referenceMap2, referenceMap1, referenceMap3)) {
+            Set<UUID> removedUUIDs = newHashSet();
+            for (RecordId key : referenceMap.keySet()) {
+                removedUUIDs.add(key.asUUID());
             }
-        }
-
-        @Override
-        public void beforeRun() throws Exception {
-            putIds = randomMap(1000, 10);
-        }
-
-        @Override
-        public void run() {
-            for (Entry<RecordId, RecordId> tuple : putIds.entrySet()) {
-                map.put(tuple.getKey(), tuple.getValue());
-            }
-        }
-
-        @Override
-        public String toString() {
-            return "Put benchmark: maxSegments=" + maxSegments + ", maxEntriesPerSegment=" + maxEntriesPerSegment;
-        }
-    }
-
-    private class GetBenchmark extends Benchmark {
-        private final int maxSegments;
-        private final int maxEntriesPerSegment;
-
-        private final List<RecordId> getCandidateIds = newArrayList();
-        private final List<RecordId> getIds = newArrayList();
-
-        public GetBenchmark(int maxSegments, int maxEntriesPerSegment) {
-            this.maxSegments = maxSegments;
-            this.maxEntriesPerSegment = maxEntriesPerSegment;
-        }
-
-        @Override
-        public void setup() throws IOException {
-            addRandomEntries(maxSegments, maxEntriesPerSegment);
-            map.compress();
-            for (RecordId recordId : reference.keySet()) {
-                if (rnd.nextInt(reference.size()) % 10000 == 0) {
-                    getCandidateIds.add(recordId);
-                }
-            }
-            for (int k = 0; k < 10000; k++) {
-                getCandidateIds.add(new RecordId(
-                        getTracker().newDataSegmentId(),
-                        newValidOffset(rnd, 0, MAX_SEGMENT_SIZE)));
-            }
-        }
-
-        @Override
-        public void beforeRun() throws Exception {
-            for (int k = 0; k < 10000; k ++) {
-                getIds.add(getCandidateIds.get(rnd.nextInt(getCandidateIds.size())));
-            }
-        }
-
-        @Override
-        public void run() {
-            for (RecordId id : getIds) {
-                map.get(id);
-            }
-        }
-
-        @Override
-        public void afterRun() throws Exception {
-            getIds.clear();
-        }
-
-        @Override
-        public String toString() {
-            return "Get benchmark: maxSegments=" + maxSegments + ", maxEntriesPerSegment=" + maxEntriesPerSegment;
+            compactionMap.remove(removedUUIDs);
+            assertEquals(--expectedDepth, compactionMap.getDepth());
+            expectedSize -= removedUUIDs.size();
+            assertEquals(expectedSize, sum(compactionMap.getSegmentCounts()));
         }
     }
 

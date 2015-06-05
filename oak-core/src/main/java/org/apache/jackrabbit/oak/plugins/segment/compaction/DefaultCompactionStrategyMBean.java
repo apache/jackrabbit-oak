@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.plugins.segment.compaction;
 
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
-import org.apache.jackrabbit.oak.plugins.segment.CompactionMap;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType;
 
 public class DefaultCompactionStrategyMBean
@@ -102,14 +101,5 @@ public class DefaultCompactionStrategyMBean
     @Override
     public void setRetryCount(int retryCount) {
         strategy.setRetryCount(retryCount);
-    }
-
-    @Override
-    public String getCompactionMapStats() {
-        CompactionMap cm = strategy.getCompactionMap();
-        if (cm != null) {
-            return cm.getCompactionStats();
-        }
-        return "";
     }
 }

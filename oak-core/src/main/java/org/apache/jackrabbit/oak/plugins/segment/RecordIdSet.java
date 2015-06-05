@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import static com.google.common.collect.Maps.newHashMap;
 import static java.lang.System.arraycopy;
 import static java.util.Arrays.binarySearch;
+import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ALIGN_BITS;
 
 import java.util.Map;
 
@@ -61,7 +62,7 @@ public class RecordIdSet {
     }
 
     private static short crop(int value) {
-        return (short) (value >> Segment.RECORD_ALIGN_BITS);
+        return (short) (value >> RECORD_ALIGN_BITS);
     }
 
     static class ShortSet {

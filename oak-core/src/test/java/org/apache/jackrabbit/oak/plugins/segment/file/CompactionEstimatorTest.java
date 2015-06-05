@@ -88,7 +88,7 @@ public class CompactionEstimatorTest {
         try {
             // should be at 66%
             assertTrue(fileStore.estimateCompactionGain()
-                    .estimateCompactionGain() > 60);
+                    .estimateCompactionGain(0) > 60);
         } finally {
             fileStore.close();
         }

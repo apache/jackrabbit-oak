@@ -55,6 +55,12 @@ public interface GCMonitorMBean {
     String getStatus();
 
     /**
+     * Statistics about the compaction map.
+     */
+    @Nonnull
+    String getCompactionMapStats();
+
+    /**
      * @return  time series of the repository size
      */
     @Nonnull

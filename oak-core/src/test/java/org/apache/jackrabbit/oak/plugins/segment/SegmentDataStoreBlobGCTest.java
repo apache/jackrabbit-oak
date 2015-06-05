@@ -35,9 +35,11 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nonnull;
+
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-
 import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -56,21 +58,33 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.After;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nonnull;
 
 /**
  * Tests for SegmentNodeStore DataStore GC
  */
+@RunWith(Parameterized.class)
 public class SegmentDataStoreBlobGCTest {
     private static final Logger log = LoggerFactory.getLogger(SegmentDataStoreBlobGCTest.class);
+
+    private final boolean usePersistedMap;
 
     SegmentNodeStore nodeStore;
     FileStore store;
     DataStoreBlobStore blobStore;
     Date startDate;
+
+    @Parameterized.Parameters
+    public static List<Boolean[]> fixtures() {
+        return ImmutableList.of(new Boolean[] {true}, new Boolean[] {false});
+    }
+
+    public SegmentDataStoreBlobGCTest(boolean usePersistedMap) {
+        this.usePersistedMap = usePersistedMap;
+    }
 
     protected SegmentNodeStore getNodeStore(BlobStore blobStore) throws IOException {
         if (nodeStore == null) {
@@ -83,6 +97,7 @@ public class SegmentDataStoreBlobGCTest {
                         return setHead.call();
                     }
                 };
+            compactionStrategy.setPersistCompactionMap(usePersistedMap);
             store.setCompactionStrategy(compactionStrategy);
             nodeStore = new SegmentNodeStore(store);
         }

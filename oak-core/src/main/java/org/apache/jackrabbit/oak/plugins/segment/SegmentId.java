@@ -46,7 +46,7 @@ public class SegmentId implements Comparable<SegmentId> {
 
     private final long lsb;
 
-    private final long creationTime;
+    private long creationTime;
 
     /**
      * A reference to the segment object, if it is available in memory. It is
@@ -123,6 +123,20 @@ public class SegmentId implements Comparable<SegmentId> {
 
     public long getCreationTime() {
         return creationTime;
+    }
+
+    /**
+     * Pins this segment so it won't be cleaned by the {@code CLEAN_OLD} strategy.
+     */
+    void pin() {
+        creationTime = Long.MAX_VALUE;
+    }
+
+    /**
+     * @return  this segment id as UUID
+     */
+    public UUID asUUID() {
+        return new UUID(msb, lsb);
     }
 
     // --------------------------------------------------------< Comparable >--
