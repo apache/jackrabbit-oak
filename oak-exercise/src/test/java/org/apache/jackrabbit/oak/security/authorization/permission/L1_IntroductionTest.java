@@ -127,13 +127,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public class L1_IntroductionTest extends AbstractSecurityTest {
 
-    ContentSession testSession;
+    private ContentSession testSession;
 
     @Override
     public void before() throws Exception {
         super.before();
         testSession = createTestSession();
-
 
         Principal testPrincipal = getTestUser().getPrincipal();
 
@@ -155,8 +154,6 @@ public class L1_IntroductionTest extends AbstractSecurityTest {
         setupPermission(root, "/a/b/c", testPrincipal, true, PrivilegeConstants.JCR_ALL);
 
         root.commit();
-
-
     }
 
     @Override

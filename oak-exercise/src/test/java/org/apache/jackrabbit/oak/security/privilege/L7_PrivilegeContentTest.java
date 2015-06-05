@@ -54,7 +54,7 @@ import org.junit.Test;
  * -----------------------------------------------------------------------------
  *
  * - {@link org.apache.jackrabbit.oak.security.authorization.permission.L4_PrivilegesAndPermissionsTest}
- * - {@link org.apache.jackrabbit.oak.security.authorization.permission.L6_PermissionContentTest}
+ * - {@link org.apache.jackrabbit.oak.security.authorization.permission.L7_PermissionContentTest}
  *
  * </pre>
  *

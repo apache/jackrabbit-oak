@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.security.Principal;
 import java.util.Map;
+import javax.jcr.AccessDeniedException;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
@@ -36,6 +37,7 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.security.ExerciseUtility;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
@@ -112,6 +114,18 @@ import org.apache.jackrabbit.test.api.util.Text;
  *   Question: Can you explain the required values if the test user was allowed
  *   to remove properties instead? -> Modify the test to verify your expectations.
  *
+ * - {@link #testChangingPrimaryAndMixinTypes()}
+ *   In order to change the primary (or mixin) type(s) of a given existing node
+ *   the editing session must have {@link Privilege#JCR_NODE_TYPE_MANAGEMENT}
+ *   privilege granted.
+ *   For consistency with this requirement, also {@link Node#addNode(String, String)},
+ *   which explicitly specifies the primary type requires this privilege as
+ *   the effective operation is equivalent to the combination of:
+ *   1. {@link Node#addNode(String)} +
+ *   2. {@link Node#setPrimaryType(String)}
+ *   Use this test case to become familiar with setting or changing the primary
+ *   type and modifying the set of mixin types.
+ *
  *
  * Additional Exercises:
  * -----------------------------------------------------------------------------
@@ -168,7 +182,8 @@ import org.apache.jackrabbit.test.api.util.Text;
  * Related Exercises
  * -----------------------------------------------------------------------------
  *
- * - {@link org.apache.jackrabbit.oak.security.authorization.permission.L6_PermissionContentTest}
+ * - {@link org.apache.jackrabbit.oak.security.authorization.permission.L5_SpecialPermissionsTest}
+ * - {@link L7_PermissionContentTest }
  *
  * </pre>
  */
@@ -439,5 +454,52 @@ public class L4_PrivilegesAndPermissionsTest extends AbstractJCRTest {
                 userSession.refresh(false);
             }
         }
+    }
+
+    public void testChangingPrimaryAndMixinTypes() throws RepositoryException {
+        // 1 - grant privilege to change node type information
+        // TODO: fill in the required privilege name such that the test passes
+        String privilegeName = null;
+        AccessControlUtils.addAccessControlEntry(superuser, childPath, testPrincipal, new String[] {privilegeName}, true);
+        superuser.save();
+
+        Session userSession = createTestSession();
+        Node n = userSession.getNode(childPath);
+        n.setPrimaryType(NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        n.addMixin(JcrConstants.MIX_REFERENCEABLE);
+        userSession.save();
+
+        // 2 - additionally grant privilege to add a child node
+        // TODO: extend the set of privileges such that the adding a child node succeeds as well
+        privilegeName = null;
+        AccessControlUtils.addAccessControlEntry(superuser, childPath, testPrincipal, new String[] {privilegeName}, true);
+        superuser.save();
+
+        userSession.refresh(false);
+        userSession.getNode(childPath).addNode(nodeName4, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        userSession.save();
+
+        // 3 - revoke privilege to change node type information
+        // TODO: change the permission setup again such that the rest of the test passes
+        superuser.save();
+
+        userSession.refresh(false);
+        n = userSession.getNode(childPath);
+        n.addNode(nodeName3);
+        userSession.save();
+
+        try {
+            n.addNode(nodeName1, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+            userSession.save();
+            fail("Adding node with explicitly the primary type should fail");
+        } catch (AccessDeniedException e) {
+            // success
+        } finally {
+            userSession.refresh(false);
+        }
+
+
+        AccessControlUtils.addAccessControlEntry(superuser, childPath, testPrincipal, new String[] {privilegeName}, true);
+
     }
 }

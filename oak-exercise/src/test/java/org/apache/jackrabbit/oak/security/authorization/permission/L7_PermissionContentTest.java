@@ -66,7 +66,7 @@ import org.junit.Test;
  *
  * </pre>
  */
-public class L6_PermissionContentTest extends AbstractSecurityTest {
+public class L7_PermissionContentTest extends AbstractSecurityTest {
 
     @Test
     public void testReadOnly() {

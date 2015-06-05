@@ -94,6 +94,7 @@ public class L6_AnonymousIdTest extends AbstractSecurityTest {
         assertEquals(expectedID, anonymousID);
     }
 
+    // NOTE: chang this test-configuration for testDifferentAnonymousID()
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         // TODO: un-comment for 'testDifferentAnonymousID'

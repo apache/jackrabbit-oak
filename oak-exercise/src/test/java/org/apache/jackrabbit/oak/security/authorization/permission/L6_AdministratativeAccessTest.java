@@ -62,7 +62,7 @@ import org.junit.Test;
  *
  * </pre>
  */
-public class L5_AdministratativeAccessTest extends AbstractSecurityTest {
+public class L6_AdministratativeAccessTest extends AbstractSecurityTest {
 
     @Test
     public void testAdmininistrativePermissions() throws AccessDeniedException, CommitFailedException {

@@ -28,7 +28,6 @@ import org.apache.jackrabbit.oak.security.ExerciseUtility;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
 import static org.apache.jackrabbit.oak.security.ExerciseUtility.TEST_PW;
-import static org.junit.Assert.assertEquals;
 
 /**
  * <pre>
