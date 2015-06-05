@@ -325,26 +325,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                     if (suggest != null) {
                         Set<Map.Entry<String, Object>> suggestEntries = suggest.entrySet();
                         if (!suggestEntries.isEmpty()) {
-                            SolrDocument fakeDoc = new SolrDocument();
-                            for (Map.Entry<String, Object> suggestor : suggestEntries) {
-                                SimpleOrderedMap<Object> suggestionResponses = ((SimpleOrderedMap) suggestor.getValue());
-                                for (Map.Entry<String, Object> suggestionResponse : suggestionResponses) {
-                                    SimpleOrderedMap<Object> suggestionResults = ((SimpleOrderedMap) suggestionResponse.getValue());
-                                    for (Map.Entry<String, Object> suggestionResult : suggestionResults) {
-                                        if ("suggestions".equals(suggestionResult.getKey())) {
-                                            ArrayList<SimpleOrderedMap<Object>> suggestions = ((ArrayList<SimpleOrderedMap<Object>>) suggestionResult.getValue());
-                                            if (suggestions.isEmpty()) {
-                                                fakeDoc.addField(QueryImpl.REP_SUGGEST, "[]");
-                                            }
-                                            else {
-                                                for (SimpleOrderedMap<Object> suggestion : suggestions) {
-                                                    fakeDoc.addField(QueryImpl.REP_SUGGEST, "{term=" + suggestion.get("term") + ",weight=" + suggestion.get("weight") + "}");
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+                            SolrDocument fakeDoc = getSuggestions(suggestEntries, filter);
                             queue.add(new SolrResultRow("/", 1.0, fakeDoc));
                             noDocs = true;
                         }
@@ -392,19 +373,45 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
         return fakeDoc;
     }
 
-
-    private boolean exists(SolrResultRow row, NodeState root) {
-        boolean result = true;
-        NodeState nodeState = root;
-        for (String n : PathUtils.elements(row.path)) {
-            if (nodeState.hasChildNode(n)) {
-                nodeState = nodeState.getChildNode(n);
-            } else {
-                result = false;
-                break;
+    private SolrDocument getSuggestions(Set<Map.Entry<String, Object>> suggestEntries, Filter filter) throws SolrServerException {
+        Collection<SimpleOrderedMap<Object>> retrievedSuggestions = new HashSet<SimpleOrderedMap<Object>>();
+        SolrDocument fakeDoc = new SolrDocument();
+        for (Map.Entry<String, Object> suggestor : suggestEntries) {
+            SimpleOrderedMap<Object> suggestionResponses = ((SimpleOrderedMap) suggestor.getValue());
+            for (Map.Entry<String, Object> suggestionResponse : suggestionResponses) {
+                SimpleOrderedMap<Object> suggestionResults = ((SimpleOrderedMap) suggestionResponse.getValue());
+                for (Map.Entry<String, Object> suggestionResult : suggestionResults) {
+                    if ("suggestions".equals(suggestionResult.getKey())) {
+                        ArrayList<SimpleOrderedMap<Object>> suggestions = ((ArrayList<SimpleOrderedMap<Object>>) suggestionResult.getValue());
+                        if (!suggestions.isEmpty()) {
+                            for (SimpleOrderedMap<Object> suggestion : suggestions) {
+                                retrievedSuggestions.add(suggestion);
+                            }
+                        }
+                    }
+                }
             }
         }
-        return result;
+
+        // ACL filter suggestions
+        for (SimpleOrderedMap<Object> suggestion : retrievedSuggestions) {
+            SolrQuery solrQuery = new SolrQuery();
+            solrQuery.setParam("q", String.valueOf(suggestion.get("term")));
+            solrQuery.setParam("df", configuration.getCatchAllField());
+            solrQuery.setParam("q.op", "AND");
+            solrQuery.setParam("rows", "100");
+            QueryResponse suggestQueryResponse = solrServer.query(solrQuery);
+            SolrDocumentList results = suggestQueryResponse.getResults();
+            if (results != null && results.getNumFound() > 0) {
+                for (SolrDocument doc : results) {
+                    if (filter.isAccessible(String.valueOf(doc.getFieldValue(configuration.getPathField())))) {
+                        fakeDoc.addField(QueryImpl.REP_SUGGEST, "{term=" + suggestion.get("term") + ",weight=" + suggestion.get("weight") + "}");
+                        break;
+                    }
+                }
+            }
+        }
+        return fakeDoc;
     }
 
     static boolean isIgnoredProperty(String propertyName, OakSolrConfiguration configuration) {
