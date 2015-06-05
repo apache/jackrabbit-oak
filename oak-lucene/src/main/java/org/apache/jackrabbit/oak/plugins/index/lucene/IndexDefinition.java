@@ -535,6 +535,25 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         return ntBaseRule != null;
     }
 
+    public boolean isSuggestEnabled() {
+        boolean suggestEnabled = false;
+        for (IndexingRule indexingRule : definedRules) {
+            for (PropertyDefinition propertyDefinition : indexingRule.propConfigs.values()) {
+                if (propertyDefinition.useInSuggest) {
+                    suggestEnabled = true;
+                    break;
+                }
+            }
+            for (NamePattern np : indexingRule.namePatterns) {
+                if (np.getConfig().useInSuggest) {
+                    suggestEnabled = true;
+                    break;
+                }
+            }
+        }
+        return suggestEnabled;
+    }
+
     @CheckForNull
     public String getIndexPathFromConfig() {
         return definition.getString(LuceneIndexConstants.INDEX_PATH);
