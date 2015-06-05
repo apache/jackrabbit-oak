@@ -1155,6 +1155,7 @@ current implementation relies on the updateLog feature being enabled. -->
             <str name="field">:suggest</str>
             <str name="weightField">:suggest-weight</str>
             <str name="suggestAnalyzerFieldType">string</str>
+            <str name="buildOnCommit">true</str>
         </lst>
     </searchComponent>
 
