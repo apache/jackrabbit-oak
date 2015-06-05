@@ -141,8 +141,6 @@ class FilterQueryParser {
                                     }
                                     solrQuery.setParam("suggest", true);
 
-                                    // TODO : this should not be always passed to avoid building the dictionary on each suggest request
-                                    solrQuery.setParam("suggest.build", true);
                                 }
                                 solrQuery.setParam(kv[0], kv[1]);
                             }
