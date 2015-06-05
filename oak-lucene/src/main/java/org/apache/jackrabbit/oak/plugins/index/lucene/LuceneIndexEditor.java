@@ -362,7 +362,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         for (Field f : fields) {
             if (FieldNames.SUGGEST.endsWith(f.name())) {
                 if (suggestField == null) {
-                    suggestField = f;
+                    suggestField = FieldFactory.newSuggestField(f.stringValue());
                 } else {
                     suggestField = FieldFactory.newSuggestField(suggestField.stringValue(), f.stringValue());
                 }
@@ -405,7 +405,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                     }
 
                     if (pd.useInSuggest) {
-                        fields.add(newPropertyField(FieldNames.SUGGEST, value, true, false));
+                        fields.add(newPropertyField(FieldNames.SUGGEST, value, true, true));
                     }
 
                     if (pd.useInSpellcheck) {
