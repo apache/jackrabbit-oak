@@ -21,7 +21,7 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <!-- TODO set skip to false in order to run the tests -->
-          <skip>false</skip>
+          <skip>true</skip>
         </configuration>
       </plugin>
       <plugin>
