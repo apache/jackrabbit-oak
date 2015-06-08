@@ -179,7 +179,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     @Test
-    public void testModifiedMaxUpdate() {
+    public void testModifiedMaxUpdateQuery() {
         String id = this.getClass().getName() + ".testModifiedMaxUpdate";
         // create a test node
         UpdateOp up = new UpdateOp(id, true);
@@ -191,14 +191,16 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
         // update with smaller _modified
         UpdateOp up2 = new UpdateOp(id, true);
-        up2.max("_modified", 100L);
         up2.set("_id", id);
+        up2.max("_modified", 100L);
         super.ds.findAndUpdate(Collection.NODES, up2);
 
         super.ds.invalidateCache();
 
         // this should find the document; will fail if the MAX operation wasn't applied to the indexed property
-        List<NodeDocument> results = super.ds.query(Collection.NODES, this.getClass().getName() + ".testModifiedMaxUpdatd", this.getClass().getName() + ".testModifiedMaxUpdatf", "_modified", 1000, 1);
+        String startId = this.getClass().getName() + ".testModifiedMaxUpdatd";
+        String endId = this.getClass().getName() + ".testModifiedMaxUpdatf";
+        List<NodeDocument> results = super.ds.query(Collection.NODES, startId, endId, "_modified", 1000, 1);
         assertEquals("document not found, maybe indexed _modified property not properly updated", 1, results.size());
     }
 
@@ -278,6 +280,56 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         assertNotNull(d);
         assertEquals(id, d.getId());
         assertEquals("bar", d.get("foo").toString());
+    }
+
+    @Test
+    public void testUpdateModified() {
+        String id = this.getClass().getName() + ".testUpdateModified";
+        // create a test node
+        super.ds.remove(Collection.NODES, id);
+        UpdateOp up = new UpdateOp(id, true);
+        up.set("_id", id);
+        boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
+        assertTrue(success);
+        removeMe.add(id);
+
+        ds.invalidateCache();
+        Document d = super.ds.find(Collection.NODES, id);
+        Object m = d.get("_modified");
+        assertNull("_modified should be null until set", m);
+
+        up = new UpdateOp(id, true);
+        up.set("_id", id);
+        up.set("_modified", 123L);
+        super.ds.findAndUpdate(Collection.NODES, up); 
+
+        ds.invalidateCache();
+        d = super.ds.find(Collection.NODES, id);
+        m = d.get("_modified");
+        assertNotNull("_modified should now be != null", m);
+        assertEquals("123", m.toString());
+
+        up = new UpdateOp(id, true);
+        up.set("_id", id);
+        up.max("_modified", 122L);
+        super.ds.findAndUpdate(Collection.NODES, up); 
+
+        ds.invalidateCache();
+        d = super.ds.find(Collection.NODES, id);
+        m = d.get("_modified");
+        assertNotNull("_modified should now be != null", m);
+        assertEquals("123", m.toString());
+
+        up = new UpdateOp(id, true);
+        up.set("_id", id);
+        up.max("_modified", 124L);
+        super.ds.findAndUpdate(Collection.NODES, up); 
+
+        ds.invalidateCache();
+        d = super.ds.find(Collection.NODES, id);
+        m = d.get("_modified");
+        assertNotNull("_modified should now be != null", m);
+        assertEquals("124", m.toString());
     }
 
     @Test
