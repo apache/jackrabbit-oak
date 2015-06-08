@@ -771,6 +771,8 @@ public class RDBDocumentStore implements DocumentStore {
     // see OAK-2044
     protected static final boolean USECMODCOUNT = false;
 
+    private static final Key MODIFIEDKEY = new Key(MODIFIED, null);
+
     // DB-specific information
     private DB db;
 
@@ -1131,7 +1133,9 @@ public class RDBDocumentStore implements DocumentStore {
     private <T extends Document> void internalUpdate(Collection<T> collection, List<String> ids, UpdateOp update) {
 
         if (isAppendableUpdate(update) && !requiresPreviousState(update)) {
-            long modified = getModifiedFromUpdate(update);
+            Operation modOperation = update.getChanges().get(MODIFIEDKEY);
+            long modified = getModifiedFromOperation(modOperation);
+            boolean modifiedIsConditional = modOperation == null || modOperation.type != UpdateOp.Operation.Type.SET;
             String appendData = SR.asString(update);
 
             for (List<String> chunkedIds : Lists.partition(ids, CHUNKSIZE)) {
@@ -1149,7 +1153,8 @@ public class RDBDocumentStore implements DocumentStore {
                 boolean success = false;
                 try {
                     connection = this.ch.getRWConnection();
-                    success = dbBatchedAppendingUpdate(connection, tableName, chunkedIds, modified, appendData);
+                    success = dbBatchedAppendingUpdate(connection, tableName, chunkedIds, modified, modifiedIsConditional,
+                            appendData);
                     connection.commit();
                 } catch (SQLException ex) {
                     success = false;
@@ -1327,7 +1332,9 @@ public class RDBDocumentStore implements DocumentStore {
         String tableName = getTable(collection);
         try {
             connection = this.ch.getRWConnection();
-            Long modified = (Long) document.get(MODIFIED);
+            Operation modOperation = update.getChanges().get(MODIFIEDKEY);
+            long modified = getModifiedFromOperation(modOperation);
+            boolean modifiedIsConditional = modOperation == null || modOperation.type != UpdateOp.Operation.Type.SET;
             Number flagB = (Number) document.get(NodeDocument.HAS_BINARY_FLAG);
             Boolean hasBinary = flagB != null && flagB.intValue() == NodeDocument.HAS_BINARY_VAL;
             Boolean flagD = (Boolean) document.get(NodeDocument.DELETED_ONCE);
@@ -1341,7 +1348,7 @@ public class RDBDocumentStore implements DocumentStore {
                 String appendData = SR.asString(update);
                 if (appendData.length() < this.dataLimitInOctets / CHAR2OCTETRATIO) {
                     try {
-                        success = dbAppendingUpdate(connection, tableName, document.getId(), modified, hasBinary, deletedOnce,
+                        success = dbAppendingUpdate(connection, tableName, document.getId(), modified, modifiedIsConditional, hasBinary, deletedOnce,
                                 modcount, cmodcount, oldmodcount, appendData);
                         connection.commit();
                     } catch (SQLException ex) {
@@ -1391,16 +1398,8 @@ public class RDBDocumentStore implements DocumentStore {
         return !update.getConditions().isEmpty();
     }
 
-    private static long getModifiedFromUpdate(UpdateOp update) {
-        for (Map.Entry<Key, Operation> change : update.getChanges().entrySet()) {
-            Operation op = change.getValue();
-            if (op.type == UpdateOp.Operation.Type.MAX || op.type == UpdateOp.Operation.Type.SET) {
-                if (MODIFIED.equals(change.getKey().getName())) {
-                    return Long.parseLong(op.value.toString());
-                }
-            }
-        }
-        return 0L;
+    private static long getModifiedFromOperation(Operation op) {
+        return op == null ? 0L : Long.parseLong(op.value.toString());
     }
 
     private <T extends Document> void insertDocuments(Collection<T> collection, List<T> documents) {
@@ -1684,11 +1683,13 @@ public class RDBDocumentStore implements DocumentStore {
         }
     }
 
-    private boolean dbAppendingUpdate(Connection connection, String tableName, String id, Long modified, Boolean hasBinary,
-            Boolean deletedOnce, Long modcount, Long cmodcount, Long oldmodcount, String appendData) throws SQLException {
+    private boolean dbAppendingUpdate(Connection connection, String tableName, String id, Long modified,
+            boolean setModifiedConditionally, Boolean hasBinary, Boolean deletedOnce, Long modcount, Long cmodcount,
+            Long oldmodcount, String appendData) throws SQLException {
         StringBuilder t = new StringBuilder();
-        t.append("update " + tableName + " set MODIFIED = case when ? > MODIFIED then ? else MODIFIED end, "
-                + "HASBINARY = ?, DELETEDONCE = ?, MODCOUNT = ?, CMODCOUNT = ?, DSIZE = DSIZE + ?, ");
+        t.append("update " + tableName + " set ");
+        t.append(setModifiedConditionally ? "MODIFIED = case when ? > MODIFIED then ? else MODIFIED end, " : "MODIFIED = ?, ");
+        t.append("HASBINARY = ?, DELETEDONCE = ?, MODCOUNT = ?, CMODCOUNT = ?, DSIZE = DSIZE + ?, ");
         t.append("DATA = " + this.db.getConcatQueryString(this.dataLimitInOctets, appendData.length()) + " ");
         t.append("where ID = ?");
         if (oldmodcount != null) {
@@ -1698,7 +1699,9 @@ public class RDBDocumentStore implements DocumentStore {
         try {
             int si = 1;
             stmt.setObject(si++, modified, Types.BIGINT);
-            stmt.setObject(si++, modified, Types.BIGINT);
+            if (setModifiedConditionally) {
+                stmt.setObject(si++, modified, Types.BIGINT);
+            }
             stmt.setObject(si++, hasBinary ? 1 : 0, Types.SMALLINT);
             stmt.setObject(si++, deletedOnce ? 1 : 0, Types.SMALLINT);
             stmt.setObject(si++, modcount, Types.BIGINT);
@@ -1721,9 +1724,12 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     private boolean dbBatchedAppendingUpdate(Connection connection, String tableName, List<String> ids, Long modified,
+            boolean setModifiedConditionally,
             String appendData) throws SQLException {
         StringBuilder t = new StringBuilder();
-        t.append("update " + tableName + " set MODIFIED = case when ? > MODIFIED then ? else MODIFIED end, MODCOUNT = MODCOUNT + 1, DSIZE = DSIZE + ?, ");
+        t.append("update " + tableName + " set ");
+        t.append(setModifiedConditionally ? "MODIFIED = case when ? > MODIFIED then ? else MODIFIED end, " : "MODIFIED = ?, ");
+        t.append("MODCOUNT = MODCOUNT + 1, DSIZE = DSIZE + ?, ");
         t.append("DATA = " + this.db.getConcatQueryString(this.dataLimitInOctets, appendData.length()) + " ");
         t.append("where ID in (");
         for (int i = 0; i < ids.size(); i++) {
@@ -1737,7 +1743,9 @@ public class RDBDocumentStore implements DocumentStore {
         try {
             int si = 1;
             stmt.setObject(si++, modified, Types.BIGINT);
-            stmt.setObject(si++, modified, Types.BIGINT);
+            if (setModifiedConditionally) {
+                stmt.setObject(si++, modified, Types.BIGINT);
+            }
             stmt.setObject(si++, 1 + appendData.length(), Types.BIGINT);
             stmt.setString(si++, "," + appendData);
             for (String id : ids) {
