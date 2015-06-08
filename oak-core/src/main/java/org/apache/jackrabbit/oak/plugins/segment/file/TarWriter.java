@@ -278,6 +278,10 @@ class TarWriter {
         }
     }
 
+    boolean isDirty() {
+        return access != null;
+    }
+
     /**
      * Closes this tar file.
      *
