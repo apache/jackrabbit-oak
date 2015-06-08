@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
+import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -28,6 +29,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
+import javax.net.ssl.SSLContext;
 import javax.security.auth.login.LoginException;
 
 import org.apache.commons.pool.impl.GenericObjectPool;
@@ -116,6 +118,10 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
      */
     private PoolableUnboundConnectionFactory userConnectionFactory;
 
+    /**
+     * SSL protocols (initialized on init)
+     */
+    private String[] enabledSSLProtocols;
 
     /**
      * Default constructor for OSGi
@@ -480,6 +486,15 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
             throw new IllegalStateException("Provider already initialized.");
         }
 
+        // make sure the JVM supports the TLSv1.1
+        try {
+            enabledSSLProtocols = null;
+            SSLContext.getInstance("TLSv1.1");
+        } catch (NoSuchAlgorithmException e) {
+            log.warn("JDK does not support TLSv1.1. Disabling it.");
+            enabledSSLProtocols = new String[]{"TLSv1"};
+        }
+
         // setup admin connection pool
         LdapConnectionConfig cc = createConnectionConfig();
         String bindDN = config.getBindDN();
@@ -535,6 +550,11 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
         if (config.noCertCheck()) {
             cc.setTrustManagers(new NoVerificationTrustManager());
         }
+
+        if (enabledSSLProtocols != null) {
+            cc.setEnabledProtocols(enabledSSLProtocols);
+        }
+
         return cc;
     }
 
