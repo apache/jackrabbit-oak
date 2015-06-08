@@ -23,7 +23,6 @@ import java.util.concurrent.ScheduledExecutorService;
 
 import org.apache.jackrabbit.oak.stats.Clock.Fast;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class ClockTest {
@@ -55,7 +54,6 @@ public class ClockTest {
     }
 
     @Test
-    @Ignore
     public void testClockDriftFast() throws InterruptedException {
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
         try {
