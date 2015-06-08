@@ -265,7 +265,7 @@ Test
 
 
 In addition to the above-mentioned changes, this release contains
-all changes included up to the Apache Jackrabbit Oak 1.0.0 release.
+all changes included up to the Apache Jackrabbit Oak 1.2.x release.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
