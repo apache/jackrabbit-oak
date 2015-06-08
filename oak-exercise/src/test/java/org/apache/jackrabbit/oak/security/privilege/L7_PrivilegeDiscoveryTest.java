@@ -27,24 +27,47 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  * -----------------------------------------------------------------------------
  *
  * Goal:
- * TODO
+ * The aim of this exercise is to make you familiar on how to discover privileges
+ * granted for a given {@link javax.jcr.Session} or a given set of {@link java.security.Principal}s.
+ * After having completed this exercise you should be able to explain the difference
+ * compare to permission discovery as well as the benefit/drawback of using
+ * this API.
  *
  * Exercises:
  *
- * - {@link #TODO}
+ * - {@link #testHasPrivileges()}
+ *   TODO
+ *
+ * - {@link #testGetPrivileges()}
+ *   TODO
+ *
+ * - {@link #testCanAddNode()}
+ *   TODO
  *
  *
- * Additional Exercises:
+ * Related Exercises:
  * -----------------------------------------------------------------------------
  *
- * TODO
+ * - {@link org.apache.jackrabbit.oak.security.authorization.permission.L2_PermissionDiscoveryTest}
+ * - {@link org.apache.jackrabbit.oak.security.authorization.permission.L4_PrivilegesAndPermissionsTest}
  *
  * </pre>
  *
  * @see TODO
  */
-public class L2_PrivilegeDiscoveryTest extends AbstractJCRTest {
+public class L7_PrivilegeDiscoveryTest extends AbstractJCRTest {
 
+    public void testHasPrivileges() {
+        // TODO
+    }
+
+    public void testGetPrivileges() {
+        // TODO
+    }
+
+    public void testCanAddNode() {
+        // TODO
+    }
     // TODO; diff wrt session.haspermission
     // TODO: Acmgr.hasPrivilege || getPrivileges
 

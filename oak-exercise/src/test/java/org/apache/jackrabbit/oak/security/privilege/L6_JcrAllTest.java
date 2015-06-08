@@ -19,6 +19,9 @@ package org.apache.jackrabbit.oak.security.privilege;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeUtil;
 import org.junit.Test;
 
 /**
@@ -37,24 +40,39 @@ import org.junit.Test;
  *
  * - Overview
  *   Read again what JSR 283 states about {@link Privilege#JCR_ALL) and review
- *   again the result of {@link L5_CustomPrivilegeTest#testJcrAll()}
+ *   again the result of {@link L4_CustomPrivilegeTest#testJcrAll()}
  *
  * - {@link #testManualModification()}
- *   TODO
+ *   This test case tries to modify the tree storing the jcr:all privilege
+ *   definition. Walk through the test and explain what happens.
+ *   Fix the test case such that it passes.
+ *
+ *   Question: Can you identify the relevant class in the Oak code base?
+ *   Question: Can you explain what it does and why?
+ *
  *
  * Advanced Exercise
  * -----------------------------------------------------------------------------
  *
  * - {@link #testJcrAllInPermissionStore()}
- *   TODO
+ *   Due to the dynamic nature of jcr:all the long-representation of this privilege
+ *   may change over time.
+ *   This exercise aim to show you how granting|denying jcr:all is reflected
+ *   in the permission store.
+ *
  *
  * </pre>
  */
 public class L6_JcrAllTest extends AbstractSecurityTest {
 
     @Test
-    public void testManualModification() {
-        // TODO
+    public void testManualModification() throws Exception {
+        // TODO: fix the test case such that it passes.
+
+        Tree jcrAllTree = PrivilegeUtil.getPrivilegesTree(root).getChild(PrivilegeConstants.JCR_ALL);
+
+        jcrAllTree.removeProperty(PrivilegeConstants.REP_AGGREGATES);
+        root.commit();
     }
 
     @Test

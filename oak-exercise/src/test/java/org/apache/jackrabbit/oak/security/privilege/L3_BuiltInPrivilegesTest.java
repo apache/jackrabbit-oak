@@ -36,7 +36,6 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Test;
@@ -91,7 +90,7 @@ import static org.junit.Assert.assertEquals;
  * Related Exercises:
  * -----------------------------------------------------------------------------
  *
- * - {@link L5_CustomPrivilegeTest}
+ * - {@link L4_CustomPrivilegeTest}
  *
  * </pre>
  *
@@ -100,7 +99,7 @@ import static org.junit.Assert.assertEquals;
  * @see javax.jcr.security.AccessControlManager#privilegeFromName(String)
  * @see org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants
  */
-public class L4_BuiltInPrivilegesTest extends AbstractSecurityTest {
+public class L3_BuiltInPrivilegesTest extends AbstractSecurityTest {
 
     private ContentSession testSession;
     private Root testRoot;

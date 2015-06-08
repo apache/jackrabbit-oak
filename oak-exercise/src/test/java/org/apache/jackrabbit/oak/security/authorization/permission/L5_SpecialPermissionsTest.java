@@ -99,7 +99,7 @@ import org.junit.Test;
  * Related Exercises:
  * -----------------------------------------------------------------------------
  *
- * - {@link org.apache.jackrabbit.oak.security.privilege.L4_BuiltInPrivilegesTest#testMapItems()}
+ * - {@link org.apache.jackrabbit.oak.security.privilege.L3_BuiltInPrivilegesTest#testMapItems()}
  *
  * </pre>
  *

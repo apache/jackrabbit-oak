@@ -27,25 +27,22 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
  * -----------------------------------------------------------------------------
  *
  * Goal:
- * Become familiar with the Privilege Management API defined by the Jackrabbit API
- * and understand how privileges are used internally in Oak.
+ * Become familiar with the Privilege Management API defined in
+ * JCR Access Control Management and by the extensions present in Jackrabbit API.
+ * Having completed this section should also be familiar with the internals of
+ * privilege management in Oak.
  *
  *
  * Exercises:
  *
- * - {@link #TODO}
+ * - TODO
  *
- *
- * Additional Exercises:
- * -----------------------------------------------------------------------------
- *
- * TODO
  *
  * Related Exercises:
  * -----------------------------------------------------------------------------
  *
- * - {@link org.apache.jackrabbit.oak.security.privilege.L2_PrivilegeDiscovery}
- * - {@link L3_PrivilegeManagementTest}
+ * - {@link L2_PrivilegeManagementTest}
+ * - {@link L7_PrivilegeDiscoveryTest}
  *
  * </pre>
  *

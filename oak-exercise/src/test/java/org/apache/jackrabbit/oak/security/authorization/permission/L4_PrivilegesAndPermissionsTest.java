@@ -147,7 +147,7 @@ import org.apache.jackrabbit.test.api.util.Text;
  *
  * Precondition for these advanced exercises is the following test:
  *
- * - {@link org.apache.jackrabbit.oak.security.privilege.L7_PrivilegeContentTest}
+ * - {@link org.apache.jackrabbit.oak.security.privilege.L5_PrivilegeContentTest }
  *
  * The following exercises aim to provide you with some insight and allow you
  * to understand the internal structure of the permission store.

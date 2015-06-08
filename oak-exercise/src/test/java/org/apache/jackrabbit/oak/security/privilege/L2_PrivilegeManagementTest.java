@@ -16,7 +16,15 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
+import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.api.JackrabbitWorkspace;
+import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.test.AbstractJCRTest;
+import org.apache.jackrabbit.test.NotExecutableException;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.Privilege;
 
 /**
  * <pre>
@@ -42,25 +50,53 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  *   Based on the API contract compare the results of the 2 methods in the current
  *   implementation and discuss different ways of implementation.
  *
+ *   Question: How could you compare the 'supported' with the 'registered' privileges?
+ *   Question: What can you say about the difference?
+ *   Question: What can you say about the default implementation of {@link AccessControlManager#getSupportedPrivileges(String)}
+ *
  *
  * Related Exercises:
  * -----------------------------------------------------------------------------
  *
- * - {@link L5_CustomPrivilegeTest ()}
+ * - {@link L3_BuiltInPrivilegesTest}
+ * - {@link L4_CustomPrivilegeTest}
  *
  * </pre>
  *
  * @see javax.jcr.security.AccessControlManager
  * @see org.apache.jackrabbit.api.security.authorization.PrivilegeManager
  */
-public class L3_PrivilegeManagementTest extends AbstractJCRTest {
+public class L2_PrivilegeManagementTest extends AbstractJCRTest {
 
+    private AccessControlManager accessControlManager;
+    private PrivilegeManager privilegeManager;
 
-    public void testGetPrivilege() {
-        // TODO
+    @Override
+    protected void setUp() throws Exception {
+        super.setUp();
+
+        accessControlManager = superuser.getAccessControlManager();
+
+        if (!(superuser instanceof JackrabbitSession)) {
+            throw new NotExecutableException("not a JackrabbitSession");
+        }
+        privilegeManager = ((JackrabbitWorkspace) superuser.getWorkspace()).getPrivilegeManager();
     }
 
-    public void testGetSupportedAndRegisteredPrivileges() {
-        // TODO
+    public void testGetPrivilege() throws RepositoryException {
+        String privilegeName = Privilege.JCR_READ;
+
+        Privilege readPriv = null; // TODO: retrieve privilege from 'accessControlManager'
+        Privilege readPriv2 = null; // TODO: retrive the privilege from 'privilegeManager'
+
+        assertTrue(readPriv.equals(readPriv2));
+    }
+
+    public void testGetSupportedAndRegisteredPrivileges() throws RepositoryException {
+        Privilege[] supportedPrivilges = accessControlManager.getSupportedPrivileges(testRoot);
+        Privilege[] registered = privilegeManager.getRegisteredPrivileges();
+
+        // TODO: compare the supported and the registered privileges
+        // TODO: read the API contract for the 2 methods
     }
 }

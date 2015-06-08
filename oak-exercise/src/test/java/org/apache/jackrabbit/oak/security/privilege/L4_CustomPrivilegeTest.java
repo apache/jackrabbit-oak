@@ -95,7 +95,7 @@ import static org.junit.Assert.fail;
  *
  * @see org.apache.jackrabbit.api.security.authorization.PrivilegeManager#registerPrivilege(String, boolean, String[])
  */
-public class L5_CustomPrivilegeTest extends AbstractSecurityTest {
+public class L4_CustomPrivilegeTest extends AbstractSecurityTest {
 
     private PrivilegeManager privilegeManager;
     private Privilege customAbstractPriv;
