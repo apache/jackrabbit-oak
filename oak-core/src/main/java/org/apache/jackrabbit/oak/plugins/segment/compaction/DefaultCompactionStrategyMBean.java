@@ -19,14 +19,18 @@
 
 package org.apache.jackrabbit.oak.plugins.segment.compaction;
 
+import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.plugins.segment.CompactionMap;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType;
 
-public class DefaultCompactionStrategyMBean implements CompactionStrategyMBean {
+public class DefaultCompactionStrategyMBean
+        extends AnnotatedStandardMBean
+        implements CompactionStrategyMBean {
 
     private final CompactionStrategy strategy;
 
     public DefaultCompactionStrategyMBean(CompactionStrategy strategy) {
+        super(CompactionStrategyMBean.class);
         this.strategy = strategy;
     }
 
