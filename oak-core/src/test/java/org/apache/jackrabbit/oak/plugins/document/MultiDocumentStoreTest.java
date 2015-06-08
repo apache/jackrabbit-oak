@@ -123,9 +123,19 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
             assertEquals(oldn1 + 2, prev.getModCount().intValue());
             assertEquals(3L, prev.getModified().intValue());
 
-            // the new document must not have a _modified time smaller than before the update
+            // the new document must not have a _modified time smaller than
+            // before the update
             nd1 = super.ds1.find(Collection.NODES, id, 0);
             assertEquals(super.dsname + ": _modified value must never ever get smaller", 3L, nd1.getModified().intValue());
+
+            // verify that _modified can indeed be *set* to a smaller value, see
+            // https://jira.corp.adobe.com/browse/GRANITE-8903
+            upds1 = new UpdateOp(id, true);
+            upds1.set("_id", id);
+            upds1.set("_modified", 0L);
+            super.ds1.findAndUpdate(Collection.NODES, upds1);
+            nd1 = super.ds1.find(Collection.NODES, id, 0);
+            assertEquals(super.dsname + ": _modified value must be set to 0", 0L, nd1.getModified().intValue());
         }
     }
 
