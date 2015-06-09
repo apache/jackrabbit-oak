@@ -641,7 +641,7 @@ public class FileStore implements SegmentStore {
                     id.getMostSignificantBits(),
                     id.getLeastSignificantBits()));
         }
-        writer.cleanup(ids);
+        writer.collectReferences(ids);
 
         CompactionMap cm = tracker.getCompactionMap();
         List<TarReader> list = newArrayListWithCapacity(readers.size());
