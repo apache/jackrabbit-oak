@@ -121,6 +121,14 @@ public class SegmentTracker {
         return store;
     }
 
+    /**
+     * Clear the segment cache
+     */
+    public synchronized void clearCache() {
+        segments.clear();
+        currentSize = 0;
+    }
+
     Segment getSegment(SegmentId id) {
         try {
             Segment segment = store.readSegment(id);
