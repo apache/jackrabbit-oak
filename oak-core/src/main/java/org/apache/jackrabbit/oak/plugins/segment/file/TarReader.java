@@ -588,7 +588,23 @@ class TarReader {
         return -1;
     }
 
-    synchronized TarReader cleanup(Set<UUID> referencedIds, CompactionMap cm) throws IOException {
+    /**
+     * Garbage collects segments in this file. First it collects the set of
+     * segments that are referenced / reachable, then (if more than 25% is
+     * garbage) creates a new generation of the file.
+     * <p>
+     * The old generation files are not removed (they can't easily be removed,
+     * for memory mapped files).
+     * 
+     * @param referencedIds the referenced segment ids (input and output).
+     * @param cm the compaction map
+     * @param removed a set which will receive the uuids of all segments that
+     *                have been cleaned.
+     * @return this (if the file is kept as is), or the new generation file, or
+     *         null if the file is fully garbage
+     */
+    synchronized TarReader cleanup(Set<UUID> referencedIds, CompactionMap cm, Set<UUID> removed)
+            throws IOException {
         Set<UUID> cleaned = newHashSet();
         Map<UUID, List<UUID>> graph = null;
         if (this.graph != null) {
@@ -648,6 +664,7 @@ class TarReader {
 
         if (count == 0) {
             // none of the entries within this tar file are referenceable
+            removed.addAll(cleaned);
             logCleanedSegments(cleaned);
             return null;
         } else if (size >= access.length() * 3 / 4 && graph != null) {
@@ -685,6 +702,7 @@ class TarReader {
                 singletonList(newFile), access.isMemoryMapped());
         if (reader != null) {
             logCleanedSegments(cleaned);
+            removed.addAll(cleaned);
             return reader;
         } else {
             log.warn("Failed to open cleaned up tar file {}", file);
