@@ -374,29 +374,62 @@ public class SegmentCompactionIT {
                 throws IOException {
             int k = rnd.nextInt(100);
             if (k < 10) {
-                if (!nodeBuilder.remove()) {
-                    descent(nodeStore, nodeBuilder, deleteOnly);
-                }
-            } else if (k < 40 && !deleteOnly)  {
-                nodeBuilder.setChildNode('N' + itemPrefix + rnd.nextInt(1000));
+                chooseRandomNode(nodeBuilder).remove();
+            } else if (k < 20) {
+                removeRandomProperty(chooseRandomNode(nodeBuilder));
+            } else if (k < 60 && !deleteOnly)  {
+                addRandomNode(nodeBuilder);
             } else if (k < 80 && !deleteOnly) {
-                nodeBuilder.setProperty('P' + itemPrefix + rnd.nextInt(1000),
-                        randomAlphabetic(rnd.nextInt(10000)));
-            } else if (k < 90 && !deleteOnly) {
-                nodeBuilder.setProperty('B' + itemPrefix + rnd.nextInt(1000),
-                        createBlob(nodeStore, rnd.nextInt(maxBlobSize)));
-            } else {
-                descent(nodeStore, nodeBuilder, deleteOnly);
+                addRandomValue(nodeBuilder);
+            } else if (!deleteOnly) {
+                addRandomBlob(nodeStore, nodeBuilder);
             }
         }
 
-        private void descent(NodeStore nodeStore, NodeBuilder nodeBuilder, boolean deleteOnly)
-                throws IOException {
-            long count = nodeBuilder.getChildNodeCount(Long.MAX_VALUE);
+        private NodeBuilder chooseRandomNode(NodeBuilder nodeBuilder) {
+            NodeBuilder childBuilder = nodeBuilder;
+            for (int k = 0; k < rnd.nextInt(1000); k++) {
+                childBuilder = randomStep(nodeBuilder, nodeBuilder = childBuilder);
+            }
+            return childBuilder;
+        }
+
+        private NodeBuilder randomStep(NodeBuilder parent, NodeBuilder node) {
+            int count = (int) node.getChildNodeCount(Long.MAX_VALUE);
+            int k = rnd.nextInt(count + 1);
+            if (k == 0) {
+                return parent;
+            } else {
+                String name = get(node.getChildNodeNames(), k - 1);
+                return node.getChildNode(name);
+            }
+        }
+
+        private void removeRandomProperty(NodeBuilder nodeBuilder) {
+            int count = (int) nodeBuilder.getPropertyCount();
             if (count > 0) {
-                int c = rnd.nextInt((int) count);
-                String name = get(nodeBuilder.getChildNodeNames(), c);
-                modify(nodeStore, nodeBuilder.getChildNode(name), deleteOnly);
+                PropertyState property = get(nodeBuilder.getProperties(), rnd.nextInt(count));
+                nodeBuilder.removeProperty(property.getName());
+            }
+        }
+
+        private void addRandomNode(NodeBuilder nodeBuilder) {
+            if (nodeBuilder.getChildNodeCount(1000) < 1000) {
+                chooseRandomNode(nodeBuilder).setChildNode('N' + itemPrefix + rnd.nextInt(1000));
+            }
+        }
+
+        private void addRandomValue(NodeBuilder nodeBuilder) {
+            if (nodeBuilder.getPropertyCount() < 1000) {
+                chooseRandomNode(nodeBuilder).setProperty('P' + itemPrefix + rnd.nextInt(1000),
+                        randomAlphabetic(rnd.nextInt(10000)));
+            }
+        }
+
+        private void addRandomBlob(NodeStore nodeStore, NodeBuilder nodeBuilder) throws IOException {
+            if (nodeBuilder.getPropertyCount() < 1000) {
+                chooseRandomNode(nodeBuilder).setProperty('B' + itemPrefix + rnd.nextInt(1000),
+                        createBlob(nodeStore, rnd.nextInt(maxBlobSize)));
             }
         }
 
@@ -416,16 +449,26 @@ public class SegmentCompactionIT {
             this.nodeStore = nodeStore;
         }
 
-        protected final NodeState readRandomTree(NodeState node) {
-            int i = rnd.nextInt(1 + (int) node.getChildNodeCount(Long.MAX_VALUE));
-            if (i != 0) {
-                return readRandomTree(get(node.getChildNodeEntries(), i - 1).getNodeState());
+        private NodeState randomStep(NodeState parent, NodeState node) {
+            int count = (int) node.getChildNodeCount(Long.MAX_VALUE);
+            int k = rnd.nextInt(count + 1);
+            if (k == 0) {
+                return parent;
             } else {
-                return node;
+                String name = get(node.getChildNodeNames(), k - 1);
+                return node.getChildNode(name);
             }
         }
 
-        protected final PropertyState readRandomProperty(NodeState node) throws Exception {
+        protected final NodeState chooseRandomNode(NodeState parent) {
+            NodeState child = parent;
+            for (int k = 0; k < rnd.nextInt(1000); k++) {
+                child = randomStep(parent, parent = child);
+            }
+            return child;
+        }
+
+        protected final PropertyState chooseRandomProperty(NodeState node) throws Exception {
             int count = (int) node.getPropertyCount();
             if (count > 0) {
                 return get(node.getProperties(), rnd.nextInt(count));
@@ -442,7 +485,7 @@ public class SegmentCompactionIT {
 
         @Override
         public NodeState call() throws Exception {
-            return readRandomTree(nodeStore.getRoot());
+            return chooseRandomNode(nodeStore.getRoot());
         }
     }
 
@@ -453,7 +496,7 @@ public class SegmentCompactionIT {
 
         @Override
         public PropertyState call() throws Exception {
-            return readRandomProperty(readRandomTree(nodeStore.getRoot()));
+            return chooseRandomProperty(chooseRandomNode(nodeStore.getRoot()));
         }
     }
 
