@@ -2087,7 +2087,7 @@ public final class DocumentNodeStore
             if (FAST_DIFF) {
                 diffAlgo = "diffManyChildren";
                 diffManyChildren(w, from.getPath(),
-                        from.getLastRevision(), to.getLastRevision());
+                        from.getRootRevision(), to.getRootRevision());
             } else {
                 diffAlgo = "diffAllChildren";
                 max = Integer.MAX_VALUE;
