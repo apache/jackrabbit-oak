@@ -54,7 +54,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Maps;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -82,27 +81,78 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
 
     final String path;
     final Revision rev;
-    final Map<String, PropertyState> properties = Maps.newHashMap();
     Revision lastRevision;
+    final Revision rootRevision;
+    final Map<String, PropertyState> properties;
     final boolean hasChildren;
 
     private final DocumentNodeStore store;
 
-    DocumentNodeState(@Nonnull DocumentNodeStore store, @Nonnull String path,
+    DocumentNodeState(@Nonnull DocumentNodeStore store,
+                      @Nonnull String path,
                       @Nonnull Revision rev) {
         this(store, path, rev, false);
     }
 
     DocumentNodeState(@Nonnull DocumentNodeStore store, @Nonnull String path,
                       @Nonnull Revision rev, boolean hasChildren) {
+        this(store, path, rev, new HashMap<String, PropertyState>(),
+                hasChildren, null, null);
+    }
+
+    private DocumentNodeState(@Nonnull DocumentNodeStore store,
+                              @Nonnull String path,
+                              @Nonnull Revision rev,
+                              @Nonnull Map<String, PropertyState> properties,
+                              boolean hasChildren,
+                              @Nullable Revision lastRevision,
+                              @Nullable Revision rootRevision) {
         this.store = checkNotNull(store);
         this.path = checkNotNull(path);
         this.rev = checkNotNull(rev);
+        this.lastRevision = lastRevision;
+        this.rootRevision = rootRevision != null ? rootRevision : rev;
         this.hasChildren = hasChildren;
+        this.properties = checkNotNull(properties);
     }
 
+    /**
+     * Creates a copy of this {@code DocumentNodeState} with the
+     * {@link #rootRevision} set to the given {@code root} revision. This method
+     * returns {@code this} instance if the given {@code root} revision is
+     * the same as the one in this instance.
+     *
+     * @param root the root revision for the copy of this node state.
+     * @return a copy of this node state with the given root revision.
+     */
+    DocumentNodeState withRootRevision(@Nonnull Revision root) {
+        if (rootRevision.equals(root)) {
+            return this;
+        } else {
+            return new DocumentNodeState(store, path, rev, properties,
+                    hasChildren, lastRevision, root);
+        }
+    }
+
+    @Nonnull
     Revision getRevision() {
         return rev;
+    }
+
+    /**
+     * Returns the root revision for this node state. This is the read revision
+     * passed from the parent node state. This revision therefore reflects the
+     * revision of the root node state where the traversal down the tree
+     * started. The returned revision is only maintained on a best effort basis
+     * and may be the same as {@link #getRevision()} if this node state is
+     * retrieved directly from the {@code DocumentNodeStore}.
+     *
+     * @return the revision of the root node state is available, otherwise the
+     *          same value as returned by {@link #getRevision()}.
+     */
+    @Nonnull
+    Revision getRootRevision() {
+        return rootRevision;
     }
 
     //--------------------------< NodeState >-----------------------------------
@@ -168,7 +218,18 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
     @Nonnull
     @Override
     public NodeState getChildNode(@Nonnull String name) {
-        return getChildNode(name, lastRevision);
+        if (!hasChildren) {
+            checkValidName(name);
+            return EmptyNodeState.MISSING_NODE;
+        }
+        String p = PathUtils.concat(getPath(), name);
+        DocumentNodeState child = store.getNode(p, lastRevision);
+        if (child == null) {
+            checkValidName(name);
+            return EmptyNodeState.MISSING_NODE;
+        } else {
+            return child.withRootRevision(rootRevision);
+        }
     }
 
     @Override
@@ -271,23 +332,6 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
         return super.compareAgainstBaseState(base, diff);
     }
 
-    @Nonnull
-    NodeState getChildNode(@Nonnull String name,
-                           @Nonnull Revision revision) {
-        if (!hasChildren) {
-            checkValidName(name);
-            return EmptyNodeState.MISSING_NODE;
-        }
-        String p = PathUtils.concat(getPath(), name);
-        DocumentNodeState child = store.getNode(p, checkNotNull(revision));
-        if (child == null) {
-            checkValidName(name);
-            return EmptyNodeState.MISSING_NODE;
-        } else {
-            return child;
-        }
-    }
-
     void setProperty(String propertyName, String value) {
         if (value == null) {
             properties.remove(propertyName);
@@ -379,7 +423,7 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
 
     @Override
     public int getMemory() {
-        int size = 180 + path.length() * 2;
+        int size = 212 + path.length() * 2;
         // rough approximation for properties
         for (Map.Entry<String, PropertyState> entry : properties.entrySet()) {
             // name
@@ -442,7 +486,7 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
                     @Nonnull
                     @Override
                     public NodeState getNodeState() {
-                        return input;
+                        return input.withRootRevision(rootRevision);
                     }
                 };
             }
@@ -529,9 +573,12 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
         @Override
         public int getMemory() {
             if (cachedMemory == 0) {
-                int size = 114;
-                for (String c : children) {
-                    size += c.length() * 2 + 56;
+                int size = 48;
+                if (!children.isEmpty()) {
+                    size = 114;
+                    for (String c : children) {
+                        size += c.length() * 2 + 56;
+                    }
                 }
                 cachedMemory = size;
             }

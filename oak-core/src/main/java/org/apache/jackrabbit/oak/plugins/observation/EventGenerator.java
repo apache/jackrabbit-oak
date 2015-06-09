@@ -76,25 +76,18 @@ public class EventGenerator {
 
     private final LinkedList<Continuation> continuations = newLinkedList();
 
-    private final ContentChangeInfo changeInfo;
-
     /**
      * Creates a new generator instance. Changes to process need to be added
      * through {@link #addHandler(NodeState, NodeState, EventHandler)}
-     * @param changeInfo
      */
-    public EventGenerator(ContentChangeInfo changeInfo) {
-        this.changeInfo = changeInfo;
-    }
+    public EventGenerator() {}
 
     /**
      * Creates a new generator instance for processing the given changes.
      */
     public EventGenerator(
             @Nonnull NodeState before, @Nonnull NodeState after,
-            @Nonnull ContentChangeInfo changeInfo,
             @Nonnull EventHandler handler) {
-        this(changeInfo);
         continuations.addFirst(new Continuation(handler, before, after, 0));
     }
 
@@ -127,7 +120,7 @@ public class EventGenerator {
         }
     }
 
-    private class Continuation implements NodeStateDiff, Runnable, ContentChangeInfoProvider {
+    private class Continuation implements NodeStateDiff, Runnable {
 
         /**
          * Filtered handler of detected content changes.
@@ -181,13 +174,6 @@ public class EventGenerator {
                 // as a result of hitting the MAX_CHANGES_PER_CONTINUATION limit
                 handler.leave(before, after);
             }
-        }
-
-        //-------------------------------------------------< ContentChangeInfoProvider >--
-
-        @Override
-        public ContentChangeInfo getChangeInfo() {
-            return changeInfo;
         }
 
         //-------------------------------------------------< NodeStateDiff >--
