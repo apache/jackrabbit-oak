@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import javax.sql.DataSource;
 
-import com.mongodb.BasicDBObject;
-
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
@@ -29,6 +27,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 
 public abstract class DocumentStoreFixture {
@@ -36,13 +35,29 @@ public abstract class DocumentStoreFixture {
     private static final Logger LOG = LoggerFactory.getLogger(DocumentStoreFixture.class);
 
     public static final DocumentStoreFixture MEMORY = new MemoryFixture();
-    public static final DocumentStoreFixture RDB_H2 = new RDBFixture("RDB-H2(file)", "jdbc:h2:file:./target/h2-ds-test", "sa", "");
-    public static final DocumentStoreFixture RDB_DERBY = new RDBFixture("RDB-Derby(embedded)", "jdbc:derby:./target/derby-ds-test;create=true", "", "");    public static final DocumentStoreFixture RDB_PG = new RDBFixture("RDB-Postgres", "jdbc:postgresql:oak", "postgres", "geheim");
-    public static final DocumentStoreFixture RDB_DB2 = new RDBFixture("RDB-DB2", "jdbc:db2://localhost:50000/OAK", "oak", "geheim");
-    public static final DocumentStoreFixture RDB_MYSQL = new RDBFixture("RDB-MySQL", "jdbc:mysql://localhost:3306/oak", "root", "geheim");
-    public static final DocumentStoreFixture RDB_ORACLE = new RDBFixture("RDB-Oracle", "jdbc:oracle:thin:@localhost:1521:orcl", "system", "geheim");
-    public static final DocumentStoreFixture RDB_MSSQL = new RDBFixture("RDB-MSSql", "jdbc:sqlserver://localhost:1433;databaseName=OAK", "sa", "geheim");
     public static final DocumentStoreFixture MONGO = new MongoFixture("mongodb://localhost:27017/oak");
+
+    public static final DocumentStoreFixture RDB_DB2 = new RDBFixture("RDB-DB2", System.getProperty("rdb-db2-jdbc-url",
+            "jdbc:db2://localhost:50000/OAK"), System.getProperty("rdb-db2-jdbc-user", "oak"), System.getProperty(
+            "rdb-db2-jdbc-passwd", "geheim"));
+    public static final DocumentStoreFixture RDB_DERBY = new RDBFixture("RDB-Derby(embedded)", System.getProperty(
+            "rdb-derby-jdbc-url", "jdbc:derby:./target/derby-ds-test;create=true"),
+            System.getProperty("rdb-derby-jdbc-user", "sa"), System.getProperty("rdb-derby-jdbc-passwd", ""));
+    public static final DocumentStoreFixture RDB_H2 = new RDBFixture("RDB-H2(file)", System.getProperty("rdb-h2-jdbc-url",
+            "jdbc:h2:file:./target/h2-ds-test"), System.getProperty("rdb-h2-jdbc-user", "sa"), System.getProperty(
+            "rdb-h2-jdbc-passwd", ""));
+    public static final DocumentStoreFixture RDB_MSSQL = new RDBFixture("RDB-MSSql", System.getProperty("rdb-mssql-jdbc-url",
+            "jdbc:sqlserver://localhost:1433;databaseName=OAK"), System.getProperty("rdb-mssql-jdbc-user", "sa"),
+            System.getProperty("rdb-mssql-jdbc-passwd", "geheim"));
+    public static final DocumentStoreFixture RDB_MYSQL = new RDBFixture("RDB-MySQL", System.getProperty("rdb-mysql-jdbc-url",
+            "jdbc:mysql://localhost:3306/oak"), System.getProperty("rdb-mysql-jdbc-user", "root"), System.getProperty(
+            "rdb-mysql-jdbc-passwd", "geheim"));
+    public static final DocumentStoreFixture RDB_ORACLE = new RDBFixture("RDB-Oracle", System.getProperty("rdb-oracle-jdbc-url",
+            "jdbc:oracle:thin:@localhost:1521:orcl"), System.getProperty("rdb-oracle-jdbc-user", "system"), System.getProperty(
+            "rdb-oracle-jdbc-passwd", "geheim"));
+    public static final DocumentStoreFixture RDB_PG = new RDBFixture("RDB-Postgres", System.getProperty("rdb-postgres-jdbc-url",
+            "jdbc:postgresql:oak"), System.getProperty("rdb-postgres-jdbc-user", "postgres"), System.getProperty(
+            "rdb-postgres-jdbc-passwd", "geheim"));
 
     public static final String TABLEPREFIX = "dstest_";
 
