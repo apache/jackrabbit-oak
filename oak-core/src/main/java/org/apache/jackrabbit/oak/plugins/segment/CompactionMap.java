@@ -22,6 +22,8 @@ import static com.google.common.collect.Sets.newTreeSet;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ALIGN_BITS;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -222,8 +224,28 @@ public class CompactionMap {
         }
     }
 
-    void compress() {
-        if (recent.isEmpty()) {
+    public void compress(Set<UUID> removed) {
+        CompactionMap cm = this;
+        while (cm != null) {
+            cm.compressInternal(removed);
+            cm = cm.prev;
+        }
+
+        cm = this;
+        while (cm != null) {
+            while (cm.prev != null && cm.prev.msbs.length == 0) {
+                cm.prev = cm.prev.prev;
+            }
+            cm = cm.prev;
+        }
+    }
+
+    public void compress() {
+        compressInternal(Collections.<UUID>emptySet());
+    }
+
+    private void compressInternal(Set<UUID> removed) {
+        if (recent.isEmpty() && removed.isEmpty()) {
             // noop
             return;
         }
@@ -250,6 +272,9 @@ public class CompactionMap {
         for (int i = 0; i < msbs.length; i++) {
             uuids.add(new UUID(msbs[i], lsbs[i]));
         }
+
+        uuids.removeAll(removed);
+        mapping.keySet().removeAll(removed);
 
         long[] newmsbs = new long[uuids.size()];
         long[] newlsbs = new long[uuids.size()];
@@ -314,10 +339,16 @@ public class CompactionMap {
         this.lsbs = newlsbs;
         this.entryIndex = newEntryIndex;
 
-        this.beforeOffsets = newBeforeOffsets;
-        this.afterOffsets = newAfterOffsets;
+        if (newIndex < newBeforeOffsets.length) {
+            this.beforeOffsets = Arrays.copyOf(newBeforeOffsets, newIndex);
+            this.afterOffsets = Arrays.copyOf(newAfterOffsets, newIndex);
+            this.afterSegmentIds = Arrays.copyOf(newAfterSegmentIds, newIndex);
+        } else {
+            this.beforeOffsets = newBeforeOffsets;
+            this.afterOffsets = newAfterOffsets;
+            this.afterSegmentIds = newAfterSegmentIds;
+        }
 
-        this.afterSegmentIds = newAfterSegmentIds;
         this.amsbs = new long[newAfterSegments.size()];
         this.alsbs = new long[newAfterSegments.size()];
         for (Entry<UUID, Integer> entry : newAfterSegments.entrySet()) {
