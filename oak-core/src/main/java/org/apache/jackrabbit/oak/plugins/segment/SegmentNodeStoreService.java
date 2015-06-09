@@ -38,14 +38,12 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Dictionary;
 import java.util.Hashtable;
-import java.util.Map;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Modified;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.PropertyOption;
 import org.apache.felix.scr.annotations.Reference;
@@ -264,7 +262,6 @@ public class SegmentNodeStoreService extends ProxyNodeStore
             "considered for GC"
     )
     public static final String PROP_BLOB_GC_MAX_AGE = "blobGcMaxAgeInSecs";
-    private long blobGcMaxAgeInSecs = DEFAULT_BLOB_GC_MAX_AGE;
 
     @Override
     protected synchronized SegmentNodeStore getNodeStore() {
@@ -273,10 +270,9 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     }
 
     @Activate
-    private void activate(ComponentContext context, Map<String, ?> config) throws IOException {
+    private void activate(ComponentContext context) throws IOException {
         this.context = context;
         this.customBlobStore = Boolean.parseBoolean(lookup(context, CUSTOM_BLOB_STORE));
-        modified(config);
 
         if (blobStore == null && customBlobStore) {
             log.info("BlobStore use enabled. SegmentNodeStore would be initialized when BlobStore would be available");
@@ -356,6 +352,8 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         if (memoryThresholdS != null) {
             memoryThreshold = Byte.valueOf(memoryThresholdS);
         }
+
+        final long blobGcMaxAgeInSecs = toLong(lookup(context, PROP_BLOB_GC_MAX_AGE), DEFAULT_BLOB_GC_MAX_AGE);
 
         OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
         gcMonitor = new GCMonitorTracker();
@@ -453,14 +451,6 @@ public class SegmentNodeStoreService extends ProxyNodeStore
             return context.getBundleContext().getProperty(property);
         }
         return null;
-    }
-
-    /**
-     * At runtime SegmentNodeStore only picks up modification of certain properties
-     */
-    @Modified
-    protected void modified(Map<String, ?> config){
-        blobGcMaxAgeInSecs = toLong(config.get(PROP_BLOB_GC_MAX_AGE), DEFAULT_BLOB_GC_MAX_AGE);
     }
 
     @Deactivate
