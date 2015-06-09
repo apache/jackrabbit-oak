@@ -23,12 +23,15 @@ import javax.jcr.LoginException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
+import javax.security.auth.login.Configuration;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.security.ExerciseUtility;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
 /**
@@ -120,6 +123,7 @@ public class L7_ImpersonationTest extends AbstractJCRTest {
         userManager = ((JackrabbitSession) superuser).getUserManager();
         testUser = ExerciseUtility.createTestUser(userManager);
         anotherUser = ExerciseUtility.createTestUser(userManager);
+        superuser.save();
     }
 
     @Override

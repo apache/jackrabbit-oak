@@ -143,6 +143,7 @@ public class L11_PasswordTest extends AbstractJCRTest {
     }
 
     public void testGetCredentials() throws RepositoryException {
+        testUser = userManager.createUser(testId, TEST_PW);
         Credentials creds = testUser.getCredentials();
 
         // TODO fix the expectation
