@@ -24,6 +24,7 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_I
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS_RESOLUTION;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT_FACTOR;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifiedInSecs;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -1749,6 +1750,71 @@ public class DocumentNodeStoreTest {
 
     }
 
+    // OAK-1970
+    @Test
+    public void diffMany() throws Exception {
+        Clock clock = new Clock.Virtual();
+        clock.waitUntil(System.currentTimeMillis());
+        Revision.setClock(clock);
+        final List<Long> startValues = Lists.newArrayList();
+        MemoryDocumentStore ds = new MemoryDocumentStore() {
+            @Nonnull
+            @Override
+            public <T extends Document> List<T> query(Collection<T> collection,
+                                                      String fromKey,
+                                                      String toKey,
+                                                      String indexedProperty,
+                                                      long startValue,
+                                                      int limit) {
+                if (indexedProperty != null) {
+                    startValues.add(startValue);
+                }
+                return super.query(collection, fromKey, toKey, indexedProperty, startValue, limit);
+            }
+        };
+        DocumentNodeStore ns = new DocumentMK.Builder().clock(clock)
+                .setDocumentStore(ds).setAsyncDelay(0).getNodeStore();
+
+        NodeBuilder builder = ns.getRoot().builder();
+        NodeBuilder test = builder.child("test");
+        for (int i = 0; i < DocumentMK.MANY_CHILDREN_THRESHOLD * 2; i++) {
+            test.child("node-" + i);
+        }
+        merge(ns, builder);
+
+        // 'wait one hour'
+        clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(1));
+
+        // perform a change and use the resulting root as before state
+        builder = ns.getRoot().builder();
+        builder.child("foo");
+        DocumentNodeState before = asDocumentNodeState(merge(ns, builder));
+        NodeState beforeTest = before.getChildNode("test");
+
+        // perform another change to span the diff across multiple revisions
+        // this will prevent diff calls served from the local cache
+        builder = ns.getRoot().builder();
+        builder.child("bar");
+        merge(ns, builder);
+
+        // add a child node
+        builder = ns.getRoot().builder();
+        builder.child("test").child("bar");
+        NodeState after = merge(ns, builder);
+        NodeState afterTest = after.getChildNode("test");
+
+        startValues.clear();
+        afterTest.compareAgainstBaseState(beforeTest, new DefaultNodeStateDiff());
+
+        assertEquals(1, startValues.size());
+        long beforeModified = getModifiedInSecs(before.getRevision().getTimestamp());
+        // startValue must be based on the revision of the before state
+        // and not when '/test' was last modified
+        assertEquals(beforeModified, (long) startValues.get(0));
+
+        ns.dispose();
+    }
+
     private static DocumentNodeState asDocumentNodeState(NodeState state) {
         if (!(state instanceof DocumentNodeState)) {
             throw new IllegalArgumentException("Not a DocumentNodeState");
@@ -1778,9 +1844,9 @@ public class DocumentNodeStoreTest {
         }
     }
 
-    private static void merge(NodeStore store, NodeBuilder root)
+    private static NodeState merge(NodeStore store, NodeBuilder root)
             throws CommitFailedException {
-        store.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        return store.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
     private static class TestHook extends EditorHook {
