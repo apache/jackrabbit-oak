@@ -423,6 +423,10 @@ public class CompactionMap {
         return sb.toString();
     }
 
+    /**
+     * The weight of the compaction map is its  memory consumption bytes
+     * @return  Estimated weight of the compaction map
+     */
     public long getEstimatedWeight() {
         long total = 0;
         CompactionMap cm = this;
@@ -431,6 +435,20 @@ public class CompactionMap {
             cm = cm.prev;
         }
         return total;
+    }
+
+    /**
+     * The depth of the compaction map is the total number of generations
+     * kept. That is this instance plus the number of all previous instances.
+     * @return  Depth of the compaction map
+     */
+    public int getDepth() {
+        if (prev == null) {
+            return 1;
+        } else {
+            return 1 + prev.getDepth();
+        }
+
     }
 
     /**
