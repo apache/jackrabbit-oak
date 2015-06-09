@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.security.authentication;
 
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.List;
 import javax.jcr.LoginException;
 import javax.jcr.RepositoryException;
@@ -110,7 +111,7 @@ public class L7_ImpersonationTest extends AbstractJCRTest {
     private User testUser;
     private User anotherUser;
 
-    private List<Session> sessionList;
+    private List<Session> sessionList = new ArrayList<Session>();
 
     @Override
     protected void setUp() throws Exception {
