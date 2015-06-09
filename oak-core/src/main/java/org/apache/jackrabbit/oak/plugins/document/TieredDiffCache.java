@@ -16,22 +16,25 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.util.Collections;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
+import com.google.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
 
 /**
- * A diff cache implementation, which immediately forgets the diff.
+ * Implements a tiered diff cache which consists of a {@link LocalDiffCache} and
+ * a {@link MemoryDiffCache}.
  */
-class AmnesiaDiffCache implements DiffCache {
+class TieredDiffCache implements DiffCache {
 
-    static final DiffCache INSTANCE = new AmnesiaDiffCache();
+    private final LocalDiffCache localCache;
+    private final MemoryDiffCache memoryCache;
 
-    private AmnesiaDiffCache() {
-        super();
+    TieredDiffCache(DocumentMK.Builder builder) {
+        this.localCache = new LocalDiffCache(builder);
+        this.memoryCache = new MemoryDiffCache(builder);
     }
 
     @Override
@@ -39,30 +42,30 @@ class AmnesiaDiffCache implements DiffCache {
                              @Nonnull Revision to,
                              @Nonnull String path,
                              @Nullable Loader loader) {
-        if (loader != null) {
-            return loader.call();
+        // check local first without loader
+        String changes = localCache.getChanges(from, to, path, null);
+        if (changes != null) {
+            return changes;
         }
-        return null;
+        return memoryCache.getChanges(from, to, path, loader);
     }
 
+    /**
+     * Creates a new entry in the {@link LocalDiffCache} only!
+     *
+     * @param from the from revision.
+     * @param to the to revision.
+     * @return the new entry.
+     */
     @Nonnull
     @Override
     public Entry newEntry(@Nonnull Revision from, @Nonnull Revision to) {
-        return new Entry() {
-            @Override
-            public void append(@Nonnull String path, @Nonnull String changes) {
-            }
-
-            @Override
-            public boolean done() {
-                return false;
-            }
-        };
+        return localCache.newEntry(from, to);
     }
 
     @Nonnull
     @Override
     public Iterable<CacheStats> getStats() {
-        return Collections.emptyList();
+        return Iterables.concat(localCache.getStats(), memoryCache.getStats());
     }
 }
