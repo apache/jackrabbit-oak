@@ -133,6 +133,8 @@ public class L3_PrecedenceRulesTest extends AbstractJCRTest {
         testPrincipal = testUser.getPrincipal();
         testGroupPrincipal = testGroup.getPrincipal();
 
+        AccessControlUtils.addAccessControlEntry(superuser, testRoot, EveryonePrincipal.getInstance(), AccessControlUtils.privilegesFromNames(superuser, Privilege.JCR_ALL), false);
+
         testSession = superuser.getRepository().login(ExerciseUtility.getTestCredentials(testUser.getID()));
     }
 
