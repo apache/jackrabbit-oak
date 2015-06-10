@@ -22,6 +22,7 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.Cursors.AbstractCursor;
@@ -125,4 +126,10 @@ class AggregationCursor extends AbstractCursor {
             
         };
     }
+    
+    @Override
+    public long getSize(SizePrecision precision, long max) {
+        return cursor.getSize(precision, max);
+    }
+    
 }
