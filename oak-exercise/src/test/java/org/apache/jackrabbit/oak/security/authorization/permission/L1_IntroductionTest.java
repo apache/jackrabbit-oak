@@ -151,7 +151,8 @@ public class L1_IntroductionTest extends AbstractSecurityTest {
 
         setupPermission(root, "/a", testPrincipal, true, PrivilegeConstants.JCR_READ);
         setupPermission(root, "/a/b", testPrincipal, true, PrivilegeConstants.JCR_ADD_CHILD_NODES);
-        setupPermission(root, "/a/b/c", testPrincipal, true, PrivilegeConstants.JCR_ALL);
+        setupPermission(root, "/a/bb", testPrincipal, false, PrivilegeConstants.REP_READ_PROPERTIES);
+        setupPermission(root, "/a/b/c", testPrincipal, true, PrivilegeConstants.REP_ADD_PROPERTIES);
 
         root.commit();
     }
@@ -195,13 +196,15 @@ public class L1_IntroductionTest extends AbstractSecurityTest {
     public void testReadPermissionWalkThrough() {
         Root testRoot = testSession.getLatestRoot();
 
-        // TODO verify if these tree are accessible. Q: what method to use here?
+        // TODO verify if these tree are accessible using Tree#exists()
+        // Question: can you explain why using Tree.exists is sufficient and you don't necessarily need to perform the check on the PermissionProvider?
         Tree rootTree = testRoot.getTree("/");
         Tree bTree = testRoot.getTree("/a/b");
         Tree cTree = testRoot.getTree("/a/b/c");
 
-        // TODO verify if this is an accessible property? Q: how to do this?
+        // TODO verify if this is an accessible property? Q: how can you do this withouth testing the readability on the PermissionProvider?
         PropertyState bProp = bTree.getProperty("bProp");
+        PropertyState bbProp = testRoot.getTree("/a/bb").getProperty("bbProp");
         PropertyState cProp = cTree.getProperty("cProp");
     }
 
@@ -212,15 +215,45 @@ public class L1_IntroductionTest extends AbstractSecurityTest {
         // TODO walk through the test and fix it such that it passes.
 
         Tree bTree = testRoot.getTree("/a/b");
-        bTree.addChild("childName");
-        bTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-        testRoot.commit();
 
-        Tree cTree = bTree.getChild("c");
-        cTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-        testRoot.commit();
+        // add a new child node at '/a/b' and persist the change to trigger the permission evaluation.
+        // TODO: look at the permission setup and try to determine if that is expected to work. explain why
+        try {
+            Tree child = bTree.addChild("childName");
+            child.setProperty(JcrConstants.JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+            testRoot.commit();
+        } finally {
+            testRoot.refresh();
+        }
 
-        root.refresh();
-        // TODO use the superuser-root instance to verify that persisting the changes was successfull
+        // now change the primary type of the 'bTree'
+        // TODO: doesn it work with the current permission setup? if not, why? in this case fix the code to match your expectation.
+        try {
+            bTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED);
+            testRoot.commit();
+        } finally {
+            testRoot.refresh();
+        }
+
+        Tree cTree = testRoot.getTree("/a/b/c");
+
+        // now change the regula property 'cProp' of the 'cTree'
+        // TODO: doesn it work with the current permission setup? if not, why? in this case fix the code to match your expectation.
+        try {
+            cTree.setProperty("cProp", "changedValue");
+            testRoot.commit();
+        } finally {
+            testRoot.refresh();
+        }
+
+
+        // finally we try to add a new property to the 'cTree'
+        // TODO: doesn it work with the current permission setup? if not, why? in this case fix the code to match your expectation.
+        try {
+            cTree.setProperty("anotherCProp", "val");
+            testRoot.commit();
+        } finally {
+            root.refresh();
+        }
     }
 }

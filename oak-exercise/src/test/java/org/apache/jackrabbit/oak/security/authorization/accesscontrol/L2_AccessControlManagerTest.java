@@ -217,7 +217,7 @@ public class L2_AccessControlManagerTest extends AbstractJCRTest {
 
         AccessControlPolicyIterator policyIterator = acMgr.getApplicablePolicies(testRoot);
         int expectedSize = -1; // TODO
-        assertEquals(expectedLength, policyIterator.getSize());
+        assertEquals(expectedSize, policyIterator.getSize());
 
         // TODO: look at the utility methods and explain the expected return value
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, testRoot);
@@ -233,7 +233,7 @@ public class L2_AccessControlManagerTest extends AbstractJCRTest {
 
         AccessControlPolicyIterator policyIterator = acMgr.getApplicablePolicies(NamespaceConstants.NAMESPACES_PATH);
         int expectedSize = -1; // TODO
-        assertEquals(expectedLength, policyIterator.getSize());
+        assertEquals(expectedSize, policyIterator.getSize());
 
         // TODO: look at the utility methods and explain the expected return value
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, NamespaceConstants.NAMESPACES_PATH);
