@@ -216,7 +216,6 @@ public class DocumentNodeStoreService {
      */
     private static final long DEFAULT_VER_GC_MAX_AGE = TimeUnit.DAYS.toSeconds(1);
     public static final String PROP_VER_GC_MAX_AGE = "versionGcMaxAgeInSecs";
-    private long versionGcMaxAgeInSecs = DEFAULT_VER_GC_MAX_AGE;
 
     public static final String PROP_REV_RECOVERY_INTERVAL = "lastRevRecoveryJobIntervalInSecs";
 
@@ -224,8 +223,7 @@ public class DocumentNodeStoreService {
      * Blob modified before this time duration would be considered for Blob GC
      */
     private static final long DEFAULT_BLOB_GC_MAX_AGE = TimeUnit.HOURS.toSeconds(24);
-    public static final String PROP_BLOB_GC_MAX_AGE = "blobGcMaxAgeInSecs";
-    private long blobGcMaxAgeInSecs = DEFAULT_BLOB_GC_MAX_AGE;
+	public static final String PROP_BLOB_GC_MAX_AGE = "blobGcMaxAgeInSecs";
 
     private static final long DEFAULT_MAX_REPLICATION_LAG = TimeUnit.HOURS.toSeconds(6);
     public static final String PROP_REPLICATION_LAG = "maxReplicationLagInSecs";
@@ -251,7 +249,6 @@ public class DocumentNodeStoreService {
         customBlobDataSource = toBoolean(prop(CUSTOM_BLOB_DATA_SOURCE), false);
         documentStoreType = DocumentStoreType.fromString(PropertiesUtil.toString(config.get(PROP_DS_TYPE), "MONGO"));
 
-        modified(config);
         registerNodeStoreIfPossible();
     }
 
@@ -369,15 +366,6 @@ public class DocumentNodeStoreService {
         props.put(Constants.SERVICE_PID, DocumentNodeStore.class.getName());
         props.put(DESCRIPTION, getMetadata(ds));
         reg = context.getBundleContext().registerService(NodeStore.class.getName(), store, props);
-    }
-
-    /**
-     * At runtime DocumentNodeStore only pickup modification of certain properties
-     */
-    @Modified
-    protected void modified(Map<String, ?> config){
-        versionGcMaxAgeInSecs = toLong(config.get(PROP_VER_GC_MAX_AGE), DEFAULT_VER_GC_MAX_AGE);
-        blobGcMaxAgeInSecs = toLong(config.get(PROP_BLOB_GC_MAX_AGE), DEFAULT_BLOB_GC_MAX_AGE);
     }
 
     @Deactivate
@@ -507,6 +495,9 @@ public class DocumentNodeStoreService {
                             ds.getCacheStats().getName())
             );
         }
+
+        final long versionGcMaxAgeInSecs = toLong(prop(PROP_VER_GC_MAX_AGE), DEFAULT_VER_GC_MAX_AGE);
+        final long blobGcMaxAgeInSecs = toLong(prop(PROP_BLOB_GC_MAX_AGE), DEFAULT_BLOB_GC_MAX_AGE);
 
         if (store.getBlobStore() instanceof GarbageCollectableBlobStore) {
             BlobGarbageCollector gc = new BlobGarbageCollector() {
