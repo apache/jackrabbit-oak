@@ -36,7 +36,6 @@ import javax.annotation.Nonnull;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
@@ -64,9 +63,6 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
     /** The underlying store to which this branch belongs */
     protected final DocumentNodeStore store;
 
-    /** The dispatcher to report changes */
-    protected final ChangeDispatcher dispatcher;
-
     protected final long maximumBackoff;
 
     /** The maximum time in milliseconds to wait for the merge lock. */
@@ -86,7 +82,6 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                             DocumentNodeState base,
                             ReadWriteLock mergeLock) {
         this.store = checkNotNull(store);
-        this.dispatcher = new ChangeDispatcher(store.getRoot());
         this.branchState = new Unmodified(checkNotNull(base));
         this.maximumBackoff = Math.max((long) store.getMaxBackOffMillis(), MIN_BACKOFF);
         this.maxLockTryTimeMS = (long) (store.getMaxBackOffMillis() * MAX_LOCK_TRY_TIME_MULTIPLIER);
@@ -529,22 +524,16 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 throws CommitFailedException {
             checkNotNull(hook);
             checkNotNull(info);
+            rebase();
+            NodeState toCommit = hook.processCommit(base, head, info);
             try {
-                rebase();
-                dispatcher.contentChanged(base, null);
-                NodeState toCommit = hook.processCommit(base, head, info);
-                try {
-                    NodeState newHead = DocumentNodeStoreBranch.this.persist(toCommit, base, info);
-                    dispatcher.contentChanged(newHead, info);
-                    branchState = new Merged(base);
-                    return newHead;
-                } catch(DocumentStoreException e) {
-                    throw new CommitFailedException(MERGE, 1, "Failed to merge changes to the underlying store", e);
-                } catch (Exception e) {
-                    throw new CommitFailedException(OAK, 1, "Failed to merge changes to the underlying store", e);
-                }
-            } finally {
-                dispatcher.contentChanged(store.getRoot(), null);
+                NodeState newHead = DocumentNodeStoreBranch.this.persist(toCommit, base, info);
+                branchState = new Merged(base);
+                return newHead;
+            } catch(DocumentStoreException e) {
+                throw new CommitFailedException(MERGE, 1, "Failed to merge changes to the underlying store", e);
+            } catch (Exception e) {
+                throw new CommitFailedException(OAK, 1, "Failed to merge changes to the underlying store", e);
             }
         }
     }
@@ -571,12 +560,6 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         Persisted(DocumentNodeState base) {
             super(base);
             this.head = createBranch(base);
-        }
-
-        Persisted(DocumentNodeState base, DocumentNodeState head) {
-            super(base);
-            createBranch(base);
-            this.head = head;
         }
 
         /**
@@ -642,7 +625,6 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             try {
                 rebase();
                 previousHead = head;
-                dispatcher.contentChanged(base, null);
                 DocumentNodeState newRoot = withCurrentBranch(new Callable<DocumentNodeState>() {
                     @Override
                     public DocumentNodeState call() throws Exception {
@@ -653,7 +635,6 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 });
                 branchState = new Merged(base);
                 success = true;
-                dispatcher.contentChanged(newRoot, info);
                 return newRoot;
             } catch (CommitFailedException e) {
                 throw e;
@@ -664,7 +645,6 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 if (!success) {
                     resetBranch(head, previousHead);
                 }
-                dispatcher.contentChanged(store.getRoot(), null);
             }
         }
 
