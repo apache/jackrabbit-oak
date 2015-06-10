@@ -193,7 +193,7 @@ public class L2_PermissionDiscoveryTest extends AbstractJCRTest {
                 childPath + "/new", existsAndHasPermission(null, null)
         );
 
-        for (String pPath : nodeTests.keySet()) {
+        for (String pPath : propertyTests.keySet()) {
             Boolean[] expected = propertyTests.get(pPath);
 
             assertEquals(expected[0].booleanValue(), testSession.nodeExists(pPath));
