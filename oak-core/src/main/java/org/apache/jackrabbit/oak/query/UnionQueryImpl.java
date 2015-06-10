@@ -148,11 +148,20 @@ public class UnionQueryImpl implements Query {
     
     @Override
     public long getSize(SizePrecision precision, long max) {
-        // Note: this does not respect the "unionAll == false" case
+        // Note: for "unionAll == false", overlapping entries are counted twice
         // (this can result in a larger reported size, but it is not a security problem)
-        return QueryImpl.saturatedAdd(
-                left.getSize(precision, max),
-                right.getSize(precision, max));
+        
+        // ensure the queries are both executed, otherwise the cursor is not set,
+        // and so the size would be -1
+        left.executeQuery().getRows().iterator().hasNext();
+        right.executeQuery().getRows().iterator().hasNext();
+        long a = left.getSize(precision, max);
+        long b = right.getSize(precision, max);
+        if (a < 0 || b < 0) {
+            return -1;
+        }
+        long total = QueryImpl.saturatedAdd(a, b);
+        return Math.min(limit, total);
     }
     
     @Override
