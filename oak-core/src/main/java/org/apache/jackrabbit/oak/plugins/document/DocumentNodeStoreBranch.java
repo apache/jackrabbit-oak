@@ -38,6 +38,7 @@ import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
  */
 class DocumentNodeStoreBranch
         extends AbstractNodeStoreBranch<DocumentNodeStore, DocumentNodeState> {
+    private static final int MAX_LOCK_TRY_TIME_MULTIPLIER = Integer.getInteger("oak.maxLockTryTimeMultiplier", 3);
 
     /** Lock for coordinating concurrent merge operations */
     private final ReadWriteLock mergeLock;
@@ -47,7 +48,7 @@ class DocumentNodeStoreBranch
                             ReadWriteLock mergeLock) {
         super(store, new ChangeDispatcher(store.getRoot()),
                 base, null, store.getMaxBackOffMillis(),
-                store.getMaxBackOffMillis() * 3);
+                store.getMaxBackOffMillis() * MAX_LOCK_TRY_TIME_MULTIPLIER);
         this.mergeLock = mergeLock;
     }
 
