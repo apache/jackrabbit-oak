@@ -191,6 +191,14 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
 
     //------------------------------< internal >--------------------------------
 
+    /**
+     * For test purposes only!
+     */
+    @Nonnull
+    ReadWriteLock getMergeLock() {
+        return mergeLock;
+    }
+
     @Nonnull
     private NodeState merge0(@Nonnull CommitHook hook,
                              @Nonnull CommitInfo info,
@@ -212,28 +220,17 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 }
             }
             try {
-                final long start = perfLogger.start();
-                Lock lock = acquireMergeLock(exclusive);
-                try {
-                    perfLogger.end(start, 1, "Merge - Acquired lock");
-                    return branchState.merge(checkNotNull(hook), checkNotNull(info));
-                } catch (CommitFailedException e) {
-                    LOG.trace("Merge Error", e);
-                    ex = e;
-                    // only retry on merge failures. these may be caused by
-                    // changes introduce by a commit hook and may be resolved
-                    // by a rebase and running the hook again
-                    if (!e.isOfType(MERGE)) {
-                        throw e;
-                    }
-                } finally {
-                    if (lock != null) {
-                        lock.unlock();
-                    }
+                return branchState.merge(checkNotNull(hook),
+                        checkNotNull(info), exclusive);
+            } catch (CommitFailedException e) {
+                LOG.trace("Merge Error", e);
+                ex = e;
+                // only retry on merge failures. these may be caused by
+                // changes introduce by a commit hook and may be resolved
+                // by a rebase and running the hook again
+                if (!e.isOfType(MERGE)) {
+                    throw e;
                 }
-            } catch (InterruptedException e) {
-                throw new CommitFailedException(OAK, 1,
-                        "Unable to acquire merge lock", e);
             }
         }
         // if we get here retrying failed
@@ -249,21 +246,30 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
      * @param exclusive whether to acquire the merge lock exclusive.
      * @return the acquired merge lock or {@code null} if the operation timed
      * out.
-     * @throws InterruptedException if the current thread is interrupted while
-     *                              acquiring the lock
+     * @throws CommitFailedException if the current thread is interrupted while
+     *                               acquiring the lock
      */
     @CheckForNull
     private Lock acquireMergeLock(boolean exclusive)
-            throws InterruptedException {
+            throws CommitFailedException {
+        final long start = perfLogger.start();
         Lock lock;
         if (exclusive) {
             lock = mergeLock.writeLock();
         } else {
             lock = mergeLock.readLock();
         }
-        boolean acquired = lock.tryLock(maxLockTryTimeMS, MILLISECONDS);
-        if (!acquired) {
-            String mode = exclusive ? "exclusive" : "shared";
+        boolean acquired;
+        try {
+            acquired = lock.tryLock(maxLockTryTimeMS, MILLISECONDS);
+        } catch (InterruptedException e) {
+            throw new CommitFailedException(OAK, 1,
+                    "Unable to acquire merge lock", e);
+        }
+        String mode = exclusive ? "exclusive" : "shared";
+        if (acquired) {
+            perfLogger.end(start, 1, "Merge - Acquired lock ({})", mode);
+        } else {
             LOG.info("Time out while acquiring merge lock ({})", mode);
             lock = null;
         }
@@ -409,6 +415,8 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
          *
          * @param hook the commit hook to run.
          * @param info the associated commit info.
+         * @param exclusive whether the merge lock must be acquired exclusively
+         *                  or shared while performing the merge.
          * @return the result of the merge.
          * @throws CommitFailedException if a commit hook rejected the changes
          *          or the actual merge operation failed. An implementation must
@@ -416,8 +424,9 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
          *          indicate the cause of the exception.
          */
         @Nonnull
-        abstract NodeState merge(
-                @Nonnull CommitHook hook, @Nonnull CommitInfo info)
+        abstract NodeState merge(@Nonnull CommitHook hook,
+                                 @Nonnull CommitInfo info,
+                                 boolean exclusive)
                 throws CommitFailedException;
     }
 
@@ -428,7 +437,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
      * <ul>
      *     <li>{@link InMemory} on {@link #setRoot(NodeState)} if the new root differs
      *         from the current base</li>.
-     *     <li>{@link Merged} on {@link #merge(CommitHook, CommitInfo)}</li>
+     *     <li>{@link Merged} on {@link BranchState#merge(CommitHook, CommitInfo, boolean)}</li>
      * </ul>
      */
     private class Unmodified extends BranchState {
@@ -461,7 +470,9 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
 
         @Override
         @Nonnull
-        NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info) {
+        NodeState merge(@Nonnull CommitHook hook,
+                        @Nonnull CommitInfo info,
+                        boolean exclusive) {
             branchState = new Merged(base);
             return base;
         }
@@ -476,7 +487,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
      *     <li>{@link Unmodified} on {@link #setRoot(NodeState)} if the new root is the same
      *         as the base of this branch or
      *     <li>{@link Persisted} otherwise.
-     *     <li>{@link Merged} on {@link #merge(CommitHook, CommitInfo)}</li>
+     *     <li>{@link Merged} on {@link BranchState#merge(CommitHook, CommitInfo, boolean)}</li>
      * </ul>
      */
     private class InMemory extends BranchState {
@@ -520,20 +531,31 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
 
         @Override
         @Nonnull
-        NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info)
+        NodeState merge(@Nonnull CommitHook hook,
+                        @Nonnull CommitInfo info,
+                        boolean exclusive)
                 throws CommitFailedException {
             checkNotNull(hook);
             checkNotNull(info);
-            rebase();
-            NodeState toCommit = hook.processCommit(base, head, info);
+            Lock lock = acquireMergeLock(exclusive);
             try {
-                NodeState newHead = DocumentNodeStoreBranch.this.persist(toCommit, base, info);
-                branchState = new Merged(base);
-                return newHead;
-            } catch(DocumentStoreException e) {
-                throw new CommitFailedException(MERGE, 1, "Failed to merge changes to the underlying store", e);
-            } catch (Exception e) {
-                throw new CommitFailedException(OAK, 1, "Failed to merge changes to the underlying store", e);
+                rebase();
+                NodeState toCommit = hook.processCommit(base, head, info);
+                try {
+                    NodeState newHead = DocumentNodeStoreBranch.this.persist(toCommit, base, info);
+                    branchState = new Merged(base);
+                    return newHead;
+                } catch(DocumentStoreException e) {
+                    throw new CommitFailedException(MERGE, 1,
+                            "Failed to merge changes to the underlying store", e);
+                } catch (Exception e) {
+                    throw new CommitFailedException(OAK, 1,
+                            "Failed to merge changes to the underlying store", e);
+                }
+            } finally {
+                if (lock != null) {
+                    lock.unlock();
+                }
             }
         }
     }
@@ -544,8 +566,8 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
      * <p>
      * Transitions to:
      * <ul>
-     *     <li>{@link ResetFailed} on failed reset in {@link #merge(CommitHook, CommitInfo)}</li>
-     *     <li>{@link Merged} on successful {@link #merge(CommitHook, CommitInfo)}</li>
+     *     <li>{@link ResetFailed} on failed reset in {@link BranchState#merge(CommitHook, CommitInfo, boolean)}</li>
+     *     <li>{@link Merged} on successful {@link BranchState#merge(CommitHook, CommitInfo, boolean)}</li>
      * </ul>
      */
     private class Persisted extends BranchState {
@@ -618,10 +640,12 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         @Override
         @Nonnull
         NodeState merge(@Nonnull final CommitHook hook,
-                        @Nonnull final CommitInfo info)
+                        @Nonnull final CommitInfo info,
+                        boolean exclusive)
                 throws CommitFailedException {
             boolean success = false;
             DocumentNodeState previousHead = head;
+            Lock lock = acquireMergeLock(exclusive);
             try {
                 rebase();
                 previousHead = head;
@@ -642,6 +666,9 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 throw new CommitFailedException(MERGE, 1,
                         "Failed to merge changes to the underlying store", e);
             } finally {
+                if (lock != null) {
+                    lock.unlock();
+                }
                 if (!success) {
                     resetBranch(head, previousHead);
                 }
@@ -700,7 +727,9 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
 
         @Override
         @Nonnull
-        NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info) {
+        NodeState merge(@Nonnull CommitHook hook,
+                        @Nonnull CommitInfo info,
+                        boolean exclusive) {
             throw new IllegalStateException("Branch has already been merged");
         }
     }
@@ -747,7 +776,9 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
          */
         @Nonnull
         @Override
-        NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info)
+        NodeState merge(@Nonnull CommitHook hook,
+                        @Nonnull CommitInfo info,
+                        boolean exclusive)
                 throws CommitFailedException {
             throw ex;
         }
