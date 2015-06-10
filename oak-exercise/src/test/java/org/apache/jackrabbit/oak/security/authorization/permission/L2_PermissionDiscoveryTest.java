@@ -223,7 +223,7 @@ public class L2_PermissionDiscoveryTest extends AbstractJCRTest {
         );
         for (String pPath : removePropertyTests.keySet()) {
             boolean canRemoveProperty = removePropertyTests.get(pPath);
-            assertEquals(canRemoveProperty, testSession.hasPermission(pPath, Session.ACTION_SET_PROPERTY));
+            assertEquals(canRemoveProperty, testSession.hasPermission(pPath, Session.ACTION_REMOVE));
         }
 
         // TODO: fill in the expected values
@@ -234,8 +234,8 @@ public class L2_PermissionDiscoveryTest extends AbstractJCRTest {
                 childPath + "/new", null
         );
         for (String nodePath : removeNodesTests.keySet()) {
-            boolean canRemoveProperty = removePropertyTests.get(nodePath);
-            assertEquals(canRemoveProperty, testSession.hasPermission(nodePath, Session.ACTION_SET_PROPERTY));
+            boolean canRemoveProperty = removeNodesTests.get(nodePath);
+            assertEquals(canRemoveProperty, testSession.hasPermission(nodePath, Session.ACTION_REMOVE));
         }
 
 
