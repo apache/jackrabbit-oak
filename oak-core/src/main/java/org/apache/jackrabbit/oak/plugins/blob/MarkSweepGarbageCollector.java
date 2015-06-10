@@ -183,8 +183,10 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 int deleteCount = sweep();
                 threw = false;
 
-                LOG.info("Blob garbage collection completed in {}. Number of blobs "
-                        + "deleted [{}]", sw.toString(), deleteCount);
+                LOG.info(
+                    "Blob garbage collection completed in {}. Number of blobs identified for deletion [{}] (This "
+                        + "includes blobs newer than configured interval [{}] which are ignored for deletion)",
+                    sw.toString(), deleteCount, maxLastModifiedInterval);
             }
         } finally {
             if (!LOG.isTraceEnabled()) {
@@ -287,6 +289,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         try {
             earliestRefAvailTime =
                     GarbageCollectionType.get(blobStore).mergeAllMarkedReferences(blobStore, fs);
+            LOG.debug("Earliest reference available for timestamp [{}]", earliestRefAvailTime);
         } catch (Exception e) {
             return 0;
         }
