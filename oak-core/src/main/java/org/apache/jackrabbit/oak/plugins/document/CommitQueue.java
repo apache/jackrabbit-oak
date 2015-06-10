@@ -26,11 +26,7 @@ import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
-import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,20 +34,13 @@ import org.slf4j.LoggerFactory;
  * <code>CommitQueue</code> ensures a sequence of commits consistent with the
  * commit revision even if commits did not complete in this sequence.
  */
-class CommitQueue {
+abstract class CommitQueue {
 
     static final Logger LOG = LoggerFactory.getLogger(CommitQueue.class);
 
-    private final DocumentNodeStore store;
-
     private final SortedMap<Revision, Entry> commits = new TreeMap<Revision, Entry>(StableRevisionComparator.INSTANCE);
 
-    private final ChangeDispatcher dispatcher;
-
-    CommitQueue(DocumentNodeStore store, ChangeDispatcher dispatcher) {
-        this.store = store;
-        this.dispatcher = dispatcher;
-    }
+    protected abstract Revision newRevision();
 
     @Nonnull
     Revision createRevision() {
@@ -65,7 +54,7 @@ class CommitQueue {
         Revision rev = null;
         synchronized (this) {
             for (int i = 0; i < num; i++) {
-                rev = store.newRevision();
+                rev = newRevision();
                 revs.add(rev);
             }
             commits.put(rev, new Entry(rev));
@@ -74,21 +63,24 @@ class CommitQueue {
         return revs;
     }
 
-    void done(@Nonnull Commit commit, boolean isBranch, @Nullable CommitInfo info) {
-        checkNotNull(commit);
-        if (isBranch) {
-            try {
-                commit.applyToCache(commit.getBaseRevision(), true);
-            } finally {
-                removeCommit(commit.getRevision());
-            }
-        } else {
-            afterTrunkCommit(commit, info);
-        }
+    void done(@Nonnull Revision revision, @Nonnull Callback c) {
+        checkNotNull(revision);
+        waitUntilHeadOfQueue(revision, c);
     }
 
     void canceled(@Nonnull Revision rev) {
         removeCommit(rev);
+    }
+
+    boolean contains(@Nonnull Revision revision) {
+        synchronized (this) {
+            return commits.containsKey(checkNotNull(revision));
+        }
+    }
+
+    interface Callback {
+
+        void headOfQueue(@Nonnull Revision revision);
     }
 
     //------------------------< internal >--------------------------------------
@@ -105,10 +97,9 @@ class CommitQueue {
         }
     }
 
-    private void afterTrunkCommit(@Nonnull Commit commit,
-                                  @Nullable CommitInfo info) {
+    private void waitUntilHeadOfQueue(@Nonnull Revision rev,
+                                      @Nonnull Callback c) {
         assert !commits.isEmpty();
-        Revision rev = commit.getRevision();
 
         boolean isHead;
         Entry commitEntry;
@@ -124,14 +115,7 @@ class CommitQueue {
             commits.remove(rev);
             try {
                 LOG.debug("removed {}, head is now {}", rev, commits.isEmpty() ? null : commits.firstKey());
-                // remember before revision
-                Revision before = store.getHeadRevision();
-                // apply changes to cache based on before revision
-                commit.applyToCache(before, false);
-                // update head revision
-                store.setHeadRevision(rev);
-                NodeState root = store.getRoot();
-                dispatcher.contentChanged(root, info);
+                c.headOfQueue(rev);
             } finally {
                 // notify next if there is any
                 notifyHead();
