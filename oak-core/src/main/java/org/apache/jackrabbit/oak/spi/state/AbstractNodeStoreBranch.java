@@ -30,6 +30,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -76,9 +77,6 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
      */
     protected final long maxLockTryTimeMS;
 
-    /** Lock for coordinating concurrent merge operations */
-    private final Lock mergeLock;
-
     /**
      * State of the this branch. Either {@link Unmodified}, {@link InMemory}, {@link Persisted}
      * or {@link Merged}.
@@ -88,23 +86,20 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
 
     public AbstractNodeStoreBranch(S kernelNodeStore,
                                    ChangeDispatcher dispatcher,
-                                   Lock mergeLock,
                                    N base) {
-        this(kernelNodeStore, dispatcher, mergeLock, base, null,
+        this(kernelNodeStore, dispatcher, base, null,
                 MILLISECONDS.convert(10, SECONDS),
                 Integer.MAX_VALUE); // default: wait 'forever'
     }
 
     public AbstractNodeStoreBranch(S kernelNodeStore,
                                    ChangeDispatcher dispatcher,
-                                   Lock mergeLock,
                                    N base,
                                    N head,
                                    long maximumBackoff,
                                    long maxLockTryTimeMS) {
         this.store = checkNotNull(kernelNodeStore);
         this.dispatcher = dispatcher;
-        this.mergeLock = checkNotNull(mergeLock);
         if (head == null) {
             this.branchState = new Unmodified(checkNotNull(base));
         } else {
@@ -303,9 +298,17 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
         return true;
     }
 
-    @Nonnull
     @Override
-    public NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info)
+    public void rebase() {
+        branchState.rebase();
+    }
+
+    //----------------------------< internal >----------------------------------
+
+    @Nonnull
+    protected NodeState merge0(@Nonnull CommitHook hook,
+                               @Nonnull CommitInfo info,
+                               @Nonnull Lock lock)
             throws CommitFailedException {
         CommitFailedException ex = null;
         long time = System.currentTimeMillis();
@@ -323,28 +326,17 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
                 }
             }
             try {
-                final long start = perfLogger.start();
-                boolean acquired = mergeLock.tryLock(maxLockTryTimeMS, MILLISECONDS);
-                perfLogger.end(start, 1, "Merge - Acquired lock");
-                try {
-                    return branchState.merge(checkNotNull(hook), checkNotNull(info));
-                } catch (CommitFailedException e) {
-                    log.trace("Merge Error", e);
-                    ex = e;
-                    // only retry on merge failures. these may be caused by
-                    // changes introduce by a commit hook and may be resolved
-                    // by a rebase and running the hook again
-                    if (!e.isOfType(MERGE)) {
-                        throw e;
-                    }
-                } finally {
-                    if (acquired) {
-                        mergeLock.unlock();
-                    }
+                return branchState.merge(checkNotNull(hook),
+                        checkNotNull(info), lock);
+            } catch (CommitFailedException e) {
+                log.trace("Merge Error", e);
+                ex = e;
+                // only retry on merge failures. these may be caused by
+                // changes introduce by a commit hook and may be resolved
+                // by a rebase and running the hook again
+                if (!e.isOfType(MERGE)) {
+                    throw e;
                 }
-            } catch (InterruptedException e) {
-                throw new CommitFailedException(OAK, 1,
-                        "Unable to acquire merge lock", e);
             }
         }
         // if we get here retrying failed
@@ -354,12 +346,34 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
                 ex.getCode(), msg, ex.getCause());
     }
 
-    @Override
-    public void rebase() {
-        branchState.rebase();
+    /**
+     * Acquires the merge lock.
+     *
+     * @param lock the lock to acquire.
+     * @return the acquired merge lock or {@code null} if the operation timed
+     * out.
+     * @throws CommitFailedException if the current thread is interrupted while
+     *                               acquiring the lock
+     */
+    @CheckForNull
+    private Lock acquireMergeLock(@Nonnull Lock lock)
+            throws CommitFailedException {
+        final long start = perfLogger.start();
+        boolean acquired;
+        try {
+            acquired = lock.tryLock(maxLockTryTimeMS, MILLISECONDS);
+        } catch (InterruptedException e) {
+            throw new CommitFailedException(OAK, 1,
+                    "Unable to acquire merge lock", e);
+        }
+        if (acquired) {
+            perfLogger.end(start, 1, "Merge - Acquired lock");
+            return lock;
+        } else {
+            log.info("Time out while acquiring merge lock");
+            return null;
+        }
     }
-
-    //----------------------------< internal >----------------------------------
 
     private NodeState getNode(String path) {
         NodeState node = getHead();
@@ -414,6 +428,7 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
          *
          * @param hook the commit hook to run.
          * @param info the associated commit info.
+         * @param lock the lock to acquire while performing the merge.
          * @return the result of the merge.
          * @throws CommitFailedException if a commit hook rejected the changes
          *          or the actual merge operation failed. An implementation must
@@ -421,8 +436,9 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
          *          indicate the cause of the exception.
          */
         @Nonnull
-        abstract NodeState merge(
-                @Nonnull CommitHook hook, @Nonnull CommitInfo info)
+        abstract NodeState merge(@Nonnull CommitHook hook,
+                                 @Nonnull CommitInfo info,
+                                 @Nonnull Lock lock)
                 throws CommitFailedException;
     }
 
@@ -433,7 +449,7 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
      * <ul>
      *     <li>{@link InMemory} on {@link #setRoot(NodeState)} if the new root differs
      *         from the current base</li>.
-     *     <li>{@link Merged} on {@link #merge(CommitHook, CommitInfo)}</li>
+     *     <li>{@link Merged} on {@link BranchState#merge(CommitHook, CommitInfo, Lock)}</li>
      * </ul>
      */
     private class Unmodified extends BranchState {
@@ -466,7 +482,9 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
 
         @Override
         @Nonnull
-        NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info) {
+        NodeState merge(@Nonnull CommitHook hook,
+                        @Nonnull CommitInfo info,
+                        @Nonnull Lock lock) {
             branchState = new Merged(base);
             return base;
         }
@@ -481,7 +499,7 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
      *     <li>{@link Unmodified} on {@link #setRoot(NodeState)} if the new root is the same
      *         as the base of this branch or
      *     <li>{@link Persisted} otherwise.
-     *     <li>{@link Merged} on {@link #merge(CommitHook, CommitInfo)}</li>
+     *     <li>{@link Merged} on {@link BranchState#merge(CommitHook, CommitInfo, Lock)}</li>
      * </ul>
      */
     private class InMemory extends BranchState {
@@ -525,25 +543,34 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
 
         @Override
         @Nonnull
-        NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info)
+        NodeState merge(@Nonnull CommitHook hook,
+                        @Nonnull CommitInfo info,
+                        @Nonnull Lock lock)
                 throws CommitFailedException {
             checkNotNull(hook);
             checkNotNull(info);
+            Lock mergeLock = acquireMergeLock(lock);
             try {
-                rebase();
-                dispatcher.contentChanged(base, null);
-                NodeState toCommit = hook.processCommit(base, head, info);
                 try {
-                    NodeState newHead = AbstractNodeStoreBranch.this.persist(toCommit, base, info);
-                    dispatcher.contentChanged(newHead, info);
-                    branchState = new Merged(base);
-                    return newHead;
-                } catch (Exception e) {
-                    throw convertUnchecked(e,
-                            "Failed to merge changes to the underlying store");
+                    rebase();
+                    dispatcher.contentChanged(base, null);
+                    NodeState toCommit = hook.processCommit(base, head, info);
+                    try {
+                        NodeState newHead = AbstractNodeStoreBranch.this.persist(toCommit, base, info);
+                        dispatcher.contentChanged(newHead, info);
+                        branchState = new Merged(base);
+                        return newHead;
+                    } catch (Exception e) {
+                        throw convertUnchecked(e,
+                                "Failed to merge changes to the underlying store");
+                    }
+                } finally {
+                    dispatcher.contentChanged(getRoot(), null);
                 }
             } finally {
-                dispatcher.contentChanged(getRoot(), null);
+                if (mergeLock != null) {
+                    mergeLock.unlock();
+                }
             }
         }
     }
@@ -554,8 +581,8 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
      * <p>
      * Transitions to:
      * <ul>
-     *     <li>{@link ResetFailed} on failed reset in {@link #merge(CommitHook, CommitInfo)}</li>
-     *     <li>{@link Merged} on successful {@link #merge(CommitHook, CommitInfo)}</li>
+     *     <li>{@link ResetFailed} on failed reset in {@link BranchState#merge(CommitHook, CommitInfo, Lock)}</li>
+     *     <li>{@link Merged} on successful {@link BranchState#merge(CommitHook, CommitInfo, Lock)}</li>
      * </ul>
      */
     private class Persisted extends BranchState {
@@ -610,10 +637,12 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
         @Override
         @Nonnull
         NodeState merge(@Nonnull final CommitHook hook,
-                        @Nonnull final CommitInfo info)
+                        @Nonnull final CommitInfo info,
+                        @Nonnull Lock lock)
                 throws CommitFailedException {
             boolean success = false;
             N previousHead = head;
+            Lock mergeLock = acquireMergeLock(lock);
             try {
                 rebase();
                 previousHead = head;
@@ -638,10 +667,12 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
                             "Failed to merge changes to the underlying store", e);
                 }
             } finally {
+                if (mergeLock != null) {
+                    mergeLock.unlock();
+                }
                 if (!success) {
                     resetBranch(head, previousHead);
                 }
-                dispatcher.contentChanged(getRoot(), null);
             }
         }
 
@@ -694,7 +725,9 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
 
         @Override
         @Nonnull
-        NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info) {
+        NodeState merge(@Nonnull CommitHook hook,
+                        @Nonnull CommitInfo info,
+                        @Nonnull Lock lock) {
             throw new IllegalStateException("Branch has already been merged");
         }
     }
@@ -741,7 +774,9 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
          */
         @Nonnull
         @Override
-        NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info)
+        NodeState merge(@Nonnull CommitHook hook,
+                        @Nonnull CommitInfo info,
+                        @Nonnull Lock lock)
                 throws CommitFailedException {
             throw ex;
         }

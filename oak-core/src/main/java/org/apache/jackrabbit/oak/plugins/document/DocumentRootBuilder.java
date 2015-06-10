@@ -96,7 +96,7 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
 
     @Override
     protected void updated() {
-        if (updates++ > UPDATE_LIMIT) {
+        if (++updates > UPDATE_LIMIT) {
             purge();
         }
     }
