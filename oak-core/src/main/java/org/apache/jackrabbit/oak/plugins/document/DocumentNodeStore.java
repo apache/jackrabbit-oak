@@ -459,14 +459,15 @@ public final class DocumentNodeStore
                 return DocumentNodeStore.this.newRevision();
             }
         };
+        String threadNamePostfix = "(" + clusterId + ")";
         batchCommitQueue = new BatchCommitQueue(store, revisionComparator);
         backgroundReadThread = new Thread(
                 new BackgroundReadOperation(this, isDisposed),
-                "DocumentNodeStore background read thread");
+                "DocumentNodeStore background read thread " + threadNamePostfix);
         backgroundReadThread.setDaemon(true);
         backgroundUpdateThread = new Thread(
                 new BackgroundOperation(this, isDisposed),
-                "DocumentNodeStore background update thread");
+                "DocumentNodeStore background update thread " + threadNamePostfix);
         backgroundUpdateThread.setDaemon(true);
         checkLastRevRecovery();
         // Renew the lease because it may have been stale
@@ -478,7 +479,7 @@ public final class DocumentNodeStore
         if (clusterNodeInfo != null) {
             leaseUpdateThread = new Thread(
                     new BackgroundLeaseUpdate(this, isDisposed),
-                    "DocumentNodeStore lease update thread");
+                    "DocumentNodeStore lease update thread " + threadNamePostfix);
             leaseUpdateThread.setDaemon(true);
             leaseUpdateThread.start();
         }
