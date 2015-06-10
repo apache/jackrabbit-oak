@@ -30,7 +30,6 @@ import org.apache.jackrabbit.oak.spi.state.AbstractNodeStoreBranch;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static com.google.common.base.Preconditions.checkState;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.MERGE;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
 
@@ -46,7 +45,7 @@ class DocumentNodeStoreBranch
     DocumentNodeStoreBranch(DocumentNodeStore store,
                             DocumentNodeState base,
                             ReadWriteLock mergeLock) {
-        super(store, new ChangeDispatcher(store.getRoot()), mergeLock.readLock(),
+        super(store, new ChangeDispatcher(store.getRoot()),
                 base, null, store.getMaxBackOffMillis(),
                 store.getMaxBackOffMillis() * 3);
         this.mergeLock = mergeLock;
@@ -145,7 +144,7 @@ class DocumentNodeStoreBranch
     public NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info)
             throws CommitFailedException {
         try {
-            return super.merge(hook, info);
+            return merge0(hook, info, mergeLock.readLock());
         } catch (CommitFailedException e) {
             if (!e.isOfType(MERGE)) {
                 throw e;
@@ -153,24 +152,18 @@ class DocumentNodeStoreBranch
         }
         // retry with exclusive lock, blocking other
         // concurrent writes
-        // do not wait forever
-        boolean acquired = false;
-        try {
-            acquired = mergeLock.writeLock()
-                    .tryLock(maxLockTryTimeMS, MILLISECONDS);
-        } catch (InterruptedException e) {
-            // ignore and proceed with shared lock used in base class
-        }
-        try {
-            return super.merge(hook, info);
-        } finally {
-            if (acquired) {
-                mergeLock.writeLock().unlock();
-            }
-        }
+        return merge0(hook, info, mergeLock.writeLock());
     }
 
     //------------------------------< internal >--------------------------------
+
+    /**
+     * For test purposes only!
+     */
+    @Nonnull
+    ReadWriteLock getMergeLock() {
+        return mergeLock;
+    }
 
     /**
      * Persist some changes on top of the given base state.

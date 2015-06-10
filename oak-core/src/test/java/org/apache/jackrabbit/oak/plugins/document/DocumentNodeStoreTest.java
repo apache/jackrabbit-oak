@@ -50,6 +50,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -1745,6 +1747,75 @@ public class DocumentNodeStoreTest {
         assertEquals(beforeModified, (long) startValues.get(0));
 
         ns.dispose();
+    }
+
+    // OAK-2620
+    @Test
+    public void nonBlockingReset() throws Exception {
+        final List<String> failure = Lists.newArrayList();
+        final AtomicReference<ReentrantReadWriteLock> mergeLock
+                = new AtomicReference<ReentrantReadWriteLock>();
+        MemoryDocumentStore store = new MemoryDocumentStore() {
+            @Override
+            public <T extends Document> T findAndUpdate(Collection<T> collection,
+                                                        UpdateOp update) {
+                for (Map.Entry<UpdateOp.Key, UpdateOp.Operation> entry : update.getChanges().entrySet()) {
+                    if (entry.getKey().getName().equals(NodeDocument.COLLISIONS)) {
+                        ReentrantReadWriteLock rwLock = mergeLock.get();
+                        if (rwLock.getReadHoldCount() > 0
+                                || rwLock.getWriteHoldCount() > 0) {
+                            failure.add("Branch reset still holds merge lock");
+                            break;
+                        }
+                    }
+                }
+                return super.findAndUpdate(collection, update);
+            }
+        };
+        DocumentNodeStore ds = new DocumentMK.Builder()
+                .setDocumentStore(store)
+                .setAsyncDelay(0).getNodeStore();
+        ds.setMaxBackOffMillis(0); // do not retry merges
+
+        DocumentNodeState root = ds.getRoot();
+        final DocumentNodeStoreBranch b = ds.createBranch(root);
+        // branch state is now Unmodified
+
+        assertTrue(b.getMergeLock() instanceof ReentrantReadWriteLock);
+        mergeLock.set((ReentrantReadWriteLock) b.getMergeLock());
+
+        NodeBuilder builder = root.builder();
+        builder.child("foo");
+        b.setRoot(builder.getNodeState());
+        // branch state is now InMemory
+        builder.child("bar");
+        b.setRoot(builder.getNodeState());
+        // branch state is now Persisted
+
+        try {
+            b.merge(new CommitHook() {
+                @Nonnull
+                @Override
+                public NodeState processCommit(NodeState before,
+                                               NodeState after,
+                                               CommitInfo info)
+                        throws CommitFailedException {
+                    NodeBuilder foo = after.builder().child("foo");
+                    for (int i = 0; i <= DocumentRootBuilder.UPDATE_LIMIT; i++) {
+                        foo.setProperty("prop", i);
+                    }
+                    throw new CommitFailedException("Fail", 0, "");
+                }
+            }, CommitInfo.EMPTY);
+        } catch (CommitFailedException e) {
+            // expected
+        }
+
+        ds.dispose();
+
+        for (String s : failure) {
+            fail(s);
+        }
     }
 
     private static DocumentNodeState asDocumentNodeState(NodeState state) {

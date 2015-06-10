@@ -59,11 +59,15 @@ public class KernelNodeStoreBranch extends
         }
     };
 
+    /** Lock for coordinating concurrent merge operations */
+    private final Lock mergeLock;
+
     public KernelNodeStoreBranch(KernelNodeStore kernelNodeStore,
                                  ChangeDispatcher dispatcher,
                                  Lock mergeLock,
                                  KernelNodeState base) {
-        super(kernelNodeStore, dispatcher, mergeLock, base);
+        super(kernelNodeStore, dispatcher, base);
+        this.mergeLock = mergeLock;
     }
 
     //----------------------< AbstractNodeStoreBranch >-------------------------
@@ -145,7 +149,7 @@ public class KernelNodeStoreBranch extends
     public NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info)
             throws CommitFailedException {
         try {
-            return super.merge(hook, info);
+            return merge0(hook, info, mergeLock);
         } catch (MicroKernelException e) {
             throw new CommitFailedException(MERGE, 1,
                     "Failed to merge changes to the underlying MicroKernel", e);
