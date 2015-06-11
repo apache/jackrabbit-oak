@@ -33,6 +33,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Time;
@@ -82,8 +83,10 @@ public class RDBPreparedStatementWrapper implements PreparedStatement {
         statement.close();
     }
 
+    // needed in Java 7...
+    @SuppressWarnings("unused")
     public void closeOnCompletion() throws SQLException {
-        statement.closeOnCompletion();
+        throw new SQLFeatureNotSupportedException();
     }
 
     public boolean execute() throws SQLException {
@@ -244,8 +247,10 @@ public class RDBPreparedStatementWrapper implements PreparedStatement {
         return statement.getWarnings();
     }
 
+    // needed in Java 7...
+    @SuppressWarnings("unused")
     public boolean isCloseOnCompletion() throws SQLException {
-        return statement.isCloseOnCompletion();
+        throw new SQLFeatureNotSupportedException();
     }
 
     public boolean isClosed() throws SQLException {
