@@ -19,6 +19,8 @@
 package org.apache.jackrabbit.oak.jcr.query;
 
 import javax.jcr.Node;
+import javax.jcr.NodeIterator;
+import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
@@ -28,34 +30,90 @@ import org.apache.jackrabbit.core.query.AbstractQueryTest;
 public class ResultSizeTest extends AbstractQueryTest {
 
     public void testResultSize() throws Exception {
+        doTestResultSize(false);
+    }
+    
+    public void testResultSizeLuceneV1() throws Exception {
         Session session = superuser;
-        QueryManager qm = session.getWorkspace().getQueryManager();
+        Node index = session.getRootNode().getNode("oak:index");
+        Node luceneGlobal = index.getNode("luceneGlobal");
+        luceneGlobal.setProperty("type", "disabled");
+        Node luceneV1 = index.addNode("luceneV1", "oak:QueryIndexDefinition");
+        luceneV1.setProperty("type", "lucene");
+        session.save();
+
+        doTestResultSize(true);
+        
+        luceneV1.remove();
+        luceneGlobal.setProperty("type", "lucene");
+        session.save();
+    }
+    
+    private void doTestResultSize(boolean aggregateAtQueryTime) throws RepositoryException {
+        createData();
+        int expectedForUnion = 400;
+        int expectedForTwoConditions = aggregateAtQueryTime ? 400 : 200;
+        doTestResultSize(false, expectedForTwoConditions);
+        doTestResultSize(true, expectedForUnion);
+    }
+    
+    private void createData() throws RepositoryException {
+        Session session = superuser;
         for (int i = 0; i < 200; i++) {
             Node n = testRootNode.addNode("node" + i);
             n.setProperty("text", "Hello World");
         }
         session.save();
+    }
+    
+    private void doTestResultSize(boolean union, int expected) throws RepositoryException {
+        Session session = superuser;
+        QueryManager qm = session.getWorkspace().getQueryManager();
 
-        String xpath = "/jcr:root//*[jcr:contains(@text, 'Hello World')]";
+        String xpath;
+        if (union) {
+            xpath = "/jcr:root//*[jcr:contains(@text, 'Hello') or jcr:contains(@text, 'World')]";
+        } else {
+            xpath = "/jcr:root//*[jcr:contains(@text, 'Hello World')]";
+        }
         
         Query q;
         long result;
+        NodeIterator it;
+        StringBuilder buff;
         
         // fast (insecure) case
         System.setProperty("oak.fastQuerySize", "true");
         q = qm.createQuery(xpath, "xpath");
-        result = q.execute().getRows().getSize();
-        assertTrue("size: " + result, result > 150 && result < 250);
-        
+        it = q.execute().getNodes();
+        result = it.getSize();
+        assertTrue("size: " + result + " expected around " + expected, 
+                result > expected - 50 && 
+                result < expected + 50);
+        buff = new StringBuilder();
+        while (it.hasNext()) {
+            Node n = it.nextNode();
+            buff.append(n.getPath()).append('\n');
+        }
+        String fastSizeResult = buff.toString();
         q = qm.createQuery(xpath, "xpath");
         q.setLimit(90);
-        assertEquals(90, q.execute().getRows().getSize());
+        it = q.execute().getNodes();
+        assertEquals(90, it.getSize());
         
         // default (secure) case
         System.clearProperty("oak.fastQuerySize");
         q = qm.createQuery(xpath, "xpath");
-        result = q.execute().getRows().getSize();
-        assertEquals(-1, q.execute().getRows().getSize());
+        it = q.execute().getNodes();
+        result = it.getSize();
+        assertEquals(-1, result);
+        buff = new StringBuilder();
+        while (it.hasNext()) {
+            Node n = it.nextNode();
+            buff.append(n.getPath()).append('\n');
+        }
+        String regularResult = buff.toString();
+        assertEquals(regularResult, fastSizeResult);
 
     }
     
