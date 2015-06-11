@@ -451,12 +451,13 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                     LuceneRequestFacade luceneRequestFacade = getLuceneRequest(plan, searcher.getIndexReader());
                     if (luceneRequestFacade.getLuceneRequest() instanceof Query) {
                         Query query = (Query) luceneRequestFacade.getLuceneRequest();
-                        LOG.debug("estimate size for query " + query);
                         TotalHitCountCollector collector = new TotalHitCountCollector();
                         searcher.search(query, collector);
-                        return collector.getTotalHits();
+                        int totalHits =  collector.getTotalHits();
+                        LOG.debug("Estimated size for query {} is {}", query, totalHits);
+                        return totalHits;
                     }
-                    LOG.debug("estimate size: not a Query: " + luceneRequestFacade.getLuceneRequest());
+                    LOG.debug("estimate size: not a Query: {}", luceneRequestFacade.getLuceneRequest());
                 } catch (IOException e) {
                     LOG.warn("query via {} failed.", LucenePropertyIndex.this, e);
                 } finally {
