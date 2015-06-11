@@ -104,6 +104,7 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.TotalHitCountCollector;
 import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.search.spell.SuggestWord;
 import org.apache.lucene.search.suggest.Lookup;
@@ -446,7 +447,32 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                 this.lastSearchIndexerVersion = currentVersion;
             }
         };
-        return new LucenePathCursor(itr, settings);
+        SizeEstimator sizeEstimator = new SizeEstimator() {
+            @Override
+            public long getSize() {
+                IndexNode indexNode = tracker.acquireIndexNode((String) plan.getAttribute(ATTR_INDEX_PATH));
+                checkState(indexNode != null);                
+                try {
+                    IndexSearcher searcher = indexNode.getSearcher();
+                    LuceneRequestFacade luceneRequestFacade = getLuceneRequest(filter, searcher.getIndexReader(),
+                            nonFullTextConstraints, indexNode.getDefinition());
+                    if (luceneRequestFacade.getLuceneRequest() instanceof Query) {
+                        Query query = (Query) luceneRequestFacade.getLuceneRequest();
+                        LOG.debug("estimate size for query " + query);
+                        TotalHitCountCollector collector = new TotalHitCountCollector();
+                        searcher.search(query, collector);
+                        return collector.getTotalHits();
+                    }
+                    LOG.debug("estimate size: not a Query: " + luceneRequestFacade.getLuceneRequest());
+                } catch (IOException e) {
+                    LOG.warn("query via {} failed.", LuceneIndex.this, e);
+                } finally {
+                    indexNode.release();
+                }
+                return -1;
+            }
+        };
+        return new LucenePathCursor(itr, settings, sizeEstimator);
     }
 
     protected static IndexPlan.Builder planBuilder(Filter filter){
@@ -1074,8 +1100,11 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
 
         private final Cursor pathCursor;
         LuceneResultRow currentRow;
+        private final SizeEstimator sizeEstimator;
+        private long estimatedSize;
 
-        LucenePathCursor(final Iterator<LuceneResultRow> it, QueryEngineSettings settings) {
+        LucenePathCursor(final Iterator<LuceneResultRow> it, QueryEngineSettings settings, SizeEstimator sizeEstimator) {
+            this.sizeEstimator = sizeEstimator;
             Iterator<String> pathIterator = new Iterator<String>() {
 
                 @Override
@@ -1136,8 +1165,10 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
 
         @Override
         public long getSize(SizePrecision precision, long max) {
-            // not yet supported
-            return -1;
+            if (estimatedSize != 0) {
+                return estimatedSize;
+            }
+            return estimatedSize = sizeEstimator.getSize();
         }
     }
 
