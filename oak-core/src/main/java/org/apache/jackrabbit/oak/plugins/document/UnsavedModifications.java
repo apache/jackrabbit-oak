@@ -134,11 +134,14 @@ class UnsavedModifications {
      * lock for a short period of time.
      *
      * @param store the document node store.
+     * @param snapshot callback when the snapshot of the pending changes is
+     *                 acquired.
      * @param lock the lock to acquire to get a consistent snapshot of the
      *             revisions to write back.
      * @return stats about the write operation.
      */
     public BackgroundWriteStats persist(@Nonnull DocumentNodeStore store,
+                                        @Nonnull Snapshot snapshot,
                                         @Nonnull Lock lock) {
         BackgroundWriteStats stats = new BackgroundWriteStats();
         if (map.size() == 0) {
@@ -150,12 +153,13 @@ class UnsavedModifications {
         Clock clock = store.getClock();
 
         long time = clock.getTime();
-                // get a copy of the map while holding the lock
+        // get a copy of the map while holding the lock
         lock.lock();
         stats.lock = clock.getTime() - time;
         time = clock.getTime();
         Map<String, Revision> pending;
         try {
+            snapshot.acquiring();
             pending = Maps.newTreeMap(PathComparator.INSTANCE);
             pending.putAll(map);
         } finally {
@@ -217,5 +221,16 @@ class UnsavedModifications {
     @Override
     public String toString() {
         return map.toString();
+    }
+
+    public interface Snapshot {
+
+        Snapshot IGNORE = new Snapshot() {
+            @Override
+            public void acquiring() {
+            }
+        };
+
+        void acquiring();
     }
 }

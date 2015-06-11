@@ -91,7 +91,7 @@ public class MongoDiffCache extends MemoryDiffCache {
             if (changes == null && loader != null) {
                 changes = loader.call();
                 // put into memory cache
-                super.newEntry(from, to).append(path, changes);
+                super.newEntry(from, to, false).append(path, changes);
             }
             return changes;
         } finally {
@@ -102,7 +102,8 @@ public class MongoDiffCache extends MemoryDiffCache {
     @Nonnull
     @Override
     public Entry newEntry(@Nonnull final Revision from,
-                          @Nonnull final Revision to) {
+                          @Nonnull final Revision to,
+                          boolean local /*ignored*/) {
         return new MemoryEntry(from, to) {
 
             private Diff commit = new Diff(from, to);
@@ -172,7 +173,7 @@ public class MongoDiffCache extends MemoryDiffCache {
                 // diff is complete
                 LOG.debug("Built diff from {} commits", numCommits);
                 // apply to diff cache and serve later requests from cache
-                d.applyToEntry(super.newEntry(from, to)).done();
+                d.applyToEntry(super.newEntry(from, to, false)).done();
                 // return changes
                 return d.getChanges(path);
             }
