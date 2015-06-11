@@ -30,6 +30,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Statement;
@@ -288,8 +289,10 @@ public class RDBResultSetWrapper implements ResultSet {
         return resultSet.getNString(columnLabel);
     }
 
+    // needed in Java 7...
+    @SuppressWarnings("unused")
     public <T> T getObject(int columnIndex, Class<T> type) throws SQLException {
-        return resultSet.getObject(columnIndex, type);
+        throw new SQLFeatureNotSupportedException();
     }
 
     public Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLException {
@@ -300,8 +303,10 @@ public class RDBResultSetWrapper implements ResultSet {
         return resultSet.getObject(columnIndex);
     }
 
+    // needed in Java 7...
+    @SuppressWarnings("unused")
     public <T> T getObject(String columnLabel, Class<T> type) throws SQLException {
-        return resultSet.getObject(columnLabel, type);
+        throw new SQLFeatureNotSupportedException();
     }
 
     public Object getObject(String columnLabel, Map<String, Class<?>> map) throws SQLException {

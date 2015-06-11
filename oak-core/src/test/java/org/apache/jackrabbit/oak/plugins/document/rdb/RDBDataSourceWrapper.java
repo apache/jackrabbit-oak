@@ -112,8 +112,10 @@ public class RDBDataSourceWrapper implements DataSource {
         return ds.getLoginTimeout();
     }
 
+    // needed in Java 7...
+    @SuppressWarnings("unused")
     public Logger getParentLogger() throws SQLFeatureNotSupportedException {
-        return ds.getParentLogger();
+        throw new SQLFeatureNotSupportedException();
     }
 
     public boolean isWrapperFor(Class<?> iface) throws SQLException {

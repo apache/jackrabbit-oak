@@ -26,6 +26,7 @@ import java.sql.NClob;
 import java.sql.PreparedStatement;
 import java.sql.SQLClientInfoException;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Savepoint;
@@ -48,8 +49,10 @@ public class RDBConnectionWrapper implements Connection {
         this.constart = System.nanoTime();
     }
 
+    // needed in Java 7...
+    @SuppressWarnings("unused")
     public void abort(Executor arg0) throws SQLException {
-        connection.abort(arg0);
+        throw new SQLFeatureNotSupportedException();
     }
 
     public void clearWarnings() throws SQLException {
@@ -156,12 +159,16 @@ public class RDBConnectionWrapper implements Connection {
         return connection.getMetaData();
     }
 
+    // needed in Java 7...
+    @SuppressWarnings("unused")
     public int getNetworkTimeout() throws SQLException {
-        return connection.getNetworkTimeout();
+        throw new SQLFeatureNotSupportedException();
     }
 
+    // needed in Java 7...
+    @SuppressWarnings("unused")
     public String getSchema() throws SQLException {
-        return connection.getSchema();
+        throw new SQLFeatureNotSupportedException();
     }
 
     public int getTransactionIsolation() throws SQLException {
@@ -297,8 +304,10 @@ public class RDBConnectionWrapper implements Connection {
         connection.setHoldability(arg0);
     }
 
+    // needed in Java 7...
+    @SuppressWarnings("unused")
     public void setNetworkTimeout(Executor arg0, int arg1) throws SQLException {
-        connection.setNetworkTimeout(arg0, arg1);
+        throw new SQLFeatureNotSupportedException();
     }
 
     public void setReadOnly(boolean arg0) throws SQLException {
@@ -313,8 +322,10 @@ public class RDBConnectionWrapper implements Connection {
         return connection.setSavepoint(arg0);
     }
 
+    // needed in Java 7...
+    @SuppressWarnings("unused")
     public void setSchema(String arg0) throws SQLException {
-        connection.setSchema(arg0);
+        throw new SQLFeatureNotSupportedException();
     }
 
     public void setTransactionIsolation(int arg0) throws SQLException {
