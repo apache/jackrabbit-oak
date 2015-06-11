@@ -116,6 +116,7 @@ public class MongoDocumentStore implements DocumentStore {
     private final DBCollection nodes;
     private final DBCollection clusterNodes;
     private final DBCollection settings;
+    private final DBCollection journal;
 
     private final Cache<CacheValue, NodeDocument> nodesCache;
     private final CacheStats cacheStats;
@@ -184,12 +185,10 @@ public class MongoDocumentStore implements DocumentStore {
                 .put("version", version)
                 .build();
 
-        nodes = db.getCollection(
-                Collection.NODES.toString());
-        clusterNodes = db.getCollection(
-                Collection.CLUSTER_NODES.toString());
-        settings = db.getCollection(
-                Collection.SETTINGS.toString());
+        nodes = db.getCollection(Collection.NODES.toString());
+        clusterNodes = db.getCollection(Collection.CLUSTER_NODES.toString());
+        settings = db.getCollection(Collection.SETTINGS.toString());
+        journal = db.getCollection(Collection.JOURNAL.toString());
 
         maxReplicationLagMillis = builder.getMaxReplicationLagMillis();
 
@@ -353,31 +352,30 @@ public class MongoDocumentStore implements DocumentStore {
         try {
             TreeLock lock = acquire(key);
             try {
-                if (maxCacheAge == 0) {
-                    invalidateCache(collection, key);
-                }
-                while (true) {
-                    doc = nodesCache.get(cacheKey, new Callable<NodeDocument>() {
-                        @Override
-                        public NodeDocument call() throws Exception {
-                            NodeDocument doc = (NodeDocument) findUncachedWithRetry(
-                                    collection, key,
-                                    getReadPreference(maxCacheAge), 2);
-                            if (doc == null) {
-                                doc = NodeDocument.NULL;
+                if (maxCacheAge > 0 || preferCached) {
+                    // try again some other thread may have populated
+                    // the cache by now
+                    doc = nodesCache.getIfPresent(cacheKey);
+                    if (doc != null) {
+                        if (preferCached ||
+                                getTime() - doc.getCreated() < maxCacheAge) {
+                            if (doc == NodeDocument.NULL) {
+                                return null;
                             }
-                            return doc;
+                            return (T) doc;
                         }
-                    });
-                    if (maxCacheAge == 0 || preferCached) {
-                        break;
                     }
-                    if (getTime() - doc.getCreated() < maxCacheAge) {
-                        break;
-                    }
-                    // too old: invalidate, try again
-                    invalidateCache(collection, key);
                 }
+                final NodeDocument d = (NodeDocument) findUncachedWithRetry(
+                        collection, key,
+                        getReadPreference(maxCacheAge), 2);
+                invalidateCache(collection, key);
+                doc = nodesCache.get(cacheKey, new Callable<NodeDocument>() {
+                    @Override
+                    public NodeDocument call() throws Exception {
+                        return d == null ? NodeDocument.NULL : d;
+                    }
+                });
             } finally {
                 lock.unlock();
             }
@@ -390,6 +388,8 @@ public class MongoDocumentStore implements DocumentStore {
             t = e.getCause();
         } catch (ExecutionException e) {
             t = e.getCause();
+        } catch (RuntimeException e) {
+            t = e;
         }
         throw new DocumentStoreException("Failed to load document with " + key, t);
     }
@@ -411,6 +411,9 @@ public class MongoDocumentStore implements DocumentStore {
             DocumentReadPreference docReadPref,
             int retries) {
         checkArgument(retries >= 0, "retries must not be negative");
+        if (key.equals("0:/")) {
+            LOG.trace("root node");
+        }
         int numAttempts = retries + 1;
         MongoException ex = null;
         for (int i = 0; i < numAttempts; i++) {
@@ -518,8 +521,12 @@ public class MongoDocumentStore implements DocumentStore {
         }
         DBObject query = queryBuilder.get();
         String parentId = Utils.getParentIdFromLowerLimit(fromKey);
-        TreeLock lock = acquireExclusive(parentId != null ? parentId : "");
+        long lockTime = -1;
         final long start = PERFLOG.start();
+        TreeLock lock = acquireExclusive(parentId != null ? parentId : "");
+        if (start != -1) {
+            lockTime = System.currentTimeMillis() - start;
+        }
         try {
             DBCursor cursor = dbCollection.find(query).sort(BY_ID_ASC);
             if (!disableIndexHint) {
@@ -574,7 +581,7 @@ public class MongoDocumentStore implements DocumentStore {
             return list;
         } finally {
             lock.unlock();
-            PERFLOG.end(start, 1, "query for children from [{}] to [{}]", fromKey, toKey);
+            PERFLOG.end(start, 1, "query for children from [{}] to [{}], lock:{}", fromKey, toKey, lockTime);
         }
     }
 
@@ -968,7 +975,9 @@ public class MongoDocumentStore implements DocumentStore {
             return clusterNodes;
         } else if (collection == Collection.SETTINGS) {
             return settings;
-        }else {
+        } else if (collection == Collection.JOURNAL) {
+            return journal;
+        } else {
             throw new IllegalArgumentException(
                     "Unknown collection: " + collection.toString());
         }

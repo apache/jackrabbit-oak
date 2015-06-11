@@ -21,11 +21,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.toArray;
 import static com.google.common.collect.Iterables.transform;
+import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.MERGE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.FAST_DIFF;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.MANY_CHILDREN_THRESHOLD;
+import static org.apache.jackrabbit.oak.plugins.document.JournalEntry.fillExternalChanges;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
@@ -84,6 +87,7 @@ import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCach
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
+import org.apache.jackrabbit.oak.commons.sort.StringSort;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
@@ -246,6 +250,12 @@ public final class DocumentNodeStore
     private final Map<String, String> splitCandidates = Maps.newConcurrentMap();
 
     /**
+     * Summary of changes done by this cluster node to persist by the background
+     * update thread.
+     */
+    private JournalEntry changes;
+
+    /**
      * The last known revision for each cluster instance.
      *
      * Key: the machine id, value: revision.
@@ -359,6 +369,8 @@ public final class DocumentNodeStore
 
     private final VersionGarbageCollector versionGarbageCollector;
 
+    private final JournalGarbageCollector journalGarbageCollector;
+    
     private final Executor executor;
 
     private final LastRevRecoveryAgent lastRevRecoveryAgent;
@@ -382,6 +394,7 @@ public final class DocumentNodeStore
             s = new LoggingDocumentStoreWrapper(s);
         }
         this.store = s;
+        this.changes = Collection.JOURNAL.newDocument(s);
         this.executor = builder.getExecutor();
         this.clock = builder.getClock();
         int cid = builder.getClusterId();
@@ -401,6 +414,7 @@ public final class DocumentNodeStore
         this.asyncDelay = builder.getAsyncDelay();
         this.versionGarbageCollector = new VersionGarbageCollector(
                 this, builder.createVersionGCSupport());
+        this.journalGarbageCollector = new JournalGarbageCollector(this);
         this.lastRevRecoveryAgent = new LastRevRecoveryAgent(this);
         this.disableBranches = builder.isDisableBranches();
         this.missing = new DocumentNodeState(this, "MISSING", new Revision(0, 0, 0)) {
@@ -428,7 +442,8 @@ public final class DocumentNodeStore
         checkpoints = new Checkpoints(this);
 
         // check if root node exists
-        if (store.find(Collection.NODES, Utils.getIdFromPath("/")) == null) {
+        NodeDocument rootDoc = store.find(NODES, Utils.getIdFromPath("/"));
+        if (rootDoc == null) {
             // root node is missing: repository is not initialized
             Revision head = newRevision();
             Commit commit = new Commit(this, head, null, null);
@@ -448,6 +463,11 @@ public final class DocumentNodeStore
             if (headRevision == null) {
                 // no revision read from other cluster nodes
                 setHeadRevision(newRevision());
+            }
+            // check if _lastRev for our clusterId exists
+            if (!rootDoc.getLastRev().containsKey(clusterId)) {
+                unsavedLastRevisions.put("/", headRevision);
+                backgroundWrite();
             }
         }
         getRevisionComparator().add(headRevision, Revision.newRevision(0));
@@ -642,6 +662,8 @@ public final class DocumentNodeStore
                         Revision before = getHeadRevision();
                         // apply changes to cache based on before revision
                         c.applyToCache(before, false);
+                        // track modified paths
+                        changes.modified(c.getModifiedPaths());
                         // update head revision
                         setHeadRevision(c.getRevision());
                         dispatcher.contentChanged(getRoot(), info);
@@ -1023,15 +1045,13 @@ public final class DocumentNodeStore
         }
 
         final Revision readRevision = parent.getLastRevision();
-        return transform(getChildren(parent, name, limit).children,
-                new Function<String, DocumentNodeState>() {
+        return transform(getChildren(parent, name, limit).children, new Function<String, DocumentNodeState>() {
             @Override
             public DocumentNodeState apply(String input) {
                 String p = concat(parent.getPath(), input);
                 DocumentNodeState result = getNode(p, readRevision);
                 if (result == null) {
-                    throw new DocumentStoreException("DocumentNodeState is null for revision " + readRevision + " of " + p
-                            + " (aborting getChildNodes())");
+                    throw new DocumentStoreException("DocumentNodeState is null for revision " + readRevision + " of " + p + " (aborting getChildNodes())");
                 }
                 return result;
             }
@@ -1050,10 +1070,8 @@ public final class DocumentNodeStore
                     path, readRevision);
             return null;
         }
-        final DocumentNodeState result = doc.getNodeAtRevision(this,
-                readRevision, lastRevision);
-        PERFLOG.end(start, 1, "readNode: path={}, readRevision={}", path,
-                readRevision);
+        final DocumentNodeState result = doc.getNodeAtRevision(this, readRevision, lastRevision);
+        PERFLOG.end(start, 1, "readNode: path={}, readRevision={}", path, readRevision);
         return result;
     }
 
@@ -1068,10 +1086,10 @@ public final class DocumentNodeStore
      * @param changed the list of changed child nodes.
      *
      */
-    public void applyChanges(Revision rev, String path,
-                             boolean isNew, List<String> added,
-                             List<String> removed, List<String> changed,
-                             DiffCache.Entry cacheEntry) {
+    void applyChanges(Revision rev, String path,
+                      boolean isNew, List<String> added,
+                      List<String> removed, List<String> changed,
+                      DiffCache.Entry cacheEntry) {
         if (isNew && !added.isEmpty()) {
             DocumentNodeState.Children c = new DocumentNodeState.Children();
             Set<String> set = Sets.newTreeSet();
@@ -1086,13 +1104,13 @@ public final class DocumentNodeStore
         // update diff cache
         JsopWriter w = new JsopStream();
         for (String p : added) {
-            w.tag('+').key(PathUtils.getName(p)).object().endObject().newline();
+            w.tag('+').key(PathUtils.getName(p)).object().endObject();
         }
         for (String p : removed) {
-            w.tag('-').value(PathUtils.getName(p)).newline();
+            w.tag('-').value(PathUtils.getName(p));
         }
         for (String p : changed) {
-            w.tag('^').key(PathUtils.getName(p)).object().endObject().newline();
+            w.tag('^').key(PathUtils.getName(p)).object().endObject();
         }
         cacheEntry.append(path, w.toString());
 
@@ -1130,6 +1148,15 @@ public final class DocumentNodeStore
                 }
             }
         }
+    }
+
+    /**
+     * Called when a branch is merged.
+     *
+     * @param revisions the revisions of the merged branch commits.
+     */
+    void revisionsMerged(@Nonnull Iterable<Revision> revisions) {
+        changes.branchCommit(revisions);
     }
 
     /**
@@ -1310,6 +1337,7 @@ public final class DocumentNodeStore
             UpdateOp op = new UpdateOp(Utils.getIdFromPath("/"), false);
             NodeDocument.setModified(op, commit.getRevision());
             if (b != null) {
+                commit.addBranchCommits(b);
                 Iterator<Revision> mergeCommits = commit.getMergeRevisions().iterator();
                 for (Revision rev : b.getCommits()) {
                     rev = rev.asTrunkRevision();
@@ -1733,6 +1761,8 @@ public final class DocumentNodeStore
         // then we saw this new revision (from another cluster node)
         Revision otherSeen = Revision.newRevision(0);
 
+        StringSort externalSort = JournalEntry.newSorter();
+        
         Map<Revision, Revision> externalChanges = Maps.newHashMap();
         for (Map.Entry<Integer, Revision> e : lastRevMap.entrySet()) {
             int machineId = e.getKey();
@@ -1753,6 +1783,15 @@ public final class DocumentNodeStore
                         || r.getTimestamp() > revisionPurgeMillis()) {
                     externalChanges.put(r, otherSeen);
                 }
+                // collect external changes
+                if (last != null) {
+            	    // add changes for this particular clusterId to the externalSort
+            	    try {
+                        fillExternalChanges(externalSort, last, r, store);
+                    } catch (IOException e1) {
+                        LOG.error("backgroundRead: Exception while reading external changes from journal: "+e1, e1);
+                    }
+                }
             }
         }
 
@@ -1772,7 +1811,6 @@ public final class DocumentNodeStore
             backgroundOperationLock.writeLock().lock();
             try {
                 stats.lock = clock.getTime() - time;
-                time = clock.getTime();
 
                 // the latest revisions of the current cluster node
                 // happened before the latest revisions of other cluster nodes
@@ -1781,9 +1819,23 @@ public final class DocumentNodeStore
                 for (Map.Entry<Revision, Revision> e : externalChanges.entrySet()) {
                     revisionComparator.add(e.getKey(), e.getValue());
                 }
+
+                Revision oldHead = headRevision;
                 // the new head revision is after other revisions
                 setHeadRevision(newRevision());
                 if (dispatchChange) {
+                    time = clock.getTime();
+                    if (externalSort!=null) {
+                    	// then there were external changes - apply them to the diff cache
+                    	try {
+                            JournalEntry.applyTo(externalSort, diffCache, oldHead, headRevision);
+                        } catch (Exception e1) {
+                            LOG.error("backgroundRead: Exception while processing external changes from journal: "+e1, e1);
+                        }
+                    }
+                    stats.populateDiffCache = clock.getTime() - time;
+                    time = clock.getTime();
+
                     dispatcher.contentChanged(getRoot().fromExternalChange(), null);
                 }
             } finally {
@@ -1802,6 +1854,7 @@ public final class DocumentNodeStore
         CacheInvalidationStats cacheStats;
         long readHead;
         long cacheInvalidationTime;
+        long populateDiffCache;
         long lock;
         long dispatchChanges;
         long purge;
@@ -1816,6 +1869,7 @@ public final class DocumentNodeStore
                     "cacheStats:" + cacheStatsMsg +
                     ", head:" + readHead +
                     ", cache:" + cacheInvalidationTime +
+                    ", diff: " + populateDiffCache +
                     ", lock:" + lock +
                     ", dispatch:" + dispatchChanges +
                     ", purge:" + purge +
@@ -1900,7 +1954,15 @@ public final class DocumentNodeStore
     }
 
     BackgroundWriteStats backgroundWrite() {
-        return unsavedLastRevisions.persist(this, backgroundOperationLock.writeLock());
+        return unsavedLastRevisions.persist(this, new UnsavedModifications.Snapshot() {
+            @Override
+            public void acquiring() {
+                if (store.create(JOURNAL,
+                        singletonList(changes.asUpdateOp(getHeadRevision())))) {
+                    changes = JOURNAL.newDocument(getDocumentStore());
+                }
+            }
+        }, backgroundOperationLock.writeLock());
     }
 
     //-----------------------------< internal >---------------------------------
@@ -1983,19 +2045,23 @@ public final class DocumentNodeStore
                 case '^': {
                     String name = unshareString(t.readString());
                     t.read(':');
-                    if (t.matches('{')) {
-                        t.read('}');
-                        continueComparison = diff.childNodeChanged(name,
-                                base.getChildNode(name),
-                                node.getChildNode(name));
-                    } else if (t.matches('[')) {
-                        // ignore multi valued property
-                        while (t.read() != ']') {
-                            // skip values
+                    t.read('{');
+                    t.read('}');
+                    NodeState baseChild = base.getChildNode(name);
+                    NodeState nodeChild = node.getChildNode(name);
+                    if (baseChild.exists()) {
+                        if (nodeChild.exists()) {
+                            continueComparison = diff.childNodeChanged(name,
+                                    baseChild, nodeChild);
+                        } else {
+                            continueComparison = diff.childNodeDeleted(name,
+                                    baseChild);
                         }
                     } else {
-                        // ignore single valued property
-                        t.read();
+                        if (nodeChild.exists()) {
+                            continueComparison = diff.childNodeAdded(name,
+                                    nodeChild);
+                        }
                     }
                     break;
                 }
@@ -2110,13 +2176,14 @@ public final class DocumentNodeStore
             }
         }
 
+        String diff = w.toString();
         if (debug) {
             long end = now();
-            LOG.debug("Diff performed via '{}' at [{}] between revisions [{}] => [{}] took {} ms ({} ms)",
+            LOG.debug("Diff performed via '{}' at [{}] between revisions [{}] => [{}] took {} ms ({} ms), diff '{}'",
                     diffAlgo, from.getPath(), fromRev, toRev,
-                    end - start, getChildrenDoneIn - start);
+                    end - start, getChildrenDoneIn - start, diff);
         }
-        return w.toString();
+        return diff;
     }
 
     private void diffManyChildren(JsopWriter w, String path, Revision fromRev, Revision toRev) {
@@ -2164,17 +2231,17 @@ public final class DocumentNodeStore
                     if (a == null && b == null) {
                         // ok
                     } else if (a == null || b == null || !a.equals(b)) {
-                        w.tag('^').key(name).object().endObject().newline();
+                        w.tag('^').key(name).object().endObject();
                     }
                 } else {
                     // does not exist in toRev -> was removed
-                    w.tag('-').value(name).newline();
+                    w.tag('-').value(name);
                 }
             } else {
                 // does not exist in fromRev
                 if (toNode != null) {
                     // exists in toRev
-                    w.tag('+').key(name).object().endObject().newline();
+                    w.tag('+').key(name).object().endObject();
                 } else {
                     // does not exist in either revisions
                     // -> do nothing
@@ -2201,7 +2268,7 @@ public final class DocumentNodeStore
         Set<String> childrenSet = Sets.newHashSet(toChildren.children);
         for (String n : fromChildren.children) {
             if (!childrenSet.contains(n)) {
-                w.tag('-').value(n).newline();
+                w.tag('-').value(n);
             } else {
                 String path = concat(parentPath, n);
                 DocumentNodeState n1 = getNode(path, fromRev);
@@ -2213,14 +2280,14 @@ public final class DocumentNodeStore
                 checkNotNull(n1, "Node at [%s] not found for fromRev [%s]", path, fromRev);
                 checkNotNull(n2, "Node at [%s] not found for toRev [%s]", path, toRev);
                 if (!n1.getLastRevision().equals(n2.getLastRevision())) {
-                    w.tag('^').key(n).object().endObject().newline();
+                    w.tag('^').key(n).object().endObject();
                 }
             }
         }
         childrenSet = Sets.newHashSet(fromChildren.children);
         for (String n : toChildren.children) {
             if (!childrenSet.contains(n)) {
-                w.tag('+').key(n).object().endObject().newline();
+                w.tag('+').key(n).object().endObject();
             }
         }
     }
@@ -2520,6 +2587,12 @@ public final class DocumentNodeStore
     public VersionGarbageCollector getVersionGarbageCollector() {
         return versionGarbageCollector;
     }
+
+    @Nonnull
+    public JournalGarbageCollector getJournalGarbageCollector() {
+        return journalGarbageCollector;
+    }
+    
     @Nonnull
     public LastRevRecoveryAgent getLastRevRecoveryAgent() {
         return lastRevRecoveryAgent;

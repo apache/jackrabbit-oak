@@ -47,7 +47,7 @@ class AmnesiaDiffCache implements DiffCache {
 
     @Nonnull
     @Override
-    public Entry newEntry(@Nonnull Revision from, @Nonnull Revision to) {
+    public Entry newEntry(@Nonnull Revision from, @Nonnull Revision to, boolean local) {
         return new Entry() {
             @Override
             public void append(@Nonnull String path, @Nonnull String changes) {

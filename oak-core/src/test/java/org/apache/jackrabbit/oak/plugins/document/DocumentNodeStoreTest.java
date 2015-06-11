@@ -1662,7 +1662,7 @@ public class DocumentNodeStoreTest {
         merge(ns, builder);
         Revision to = ns.getHeadRevision();
 
-        DiffCache.Entry entry = ns.getDiffCache().newEntry(from, to);
+        DiffCache.Entry entry = ns.getDiffCache().newEntry(from, to, true);
         entry.append("/", "-\"foo\"");
         entry.done();
 
