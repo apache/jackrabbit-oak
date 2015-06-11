@@ -27,6 +27,7 @@ import javax.security.auth.login.LoginException;
 
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -295,6 +296,34 @@ public class TokenDefaultLoginModuleTest extends AbstractSecurityTest {
             assertTrue(attrNames.contains("attr"));
             assertFalse(attrNames.contains(".token"));
             assertFalse(attrNames.contains(".token.mandatory"));
+        } finally {
+            if (cs != null) {
+                cs.close();
+            }
+        }
+    }
+
+    @Test
+    public void testTokenLoginForDisabledUser() throws Exception {
+        ContentSession cs = null;
+        try {
+            User user = getTestUser();
+            SimpleCredentials sc = new SimpleCredentials(user.getID(), user.getID().toCharArray());
+            sc.setAttribute(".token", "");
+            cs = login(sc);
+
+            user.disable("disabled");
+            root.commit();
+
+            Object token = sc.getAttribute(".token").toString();
+            assertNotNull(token);
+            TokenCredentials tc = new TokenCredentials(token.toString());
+
+            cs.close();
+            cs = login(tc);
+            fail("token login for a disabled user must fail.");
+        } catch (LoginException e) {
+            // success
         } finally {
             if (cs != null) {
                 cs.close();
