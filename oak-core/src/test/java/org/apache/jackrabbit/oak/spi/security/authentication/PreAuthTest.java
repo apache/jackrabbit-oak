@@ -32,11 +32,22 @@ import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 
 public class PreAuthTest extends AbstractSecurityTest {
+
+    private Set<Principal> principals;
+
+    @Override
+    public void before() throws Exception {
+        super.before();
+
+        principals = Collections.<Principal>singleton(new TestPrincipal());
+    }
 
     @Override
     protected Configuration getConfiguration() {
@@ -51,7 +62,7 @@ public class PreAuthTest extends AbstractSecurityTest {
 
     @Test
     public void testValidSubject() throws Exception {
-        final Subject subject = new Subject(true, Collections.singleton(new TestPrincipal()), Collections.<Object>emptySet(), Collections.<Object>emptySet());
+        final Subject subject = new Subject(true, principals, Collections.<Object>emptySet(), Collections.<Object>emptySet());
         ContentSession cs = Subject.doAsPrivileged(subject, new PrivilegedAction<ContentSession>() {
             @Override
             public ContentSession run() {
@@ -64,7 +75,10 @@ public class PreAuthTest extends AbstractSecurityTest {
         }, null);
 
         try {
-            assertSame(AuthInfo.EMPTY, cs.getAuthInfo());
+            AuthInfo authInfo = cs.getAuthInfo();
+            assertNotSame(AuthInfo.EMPTY, authInfo);
+            assertEquals(principals, authInfo.getPrincipals());
+            assertNull(authInfo.getUserID());
         } finally {
             if (cs != null) {
                 cs.close();
@@ -75,7 +89,7 @@ public class PreAuthTest extends AbstractSecurityTest {
     @Test
     public void testValidSubjectWithCredentials() throws Exception {
         Set<SimpleCredentials> publicCreds = Collections.singleton(new SimpleCredentials("testUserId", new char[0]));
-        final Subject subject = new Subject(false, Collections.singleton(new TestPrincipal()), publicCreds, Collections.<Object>emptySet());
+        final Subject subject = new Subject(false, principals, publicCreds, Collections.<Object>emptySet());
         ContentSession cs = Subject.doAsPrivileged(subject, new PrivilegedAction<ContentSession>() {
             @Override
             public ContentSession run() {
@@ -88,7 +102,10 @@ public class PreAuthTest extends AbstractSecurityTest {
         }, null);
 
         try {
-            assertSame(AuthInfo.EMPTY, cs.getAuthInfo());
+            AuthInfo authInfo = cs.getAuthInfo();
+            assertNotSame(AuthInfo.EMPTY, authInfo);
+            assertEquals(principals, authInfo.getPrincipals());
+            assertEquals("testUserId", authInfo.getUserID());
         } finally {
             if (cs != null) {
                 cs.close();
@@ -99,7 +116,7 @@ public class PreAuthTest extends AbstractSecurityTest {
     @Test
     public void testValidReadSubjectWithCredentials() throws Exception {
         Set<SimpleCredentials> publicCreds = Collections.singleton(new SimpleCredentials("testUserId", new char[0]));
-        final Subject subject = new Subject(true, Collections.singleton(new TestPrincipal()), publicCreds, Collections.<Object>emptySet());
+        final Subject subject = new Subject(true, principals, publicCreds, Collections.<Object>emptySet());
         ContentSession cs = Subject.doAsPrivileged(subject, new PrivilegedAction<ContentSession>() {
             @Override
             public ContentSession run() {
@@ -112,7 +129,10 @@ public class PreAuthTest extends AbstractSecurityTest {
         }, null);
 
         try {
-            assertSame(AuthInfo.EMPTY, cs.getAuthInfo());
+            AuthInfo authInfo = cs.getAuthInfo();
+            assertNotSame(AuthInfo.EMPTY, authInfo);
+            assertEquals(principals, authInfo.getPrincipals());
+            assertEquals("testUserId", authInfo.getUserID());
         } finally {
             if (cs != null) {
                 cs.close();
@@ -147,7 +167,7 @@ public class PreAuthTest extends AbstractSecurityTest {
 
     @Test
     public void testSubjectAndCredentials() throws Exception {
-        final Subject subject = new Subject(true, Collections.singleton(new TestPrincipal()), Collections.<Object>emptySet(), Collections.<Object>emptySet());
+        final Subject subject = new Subject(true, principals, Collections.<Object>emptySet(), Collections.<Object>emptySet());
         ContentSession cs = Subject.doAsPrivileged(subject, new PrivilegedAction<ContentSession>() {
             @Override
             public ContentSession run() {
