@@ -217,7 +217,7 @@ public class L1_IntroductionTest extends AbstractSecurityTest {
         Tree bTree = testRoot.getTree("/a/b");
 
         // add a new child node at '/a/b' and persist the change to trigger the permission evaluation.
-        // TODO: look at the permission setup and try to determine if that is expected to work. explain why
+        // TODO: does it work with the current permission setup? if not, why (+ add exception handling)?
         try {
             Tree child = bTree.addChild("childName");
             child.setProperty(JcrConstants.JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
@@ -227,7 +227,7 @@ public class L1_IntroductionTest extends AbstractSecurityTest {
         }
 
         // now change the primary type of the 'bTree'
-        // TODO: doesn it work with the current permission setup? if not, why? in this case fix the code to match your expectation.
+        // TODO: does it work with the current permission setup? if not, why (+ add exception handling)?
         try {
             bTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED);
             testRoot.commit();
@@ -238,7 +238,7 @@ public class L1_IntroductionTest extends AbstractSecurityTest {
         Tree cTree = testRoot.getTree("/a/b/c");
 
         // now change the regula property 'cProp' of the 'cTree'
-        // TODO: doesn it work with the current permission setup? if not, why? in this case fix the code to match your expectation.
+        // TODO: does it work with the current permission setup? if not, why (+ add exception handling)?
         try {
             cTree.setProperty("cProp", "changedValue");
             testRoot.commit();
@@ -248,7 +248,7 @@ public class L1_IntroductionTest extends AbstractSecurityTest {
 
 
         // finally we try to add a new property to the 'cTree'
-        // TODO: doesn it work with the current permission setup? if not, why? in this case fix the code to match your expectation.
+        // TODO: does it work with the current permission setup? if not, why (+ add exception handling)?
         try {
             cTree.setProperty("anotherCProp", "val");
             testRoot.commit();
