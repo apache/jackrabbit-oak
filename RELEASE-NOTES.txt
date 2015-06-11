@@ -15,6 +15,14 @@ stable and targeted for production use.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
+New configuration options in Oak 1.0.15
+---------------------------------------
+
+The DocumentNodeStore has a new system property, which controls the time a
+commit tries to acquire the merge lock: -Doak.maxLockTryTimeMultiplier=30
+The default value is 30 and roughly translates to 60 seconds. See OAK-2762
+and OAK-2823 for more details.
+
 Changes in Oak 1.0.15
 ---------------------
 
