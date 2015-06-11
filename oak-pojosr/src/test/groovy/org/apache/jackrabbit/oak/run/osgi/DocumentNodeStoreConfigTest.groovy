@@ -59,6 +59,33 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
 
         //3. Check that DS contains tables from both RDBBlobStore and RDBDocumentStore
         assert getExistingTables(ds).containsAll(['NODES', 'DATASTORE_META'])
+
+        //4. Check that only one cluster node was instantiated
+        assert getIdsOfClusterNodes(ds).size() == 1
+    }
+
+    @Test
+    public void testRDBDocumentStoreLateDataSource() throws Exception {
+        registry = repositoryFactory.initializeServiceRegistry(config)
+
+        //1. Create config for DocumentNodeStore with RDB enabled
+        createConfig([
+                'org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService': [
+                        documentStoreType: 'RDB'
+                ]
+        ])
+
+        //2. Register the DataSource as a service
+        DataSource ds = createDS("jdbc:h2:mem:testRDBlateds;DB_CLOSE_DELAY=-1")
+        registry.registerService(DataSource.class.name, ds, ['datasource.name': 'oak'] as Hashtable)
+
+        DocumentNodeStore ns = getServiceWithWait(NodeStore.class)
+
+        //3. Check that DS contains tables from both RDBBlobStore and RDBDocumentStore
+        assert getExistingTables(ds).containsAll(['NODES', 'DATASTORE_META'])
+
+        //4. Check that only one cluster node was instantiated
+        assert getIdsOfClusterNodes(ds).size() == 1
     }
 
     @Test
@@ -73,7 +100,6 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
         createConfig([
                 'org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService': [
                         documentStoreType      : 'RDB',
-                        customBlobDataSource   : true,
                         'blobDataSource.target': '(datasource.name=oak-blob)',
                 ]
         ])
@@ -95,6 +121,9 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
         //DS2 should contain only RDBBlobStore tables
         assert !ds2Tables.contains('NODES')
         assert ds2Tables.contains('DATASTORE_META')
+
+        //4. Check that only one cluster node was instantiated
+        assert getIdsOfClusterNodes(ds1).size() == 1
     }
 
     @Test
@@ -102,14 +131,19 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
         registry = repositoryFactory.initializeServiceRegistry(config)
 
         //1. Register the DataSource as a service
-        DataSource ds = createDS("jdbc:h2:mem:testRDB3;DB_CLOSE_DELAY=-1")
-        registry.registerService(DataSource.class.name, ds, ['datasource.name': 'oak'] as Hashtable)
+        DataSource ds1 = createDS("jdbc:h2:mem:testRDB3;DB_CLOSE_DELAY=-1")
+        registry.registerService(DataSource.class.name, ds1, ['datasource.name': 'oak'] as Hashtable)
+
+        DataSource ds2 = createDS("jdbc:h2:mem:testRDB3b;DB_CLOSE_DELAY=-1")
+        registry.registerService(DataSource.class.name, ds2, ['datasource.name': 'oak-blob'] as Hashtable)
 
         //2. Create config for DocumentNodeStore with RDB enabled
+        // (supply blobDataSource which should be ignored because customBlob takes precedence)
         createConfig([
                 'org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService': [
                         documentStoreType: 'RDB',
-                        customBlobStore  : true
+                        'blobDataSource.target': '(datasource.name=oak-blob)',
+                        customBlobStore  : true,
                 ]
         ])
 
@@ -117,12 +151,20 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
 
         DocumentNodeStore ns = getServiceWithWait(NodeStore.class)
 
-        //3. Check that DS contains tables only from both RDBDocumentStore
-        List<String> dsTables = getExistingTables(ds)
+        //3. Check that DS1 contains tables only from both RDBDocumentStore
+        List<String> ds1Tables = getExistingTables(ds1)
 
-        //DS1 should contain RDBDocumentStore tables
-        assert dsTables.contains('NODES')
-        assert !dsTables.contains('DATASTORE_META')
+        //DS1 should contain RDBDocumentStore tables only
+        assert ds1Tables.contains('NODES')
+        assert !ds1Tables.contains('DATASTORE_META')
+
+        //4. Check that DS2 is empty
+        List<String> ds2Tables = getExistingTables(ds2)
+        assert !ds2Tables.contains('NODES')
+        assert !ds2Tables.contains('DATASTORE_META')
+
+        //5. Check that only one cluster node was instantiated
+        assert getIdsOfClusterNodes(ds1).size() == 1
     }
 
     @Test
@@ -204,6 +246,20 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
         return existing
     }
 
+    private List<String> getIdsOfClusterNodes(DataSource ds) {
+        Connection con = ds.connection
+        List<String> entries = []
+        try {
+            ResultSet rs = con.prepareStatement("SELECT ID FROM CLUSTERNODES").executeQuery()
+            while (rs.next()) {
+                entries << rs.get(1)
+            }
+        } finally {
+            con.close()
+        }
+        return entries
+    }
+    
     private DataSource createDS(String url) {
         DataSource ds = new JdbcDataSource()
         ds.url = url
