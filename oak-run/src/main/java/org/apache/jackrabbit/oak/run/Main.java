@@ -99,6 +99,8 @@ import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.C
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.standby.client.StandbyClient;
 import org.apache.jackrabbit.oak.plugins.segment.standby.server.StandbyServer;
+import org.apache.jackrabbit.oak.remote.content.ContentRemoteRepository;
+import org.apache.jackrabbit.oak.remote.http.RemoteServlet;
 import org.apache.jackrabbit.oak.scalability.ScalabilityRunner;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -1128,6 +1130,9 @@ public final class Main {
             ContentRepository repository = oak.createContentRepository();
             ServletHolder holder = new ServletHolder(new OakServlet(repository));
             context.addServlet(holder, path + "/*");
+
+            ServletHolder remoteServlet = new ServletHolder(new RemoteServlet(new ContentRemoteRepository(repository)));
+            context.addServlet(remoteServlet, path + "/api/*");
 
             // 2 - Webdav Server on JCR repository
             final Repository jcrRepository = jcr.createRepository();
