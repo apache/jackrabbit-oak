@@ -305,8 +305,8 @@ public final class ConfigurationParameters implements Map<String, Object> {
             throw new IllegalArgumentException("Cannot convert config entry " + str + " to " + clazz.getName(), e);
         }
     }
-    //-----------------------------------------------------------------------------------< Map interface delegation >---
 
+    //-------------------------------------------< Map interface delegation >---
     /**
      * {@inheritDoc}
      */
@@ -411,7 +411,8 @@ public final class ConfigurationParameters implements Map<String, Object> {
     }
 
     /**
-     * Helper class for configuration parameters that denote a "duration", such as a timeout or expiration time.
+     * Helper class for configuration parameters that denote a "duration", such
+     * as a timeout or expiration time.
      */
     public static final class Milliseconds {
 
