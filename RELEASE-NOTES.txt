@@ -1,5 +1,5 @@
 
-Release Notes -- Apache Jackrabbit Oak -- Version 1.0.14
+Release Notes -- Apache Jackrabbit Oak -- Version 1.0.15
 
 Introduction
 ------------
@@ -8,58 +8,27 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.0.14 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.0.15 is a patch release that contains fixes and
 improvements over Oak 1.0. Jackrabbit Oak 1.0.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.0.14
+Changes in Oak 1.0.15
 ---------------------
 
-Bug
+Bugs
 
-    [OAK-2569] - LuceneIndex#loadDocs can throw
-    IllegalArgumentException
-    [OAK-2750] - Indexing for sorting can fail if value is too long
-    [OAK-2778] - DocumentNodeState is null for revision rx-x-x
-    [OAK-2796] - Persistent cache: old files not removed sometimes
-    [OAK-2798] - OakIndexInput should unset OakIndexFile's byte[] upon
-    close
-    [OAK-2815] - Persistent cache may block commit
-    [OAK-2817] - TARMK Cold Standby cleanup removes too many binary
-    segments
-    [OAK-2824] - Backport OAK-2238 to branches
-    [OAK-2838] - Test failure: OSGiIT
-    [OAK-2855] - CopyOnReadDirectory mode might delete a valid local
-    file upon close
-    [OAK-2860] - RDBBlobStore: seen insert failures due to duplicate
-    keys
-    [OAK-2863] - No matching result found with use of relative
-    property names in fulltext search in some cases
 
-Improvement
+Improvements
 
-    [OAK-2783] - Make LDAP connection pool 'testOnBorrow' configurable
-    [OAK-2804] - Conditional remove on DocumentStore
-    [OAK-2806] - Provide property path in warning log for large multi
-    value property
-    [OAK-2809] - Save Lucene directory listing as array property
-    [OAK-2814] - Refactor the optimize logic regarding path include
-    and exclude to avoid duplication
-    [OAK-2818] - Log _lastRev background updates
-    [OAK-2841] - Log NodePropBundle id for which no bundle is found
-    [OAK-2861] - TARMK Cold Standby better binary decoding
 
-New Feature
+New Features
 
-    [OAK-2599] - Allow excluding certain paths from getting indexed
-    for particular index
 
-Task
+Tasks
 
-    [OAK-1678] - document atomicity of DS.remove(collection, keys)
 
 In addition to the above-mentioned changes, this release contains
 all changes included in previous Apache Jackrabbit Oak 1.0.x releases.
