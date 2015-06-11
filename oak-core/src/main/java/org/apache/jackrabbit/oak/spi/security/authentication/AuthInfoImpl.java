@@ -23,6 +23,8 @@ import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.SimpleCredentials;
+import javax.security.auth.Subject;
 
 import com.google.common.base.Objects;
 import org.apache.jackrabbit.oak.api.AuthInfo;
@@ -41,6 +43,17 @@ public final class AuthInfoImpl implements AuthInfo {
         this.userID = userID;
         this.attributes = (attributes == null) ? Collections.<String, Object>emptyMap() : attributes;
         this.principals = (principals == null) ? Collections.<Principal>emptySet() : Collections.unmodifiableSet(principals);
+    }
+
+    public static AuthInfo createFromSubject(@Nonnull Subject subject) {
+        Set<AuthInfo> infoSet = subject.getPublicCredentials(AuthInfo.class);
+        if (infoSet.isEmpty()) {
+            Set<SimpleCredentials> scs = subject.getPublicCredentials(SimpleCredentials.class);
+            String userId = (scs.isEmpty()) ? null : scs.iterator().next().getUserID();
+            return new AuthInfoImpl(userId, null, subject.getPrincipals());
+        } else {
+            return infoSet.iterator().next();
+        }
     }
 
     @Override

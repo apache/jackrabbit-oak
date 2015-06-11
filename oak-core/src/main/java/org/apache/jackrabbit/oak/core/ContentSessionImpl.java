@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.Nonnull;
+import javax.security.auth.Subject;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.oak.api.AuthInfo;
@@ -32,6 +33,7 @@ import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
@@ -90,12 +92,7 @@ class ContentSessionImpl implements ContentSession {
     @Override
     public AuthInfo getAuthInfo() {
         checkLive();
-        Set<AuthInfo> infoSet = loginContext.getSubject().getPublicCredentials(AuthInfo.class);
-        if (infoSet.isEmpty()) {
-            return AuthInfo.EMPTY;
-        } else {
-            return infoSet.iterator().next();
-        }
+        return AuthInfoImpl.createFromSubject(loginContext.getSubject());
     }
 
     @Override
