@@ -27,7 +27,6 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFA
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_DOC_CHILDREN_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_NODE_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -50,7 +49,6 @@ import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Modified;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.PropertyOption;
 import org.apache.felix.scr.annotations.Reference;
@@ -228,17 +226,6 @@ public class DocumentNodeStoreService {
                     + "Default is " + DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS
     )
     private static final String PROP_JOURNAL_GC_MAX_AGE_MILLIS = "journalGCMaxAge";
-    
-    /**
-     * Boolean value indicating a different DataSource has to be used for
-     * BlobStore
-     */
-    @Property(boolValue = false,
-            label = "Custom DataSource",
-            description = "Boolean value indicating that DataSource is configured " +
-                    "separately, and that it should be used"
-    )
-    public static final String CUSTOM_BLOB_DATA_SOURCE = "customBlobDataSource";
 
     private static final long MB = 1024 * 1024;
 
@@ -330,7 +317,6 @@ public class DocumentNodeStoreService {
     private DocumentStoreType documentStoreType;
 
     private boolean customBlobStore;
-    private boolean customBlobDataSource;
 
     @Activate
     protected void activate(ComponentContext context, Map<String, ?> config) throws Exception {
@@ -340,7 +326,6 @@ public class DocumentNodeStoreService {
         executor.start(whiteboard);
         maxReplicationLagInSecs = toLong(config.get(PROP_REPLICATION_LAG), DEFAULT_MAX_REPLICATION_LAG);
         customBlobStore = toBoolean(prop(CUSTOM_BLOB_STORE), false);
-        customBlobDataSource = toBoolean(prop(CUSTOM_BLOB_DATA_SOURCE), false);
         documentStoreType = DocumentStoreType.fromString(PropertiesUtil.toString(config.get(PROP_DS_TYPE), "MONGO"));
 
         registerNodeStoreIfPossible();
@@ -350,12 +335,11 @@ public class DocumentNodeStoreService {
         if (context == null) {
             log.info("Component still not activated. Ignoring the initialization call");
         } else if (customBlobStore && blobStore == null) {
-            log.info("BlobStore use enabled. DocumentNodeStoreService would be initialized when "
+            log.info("Custom BlobStore use enabled. DocumentNodeStoreService would be initialized when "
                     + "BlobStore would be available");
-        } else if (documentStoreType == DocumentStoreType.RDB
-                && (dataSource == null || (customBlobDataSource && blobDataSource == null))) {
+        } else if (documentStoreType == DocumentStoreType.RDB && (dataSource == null || blobDataSource == null)) {
             log.info("DataSource use enabled. DocumentNodeStoreService would be initialized when "
-                    + "DataSource would be available");
+                    + "DataSource would be available (currently available: nodes: {}, blobs: {})", dataSource, blobDataSource);
         } else {
             registerNodeStore();
         }
@@ -388,7 +372,7 @@ public class DocumentNodeStoreService {
                 setCacheSegmentCount(cacheSegmentCount).
                 setCacheStackMoveDistance(cacheStackMoveDistance).
                 offHeapCacheSize(offHeapCache * MB);
-        
+
         if (persistentCache != null && persistentCache.length() > 0) {
             mkBuilder.setPersistentCache(persistentCache);
         }
@@ -400,14 +384,16 @@ public class DocumentNodeStoreService {
             mkBuilder.setBlobStore(blobStore);
         }
 
-        if (documentStoreType == DocumentStoreType.RDB){
+        if (documentStoreType == DocumentStoreType.RDB) {
             checkNotNull(dataSource, "DataStore type set [%s] but DataSource reference not initialized", PROP_DS_TYPE);
-            if(customBlobDataSource){
-                checkNotNull(blobDataSource, "DataStore type set [%s] and BlobStore is configured to use different " +
-                        "DataSource via [%s] but BlobDataSource reference not initialized", PROP_DS_TYPE, CUSTOM_BLOB_DATA_SOURCE);
+            if (!customBlobStore) {
+                checkNotNull(blobDataSource, "DataStore type set [%s] but BlobDataSource reference not initialized", PROP_DS_TYPE);
                 mkBuilder.setRDBConnection(dataSource, blobDataSource);
                 log.info("Connected to datasources {} {}", dataSource, blobDataSource);
             } else {
+                if (blobDataSource != null && blobDataSource != dataSource) {
+                    log.info("Ignoring blobDataSource {} as custom blob store takes precedence.", blobDataSource);
+                }
                 mkBuilder.setRDBConnection(dataSource);
                 log.info("Connected to datasource {}", dataSource);
             }
@@ -490,6 +476,7 @@ public class DocumentNodeStoreService {
 
     @SuppressWarnings("UnusedDeclaration")
     protected void bindDataSource(DataSource dataSource) throws IOException {
+        log.info("Initializing DocumentNodeStore with dataSource [{}]", dataSource);
         this.dataSource = dataSource;
         registerNodeStoreIfPossible();
     }
@@ -502,6 +489,7 @@ public class DocumentNodeStoreService {
 
     @SuppressWarnings("UnusedDeclaration")
     protected void bindBlobDataSource(DataSource dataSource) throws IOException {
+        log.info("Initializing DocumentNodeStore with blobDataSource [{}]", dataSource);
         this.blobDataSource = dataSource;
         registerNodeStoreIfPossible();
     }
