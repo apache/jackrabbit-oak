@@ -116,6 +116,8 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         for (Map.Entry<String, PermissionStoreEditor> entry : modified.entrySet()) {
             entry.getValue().updatePermissionEntries();
         }
+        modified.clear();
+        deleted.clear();
     }
 
     @Nonnull
