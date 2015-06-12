@@ -19,13 +19,13 @@ The Solr index is mainly meant for full-text search (the 'contains' type of quer
 
     //*[jcr:contains(., 'text')]
 
-but is also able to search by path, property restrictions and primary type restrictions.
-This means the Solr index in Oak can be used for any type of JCR query.
+but is also able to search by path and property restrictions.
+Primary type restriction support is also provided by it's not recommended as it's usually much better to use the [node type 
+index](../query.html#The_Node_Type_Index) for such kind of queries.
 
 Even if it's not just a full-text index, it's recommended to use it asynchronously (see `Oak#withAsyncIndexing`)
-because, in most production scenarios, it'll be a 'remote' index, and therefore network eventual latency / errors would 
+because, in most production scenarios, it'll be a 'remote' index and therefore network latency / errors would 
 have less impact on the repository performance.
-To set up the Solr index to be asynchronous that has to be defined inside the index definition, see [OAK-980](https://issues.apache.org/jira/browse/OAK-980)
 
 TODO Node aggregation.
 
@@ -35,9 +35,7 @@ The index definition node for a Solr-based index:
 
  * must be of type `oak:QueryIndexDefinition`
  * must have the `type` property set to __`solr`__
- * must contain the `async` property set to the value `async`, this is what sends the 
-
-index update process to a background thread.
+ * must contain the `async` property set to the value `async`, this is what sends the index update process to a background thread.
 
 _Optionally_ one can add
 
@@ -54,6 +52,23 @@ Example:
         .setProperty("reindex", true);
     }
     
+#### Configuring the Solr index
+
+Besides the mandatory index definition parameters (and `reindex`), a number of additional parameters can be defined in 
+ Oak Solr index configuration.
+Such a configuration is composed by:
+
+ - the Solr server configuration (see [SolrServerConfiguration](http://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/plugins/index/solr/configuration/SolrServerConfiguration.html))
+ - the search / indexing configuration (see [OakSolrConfiguration](http://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/plugins/index/solr/configuration/OakSolrConfiguration.html))
+ 
+##### Solr server configuration options
+
+TBD
+
+##### Search / indexing configuration options
+
+TBD
+    
 #### Setting up the Solr server
 For the Solr index to work Oak needs to be able to communicate with a Solr instance / cluster.
 Apache Solr supports multiple deployment architectures: 
@@ -67,20 +82,8 @@ Apache Solr supports multiple deployment architectures:
 The Oak Solr index can be configured to either use an 'embedded Solr server' or a 'remote Solr server' (being able to 
 connect to a single remote instance or to a SolrCloud cluster via Zookeeper).
 
-##### OSGi environment
-All the Solr configuration parameters are described in the 'Solr Server Configuration' section on the 
-[OSGi configuration](osgi_config.html) page.
-
-Create an index definition for the Solr index, as described [above](#solr-index-definition).
-Once the query index definition node has been created, access OSGi ConfigurationAdmin via e.g. Apache Felix WebConsole:
-
- 1. find the 'Oak Solr indexing / search configuration' item and eventually change configuration properties as needed
- 2. find either the 'Oak Solr embedded server configuration' or 'Oak Solr remote server configuration' items depending 
- on the chosen Solr architecture and eventually change configuration properties as needed
- 3. find the 'Oak Solr server provider' item and select the chosen provider ('remote' or 'embedded') 
-
-##### Solr server configurations
-Depending on the use case, different Solr server configurations are recommended.
+##### Supported Solr deployments
+Depending on the use case, different Solr server deployments are recommended.
 
 ###### Embedded Solr server
 The embedded Solr server is recommended for developing and testing the Solr index for an Oak repository. With that an 
@@ -119,11 +122,52 @@ SolrCloud also allows the hot deploy of configuration files to be used for a cer
  from a local directory, this is controlled by the _solr.conf.dir_ property of the 'Oak Solr remote server configuration'.
 For a detailed description of how SolrCloud works see the [Solr reference guide](https://cwiki.apache.org/confluence/display/solr/SolrCloud).
 
-#### Differences with the Lucene index
+##### OSGi environment
+All the Solr configuration parameters are described in the 'Solr Server Configuration' section on the 
+[OSGi configuration](osgi_config.html) page.
+
+Create an index definition for the Solr index, as described [above](#solr-index-definition).
+Once the query index definition node has been created, access OSGi ConfigurationAdmin via e.g. Apache Felix WebConsole:
+
+ 1. find the 'Oak Solr indexing / search configuration' item and eventually change configuration properties as needed
+ 2. find either the 'Oak Solr embedded server configuration' or 'Oak Solr remote server configuration' items depending 
+ on the chosen Solr architecture and eventually change configuration properties as needed
+ 3. find the 'Oak Solr server provider' item and select the chosen provider ('remote' or 'embedded') 
+
+#### Advanced search features
+
+##### Suggestions
+
+`@since Oak 1.1.17, 1.0.15`
+
+Default Solr configuration ([solrconfig.xml](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-solr-core/src/main/resources/solr/oak/conf/solrconfig.xml#L1102) 
+and [schema.xml](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-solr-core/src/main/resources/solr/oak/conf/schema.xml#L119)) 
+comes with a preconfigured suggest component, which uses Lucene's [FuzzySuggester](https://lucene.apache.org/core/4_7_0/suggest/org/apache/lucene/search/suggest/analyzing/FuzzySuggester.html)
+under the hood. Updating the suggester in [default configuration](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-solr-core/src/main/resources/solr/oak/conf/solrconfig.xml#L1110) 
+is done every time a `commit` request is sent to Solr however it's recommended not to do that in production systems if possible, 
+as it's much better to send explicit request to Solr to rebuild the suggester dictionary, e.g. once a day, week, etc.
+
+More / different suggesters can be configured in Solr, as per [reference documentation](https://cwiki.apache.org/confluence/display/solr/Suggester).
+
+##### Spellchecking
+
+`@since Oak 1.1.17, 1.0.15`
+
+Default Solr configuration ([solrconfig.xml](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-solr-core/src/main/resources/solr/oak/conf/solrconfig.xml#L1177)) 
+comes with a preconfigured spellchecking component, which uses Lucene's [DirectSpellChecker](http://lucene.apache.org/core/4_7_0/suggest/org/apache/lucene/search/spell/DirectSpellChecker.html)
+under the hood as it doesn't require any additional data structure neither in RAM nor on disk.
+
+More / different spellcheckers can be configured in Solr, as per [reference documentation](https://cwiki.apache.org/confluence/display/solr/Spell+Checking).
+
+#### Notes
 As of Oak version 1.0.0:
 
-* Solr index doesn't support search using relative properties, see [OAK-1835](https://issues.apache.org/jira/browse/OAK-1835).
-* Solr configuration is mostly done on the Solr side via schema.xml / solrconfig.xml files.
-* Lucene can only be used for full-text queries, Solr can be used for full-text search _and_ for JCR queries involving
+ * Solr index doesn't support search using relative properties, see [OAK-1835](https://issues.apache.org/jira/browse/OAK-1835).
+ * Lucene can only be used for full-text queries, Solr can be used for full-text search _and_ for JCR queries involving
 path, property and primary type restrictions.
+
+As of Oak version 1.2.0:
+
+ * Solr index doesn't support index time aggregation, but only query time aggregation
+ * Lucene and Solr can be both used for full text, property and path restrictions
 
