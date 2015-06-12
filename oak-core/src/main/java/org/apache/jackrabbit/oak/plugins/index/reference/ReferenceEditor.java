@@ -31,6 +31,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 import static org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants.REF_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants.WEAK_REF_NAME;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.SYSTEM_PATHS;
 
 import java.util.Map;
@@ -115,6 +116,12 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
      */
     private final Set<String> newIds;
 
+    /**
+     * flag marking a reindex, case in which we don't need to keep track of the
+     * newIds set
+     */
+    private final boolean isReindex;
+
     public ReferenceEditor(NodeBuilder definition, NodeState root) {
         this.parent = null;
         this.name = null;
@@ -130,6 +137,7 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
         this.discardedIds = newHashSet();
         this.versionStoreIds = newHashSet();
         this.newIds = newHashSet();
+        this.isReindex = MISSING_NODE == root;
     }
 
     private ReferenceEditor(ReferenceEditor parent, String name, String uuid) {
@@ -147,6 +155,7 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
         this.discardedIds = parent.discardedIds;
         this.versionStoreIds = parent.versionStoreIds;
         this.newIds = parent.newIds;
+        this.isReindex = parent.isReindex;
     }
 
     /**
@@ -282,7 +291,7 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
     @Override
     public Editor childNodeAdded(String name, NodeState after) {
         String uuid = after.getString(JCR_UUID);
-        if (uuid != null) {
+        if (!isReindex && uuid != null) {
             newIds.add(uuid);
         }
         return new ReferenceEditor(this, name, uuid);
