@@ -167,8 +167,8 @@ Clients wanting to obtain spellchecks could use the following JCR code:
         spellchecks = row.getValue("rep:spellcheck()").getString()        
     }
     
-If either Lucene or Solr were configured to provide the spellcheck feature, see [Enable spellchecking in Lucene]() and [Enable
-spellchecking in Solr](), the `spellchecks` String would be have the following pattern `\[[\w|\W]+(\,\s[\w|\W]+)*\]`, e.g.:
+If either Lucene or Solr were configured to provide the spellcheck feature, see [Enable spellchecking in Lucene](../lucene.html#Spellchecking) and [Enable
+spellchecking in Solr](../solr.html#Spellchecking), the `spellchecks` String would be have the following pattern `\[[\w|\W]+(\,\s[\w|\W]+)*\]`, e.g.:
 
     [hello, hold]
 
@@ -200,8 +200,8 @@ Clients wanting to obtain suggestions could use the following JCR code:
         suggestions = row.getValue("rep:suggest()").getString()        
     }
     
-If either Lucene or Solr were configured to provide the suggestions feature, see [Enable suggestions in Lucene]() and [Enable
-suggestions in Solr](), the `suggestions` String would be have the following pattern `\[\{(term\=)[\w|\W]+(\,weight\=)\d+\}(\,\{(term\=)[\w|\W]+(\,weight\=)\d+\})*\]`, e.g.:
+If either Lucene or Solr were configured to provide the suggestions feature, see [Enable suggestions in Lucene](../lucene.html#Suggestions) and [Enable
+suggestions in Solr](../solr.html#Suggestions), the `suggestions` String would be have the following pattern `\[\{(term\=)[\w|\W]+(\,weight\=)\d+\}(\,\{(term\=)[\w|\W]+(\,weight\=)\d+\})*\]`, e.g.:
 
     [{term=in 2015 a red fox is still a fox,weight=1.5, {term=in 2015 my fox is red, like mike's fox and john's fox,weight=0.7}]
 
