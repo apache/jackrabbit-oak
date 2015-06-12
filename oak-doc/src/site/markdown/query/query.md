@@ -133,7 +133,7 @@ If no full-text implementation is available, those queries will fail.
 
 ### Similarity Queries
 
-Oak supports similarity queries when using the Lucene full-text index. 
+Oak supports similarity queries when using the Lucene or Solr indexes. 
 For example, the following query will return nodes that have similar content than
 the node /test/a:
 
@@ -141,6 +141,72 @@ the node /test/a:
     
 Compared to Jackrabbit 2.x, support for rep:similar has the following limitations:
 Full-text aggregation is not currently supported.
+
+### Spellchecking
+
+`@since Oak 1.1.17, 1.0.15`
+
+Oak supports spellcheck queries when using the Lucene or Solr indexes.
+Unlike most queries, spellcheck queries won't return a JCR `Node` as the outcome of such queries will be text terms 
+that come from content as written into JCR `properties`.
+For example, the following query will return spellchecks for the (wrongly spelled) term `helo`:
+
+    /jcr:root[rep:spellcheck('helo')]/(rep:spellcheck())
+    
+The result of such a query will be a JCR `Row` which will contain the corrected terms, as spellchecked by the used underlying 
+index, in a special property named `rep:spellcheck()`.
+
+Clients wanting to obtain spellchecks could use the following JCR code:
+       
+    QueryManager qm = ...;
+    String xpath = "/jcr:root[rep:spellcheck('helo')]/(rep:spellcheck())";
+    QueryResult result = qm.createQuery(xpath, Query.XPATH).execute();
+    RowIterator it = result.getRows();
+    String spellchecks = "";
+    if (it.hasNext()) {
+        spellchecks = row.getValue("rep:spellcheck()").getString()        
+    }
+    
+If either Lucene or Solr were configured to provide the spellcheck feature, see [Enable spellchecking in Lucene]() and [Enable
+spellchecking in Solr](), the `spellchecks` String would be have the following pattern `\[[\w|\W]+(\,\s[\w|\W]+)*\]`, e.g.:
+
+    [hello, hold]
+
+Note that spellcheck terms come already filtered according to calling user privileges, so that users could see spellcheck 
+corrections only coming from indexed content they are allowed to read.
+
+### Suggestions
+
+`@since Oak 1.1.17, 1.0.15`
+
+Oak supports search suggestions when using the Lucene or Solr indexes.
+Unlike most queries, suggest queries won't return a JCR `Node` as the outcome of such queries will be text terms 
+that come from content as written into JCR `properties`.
+For example, the following query will return search suggestions for the (e.g. user entered) term `in `:
+
+    /jcr:root[rep:suggest('in ')]/(rep:suggest())
+    
+The result of such a query will be a JCR `Row` which will contain the suggested terms, together with their score, as 
+suggested and scored by the used underlying index, in a special property named `rep:suggest()`.
+
+Clients wanting to obtain suggestions could use the following JCR code:
+       
+    QueryManager qm = ...;
+    String xpath = "/jcr:root[rep:suggest('in ')]/(rep:suggest())";
+    QueryResult result = qm.createQuery(xpath, Query.XPATH).execute();
+    RowIterator it = result.getRows();
+    String suggestions = "";
+    if (it.hasNext()) {
+        suggestions = row.getValue("rep:suggest()").getString()        
+    }
+    
+If either Lucene or Solr were configured to provide the suggestions feature, see [Enable suggestions in Lucene]() and [Enable
+suggestions in Solr](), the `suggestions` String would be have the following pattern `\[\{(term\=)[\w|\W]+(\,weight\=)\d+\}(\,\{(term\=)[\w|\W]+(\,weight\=)\d+\})*\]`, e.g.:
+
+    [{term=in 2015 a red fox is still a fox,weight=1.5, {term=in 2015 my fox is red, like mike's fox and john's fox,weight=0.7}]
+
+Note that suggested terms come already filtered according to calling user privileges, so that users could see suggested
+terms only coming from indexed content they are allowed to read.
 
 ### XPath to SQL2 Transformation
 
@@ -272,7 +338,7 @@ See [Lucene Index](lucene.html) for details.
 
 ### The Solr Index
 
-See [Solr Index](lucene.html) for details.
+See [Solr Index](solr.html) for details.
 
 ### The Node Type Index
 
