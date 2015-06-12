@@ -23,6 +23,10 @@ commit tries to acquire the merge lock: -Doak.maxLockTryTimeMultiplier=30
 The default value is 30 and roughly translates to 60 seconds. See OAK-2762
 and OAK-2823 for more details.
 
+LuceneIndexEditor now supports CopyOnWrite mode (OAK-2247) for faster indexing.
+Refer to http://jackrabbit.apache.org/oak/docs/query/lucene.html#CopyOnWrite
+for more details.
+
 Changes in Oak 1.0.15
 ---------------------
 
