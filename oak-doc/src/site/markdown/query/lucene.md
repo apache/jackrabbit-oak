@@ -792,6 +792,28 @@ mentioned steps
         
 From the Luke UI shown you can access various details.
 
+#### Advanced search features
+
+##### Suggestions
+
+`@since Oak 1.1.17, 1.0.15`
+
+In order to use Lucene index to perform search suggestions, the index definition node (the one of type `oak:queryIndexConfiguration`)
+ needs to have the `compatVersion` set to `2`, then one or more property nodes, depending on use case, need to have the 
+ property `useForSuggest` set to `true`, such setting controls from which properties terms to be used for suggestions will be taken.
+ 
+Once the above configuration has been done, by default, the Lucene suggester is updated every 10 minutes but that can be 
+changed by setting the property `suggestUpdateFrequencyMinutes` in the index definition node to a different value.
+
+##### Spellchecking
+
+`@since Oak 1.1.17, 1.0.15`
+
+In order to use Lucene index to perform spellchecking, the index definition node (the one of type `oak:queryIndexConfiguration`)
+ needs to have the `compatVersion` set to `2`, then one or more property nodes, depending on use case, need to have the 
+ property `useForSpellcheck` set to `true`, such setting controls from which properties terms to be used for spellcheck 
+ corrections will be taken.
+
 ### Design Considerations
 
 Lucene index provides quite a few features to meet various query requirements. 
