@@ -31,7 +31,7 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfig;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIDPManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule;

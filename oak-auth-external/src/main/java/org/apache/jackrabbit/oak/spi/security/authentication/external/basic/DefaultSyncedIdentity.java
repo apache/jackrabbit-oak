@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
+package org.apache.jackrabbit.oak.spi.security.authentication.external.basic;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -23,7 +23,10 @@ import javax.annotation.Nullable;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
 
-public class SyncedIdentityImpl implements SyncedIdentity {
+/**
+ * Implements a simple synced identity that maps an authorizable id to an external ref.
+ */
+public class DefaultSyncedIdentity implements SyncedIdentity {
 
     private final String id;
 
@@ -33,7 +36,7 @@ public class SyncedIdentityImpl implements SyncedIdentity {
 
     private final long lastSynced;
 
-    public SyncedIdentityImpl(@Nonnull String id, @Nullable ExternalIdentityRef ref, boolean isGroup, long lastSynced) {
+    public DefaultSyncedIdentity(@Nonnull String id, @Nullable ExternalIdentityRef ref, boolean isGroup, long lastSynced) {
         this.id = id;
         this.ref = ref;
         this.isGroup = isGroup;
