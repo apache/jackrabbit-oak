@@ -37,7 +37,7 @@ import org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderC
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginModuleTestBase;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfig;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;

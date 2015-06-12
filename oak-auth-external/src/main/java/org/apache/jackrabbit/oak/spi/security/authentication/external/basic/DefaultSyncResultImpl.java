@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
+package org.apache.jackrabbit.oak.spi.security.authentication.external.basic;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -22,21 +22,21 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
 
 /**
-* {@code SyncResultImpl}...
-*/
-public class SyncResultImpl implements SyncResult {
+ * Implements a simple sync result with and id and a status.
+ */
+public class DefaultSyncResultImpl implements SyncResult {
 
-    private final SyncedIdentityImpl id;
+    private final DefaultSyncedIdentity id;
 
     private Status status = Status.NOP;
 
-    public SyncResultImpl(SyncedIdentityImpl id, Status status) {
+    public DefaultSyncResultImpl(DefaultSyncedIdentity id, Status status) {
         this.id = id;
         this.status = status;
     }
 
     @CheckForNull
-    public SyncedIdentityImpl getIdentity() {
+    public DefaultSyncedIdentity getIdentity() {
         return id;
     }
 
