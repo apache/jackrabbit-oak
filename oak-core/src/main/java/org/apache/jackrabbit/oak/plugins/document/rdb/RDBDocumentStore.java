@@ -1452,6 +1452,9 @@ public class RDBDocumentStore implements DocumentStore {
     // Number of query hits above which a diagnostic warning is generated
     private static final int QUERYHITSLIMIT = Integer.getInteger(
             "org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QUERYHITSLIMIT", 4096);
+    // Number of elapsed ms in a query above which a diagnostic warning is generated
+    private static final int QUERYTIMELIMIT = Integer.getInteger(
+            "org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QUERYTIMELIMIT", 10000);
 
     private static byte[] asBytes(String data) {
         byte[] bytes;
@@ -1641,10 +1644,15 @@ public class RDBDocumentStore implements DocumentStore {
             stmt.close();
         }
 
-        if (result.size() > QUERYHITSLIMIT) {
-            long elapsed = System.currentTimeMillis() - start;
-            String message = String.format("Potentially excessive query with %d hits, limit was %d, elapsed time %dms, check calling method.",
-                    result.size(), limit, elapsed);
+        long elapsed = System.currentTimeMillis() - start;
+        if (QUERYHITSLIMIT != 0 && result.size() > QUERYHITSLIMIT) {
+            String message = String.format("Potentially excessive query with %d hits (limited to %d, configured QUERYHITSLIMIT %d), elapsed time %dms, params minid '%s' maxid '%s' indexedProperty %s startValue %d limit %d. Check calling method.",
+                    result.size(), limit, QUERYHITSLIMIT, elapsed, minId, maxId, indexedProperty, startValue, limit);
+            LOG.info(message, new Exception("call stack"));
+        }
+        else if (QUERYTIMELIMIT != 0 && elapsed > QUERYTIMELIMIT) {
+            String message = String.format("Long running query with %d hits (limited to %d), elapsed time %dms (configured QUERYTIMELIMIT %d), params minid '%s' maxid '%s' indexedProperty %s startValue %d limit %d. Check calling method.",
+                    result.size(), limit, elapsed, QUERYTIMELIMIT, minId, maxId, indexedProperty, startValue, limit);
             LOG.info(message, new Exception("call stack"));
         }
 
