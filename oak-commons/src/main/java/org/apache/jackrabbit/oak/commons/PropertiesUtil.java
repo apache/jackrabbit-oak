@@ -40,7 +40,7 @@ import static com.google.common.base.Objects.ToStringHelper;
 
 /**
  * The <code>PropertiesUtil</code> is a utility class providing some
- * usefull utility methods for converting property types.
+ * useful utility methods for converting property types.
  */
 public class PropertiesUtil {
     private static Logger log = LoggerFactory.getLogger(PropertiesUtil.class);
