@@ -426,13 +426,15 @@ public class RDBDocumentStore implements DocumentStore {
             @Override
             public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
                 Connection con = null;
+                PreparedStatement stmt = null;
+                ResultSet rs = null;
                 Map<String, String> result = new HashMap<String, String>();
                 try {
                     con = ch.getROConnection();
                     String cat = con.getCatalog();
-                    PreparedStatement stmt = con.prepareStatement("SELECT pg_encoding_to_char(encoding), datcollate FROM pg_database WHERE datname=?");
+                    stmt = con.prepareStatement("SELECT pg_encoding_to_char(encoding), datcollate FROM pg_database WHERE datname=?");
                     stmt.setString(1, cat);
-                    ResultSet rs = stmt.executeQuery();
+                    rs = stmt.executeQuery();
                     while (rs.next()) {
                         result.put("pg_encoding_to_char(encoding)", rs.getString(1));
                         result.put("datcollate", rs.getString(2));
@@ -442,6 +444,8 @@ public class RDBDocumentStore implements DocumentStore {
                 } catch (SQLException ex) {
                     LOG.debug("while getting diagnostics", ex);
                 } finally {
+                    ch.closeResultSet(rs);
+                    ch.closeStatement(stmt);
                     ch.closeConnection(con);
                 }
                 return result.toString();
@@ -457,14 +461,16 @@ public class RDBDocumentStore implements DocumentStore {
             @Override
             public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
                 Connection con = null;
+                PreparedStatement stmt = null;
+                ResultSet rs = null;
                 Map<String, String> result = new HashMap<String, String>();
                 try {
                     con = ch.getROConnection();
                     // we can't look up by schema as con.getSchema is JDK 1.7
-                    PreparedStatement stmt = con.prepareStatement("SELECT CODEPAGE, COLLATIONSCHEMA, COLLATIONNAME, TABSCHEMA FROM SYSCAT.COLUMNS WHERE COLNAME=? and COLNO=0 AND UPPER(TABNAME)=UPPER(?)");
+                    stmt = con.prepareStatement("SELECT CODEPAGE, COLLATIONSCHEMA, COLLATIONNAME, TABSCHEMA FROM SYSCAT.COLUMNS WHERE COLNAME=? and COLNO=0 AND UPPER(TABNAME)=UPPER(?)");
                     stmt.setString(1, "ID");
                     stmt.setString(2, tableName);
-                    ResultSet rs = stmt.executeQuery();
+                    rs = stmt.executeQuery();
                     while (rs.next() && result.size() < 20) {
                         // thus including the schema name here
                         String schema = rs.getString("TABSCHEMA").trim();
@@ -477,6 +483,8 @@ public class RDBDocumentStore implements DocumentStore {
                 } catch (SQLException ex) {
                     LOG.debug("while getting diagnostics", ex);
                 } finally {
+                    ch.closeResultSet(rs);
+                    ch.closeStatement(stmt);
                     ch.closeConnection(con);
                 }
                 return result.toString();
@@ -505,11 +513,13 @@ public class RDBDocumentStore implements DocumentStore {
             @Override
             public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
                 Connection con = null;
+                Statement stmt = null;
+                ResultSet rs = null;
                 Map<String, String> result = new HashMap<String, String>();
                 try {
                     con = ch.getROConnection();
-                    Statement stmt = con.createStatement();
-                    ResultSet rs = stmt.executeQuery("SELECT PARAMETER, VALUE from NLS_DATABASE_PARAMETERS WHERE PARAMETER IN ('NLS_COMP', 'NLS_CHARACTERSET')");
+                    stmt = con.createStatement();
+                    rs = stmt.executeQuery("SELECT PARAMETER, VALUE from NLS_DATABASE_PARAMETERS WHERE PARAMETER IN ('NLS_COMP', 'NLS_CHARACTERSET')");
                     while (rs.next()) {
                         result.put(rs.getString(1), rs.getString(2));
                     }
@@ -518,6 +528,8 @@ public class RDBDocumentStore implements DocumentStore {
                 } catch (SQLException ex) {
                     LOG.debug("while getting diagnostics", ex);
                 } finally {
+                    ch.closeResultSet(rs);
+                    ch.closeStatement(stmt);
                     ch.closeConnection(con);
                 }
                 return result.toString();
@@ -555,12 +567,14 @@ public class RDBDocumentStore implements DocumentStore {
             @Override
             public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
                 Connection con = null;
+                PreparedStatement stmt = null;
+                ResultSet rs = null;
                 Map<String, String> result = new HashMap<String, String>();
                 try {
                     con = ch.getROConnection();
-                    PreparedStatement stmt = con.prepareStatement("SHOW TABLE STATUS LIKE ?");
+                    stmt = con.prepareStatement("SHOW TABLE STATUS LIKE ?");
                     stmt.setString(1, tableName);
-                    ResultSet rs = stmt.executeQuery();
+                    rs = stmt.executeQuery();
                     while (rs.next()) {
                         result.put("collation", rs.getString("Collation"));
                     }
@@ -569,6 +583,8 @@ public class RDBDocumentStore implements DocumentStore {
                 } catch (SQLException ex) {
                     LOG.debug("while getting diagnostics", ex);
                 } finally {
+                    ch.closeResultSet(rs);
+                    ch.closeStatement(stmt);
                     ch.closeConnection(con);
                 }
                 return result.toString();
@@ -612,13 +628,15 @@ public class RDBDocumentStore implements DocumentStore {
             @Override
             public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
                 Connection con = null;
+                PreparedStatement stmt = null;
+                ResultSet rs = null;
                 Map<String, String> result = new HashMap<String, String>();
                 try {
                     con = ch.getROConnection();
                     String cat = con.getCatalog();
-                    PreparedStatement stmt = con.prepareStatement("SELECT collation_name FROM sys.databases WHERE name=?");
+                    stmt = con.prepareStatement("SELECT collation_name FROM sys.databases WHERE name=?");
                     stmt.setString(1, cat);
-                    ResultSet rs = stmt.executeQuery();
+                    rs = stmt.executeQuery();
                     while (rs.next()) {
                         result.put("collation_name", rs.getString(1));
                     }
@@ -627,6 +645,8 @@ public class RDBDocumentStore implements DocumentStore {
                 } catch (SQLException ex) {
                     LOG.debug("while getting diagnostics", ex);
                 } finally {
+                    ch.closeResultSet(rs);
+                    ch.closeStatement(stmt);
                     ch.closeConnection(con);
                 }
                 return result.toString();
