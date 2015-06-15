@@ -93,4 +93,19 @@ public abstract class AbstractDocumentStoreTest {
 
         return result;
     }
+
+    /**
+     * Generate a random string of given size, with or without non-ASCII characters.
+     */
+    public static String generateString(int length, boolean asciiOnly) {
+        char[] s = new char[length];
+        for (int i = 0; i < length; i++) {
+            if (asciiOnly) {
+                s[i] = (char) (32 + (int) (95 * Math.random()));
+            } else {
+                s[i] = (char) (32 + (int) ((0xd7ff - 32) * Math.random()));
+            }
+        }
+        return new String(s);
+    }
 }
