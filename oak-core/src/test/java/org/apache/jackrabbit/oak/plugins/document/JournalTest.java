@@ -27,7 +27,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
@@ -40,6 +39,7 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -177,6 +177,42 @@ public class JournalTest {
                 return incomingRootStates1.size() + diffedRootStates1.size();
             }
         }
+        
+    }
+    
+    @Test
+    public void largeCleanupTest() throws Exception {
+        // create more than DELETE_BATCH_SIZE of entries and clean them up
+        // should make sure to loop in JournalGarbageCollector.gc such
+        // that it would find issue described here:
+        // https://issues.apache.org/jira/browse/OAK-2829?focusedCommentId=14585733&page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel#comment-14585733
+        
+        doLargeCleanupTest(0, 100);
+        doLargeCleanupTest(200, 1000);// using offset as to not make sure to always create new entries
+        doLargeCleanupTest(2000, 10000);
+        doLargeCleanupTest(20000, 30000); // using 'size' much larger than 30k will be tremendously slow due to ordered node
+    }
+    
+    private void doLargeCleanupTest(int offset, int size) throws Exception {
+        Clock clock = new Clock.Virtual();
+        DocumentMK mk1 = createMK(0 /* clusterId: 0 => uses clusterNodes collection */, 0);
+        DocumentNodeStore ns1 = mk1.getNodeStore();
+        // make sure we're visible and marked as active
+        ns1.renewClusterIdLease();
+        JournalGarbageCollector gc = new JournalGarbageCollector(ns1);
+        clock.getTimeIncreasing();
+        clock.getTimeIncreasing();
+        gc.gc(0, TimeUnit.MILLISECONDS); // cleanup everything that might still be there 
+        
+        // create entries as parametrized:
+        for(int i=offset; i<size+offset; i++) {
+            mk1.commit("/", "+\"regular"+i+"\": {}", null, null);
+            // always run background ops to 'flush' the change
+            // into the journal:
+            ns1.runBackgroundOperations();
+        }
+        Thread.sleep(100); // sleep 100millis
+        assertEquals(size, gc.gc(0, TimeUnit.MILLISECONDS)); // should now be able to clean up everything
         
     }
     

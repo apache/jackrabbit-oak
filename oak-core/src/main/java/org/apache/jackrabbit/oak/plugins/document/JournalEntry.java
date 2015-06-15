@@ -231,8 +231,8 @@ public final class JournalEntry extends Document {
     }
 
     long getRevisionTimestamp() {
-        final String[] parts = getId().split("_");
-        return Long.parseLong(parts[1]);
+        final String[] parts = getId().split("-");
+        return Long.parseLong(parts[1], 16);
     }
 
     void modified(String path) {
