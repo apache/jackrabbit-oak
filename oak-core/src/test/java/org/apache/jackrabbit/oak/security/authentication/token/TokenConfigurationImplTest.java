@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class TokenConfigurationImplTest extends AbstractSecurityTest {
 
@@ -38,7 +39,9 @@ public class TokenConfigurationImplTest extends AbstractSecurityTest {
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
-        ConfigurationParameters config = ConfigurationParameters.of(TokenProviderImpl.PARAM_TOKEN_EXPIRATION, 60);
+        ConfigurationParameters config = ConfigurationParameters.of(
+                TokenProvider.PARAM_TOKEN_EXPIRATION, 60,
+                TokenProvider.PARAM_TOKEN_REFRESH, true);
         return ConfigurationParameters.of(TokenConfiguration.NAME, config);
     }
 
@@ -52,5 +55,11 @@ public class TokenConfigurationImplTest extends AbstractSecurityTest {
     public void testConfigOptions2() {
         int exp = getConfig(TokenConfiguration.class).getParameters().getConfigValue(TokenProvider.PARAM_TOKEN_EXPIRATION, DEFAULT_EXPIRATION);
         assertEquals(60, exp);
+    }
+
+    @Test
+    public void testRefresh() {
+        boolean refresh = getConfig(TokenConfiguration.class).getParameters().getConfigValue(TokenProvider.PARAM_TOKEN_REFRESH, false);
+        assertTrue(refresh);
     }
 }

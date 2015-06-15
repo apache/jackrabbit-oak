@@ -41,6 +41,13 @@ public interface TokenProvider {
     String PARAM_TOKEN_LENGTH = "tokenLength";
 
     /**
+     * Optional configuration parameter to define if a given token should be
+     * refreshed or not. Implementations that do not support this option will
+     * ignore any config options with that name.
+     */
+    String PARAM_TOKEN_REFRESH = "tokenRefresh";
+
+    /**
      * Returns {@code true} if the given credentials indicate that a new token
      * needs to be issued.
      *

@@ -151,6 +151,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
      * @return A new {@code TokenInfo} or {@code null} if the token could not
      *         be created.
      */
+    @CheckForNull
     @Override
     public TokenInfo createToken(@Nonnull Credentials credentials) {
         SimpleCredentials sc = extractSimpleCredentials(credentials);
@@ -305,7 +306,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
             return false;
         } else {
             return TOKENS_NODE_NAME.equals(tokenTree.getParent().getName()) &&
-                    TOKEN_NT_NAME.equals(TreeUtil.getPrimaryTypeName(tokenTree));
+                   TOKEN_NT_NAME.equals(TreeUtil.getPrimaryTypeName(tokenTree));
         }
     }
 
@@ -490,24 +491,27 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
 
         @Override
         public boolean resetExpiration(long loginTime) {
-            Tree tokenTree = getTokenTree(this);
-            if (tokenTree != null && tokenTree.exists()) {
-                NodeUtil tokenNode = new NodeUtil(tokenTree);
-                if (isExpired(loginTime)) {
-                    log.debug("Attempt to reset an expired token.");
-                    return false;
-                }
+            // for backwards compatibility use true as default value for the 'tokenRefresh' configuration
+            if (options.getConfigValue(PARAM_TOKEN_REFRESH, true)) {
+                Tree tokenTree = getTokenTree(this);
+                if (tokenTree != null && tokenTree.exists()) {
+                    NodeUtil tokenNode = new NodeUtil(tokenTree);
+                    if (isExpired(loginTime)) {
+                        log.debug("Attempt to reset an expired token.");
+                        return false;
+                    }
 
-                if (expirationTime - loginTime <= tokenExpiration / 2) {
-                    try {
-                        long expTime = createExpirationTime(loginTime, tokenExpiration);
-                        tokenNode.setDate(TOKEN_ATTRIBUTE_EXPIRY, expTime);
-                        root.commit(CommitMarker.asCommitAttributes());
-                        log.debug("Successfully reset token expiration time.");
-                        return true;
-                    } catch (CommitFailedException e) {
-                        log.debug("Failed to reset token expiration", e.getMessage());
-                        root.refresh();
+                    if (expirationTime - loginTime <= tokenExpiration / 2) {
+                        try {
+                            long expTime = createExpirationTime(loginTime, tokenExpiration);
+                            tokenNode.setDate(TOKEN_ATTRIBUTE_EXPIRY, expTime);
+                            root.commit(CommitMarker.asCommitAttributes());
+                            log.debug("Successfully reset token expiration time.");
+                            return true;
+                        } catch (CommitFailedException e) {
+                            log.debug("Failed to reset token expiration", e.getMessage());
+                            root.refresh();
+                        }
                     }
                 }
             }
