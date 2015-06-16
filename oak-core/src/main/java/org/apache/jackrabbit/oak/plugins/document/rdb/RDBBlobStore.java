@@ -275,6 +275,16 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
         this.ch = new RDBConnectionHandler(ds);
         Connection con = this.ch.getRWConnection();
+
+        int isolation = con.getTransactionIsolation();
+        String isolationDiags = RDBJDBCTools.isolationLevelToString(isolation);
+        if (isolation != Connection.TRANSACTION_READ_COMMITTED) {
+            LOG.info("Detected transaction isolation level " + isolationDiags + " is "
+                    + (isolation < Connection.TRANSACTION_READ_COMMITTED ? "lower" : "higher") + " than expected "
+                    + RDBJDBCTools.isolationLevelToString(Connection.TRANSACTION_READ_COMMITTED)
+                    + " - check datasource configuration");
+        }
+
         DatabaseMetaData md = con.getMetaData();
         String dbDesc = String.format("%s %s (%d.%d)", md.getDatabaseProductName(), md.getDatabaseProductVersion(),
                 md.getDatabaseMajorVersion(), md.getDatabaseMinorVersion());
@@ -330,7 +340,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
             }
 
             LOG.info("RDBBlobStore instantiated for database " + dbDesc + ", using driver: " + driverDesc + ", connecting to: "
-                    + dbUrl);
+                    + dbUrl + ", transaction isolation level: " + isolationDiags);
             if (!tablesPresent.isEmpty()) {
                 LOG.info("Tables present upon startup: " + tablesPresent);
             }
