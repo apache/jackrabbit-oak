@@ -821,6 +821,16 @@ public class RDBDocumentStore implements DocumentStore {
         this.cacheStats = new CacheStats(nodesCache, "Document-Documents", builder.getWeigher(), builder.getDocumentCacheSize());
 
         Connection con = this.ch.getRWConnection();
+
+        int isolation = con.getTransactionIsolation();
+        String isolationDiags = RDBJDBCTools.isolationLevelToString(isolation);
+        if (isolation != Connection.TRANSACTION_READ_COMMITTED) {
+            LOG.info("Detected transaction isolation level " + isolationDiags + " is "
+                    + (isolation < Connection.TRANSACTION_READ_COMMITTED ? "lower" : "higher") + " than expected "
+                    + RDBJDBCTools.isolationLevelToString(Connection.TRANSACTION_READ_COMMITTED)
+                    + " - check datasource configuration");
+        }
+
         DatabaseMetaData md = con.getMetaData();
         String dbDesc = String.format("%s %s (%d.%d)", md.getDatabaseProductName(), md.getDatabaseProductVersion(),
                 md.getDatabaseMajorVersion(), md.getDatabaseMinorVersion());
@@ -867,7 +877,7 @@ public class RDBDocumentStore implements DocumentStore {
         String diag = db.getAdditionalDiagnostics(this.ch, this.tnNodes);
 
         LOG.info("RDBDocumentStore instantiated for database " + dbDesc + ", using driver: " + driverDesc + ", connecting to: "
-                + dbUrl + (diag.isEmpty() ? "" : (", properties: " + diag)));
+                + dbUrl + (diag.isEmpty() ? "" : (", properties: " + diag)) + ", transaction isolation level: " + isolationDiags);
         if (!tablesPresent.isEmpty()) {
             LOG.info("Tables present upon startup: " + tablesPresent);
         }
