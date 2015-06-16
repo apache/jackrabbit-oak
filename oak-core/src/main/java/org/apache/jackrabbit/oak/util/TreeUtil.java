@@ -129,7 +129,6 @@ public final class TreeUtil {
         return property != null && !property.isArray() && property.getValue(BOOLEAN);
     }
 
-
     @CheckForNull
     public static String getName(Tree tree, String name) {
         PropertyState property = tree.getProperty(name);
