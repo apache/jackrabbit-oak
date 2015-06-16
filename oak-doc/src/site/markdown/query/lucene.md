@@ -807,7 +807,7 @@ changed by setting the property `suggestUpdateFrequencyMinutes` in the index def
 
 ##### Spellchecking
 
-`@since Oak 1.1.17, 1.0.15`
+`@since Oak 1.1.17, 1.0.13`
 
 In order to use Lucene index to perform spellchecking, the index definition node (the one of type `oak:queryIndexConfiguration`)
  needs to have the `compatVersion` set to `2`, then one or more property nodes, depending on use case, need to have the 
