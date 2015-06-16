@@ -120,6 +120,7 @@ Not used in Oak 1.0:
 - `READ`: aggregates `READ_NODE` and `READ_PROPERTY`
 - `REMOVE`: aggregates `REMOVE_NODE` and `REMOVE_PROPERTY`
 - `SET_PROPERTY`: aggregates `ADD_PROPERTY`, `MODIFY_PROPERTY` and `REMOVE_PROPERTY`
+- `WRITE`: aggregates `ADD_NODE`, `REMOVE_NODE` and `SET_PROPERTY`
 - `ALL`: aggregates all permissions
 
 #### Mapping of JCR Actions to Oak Permissions
