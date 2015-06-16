@@ -16,10 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import java.sql.Connection;
 import java.util.Locale;
+import java.util.Map;
 
 import javax.annotation.Nonnull;
 
+/**
+ * Convenience methods dealing with JDBC specifics.
+ */
 public class RDBJDBCTools {
 
     protected static String jdbctype(String jdbcurl) {
@@ -85,5 +90,33 @@ public class RDBJDBCTools {
             p += "_";
         }
         return p + b;
+    }
+
+    /**
+     * Return string representation of transaction isolation level.
+     */
+    protected static @Nonnull String isolationLevelToString(int isolationLevel) {
+        String name;
+        switch (isolationLevel) {
+            case Connection.TRANSACTION_NONE:
+                name = "TRANSACTION_NONE";
+                break;
+            case Connection.TRANSACTION_READ_COMMITTED:
+                name = "TRANSACTION_READ_COMMITTED";
+                break;
+            case Connection.TRANSACTION_READ_UNCOMMITTED:
+                name = "TRANSACTION_READ_UNCOMMITTED";
+                break;
+            case Connection.TRANSACTION_REPEATABLE_READ:
+                name = "TRANSACTION_REPEATABLE_READ";
+                break;
+            case Connection.TRANSACTION_SERIALIZABLE:
+                name = "TRANSACTION_SERIALIZABLE";
+                break;
+            default:
+                name = "unknown";
+                break;
+        }
+        return String.format("%s (%d)", name, isolationLevel);
     }
 }
