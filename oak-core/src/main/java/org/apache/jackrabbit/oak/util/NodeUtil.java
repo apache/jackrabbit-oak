@@ -238,6 +238,10 @@ public class NodeUtil {
         }
     }
 
+    public void setLong(@Nonnull String name, long value) {
+        tree.setProperty(name, value);
+    }
+
     public void setValues(String name, Value[] values) {
         try {
             tree.setProperty(PropertyStates.createProperty(name, Arrays.asList(values)));
