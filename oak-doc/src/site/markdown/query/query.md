@@ -144,7 +144,7 @@ Full-text aggregation is not currently supported.
 
 ### Spellchecking
 
-`@since Oak 1.1.17, 1.0.15`
+`@since Oak 1.1.17, 1.0.13`
 
 Oak supports spellcheck queries when using the Lucene or Solr indexes.
 Unlike most queries, spellcheck queries won't return a JCR `Node` as the outcome of such queries will be text terms 

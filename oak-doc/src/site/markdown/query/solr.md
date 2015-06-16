@@ -14,6 +14,8 @@
    See the License for the specific language governing permissions and
    limitations under the License.
   -->
+  
+### Solr Index
 
 The Solr index is mainly meant for full-text search (the 'contains' type of queries):
 
@@ -21,7 +23,7 @@ The Solr index is mainly meant for full-text search (the 'contains' type of quer
 
 but is also able to search by path and property restrictions.
 Primary type restriction support is also provided by it's not recommended as it's usually much better to use the [node type 
-index](../query.html#The_Node_Type_Index) for such kind of queries.
+index](query.html#The_Node_Type_Index) for such kind of queries.
 
 Even if it's not just a full-text index, it's recommended to use it asynchronously (see `Oak#withAsyncIndexing`)
 because, in most production scenarios, it'll be a 'remote' index and therefore network latency / errors would 
@@ -151,7 +153,7 @@ More / different suggesters can be configured in Solr, as per [reference documen
 
 ##### Spellchecking
 
-`@since Oak 1.1.17, 1.0.15`
+`@since Oak 1.1.17, 1.0.13`
 
 Default Solr configuration ([solrconfig.xml](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-solr-core/src/main/resources/solr/oak/conf/solrconfig.xml#L1177)) 
 comes with a preconfigured spellchecking component, which uses Lucene's [DirectSpellChecker](http://lucene.apache.org/core/4_7_0/suggest/org/apache/lucene/search/spell/DirectSpellChecker.html)
