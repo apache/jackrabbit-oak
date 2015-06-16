@@ -805,6 +805,26 @@ In order to use Lucene index to perform search suggestions, the index definition
 Once the above configuration has been done, by default, the Lucene suggester is updated every 10 minutes but that can be 
 changed by setting the property `suggestUpdateFrequencyMinutes` in the index definition node to a different value.
 
+Sample configuration for suggestions based on terms contained in `jcr:description` property.
+
+```
+/oak:index/lucene-suggest
+  - jcr:primaryType = "oak:QueryIndexDefinition"
+  - compatVersion = 2
+  - type = "lucene"
+  - async = "async"
+  - suggestUpdateFrequencyMinutes = 60
+  + indexRules
+    - jcr:primaryType = "nt:unstructured"
+    + nt:base
+      + properties
+        - jcr:primaryType = "nt:unstructured"
+        + jcr:description
+          - propertyIndex = true
+          - analyzed = true
+          - useForSuggest = true
+```
+
 ##### Spellchecking
 
 `@since Oak 1.1.17, 1.0.13`
