@@ -110,7 +110,6 @@ public final class LoginModuleImpl extends AbstractLoginModule {
     }
 
     private Credentials credentials;
-    private Set<? extends Principal> principals;
     private String userId;
 
     //--------------------------------------------------------< LoginModule >---
@@ -133,8 +132,6 @@ public final class LoginModuleImpl extends AbstractLoginModule {
         }
 
         if (success) {
-            principals = getPrincipals(userId);
-
             log.debug("Adding Credentials to shared state.");
             //noinspection unchecked
             sharedState.put(SHARED_KEY_CREDENTIALS, credentials);
@@ -148,15 +145,16 @@ public final class LoginModuleImpl extends AbstractLoginModule {
 
     @Override
     public boolean commit() {
-        if (credentials == null || principals == null) {
+        if (credentials == null) {
             // login attempt in this login module was not successful
             clearState();
             return false;
         } else {
             if (!subject.isReadOnly()) {
+                Set<? extends Principal> principals = getPrincipals(userId);
                 subject.getPrincipals().addAll(principals);
                 subject.getPublicCredentials().add(credentials);
-                setAuthInfo(createAuthInfo(), subject);
+                setAuthInfo(createAuthInfo(principals), subject);
             } else {
                 log.debug("Could not add information to read only subject {}", subject);
             }
@@ -176,7 +174,6 @@ public final class LoginModuleImpl extends AbstractLoginModule {
         super.clearState();
 
         credentials = null;
-        principals = null;
         userId = null;
     }
 
@@ -239,7 +236,7 @@ public final class LoginModuleImpl extends AbstractLoginModule {
         return null;
     }
 
-    private AuthInfo createAuthInfo() {
+    private AuthInfo createAuthInfo(@Nonnull Set<? extends Principal> principals) {
         Credentials creds;
         if (credentials instanceof ImpersonationCredentials) {
             creds = ((ImpersonationCredentials) credentials).getBaseCredentials();

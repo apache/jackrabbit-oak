@@ -120,7 +120,6 @@ public final class TokenLoginModule extends AbstractLoginModule {
     private TokenCredentials tokenCredentials;
     private TokenInfo tokenInfo;
     private String userId;
-    private Set<? extends Principal> principals;
 
     //--------------------------------------------------------< LoginModule >---
     @Override
@@ -138,7 +137,6 @@ public final class TokenLoginModule extends AbstractLoginModule {
                 tokenCredentials = tc;
                 tokenInfo = authentication.getTokenInfo();
                 userId = tokenInfo.getUserId();
-                principals = getPrincipals(userId);
 
                 log.debug("Login: adding login name to shared state.");
                 sharedState.put(SHARED_KEY_LOGIN_NAME, userId);
@@ -151,8 +149,9 @@ public final class TokenLoginModule extends AbstractLoginModule {
 
     @Override
     public boolean commit() throws LoginException {
-        if (tokenCredentials != null) {
-            updateSubject(tokenCredentials, getAuthInfo(tokenInfo), principals);
+        if (tokenCredentials != null && userId != null) {
+            Set<? extends Principal> principals = getPrincipals(userId);
+            updateSubject(tokenCredentials, getAuthInfo(tokenInfo, principals), principals);
             return true;
         }
         try{
@@ -205,7 +204,6 @@ public final class TokenLoginModule extends AbstractLoginModule {
         tokenCredentials = null;
         tokenInfo = null;
         userId = null;
-        principals = null;
     }
 
     //------------------------------------------------------------< private >---
@@ -245,7 +243,7 @@ public final class TokenLoginModule extends AbstractLoginModule {
      * @return The {@code AuthInfo} resulting from the successful login.
      */
     @CheckForNull
-    private AuthInfo getAuthInfo(@Nullable TokenInfo tokenInfo) {
+    private AuthInfo getAuthInfo(@Nullable TokenInfo tokenInfo, @Nonnull Set<? extends Principal> principals) {
         if (tokenInfo != null) {
             Map<String, Object> attributes = new HashMap<String, Object>();
             Map<String, String> publicAttributes = tokenInfo.getPublicAttributes();
