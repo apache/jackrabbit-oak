@@ -71,8 +71,8 @@ public class LoginWithMembershipTest extends AbstractLoginTest {
                 }
                 gr = g;
             }
-        } finally {
             s.save();
+        } finally {
             s.logout();
         }
     }
