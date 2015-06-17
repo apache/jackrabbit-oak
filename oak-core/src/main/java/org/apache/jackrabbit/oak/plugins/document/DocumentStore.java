@@ -158,7 +158,7 @@ public interface DocumentStore {
                                      Map<String, Map<UpdateOp.Key, UpdateOp.Condition>> toRemove);
 
     /**
-     * Try to create a list of documents. This method returns {@code code} iff
+     * Try to create a list of documents. This method returns {@code true} iff
      * none of the documents existed before and the create was successful. This
      * method will return {@code false} if one of the documents already exists
      * in the store. Some documents may still have been created in the store.
