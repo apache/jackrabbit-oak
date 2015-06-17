@@ -1016,6 +1016,7 @@ public class RDBDocumentStore implements DocumentStore {
     @CheckForNull
     private <T extends Document> boolean internalCreate(Collection<T> collection, List<UpdateOp> updates) {
         try {
+            boolean success = true;
             // try up to CHUNKSIZE ops in one transaction
             for (List<UpdateOp> chunks : Lists.partition(updates, CHUNKSIZE)) {
                 List<T> docs = new ArrayList<T>();
@@ -1032,12 +1033,17 @@ public class RDBDocumentStore implements DocumentStore {
                     }
                     docs.add(doc);
                 }
-                insertDocuments(collection, docs);
-                for (T doc : docs) {
-                    addToCache(collection, doc);
+                boolean done = insertDocuments(collection, docs);
+                if (done) {
+                    for (T doc : docs) {
+                        addToCache(collection, doc);
+                    }
+                }
+                else {
+                    success = false;
                 }
             }
-            return true;
+            return success;
         } catch (DocumentStoreException ex) {
             return false;
         }
@@ -1442,26 +1448,15 @@ public class RDBDocumentStore implements DocumentStore {
         return op == null ? 0L : Long.parseLong(op.value.toString());
     }
 
-    private <T extends Document> void insertDocuments(Collection<T> collection, List<T> documents) {
+    private <T extends Document> boolean insertDocuments(Collection<T> collection, List<T> documents) {
         Connection connection = null;
         String tableName = getTable(collection);
         List<String> ids = new ArrayList<String>();
         try {
             connection = this.ch.getRWConnection();
-            for (T document : documents) {
-                String data = SR.asString(document);
-                Long modified = (Long) document.get(MODIFIED);
-                Number flagB = (Number) document.get(NodeDocument.HAS_BINARY_FLAG);
-                Boolean hasBinary = flagB != null && flagB.intValue() == NodeDocument.HAS_BINARY_VAL;
-                Boolean flagD = (Boolean) document.get(NodeDocument.DELETED_ONCE);
-                Boolean deletedOnce = flagD != null && flagD.booleanValue();
-                Long modcount = (Long) document.get(MODCOUNT);
-                Long cmodcount = (Long) document.get(COLLISIONSMODCOUNT);
-                String id = document.getId();
-                ids.add(id);
-                dbInsert(connection, tableName, id, modified, hasBinary, deletedOnce, modcount, cmodcount, data);
-            }
+            boolean result = dbInsert(connection, tableName, documents);
             connection.commit();
+            return result;
         } catch (SQLException ex) {
             LOG.debug("insert of " + ids + " failed", ex);
             this.ch.rollbackConnection(connection);
@@ -1810,32 +1805,48 @@ public class RDBDocumentStore implements DocumentStore {
         }
     }
 
-    private boolean dbInsert(Connection connection, String tableName, String id, Long modified, Boolean hasBinary,
-            Boolean deletedOnce, Long modcount, Long cmodcount, String data) throws SQLException {
-        PreparedStatement stmt = connection.prepareStatement("insert into " + tableName
-                + "(ID, MODIFIED, HASBINARY, DELETEDONCE, MODCOUNT, CMODCOUNT, DSIZE, DATA, BDATA) values (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    private <T extends Document> boolean dbInsert(Connection connection, String tableName, List<T> documents) throws SQLException {
+
+        PreparedStatement stmt = connection.prepareStatement("insert into " + tableName +
+                "(ID, MODIFIED, HASBINARY, DELETEDONCE, MODCOUNT, CMODCOUNT, DSIZE, DATA, BDATA) " +
+                "values (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
         try {
-            int si = 1;
-            setIdInStatement(stmt, si++, id);
-            stmt.setObject(si++, modified, Types.BIGINT);
-            stmt.setObject(si++, hasBinary ? 1 : 0, Types.SMALLINT);
-            stmt.setObject(si++, deletedOnce ? 1 : 0, Types.SMALLINT);
-            stmt.setObject(si++, modcount, Types.BIGINT);
-            stmt.setObject(si++, cmodcount == null ? Long.valueOf(0) : cmodcount, Types.BIGINT);
-            stmt.setObject(si++, data.length(), Types.BIGINT);
-            if (data.length() < this.dataLimitInOctets / CHAR2OCTETRATIO) {
-                stmt.setString(si++, data);
-                stmt.setBinaryStream(si++, null, 0);
-            } else {
-                stmt.setString(si++, "\"blob\"");
-                byte[] bytes = asBytes(data);
-                stmt.setBytes(si++, bytes);
+            for (T document : documents) {
+                String data = SR.asString(document);
+                String id = document.getId();
+                Number hasBinary = (Number) document.get(NodeDocument.HAS_BINARY_FLAG);
+                Boolean deletedOnce = (Boolean) document.get(NodeDocument.DELETED_ONCE);
+                Long cmodcount = (Long) document.get(COLLISIONSMODCOUNT);
+
+                int si = 1;
+                setIdInStatement(stmt, si++, id);
+                stmt.setObject(si++, document.get(MODIFIED), Types.BIGINT);
+                stmt.setObject(si++, (hasBinary != null && hasBinary.intValue() == NodeDocument.HAS_BINARY_VAL) ? 1 : 0, Types.SMALLINT);
+                stmt.setObject(si++, (deletedOnce != null && deletedOnce) ? 1 : 0, Types.SMALLINT);
+                stmt.setObject(si++, document.get(MODCOUNT), Types.BIGINT);
+                stmt.setObject(si++, cmodcount == null ? Long.valueOf(0) : cmodcount, Types.BIGINT);
+                stmt.setObject(si++, data.length(), Types.BIGINT);
+                if (data.length() < this.dataLimitInOctets / CHAR2OCTETRATIO) {
+                    stmt.setString(si++, data);
+                    stmt.setBinaryStream(si++, null, 0);
+                } else {
+                    stmt.setString(si++, "\"blob\"");
+                    byte[] bytes = asBytes(data);
+                    stmt.setBytes(si++, bytes);
+                }
+                stmt.addBatch();
             }
-            int result = stmt.executeUpdate();
-            if (result != 1) {
-                LOG.debug("DB insert failed for " + tableName + "/" + id);
+            int[] results = stmt.executeBatch();
+            boolean success = true;
+            for (int i = 0; i < documents.size(); i++) {
+                int result = results[i];
+                if (result != 1 && result != Statement.SUCCESS_NO_INFO) {
+                    LOG.error("DB insert failed for {}: {}", tableName, documents.get(i).getId());
+                    success = false;
+                }
             }
-            return result == 1;
+            return success;
         } finally {
             stmt.close();
         }

@@ -25,6 +25,7 @@ import static org.junit.Assert.fail;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -221,6 +222,30 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             assertEquals("failure to round-trip " + testname + " through " + super.dsname, test, nd.get("foo"));
             super.ds.remove(Collection.NODES, id);
         }
+    }
+
+    @Test
+    public void testCreatePartialFailure() {
+        String id = this.getClass().getName() + ".testCreatePartialFailure";
+
+        // remove if present
+        NodeDocument nd = super.ds.find(Collection.NODES, id);
+        if (nd != null) {
+            super.ds.remove(Collection.NODES, id);
+        }
+
+        // create a test node
+        UpdateOp up = new UpdateOp(id, true);
+        up.set("_id", id);
+        boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
+        assertTrue(success);
+        removeMe.add(id);
+
+        // try to create two nodes, of which one exists
+        UpdateOp up2 = new UpdateOp(id + "2", true);
+        up2.set("_id", id + "2");
+        success = super.ds.create(Collection.NODES, Arrays.asList(new UpdateOp[] { up, up2 }));
+        assertFalse(success);
     }
 
     @Test
