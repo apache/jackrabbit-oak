@@ -129,7 +129,7 @@ public final class JournalEntry extends Document {
             // and have to be added as soon as the 'currentPath' is not
             // part of that hierarchy anymore and we 'move elsewhere'.
             // eg if 'currentPath' is /a/b/e, then we must flush /a/b/c/d and /a/b/c
-            while (node != null && !node.isParentOf(currentNode)) {
+            while (node != null && !node.isAncestorOf(currentNode)) {
                 // add parent to the diff entry
                 entry.append(node.getPath(), getChanges(node));
                 deDuplicatedCnt++;
@@ -399,7 +399,7 @@ public final class JournalEntry extends Document {
             return n;
         }
 
-        boolean isParentOf(TreeNode other) {
+        boolean isAncestorOf(TreeNode other) {
             TreeNode n = other;
             while (n.parent != null) {
                 if (this == n.parent) {
