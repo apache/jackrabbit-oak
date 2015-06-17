@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.query.fulltext;
 
 import static org.apache.jackrabbit.util.Text.encodeIllegalXMLCharacters;
 
+import java.util.BitSet;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -190,46 +191,61 @@ public class SimpleExcerptProvider {
         return excerpt.toString();
     }
 
-    private static String highlight(StringBuilder text, Set<String> searchToken) {
+    static String highlight(StringBuilder text, Set<String> searchToken) {
         Set<String> tokens = tokenize(searchToken);
-        text = new StringBuilder(encodeIllegalXMLCharacters(text.toString()));
+        String escaped = encodeIllegalXMLCharacters(text.toString());
+        BitSet highlight = new BitSet();
         for (String token : tokens) {
-            text = replaceAll(text, token, "<strong>", "</strong>");
+            highlight(escaped, highlight, token);
         }
-
         StringBuilder excerpt = new StringBuilder("<div><span>");
-        excerpt.append(text.toString());
+        boolean strong = false;
+        for (int i = 0; i < escaped.length(); i++) {
+            if (highlight.get(i) && !strong) {
+                strong = true;
+                excerpt.append("<strong>");
+            } else if (!highlight.get(i) && strong) {
+                strong = false;
+                excerpt.append("</strong>");
+            }
+            excerpt.append(escaped.charAt(i));
+        }
+        if (strong) {
+            excerpt.append("</strong>");
+        }
         excerpt.append("</span></div>");
         return excerpt.toString();
     }
-
-    private static StringBuilder replaceAll(StringBuilder in, String token,
-            String start, String end) {
+    
+    private static void highlight(String text, BitSet highlightBits, String token) {
         boolean isLike = false;
         if (token.endsWith("*")) {
+            if (token.length() == 1) {
+                // don't highlight the '*' character itself
+                return;
+            }
             token = token.substring(0, token.length() - 1);
             isLike = true;
         }
-        int index = in.indexOf(token);
-        while (index != -1) {
+        int index = 0;
+        while (index < text.length()) {
+            index = text.indexOf(token, index);
+            if (index < 0) {
+                break;
+            }
             int endIndex = index + token.length();
             if (isLike) {
-                int nextSpace = in.indexOf(" ", endIndex);
+                int nextSpace = text.indexOf(" ", endIndex);
                 if (nextSpace != -1) {
                     endIndex = nextSpace;
                 } else {
-                    endIndex = in.length();
+                    endIndex = text.length();
                 }
             }
-            String current = in.substring(index, endIndex);
-            StringBuilder newToken = new StringBuilder(start);
-            newToken.append(current);
-            newToken.append(end);
-            String newTokenS = newToken.toString();
-            in.replace(index, index + current.length(), newTokenS);
-            index = in.indexOf(token,
-                    in.lastIndexOf(newTokenS) + newTokenS.length());
+            while (index < endIndex) {
+                highlightBits.set(index++);
+            }
         }
-        return in;
     }
+    
 }
