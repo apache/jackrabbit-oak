@@ -1625,7 +1625,7 @@ public final class DocumentNodeStore
             internalRunBackgroundUpdateOperations();
         } catch (RuntimeException e) {
             if (isDisposed.get()) {
-                LOG.warn("Background update operation failed: " + e.toString(), e);
+                LOG.warn("Background update operation failed (will be retried with next run): " + e.toString(), e);
                 return;
             }
             throw e;
