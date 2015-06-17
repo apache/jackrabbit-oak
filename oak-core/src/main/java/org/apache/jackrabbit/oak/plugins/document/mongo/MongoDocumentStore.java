@@ -32,6 +32,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -290,7 +291,7 @@ public class MongoDocumentStore implements DocumentStore {
     @Override
     public <T extends Document> void invalidateCache(Collection<T> collection, String key) {
         if (collection == Collection.NODES) {
-            TreeLock lock = acquire(key);
+            TreeLock lock = acquire(key, collection);
             try {
                 nodesCache.invalidate(new StringValue(key));
             } finally {
@@ -350,7 +351,7 @@ public class MongoDocumentStore implements DocumentStore {
         }
         Throwable t;
         try {
-            TreeLock lock = acquire(key);
+            TreeLock lock = acquire(key, collection);
             try {
                 if (maxCacheAge > 0 || preferCached) {
                     // try again some other thread may have populated
@@ -675,7 +676,7 @@ public class MongoDocumentStore implements DocumentStore {
         updateOp = updateOp.copy();
         DBObject update = createUpdate(updateOp);
 
-        TreeLock lock = acquire(updateOp.getId());
+        TreeLock lock = acquire(updateOp.getId(), collection);
         final long start = PERFLOG.start();
         try {
             // get modCount of cached document
@@ -805,7 +806,7 @@ public class MongoDocumentStore implements DocumentStore {
                 }
                 if (collection == Collection.NODES) {
                     for (T doc : docs) {
-                        TreeLock lock = acquire(doc.getId());
+                        TreeLock lock = acquire(doc.getId(), collection);
                         try {
                             addToCache((NodeDocument) doc);
                         } finally {
@@ -849,7 +850,7 @@ public class MongoDocumentStore implements DocumentStore {
                 if (collection == Collection.NODES) {
                     // update cache
                     for (Entry<String, NodeDocument> entry : cachedDocs.entrySet()) {
-                        TreeLock lock = acquire(entry.getKey());
+                        TreeLock lock = acquire(entry.getKey(), collection);
                         try {
                             if (entry.getValue() == null
                                     || entry.getValue() == NodeDocument.NULL) {
@@ -1021,8 +1022,7 @@ public class MongoDocumentStore implements DocumentStore {
 
     Iterable<? extends Map.Entry<CacheValue, ? extends CachedNodeDocument>> getCacheEntries() {
         if (nodesCache instanceof OffHeapCache) {
-            return Iterables.concat(nodesCache.asMap().entrySet(),
-                    ((OffHeapCache) nodesCache).offHeapEntriesMap().entrySet());
+            return Iterables.concat(nodesCache.asMap().entrySet(), ((OffHeapCache) nodesCache).offHeapEntriesMap().entrySet());
         }
         return nodesCache.asMap().entrySet();
     }
@@ -1258,10 +1258,16 @@ public class MongoDocumentStore implements DocumentStore {
      * a shared lock on the parent key.
      *
      * @param key a key.
+     * @param collection the collection for which the lock is acquired.
      * @return the acquired lock for the given key.
      */
-    private TreeLock acquire(String key) {
-        return TreeLock.shared(parentLocks.get(getParentId(key)), locks.get(key));
+    private TreeLock acquire(String key, Collection<?> collection) {
+        if (collection == Collection.NODES) {
+            return TreeLock.shared(parentLocks.get(getParentId(key)), locks.get(key));
+        } else {
+            // return a dummy lock
+            return TreeLock.exclusive(new ReentrantReadWriteLock());
+        }
     }
 
     /**
