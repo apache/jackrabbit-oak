@@ -26,6 +26,7 @@ import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -310,20 +311,36 @@ public final class JournalEntry extends Document {
      */
     @Nonnull
     Iterable<JournalEntry> getBranchCommits() {
-        List<JournalEntry> commits = Lists.newArrayList();
+        final List<String> ids = Lists.newArrayList();
         String bc = (String) get(BRANCH_COMMITS);
         if (bc != null) {
             for (String id : bc.split(",")) {
-                JournalEntry d = store.find(JOURNAL, id);
-                if (d == null) {
-                    throw new IllegalStateException(
-                            "Missing external change for branch revision: " + id);
-                }
-                //TODO: could this also be a problem with very large number of branches ???
-                commits.add(d);
+                ids.add(id);
             }
         }
-        return commits;
+        return new Iterable<JournalEntry>() {
+            @Override
+            public Iterator<JournalEntry> iterator() {
+                return new AbstractIterator<JournalEntry>() {
+
+                    private final Iterator<String> it = ids.iterator();
+
+                    @Override
+                    protected JournalEntry computeNext() {
+                        if (!it.hasNext()) {
+                            return endOfData();
+                        }
+                        String id = it.next();
+                        JournalEntry d = store.find(JOURNAL, id);
+                        if (d == null) {
+                            throw new IllegalStateException(
+                                    "Missing external change for branch revision: " + id);
+                        }
+                        return d;
+                    }
+                };
+            }
+        };
     }
 
     //-----------------------------< internal >---------------------------------
@@ -380,9 +397,9 @@ public final class JournalEntry extends Document {
         private final TreeNode parent;
 
         TreeNode(TreeNode parent, String name) {
-            if (name.contains("/")) {
-                throw new IllegalArgumentException("name must not contain /: " + name);
-            }
+            checkArgument(!name.contains("/"),
+                    "name must not contain '/': {}", name);
+
             this.parent = parent;
             if (parent == null) {
                 this.path = "/";
