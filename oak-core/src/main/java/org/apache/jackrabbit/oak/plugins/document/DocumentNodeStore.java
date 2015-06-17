@@ -1784,12 +1784,13 @@ public final class DocumentNodeStore
                     externalChanges.put(r, otherSeen);
                 }
                 // collect external changes
-                if (last != null) {
-            	    // add changes for this particular clusterId to the externalSort
-            	    try {
+                if (last != null && externalSort != null) {
+                    // add changes for this particular clusterId to the externalSort
+                    try {
                         fillExternalChanges(externalSort, last, r, store);
                     } catch (IOException e1) {
                         LOG.error("backgroundRead: Exception while reading external changes from journal: "+e1, e1);
+                        externalSort = null;
                     }
                 }
             }
@@ -1825,9 +1826,10 @@ public final class DocumentNodeStore
                 setHeadRevision(newRevision());
                 if (dispatchChange) {
                     time = clock.getTime();
-                    if (externalSort!=null) {
-                    	// then there were external changes - apply them to the diff cache
-                    	try {
+                    if (externalSort != null) {
+                        // then there were external changes and reading them
+                        // was successful -> apply them to the diff cache
+                        try {
                             JournalEntry.applyTo(externalSort, diffCache, oldHead, headRevision);
                         } catch (Exception e1) {
                             LOG.error("backgroundRead: Exception while processing external changes from journal: "+e1, e1);
