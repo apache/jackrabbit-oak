@@ -61,11 +61,11 @@ class TieredDiffCache implements DiffCache {
     @Nonnull
     @Override
     public Entry newEntry(@Nonnull Revision from, @Nonnull Revision to, boolean local) {
-    	if (local) {
-    		return localCache.newEntry(from, to, true);
-    	} else {
-    		return memoryCache.newEntry(from, to, false);
-    	}
+        if (local) {
+            return localCache.newEntry(from, to, true);
+        } else {
+            return memoryCache.newEntry(from, to, false);
+        }
     }
 
     @Nonnull

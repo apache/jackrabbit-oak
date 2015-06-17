@@ -20,186 +20,198 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 
 public class CountingDocumentStore implements DocumentStore {
-	
-	private DocumentStore delegate;
-	
-	//TODO: remove mec
-	boolean printStacks;
-	
-	class Stats {
-		
-		private int numFindCalls;
-		private int numQueryCalls;
-		private int numRemoveCalls;
-		private int numCreateOrUpdateCalls;
-		
-	}
-	
-	private Map<Collection, Stats> collectionStats = new HashMap<Collection, Stats>();
 
-	public CountingDocumentStore(DocumentStore delegate) {
-		this.delegate = delegate;
-	}
-	
-	public void resetCounters() {
-		collectionStats.clear();
-	}
+    private DocumentStore delegate;
 
-	public int getNumFindCalls(Collection collection) {
-		return getStats(collection).numFindCalls;
-	}
-	
-	public int getNumQueryCalls(Collection collection) {
-		return getStats(collection).numQueryCalls;
-	}
-	
-	public int getNumRemoveCalls(Collection collection) {
-		return getStats(collection).numRemoveCalls;
-	}
-	
-	public int getNumCreateOrUpdateCalls(Collection collection) {
-		return getStats(collection).numCreateOrUpdateCalls;
-	}
-	
-	private Stats getStats(Collection collection) {
-		if (!collectionStats.containsKey(collection)) {
-			Stats s = new Stats();
-			collectionStats.put(collection, s);
-			return s;
-		} else {
-			return collectionStats.get(collection);
-		}
-	}
-	
-	@Override
-	public <T extends Document> T find(Collection<T> collection, String key) {
-		getStats(collection).numFindCalls++;
-		if (printStacks) {
-			new Exception("find ["+getStats(collection).numFindCalls+"] ("+collection+") "+key).printStackTrace();
-		}
-		return delegate.find(collection, key);
-	}
+    //TODO: remove mec
+    boolean printStacks;
 
-	@Override
-	public <T extends Document> T find(Collection<T> collection, String key,
-			int maxCacheAge) {
-		getStats(collection).numFindCalls++;
-		if (printStacks) {
-			new Exception("find ["+getStats(collection).numFindCalls+"] ("+collection+") "+key+" [max: "+maxCacheAge+"]").printStackTrace();
-		}
-		return delegate.find(collection, key, maxCacheAge);
-	}
+    class Stats {
 
-	@Override
-	public <T extends Document> List<T> query(Collection<T> collection,
-			String fromKey, String toKey, int limit) {
-		getStats(collection).numQueryCalls++;
-		if (printStacks) {
-			new Exception("query1 ["+getStats(collection).numQueryCalls+"] ("+collection+") "+fromKey+", to "+toKey+". limit "+limit).printStackTrace();
-		}
-		return delegate.query(collection, fromKey, toKey, limit);
-	}
+        private int numFindCalls;
+        private int numQueryCalls;
+        private int numRemoveCalls;
+        private int numCreateOrUpdateCalls;
 
-	@Override
-	public <T extends Document> List<T> query(Collection<T> collection,
-			String fromKey, String toKey, String indexedProperty,
-			long startValue, int limit) {
-		getStats(collection).numQueryCalls++;
-		if (printStacks) {
-			new Exception("query2 ["+getStats(collection).numQueryCalls+"] ("+collection+") "+fromKey+", to "+toKey+". limit "+limit).printStackTrace();
-		}
-		return delegate.query(collection, fromKey, toKey, indexedProperty, startValue, limit);
-	}
+    }
 
-	@Override
-	public <T extends Document> void remove(Collection<T> collection, String key) {
-		getStats(collection).numRemoveCalls++;
-		delegate.remove(collection, key);
-	}
+    private Map<Collection, Stats> collectionStats = new HashMap<Collection, Stats>();
 
-	@Override
-	public <T extends Document> void remove(Collection<T> collection,
-			List<String> keys) {
-		getStats(collection).numRemoveCalls++;
-		delegate.remove(collection, keys);
-	}
+    public CountingDocumentStore(DocumentStore delegate) {
+        this.delegate = delegate;
+    }
 
-	@Override
-	public <T extends Document> int remove(Collection<T> collection,
-			Map<String, Map<Key, Condition>> toRemove) {
-		getStats(collection).numRemoveCalls++;
-		return delegate.remove(collection, toRemove);
-	}
+    public void resetCounters() {
+        collectionStats.clear();
+    }
 
-	@Override
-	public <T extends Document> boolean create(Collection<T> collection,
-			List<UpdateOp> updateOps) {
-		getStats(collection).numCreateOrUpdateCalls++;
-		return delegate.create(collection, updateOps);
-	}
+    public int getNumFindCalls(Collection collection) {
+        return getStats(collection).numFindCalls;
+    }
 
-	@Override
-	public <T extends Document> void update(Collection<T> collection,
-			List<String> keys, UpdateOp updateOp) {
-		getStats(collection).numCreateOrUpdateCalls++;
-		delegate.update(collection, keys, updateOp);
-	}
+    public int getNumQueryCalls(Collection collection) {
+        return getStats(collection).numQueryCalls;
+    }
 
-	@Override
-	public <T extends Document> T createOrUpdate(Collection<T> collection,
-			UpdateOp update) {
-		getStats(collection).numCreateOrUpdateCalls++;
-		return delegate.createOrUpdate(collection, update);
-	}
+    public int getNumRemoveCalls(Collection collection) {
+        return getStats(collection).numRemoveCalls;
+    }
 
-	@Override
-	public <T extends Document> T findAndUpdate(Collection<T> collection,
-			UpdateOp update) {
-		getStats(collection).numCreateOrUpdateCalls++;
-		return delegate.findAndUpdate(collection, update);
-	}
+    public int getNumCreateOrUpdateCalls(Collection collection) {
+        return getStats(collection).numCreateOrUpdateCalls;
+    }
 
-	@Override
-	public CacheInvalidationStats invalidateCache() {
-		return delegate.invalidateCache();
-	}
+    private Stats getStats(Collection collection) {
+        if (!collectionStats.containsKey(collection)) {
+            Stats s = new Stats();
+            collectionStats.put(collection, s);
+            return s;
+        } else {
+            return collectionStats.get(collection);
+        }
+    }
 
-	@Override
-	public <T extends Document> void invalidateCache(Collection<T> collection,
-			String key) {
-		delegate.invalidateCache(collection, key);
-	}
+    @Override
+    public <T extends Document> T find(Collection<T> collection, String key) {
+        getStats(collection).numFindCalls++;
+        if (printStacks) {
+            new Exception("find [" + getStats(collection).numFindCalls + "] (" + collection + ") " + key).printStackTrace();
+        }
+        return delegate.find(collection, key);
+    }
 
-	@Override
-	public void dispose() {
-		delegate.dispose();
-	}
+    @Override
+    public <T extends Document> T find(Collection<T> collection,
+                                       String key,
+                                       int maxCacheAge) {
+        getStats(collection).numFindCalls++;
+        if (printStacks) {
+            new Exception("find [" + getStats(collection).numFindCalls + "] (" + collection + ") " + key + " [max: " + maxCacheAge + "]").printStackTrace();
+        }
+        return delegate.find(collection, key, maxCacheAge);
+    }
 
-	@Override
-	public <T extends Document> T getIfCached(Collection<T> collection,
-			String key) {
-		return delegate.getIfCached(collection, key);
-	}
+    @Nonnull
+    @Override
+    public <T extends Document> List<T> query(Collection<T> collection,
+                                              String fromKey,
+                                              String toKey,
+                                              int limit) {
+        getStats(collection).numQueryCalls++;
+        if (printStacks) {
+            new Exception("query1 [" + getStats(collection).numQueryCalls + "] (" + collection + ") " + fromKey + ", to " + toKey + ". limit " + limit).printStackTrace();
+        }
+        return delegate.query(collection, fromKey, toKey, limit);
+    }
 
-	@Override
-	public void setReadWriteMode(String readWriteMode) {
-		delegate.setReadWriteMode(readWriteMode);
-	}
+    @Nonnull
+    @Override
+    public <T extends Document> List<T> query(Collection<T> collection,
+                                              String fromKey,
+                                              String toKey,
+                                              String indexedProperty,
+                                              long startValue,
+                                              int limit) {
+        getStats(collection).numQueryCalls++;
+        if (printStacks) {
+            new Exception("query2 [" + getStats(collection).numQueryCalls + "] (" + collection + ") " + fromKey + ", to " + toKey + ". limit " + limit).printStackTrace();
+        }
+        return delegate.query(collection, fromKey, toKey, indexedProperty, startValue, limit);
+    }
 
-	@Override
-	public CacheStats getCacheStats() {
-		return delegate.getCacheStats();
-	}
+    @Override
+    public <T extends Document> void remove(Collection<T> collection,
+                                            String key) {
+        getStats(collection).numRemoveCalls++;
+        delegate.remove(collection, key);
+    }
 
-	@Override
-	public Map<String, String> getMetadata() {
-		return delegate.getMetadata();
-	}
+    @Override
+    public <T extends Document> void remove(Collection<T> collection,
+                                            List<String> keys) {
+        getStats(collection).numRemoveCalls++;
+        delegate.remove(collection, keys);
+    }
+
+    @Override
+    public <T extends Document> int remove(Collection<T> collection,
+                                           Map<String, Map<Key, Condition>> toRemove) {
+        getStats(collection).numRemoveCalls++;
+        return delegate.remove(collection, toRemove);
+    }
+
+    @Override
+    public <T extends Document> boolean create(Collection<T> collection,
+                                               List<UpdateOp> updateOps) {
+        getStats(collection).numCreateOrUpdateCalls++;
+        return delegate.create(collection, updateOps);
+    }
+
+    @Override
+    public <T extends Document> void update(Collection<T> collection,
+                                            List<String> keys,
+                                            UpdateOp updateOp) {
+        getStats(collection).numCreateOrUpdateCalls++;
+        delegate.update(collection, keys, updateOp);
+    }
+
+    @Override
+    public <T extends Document> T createOrUpdate(Collection<T> collection,
+                                                 UpdateOp update) {
+        getStats(collection).numCreateOrUpdateCalls++;
+        return delegate.createOrUpdate(collection, update);
+    }
+
+    @Override
+    public <T extends Document> T findAndUpdate(Collection<T> collection,
+                                                UpdateOp update) {
+        getStats(collection).numCreateOrUpdateCalls++;
+        return delegate.findAndUpdate(collection, update);
+    }
+
+    @Override
+    public CacheInvalidationStats invalidateCache() {
+        return delegate.invalidateCache();
+    }
+
+    @Override
+    public <T extends Document> void invalidateCache(Collection<T> collection,
+                                                     String key) {
+        delegate.invalidateCache(collection, key);
+    }
+
+    @Override
+    public void dispose() {
+        delegate.dispose();
+    }
+
+    @Override
+    public <T extends Document> T getIfCached(Collection<T> collection,
+                                              String key) {
+        return delegate.getIfCached(collection, key);
+    }
+
+    @Override
+    public void setReadWriteMode(String readWriteMode) {
+        delegate.setReadWriteMode(readWriteMode);
+    }
+
+    @Override
+    public CacheStats getCacheStats() {
+        return delegate.getCacheStats();
+    }
+
+    @Override
+    public Map<String, String> getMetadata() {
+        return delegate.getMetadata();
+    }
 
 }

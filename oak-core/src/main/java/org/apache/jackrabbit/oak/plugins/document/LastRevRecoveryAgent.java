@@ -140,7 +140,7 @@ public class LastRevRecoveryAgent {
 
         //Map of known last rev of checked paths
         Map<String, Revision> knownLastRevs = MapFactory.getInstance().create();
-		final DocumentStore docStore = nodeStore.getDocumentStore();
+        final DocumentStore docStore = nodeStore.getDocumentStore();
         final JournalEntry changes = JOURNAL.newDocument(docStore);
 
         long count = 0;
@@ -209,11 +209,11 @@ public class LastRevRecoveryAgent {
             //UnsavedModifications is designed to be used in concurrent
             //access mode. For recovery case there is no concurrent access
             //involve so just pass a new lock instance
-        	
-    		// the lock uses to do the persisting is a plain reentrant lock
-    		// thus it doesn't matter, where exactly the check is done
-    		// as to whether the recovered lastRev has already been
-    		// written to the journal.
+
+            // the lock uses to do the persisting is a plain reentrant lock
+            // thus it doesn't matter, where exactly the check is done
+            // as to whether the recovered lastRev has already been
+            // written to the journal.
             unsaved.persist(nodeStore, new UnsavedModifications.Snapshot() {
 
                 @Override

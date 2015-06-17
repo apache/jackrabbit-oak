@@ -16,45 +16,50 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 public class CountingTieredDiffCache extends TieredDiffCache {
 
-	class CountingLoader implements Loader {
+    class CountingLoader implements Loader {
 
-		private Loader delegate;
+        private Loader delegate;
 
-		CountingLoader(Loader delegate) {
-			this.delegate = delegate;
-		}
-		
-		@Override
-		public String call() {
-			incLoadCount();
-			return delegate.call();
-		}
-		
-	}
+        CountingLoader(Loader delegate) {
+            this.delegate = delegate;
+        }
 
-	private int loadCount;
-	
-	public CountingTieredDiffCache(DocumentMK.Builder builder) {
-    	super(builder);
+        @Override
+        public String call() {
+            incLoadCount();
+            return delegate.call();
+        }
+
     }
-	
-	private void incLoadCount() {
-		loadCount++;		
-	}
-	
-	public int getLoadCount() {
-		return loadCount;
-	}
-	
-	public void resetLoadCounter() {
-		loadCount = 0;
-	}
 
-	@Override
-	public String getChanges(Revision from, Revision to, String path,
-			Loader loader) {
-		return super.getChanges(from, to, path, new CountingLoader(loader));
-	}
+    private int loadCount;
+
+    public CountingTieredDiffCache(DocumentMK.Builder builder) {
+        super(builder);
+    }
+
+    private void incLoadCount() {
+        loadCount++;
+    }
+
+    public int getLoadCount() {
+        return loadCount;
+    }
+
+    public void resetLoadCounter() {
+        loadCount = 0;
+    }
+
+    @Override
+    public String getChanges(@Nonnull Revision from,
+                             @Nonnull Revision to,
+                             @Nonnull String path,
+                             @Nullable Loader loader) {
+        return super.getChanges(from, to, path, new CountingLoader(loader));
+    }
 }

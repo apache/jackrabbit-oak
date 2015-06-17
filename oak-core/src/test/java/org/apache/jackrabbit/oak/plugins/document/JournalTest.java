@@ -16,12 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.synchronizedList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -126,7 +128,6 @@ public class JournalTest {
                             incomingRootStates1.wait();
                         } catch (InterruptedException e) {
                             // ignore
-                            continue;
                         }
                     }
                     newRoot = incomingRootStates1.remove(0);
@@ -274,7 +275,7 @@ public class JournalTest {
         observer.clear();
         countingDocStore1.resetCounters();
         countingDocStore2.resetCounters();
-        countingDocStore1.printStacks = true;
+        // countingDocStore1.printStacks = true;
         countingDiffCache1.resetLoadCounter();
         countingDiffCache2.resetLoadCounter();
 
@@ -294,7 +295,7 @@ public class JournalTest {
         assertEquals(0, countingDiffCache1.getLoadCount());
         
         // let node 1 read those changes
-        System.err.println("run background ops");
+        // System.err.println("run background ops");
         ns1.runBackgroundOperations();
         mk2.commit("/", "+\"regular5\": {}", null, null);
         ns2.runBackgroundOperations();
@@ -442,8 +443,7 @@ public class JournalTest {
             
             // just some no-ops:
             recovery.recover(c2Id);
-            List<NodeDocument> emptyList = new LinkedList<NodeDocument>();
-            recovery.recover(emptyList.iterator(), c2Id);
+            recovery.recover(Iterators.<NodeDocument>emptyIterator(), c2Id);
             assertJournalEntries(ds1, "{}", change1); // unchanged
             assertJournalEntries(ds2, "{}", change2, change2b);
 
@@ -454,8 +454,8 @@ public class JournalTest {
             final CountDownLatch ready = new CountDownLatch(NUM_THREADS);
             final CountDownLatch start = new CountDownLatch(1);
             final CountDownLatch end = new CountDownLatch(NUM_THREADS);
-            for(int i=0; i<NUM_THREADS; i++) {
-                final List<Throwable> throwables = new LinkedList<Throwable>();
+            final List<Exception> exceptions = synchronizedList(new ArrayList<Exception>());
+            for (int i = 0; i < NUM_THREADS; i++) {
                 Thread th = new Thread(new Runnable() {
     
                     @Override
@@ -464,10 +464,8 @@ public class JournalTest {
                             ready.countDown();
                             start.await();
                             recovery.recover(Iterators.forArray(x1,z1), c2Id);
-                        } catch (Throwable e) {
-                            synchronized(throwables) {
-                                throwables.add(e);
-                            }
+                        } catch (Exception e) {
+                            exceptions.add(e);
                         } finally {
                             end.countDown();
                         }
@@ -481,11 +479,14 @@ public class JournalTest {
             assertTrue(end.await(20, TimeUnit.SECONDS));
             assertJournalEntries(ds1, "{}", change1); // unchanged
             assertJournalEntries(ds2, "{}", change2, change2b);
+            for (Exception ex : exceptions) {
+                throw ex;
+            }
         }
     }
 
     void assertJournalEntries(DocumentNodeStore ds, String... expectedChanges) {
-        List<String> exp = new LinkedList<String>(Arrays.asList(expectedChanges));
+        List<String> exp = new LinkedList<String>(asList(expectedChanges));
         for(boolean branch : new Boolean[]{false, true}) {
             String fromKey = JournalEntry.asId(new Revision(0, 0, ds.getClusterId(), branch));
             String toKey = JournalEntry.asId(new Revision(System.currentTimeMillis()+1000, 0, ds.getClusterId(), branch));
@@ -494,13 +495,13 @@ public class JournalTest {
                 for (Iterator<JournalEntry> it = entries.iterator(); it.hasNext();) {
                     JournalEntry journalEntry = it.next();
                     if (!exp.remove(journalEntry.get("_c"))) {
-                        fail("Found an unexpected change: "+journalEntry.get("_c")+", while all I expected was: "+expectedChanges);
+                        fail("Found an unexpected change: "+journalEntry.get("_c")+", while all I expected was: "+asList(expectedChanges));
                     }
                 }
             }
         }
         if (exp.size()>0) {
-            fail("Did not find all expected changes, left over: "+exp+" (from original list which is: "+expectedChanges+")");
+            fail("Did not find all expected changes, left over: "+exp+" (from original list which is: "+asList(expectedChanges)+")");
         }
     }
 
