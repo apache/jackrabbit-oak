@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -46,27 +47,6 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 
 /**
  * Keeps track of changes performed between two consecutive background updates.
- *
- * Done:
- *      Query external changes in chunks.
- *      {@link #getChanges(Revision, Revision, DocumentStore)} current reads
- *      all JournalEntry documents in one go with a limit of Integer.MAX_VALUE.
- * Done:
- *      Use external sort when changes are applied to diffCache. See usage of
- *      {@link #applyTo(DiffCache, Revision, Revision)} in
- *      {@link DocumentNodeStore#backgroundRead(boolean)}.
- *      The utility {@link StringSort} can be used for this purpose.
- * Done:
- *      Push changes to {@link MemoryDiffCache} instead of {@link LocalDiffCache}.
- *      See {@link TieredDiffCache#newEntry(Revision, Revision)}. Maybe a new
- *      method is needed for this purpose?
- * Done (incl junit)
- *      Create JournalEntry for external changes related to _lastRev recovery.
- *      See {@link LastRevRecoveryAgent#recover(Iterator, int, boolean)}.
- * Done (incl junit)
- *      Cleanup old journal entries in the document store.
- * Done:
- *      integrate the JournalGarbageCollector similarly to the VersionGarbageCollector
  */
 public final class JournalEntry extends Document {
 
@@ -90,7 +70,7 @@ public final class JournalEntry extends Document {
     /**
      * switch to disk after 1MB
      */
-    private static final int STRINGSORT_OVERFLOW_TO_DISK_THRESHOLD = 1024 * 1024;
+    private static final int STRING_SORT_OVERFLOW_TO_DISK_THRESHOLD = 1024 * 1024;
 
     private final DocumentStore store;
 
@@ -101,7 +81,7 @@ public final class JournalEntry extends Document {
     }
 
     static StringSort newSorter() {
-        return new StringSort(STRINGSORT_OVERFLOW_TO_DISK_THRESHOLD, new Comparator<String>() {
+        return new StringSort(STRING_SORT_OVERFLOW_TO_DISK_THRESHOLD, new Comparator<String>() {
             @Override
             public int compare(String arg0, String arg1) {
                 return arg0.compareTo(arg1);
@@ -130,7 +110,7 @@ public final class JournalEntry extends Document {
             return;
         }
         String previousPath = it.next();
-        TreeNode node = new TreeNode(null, "");
+        TreeNode node = new TreeNode();
         node = node.getOrCreatePath(previousPath);
         int totalCnt = 0;
         int deDuplicatedCnt = 0;
@@ -141,6 +121,7 @@ public final class JournalEntry extends Document {
                 // de-duplication
                 continue;
             }
+            final TreeNode currentNode = node.getOrCreatePath(currentPath);
 
             // 'node' contains one hierarchy line, eg /a, /a/b, /a/b/c, /a/b/c/d
             // including the children on each level.
@@ -148,7 +129,7 @@ public final class JournalEntry extends Document {
             // and have to be added as soon as the 'currentPath' is not
             // part of that hierarchy anymore and we 'move elsewhere'.
             // eg if 'currentPath' is /a/b/e, then we must flush /a/b/c/d and /a/b/c
-            while (node != null && !node.isParentOf(currentPath)) {
+            while (node != null && !node.isParentOf(currentNode)) {
                 // add parent to the diff entry
                 entry.append(node.getPath(), getChanges(node));
                 deDuplicatedCnt++;
@@ -159,26 +140,26 @@ public final class JournalEntry extends Document {
                 // we should never go 'passed' the root, hence node should
                 // never be null - if it becomes null anyway, start with
                 // a fresh root:
-                node = new TreeNode(null, "");
+                node = new TreeNode();
                 node = node.getOrCreatePath(currentPath);
             } else {
                 // this is the normal route: we add a direct or grand-child
                 // node to the current node:
-                node = node.getOrCreatePath(currentPath);
+                node = currentNode;
             }
             previousPath = currentPath;
         }
 
         // once we're done we still have the last hierarchy line contained in 'node',
         // eg /x, /x/y, /x/y/z
-        // and that one we must now append to the diffcache entry:
+        // and that one we must now append to the diff cache entry:
         while (node != null) {
             entry.append(node.getPath(), getChanges(node));
             deDuplicatedCnt++;
             node = node.parent;
         }
 
-        // and finally: mark the diffcache entry as 'done':
+        // and finally: mark the diff cache entry as 'done':
         entry.done();
         LOG.debug("applyTo: done. totalCnt: {}, deDuplicatedCnt: {}", totalCnt, deDuplicatedCnt);
     }
@@ -379,7 +360,7 @@ public final class JournalEntry extends Document {
     @Nonnull
     private TreeNode getChanges() {
         if (changes == null) {
-            TreeNode node = new TreeNode(null, "");
+            TreeNode node = new TreeNode();
             String c = (String) get(CHANGES);
             if (c != null) {
                 node.parse(new JsopTokenizer(c));
@@ -391,66 +372,70 @@ public final class JournalEntry extends Document {
 
     private static final class TreeNode {
 
-        private final Map<String, TreeNode> children = Maps.newHashMap();
+        private static final Map<String, TreeNode> NO_CHILDREN = Collections.emptyMap();
 
-        private final String path;
+        private Map<String, TreeNode> children = NO_CHILDREN;
+
         private final TreeNode parent;
+        private final String name;
+
+        TreeNode() {
+            this(null, "");
+        }
 
         TreeNode(TreeNode parent, String name) {
             checkArgument(!name.contains("/"),
                     "name must not contain '/': {}", name);
 
             this.parent = parent;
-            if (parent == null) {
-                this.path = "/";
-            } else if (parent.parent == null) {
-                this.path = "/" + name;
-            } else {
-                this.path = parent.path + "/" + name;
-            }
+            this.name = name;
         }
 
-        public TreeNode getOrCreatePath(String path) {
-            if (path.equals(this.path)) {
-                // then path denotes the same as myself, hence return myself
-                return this;
-            }
-            if (!path.startsWith(this.path)) {
-                // this must never happen
-                throw new IllegalStateException("path not child of myself. path: " + path + ", myself: " + this.path);
-            }
-            String sub = this.path.equals("/") ? path.substring(1) : path.substring(this.path.length() + 1);
-            String[] parts = sub.split("/");
-            TreeNode n = this;
-            for (String part : parts) {
-                if (part != null && part.length() > 0) {
-                    n = n.getOrCreate(part);
-                }
+        TreeNode getOrCreatePath(String path) {
+            TreeNode n = getRoot();
+            for (String name : PathUtils.elements(path)) {
+                n = n.getOrCreate(name);
             }
             return n;
         }
 
-        public boolean isParentOf(String path) {
-            if (this.path.equals("/")) {
-                // root is parent of everything
-                return true;
+        boolean isParentOf(TreeNode other) {
+            TreeNode n = other;
+            while (n.parent != null) {
+                if (this == n.parent) {
+                    return true;
+                }
+                n = n.parent;
             }
-            if (!path.startsWith(this.path + "/")) {
-                // then I'm not parent of that path
-                return false;
+            return false;
+        }
+
+        @Nonnull
+        private TreeNode getRoot() {
+            TreeNode n = this;
+            while (n.parent != null) {
+                n = n.parent;
             }
-            final String sub = path.substring(this.path.length() + 1);
-            if (sub.indexOf("/", 1) != -1) {
-                // if the 'sub' part contains a / then 
-                // it is not a direct child of myself,
-                // so I'm a grand-parent but not a direct-parent
-                return false;
-            }
-            return true;
+            return n;
         }
 
         private String getPath() {
-            return path;
+            return buildPath(new StringBuilder()).toString();
+        }
+
+        private StringBuilder buildPath(StringBuilder sb) {
+            if (parent != null) {
+                parent.buildPath(sb);
+                if (parent.parent != null) {
+                    // only add slash if parent is not the root
+                    sb.append("/");
+                }
+            } else {
+                // this is the root
+                sb.append("/");
+            }
+            sb.append(name);
+            return sb;
         }
 
         void parse(JsopReader reader) {
@@ -501,6 +486,9 @@ public final class JournalEntry extends Document {
 
         @Nonnull
         private TreeNode getOrCreate(String name) {
+            if (children == NO_CHILDREN) {
+                children = Maps.newHashMap();
+            }
             TreeNode c = children.get(name);
             if (c == null) {
                 c = new TreeNode(this, name);

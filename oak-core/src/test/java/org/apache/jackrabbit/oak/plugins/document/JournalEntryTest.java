@@ -56,7 +56,7 @@ public class JournalEntryTest {
 
         for (String p : paths) {
             String changes = cache.getChanges(from, to, p, null);
-            assertNotNull(changes);
+            assertNotNull("missing changes for " + p, changes);
             for (String c : getChildren(changes)) {
                 assertTrue(paths.contains(PathUtils.concat(p, c)));
             }
