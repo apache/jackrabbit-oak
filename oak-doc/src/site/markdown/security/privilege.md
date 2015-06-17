@@ -119,7 +119,8 @@ Please note the following differences with respect to Jackrabbit 2.x definitions
 - `jcr:modifyProperties` is now an aggregation of `rep:addProperties`, `rep:alterProperties` and `rep:removeProperties`
 
 An overview on how the built-in privileges map to API calls and individual items
-can be found [here](privilege/mapping.html)
+can be found in ['Mapping Privileges to Items'](privilege/mappingtoitems.html)
+and ['Mapping API Calls to Privileges'](privilege/mappingtoprivileges.html)
 
 ##### New Privileges
 
