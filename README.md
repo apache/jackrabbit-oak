@@ -63,8 +63,10 @@ The build consists of the following main components:
   - oak-upgrade       - tooling for upgrading Jackrabbit repositories to Oak
   - oak-it            - integration tests
     - oak-it/osgi     - integration tests for OSGi
+  - [oak-exercise][2] - Oak training material
 
   [1]: oak-core/README.md
+  [2]: oak-exercise/README.md
 
 Archive
 -------
