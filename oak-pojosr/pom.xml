@@ -158,19 +158,9 @@
 
     <!-- Pojo SR -->
     <dependency>
-      <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.core</artifactId>
-      <version>4.3.1</version>
-    </dependency>
-    <dependency>
-      <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.compendium</artifactId>
-      <version>4.3.1</version>
-    </dependency>
-    <dependency>
-      <groupId>com.googlecode.pojosr</groupId>
-      <artifactId>de.kalpatec.pojosr.framework.bare</artifactId>
-      <version>0.2.1</version>
+      <groupId>org.apache.felix</groupId>
+      <artifactId>org.apache.felix.connect</artifactId>
+      <version>0.1.0</version>
     </dependency>
     <dependency>
       <groupId>org.apache.felix</groupId>
@@ -180,7 +170,7 @@
     <dependency>
       <groupId>org.apache.felix</groupId>
       <artifactId>org.apache.felix.configadmin</artifactId>
-      <version>1.8.0</version>
+      <version>1.8.6</version>
     </dependency>
     <dependency>
       <groupId>org.apache.felix</groupId>

@@ -38,10 +38,10 @@ import javax.jcr.RepositoryFactory;
 
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.SettableFuture;
-import de.kalpatec.pojosr.framework.launch.BundleDescriptor;
-import de.kalpatec.pojosr.framework.launch.ClasspathScanner;
-import de.kalpatec.pojosr.framework.launch.PojoServiceRegistry;
-import de.kalpatec.pojosr.framework.launch.PojoServiceRegistryFactory;
+import org.apache.felix.connect.launch.BundleDescriptor;
+import org.apache.felix.connect.launch.ClasspathScanner;
+import org.apache.felix.connect.launch.PojoServiceRegistry;
+import org.apache.felix.connect.launch.PojoServiceRegistryFactory;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.osgi.framework.BundleException;
@@ -198,7 +198,7 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
         config.put(Constants.FRAMEWORK_STORAGE, bundleDir);
 
         //FIXME Pojo SR currently reads this from system property instead of Framework Property
-        System.setProperty(Constants.FRAMEWORK_STORAGE, bundleDir);
+        config.put(Constants.FRAMEWORK_STORAGE, bundleDir);
 
         //Directory used by Felix File Install to watch for configs
         config.put("felix.fileinstall.dir", FilenameUtils.concat(home, "config"));
@@ -212,21 +212,6 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
 
         config.put("repository.home", FilenameUtils.concat(home, "repository"));
 
-        copyConfigToSystemProps(config);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static void copyConfigToSystemProps(Map config) {
-        //TODO This is a temporary workaround as the current release version
-        //of PojoSR reads value from System properties. Trunk version reads from
-        //initial map. This should be removed when we move to version which has the fix
-        Iterator<Map.Entry> itr = config.entrySet().iterator();
-        while (itr.hasNext()) {
-            Map.Entry e = itr.next();
-            if (e.getValue() instanceof String) {
-                System.setProperty((String) e.getKey(), (String) e.getValue());
-            }
-        }
     }
 
     private PojoServiceRegistry createServiceRegistry(Map<String, Object> config) {
