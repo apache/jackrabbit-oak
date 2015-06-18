@@ -30,26 +30,21 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static org.junit.Assert.assertNotNull;
 
 public class SimpleRepositoryFactoryTest {
-    private File workDir;
-
-    @Before
-    public void setUp() throws IOException {
-        workDir = new File(FilenameUtils.concat(getBaseDir(), "target/repository"));
-        if(workDir.exists()){
-            FileUtils.cleanDirectory(workDir);
-        }
-    }
+    @Rule
+    public final TemporaryFolder tmpFolder = new TemporaryFolder();
 
     @Test
     public void testRepositoryService() throws Exception{
         Map<String,String> config = new HashMap<String, String>();
         config.put("org.apache.jackrabbit.repository.home",
-                workDir.getAbsolutePath());
+                tmpFolder.getRoot().getAbsolutePath());
         config.put("org.apache.jackrabbit.oak.repository.configFile",
                 path("oak-base-config.json")+","+path("oak-tar-config.json"));
 
