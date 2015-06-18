@@ -72,6 +72,8 @@ import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import aQute.lib.collections.SortedList;
+
 import com.google.common.base.Objects;
 import com.google.common.cache.Cache;
 import com.google.common.collect.ImmutableMap;
@@ -316,6 +318,23 @@ public class RDBDocumentStore implements DocumentStore {
 
     public String getDroppedTables() {
         return this.droppedTables;
+    }
+
+    // table names
+    private static Map<Object, String> TABLEMAP;
+    private static List<String> TABLENAMES;
+    static {
+        Map<Object, String> tmp = new HashMap<Object, String>();
+        tmp.put(Collection.CLUSTER_NODES, "CLUSTERNODES");
+        tmp.put(Collection.JOURNAL, "JOURNAL");
+        tmp.put(Collection.NODES, "NODES");
+        tmp.put(Collection.SETTINGS, "SETTINGS");
+        TABLEMAP = Collections.unmodifiableMap(tmp);
+        TABLENAMES = Collections.unmodifiableList(new SortedList<String>(TABLEMAP.values()));
+    }
+
+    public static List<String> getTableNames() {
+        return TABLENAMES;
     }
 
     @Override
@@ -810,10 +829,10 @@ public class RDBDocumentStore implements DocumentStore {
 
     private void initialize(DataSource ds, DocumentMK.Builder builder, RDBOptions options) throws Exception {
 
-        this.tnNodes = RDBJDBCTools.createTableName(options.getTablePrefix(), "NODES");
-        this.tnClusterNodes = RDBJDBCTools.createTableName(options.getTablePrefix(), "CLUSTERNODES");
-        this.tnSettings = RDBJDBCTools.createTableName(options.getTablePrefix(), "SETTINGS");
-        this.tnJournal = RDBJDBCTools.createTableName(options.getTablePrefix(), "JOURNAL");
+        this.tnNodes = RDBJDBCTools.createTableName(options.getTablePrefix(), TABLEMAP.get(Collection.NODES));
+        this.tnClusterNodes = RDBJDBCTools.createTableName(options.getTablePrefix(), TABLEMAP.get(Collection.CLUSTER_NODES));
+        this.tnSettings = RDBJDBCTools.createTableName(options.getTablePrefix(), TABLEMAP.get(Collection.SETTINGS));
+        this.tnJournal = RDBJDBCTools.createTableName(options.getTablePrefix(), TABLEMAP.get(Collection.JOURNAL));
 
         this.ch = new RDBConnectionHandler(ds);
         this.callStack = LOG.isDebugEnabled() ? new Exception("call stack of RDBDocumentStore creation") : null;
