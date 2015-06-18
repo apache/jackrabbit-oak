@@ -199,6 +199,31 @@ public class PreAuthTest extends AbstractSecurityTest {
         }
     }
 
+    @Test
+    public void testSystemSubject() throws Exception {
+        ContentSession cs = Subject.doAsPrivileged(SystemSubject.INSTANCE, new PrivilegedAction<ContentSession>() {
+            @Override
+            public ContentSession run() {
+                try {
+                    return login(null);
+                } catch (Exception e) {
+                    return null;
+                }
+            }
+        }, null);
+
+        try {
+            AuthInfo authInfo = cs.getAuthInfo();
+            assertNotSame(AuthInfo.EMPTY, authInfo);
+            assertEquals(SystemSubject.INSTANCE.getPrincipals(), authInfo.getPrincipals());
+            assertEquals(null, authInfo.getUserID());
+        } finally {
+            if (cs != null) {
+                cs.close();
+            }
+        }
+    }
+
     private class TestPrincipal implements Principal {
 
         @Override
