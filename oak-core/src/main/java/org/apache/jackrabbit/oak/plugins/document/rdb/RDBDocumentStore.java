@@ -318,6 +318,24 @@ public class RDBDocumentStore implements DocumentStore {
         return this.droppedTables;
     }
 
+    // table names
+    private static Map<Object, String> TABLEMAP;
+    private static List<String> TABLENAMES;
+    static {
+        Map<Object, String> tmp = new HashMap<Object, String>();
+        tmp.put(Collection.CLUSTER_NODES, "CLUSTERNODES");
+        tmp.put(Collection.NODES, "NODES");
+        tmp.put(Collection.SETTINGS, "SETTINGS");
+        TABLEMAP = Collections.unmodifiableMap(tmp);
+        List<String> tl = new ArrayList<String>(TABLEMAP.values());
+        Collections.sort(tl);
+        TABLENAMES = Collections.unmodifiableList(tl);
+    }
+
+    public static List<String> getTableNames() {
+        return TABLENAMES;
+    }
+
     @Override
     public void dispose() {
         if (!this.tablesToBeDropped.isEmpty()) {
@@ -810,9 +828,9 @@ public class RDBDocumentStore implements DocumentStore {
 
     private void initialize(DataSource ds, DocumentMK.Builder builder, RDBOptions options) throws Exception {
 
-        this.tnNodes = RDBJDBCTools.createTableName(options.getTablePrefix(), "NODES");
-        this.tnClusterNodes = RDBJDBCTools.createTableName(options.getTablePrefix(), "CLUSTERNODES");
-        this.tnSettings = RDBJDBCTools.createTableName(options.getTablePrefix(), "SETTINGS");
+        this.tnNodes = RDBJDBCTools.createTableName(options.getTablePrefix(), TABLEMAP.get(Collection.NODES));
+        this.tnClusterNodes = RDBJDBCTools.createTableName(options.getTablePrefix(), TABLEMAP.get(Collection.CLUSTER_NODES));
+        this.tnSettings = RDBJDBCTools.createTableName(options.getTablePrefix(), TABLEMAP.get(Collection.SETTINGS));
 
         this.ch = new RDBConnectionHandler(ds);
         this.callStack = LOG.isDebugEnabled() ? new Exception("call stack of RDBDocumentStore creation") : null;
