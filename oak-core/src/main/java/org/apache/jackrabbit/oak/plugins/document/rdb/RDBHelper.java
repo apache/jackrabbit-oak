@@ -17,11 +17,13 @@
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 /**
- * Convenience class that dumps the table creation statements for various database types.
+ * Convenience class that dumps the table creation statements for various
+ * database types.
  */
 public class RDBHelper {
 
-    private static String[] databases = { "Apache Derby", "DB2", "H2", "Microsoft SQL Server", "MySQL", "Oracle", "PostgreSQL", "default" };
+    private static String[] databases = { "Apache Derby", "DB2", "H2", "Microsoft SQL Server", "MySQL", "Oracle", "PostgreSQL",
+            "default" };
 
     public static void main(String[] args) {
         for (String database : databases) {
@@ -31,9 +33,11 @@ public class RDBHelper {
             RDBDocumentStore.DB ddb = RDBDocumentStore.DB.getValue(database);
             RDBBlobStore.DB bdb = RDBBlobStore.DB.getValue(database);
 
-            System.out.println("  " + ddb.getTableCreationStatement("CLUSTERNODES"));
-            System.out.println("  " + ddb.getTableCreationStatement("NODES"));
-            System.out.println("  " + ddb.getTableCreationStatement("SETTINGS"));
+            for (String table : RDBDocumentStore.getTableNames())  {
+                System.out.println("  " + ddb.getTableCreationStatement(table));
+            }
+            System.out.println();
+
             System.out.println("  " + bdb.getMetaTableCreationStatement("DATASTORE_META"));
             System.out.println("  " + bdb.getDataTableCreationStatement("DATASTORE_DATA"));
             System.out.println();
