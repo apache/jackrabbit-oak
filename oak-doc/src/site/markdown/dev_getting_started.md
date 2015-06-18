@@ -74,6 +74,7 @@ The build consists of the following main components:
   - oak-upgrade       - tooling for upgrading Jackrabbit repositories to Oak
   - oak-it            - integration tests
     - oak-it/osgi     - integration tests for OSGi
+  - [oak-exercise][3] - Oak training material
 
 
 Archive
@@ -90,4 +91,5 @@ The following components have been moved to the Jackrabbit Attic:
 
   [1]: https://github.com/apache/jackrabbit-oak/blob/trunk/oak-core/README.md
   [2]: https://issues.apache.org/jira/browse/OAK-2693
+  [3]: https://github.com/apache/jackrabbit-oak/blob/trunk/oak-exercise/README.md
 
