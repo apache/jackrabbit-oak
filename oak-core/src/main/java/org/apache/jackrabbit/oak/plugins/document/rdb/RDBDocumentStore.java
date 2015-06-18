@@ -72,8 +72,6 @@ import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import aQute.lib.collections.SortedList;
-
 import com.google.common.base.Objects;
 import com.google.common.cache.Cache;
 import com.google.common.collect.ImmutableMap;
@@ -330,7 +328,9 @@ public class RDBDocumentStore implements DocumentStore {
         tmp.put(Collection.NODES, "NODES");
         tmp.put(Collection.SETTINGS, "SETTINGS");
         TABLEMAP = Collections.unmodifiableMap(tmp);
-        TABLENAMES = Collections.unmodifiableList(new SortedList<String>(TABLEMAP.values()));
+        List<String> tl = new ArrayList<String>(TABLEMAP.values());
+        Collections.sort(tl);
+        TABLENAMES = Collections.unmodifiableList(tl);
     }
 
     public static List<String> getTableNames() {
