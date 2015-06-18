@@ -895,7 +895,8 @@ public class RDBDocumentStore implements DocumentStore {
         String diag = db.getAdditionalDiagnostics(this.ch, this.tnNodes);
 
         LOG.info("RDBDocumentStore instantiated for database " + dbDesc + ", using driver: " + driverDesc + ", connecting to: "
-                + dbUrl + (diag.isEmpty() ? "" : (", properties: " + diag)) + ", transaction isolation level: " + isolationDiags);
+                + dbUrl + (diag.isEmpty() ? "" : (", properties: " + diag)) + ", transaction isolation level: " + isolationDiags
+                + ", detected size of DATA column: " + this.dataLimitInOctets);
         if (!tablesPresent.isEmpty()) {
             LOG.info("Tables present upon startup: " + tablesPresent);
         }
