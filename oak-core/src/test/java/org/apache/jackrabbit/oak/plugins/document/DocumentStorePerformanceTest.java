@@ -55,6 +55,11 @@ public class DocumentStorePerformanceTest extends AbstractDocumentStoreTest {
     }
 
     @Test
+    public void testCreatePerfSmallBatch2() {
+        createPerf(16, 256);
+    }
+
+    @Test
     public void testCreatePerfBig() {
         createPerf(32 * 1024, 1);
     }
@@ -82,7 +87,8 @@ public class DocumentStorePerformanceTest extends AbstractDocumentStoreTest {
             cnt += 1;
         }
 
-        LOG.info("document creation with property of size " + size + " and batch size " + amount + " for " + super.dsname + " was " + cnt + " in " + duration + "ms (" + (cnt / (duration / 1000f)) + "/s)");
+        LOG.info("document creation with property of size " + size + " and batch size " + amount + " for " + super.dsname + " was "
+                + cnt + " in " + duration + "ms (" + (cnt / (duration / 1000f)) + "/s)");
     }
 
     @Test
