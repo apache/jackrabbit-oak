@@ -35,6 +35,9 @@ public class RDBHelper {
 
             for (String table : RDBDocumentStore.getTableNames())  {
                 System.out.println("  " + ddb.getTableCreationStatement(table));
+                for (String s : ddb.getIndexCreationStatements(table)) {
+                    System.out.println("    " + s);
+                }
             }
             System.out.println();
 

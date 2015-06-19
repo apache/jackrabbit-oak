@@ -739,6 +739,18 @@ public class RDBDocumentStore implements DocumentStore {
                     + 1024 * 1024 * 1024 + "))";
         }
 
+        public List<String> getIndexCreationStatements(String tableName) {
+            if (CREATEINDEX.equals("modified-id")) {
+                return Collections.singletonList("create index " + tableName + "_MI on " + tableName + " (MODIFIED, ID)");
+            } else if (CREATEINDEX.equals("id-modified")) {
+                return Collections.singletonList("create index " + tableName + "_MI on " + tableName + " (ID, MODIFIED)");
+            } else if (CREATEINDEX.equals("modified")) {
+                return Collections.singletonList("create index " + tableName + "_MI on " + tableName + " (MODIFIED)");
+            } else {
+                return Collections.emptyList();
+            }
+        }
+
         public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
             return "";
         }
@@ -935,6 +947,12 @@ public class RDBDocumentStore implements DocumentStore {
                 creatStatement = con.createStatement();
                 creatStatement.execute(this.db.getTableCreationStatement(tableName));
                 creatStatement.close();
+
+                for (String ic : this.db.getIndexCreationStatements(tableName)) {
+                    creatStatement = con.createStatement();
+                    creatStatement.execute(ic);
+                    creatStatement.close();
+                }
 
                 con.commit();
 
@@ -1495,6 +1513,9 @@ public class RDBDocumentStore implements DocumentStore {
     // Number of elapsed ms in a query above which a diagnostic warning is generated
     private static final int QUERYTIMELIMIT = Integer.getInteger(
             "org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QUERYTIMELIMIT", 10000);
+    // whether to create indices
+    private static final String CREATEINDEX = System.getProperty(
+            "org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.CREATEINDEX", "");
 
     private static byte[] asBytes(String data) {
         byte[] bytes;
