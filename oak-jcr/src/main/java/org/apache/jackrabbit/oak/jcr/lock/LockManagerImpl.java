@@ -172,7 +172,7 @@ public class LockManagerImpl implements LockManager {
             protected Void perform(NodeDelegate node)
                     throws RepositoryException {
                 String path = node.getPath();
-                if (canUnlock(path, node)) {
+                if (canUnlock(node)) {
                     node.unlock();
                     sessionContext.getSessionScopedLocks().remove(path);
                     sessionContext.getOpenScopedLocks().remove(path);
@@ -182,18 +182,27 @@ public class LockManagerImpl implements LockManager {
                     throw new LockException("Not an owner of the lock " + path);
                 }
             }
-            private boolean canUnlock(String path, NodeDelegate node) {
-                if (sessionContext.getSessionScopedLocks().contains(path)
-                        || sessionContext.getOpenScopedLocks().contains(path)) {
-                    return true;
-                } else if (sessionContext.getAttributes().get(RELAXED_LOCKING) == TRUE) {
-                    String user = sessionContext.getSessionDelegate().getAuthInfo().getUserID();
-                    return node.isLockOwner(user) || isAdmin(sessionContext, user);
-                } else {
-                    return false;
-                }
-            }
         });
+    }
+    
+    /**
+     * Verifies if the current <tt>sessionContext</tt> can unlock the specified <tt>node</tt>
+     * 
+     * @param node the node state to check
+     * 
+     * @return true if the current <tt>sessionContext</tt> can unlock the specified <tt>node</tt>
+     */
+    public boolean canUnlock(NodeDelegate node) {
+        String path = node.getPath();
+        if (sessionContext.getSessionScopedLocks().contains(path)
+                || sessionContext.getOpenScopedLocks().contains(path)) {
+            return true;
+        } else if (sessionContext.getAttributes().get(RELAXED_LOCKING) == TRUE) {
+            String user = sessionContext.getSessionDelegate().getAuthInfo().getUserID();
+            return node.isLockOwner(user) || isAdmin(sessionContext, user);
+        } else {
+            return false;
+        }
     }
 
     private boolean isAdmin(SessionContext sessionContext, String user) {
