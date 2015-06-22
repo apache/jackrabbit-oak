@@ -138,6 +138,13 @@ Once the query index definition node has been created, access OSGi Configuration
 
 #### Advanced search features
 
+##### Aggregation
+
+`@since Oak 1.1.4, 1.0.13`
+
+Solr index supports query time aggregation, that can be enabled in OSGi by setting `SolrQueryIndexProviderService` service 
+property `query.aggregation` to true.       
+       
 ##### Suggestions
 
 `@since Oak 1.1.17, 1.0.15`
