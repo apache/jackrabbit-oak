@@ -45,6 +45,7 @@ public abstract class OakFixture {
     public static final String OAK_MONGO_NS = "Oak-MongoNS";
 
     public static final String OAK_RDB = "Oak-RDB";
+    public static final String OAK_RDB_FDS = "Oak-RDB-FDS";
 
     public static final String OAK_TAR = "Oak-Tar";
     public static final String OAK_TAR_FDS = "Oak-Tar-FDS";
@@ -212,10 +213,22 @@ public abstract class OakFixture {
     }
 
     public static OakFixture getRDB(final String name, final String jdbcuri, final String jdbcuser, final String jdbcpasswd,
-                                    final String tablePrefix, final boolean dropDBAfterTest, final long cacheSize) {
+        final String tablePrefix, final boolean dropDBAfterTest, final long cacheSize) {
+        return getRDB(name, jdbcuri, jdbcuser, jdbcpasswd, tablePrefix, dropDBAfterTest, cacheSize, false, null, 0);
+    }
+
+    public static OakFixture getRDB(final String name, final String jdbcuri, final String jdbcuser, final String jdbcpasswd,
+                                    final String tablePrefix, final boolean dropDBAfterTest, final long cacheSize,
+                                    final boolean useFileDataStore, final File base, final int fdsCacheInMB) {
         return new OakFixture(name) {
             private DocumentMK[] kernels;
-            private BlobStore blobStore;
+            private BlobStoreFixture blobStoreFixture;
+
+            {
+                if (useFileDataStore) {
+                    blobStoreFixture = BlobStoreFixture.getFileDataStore(base, fdsCacheInMB);
+                }
+            }
 
             private RDBOptions getOptions(boolean dropDBAFterTest, String tablePrefix) {
                 return new RDBOptions().dropTablesOnClose(dropDBAfterTest).tablePrefix(tablePrefix);
@@ -223,13 +236,15 @@ public abstract class OakFixture {
 
             private BlobStore getBlobStore() {
                 try {
-                    DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcuri, jdbcuser, jdbcpasswd);
-                    blobStore = new RDBBlobStore(ds, getOptions(dropDBAfterTest, tablePrefix));
+                    if (useFileDataStore) {
+                        return blobStoreFixture.setUp();
+                    } else {
+                        DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcuri, jdbcuser, jdbcpasswd);
+                        return new RDBBlobStore(ds, getOptions(dropDBAfterTest, tablePrefix));
+                    }
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
-
-                return blobStore;
             }
 
             @Override
@@ -275,6 +290,10 @@ public abstract class OakFixture {
                     }
                 }
                 if (dropDBAfterTest) {
+                    if(blobStoreFixture != null){
+                        blobStoreFixture.tearDown();
+                    }
+
                     if (dropped.isEmpty()) {
                         throw new RuntimeException("dropdb was set, but tables have not been dropped");
                     }

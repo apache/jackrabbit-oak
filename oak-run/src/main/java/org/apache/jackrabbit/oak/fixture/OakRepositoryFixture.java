@@ -65,6 +65,12 @@ public class OakRepositoryFixture implements RepositoryFixture {
                 dropDBAfterTest, cacheSize));
     }
 
+    public static RepositoryFixture getRDBWithFDS(String jdbcuri, String jdbcuser, String jdbcpasswd, String jdbctableprefix,
+        boolean dropDBAfterTest, long cacheSize, final File base, final int fdsCacheInMB) {
+        return new OakRepositoryFixture(OakFixture.getRDB(OakFixture.OAK_RDB_FDS, jdbcuri, jdbcuser, jdbcpasswd, jdbctableprefix,
+                dropDBAfterTest, cacheSize, true, base, fdsCacheInMB));
+    }
+
     public static RepositoryFixture getTar(File base, int maxFileSizeMB, int cacheSizeMB, boolean memoryMapping) {
         return new OakRepositoryFixture(OakFixture.getTar(OakFixture.OAK_TAR ,base, maxFileSizeMB, cacheSizeMB, memoryMapping, false));
     }
