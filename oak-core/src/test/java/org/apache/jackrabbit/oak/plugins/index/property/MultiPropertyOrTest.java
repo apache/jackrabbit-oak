@@ -16,17 +16,29 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
+import static com.google.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.matchers.JUnitMatchers.containsString;
 
+import java.text.ParseException;
 import java.util.List;
+import java.util.Random;
 
 import javax.annotation.Nonnull;
 import javax.jcr.query.Query;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
@@ -50,7 +62,7 @@ public class MultiPropertyOrTest extends AbstractQueryTest {
                         NodeBuilder index = IndexUtils.getOrCreateOakIndex(builder);
                         IndexUtils.createIndexDefinition(
                                 index, "xyz", true, false,
-                                ImmutableList.<String>of("x", "y", "z"), null);
+                                ImmutableList.of("x", "y", "z"), null);
                     }
                 })
                 .with(new OpenSecurityProvider())
@@ -101,5 +113,52 @@ public class MultiPropertyOrTest extends AbstractQueryTest {
                 "select [jcr:path] from [nt:base] where [x] = 'foo' OR [y] = 'bar'",
                 ImmutableList.of("/a", "/b"));
         setTraversalEnabled(false);
+    }
+
+    @Test
+    public void unionSortResultCount() throws Exception {
+        // create test data
+        Tree test = root.getTree("/").addChild("test");
+        root.commit();
+
+        List<Integer> nodes = Lists.newArrayList();
+        Random r = new Random();
+        int seed = -2;
+        for (int i = 0; i < 1000; i++) {
+            Tree a = test.addChild("a" + i);
+            a.setProperty("x", "fooa");
+            seed += 2;
+            int num = r.nextInt(100);
+            a.setProperty("z", num);
+            nodes.add(num);
+        }
+
+        seed = -1;
+        for (int i = 0; i < 1000; i++) {
+            Tree a = test.addChild("b" + i);
+            a.setProperty("y", "foob");
+            seed += 2;
+            int num = 100 + r.nextInt(100);
+            a.setProperty("z",  num);
+            nodes.add(num);
+        }
+        root.commit();
+
+        // scan count scans the whole result set
+        String query =
+            "measure /jcr:root//element(*, nt:base)[(@x = 'fooa' or @y = 'foob')] order by @z";
+        assertThat(measureWithLimit(query, XPATH, 100), containsString("scanCount: 2000"));
+    }
+
+    private String measureWithLimit(String query, String lang, int limit) throws ParseException {
+        List<? extends ResultRow> result = Lists.newArrayList(
+            qe.executeQuery(query, lang, limit, 0, Maps.<String, PropertyValue>newHashMap(),
+                NO_MAPPINGS).getRows());
+
+        String measure = "";
+        if (result.size() > 0) {
+            measure = result.get(0).toString();
+        }
+        return measure;
     }
 }
