@@ -1358,6 +1358,46 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertQuery(queryString, "xpath", asList("/test/b"));
     }
 
+    @Test
+    public void unionSortResultCount() throws Exception {
+        // Index Definition
+        Tree idx = createIndex("test1", of("propa", "propb", "propc"));
+        idx.setProperty(createProperty(ORDERED_PROP_NAMES, of("propc"), STRINGS));
+        useV2(idx);
+
+        // create test data
+        Tree test = root.getTree("/").addChild("test");
+        root.commit();
+
+        List<Integer> nodes = Lists.newArrayList();
+        Random r = new Random();
+        int seed = -2;
+        for (int i = 0; i < 1000; i++) {
+            Tree a = test.addChild("a" + i);
+            a.setProperty("propa", "fooa");
+            seed += 2;
+            int num = r.nextInt(100);
+            a.setProperty("propc", num);
+            nodes.add(num);
+        }
+
+        seed = -1;
+        for (int i = 0; i < 1000; i++) {
+            Tree a = test.addChild("b" + i);
+            a.setProperty("propb", "foob");
+            seed += 2;
+            int num = 100 + r.nextInt(100);
+            a.setProperty("propc",  num);
+            nodes.add(num);
+        }
+        root.commit();
+
+        // scan count scans the whole result set
+        String query =
+            "measure /jcr:root//element(*, nt:base)[(@propa = 'fooa' or @propb = 'foob')] order by @propc";
+        assertThat(measureWithLimit(query, XPATH, 100), containsString("scanCount: 200"));
+    }
+
     private Tree createFileNode(Tree tree, String name, String content, String mimeType){
         return createFileNode(tree, name, new ArrayBasedBlob(content.getBytes()), mimeType);
     }
