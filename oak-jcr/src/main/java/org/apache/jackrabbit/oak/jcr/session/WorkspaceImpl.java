@@ -199,7 +199,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     }
 
     @Override
-    public LockManager getLockManager() {
+    public LockManagerImpl getLockManager() {
         return new LockManagerImpl(sessionContext);
     }
 
