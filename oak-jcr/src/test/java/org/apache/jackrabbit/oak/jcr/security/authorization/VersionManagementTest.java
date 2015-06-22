@@ -21,6 +21,7 @@ import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.Property;
+import javax.jcr.lock.LockManager;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.Privilege;
@@ -403,4 +404,25 @@ public class VersionManagementTest extends AbstractEvaluationTest {
         Property versionablePath = vh.getProperty(superuser.getWorkspace().getName());
         assertEquals(testNode.getPath(), versionablePath.getString());
     }
+    
+    @Test
+    public void testCheckInCheckoutLocked() throws Exception {
+        
+        LockManager lockManager = superuser.getWorkspace().getLockManager();
+        VersionManager versionManager = superuser.getWorkspace().getVersionManager();
+
+        // create a versionable and lockable node
+        Node n = createVersionableNode(superuser.getNode(path));
+        n.addMixin(mixLockable);
+        superuser.save();
+        
+        String nodePath = n.getPath();
+        
+        // lock
+        lockManager.lock(nodePath, true, false, 0, superuser.getUserID());
+
+        // create version
+        versionManager.checkin(nodePath);
+        versionManager.checkout(nodePath);
+    }    
 }
