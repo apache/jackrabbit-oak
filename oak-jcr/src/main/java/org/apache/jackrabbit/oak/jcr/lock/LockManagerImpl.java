@@ -71,7 +71,7 @@ public class LockManagerImpl implements LockManager {
     public void addLockToken(final String lockToken)
             throws RepositoryException {
         try {
-            delegate.performVoid(new LockOperation(sessionContext, lockToken, "addLockToken") {
+            delegate.performVoid(new LockOperation<Void>(sessionContext, lockToken, "addLockToken") {
                 @Override
                 protected void performVoid(@Nonnull NodeDelegate node) throws LockException {
                     if (node.holdsLock(false)) { // TODO: check ownership?
@@ -169,7 +169,7 @@ public class LockManagerImpl implements LockManager {
 
     @Override
     public void unlock(String absPath) throws RepositoryException {
-        delegate.performVoid(new LockOperation(sessionContext, absPath, "unlock") {
+        delegate.performVoid(new LockOperation<Void>(sessionContext, absPath, "unlock") {
             @Override
             protected void performVoid(@Nonnull NodeDelegate node)
                     throws RepositoryException {
