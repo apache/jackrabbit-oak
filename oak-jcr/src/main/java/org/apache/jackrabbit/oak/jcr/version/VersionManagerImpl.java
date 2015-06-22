@@ -78,7 +78,7 @@ public class VersionManagerImpl implements VersionManager {
                         final boolean removeExisting)
             throws RepositoryException {
         final SessionDelegate sessionDelegate = sessionContext.getSessionDelegate();
-        sessionDelegate.performVoid(new SessionOperation("restore", true) {
+        sessionDelegate.performVoid(new SessionOperation<Void>("restore", true) {
             @Override
             public void performVoid() throws RepositoryException {
                 String oakPath = getOakPathOrThrowNotFound(absPath);
@@ -164,7 +164,7 @@ public class VersionManagerImpl implements VersionManager {
             throw new VersionException("Restore of root version not possible");
         }
         final SessionDelegate sessionDelegate = sessionContext.getSessionDelegate();
-        sessionDelegate.performVoid(new SessionOperation("restore", true) {
+        sessionDelegate.performVoid(new SessionOperation<Void>("restore", true) {
             @Override
             public void performVoid() throws RepositoryException {
                 // check for pending changes
@@ -325,7 +325,7 @@ public class VersionManagerImpl implements VersionManager {
     @Override
     public void checkout(final String absPath) throws RepositoryException {
         final SessionDelegate sessionDelegate = sessionContext.getSessionDelegate();
-        sessionDelegate.performVoid(new SessionOperation("checkout", true) {
+        sessionDelegate.performVoid(new SessionOperation<Void>("checkout", true) {
             @Override
             public void performVoid() throws RepositoryException {
                 String oakPath = getOakPathOrThrowNotFound(absPath);
