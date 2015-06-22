@@ -21,6 +21,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -279,9 +280,15 @@ public class UnionQueryImpl implements Query {
             leftIter = ((MeasuringIterator) leftRows).getDelegate();
             rightIter = ((MeasuringIterator) rightRows).getDelegate();
         }
-
-        it = FilterIterators
+        // Since sorted by index use a merge iterator
+        if (isSortedByIndex()) {
+            it = FilterIterators
+                .newCombinedFilter(Iterators.mergeSorted(ImmutableList.of(leftIter, rightIter), orderBy), distinct,
+                    limit, offset, null, settings);
+        } else {
+            it = FilterIterators
             .newCombinedFilter(Iterators.concat(leftIter, rightIter), distinct, limit, offset, orderBy, settings);
+        }
 
         if (measure) {
             // return the measuring iterator for the union
@@ -325,5 +332,10 @@ public class UnionQueryImpl implements Query {
     @Override
     public void setInternal(boolean isInternal) {
         this.isInternal = isInternal;
+    }
+
+    @Override
+    public boolean isSortedByIndex() {
+        return left.isSortedByIndex() && right.isSortedByIndex();
     }
 }

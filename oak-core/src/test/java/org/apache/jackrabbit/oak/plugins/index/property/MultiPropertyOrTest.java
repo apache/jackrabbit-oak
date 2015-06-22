@@ -16,10 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import static com.google.common.collect.ImmutableSet.of;
+import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -62,7 +60,7 @@ public class MultiPropertyOrTest extends AbstractQueryTest {
                         NodeBuilder index = IndexUtils.getOrCreateOakIndex(builder);
                         IndexUtils.createIndexDefinition(
                                 index, "xyz", true, false,
-                                ImmutableList.of("x", "y", "z"), null);
+                                ImmutableList.of("x", "y", "z", "w"), null);
                     }
                 })
                 .with(new OpenSecurityProvider())
@@ -148,6 +146,46 @@ public class MultiPropertyOrTest extends AbstractQueryTest {
         String query =
             "measure /jcr:root//element(*, nt:base)[(@x = 'fooa' or @y = 'foob')] order by @z";
         assertThat(measureWithLimit(query, XPATH, 100), containsString("scanCount: 2000"));
+    }
+
+    @Test
+    public void unionSortQueries() throws Exception {
+        // create test data
+        Tree test = root.getTree("/").addChild("test");
+        root.commit();
+
+        int seed = -3;
+        for (int i = 0; i < 5; i++) {
+            Tree a = test.addChild("a" + i);
+            a.setProperty("x", "a" + i);
+            seed += 3;
+            a.setProperty("w", seed);
+        }
+
+        seed = -2;
+        for (int i = 0; i < 5; i++) {
+            Tree a = test.addChild("b" + i);
+            a.setProperty("y", "b" + i);
+            seed += 3;
+            a.setProperty("w", seed);
+        }
+        seed = -1;
+        for (int i = 0; i < 5; i++) {
+            Tree a = test.addChild("c" + i);
+            a.setProperty("z", "c" + i);
+            seed += 3;
+            a.setProperty("w", seed);
+        }
+        root.commit();
+
+        assertQuery(
+            "/jcr:root//element(*, nt:base)[(@x = 'a4' or @y = 'b3')] order by @w",
+            XPATH,
+            asList("/test/b3", "/test/a4"));
+        assertQuery(
+            "/jcr:root//element(*, nt:base)[(@x = 'a3' or @y = 'b0' or @z = 'c2')] order by @w",
+            XPATH,
+            asList("/test/b0", "/test/c2", "/test/a3"));
     }
 
     private String measureWithLimit(String query, String lang, int limit) throws ParseException {

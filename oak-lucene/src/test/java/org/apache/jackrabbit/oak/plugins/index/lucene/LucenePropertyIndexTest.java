@@ -1395,7 +1395,53 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         // scan count scans the whole result set
         String query =
             "measure /jcr:root//element(*, nt:base)[(@propa = 'fooa' or @propb = 'foob')] order by @propc";
-        assertThat(measureWithLimit(query, XPATH, 100), containsString("scanCount: 200"));
+        assertThat(measureWithLimit(query, XPATH, 100), containsString("scanCount: 101"));
+    }
+
+
+    @Test
+    public void unionSortQueries() throws Exception {
+        // Index Definition
+        Tree idx = createIndex("test1", of("propa", "propb", "propc", "propd"));
+        idx.setProperty(createProperty(ORDERED_PROP_NAMES, of("propd"), STRINGS));
+        useV2(idx);
+
+        // create test data
+        Tree test = root.getTree("/").addChild("test");
+        root.commit();
+
+        int seed = -3;
+        for (int i = 0; i < 5; i++) {
+            Tree a = test.addChild("a" + i);
+            a.setProperty("propa", "a" + i);
+            seed += 3;
+            a.setProperty("propd", seed);
+        }
+
+        seed = -2;
+        for (int i = 0; i < 5; i++) {
+            Tree a = test.addChild("b" + i);
+            a.setProperty("propb", "b" + i);
+            seed += 3;
+            a.setProperty("propd", seed);
+        }
+        seed = -1;
+        for (int i = 0; i < 5; i++) {
+            Tree a = test.addChild("c" + i);
+            a.setProperty("propc", "c" + i);
+            seed += 3;
+            a.setProperty("propd", seed);
+        }
+        root.commit();
+
+        assertQuery(
+            "/jcr:root//element(*, nt:base)[(@propa = 'a4' or @propb = 'b3')] order by @propd",
+            XPATH,
+            asList("/test/b3", "/test/a4"));
+        assertQuery(
+            "/jcr:root//element(*, nt:base)[(@propa = 'a3' or @propb = 'b0' or @propc = 'c2')] order by @propd",
+            XPATH,
+            asList("/test/b0", "/test/c2", "/test/a3"));
     }
 
     private Tree createFileNode(Tree tree, String name, String content, String mimeType){

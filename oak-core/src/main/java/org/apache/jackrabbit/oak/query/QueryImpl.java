@@ -153,6 +153,8 @@ public class QueryImpl implements Query {
     private boolean prepared;
     private ExecutionContext context;
 
+    private boolean isSortedByIndex;
+
     private final NamePathMapper namePathMapper;
     
     private double estimatedCost;
@@ -477,41 +479,7 @@ public class QueryImpl implements Query {
         }
         final RowIterator rowIt = new RowIterator(context.getBaseState());
         Comparator<ResultRowImpl> orderBy;
-        boolean sortUsingIndex = false;
-        // TODO add issue about order by optimization for multiple selectors
-        if (orderings != null && selectors.size() == 1) {
-            IndexPlan plan = selectors.get(0).getExecutionPlan().getIndexPlan();
-            if (plan != null) {
-                List<OrderEntry> list = plan.getSortOrder();
-                if (list != null && list.size() == orderings.length) {
-                    sortUsingIndex = true;
-                    for (int i = 0; i < list.size(); i++) {
-                        OrderEntry e = list.get(i);
-                        OrderingImpl o = orderings[i];
-                        DynamicOperandImpl op = o.getOperand();
-                        if (!(op instanceof PropertyValueImpl)) {
-                            // ordered by a function: currently not supported
-                            sortUsingIndex = false;
-                            break;
-                        }
-                        // we only have one selector, so no need to check that
-                        // TODO support joins
-                        String pn = ((PropertyValueImpl) op).getPropertyName();
-                        if (!pn.equals(e.getPropertyName())) {
-                            // ordered by another property
-                            sortUsingIndex = false;
-                            break;
-                        }
-                        if (o.isDescending() != (e.getOrder() == Order.DESCENDING)) {
-                            // ordered ascending versus descending
-                            sortUsingIndex = false;
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-        if (sortUsingIndex) {
+        if (isSortedByIndex) {
             orderBy = null;
         } else {
             orderBy = ResultRowImpl.getComparator(orderings);
@@ -545,6 +513,49 @@ public class QueryImpl implements Query {
     }
 
     @Override
+    public boolean isSortedByIndex() {
+        return isSortedByIndex;
+    }
+
+    private boolean canSortByIndex() {
+        boolean canSortByIndex = false;
+        // TODO add issue about order by optimization for multiple selectors
+        if (orderings != null && selectors.size() == 1) {
+            IndexPlan plan = selectors.get(0).getExecutionPlan().getIndexPlan();
+            if (plan != null) {
+                List<OrderEntry> list = plan.getSortOrder();
+                if (list != null && list.size() == orderings.length) {
+                    canSortByIndex = true;
+                    for (int i = 0; i < list.size(); i++) {
+                        OrderEntry e = list.get(i);
+                        OrderingImpl o = orderings[i];
+                        DynamicOperandImpl op = o.getOperand();
+                        if (!(op instanceof PropertyValueImpl)) {
+                            // ordered by a function: currently not supported
+                            canSortByIndex = false;
+                            break;
+                        }
+                        // we only have one selector, so no need to check that
+                        // TODO support joins
+                        String pn = ((PropertyValueImpl) op).getPropertyName();
+                        if (!pn.equals(e.getPropertyName())) {
+                            // ordered by another property
+                            canSortByIndex = false;
+                            break;
+                        }
+                        if (o.isDescending() != (e.getOrder() == Order.DESCENDING)) {
+                            // ordered ascending versus descending
+                            canSortByIndex = false;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        return canSortByIndex;
+    }
+
+    @Override
     public String getPlan() {
         return source.getPlan(context.getBaseState());
     }
@@ -566,6 +577,7 @@ public class QueryImpl implements Query {
         if (sources.size() <= 1) {
             // simple case (no join)
             estimatedCost = source.prepare().getEstimatedCost();
+            isSortedByIndex = canSortByIndex();
             return;
         }
 
@@ -599,7 +611,7 @@ public class QueryImpl implements Query {
         }
         estimatedCost = result.prepare().getEstimatedCost();
         source = result;
-
+        isSortedByIndex = canSortByIndex();
     }
     
     private static SourceImpl buildJoin(SourceImpl result, SourceImpl last, List<JoinConditionImpl> conditions) {
