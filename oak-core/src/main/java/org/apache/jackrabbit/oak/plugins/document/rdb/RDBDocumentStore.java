@@ -561,12 +561,6 @@ public class RDBDocumentStore implements DocumentStore {
             }
 
             @Override
-            public boolean isPrimaryColumnByteEncoded() {
-                // TODO: we should dynamically detect this
-                return true;
-            }
-
-            @Override
             public String getTableCreationStatement(String tableName) {
                 // see https://issues.apache.org/jira/browse/OAK-1913
                 return ("create table " + tableName + " (ID varbinary(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16000), BDATA longblob)");
@@ -613,12 +607,6 @@ public class RDBDocumentStore implements DocumentStore {
             @Override
             public void checkVersion(DatabaseMetaData md) throws SQLException {
                 versionCheck(md, 11, 0, description);
-            }
-
-            @Override
-            public boolean isPrimaryColumnByteEncoded() {
-                // TODO: we should dynamically detect this
-                return true;
             }
 
             @Override
@@ -676,15 +664,6 @@ public class RDBDocumentStore implements DocumentStore {
          */
         public void checkVersion(DatabaseMetaData md) throws SQLException {
             LOG.info("Unknown database type: " + md.getDatabaseProductName());
-        }
-
-        /**
-         * If the primary column is encoded in bytes.
-         * Default false
-         * @return boolean
-         */
-        public boolean isPrimaryColumnByteEncoded() {
-            return false;
         }
 
         /**
@@ -815,6 +794,9 @@ public class RDBDocumentStore implements DocumentStore {
     // capacity of DATA column
     private int dataLimitInOctets = 16384;
 
+    // whether the ID column is a binary type
+    private boolean isIdBinary = false;
+
     // number of retries for updates
     private static final int RETRIES = 10;
 
@@ -891,10 +873,11 @@ public class RDBDocumentStore implements DocumentStore {
 
         List<String> tablesCreated = new ArrayList<String>();
         List<String> tablesPresent = new ArrayList<String>();
+        StringBuilder tableDiags = new StringBuilder();
         try {
-            createTableFor(con, Collection.CLUSTER_NODES, tablesCreated, tablesPresent);
-            createTableFor(con, Collection.NODES, tablesCreated, tablesPresent);
-            createTableFor(con, Collection.SETTINGS, tablesCreated, tablesPresent);
+            createTableFor(con, Collection.CLUSTER_NODES, tablesCreated, tablesPresent, tableDiags);
+            createTableFor(con, Collection.NODES, tablesCreated, tablesPresent, tableDiags);
+            createTableFor(con, Collection.SETTINGS, tablesCreated, tablesPresent, tableDiags);
         } finally {
             con.commit();
             con.close();
@@ -904,11 +887,15 @@ public class RDBDocumentStore implements DocumentStore {
             tablesToBeDropped.addAll(tablesCreated);
         }
 
+        if (tableDiags.length() != 0) {
+            tableDiags.insert(0, ", ");
+        }
+
         String diag = db.getAdditionalDiagnostics(this.ch, this.tnNodes);
 
         LOG.info("RDBDocumentStore instantiated for database " + dbDesc + ", using driver: " + driverDesc + ", connecting to: "
                 + dbUrl + (diag.isEmpty() ? "" : (", properties: " + diag)) + ", transaction isolation level: " + isolationDiags
-                + ", detected size of DATA column: " + this.dataLimitInOctets);
+                + tableDiags);
         if (!tablesPresent.isEmpty()) {
             LOG.info("Tables present upon startup: " + tablesPresent);
         }
@@ -918,7 +905,18 @@ public class RDBDocumentStore implements DocumentStore {
         }
     }
 
-    private void createTableFor(Connection con, Collection<? extends Document> col, List<String> tablesCreated, List<String> tablesPresent) throws SQLException {
+    private static boolean isBinaryType(int sqlType) {
+        return sqlType == Types.VARBINARY || sqlType == Types.BINARY || sqlType == Types.LONGVARBINARY;
+    }
+
+    private static String dumpTableMeta(int idType, String idTypeName, int idPrecision, int dataType, String dataTypeName,
+            int dataPrecision) {
+        return String.format("type of ID: %d (%s) precision %d (-> %s), type of DATA: %d (%s) precision %d", idType, idTypeName,
+                idPrecision, isBinaryType(idType) ? "binary" : "character", dataType, dataTypeName, dataPrecision);
+    }
+
+    private void createTableFor(Connection con, Collection<? extends Document> col, List<String> tablesCreated,
+            List<String> tablesPresent, StringBuilder diagnostics) throws SQLException {
         String dbname = this.db.toString();
         if (con.getMetaData().getURL() != null) {
             dbname += " (" + con.getMetaData().getURL() + ")";
@@ -929,14 +927,17 @@ public class RDBDocumentStore implements DocumentStore {
         ResultSet checkResultSet = null;
         Statement creatStatement = null;
         try {
-            checkStatement = con.prepareStatement("select DATA from " + tableName + " where ID = ?");
+            checkStatement = con.prepareStatement("select ID, DATA from " + tableName + " where ID = ?");
             checkStatement.setString(1, "0:/");
             checkResultSet = checkStatement.executeQuery();
 
             if (col.equals(Collection.NODES)) {
                 // try to discover size of DATA column
                 ResultSetMetaData met = checkResultSet.getMetaData();
-                this.dataLimitInOctets = met.getPrecision(1);
+                this.isIdBinary = isBinaryType(met.getColumnType(1));
+                this.dataLimitInOctets = met.getPrecision(2);
+                diagnostics.append(dumpTableMeta(met.getColumnType(1), met.getColumnTypeName(1), met.getPrecision(1),
+                        met.getColumnType(2), met.getColumnTypeName(2), met.getPrecision(2)));
             }
             tablesPresent.add(tableName);
         } catch (SQLException ex) {
@@ -959,11 +960,14 @@ public class RDBDocumentStore implements DocumentStore {
                 tablesCreated.add(tableName);
 
                 if (col.equals(Collection.NODES)) {
-                    PreparedStatement pstmt = con.prepareStatement("select DATA from " + tableName + " where ID = ?");
+                    PreparedStatement pstmt = con.prepareStatement("select ID, DATA from " + tableName + " where ID = ?");
                     pstmt.setString(1, "0:/");
                     ResultSet rs = pstmt.executeQuery();
                     ResultSetMetaData met = rs.getMetaData();
-                    this.dataLimitInOctets = met.getPrecision(1);
+                    this.isIdBinary = isBinaryType(met.getColumnType(1));
+                    this.dataLimitInOctets = met.getPrecision(2);
+                    diagnostics.append(dumpTableMeta(met.getColumnType(1), met.getColumnTypeName(1), met.getPrecision(1),
+                            met.getColumnType(2), met.getColumnTypeName(2), met.getPrecision(2)));
                 }
             }
             catch (SQLException ex2) {
@@ -1548,7 +1552,7 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     private void setIdInStatement(PreparedStatement stmt, int idx, String id) throws SQLException {
-        if (db.isPrimaryColumnByteEncoded()) {
+        if (this.isIdBinary) {
             try {
                 stmt.setBytes(idx, id.getBytes("UTF-8"));
             } catch (UnsupportedEncodingException ex) {
@@ -1561,19 +1565,16 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     private String getIdFromRS(ResultSet rs, int idx) throws SQLException {
-        String id;
-        if (db.isPrimaryColumnByteEncoded()) {
+        if (this.isIdBinary) {
             try {
-                id = new String(rs.getBytes(idx), "UTF-8");
-
+                return new String(rs.getBytes(idx), "UTF-8");
             } catch (UnsupportedEncodingException ex) {
                 LOG.error("UTF-8 not supported??", ex);
                 throw new DocumentStoreException(ex);
             }
         } else {
-            id = rs.getString(idx);
+            return rs.getString(idx);
         }
-        return id;
     }
 
     @CheckForNull
