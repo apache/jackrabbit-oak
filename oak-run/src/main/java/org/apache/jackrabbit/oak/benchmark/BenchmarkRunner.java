@@ -148,6 +148,10 @@ public class BenchmarkRunner {
                 OakRepositoryFixture.getRDB(rdbjdbcuri.value(options), rdbjdbcuser.value(options),
                         rdbjdbcpasswd.value(options), rdbjdbctableprefix.value(options), 
                         dropDBAfterTest.value(options), cacheSize * MB) };
+                OakRepositoryFixture.getRDBWithFDS(rdbjdbcuri.value(options), rdbjdbcuser.value(options),
+                        rdbjdbcpasswd.value(options), rdbjdbctableprefix.value(options),
+                        dropDBAfterTest.value(options), cacheSize * MB, base.value(options),
+                        fdsCache.value(options));
         Benchmark[] allBenchmarks = new Benchmark[] {
             new OrderedIndexQueryOrderedIndexTest(),
             new OrderedIndexQueryStandardIndexTest(),

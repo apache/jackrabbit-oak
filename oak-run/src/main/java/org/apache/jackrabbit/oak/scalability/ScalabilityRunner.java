@@ -127,27 +127,30 @@ public class ScalabilityRunner {
                 new JackrabbitRepositoryFixture(base.value(options), cacheSize),
                 OakRepositoryFixture.getMemoryNS(cacheSize * MB),
                 OakRepositoryFixture.getMongo(
-                        host.value(options), port.value(options),
-                        dbName.value(options), dropDBAfterTest.value(options),
-                        cacheSize * MB),
+                    host.value(options), port.value(options),
+                    dbName.value(options), dropDBAfterTest.value(options),
+                    cacheSize * MB),
                 OakRepositoryFixture.getMongoWithFDS(
-                        host.value(options), port.value(options),
-                        dbName.value(options), dropDBAfterTest.value(options),
-                        cacheSize * MB,
-                        base.value(options),
-                        fdsCache.value(options)),
+                    host.value(options), port.value(options),
+                    dbName.value(options), dropDBAfterTest.value(options),
+                    cacheSize * MB,
+                    base.value(options),
+                    fdsCache.value(options)),
                 OakRepositoryFixture.getMongoNS(
-                        host.value(options), port.value(options),
-                        dbName.value(options), dropDBAfterTest.value(options),
-                        cacheSize * MB),
+                    host.value(options), port.value(options),
+                    dbName.value(options), dropDBAfterTest.value(options),
+                    cacheSize * MB),
                 OakRepositoryFixture.getTar(
-                        base.value(options), 256, cacheSize, mmap.value(options)),
+                    base.value(options), 256, cacheSize, mmap.value(options)),
                 OakRepositoryFixture.getTarWithBlobStore(
-                        base.value(options), 256, cacheSize, mmap.value(options)),
-            OakRepositoryFixture.getRDB(rdbjdbcuri.value(options), rdbjdbcuser.value(options),
-                rdbjdbcpasswd.value(options), rdbjdbctableprefix.value(options),
-                dropDBAfterTest.value(options), cacheSize * MB)
-
+                    base.value(options), 256, cacheSize, mmap.value(options)),
+                OakRepositoryFixture.getRDB(rdbjdbcuri.value(options), rdbjdbcuser.value(options),
+                    rdbjdbcpasswd.value(options), rdbjdbctableprefix.value(options),
+                    dropDBAfterTest.value(options), cacheSize * MB),
+                OakRepositoryFixture.getRDBWithFDS(rdbjdbcuri.value(options), rdbjdbcuser.value(options),
+                    rdbjdbcpasswd.value(options), rdbjdbctableprefix.value(options),
+                    dropDBAfterTest.value(options), cacheSize * MB, base.value(options),
+                    fdsCache.value(options))
         };
         ScalabilitySuite[] allSuites =
                 new ScalabilitySuite[] {
