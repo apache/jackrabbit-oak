@@ -177,6 +177,11 @@ public class Commit {
                 // baseRev is marker for new branch
                 b = nodeStore.getBranches().create(
                         baseRev.asTrunkRevision(), rev, branch);
+                LOG.debug("Branch created with base revision {} and " +
+                        "modifications on {}", baseRevision, operations.keySet());
+                if (LOG.isTraceEnabled()) {
+                    LOG.trace("Branch created", new Exception());
+                }
             } else {
                 b.addCommit(rev);
             }
