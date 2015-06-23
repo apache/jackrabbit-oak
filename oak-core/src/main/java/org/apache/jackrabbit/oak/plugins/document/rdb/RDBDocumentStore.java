@@ -1679,6 +1679,7 @@ public class RDBDocumentStore implements DocumentStore {
 
         PreparedStatement stmt = connection.prepareStatement(t);
         List<RDBRow> result = new ArrayList<RDBRow>();
+        long dataTotal = 0, bdataTotal = 0;
         try {
             int si = 1;
             setIdInStatement(stmt, si++, minId);
@@ -1706,6 +1707,8 @@ public class RDBDocumentStore implements DocumentStore {
                 String data = rs.getString(7);
                 byte[] bdata = rs.getBytes(8);
                 result.add(new RDBRow(id, hasBinary == 1, deletedOnce == 1, modified, modcount, cmodcount, data, bdata));
+                dataTotal += data.length();
+                bdataTotal += bdata == null ? 0 : bdata.length;
             }
         } finally {
             stmt.close();
@@ -1718,8 +1721,8 @@ public class RDBDocumentStore implements DocumentStore {
             LOG.info(message, new Exception("call stack"));
         }
         else if (QUERYTIMELIMIT != 0 && elapsed > QUERYTIMELIMIT) {
-            String message = String.format("Long running query with %d hits (limited to %d), elapsed time %dms (configured QUERYTIMELIMIT %d), params minid '%s' maxid '%s' indexedProperty %s startValue %d limit %d. Check calling method.",
-                    result.size(), limit, elapsed, QUERYTIMELIMIT, minId, maxId, indexedProperty, startValue, limit);
+            String message = String.format("Long running query with %d hits (limited to %d), elapsed time %dms (configured QUERYTIMELIMIT %d), params minid '%s' maxid '%s' indexedProperty %s startValue %d limit %d. Read %d chars from DATA and %d bytes from BDATA. Check calling method.",
+                    result.size(), limit, elapsed, QUERYTIMELIMIT, minId, maxId, indexedProperty, startValue, limit, dataTotal, bdataTotal);
             LOG.info(message, new Exception("call stack"));
         }
 
