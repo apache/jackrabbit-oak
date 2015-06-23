@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
@@ -108,6 +109,10 @@ public class VersionablePathHook implements CommitHook {
         @Override
         public boolean childNodeChanged(
                 String name, NodeState before, NodeState after) {
+            if (NodeStateUtils.isHidden(name)) {
+                // stop comparison
+                return false;
+            }
             Node node = new Node(nodeAfter, name);
             return after.compareAgainstBaseState(
                     before, new Diff(versionManager, node, exceptions));
@@ -117,7 +122,8 @@ public class VersionablePathHook implements CommitHook {
             if (JcrConstants.JCR_VERSIONHISTORY.equals(after.getName()) && nodeAfter.isVersionable(versionManager)) {
                 NodeBuilder vhBuilder;
                 try {
-                    vhBuilder = versionManager.getOrCreateVersionHistory(nodeAfter.builder, Collections.EMPTY_MAP);
+                    vhBuilder = versionManager.getOrCreateVersionHistory(
+                            nodeAfter.builder, Collections.<String, Object>emptyMap());
                 } catch (CommitFailedException e) {
                     exceptions.add(e);
                     // stop further comparison
