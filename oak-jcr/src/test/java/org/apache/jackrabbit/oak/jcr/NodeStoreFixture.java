@@ -50,13 +50,19 @@ public abstract class NodeStoreFixture {
     public static final NodeStoreFixture DOCUMENT_RDB = new NodeStoreFixture() {
 
         private DataSource ds;
+        private String jdbcUrl;
         private String fname = (new File("target")).isDirectory() ? "target/" : "";
+
+        private final String pUrl = System.getProperty("rdb.jdbc-url", "jdbc:h2:file:./{fname}oaktest");
+        private final String pUser = System.getProperty("rdb.jdbc-user", "sa");
+        private final String pPasswd = System.getProperty("rdb.jdbc-passwd", "");
 
         @Override
         public NodeStore createNodeStore() {
             String prefix = "T" + UUID.randomUUID().toString().replace("-",  "");
             RDBOptions options = new RDBOptions().tablePrefix(prefix).dropTablesOnClose(true);
-            this.ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:file:./" + fname + "oaktest", "sa", "");
+            this.jdbcUrl = pUrl.replace("{fname}", fname);
+            this.ds = RDBDataSourceFactory.forJdbcUrl(jdbcUrl, pUser, pPasswd);
             return new DocumentMK.Builder().
                     setPersistentCache("target/persistentCache,time").
                     setRDBConnection(this.ds, options).
@@ -80,6 +86,11 @@ public abstract class NodeStoreFixture {
                     throw new RuntimeException(ex);
                 }
             }
+        }
+
+        @Override
+        public String toString() {
+            return "RDBDocumentStore on " + this.jdbcUrl;
         }
     };
 
@@ -130,6 +141,11 @@ public abstract class NodeStoreFixture {
 
         @Override
         public void dispose(NodeStore nodeStore) {
+        }
+
+        @Override
+        public String toString() {
+            return "SegmentStore";
         }
     }
 
@@ -202,6 +218,11 @@ public abstract class NodeStoreFixture {
             if (nodeStore instanceof DocumentNodeStore) {
                 ((DocumentNodeStore) nodeStore).dispose();
             }
+        }
+
+        @Override
+        public String toString() {
+            return "MongoDocumentStore on " + this.uri;
         }
     }
 }
