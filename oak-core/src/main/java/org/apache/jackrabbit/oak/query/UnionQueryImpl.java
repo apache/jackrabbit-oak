@@ -91,13 +91,19 @@ public class UnionQueryImpl implements Query {
     @Override
     public void setLimit(long limit) {
         this.limit = limit;
-        left.setLimit(limit);
-        right.setLimit(limit);
+        applyLimitOffset();
     }
 
     @Override
     public void setOffset(long offset) {
         this.offset = offset;
+        applyLimitOffset();
+    }
+
+    private void applyLimitOffset() {
+        long subqueryLimit = QueryImpl.saturatedAdd(limit, offset);
+        left.setLimit(subqueryLimit);
+        right.setLimit(subqueryLimit);
     }
 
     @Override
