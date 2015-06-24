@@ -22,6 +22,7 @@ import java.util.Collections;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.plugins.index.solr.TestUtils;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
@@ -402,6 +403,30 @@ public class SolrQueryIndexTest {
         FilterImpl filter = new FilterImpl(selector, sqlQuery, new QueryEngineSettings());
         Cursor cursor = solrQueryIndex.query(filter, root);
         assertNotNull(cursor);
+    }
 
+    @Test
+    public void testSize() throws Exception {
+        NodeState root = mock(NodeState.class);
+        when(root.getNames(any(String.class))).thenReturn(Collections.<String>emptySet());
+        SelectorImpl selector = new SelectorImpl(root, "a");
+        String sqlQuery = "select [jcr:path], [jcr:score] from [nt:base] as a where" +
+                " contains([jcr:content/*], 'founded')";
+        SolrServer solrServer = TestUtils.createSolrServer();
+        OakSolrConfiguration configuration = new DefaultSolrConfiguration() {
+            @Override
+            public boolean useForPropertyRestrictions() {
+                return true;
+            }
+        };
+        SolrQueryIndex solrQueryIndex = new SolrQueryIndex("solr", solrServer, configuration);
+        FilterImpl filter = new FilterImpl(selector, sqlQuery, new QueryEngineSettings());
+        Cursor cursor = solrQueryIndex.query(filter, root);
+        assertNotNull(cursor);
+        long sizeExact = cursor.getSize(Result.SizePrecision.EXACT, 100000);
+        long sizeApprox = cursor.getSize(Result.SizePrecision.APPROXIMATION, 100000);
+        long sizeFastApprox = cursor.getSize(Result.SizePrecision.FAST_APPROXIMATION, 100000);
+        assertTrue(Math.abs(sizeExact - sizeApprox) < 10);
+        assertTrue(Math.abs(sizeExact - sizeFastApprox) > 10000);
     }
 }
