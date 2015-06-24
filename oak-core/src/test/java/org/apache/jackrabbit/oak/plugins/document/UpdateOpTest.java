@@ -16,10 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import com.google.common.collect.Lists;
+
 import org.junit.Test;
 
+import static com.google.common.collect.Lists.newArrayList;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Tests for UpdateOp
@@ -57,5 +62,111 @@ public class UpdateOpTest {
         assertFalse(k6.equals(k7));
     }
 
-    
+    @Test
+    public void combine() {
+        UpdateOp op1 = new UpdateOp("id", false);
+        op1.set("p", "value");
+        UpdateOp op2 = new UpdateOp("id", false);
+        Revision r = Revision.newRevision(1);
+        op2.containsMapEntry("e", r, true);
+
+        UpdateOp combined = UpdateOp.combine("id", newArrayList(op1, op2));
+        assertTrue(combined.hasChanges());
+        assertEquals(1, combined.getChanges().size());
+        assertEquals(1, combined.getConditions().size());
+    }
+
+    @Test
+    public void containsMapEntry() {
+        Revision r = Revision.newRevision(1);
+        UpdateOp op = new UpdateOp("id", true);
+        try {
+            op.containsMapEntry("p", r, true);
+            fail("expected " + IllegalStateException.class.getName());
+        } catch (IllegalStateException e) {
+            // expected
+        }
+        op = new UpdateOp("id", false);
+        op.containsMapEntry("p", r, true);
+        assertEquals(1, op.getConditions().size());
+        UpdateOp.Key key = op.getConditions().keySet().iterator().next();
+        assertEquals(r, key.getRevision());
+        assertEquals("p", key.getName());
+        UpdateOp.Condition c = op.getConditions().get(key);
+        assertEquals(UpdateOp.Condition.EXISTS, c);
+
+        op = new UpdateOp("id", false);
+        op.containsMapEntry("p", r, false);
+        assertEquals(1, op.getConditions().size());
+        key = op.getConditions().keySet().iterator().next();
+        assertEquals(r, key.getRevision());
+        assertEquals("p", key.getName());
+        c = op.getConditions().get(key);
+        assertEquals(UpdateOp.Condition.MISSING, c);
+    }
+
+    @Test
+    public void copy() {
+        UpdateOp op1 = new UpdateOp("id", false);
+        op1.set("p", "value");
+
+        UpdateOp op2 = op1.copy();
+        assertTrue(op2.hasChanges());
+        assertEquals(1, op2.getChanges().size());
+        assertEquals(0, op2.getConditions().size());
+
+        Revision r = Revision.newRevision(1);
+        op1.containsMapEntry("e", r, true);
+
+        op2 = op1.copy();
+        assertEquals(1, op2.getConditions().size());
+    }
+
+    @Test
+    public void equalsTest() {
+        Revision r = Revision.newRevision(1);
+        UpdateOp op = new UpdateOp("id", true);
+        try {
+            op.equals("p", r, "v");
+            fail("expected " + IllegalStateException.class.getName());
+        } catch (IllegalStateException e) {
+            // expected
+        }
+        op = new UpdateOp("id", false);
+        op.equals("p", r, "v");
+        assertEquals(1, op.getConditions().size());
+        UpdateOp.Key key = op.getConditions().keySet().iterator().next();
+        assertEquals(r, key.getRevision());
+        assertEquals("p", key.getName());
+        UpdateOp.Condition c = op.getConditions().get(key);
+        assertEquals(UpdateOp.Condition.Type.EQUALS, c.type);
+        assertEquals("v", c.value);
+    }
+
+    @Test
+    public void getChanges() {
+        UpdateOp op = new UpdateOp("id", false);
+        assertEquals(0, op.getChanges().size());
+        assertTrue(!op.hasChanges());
+        op.set("p", "value");
+        assertEquals(1, op.getChanges().size());
+        assertTrue(op.hasChanges());
+    }
+
+    @Test
+    public void shallowCopy() {
+        UpdateOp op1 = new UpdateOp("id", false);
+        op1.set("p", "value");
+
+        UpdateOp op2 = op1.shallowCopy("id");
+        assertTrue(op2.hasChanges());
+        assertEquals(1, op2.getChanges().size());
+        assertEquals(0, op2.getConditions().size());
+
+        Revision r = Revision.newRevision(1);
+        op1.containsMapEntry("e", r, true);
+
+        op2 = op1.shallowCopy("id");
+        assertEquals(1, op2.getConditions().size());
+    }
 }
