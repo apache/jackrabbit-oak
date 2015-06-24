@@ -51,6 +51,7 @@ import org.apache.lucene.store.FSDirectory;
 import org.apache.tika.config.TikaConfig;
 import org.apache.tika.mime.MediaType;
 import org.apache.tika.parser.AutoDetectParser;
+import org.apache.tika.parser.ParseContext;
 import org.apache.tika.parser.Parser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -256,7 +257,7 @@ public class LuceneIndexEditorContext {
 
     public boolean isSupportedMediaType(String type) {
         if (supportedMediaTypes == null) {
-            supportedMediaTypes = getParser().getSupportedTypes(null);
+            supportedMediaTypes = getParser().getSupportedTypes(new ParseContext());
         }
         return supportedMediaTypes.contains(MediaType.parse(type));
     }
