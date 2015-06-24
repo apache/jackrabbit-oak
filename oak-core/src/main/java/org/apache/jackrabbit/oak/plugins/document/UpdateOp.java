@@ -50,23 +50,32 @@ public final class UpdateOp {
      * @param isNew whether this is a new document
      */
     UpdateOp(String id, boolean isNew) {
-        this(id, isNew, false, new HashMap<Key, Operation>());
+        this(id, isNew, false, new HashMap<Key, Operation>(), null);
     }
 
-    private UpdateOp(String id, boolean isNew, boolean isDelete,
-                     Map<Key, Operation> changes) {
-        this.id = id;
+    private UpdateOp(@Nonnull String id, boolean isNew, boolean isDelete,
+                     @Nonnull Map<Key, Operation> changes,
+                     @Nullable Map<Key, Condition> conditions) {
+        this.id = checkNotNull(id);
         this.isNew = isNew;
         this.isDelete = isDelete;
-        this.changes = changes;
+        this.changes = checkNotNull(changes);
+        this.conditions = conditions;
     }
 
     static UpdateOp combine(String id, Iterable<UpdateOp> ops) {
         Map<Key, Operation> changes = Maps.newHashMap();
+        Map<Key, Condition> conditions = Maps.newHashMap();
         for (UpdateOp op : ops) {
             changes.putAll(op.getChanges());
+            if (op.conditions != null) {
+                conditions.putAll(op.conditions);
+            }
         }
-        return new UpdateOp(id, false, false, changes);
+        if (conditions.isEmpty()) {
+            conditions = null;
+        }
+        return new UpdateOp(id, false, false, changes, conditions);
     }
 
     /**
@@ -76,7 +85,7 @@ public final class UpdateOp {
      * @param id the primary key.
      */
     public UpdateOp shallowCopy(String id) {
-        return new UpdateOp(id, isNew, isDelete, changes);
+        return new UpdateOp(id, isNew, isDelete, changes, conditions);
     }
 
     /**
@@ -86,8 +95,12 @@ public final class UpdateOp {
      * @return a copy of this operation.
      */
     public UpdateOp copy() {
+        Map<Key, Condition> conditionMap = null;
+        if (conditions != null) {
+            conditionMap = new HashMap<Key, Condition>(conditions);
+        }
         return new UpdateOp(id, isNew, isDelete,
-                new HashMap<Key, Operation>(changes));
+                new HashMap<Key, Operation>(changes), conditionMap);
     }
 
     public String getId() {
@@ -254,7 +267,11 @@ public final class UpdateOp {
 
     @Override
     public String toString() {
-        return "key: " + id + " " + (isNew ? "new" : "update") + " " + changes;
+        String s = "key: " + id + " " + (isNew ? "new" : "update") + " " + changes;
+        if (conditions != null) {
+            s += " conditions " + conditions;
+        }
+        return s;
     }
 
     private Map<Key, Condition> getOrCreateConditions() {
@@ -462,5 +479,4 @@ public final class UpdateOp {
             return false;
         }
     }
-
 }
