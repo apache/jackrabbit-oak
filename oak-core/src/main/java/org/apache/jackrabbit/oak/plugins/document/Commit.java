@@ -367,7 +367,7 @@ public class Commit {
                     // to set isNew to false. If we get here the
                     // commitRoot document already exists and
                     // only needs an update
-                    UpdateOp commit = commitRoot.shallowCopy(commitRoot.getId());
+                    UpdateOp commit = commitRoot.copy();
                     commit.setNew(false);
                     // only set revision on commit root when there is
                     // no collision for this commit revision

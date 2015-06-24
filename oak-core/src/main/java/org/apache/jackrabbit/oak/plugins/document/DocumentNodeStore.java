@@ -1143,13 +1143,11 @@ public final class DocumentNodeStore
     @CheckForNull
     NodeDocument updateCommitRoot(UpdateOp commit) throws DocumentStoreException  {
         // use batch commit when there are only revision and modified updates
-        // and collision checks
         boolean batch = true;
         for (Map.Entry<Key, Operation> op : commit.getChanges().entrySet()) {
             String name = op.getKey().getName();
             if (NodeDocument.isRevisionsEntry(name)
-                    || NodeDocument.MODIFIED_IN_SECS.equals(name)
-                    || NodeDocument.COLLISIONS.equals(name)) {
+                    || NodeDocument.MODIFIED_IN_SECS.equals(name)) {
                 continue;
             }
             batch = false;
