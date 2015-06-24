@@ -34,9 +34,14 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.junit.Before;
@@ -44,6 +49,8 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 /**
@@ -373,6 +380,72 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
         } finally {
             root.refresh();
         }
+    }
+
+    @Test
+    public void hiddenNodeAdded() throws CommitFailedException {
+        UserValidatorProvider provider = new UserValidatorProvider(getConfig());
+        MemoryNodeStore store = new MemoryNodeStore();
+        NodeState root = store.getRoot();
+        NodeBuilder builder = root.builder();
+        NodeBuilder test = builder.child("test");
+        NodeBuilder hidden = test.child(":hidden");
+
+        Validator validator = provider.getRootValidator(
+                root, builder.getNodeState(), CommitInfo.EMPTY);
+        Validator childValidator = validator.childNodeAdded(
+                "test", test.getNodeState());
+        assertNotNull(childValidator);
+
+        Validator hiddenValidator = childValidator.childNodeAdded(
+                ":hidden", hidden.getNodeState());
+        assertNull(hiddenValidator);
+    }
+
+    @Test
+    public void hiddenNodeChanged() throws CommitFailedException {
+        UserValidatorProvider provider = new UserValidatorProvider(getConfig());
+        MemoryNodeStore store = new MemoryNodeStore();
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("test").child(":hidden");
+        NodeState root = builder.getNodeState();
+
+        NodeBuilder test = root.builder().child("test");
+        NodeBuilder hidden = test.child(":hidden");
+        hidden.child("added");
+
+        Validator validator = provider.getRootValidator(
+                root, builder.getNodeState(), CommitInfo.EMPTY);
+        Validator childValidator = validator.childNodeChanged(
+                "test", root.getChildNode("test"), test.getNodeState());
+        assertNotNull(childValidator);
+
+        Validator hiddenValidator = childValidator.childNodeChanged(
+                ":hidden", root.getChildNode("test").getChildNode(":hidden"), hidden.getNodeState());
+        assertNull(hiddenValidator);
+    }
+
+    @Test
+    public void hiddenNodeDeleted() throws CommitFailedException {
+        UserValidatorProvider provider = new UserValidatorProvider(getConfig());
+        MemoryNodeStore store = new MemoryNodeStore();
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("test").child(":hidden");
+        NodeState root = builder.getNodeState();
+
+        builder = root.builder();
+        NodeBuilder test = builder.child("test");
+        test.child(":hidden").remove();
+
+        Validator validator = provider.getRootValidator(
+                root, builder.getNodeState(), CommitInfo.EMPTY);
+        Validator childValidator = validator.childNodeChanged(
+                "test", root.getChildNode("test"), test.getNodeState());
+        assertNotNull(childValidator);
+
+        Validator hiddenValidator = childValidator.childNodeDeleted(
+                ":hidden", root.getChildNode("test").getChildNode(":hidden"));
+        assertNull(hiddenValidator);
     }
 
     private ConfigurationParameters getConfig() {

@@ -139,12 +139,13 @@ class UserValidator extends DefaultValidator implements UserConstants {
         Tree tree = checkNotNull(parentAfter.getChild(name));
 
         validateAuthorizable(tree, UserUtil.getType(tree));
-        return new VisibleValidator(new UserValidator(null, tree, provider), true, true);
+        return newValidator(null, tree, provider);
     }
 
     @Override
     public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
-        return new UserValidator(parentBefore.getChild(name), parentAfter.getChild(name), provider);
+        return newValidator(parentBefore.getChild(name),
+                parentAfter.getChild(name), provider);
     }
 
     @Override
@@ -158,11 +159,20 @@ class UserValidator extends DefaultValidator implements UserConstants {
             }
             return null;
         } else {
-            return new VisibleValidator(new UserValidator(tree, null, provider), true, true);
+            return newValidator(tree, null, provider);
         }
     }
 
     //------------------------------------------------------------< private >---
+
+    private static Validator newValidator(Tree parentBefore,
+                                          Tree parentAfter,
+                                          UserValidatorProvider provider) {
+        return new VisibleValidator(
+                new UserValidator(parentBefore, parentAfter, provider),
+                true,
+                true);
+    }
 
     private boolean isAdminUser(@Nonnull Tree userTree) {
         if (userTree.exists() && isUser(userTree)) {
