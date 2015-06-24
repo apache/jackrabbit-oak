@@ -108,7 +108,17 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
 
                 CoreContainer coreContainer = new CoreContainer(solrHomePath);
                 try {
-                    coreContainer.load();
+                    if (!coreContainer.isLoaded(coreName)) {
+                        coreContainer.load();
+                    }
+                } catch (Exception e) {
+                    log.error("cannot load core {}, shutting down embedded Solr..", coreName, e);
+                    try {
+                        coreContainer.shutdown();
+                    } catch (Exception se) {
+                        log.error("could not shutdown embedded Solr", se);
+                    }
+                    return null;
                 } finally {
                     Thread.currentThread().setContextClassLoader(classLoader);
                 }
