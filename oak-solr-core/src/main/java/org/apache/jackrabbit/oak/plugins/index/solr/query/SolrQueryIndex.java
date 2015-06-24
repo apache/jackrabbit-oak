@@ -201,12 +201,13 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
 
     @Override
     public Cursor query(final IndexPlan plan, final NodeState root) {
-        return query(plan.getFilter(), plan.getSortOrder(), root);
+        return query(plan, plan.getSortOrder(), root);
     }
 
-    private Cursor query(Filter filter, List<OrderEntry> sortOrder, NodeState root) {
+    private Cursor query(IndexPlan plan, List<OrderEntry> sortOrder, NodeState root) {
         Cursor cursor;
         try {
+            Filter filter = plan.getFilter();
             final Set<String> relPaths = filter.getFullTextConstraint() != null ? getRelativePaths(filter.getFullTextConstraint())
                     : Collections.<String>emptySet();
             final String parent = relPaths.size() == 0 ? "" : relPaths.iterator().next();
@@ -215,7 +216,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
 
             AbstractIterator<SolrResultRow> iterator = getIterator(filter, sortOrder, parent, parentDepth);
 
-            cursor = new SolrRowCursor(iterator, filter.getQueryEngineSettings());
+            cursor = new SolrRowCursor(iterator, plan, filter.getQueryEngineSettings());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -452,8 +453,6 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
         estimator.update(filter, docs);
     }
 
-
-
     @Override
     public String getPlanDescription(IndexPlan plan, NodeState root) {
         return plan.toString();
@@ -461,7 +460,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
 
     @Override
     public Cursor query(Filter filter, NodeState rootState) {
-        return query(filter, null, rootState);
+        return query(planBuilder(filter).build(), null, rootState);
     }
 
     static class SolrResultRow {
@@ -491,12 +490,14 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
      * plus, eventually, the returned stored values if {@link org.apache.solr.common.SolrDocument} is included in the
      * {@link org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex.SolrResultRow}.
      */
-    static class SolrRowCursor implements Cursor {
+    private class SolrRowCursor implements Cursor {
 
         private final Cursor pathCursor;
+        private final IndexPlan plan;
+
         SolrResultRow currentRow;
 
-        SolrRowCursor(final Iterator<SolrResultRow> it, QueryEngineSettings settings) {
+        SolrRowCursor(final Iterator<SolrResultRow> it, IndexPlan plan, QueryEngineSettings settings) {
             Iterator<String> pathIterator = new Iterator<String>() {
 
                 @Override
@@ -516,7 +517,8 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                 }
 
             };
-            pathCursor = new Cursors.PathCursor(pathIterator, true, settings);
+            this.plan = plan;
+            this.pathCursor = new Cursors.PathCursor(pathIterator, true, settings);
         }
 
 
@@ -557,7 +559,28 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
 
         @Override
         public long getSize(SizePrecision precision, long max) {
-            return -1;
+            long estimate = -1;
+            switch (precision) {
+                case EXACT:
+                    // query solr
+                    SolrQuery countQuery = FilterQueryParser.getQuery(plan.getFilter(), null, SolrQueryIndex.this.configuration);
+                    countQuery.setRows(0);
+                    try {
+                        estimate = SolrQueryIndex.this.solrServer.query(countQuery).getResults().getNumFound();
+                    } catch (SolrServerException e) {
+                        log.warn("could not perform count query {}", countQuery);
+                    }
+                    break;
+                case APPROXIMATION:
+                    // estimate result size
+                    estimate = SolrQueryIndex.this.estimator.estimate(plan.getFilter());
+                    break;
+                case FAST_APPROXIMATION:
+                    // use already computed index plan's estimate
+                    estimate = plan.getEstimatedEntryCount();
+                    break;
+            }
+            return Math.min(estimate, max);
         }
 
     }
