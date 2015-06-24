@@ -27,6 +27,7 @@ import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationDefaults;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationDefaults;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -68,7 +69,7 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
     @Nonnull
     @Override
     public String getPathField() {
-        return getStringValueFor(Properties.PATH_FIELD, SolrServerConfigurationDefaults.PATH_FIELD_NAME);
+        return getStringValueFor(Properties.PATH_FIELD, OakSolrConfigurationDefaults.PATH_FIELD_NAME);
     }
 
     @CheckForNull
@@ -77,19 +78,19 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
         String fieldName = null;
         switch (pathRestriction) {
             case ALL_CHILDREN: {
-                fieldName = getStringValueFor(Properties.DESCENDANTS_FIELD, SolrServerConfigurationDefaults.DESC_FIELD_NAME);
+                fieldName = getStringValueFor(Properties.DESCENDANTS_FIELD, OakSolrConfigurationDefaults.DESC_FIELD_NAME);
                 break;
             }
             case DIRECT_CHILDREN: {
-                fieldName = getStringValueFor(Properties.CHILDREN_FIELD, SolrServerConfigurationDefaults.CHILD_FIELD_NAME);
+                fieldName = getStringValueFor(Properties.CHILDREN_FIELD, OakSolrConfigurationDefaults.CHILD_FIELD_NAME);
                 break;
             }
             case EXACT: {
-                fieldName = getStringValueFor(Properties.PATH_FIELD, SolrServerConfigurationDefaults.PATH_FIELD_NAME);
+                fieldName = getStringValueFor(Properties.PATH_FIELD, OakSolrConfigurationDefaults.PATH_FIELD_NAME);
                 break;
             }
             case PARENT: {
-                fieldName = getStringValueFor(Properties.PARENT_FIELD, SolrServerConfigurationDefaults.ANC_FIELD_NAME);
+                fieldName = getStringValueFor(Properties.PARENT_FIELD, OakSolrConfigurationDefaults.ANC_FIELD_NAME);
                 break;
             }
             case NO_RESTRICTION:
@@ -103,7 +104,7 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
 
     @Override
     public String getCatchAllField() {
-        return getStringValueFor(Properties.CATCHALL_FIELD, SolrServerConfigurationDefaults.CATCHALL_FIELD);
+        return getStringValueFor(Properties.CATCHALL_FIELD, OakSolrConfigurationDefaults.CATCHALL_FIELD);
     }
 
     @Override
@@ -130,22 +131,22 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
 
     @Override
     public int getRows() {
-        return getIntValueFor(Properties.ROWS, SolrServerConfigurationDefaults.ROWS);
+        return getIntValueFor(Properties.ROWS, OakSolrConfigurationDefaults.ROWS);
     }
 
     @Override
     public boolean useForPropertyRestrictions() {
-        return getBooleanValueFor(Properties.PROPERTY_RESTRICIONS, SolrServerConfigurationDefaults.PROPERTY_RESTRICTIONS);
+        return getBooleanValueFor(Properties.PROPERTY_RESTRICIONS, OakSolrConfigurationDefaults.PROPERTY_RESTRICTIONS);
     }
 
     @Override
     public boolean useForPrimaryTypes() {
-        return getBooleanValueFor(Properties.PRIMARY_TYPES, SolrServerConfigurationDefaults.PRIMARY_TYPES);
+        return getBooleanValueFor(Properties.PRIMARY_TYPES, OakSolrConfigurationDefaults.PRIMARY_TYPES);
     }
 
     @Override
     public boolean useForPathRestrictions() {
-        return getBooleanValueFor(Properties.PATH_RESTRICTIONS, SolrServerConfigurationDefaults.PATH_RESTRICTIONS);
+        return getBooleanValueFor(Properties.PATH_RESTRICTIONS, OakSolrConfigurationDefaults.PATH_RESTRICTIONS);
     }
 
     @Nonnull
@@ -159,7 +160,7 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
                 ignoredProperties.add(ignoredProperty);
             }
         } else {
-            ignoredProperties = SolrServerConfigurationDefaults.IGNORED_PROPERTIES;
+            ignoredProperties = OakSolrConfigurationDefaults.IGNORED_PROPERTIES;
         }
         return ignoredProperties;
     }

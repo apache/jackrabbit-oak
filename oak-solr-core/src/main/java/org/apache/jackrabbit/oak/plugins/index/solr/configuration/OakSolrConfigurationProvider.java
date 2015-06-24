@@ -29,5 +29,5 @@ public interface OakSolrConfigurationProvider {
      * @return a {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration}
      */
     @Nonnull
-    public OakSolrConfiguration getConfiguration();
+    OakSolrConfiguration getConfiguration();
 }

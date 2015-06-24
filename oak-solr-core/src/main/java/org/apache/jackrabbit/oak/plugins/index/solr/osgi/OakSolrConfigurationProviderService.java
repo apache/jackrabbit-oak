@@ -33,6 +33,7 @@ import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationDefaults;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationDefaults;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -45,19 +46,19 @@ import org.osgi.service.component.ComponentContext;
 @Service(OakSolrConfigurationProvider.class)
 public class OakSolrConfigurationProviderService implements OakSolrConfigurationProvider {
 
-    @Property(value = SolrServerConfigurationDefaults.DESC_FIELD_NAME, label = "field for descendants search")
+    @Property(value = OakSolrConfigurationDefaults.DESC_FIELD_NAME, label = "field for descendants search")
     private static final String PATH_DESCENDANTS_FIELD = "path.desc.field";
 
-    @Property(value = SolrServerConfigurationDefaults.CHILD_FIELD_NAME, label = "field for children search")
+    @Property(value = OakSolrConfigurationDefaults.CHILD_FIELD_NAME, label = "field for children search")
     private static final String PATH_CHILDREN_FIELD = "path.child.field";
 
-    @Property(value = SolrServerConfigurationDefaults.ANC_FIELD_NAME, label = "field for parent search")
+    @Property(value = OakSolrConfigurationDefaults.ANC_FIELD_NAME, label = "field for parent search")
     private static final String PATH_PARENT_FIELD = "path.parent.field";
 
-    @Property(value = SolrServerConfigurationDefaults.PATH_FIELD_NAME, label = "field for path search")
+    @Property(value = OakSolrConfigurationDefaults.PATH_FIELD_NAME, label = "field for path search")
     private static final String PATH_EXACT_FIELD = "path.exact.field";
 
-    @Property(value = SolrServerConfigurationDefaults.CATCHALL_FIELD, label = "catch all field")
+    @Property(value = OakSolrConfigurationDefaults.CATCHALL_FIELD, label = "catch all field")
     private static final String CATCH_ALL_FIELD = "catch.all.field";
 
     @Property(options = {
@@ -75,16 +76,16 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
     private static final String COMMIT_POLICY = "commit.policy";
 
 
-    @Property(intValue = SolrServerConfigurationDefaults.ROWS, label = "rows")
+    @Property(intValue = OakSolrConfigurationDefaults.ROWS, label = "rows")
     private static final String ROWS = "rows";
 
-    @Property(boolValue = SolrServerConfigurationDefaults.PATH_RESTRICTIONS, label = "path restrictions")
+    @Property(boolValue = OakSolrConfigurationDefaults.PATH_RESTRICTIONS, label = "path restrictions")
     private static final String PATH_RESTRICTIONS = "path.restrictions";
 
-    @Property(boolValue = SolrServerConfigurationDefaults.PROPERTY_RESTRICTIONS, label = "property restrictions")
+    @Property(boolValue = OakSolrConfigurationDefaults.PROPERTY_RESTRICTIONS, label = "property restrictions")
     private static final String PROPERTY_RESTRICTIONS = "property.restrictions";
 
-    @Property(boolValue = SolrServerConfigurationDefaults.PRIMARY_TYPES, label = "primary types restrictions")
+    @Property(boolValue = OakSolrConfigurationDefaults.PRIMARY_TYPES, label = "primary types restrictions")
     private static final String PRIMARY_TYPES_RESTRICTIONS = "primarytypes.restrictions";
 
     @Property(value = {"rep:members", "rep:authorizableId", "jcr:uuid", "rep:principalName", "rep:password"},
@@ -94,12 +95,12 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
     @Property(value = {}, label = "used properties", unbounded = PropertyUnbounded.ARRAY)
     private static final String USED_PROPERTIES = "used.properties";
 
-    @Property(value = SolrServerConfigurationDefaults.TYPE_MAPPINGS, cardinality = 13, description =
+    @Property(value = OakSolrConfigurationDefaults.TYPE_MAPPINGS, cardinality = 13, description =
             "each item should be in the form TypeString=FieldName (e.g. STRING=text_general)", label =
             "mappings from Oak Types to Solr fields")
     private static final String TYPE_MAPPINGS = "type.mappings";
 
-    @Property(value = SolrServerConfigurationDefaults.PROPERTY_MAPPINGS, unbounded = PropertyUnbounded.ARRAY, description =
+    @Property(value = OakSolrConfigurationDefaults.PROPERTY_MAPPINGS, unbounded = PropertyUnbounded.ARRAY, description =
             "each item should be in the form PropertyName=FieldName (e.g. jcr:title=text_en)", label =
             "mappings from JCR property names to Solr fields")
     private static final String PROPERTY_MAPPINGS = "property.mappings";
