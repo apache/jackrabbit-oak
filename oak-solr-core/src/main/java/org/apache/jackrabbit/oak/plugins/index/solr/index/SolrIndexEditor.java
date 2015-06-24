@@ -45,7 +45,6 @@ import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
-import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 import static org.apache.jackrabbit.oak.plugins.index.solr.util.SolrUtils.getSortingField;
 import static org.apache.jackrabbit.oak.plugins.index.solr.util.SolrUtils.partialEscape;
 
