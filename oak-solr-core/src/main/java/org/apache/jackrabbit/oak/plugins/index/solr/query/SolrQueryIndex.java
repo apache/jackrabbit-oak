@@ -557,7 +557,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                     try {
                         estimate = SolrQueryIndex.this.solrServer.query(countQuery).getResults().getNumFound();
                     } catch (SolrServerException e) {
-                        log.warn("could not perform count countQuery {}", countQuery);
+                        log.warn("could not perform count query {}", countQuery);
                     }
                     break;
                 case APPROXIMATION:
