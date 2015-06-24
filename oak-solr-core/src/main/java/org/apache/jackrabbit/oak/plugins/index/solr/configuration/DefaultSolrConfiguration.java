@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import javax.annotation.CheckForNull;

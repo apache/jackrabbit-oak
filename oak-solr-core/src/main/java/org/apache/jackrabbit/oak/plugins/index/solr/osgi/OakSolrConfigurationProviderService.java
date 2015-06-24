@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.index.solr.osgi;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -35,7 +34,6 @@ import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationDefaults;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
-import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationDefaults;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.osgi.service.component.ComponentContext;
 
