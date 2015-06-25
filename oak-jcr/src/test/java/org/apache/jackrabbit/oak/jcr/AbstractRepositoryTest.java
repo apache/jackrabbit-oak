@@ -31,6 +31,9 @@ import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+
+import org.apache.jackrabbit.oak.commons.FixturesHelper;
+import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
@@ -59,19 +62,7 @@ public abstract class AbstractRepositoryTest {
      * whitespace-separated list of fixtures names for which the
      * tests should be run (the default is to use all fixtures).
      */
-    private static Set<String> FIXTURES;
-    static {
-        String raw = System.getProperty("ns-fixtures", "");
-        String[] fs = raw.split("\\s");
-        Set<String> tmp = new HashSet<String>();
-        for (String f : fs) {
-            String x = f.trim();
-            if (x.length() > 0) {
-                tmp.add(f.trim());
-            }
-        }
-        FIXTURES = Collections.unmodifiableSet(tmp);
-    }
+    private static final Set<Fixture> FIXTURES = FixturesHelper.getFixtures();
 
     public AbstractRepositoryTest(NodeStoreFixture fixture) {
         this.fixture = fixture;
