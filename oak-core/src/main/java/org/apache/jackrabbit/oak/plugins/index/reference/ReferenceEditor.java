@@ -120,7 +120,7 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
      * flag marking a reindex, case in which we don't need to keep track of the
      * newIds set
      */
-    private final boolean isReindex;
+    private boolean isReindex;
 
     public ReferenceEditor(NodeBuilder definition, NodeState root) {
         this.parent = null;
@@ -137,7 +137,6 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
         this.discardedIds = newHashSet();
         this.versionStoreIds = newHashSet();
         this.newIds = newHashSet();
-        this.isReindex = MISSING_NODE == root;
     }
 
     private ReferenceEditor(ReferenceEditor parent, String name, String uuid) {
@@ -171,6 +170,9 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
     @Override
     public void enter(NodeState before, NodeState after)
             throws CommitFailedException {
+        if (MISSING_NODE == before && parent == null) {
+            isReindex = true;
+        }
     }
 
     @Override
