@@ -1,5 +1,5 @@
 
-Release Notes -- Apache Jackrabbit Oak -- Version 1.0.15
+Release Notes -- Apache Jackrabbit Oak -- Version 1.0.16
 
 Introduction
 ------------
@@ -8,15 +8,15 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.0.15 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.0.16 is a patch release that contains fixes and
 improvements over Oak 1.0. Jackrabbit Oak 1.0.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-New configuration options in Oak 1.0.15
----------------------------------------
+New configuration options since Oak 1.0.15
+------------------------------------------
 
 The DocumentNodeStore has a new system property, which controls the time a
 commit tries to acquire the merge lock: -Doak.maxLockTryTimeMultiplier=30
@@ -27,94 +27,36 @@ LuceneIndexEditor now supports CopyOnWrite mode (OAK-2247) for faster indexing.
 Refer to http://jackrabbit.apache.org/oak/docs/query/lucene.html#CopyOnWrite
 for more details.
 
-Changes in Oak 1.0.15
+Changes in Oak 1.0.16
 ---------------------
 
 Bugs
 
-    [OAK-2531] - Suggest field doesn't get stored if it has only one value
-    [OAK-2611] - Lucene suggester should only be updated if the index is used for suggestions
-    [OAK-2663] - Unique property index can trigger OOM during upgrade of large repository
-    [OAK-2799] - OakIndexInput cloned instances are not closed
-    [OAK-2867] - CommitQueue.done() may fail to remove commit
-    [OAK-2873] - Performance problems with many "or" conditions
-    [OAK-2888] - ArrayIndexOutOfBoundsException in UnsavedModifications.put()
-    [OAK-2890] - SegmentBlob does not return blobId for contentIdentity
-    [OAK-2903] - Test failures: ldap tests fail on Jenkins
-    [OAK-2904] - test failures for oak-auth-ldap on Windows
-    [OAK-2933] - AccessDenied when modifying transiently moved item with too many ACEs
-    [OAK-2951] - Regression: SSL errors with latest ldap client
-    [OAK-2960] - SegmentNodeStoreService doesn't fully implement a @Modified method
-    [OAK-2963] - [Blob GC]: Undeleted blobs also being logged in deleted count
-    [OAK-2970] - DocumentNodeStoreService doesn't fully implement a @Modified method
-    [OAK-2972] - DocumentNodeStore gets initialized multiple time with RDB persistence
-
+    [OAK-3000] - SimpleExcerptProvider causes OOM for some wildcard expressions
+    [OAK-3019] - VersionablePathHook must not process hidden nodes
+    [OAK-3021] - UserValidator and AccessControlValidator must not process hidden nodes
+    [OAK-3028] - Hierarchy conflict detection broken
+    [OAK-3029] - EmbeddedSolrServerProvider should check if core is / can be loaded
 
 Improvements
 
-    [OAK-1970] - Optimize the diff logic for large number of children case
-    [OAK-2016] - Make blob gc max age configurable in SegmentNodeStoreService
-    [OAK-2468] - Index binary only if some Tika parser can support the binaries mimeType
-    [OAK-2523] - Provide a default Tika Config similar to JR2 config
-    [OAK-2548] - Spellcheck/suggest queries should return no results if no index can handle them
-    [OAK-2620] - Release merge lock before branch is reset
-    [OAK-2627] - Optimize equals in AbstractBlob
-    [OAK-2657] - Repository Upgrade could shut down the source repository early
-    [OAK-2762] - Configurable maxLockTryTimeMS
-    [OAK-2822] - Release merge lock in retry loop
-    [OAK-2823] - Change default for oak.maxLockTryTimeMultiplier
-    [OAK-2830] - LIRS cache: avoid concurrent loading of the same entry if loading is slow
-    [OAK-2837] - Persistent cache: avoid repeated log message after closing
-    [OAK-2865] - Log stats around time spent in extracting text from binaries
-    [OAK-2866] - Switch Thread context classloader for default config parsing also
-    [OAK-2868] - Bypass CommitQueue for branch commits
-    [OAK-2886] - Exclude image/tiff from text extraction
-    [OAK-2889] - Ignore "order by jcr:score desc" in the query engine (for "union" queries)
-    [OAK-2893] - RepositoryUpgrade.copy() should optionally continue on errors.
-    [OAK-2895] - Avoid accessing binary content if the mimeType is excluded from indexing
-    [OAK-2897] - Regression - lookupOnValidate does not work
-    [OAK-2898] - DataStoreBlobStore should expose a buffer input stream for getInputStream call
-    [OAK-2912] - Clear the modified and deleted map in PermissionHook after processing is complete
-    [OAK-2927] - ReferenceEditor newIds consuming lots of memory during migration
-    [OAK-2957] - LIRS cache: config options for segment count and stack move distance
-    [OAK-2959] - Update JR to 2.8.1 for Oak 1.0 branch
-    [OAK-2971] - DocumentNodeStore thread names should carry the clusterNodeId
+    [OAK-3004] - OSGI wrapper service for Jackrabbit CachingFDS
+    [OAK-3017] - Log message when a branch is created
 
 New Features
 
-    [OAK-2247] - CopyOnWriteDirectory implementation for Lucene for use in indexing
-    [OAK-2882] - Support migration without access to DataStore
-    [OAK-2926] - Fast result size estimate
-
-Tasks
-
-    [OAK-2958] - Backport suggest support to branch 1.0
-    [OAK-2967] - Merge OAK-2800, OAK-2801, OAK-2692, OAK-2713
+    [OAK-2980] - Fast result size estimate in Solr index
 
 Sub-tasks
 
-    [OAK-2455] - Support for invoking suggestor via Query
-    [OAK-2456] - Periodic update of suggestor index from the full text index
-    [OAK-2457] - Suggestor support within Oak Lucene
-    [OAK-2467] - Suggestor support within Oak Solr
-    [OAK-2473] - ACL checks on suggestions
-    [OAK-2826] - Refactor ListeneableFutureTask to commons
-    [OAK-2856] - improve RDB diagnostics
-    [OAK-2901] - RDBBlobStoreTest should be able to run against multiple DB types
-    [OAK-2915] - add (experimental) support for Apache Derby
-    [OAK-2916] - RDBDocumentStore: use of "GREATEST" in SQL apparently doesn't have test coverage in unit tests
-    [OAK-2918] - RDBConnectionHandler: handle failure on setReadOnly() gracefully
-    [OAK-2923] - RDB/DB2: change minimal supported version from 10.5 to 10.1, also log decimal version numbers as well
-    [OAK-2930] - RDBBlob/DocumentStore throws NPE when used after being closed
-    [OAK-2931] - RDBDocumentStore: mitigate effects of large query result sets
-    [OAK-2938] - Estimation of required memory for compaction is off
-    [OAK-2940] - RDBDocumentStore: "set" operation on _modified appears to be implemented as "max"
-    [OAK-2945] - Sampling rate feature CompactionGainEstimate is not efficient
-    [OAK-2946] - Sampling rate feature CompactionGainEstimate is not efficient
-    [OAK-2949] - RDBDocumentStore: no custom SQL needed for GREATEST
-    [OAK-2950] - RDBDocumentStore: conditional fetch logic is reversed
-    [OAK-2952] - RDBConnectionHandler: log failures on setReadOnly() only once
-    [OAK-2966] - JDBC config for document store tests should be overridable
+    [OAK-2410] - [sonar]Some statements not being closed in RDBDocumentStore
+    [OAK-2747] - Admin cannot create versions on a locked page by itself
+    [OAK-2982] - BasicDocumentStoreTest: separate actual unit tests from performance tests
+    [OAK-2985] - RDBDocumentStore: more diagnostics for long-running queries
+    [OAK-2987] - RDBDocumentStore: try PreparedStatement batching
+    [OAK-2995] - RDB*Store: check transaction isolation level
+    [OAK-3009] - RDBDocumentStore: add support for optional additional index
+    [OAK-3010] - RDBDocumentStore: remove hardwired "id-is-binary" flag
 
 
 In addition to the above-mentioned changes, this release contains
