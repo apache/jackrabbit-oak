@@ -464,7 +464,16 @@ public class AsyncIndexUpdate implements Runnable {
                 new ConflictHook(new AnnotatingConflictHandler()),
                 new EditorHook(new ConflictValidatorProvider()),
                 concurrentUpdateCheck);
-        store.merge(builder, hooks, CommitInfo.EMPTY);
+        try {
+            store.merge(builder, hooks, CommitInfo.EMPTY);
+        } catch (CommitFailedException ex) {
+            // OAK-2961
+            if (ex.isOfType(CommitFailedException.STATE) && ex.getCode() == 1) {
+                throw CONCURRENT_UPDATE;
+            } else {
+                throw ex;
+            }
+        }
     }
 
     private static void preAsyncRunStatsStats(AsyncIndexStats stats) {
