@@ -70,7 +70,7 @@ public class AsyncConflictsIT extends DocumentClusterIT {
         assumeTrue(OakMongoNSRepositoryStub.isMongoDBAvailable());
     }
     
-    @Test @Ignore("OAK-2961")
+    @Test
     public void updates() throws Exception {
         final Map<String, Exception> exceptions = Collections.synchronizedMap(new HashMap<String, Exception>());
         final Random generator = new Random(3);
