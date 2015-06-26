@@ -15,7 +15,7 @@
    limitations under the License.
   -->
   
-### Solr Index
+## Solr Index
 
 The Solr index is mainly meant for full-text search (the 'contains' type of queries):
 
@@ -29,10 +29,6 @@ Even if it's not just a full-text index, it's recommended to use it asynchronous
 because, in most production scenarios, it'll be a 'remote' index and therefore network latency / errors would 
 have less impact on the repository performance.
 
-TODO Node aggregation.
-
-##### Index definition for Solr index
-<a name="solr-index-definition"></a>
 The index definition node for a Solr-based index:
 
  * must be of type `oak:QueryIndexDefinition`
@@ -53,25 +49,138 @@ Example:
         .setProperty("async", "async")
         .setProperty("reindex", true);
     }
+        
+The Oak Solr index creates one document in the Solr index for each node in the repository, each of such documents has 
+usually at least a field for each property associated with the related node.
+Indexing of properties can be done by name: e.g. property 'jcr:title' of a node is written into a field 'jcr:title' of 
+the corresponding Solr document in the index, or by type: e.g. properties 'jcr:data' and 'binary_content' of type 
+_binary_ are written into a field 'binary_data' that's responsible for the indexing of all fields having that type and 
+thus properly configured for hosting such type of data.
     
-#### Configuring the Solr index
+### Configuring the Solr index
 
-Besides the mandatory index definition parameters (and `reindex`), a number of additional parameters can be defined in 
+Besides the index definition parameters mentioned above, a number of additional parameters can be defined in 
  Oak Solr index configuration.
 Such a configuration is composed by:
 
- - the Solr server configuration (see [SolrServerConfiguration](http://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/plugins/index/solr/configuration/SolrServerConfiguration.html))
  - the search / indexing configuration (see [OakSolrConfiguration](http://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/plugins/index/solr/configuration/OakSolrConfiguration.html))
+ - the Solr server configuration (see [SolrServerConfiguration](http://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/plugins/index/solr/configuration/SolrServerConfiguration.html))
  
+### Search / indexing configuration options
+
+Such options define how Oak handles search and indexing requests in order to properly delegate such operations to Solr.
+
+#### Use for property restrictions
+
+If set to _true_ the Solr index will be used also for filtering nodes by property restrictions.
+
+Default is 'false'.
+
+#### Use for path restrictions
+
+If set to _true_ the Solr index will be used also for filtering nodes by path restrictions.
+
+Default is 'false'.
+
+#### Use for primary types
+
+If set to _true_ the Solr index will be used also for filtering nodes by primary type.
+
+Default is 'false'.
+
+#### Path field
+
+The name of the field to be used for searching an exact match of a certain path.
+
+Default is 'path_exact'.
+
+#### Catch all field
+
+The name of the field to be used for searching when no specific field is defined in the search query (e.g. user entered 
+queries like 'foo bar').
+
+Default is 'catch_all'.
+
+Default Solr schema.xml provided with Oak Solr index contains a copyField from everything to 'catch_all', that causing
+all the properties of a certain node to be indexed into that field (as separate values) therefore a query run against 
+that field would match if any of the properties of the original node would have matched such a query.
+
+#### Descendant path field
+
+The name of the field to be used for searching for nodes descendants of a certain node.
+
+Default is 'path_des'.
+
+E.g. The Solr query to find all the descendant nodes of /a/b would be 'path_des:\/a\/b'.
+
+#### Children path field
+
+The name of the field to be used for searching for child nodes of a certain node.
+
+Default is 'path_child'.
+
+E.g. The Solr query to find all the child nodes of /a/b would be 'path_child:\/a\/b'.
+
+#### Parent path field
+
+The name of the field to be used for searching for parent node of a certain node.
+
+Default is 'path_anc'.
+
+E.g. The Solr query to find the parent node of /a/b would be 'path_anc:\/a\/b'.
+
+#### Property restriction fields
+
+The (optional) mapping of property names into Solr fields, so that a mapping jcr:title=foo is defined each node having 
+ the property jcr:title will have its correspondant Solr document having a property foo indexed with the value of the 
+ jcr:title property.
+
+Default is no mapping, therefore the default mechanism of mapping property names to field names is performed.
+
+#### Used properties
+
+A whitelist of properties to be used for indexing / searching by Solr index.
+Such a whitelist, if not empty, would dominate whatever configuration defined for the [Ignored_properties](#Ignored_properties).
+
+Default is an empty list.
+
+E.g. If such a whitelist contains properties _jcr:title_ and _text_ the Solr index will only index such properties for each
+node and will be possible to use it for searching only on those two properties.
+
+#### Ignored properties
+A blacklist of properties to be ignored while indexing and searching by the Solr index.
+
+Such a blacklist makes sense (it will be taken into account by the Solr index) only if the [Used properties](#Used_properties)
+ option doesn't have any value.
+
+Default is the following array: _("rep:members", "rep:authorizableId", "jcr:uuid", "rep:principalName", "rep:password"}_.
+
+#### Commit policy
+
+The Solr commit policy to be used when indexing nodes as documents in Solr.
+
+Possible values are 'SOFT', 'HARD', 'AUTO'.
+
+SOFT: perform a Solr soft-commit for each indexed document.
+
+HARD: perform a Solr (hard) commit for each indexed document.
+
+AUTO: doesn't perform any commit and relies on auto commit being configured on plain Solr's configuration (solrconfig.xml).
+
+Default is _SOFT_.
+
+#### Rows
+
+The number of documents per 'page' to be fetched for each query.
+
+Default is _Integer.MAX_VALUE_ (was _50_ in Oak 1.0).
+
 ##### Solr server configuration options
-
-TBD
-
-##### Search / indexing configuration options
 
 TBD
     
 #### Setting up the Solr server
+
 For the Solr index to work Oak needs to be able to communicate with a Solr instance / cluster.
 Apache Solr supports multiple deployment architectures: 
 
@@ -104,10 +213,9 @@ Oak will communicate to such a Solr server through Solr's HTTP APIs (via [SolrJ]
 Configuring a single remote Solr instance consists of providing the URL to connect to in order to reach the [Solr core]
 (https://wiki.apache.org/solr/SolrTerminology) that will host the Solr index for the Oak repository via the _solr.http.url_
  property which will have to contain such a URL (e.g. _http://10.10.1.101:8983/solr/oak_). 
-All the configuration and tuning of Solr, other than what's described in 'Solr Server Configuration' section of the [OSGi 
-configuration](osgi_config.html) page, will have to be performed on the Solr side; [sample Solr configuration]
- (http://svn.apache.org/viewvc/jackrabbit/oak/trunk/oak-solr-core/src/main/resources/solr/) files (schema.xml, 
- solrconfig.xml, etc.) to start with can be found in _oak-solr-core_ artifact.
+All the configuration and tuning of Solr, other than what's described on this page, will have to be performed on the 
+Solr side; [sample Solr configuration](http://svn.apache.org/viewvc/jackrabbit/oak/trunk/oak-solr-core/src/main/resources/solr/) 
+files (schema.xml, solrconfig.xml, etc.) to start with can be found in _oak-solr-core_ artifact.
 
 ###### SolrCloud cluster
 A [SolrCloud](https://cwiki.apache.org/confluence/display/solr/SolrCloud) cluster is the recommended setup for an Oak 
@@ -117,18 +225,14 @@ to be provided in the _solr.zk.host_ property (e.g. _10.1.1.108:9983_) since the
 directly with Zookeeper.
 The [Solr collection](https://wiki.apache.org/solr/SolrTerminology) to be used within Oak is named _oak_, having a replication
  factor of 2 and using 2 shards; this means in the default setup the SolrCloud cluster would have to be composed by at 
- least 4 Solr servers as the index will be split into 2 shards and each shard will have 2 replicas. Such parameters can 
- be changed, look for the 'Oak Solr remote server configuration' item on the [OSGi configuration](osgi_config.html) page.
+ least 4 Solr servers as the index will be split into 2 shards and each shard will have 2 replicas.
 SolrCloud also allows the hot deploy of configuration files to be used for a certain collection so while setting up the 
  collection to be used for Oak with the needed files before starting the cluster, configuration files can also be uploaded 
  from a local directory, this is controlled by the _solr.conf.dir_ property of the 'Oak Solr remote server configuration'.
 For a detailed description of how SolrCloud works see the [Solr reference guide](https://cwiki.apache.org/confluence/display/solr/SolrCloud).
 
 ##### OSGi environment
-All the Solr configuration parameters are described in the 'Solr Server Configuration' section on the 
-[OSGi configuration](osgi_config.html) page.
-
-Create an index definition for the Solr index, as described [above](#solr-index-definition).
+Create an index definition for the Solr index, as described [above](#Solr_index).
 Once the query index definition node has been created, access OSGi ConfigurationAdmin via e.g. Apache Felix WebConsole:
 
  1. find the 'Oak Solr indexing / search configuration' item and eventually change configuration properties as needed
@@ -179,4 +283,3 @@ As of Oak version 1.2.0:
 
  * Solr index doesn't support index time aggregation, but only query time aggregation
  * Lucene and Solr can be both used for full text, property and path restrictions
-
