@@ -282,6 +282,12 @@ public class RDBDocumentStore implements DocumentStore {
         }
         return null;
     }
+    
+    @Override
+    public CacheInvalidationStats invalidateCache(Iterable<String> keys) {
+        //TODO: optimize me
+        return invalidateCache();
+    }
 
     @Override
     public <T extends Document> void invalidateCache(Collection<T> collection, String id) {

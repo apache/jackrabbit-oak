@@ -31,7 +31,9 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.MANY_CHILDRE
 import static org.apache.jackrabbit.oak.plugins.document.JournalEntry.fillExternalChanges;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.asStringValueIterable;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.pathToId;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.unshareString;
 
 import java.io.Closeable;
@@ -1799,9 +1801,38 @@ public final class DocumentNodeStore
 
         if (!externalChanges.isEmpty()) {
             // invalidate caches
-            stats.cacheStats = store.invalidateCache();
-            // TODO only invalidate affected items
-            docChildrenCache.invalidateAll();
+            if (externalSort == null) {
+                // if no externalSort available, then invalidate the classic way: everything
+                stats.cacheStats = store.invalidateCache();
+                docChildrenCache.invalidateAll();
+            } else {
+                try {
+                    externalSort.sort();
+                    stats.cacheStats = store.invalidateCache(pathToId(externalSort));
+                    // OAK-3002: only invalidate affected items (using journal)
+                    long origSize = docChildrenCache.size();
+                    if (origSize == 0) {
+                        // if docChildrenCache is empty, don't bother
+                        // calling invalidateAll either way 
+                        // (esp calling invalidateAll(Iterable) will
+                        // potentially iterate over all keys even though
+                        // there's nothing to be deleted)
+                        LOG.trace("backgroundRead: docChildrenCache nothing to invalidate");
+                    } else {
+                        // however, if the docChildrenCache is not empty,
+                        // use the invalidateAll(Iterable) variant,
+                        // passing it a Iterable<StringValue>, as that's
+                        // what is contained in the cache
+                        docChildrenCache.invalidateAll(asStringValueIterable(externalSort));
+                        long newSize = docChildrenCache.size();
+                        LOG.trace("backgroundRead: docChildrenCache invalidation result: orig: {}, new: {} ", origSize, newSize);
+                    }
+                } catch (Exception ioe) {
+                    LOG.error("backgroundRead: got IOException during external sorting/cache invalidation (as a result, invalidating entire cache): "+ioe, ioe);
+                    stats.cacheStats = store.invalidateCache();
+                    docChildrenCache.invalidateAll();
+                }
+            }
             stats.cacheInvalidationTime = clock.getTime() - time;
             time = clock.getTime();
 

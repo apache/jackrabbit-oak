@@ -67,6 +67,7 @@ import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.apache.jackrabbit.oak.plugins.document.cache.ForwardingListener;
 import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocOffHeapCache;
 import org.apache.jackrabbit.oak.plugins.document.cache.OffHeapCache;
+import org.apache.jackrabbit.oak.plugins.document.mongo.CacheInvalidator.InvalidationResult;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -286,6 +287,59 @@ public class MongoDocumentStore implements DocumentStore {
         //TODO Check if we should use LinearInvalidator for small cache sizes as
         //that would lead to lesser number of queries
         return CacheInvalidator.createHierarchicalInvalidator(this).invalidateCache();
+    }
+    
+    @Override
+    public CacheInvalidationStats invalidateCache(Iterable<String> keys) {
+        LOG.debug("invalidateCache: start");
+        final InvalidationResult result = new InvalidationResult();
+        int size  = 0;
+
+        final Iterator<String> it = keys.iterator();
+        while(it.hasNext()) {
+            // read chunks of documents only
+            final List<String> ids = new ArrayList<String>(IN_CLAUSE_BATCH_SIZE);
+            while(it.hasNext() && ids.size() < IN_CLAUSE_BATCH_SIZE) {
+                final String id = it.next();
+                if (getCachedNodeDoc(id) != null) {
+                    // only add those that we actually do have cached
+                    ids.add(id);
+                }
+            }
+            size += ids.size();
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("invalidateCache: batch size: {} of total so far {}",
+                        ids.size(), size);
+            }
+            
+            QueryBuilder query = QueryBuilder.start(Document.ID).in(ids);
+            // Fetch only the modCount and id
+            final BasicDBObject fields = new BasicDBObject(Document.ID, 1);
+            fields.put(Document.MOD_COUNT, 1);
+            
+            DBCursor cursor = nodes.find(query.get(), fields);
+            cursor.setReadPreference(ReadPreference.primary());
+            result.queryCount++;
+            
+            for (DBObject obj : cursor) {
+                result.cacheEntriesProcessedCount++;
+                String id = (String) obj.get(Document.ID);
+                Number modCount = (Number) obj.get(Document.MOD_COUNT);
+                
+                CachedNodeDocument cachedDoc = getCachedNodeDoc(id);
+                if (cachedDoc != null
+                        && !Objects.equal(cachedDoc.getModCount(), modCount)) {
+                    invalidateCache(Collection.NODES, id);
+                    result.invalidationCount++;
+                } else {
+                    result.upToDateCount++;
+                }
+            }
+        }
+
+        result.cacheSize = size;
+        LOG.trace("invalidateCache: end. total: {}", size);
+        return result;
     }
 
     @Override

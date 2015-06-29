@@ -52,6 +52,7 @@ public class JournalEntryTest {
         add(sort, paths);
         Revision from = new Revision(1, 0, 1);
         Revision to = new Revision(2, 0, 1);
+        sort.sort();
         JournalEntry.applyTo(sort, cache, from, to);
 
         for (String p : paths) {

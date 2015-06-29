@@ -94,7 +94,6 @@ public final class JournalEntry extends Document {
                         @Nonnull Revision from,
                         @Nonnull Revision to) throws IOException {
         LOG.debug("applyTo: starting for {} to {}", from, to);
-        externalSort.sort();
         // note that it is not de-duplicated yet
         LOG.debug("applyTo: sorting done.");
 

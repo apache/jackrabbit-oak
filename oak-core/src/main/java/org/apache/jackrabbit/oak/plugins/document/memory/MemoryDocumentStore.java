@@ -338,6 +338,11 @@ public class MemoryDocumentStore implements DocumentStore {
     }
 
     @Override
+    public CacheInvalidationStats invalidateCache(Iterable<String> keys) {
+        return null;
+    }
+    
+    @Override
     public void dispose() {
         // ignore
     }
