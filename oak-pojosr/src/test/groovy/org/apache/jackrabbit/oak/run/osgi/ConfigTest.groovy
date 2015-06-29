@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.run.osgi
 
-import de.kalpatec.pojosr.framework.launch.BundleDescriptor
-import de.kalpatec.pojosr.framework.launch.PojoServiceRegistry
+import org.apache.felix.connect.launch.BundleDescriptor
+import org.apache.felix.connect.launch.PojoServiceRegistry
 import groovy.json.JsonOutput
 import org.apache.commons.io.FileUtils
 import org.junit.After

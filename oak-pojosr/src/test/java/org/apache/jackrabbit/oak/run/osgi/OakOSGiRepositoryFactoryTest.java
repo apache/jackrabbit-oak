@@ -36,7 +36,7 @@ import javax.jcr.RepositoryFactory;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
-import de.kalpatec.pojosr.framework.launch.PojoServiceRegistry;
+import org.apache.felix.connect.launch.PojoServiceRegistry;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.api.JackrabbitSession;
