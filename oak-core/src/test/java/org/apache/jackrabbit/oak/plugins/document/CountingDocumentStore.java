@@ -183,6 +183,11 @@ public class CountingDocumentStore implements DocumentStore {
     }
 
     @Override
+    public CacheInvalidationStats invalidateCache(Iterable<String> keys) {
+        return delegate.invalidateCache(keys);
+    }
+
+    @Override
     public <T extends Document> void invalidateCache(Collection<T> collection,
                                                      String key) {
         delegate.invalidateCache(collection, key);

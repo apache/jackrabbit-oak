@@ -16,24 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static java.util.Arrays.asList;
-import static java.util.Collections.synchronizedList;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -41,26 +33,17 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-import org.apache.jackrabbit.oak.stats.Clock;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
-import com.mongodb.DB;
+import static java.util.Collections.synchronizedList;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
-public class JournalTest {
-
-    private static final boolean MONGO_DB = false;
-//    private static final boolean MONGO_DB = true;
-    
-    private TestBuilder builder;
+public class JournalTest extends AbstractJournalTest {
 
     private MemoryDocumentStore ds;
     private MemoryBlobStore bs;
-
-    private List<DocumentMK> mks = Lists.newArrayList();
 
     class DiffingObserver implements Observer, Runnable, NodeStateDiff {
 
@@ -178,42 +161,6 @@ public class JournalTest {
                 return incomingRootStates1.size() + diffedRootStates1.size();
             }
         }
-        
-    }
-    
-    @Test
-    public void largeCleanupTest() throws Exception {
-        // create more than DELETE_BATCH_SIZE of entries and clean them up
-        // should make sure to loop in JournalGarbageCollector.gc such
-        // that it would find issue described here:
-        // https://issues.apache.org/jira/browse/OAK-2829?focusedCommentId=14585733&page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel#comment-14585733
-        
-        doLargeCleanupTest(0, 100);
-        doLargeCleanupTest(200, 1000);// using offset as to not make sure to always create new entries
-        doLargeCleanupTest(2000, 10000);
-        doLargeCleanupTest(20000, 30000); // using 'size' much larger than 30k will be tremendously slow due to ordered node
-    }
-    
-    private void doLargeCleanupTest(int offset, int size) throws Exception {
-        Clock clock = new Clock.Virtual();
-        DocumentMK mk1 = createMK(0 /* clusterId: 0 => uses clusterNodes collection */, 0);
-        DocumentNodeStore ns1 = mk1.getNodeStore();
-        // make sure we're visible and marked as active
-        ns1.renewClusterIdLease();
-        JournalGarbageCollector gc = new JournalGarbageCollector(ns1);
-        clock.getTimeIncreasing();
-        clock.getTimeIncreasing();
-        gc.gc(0, TimeUnit.MILLISECONDS); // cleanup everything that might still be there 
-        
-        // create entries as parametrized:
-        for(int i=offset; i<size+offset; i++) {
-            mk1.commit("/", "+\"regular"+i+"\": {}", null, null);
-            // always run background ops to 'flush' the change
-            // into the journal:
-            ns1.runBackgroundOperations();
-        }
-        Thread.sleep(100); // sleep 100millis
-        assertEquals(size, gc.gc(0, TimeUnit.MILLISECONDS)); // should now be able to clean up everything
         
     }
     
@@ -367,7 +314,7 @@ public class JournalTest {
         doLastRevRecoveryJournalTest(true);
     }
     
-    void doLastRevRecoveryJournalTest(boolean testConcurrency) throws Exception {
+    private void doLastRevRecoveryJournalTest(boolean testConcurrency) throws Exception {
         DocumentMK mk1 = createMK(0 /*clusterId via clusterNodes collection*/, 0);
         DocumentNodeStore ds1 = mk1.getNodeStore();
         int c1Id = ds1.getClusterId();
@@ -485,115 +432,13 @@ public class JournalTest {
         }
     }
 
-    void assertJournalEntries(DocumentNodeStore ds, String... expectedChanges) {
-        List<String> exp = new LinkedList<String>(asList(expectedChanges));
-        for(boolean branch : new Boolean[]{false, true}) {
-            String fromKey = JournalEntry.asId(new Revision(0, 0, ds.getClusterId(), branch));
-            String toKey = JournalEntry.asId(new Revision(System.currentTimeMillis()+1000, 0, ds.getClusterId(), branch));
-            List<JournalEntry> entries = ds.getDocumentStore().query(Collection.JOURNAL, fromKey, toKey, expectedChanges.length+5);
-            if (entries.size()>0) {
-                for (Iterator<JournalEntry> it = entries.iterator(); it.hasNext();) {
-                    JournalEntry journalEntry = it.next();
-                    if (!exp.remove(journalEntry.get("_c"))) {
-                        fail("Found an unexpected change: "+journalEntry.get("_c")+", while all I expected was: "+asList(expectedChanges));
-                    }
-                }
-            }
-        }
-        if (exp.size()>0) {
-            fail("Did not find all expected changes, left over: "+exp+" (from original list which is: "+asList(expectedChanges)+")");
-        }
-    }
-
-    int countJournalEntries(DocumentNodeStore ds, int max) {
-        int total = 0;
-        for(boolean branch : new Boolean[]{false, true}) {
-            String fromKey = JournalEntry.asId(new Revision(0, 0, ds.getClusterId(), branch));
-            String toKey = JournalEntry.asId(new Revision(System.currentTimeMillis()+1000, 0, ds.getClusterId(), branch));
-            List<JournalEntry> entries = ds.getDocumentStore().query(Collection.JOURNAL, fromKey, toKey, max);
-            total+=entries.size();
-        }
-        return total;
-    }
-    
-    private NodeDocument getDocument(DocumentNodeStore nodeStore, String path) {
-        return nodeStore.getDocumentStore().find(Collection.NODES, Utils.getIdFromPath(path));
-    }
-
-    @Before
-    @After
-    public void clear() {
-        for (DocumentMK mk : mks) {
-            mk.dispose();
-        }
-        mks.clear();
-        if (MONGO_DB) {
-            DB db = MongoUtils.getConnection().getDB();
-            MongoUtils.dropCollections(db);
-        }
-    }
-
-    private final class TestBuilder extends DocumentMK.Builder {
-        private CountingDocumentStore actualStore;
-        private CountingTieredDiffCache actualDiffCache;
-
-        @Override
-        public DocumentStore getDocumentStore() {
-            if (actualStore==null) {
-                actualStore = new CountingDocumentStore(super.getDocumentStore());
-            }
-            return actualStore;
-        }
-        
-        @Override
-        public DiffCache getDiffCache() {
-            if (actualDiffCache==null) {
-                actualDiffCache = new CountingTieredDiffCache(this);
-            }
-            return actualDiffCache;
-        }
-    }
-
     private DocumentMK createMK(int clusterId, int asyncDelay) {
-        if (MONGO_DB) {
-            DB db = MongoUtils.getConnection(/*"oak-observation"*/).getDB();
-            builder = newDocumentMKBuilder();
-            return register(builder.setMongoDB(db)
-                    .setClusterId(clusterId).setAsyncDelay(asyncDelay).open());
-        } else {
-            if (ds == null) {
-                ds = new MemoryDocumentStore();
-            }
-            if (bs == null) {
-                bs = new MemoryBlobStore();
-            }
-            return createMK(clusterId, asyncDelay, ds, bs);
+        if (ds == null) {
+            ds = new MemoryDocumentStore();
         }
-    }
-    
-    private TestBuilder newDocumentMKBuilder() {
-        return new TestBuilder();
-    }
-
-    private DocumentMK createMK(int clusterId, int asyncDelay,
-                             DocumentStore ds, BlobStore bs) {
-        builder = newDocumentMKBuilder();
-        return register(builder.setDocumentStore(ds)
-                .setBlobStore(bs).setClusterId(clusterId)
-                .setAsyncDelay(asyncDelay).open());
-    }
-
-    private DocumentMK register(DocumentMK mk) {
-        mks.add(mk);
-        return mk;
-    }
-
-    private void disposeMK(DocumentMK mk) {
-        mk.dispose();
-        for (int i = 0; i < mks.size(); i++) {
-            if (mks.get(i) == mk) {
-                mks.remove(i);
-            }
+        if (bs == null) {
+            bs = new MemoryBlobStore();
         }
+        return createMK(clusterId, asyncDelay, ds, bs);
     }
 }
