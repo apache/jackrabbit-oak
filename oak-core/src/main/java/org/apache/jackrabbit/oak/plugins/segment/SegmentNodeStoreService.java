@@ -191,7 +191,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
     private SegmentStore store;
 
-    private SegmentNodeStore delegate;
+    private volatile SegmentNodeStore delegate;
 
     private ObserverTracker observerTracker;
 
@@ -227,7 +227,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     public static final String PROP_BLOB_GC_MAX_AGE = "blobGcMaxAgeInSecs";
 
     @Override
-    protected synchronized SegmentNodeStore getNodeStore() {
+    protected SegmentNodeStore getNodeStore() {
         checkState(delegate != null, "service must be activated when used");
         return delegate;
     }
@@ -413,19 +413,22 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     }
 
     @Deactivate
-    public synchronized void deactivate() {
+    public void deactivate() {
         unregisterNodeStore();
 
-        if (observerTracker != null) {
-            observerTracker.stop();
-        }
-        if (gcMonitor != null) {
-            gcMonitor.stop();
-        }
-        delegate = null;
-        if (store != null) {
-            store.close();
-            store = null;
+        synchronized (this) {
+            if (observerTracker != null) {
+                observerTracker.stop();
+            }
+            if (gcMonitor != null) {
+                gcMonitor.stop();
+            }
+            delegate = null;
+
+            if (store != null) {
+                store.close();
+                store = null;
+            }
         }
     }
 
