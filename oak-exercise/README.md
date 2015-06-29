@@ -18,7 +18,7 @@
 Jackrabbit Oak - Exercise
 =======================================================
 
-Oak module providing exercises for developers who wish to become familar with
+Oak module providing exercises for developers who wish to become familiar with
 the Oak code base and understand the design principals and implementation
 details.
 
@@ -85,7 +85,7 @@ The JavaDoc for the latest Jackrabbit API (2.10) can be found at http://jackrabb
 - User Management
     http://jackrabbit.apache.org/api/2.10/org/apache/jackrabbit/api/security/user/package-summary.html
 
-#### Oak Documenation
+#### Oak Documentation
 
 There exists some documentation about Oak Security at http://jackrabbit.apache.org/oak/docs/security/overview.html. That should cover everything that is being looked at during that introduction.
 Further References
