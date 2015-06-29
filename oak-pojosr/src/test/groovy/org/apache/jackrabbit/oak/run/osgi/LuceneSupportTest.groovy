@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.run.osgi
 
-import de.kalpatec.pojosr.framework.launch.PojoServiceRegistry
+import org.apache.felix.connect.launch.PojoServiceRegistry
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator
 import org.apache.jackrabbit.oak.plugins.index.aggregate.SimpleNodeAggregator
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexFormatVersion

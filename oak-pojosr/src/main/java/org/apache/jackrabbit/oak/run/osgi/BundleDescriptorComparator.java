@@ -24,7 +24,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 
-import de.kalpatec.pojosr.framework.launch.BundleDescriptor;
+import org.apache.felix.connect.launch.BundleDescriptor;
 import org.osgi.framework.Constants;
 
 /**
