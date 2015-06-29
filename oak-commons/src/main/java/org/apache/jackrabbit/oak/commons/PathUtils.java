@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
+import static com.google.common.collect.Sets.newHashSet;
+
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Set;
@@ -23,8 +25,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nonnull;
-
-import static com.google.common.collect.Sets.newHashSet;
 
 /**
  * Utility methods to parse a path.
@@ -328,7 +328,7 @@ public final class PathUtils {
      */
     public static boolean isAncestor(String ancestor, String path) {
         assert isValid(ancestor) : "Invalid parent path ["+ancestor+"]";
-        assert isValid(path) : "Invalid path ["+ancestor+"]";
+        assert isValid(path) : "Invalid path ["+path+"]";
         if (ancestor.isEmpty() || path.isEmpty()) {
             return false;
         }
