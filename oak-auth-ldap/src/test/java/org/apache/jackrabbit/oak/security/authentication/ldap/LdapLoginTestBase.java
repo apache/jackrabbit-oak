@@ -46,6 +46,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -305,6 +306,7 @@ public abstract class LdapLoginTestBase extends ExternalLoginModuleTestBase {
         }
     }
 
+    @Ignore("OAK-3032")
     @Test
     public void testPrincipalsFromAuthInfo() throws Exception {
         ContentSession cs = null;
