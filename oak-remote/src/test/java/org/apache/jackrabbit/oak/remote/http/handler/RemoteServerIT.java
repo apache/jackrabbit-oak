@@ -116,7 +116,13 @@ public class RemoteServerIT extends OakBaseTest {
     }
 
     private String load(String name) throws Exception {
-        return IOUtils.toString(getClass().getResource(name).openStream(), Charsets.UTF_8);
+        InputStream is = null;
+        try {
+            is = getClass().getResource(name).openStream();
+            return IOUtils.toString(is, Charsets.UTF_8);
+        } finally {
+            IOUtils.closeQuietly(is);
+        }
     }
 
     @Before
