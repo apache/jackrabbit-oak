@@ -43,6 +43,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.mongodb.MongoClientURI;
+import com.mongodb.MongoExecutionTimeoutException;
 import com.mongodb.QueryOperators;
 import com.mongodb.ReadPreference;
 
@@ -172,6 +173,17 @@ public class MongoDocumentStore implements DocumentStore {
      */
     private final long maxQueryTimeMS =
             Long.getLong("oak.mongo.maxQueryTimeMS", TimeUnit.MINUTES.toMillis(1));
+
+    /**
+     * Duration in milliseconds after a mongo query with an additional
+     * constraint (e.g. _modified) on the NODES collection times out and is
+     * executed again without holding a {@link TreeLock} and without updating
+     * the cache with data retrieved from MongoDB.
+     * <p>
+     * Default is 3000 (three seconds).
+     */
+    private long maxLockedQueryTimeMS =
+            Long.getLong("oak.mongo.maxLockedQueryTimeMS", TimeUnit.SECONDS.toMillis(3));
 
     private String lastReadWriteMode;
 
@@ -489,6 +501,36 @@ public class MongoDocumentStore implements DocumentStore {
                                               String indexedProperty,
                                               long startValue,
                                               int limit) {
+        boolean withLock = true;
+        if (collection == Collection.NODES && indexedProperty != null) {
+            long maxQueryTime;
+            if (maxQueryTimeMS > 0) {
+                maxQueryTime = Math.min(maxQueryTimeMS, maxLockedQueryTimeMS);
+            } else {
+                maxQueryTime = maxLockedQueryTimeMS;
+            }
+            try {
+                return queryInternal(collection, fromKey, toKey, indexedProperty,
+                        startValue, limit, maxQueryTime, true);
+            } catch (MongoExecutionTimeoutException e) {
+                LOG.info("query timed out after {} milliseconds and will be retried without lock {}",
+                        maxQueryTime, Lists.newArrayList(fromKey, toKey, indexedProperty, startValue, limit));
+                withLock = false;
+            }
+        }
+        return queryInternal(collection, fromKey, toKey, indexedProperty,
+                startValue, limit, maxQueryTimeMS, withLock);
+    }
+
+    @Nonnull
+    <T extends Document> List<T> queryInternal(Collection<T> collection,
+                                                       String fromKey,
+                                                       String toKey,
+                                                       String indexedProperty,
+                                                       long startValue,
+                                                       int limit,
+                                                       long maxQueryTime,
+                                                       boolean withLock) {
         log("query", fromKey, toKey, indexedProperty, startValue, limit);
         DBCollection dbCollection = getDBCollection(collection);
         QueryBuilder queryBuilder = QueryBuilder.start(Document.ID);
@@ -518,16 +560,16 @@ public class MongoDocumentStore implements DocumentStore {
         }
         DBObject query = queryBuilder.get();
         String parentId = Utils.getParentIdFromLowerLimit(fromKey);
-        TreeLock lock = acquireExclusive(parentId != null ? parentId : "");
         final long start = PERFLOG.start();
+        TreeLock lock = withLock ? acquireExclusive(parentId != null ? parentId : "") : null;
         try {
             DBCursor cursor = dbCollection.find(query).sort(BY_ID_ASC);
             if (!disableIndexHint) {
                 cursor.hint(hint);
             }
-            if (maxQueryTimeMS > 0) {
+            if (maxQueryTime > 0) {
                 // OAK-2614: set maxTime if maxQueryTimeMS > 0
-                cursor.maxTime(maxQueryTimeMS, TimeUnit.MILLISECONDS);
+                cursor.maxTime(maxQueryTime, TimeUnit.MILLISECONDS);
             }
             ReadPreference readPreference =
                     getMongoReadPreference(collection, parentId, getDefaultReadPreference(collection));
@@ -544,7 +586,9 @@ public class MongoDocumentStore implements DocumentStore {
                 for (int i = 0; i < limit && cursor.hasNext(); i++) {
                     DBObject o = cursor.next();
                     T doc = convertFromDBObject(collection, o);
-                    if (collection == Collection.NODES && doc != null) {
+                    if (collection == Collection.NODES
+                            && doc != null
+                            && lock != null) {
                         doc.seal();
                         String id = doc.getId();
                         CacheValue cacheKey = new StringValue(id);
@@ -573,7 +617,9 @@ public class MongoDocumentStore implements DocumentStore {
             }
             return list;
         } finally {
-            lock.unlock();
+            if (lock != null) {
+                lock.unlock();
+            }
             PERFLOG.end(start, 1, "query for children from [{}] to [{}]", fromKey, toKey);
         }
     }
@@ -1301,6 +1347,10 @@ public class MongoDocumentStore implements DocumentStore {
 
     void setClock(Clock clock) {
         this.clock = clock;
+    }
+
+    void setMaxLockedQueryTimeMS(long maxLockedQueryTimeMS) {
+        this.maxLockedQueryTimeMS = maxLockedQueryTimeMS;
     }
 
     private final static class TreeLock {
