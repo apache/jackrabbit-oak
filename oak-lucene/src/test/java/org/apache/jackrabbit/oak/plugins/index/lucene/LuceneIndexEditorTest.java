@@ -23,11 +23,23 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -43,7 +55,10 @@ import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
 import org.junit.After;
+import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static com.google.common.collect.ImmutableSet.of;
 import static javax.jcr.PropertyType.TYPENAME_STRING;
@@ -75,6 +90,9 @@ public class LuceneIndexEditorTest {
     private IndexTracker tracker = new IndexTracker();
 
     private IndexNode indexNode;
+
+    @Rule
+    public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Test
     public void testLuceneWithFullText() throws Exception {
@@ -316,6 +334,50 @@ public class LuceneIndexEditorTest {
         assertFalse(defn.isOfOldFormat());
     }
 
+    @Test
+    public void copyOnWriteAndLocks() throws Exception {
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
+        IndexCopier copier = new IndexCopier(executorService, temporaryFolder.getRoot());
+
+        FailOnDemandEditorProvider failingProvider = new FailOnDemandEditorProvider();
+        EditorHook hook = new EditorHook(
+                new IndexUpdateProvider(
+                        new CompositeIndexEditorProvider(
+                                failingProvider,
+                                new LuceneIndexEditorProvider(copier))));
+
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        NodeBuilder nb = newLuceneIndexDefinitionV2(index, "lucene", of(TYPENAME_STRING));
+        nb.setProperty(LuceneIndexConstants.INDEX_PATH, "foo");
+        IndexUtils.createIndexDefinition(index, "failingIndex", false, false, of("foo"), null);
+
+
+        //1. Get initial set indexed. So that next cycle is normal indexing
+        NodeState indexed = hook.processCommit(EMPTY_NODE, builder.getNodeState(), CommitInfo.EMPTY);
+        builder = indexed.builder();
+
+        NodeState before = indexed;
+        builder.child("test").setProperty("a", "fox is jumping");
+        NodeState after = builder.getNodeState();
+
+        //2. Ensure that Lucene gets triggered but close is not called
+        failingProvider.setShouldFail(true);
+        try {
+            hook.processCommit(before, after, CommitInfo.EMPTY);
+            fail();
+        } catch (CommitFailedException ignore){
+
+        }
+
+        //3. Disable the troubling editor
+        failingProvider.setShouldFail(false);
+
+        //4. Now commit should process fine
+        hook.processCommit(before, after, CommitInfo.EMPTY);
+
+        executorService.shutdown();
+    }
+
     //@Test
     public void checkLuceneIndexFileUpdates() throws Exception{
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
@@ -407,6 +469,40 @@ public class LuceneIndexEditorTest {
 
     static long dateToTime(String dt) throws java.text.ParseException {
         return FieldFactory.dateToLong(ISO8601.format(createCal(dt)));
+    }
+
+    private static class FailOnDemandEditorProvider implements IndexEditorProvider {
+
+        private boolean shouldFail;
+
+        @Override
+        public Editor getIndexEditor(@Nonnull String type, @Nonnull NodeBuilder definition,
+                                     @Nonnull NodeState root,
+                                     @Nonnull IndexUpdateCallback callback) throws CommitFailedException {
+            if (PropertyIndexEditorProvider.TYPE.equals(type)) {
+                return new FailOnDemandEditor();
+            }
+            return null;
+        }
+
+        public void setShouldFail(boolean shouldFail) {
+            this.shouldFail = shouldFail;
+        }
+
+        private class FailOnDemandEditor extends DefaultEditor implements IndexEditor {
+            @Override
+            public void leave(NodeState before, NodeState after)
+                    throws CommitFailedException {
+                throwExceptionIfTold();
+                super.leave(before, after);
+            }
+
+            void throwExceptionIfTold() throws CommitFailedException {
+                if (shouldFail) {
+                    throw new CommitFailedException("commit",1 , null);
+                }
+            }
+        }
     }
 
 }
