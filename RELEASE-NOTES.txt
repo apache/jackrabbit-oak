@@ -1,5 +1,5 @@
 
-Release Notes -- Apache Jackrabbit Oak -- Version 1.0.16
+Release Notes -- Apache Jackrabbit Oak -- Version 1.0.17
 
 Introduction
 ------------
@@ -8,7 +8,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.0.16 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.0.17 is a patch release that contains fixes and
 improvements over Oak 1.0. Jackrabbit Oak 1.0.x releases are considered
 stable and targeted for production use.
 
@@ -27,36 +27,20 @@ LuceneIndexEditor now supports CopyOnWrite mode (OAK-2247) for faster indexing.
 Refer to http://jackrabbit.apache.org/oak/docs/query/lucene.html#CopyOnWrite
 for more details.
 
-Changes in Oak 1.0.16
+Changes in Oak 1.0.17
 ---------------------
 
 Bugs
 
-    [OAK-3000] - SimpleExcerptProvider causes OOM for some wildcard expressions
-    [OAK-3019] - VersionablePathHook must not process hidden nodes
-    [OAK-3021] - UserValidator and AccessControlValidator must not process hidden nodes
-    [OAK-3028] - Hierarchy conflict detection broken
-    [OAK-3029] - EmbeddedSolrServerProvider should check if core is / can be loaded
 
 Improvements
 
-    [OAK-3004] - OSGI wrapper service for Jackrabbit CachingFDS
-    [OAK-3017] - Log message when a branch is created
 
 New Features
 
-    [OAK-2980] - Fast result size estimate in Solr index
 
 Sub-tasks
 
-    [OAK-2410] - [sonar]Some statements not being closed in RDBDocumentStore
-    [OAK-2747] - Admin cannot create versions on a locked page by itself
-    [OAK-2982] - BasicDocumentStoreTest: separate actual unit tests from performance tests
-    [OAK-2985] - RDBDocumentStore: more diagnostics for long-running queries
-    [OAK-2987] - RDBDocumentStore: try PreparedStatement batching
-    [OAK-2995] - RDB*Store: check transaction isolation level
-    [OAK-3009] - RDBDocumentStore: add support for optional additional index
-    [OAK-3010] - RDBDocumentStore: remove hardwired "id-is-binary" flag
 
 
 In addition to the above-mentioned changes, this release contains
