@@ -83,7 +83,7 @@ public abstract class ItemDelegate {
         sessionDelegate.checkAlive();
         if (checkUpdate() && !exists()) {
             throw new InvalidItemStateException(
-                    "This item does not exist anymore");
+                    "This item [" + getPath() + "] does not exist anymore");
         }
     }
 
