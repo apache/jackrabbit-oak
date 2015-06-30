@@ -56,7 +56,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.hash.Hashing;
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.NotifyingFutureTask;
 import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.apache.lucene.store.Directory;
@@ -65,6 +64,7 @@ import org.apache.lucene.store.FilterDirectory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
+import org.apache.lucene.store.NoLockFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -147,7 +147,10 @@ public class IndexCopier implements CopyOnReadStatsMBean {
             String newVersion = String.valueOf(definition.getReindexCount());
             indexWriterDir = getVersionedDir(indexPath, indexDir, newVersion);
         }
-        Directory dir = FSDirectory.open(indexWriterDir);
+
+        //By design indexing in Oak is single threaded so Lucene locking
+        //can be disabled
+        Directory dir = FSDirectory.open(indexWriterDir, NoLockFactory.getNoLockFactory());
 
         log.debug("IndexWriter would use {}", indexWriterDir);
 
