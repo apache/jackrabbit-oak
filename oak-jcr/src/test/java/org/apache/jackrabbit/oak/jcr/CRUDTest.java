@@ -35,6 +35,8 @@ import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertTrue;
 import static junit.framework.Assert.fail;
+import static org.junit.Assert.assertThat;
+import static org.junit.matchers.JUnitMatchers.containsString;
 
 public class CRUDTest extends AbstractRepositoryTest {
 
@@ -204,6 +206,27 @@ public class CRUDTest extends AbstractRepositoryTest {
 
         root.getProperty("start").remove();
         session.save();
+    }
+
+    @Test
+    public void checkPathInInvalidItemStateException() throws Exception {
+        Session s1 = getAdminSession();
+        Node root = s1.getRootNode();
+        Node a = root.addNode("a");
+        String path = a.getPath();
+        s1.save();
+
+        Session s2 = getAdminSession();
+        s2.getRootNode().getNode("a").remove();
+        s2.save();
+
+        s1.refresh(false);
+
+        try {
+            a.getPath();
+        } catch (InvalidItemStateException e) {
+            assertThat(e.getMessage(), containsString(path));
+        }
     }
 
 }
