@@ -18,9 +18,9 @@
 package org.apache.jackrabbit.oak.remote.http.handler;
 
 import com.google.common.base.Charsets;
-import com.google.common.io.Files;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
+import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.NodeStoreFixture;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.OakBaseTest;
@@ -116,7 +116,7 @@ public class RemoteServerIT extends OakBaseTest {
     }
 
     private String load(String name) throws Exception {
-        return Files.toString(new File(getClass().getResource(name).getFile()), Charsets.UTF_8);
+        return IOUtils.toString(getClass().getResource(name).openStream(), Charsets.UTF_8);
     }
 
     @Before
