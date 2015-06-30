@@ -334,7 +334,6 @@ public class LuceneIndexEditorTest {
         assertFalse(defn.isOfOldFormat());
     }
 
-    @Ignore("OAK-3053")
     @Test
     public void copyOnWriteAndLocks() throws Exception {
         ExecutorService executorService = Executors.newFixedThreadPool(2);
