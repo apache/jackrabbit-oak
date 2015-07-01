@@ -161,7 +161,7 @@ public abstract class NodeObserver implements Observer {
                 while (!generator.isDone()) {
                     generator.generate();
                 }
-                PERF_LOGGER.end(start, 10,
+                PERF_LOGGER.end(start, 100,
                         "Generated events (before: {}, after: {})",
                         previousRoot, root);
             } catch (Exception e) {

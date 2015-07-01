@@ -40,7 +40,9 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.transform;
+import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COLLISIONS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SPLIT_CANDIDATE_THRESHOLD;
@@ -52,7 +54,7 @@ public class Commit {
 
     private static final Logger LOG = LoggerFactory.getLogger(Commit.class);
 
-    private final DocumentNodeStore nodeStore;
+    protected final DocumentNodeStore nodeStore;
     private final DocumentNodeStoreBranch branch;
     private final Revision baseRevision;
     private final Revision revision;
@@ -126,6 +128,15 @@ public class Commit {
     @CheckForNull
     Revision getBaseRevision() {
         return baseRevision;
+    }
+
+    /**
+     * @return all modified paths, including ancestors without explicit
+     *          modifications.
+     */
+    @Nonnull
+    Iterable<String> getModifiedPaths() {
+        return modifiedNodes;
     }
 
     void addNodeDiff(DocumentNodeState n) {
@@ -275,7 +286,7 @@ public class Commit {
         // so that all operations can be rolled back if there is a conflict
         ArrayList<UpdateOp> opLog = new ArrayList<UpdateOp>();
 
-        //Compute the commit root
+        // Compute the commit root
         for (String p : operations.keySet()) {
             markChanged(p);
             if (commitRootPath == null) {
@@ -289,6 +300,16 @@ public class Commit {
                 }
             }
         }
+
+        // push branch changes to journal
+        if (baseBranchRevision != null) {
+            // store as external change
+            JournalEntry doc = JOURNAL.newDocument(store);
+            doc.modified(modifiedNodes);
+            Revision r = revision.asBranchRevision();
+            store.create(JOURNAL, singletonList(doc.asUpdateOp(r)));
+        }
+
         int commitRootDepth = PathUtils.getDepth(commitRootPath);
         // check if there are real changes on the commit root
         boolean commitRootHasChanges = operations.containsKey(commitRootPath);
@@ -574,7 +595,7 @@ public class Commit {
             }
             list.add(p);
         }
-        DiffCache.Entry cacheEntry = nodeStore.getDiffCache().newEntry(before, revision);
+        DiffCache.Entry cacheEntry = nodeStore.getDiffCache().newEntry(before, revision, true);
         LastRevTracker tracker = nodeStore.createTracker(revision, isBranchCommit);
         List<String> added = new ArrayList<String>();
         List<String> removed = new ArrayList<String>();

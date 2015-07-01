@@ -80,7 +80,8 @@ public class MemoryDiffCache implements DiffCache {
     @Nonnull
     @Override
     public Entry newEntry(@Nonnull Revision from,
-                          @Nonnull Revision to) {
+                          @Nonnull Revision to,
+                          boolean local /*ignored*/) {
         return new MemoryEntry(from, to);
     }
 

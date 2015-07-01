@@ -26,6 +26,7 @@ import static javax.jcr.observation.Event.PERSIST;
 import static javax.jcr.observation.Event.PROPERTY_ADDED;
 import static javax.jcr.observation.Event.PROPERTY_CHANGED;
 import static javax.jcr.observation.Event.PROPERTY_REMOVED;
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.getServices;
 
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -51,13 +52,12 @@ import com.google.common.collect.Lists;
 
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.api.jmx.RepositoryStatsMBean;
 import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
+import org.apache.jackrabbit.oak.spi.commit.BackgroundObserverMBean;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
-import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 
 public class ObservationTest extends Benchmark {
     public static final int EVENT_TYPES = NODE_ADDED | NODE_REMOVED | NODE_MOVED |
@@ -67,7 +67,7 @@ public class ObservationTest extends Benchmark {
     private static final int OUTPUT_RESOLUTION = 100;
     private static final int LISTENER_COUNT = Integer.getInteger("listenerCount", 100);
     private static final int WRITER_COUNT = Integer.getInteger("writerCount", 1);
-    private static final String PATH_FILTER = System.getProperty("pathFilter", "/");
+    private static final String PATH_FILTER = System.getProperty("pathFilter");
 
     @Override
     public void run(Iterable<RepositoryFixture> fixtures) {
@@ -119,13 +119,14 @@ public class ObservationTest extends Benchmark {
         final AtomicInteger eventCount = new AtomicInteger();
         final AtomicInteger nodeCount = new AtomicInteger();
 
-        Session[] sessions = new Session[LISTENER_COUNT];
-        EventListener[] listeners = new Listener[LISTENER_COUNT];
+        List<Session> sessions = Lists.newArrayList();
+        List<EventListener> listeners = Lists.newArrayList();
 
         List<String> testPaths = Lists.newArrayList();
         Session s = createSession(repository);
+        String path = "/path/to/observation/benchmark-" + AbstractTest.TEST_ID;
         try {
-            Node testRoot = s.getRootNode().addNode("path").addNode("to").addNode("observation").addNode("benchmark");
+            Node testRoot = JcrUtils.getOrCreateByPath(path, null, s);
             for (int i = 0; i < WRITER_COUNT; i++) {
                 testPaths.add(testRoot.addNode("session-" + i).getPath());
             }
@@ -134,14 +135,18 @@ public class ObservationTest extends Benchmark {
             s.logout();
         }
 
+        String pathFilter = PATH_FILTER == null ? path : PATH_FILTER;
+        System.out.println("Path filter for event listener: " + pathFilter);
         ExecutorService service = Executors.newFixedThreadPool(WRITER_COUNT);
         try {
             for (int k = 0; k < LISTENER_COUNT; k++) {
-                sessions[k] = createSession(repository);
-                listeners[k] = new Listener(eventCount);
-                ObservationManager obsMgr = sessions[k].getWorkspace().getObservationManager();
-                obsMgr.addEventListener(listeners[k], EVENT_TYPES, PATH_FILTER, true, null, null, false);
+                sessions.add(createSession(repository));
+                listeners.add(new Listener(eventCount));
+                ObservationManager obsMgr = sessions.get(k).getWorkspace().getObservationManager();
+                obsMgr.addEventListener(listeners.get(k), EVENT_TYPES, pathFilter, true, null, null, false);
             }
+            // also add a listener on the root node
+            addRootListener(repository, sessions, listeners);
 
             List<Future<Object>> createNodes = Lists.newArrayList();
             for (final String p : testPaths) {
@@ -155,7 +160,7 @@ public class ObservationTest extends Benchmark {
                             Node testRoot = session.getNode(p);
                             createChildren(testRoot, 100);
                             for (Node m : JcrUtils.getChildNodes(testRoot)) {
-                                createChildren(m, 100);
+                                createChildren(m, 100 / WRITER_COUNT);
                                 for (Node n : JcrUtils.getChildNodes(m)) {
                                     createChildren(n, 5);
                                 }
@@ -180,7 +185,7 @@ public class ObservationTest extends Benchmark {
                 }));
             }
 
-            System.out.println("ms      #node   nodes/s #event  event/s event ratio queue");
+            System.out.println("ms      #node   nodes/s #event  event/s event-ratio queue external");
             while (!isDone(createNodes) || (eventCount.get() / LISTENER_COUNT < nodeCount.get() * EVENTS_PER_NODE)) {
                 long t0 = System.currentTimeMillis();
                 Thread.sleep(OUTPUT_RESOLUTION);
@@ -188,38 +193,51 @@ public class ObservationTest extends Benchmark {
 
                 int nc = nodeCount.get();
                 int ec = eventCount.get() / LISTENER_COUNT;
-                long ql = getObservationQueueMaxLength(whiteboard);
+                int[] ql = getObservationQueueLength(whiteboard);
 
                 double nps = (double) nc / t * 1000;
                 double eps = (double) ec / t * 1000;
                 double epn = (double) ec / nc / EVENTS_PER_NODE;
 
                 System.out.format(
-                        "%7d %7d %7.1f %7d %7.1f %1.2f %7d%n",
-                           t, nc,  nps, ec,  eps,  epn, ql);
+                        "%7d %7d %7.1f %7d %7.1f %7.2f %7d %7d%n",
+                           t, nc,  nps, ec,  eps,  epn, ql[0], ql[1]);
             }
             get(createNodes);
         } finally {
-            for (int k = 0; k < LISTENER_COUNT; k++) {
-                sessions[k].getWorkspace().getObservationManager().removeEventListener(listeners[k]);
-                sessions[k].logout();
+            for (int k = 0; k < sessions.size(); k++) {
+                sessions.get(k).getWorkspace().getObservationManager()
+                        .removeEventListener(listeners.get(k));
+                sessions.get(k).logout();
             }
             service.shutdown();
             service.awaitTermination(1, TimeUnit.MINUTES);
         }
     }
 
-    private static long getObservationQueueMaxLength(@Nullable Whiteboard whiteboard) {
-        if (whiteboard == null) {
-            return -1;
+    private void addRootListener(Repository repository,
+                                 List<Session> sessions,
+                                 List<EventListener> listeners)
+            throws RepositoryException {
+        Session s = createSession(repository);
+        sessions.add(s);
+        Listener listener = new Listener(new AtomicInteger());
+        ObservationManager obsMgr = s.getWorkspace().getObservationManager();
+        obsMgr.addEventListener(listener, EVENT_TYPES, "/", true, null, null, false);
+        listeners.add(listener);
+    }
+
+    private static int[] getObservationQueueLength(@Nullable Whiteboard wb) {
+        if (wb == null) {
+            return new int[]{-1, -1};
         }
-        List<RepositoryStatsMBean> stats = WhiteboardUtils.getServices(
-                whiteboard, RepositoryStatsMBean.class);
-        for (RepositoryStatsMBean bean : stats) {
-            long[] values = (long[]) bean.getObservationQueueMaxLength().get("per second");
-            return values[values.length - 1];
+        int len = -1;
+        int ext = -1;
+        for (BackgroundObserverMBean bean : getServices(wb, BackgroundObserverMBean.class)) {
+            len = Math.max(bean.getQueueSize(), len);
+            ext = Math.max(bean.getExternalEventCount(), ext);
         }
-        return -1;
+        return new int[]{len, ext};
     }
 
     private static boolean isDone(Iterable<Future<Object>> futures) {
