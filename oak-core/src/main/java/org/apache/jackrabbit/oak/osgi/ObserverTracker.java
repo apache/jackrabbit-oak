@@ -80,8 +80,9 @@ public class ObserverTracker implements ServiceTrackerCustomizer {
 
     @Override
     public void removedService(ServiceReference reference, Object service) {
-        if (subscriptions.containsKey(reference)) {
-            Closeables.closeQuietly(subscriptions.get(reference));
+        Closeable subscription = subscriptions.remove(reference);
+        if (subscription != null) {
+            Closeables.closeQuietly(subscription);
             bundleContext.ungetService(reference);
         }
     }
