@@ -202,4 +202,19 @@ public class AggregateIndexPlan implements IndexPlan {
         return null;
     }
 
+    @Override
+    public String getPlanName() {
+        StringBuilder name = new StringBuilder();
+        boolean first = true;
+        for (IndexPlan p : basePlans.values()) {
+            if (!first) {
+                name.append(",");
+            } else {
+                first = false;
+            }
+            name.append(p.getPlanName());
+        }
+        return name.toString();
+    }
+
 }
