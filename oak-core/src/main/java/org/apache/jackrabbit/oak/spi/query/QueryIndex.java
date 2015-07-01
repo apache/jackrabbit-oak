@@ -24,6 +24,8 @@ import java.util.Map;
 
 import javax.annotation.CheckForNull;
 
+import aQute.bnd.annotation.ProviderType;
+
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
@@ -194,6 +196,7 @@ public interface QueryIndex {
     /**
      * An index plan.
      */
+    @ProviderType
     public interface IndexPlan extends Cloneable{
 
         /**
@@ -307,7 +310,15 @@ public interface QueryIndex {
          */
         @CheckForNull
         Object getAttribute(String name);
-        
+
+        /**
+         * Get the unique plan name.
+         *
+         * @return the plan name
+         */
+        @CheckForNull
+        String getPlanName();
+
         /**
          * A builder for index plans.
          */
@@ -325,6 +336,7 @@ public interface QueryIndex {
             protected PropertyRestriction propRestriction;
             protected String pathPrefix = "/";
             protected Map<String, Object> attributes = Maps.newHashMap();
+            protected String planName = null;
 
             public Builder setCostPerExecution(double costPerExecution) {
                 this.costPerExecution = costPerExecution;
@@ -386,6 +398,11 @@ public interface QueryIndex {
                return this;
             }
 
+            public Builder setPlanName(String name) {
+                this.planName = name;
+                return this;
+             }
+
             public IndexPlan build() {
                 
                 return new IndexPlan() {
@@ -416,6 +433,7 @@ public interface QueryIndex {
                             Builder.this.pathPrefix;
                     private final Map<String, Object> attributes =
                             Builder.this.attributes;
+                    private final String planName = Builder.this.planName;
 
                     @Override
                     public String toString() {
@@ -522,6 +540,11 @@ public interface QueryIndex {
                     @Override
                     public Object getAttribute(String name) {
                         return attributes.get(name);
+                    }
+
+                    @Override
+                    public String getPlanName(){
+                        return planName;
                     }
                 };
             }

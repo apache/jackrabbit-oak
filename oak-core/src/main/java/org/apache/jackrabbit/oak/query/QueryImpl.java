@@ -910,6 +910,7 @@ public class QueryImpl implements Query {
         IndexPlan bestPlan = null;
         for (QueryIndex index : indexProvider.getQueryIndexes(rootState)) {
             double cost;
+            String indexName = index.getIndexName();
             IndexPlan indexPlan = null;
             if (index instanceof AdvancedQueryIndex) {
                 AdvancedQueryIndex advIndex = (AdvancedQueryIndex) index;
@@ -957,6 +958,9 @@ public class QueryImpl implements Query {
                     double c = p.getCostPerExecution() + entryCount * p.getCostPerEntry();
                     if (c < cost) {
                         cost = c;
+                        if (p.getPlanName() != null) {
+                            indexName += "[" + p.getPlanName() + "]";
+                        }
                         indexPlan = p;
                     }
                 }
@@ -964,10 +968,10 @@ public class QueryImpl implements Query {
                 cost = index.getCost(filter, rootState);
             }
             if (LOG.isDebugEnabled()) {
-                logDebug("cost for " + index.getIndexName() + " is " + cost);
+                logDebug("cost for " + indexName + " is " + cost);
             }
             if (cost < 0) {
-                LOG.error("cost below 0 for " + index.getIndexName() + " is " + cost);
+                LOG.error("cost below 0 for " + indexName + " is " + cost);
             }
             if (cost < bestCost) {
                 bestCost = cost;
