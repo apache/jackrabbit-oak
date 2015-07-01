@@ -1782,7 +1782,7 @@ public final class DocumentNodeStore
                 // the new head revision is after other revisions
                 setHeadRevision(newRevision());
                 if (dispatchChange) {
-                    dispatcher.contentChanged(getRoot(), null);
+                    dispatcher.contentChanged(getRoot().fromExternalChange(), null);
                 }
             } finally {
                 backgroundOperationLock.writeLock().unlock();
