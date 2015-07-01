@@ -58,6 +58,11 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocTy
 public class MongoVersionGCSupport extends VersionGCSupport {
     private static final Logger LOG = LoggerFactory.getLogger(MongoVersionGCSupport.class);
     private final MongoDocumentStore store;
+    /**
+     * Disables the index hint sent to MongoDB.
+     */
+    private final boolean disableIndexHint =
+            Boolean.getBoolean("oak.mongo.disableVersionGCIndexHint");
 
     public MongoVersionGCSupport(MongoDocumentStore store) {
         super(store);
@@ -72,6 +77,10 @@ public class MongoVersionGCSupport extends VersionGCSupport {
                                 .put(NodeDocument.MODIFIED_IN_SECS).lessThan(NodeDocument.getModifiedInSecs(lastModifiedTime))
                         .get();
         DBCursor cursor = getNodeCollection().find(query).setReadPreference(ReadPreference.secondaryPreferred());
+        if (!disableIndexHint) {
+            cursor.hint(new BasicDBObject(NodeDocument.DELETED_ONCE, 1));
+        }
+
         return CloseableIterable.wrap(transform(cursor, new Function<DBObject, NodeDocument>() {
             @Override
             public NodeDocument apply(DBObject input) {
