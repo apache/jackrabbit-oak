@@ -22,6 +22,9 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static com.google.common.collect.ImmutableList.of;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.mergeSorted;
+import static java.util.Collections.singletonList;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
+import static org.apache.jackrabbit.oak.plugins.document.UnsavedModifications.Snapshot.IGNORE;
 
 import java.util.Iterator;
 import java.util.List;
@@ -137,6 +140,8 @@ public class LastRevRecoveryAgent {
 
         //Map of known last rev of checked paths
         Map<String, Revision> knownLastRevs = MapFactory.getInstance().create();
+        final DocumentStore docStore = nodeStore.getDocumentStore();
+        final JournalEntry changes = JOURNAL.newDocument(docStore);
 
         long count = 0;
         while (suspects.hasNext()) {
@@ -165,6 +170,7 @@ public class LastRevRecoveryAgent {
             //2. Update lastRev for parent paths aka rollup
             if (lastRevForParents != null) {
                 String path = doc.getPath();
+                changes.modified(path); // track all changes
                 while (true) {
                     if (PathUtils.denotesRoot(path)) {
                         break;
@@ -187,6 +193,9 @@ public class LastRevRecoveryAgent {
                 unsaved.put(parentPath, calcLastRev);
             }
         }
+        
+        // take the root's lastRev
+        final Revision lastRootRev = unsaved.get("/");
 
         //Note the size before persist as persist operation
         //would empty the internal state
@@ -200,7 +209,41 @@ public class LastRevRecoveryAgent {
             //UnsavedModifications is designed to be used in concurrent
             //access mode. For recovery case there is no concurrent access
             //involve so just pass a new lock instance
-            unsaved.persist(nodeStore, new ReentrantLock());
+
+            // the lock uses to do the persisting is a plain reentrant lock
+            // thus it doesn't matter, where exactly the check is done
+            // as to whether the recovered lastRev has already been
+            // written to the journal.
+            unsaved.persist(nodeStore, new UnsavedModifications.Snapshot() {
+
+                @Override
+                public void acquiring() {
+                    if (lastRootRev == null) {
+                        // this should never happen - when unsaved has no changes
+                        // that is reflected in the 'map' to be empty - in that
+                        // case 'persist()' quits early and never calls
+                        // acquiring() here.
+                        //
+                        // but even if it would occur - if we have no lastRootRev
+                        // then we cannot and probably don't have to persist anything
+                        return;
+                    }
+
+                    final String id = JournalEntry.asId(lastRootRev); // lastRootRev never null at this point
+                    final JournalEntry existingEntry = docStore.find(Collection.JOURNAL, id);
+                    if (existingEntry != null) {
+                        // then the journal entry was already written - as can happen if
+                        // someone else (or the original instance itself) wrote the
+                        // journal entry, then died.
+                        // in this case, don't write it again.
+                        // hence: nothing to be done here. return.
+                        return;
+                    }
+
+                    // otherwise store a new journal entry now
+                    docStore.create(JOURNAL, singletonList(changes.asUpdateOp(lastRootRev)));
+                }
+            }, new ReentrantLock());
 
             log.info("Updated lastRev of [{}] documents while performing lastRev recovery for " +
                     "cluster node [{}]: {}", size, clusterId, updates);

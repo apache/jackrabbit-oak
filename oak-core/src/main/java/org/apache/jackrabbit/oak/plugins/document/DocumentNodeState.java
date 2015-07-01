@@ -396,10 +396,9 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
     @Override
     public String toString() {
         StringBuilder buff = new StringBuilder();
-        buff.append("path: ").append(path).append('\n');
-        buff.append("rev: ").append(rev).append('\n');
-        buff.append(properties);
-        buff.append('\n');
+        buff.append("{ path: '").append(path).append("', ");
+        buff.append("rev: '").append(rev).append("', ");
+        buff.append("properties: '").append(properties.values()).append("' }");
         return buff.toString();
     }
 

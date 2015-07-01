@@ -370,6 +370,10 @@ public class ClusterTest {
                 rootStates2.add((DocumentNodeState) root);
             }
         });
+
+        ns1.runBackgroundOperations();
+        ns2.runBackgroundOperations();
+
         rootStates1.clear();
         rootStates2.clear();
 

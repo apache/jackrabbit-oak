@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
+import org.apache.jackrabbit.oak.plugins.document.JournalEntry;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
@@ -72,6 +73,12 @@ public class MemoryDocumentStore implements DocumentStore {
      */
     private ConcurrentSkipListMap<String, Document> settings =
             new ConcurrentSkipListMap<String, Document>();
+
+    /**
+     * The 'externalChanges' collection.
+     */
+    private ConcurrentSkipListMap<String, JournalEntry> externalChanges =
+            new ConcurrentSkipListMap<String, JournalEntry>();
 
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
 
@@ -226,8 +233,10 @@ public class MemoryDocumentStore implements DocumentStore {
             return (ConcurrentSkipListMap<String, T>) nodes;
         } else if (collection == Collection.CLUSTER_NODES) {
             return (ConcurrentSkipListMap<String, T>) clusterNodes;
-        }else if (collection == Collection.SETTINGS) {
+        } else if (collection == Collection.SETTINGS) {
             return (ConcurrentSkipListMap<String, T>) settings;
+        } else if (collection == Collection.JOURNAL) {
+            return (ConcurrentSkipListMap<String, T>) externalChanges;
         } else {
             throw new IllegalArgumentException(
                     "Unknown collection: " + collection.toString());
@@ -328,6 +337,11 @@ public class MemoryDocumentStore implements DocumentStore {
         return null;
     }
 
+    @Override
+    public CacheInvalidationStats invalidateCache(Iterable<String> keys) {
+        return null;
+    }
+    
     @Override
     public void dispose() {
         // ignore
