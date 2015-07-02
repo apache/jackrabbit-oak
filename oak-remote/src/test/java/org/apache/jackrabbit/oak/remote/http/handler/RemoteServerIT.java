@@ -41,9 +41,9 @@ import org.junit.Test;
 
 import javax.jcr.SimpleCredentials;
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.net.ServerSocket;
 import java.util.Calendar;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -70,6 +70,8 @@ public class RemoteServerIT extends OakBaseTest {
     private RemoteRepository remoteRepository;
 
     private RemoteServer remoteServer;
+
+    private int port;
 
     public RemoteServerIT(NodeStoreFixture fixture) {
         super(fixture);
@@ -103,16 +105,21 @@ public class RemoteServerIT extends OakBaseTest {
         return repository.login(new SimpleCredentials("admin", "admin".toCharArray()), null);
     }
 
-    private String getHost() {
-        return "localhost";
-    }
+    private int getRandomPort() throws Exception {
+        ServerSocket serverSocket = null;
 
-    private int getPort() {
-        return 28080;
+        try {
+            serverSocket = new ServerSocket(0);
+            return serverSocket.getLocalPort();
+        } finally {
+            if (serverSocket != null) {
+                serverSocket.close();
+            }
+        }
     }
 
     private String resource(String path) {
-        return "http://" + getHost() + ":" + getPort() + path;
+        return "http://localhost:" + port + path;
     }
 
     private String load(String name) throws Exception {
@@ -127,10 +134,11 @@ public class RemoteServerIT extends OakBaseTest {
 
     @Before
     public void setUp() throws Exception {
+        port = getRandomPort();
         contentRepository = getContentRepository();
         contentSession = getContentSession(contentRepository);
         remoteRepository = getRemoteRepository(contentRepository);
-        remoteServer = getRemoteServer(remoteRepository, getHost(), getPort());
+        remoteServer = getRemoteServer(remoteRepository, "localhost", port);
         remoteServer.start();
     }
 
