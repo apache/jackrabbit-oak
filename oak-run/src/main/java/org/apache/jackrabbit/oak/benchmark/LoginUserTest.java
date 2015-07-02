@@ -22,23 +22,31 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
-public class LoginTest extends AbstractTest {
+import org.apache.jackrabbit.api.JackrabbitSession;
 
-    private final Session[] sessions = new Session[LoginUserTest.COUNT];
+public class LoginUserTest extends AbstractTest {
+
+    public final static int COUNT = 1000;
+
+    private final static String USER = "user";
+
+    private final Session[] sessions = new Session[COUNT];
 
     @Override
-    public void setUp(Repository repository, Credentials credentials)
-            throws Exception {
-        super.setUp(repository,
-                new SimpleCredentials("admin", "admin".toCharArray()));
+    public void setUp(Repository repository, Credentials credentials) throws Exception {
+        super.setUp(repository, new SimpleCredentials(USER, USER.toCharArray()));
+
+        // create test user
+        JackrabbitSession adminSession = (JackrabbitSession) loginAdministrative();
+        adminSession.getUserManager().createUser(USER, USER);
+        adminSession.save();
     }
 
     @Override
     public void runTest() throws RepositoryException {
         for (int i = 0; i < sessions.length; i++) {
-            sessions[i] = getRepository().login(getCredentials(), "default");
+            sessions[i] = getRepository().login(getCredentials());
         }
-
     }
 
     @Override

@@ -364,6 +364,16 @@ abstract class AbstractTest extends Benchmark implements CSVResultGenerator {
     protected Session loginAnonymous() {
         return login(new GuestCredentials());
     }
+
+    /**
+     * Returns a new admin session that will be automatically closed once
+     * all the iterations of this test have been executed.
+     *
+     * @return admin session
+     */
+    protected Session loginAdministrative() {
+        return login(new SimpleCredentials("admin", "admin".toCharArray()));
+    }
     
     /**
     * Returns a new session for the given user

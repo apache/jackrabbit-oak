@@ -123,6 +123,8 @@ public class BenchmarkRunner {
             new OrderedIndexInsertNoIndexTest(),
             new LoginTest(),
             new LoginLogoutTest(),
+            new LoginUserTest(),
+            new LoginLogoutUserTest(),
             new NamespaceTest(),
             new NamespaceRegistryTest(),
             new ReadPropertyTest(),
