@@ -293,6 +293,7 @@ public class IndexCopier implements CopyOnReadStatsMBean {
                 return toPut.openLocalInput(context);
             }
 
+            readerRemoteReadCount.incrementAndGet();
             return remote.openInput(name, context);
         }
 
