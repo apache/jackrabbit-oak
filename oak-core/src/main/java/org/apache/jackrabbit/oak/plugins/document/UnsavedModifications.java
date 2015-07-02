@@ -30,6 +30,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -154,20 +155,27 @@ class UnsavedModifications implements Closeable {
      * @param store the document node store.
      * @param lock the lock to acquire to get a consistent snapshot of the
      *             revisions to write back.
+     * @return stats about the write operation.
      */
-    public void persist(@Nonnull DocumentNodeStore store,
-                        @Nonnull Lock lock) {
+    public BackgroundWriteStats persist(@Nonnull DocumentNodeStore store,
+                                        @Nonnull Lock lock) {
+        BackgroundWriteStats stats = new BackgroundWriteStats();
         if (map.size() == 0) {
-            return;
+            return stats;
         }
         checkNotNull(store);
         checkNotNull(lock);
 
-        // get a copy of the map while holding the lock
+        Clock clock = store.getClock();
+
+        long time = clock.getTime();
+                // get a copy of the map while holding the lock
         lock.lock();
         MapFactory tmpFactory = null;
         Map<String, Revision> pending;
         try {
+            stats.lock = clock.getTime() - time;
+            time = clock.getTime();
             if (map.size() > IN_MEMORY_SIZE_LIMIT) {
                 tmpFactory = MapFactory.createFactory();
                 pending = tmpFactory.create(PathComparator.INSTANCE);
@@ -179,6 +187,7 @@ class UnsavedModifications implements Closeable {
             lock.unlock();
         }
         try {
+            stats.num = pending.size();
             UpdateOp updateOp = null;
             Revision lastRev = null;
             PeekingIterator<String> paths = Iterators.peekingIterator(
@@ -234,6 +243,8 @@ class UnsavedModifications implements Closeable {
                 tmpFactory.dispose();
             }
         }
+        stats.write = clock.getTime() - time;
+        return stats;
     }
 
     @Override
