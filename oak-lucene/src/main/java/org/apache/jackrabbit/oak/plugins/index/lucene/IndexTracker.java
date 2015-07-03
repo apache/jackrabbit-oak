@@ -96,7 +96,7 @@ class IndexTracker {
                     try {
                         long start = PERF_LOGGER.start();
                         IndexNode index = IndexNode.open(path, root, after, cloner);
-                        PERF_LOGGER.end(start, -1, "Index found to be updated at [{}]. Reopening the IndexNode", path);
+                        PERF_LOGGER.end(start, -1, "[{}] Index found to be updated. Reopening the IndexNode", path);
                         updates.put(path, index); // index can be null
                     } catch (IOException e) {
                         log.error("Failed to open Lucene index at " + path, e);

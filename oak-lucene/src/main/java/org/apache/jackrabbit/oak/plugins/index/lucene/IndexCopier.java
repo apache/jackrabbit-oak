@@ -386,6 +386,8 @@ public class IndexCopier implements CopyOnReadStatsMBean {
                         invalidFileCount.incrementAndGet();
                     } else {
                         reference.markValid();
+                        log.trace("[{}] found local copy of file {}",
+                                indexPath, name);
                     }
                 }
                 success = true;
@@ -474,8 +476,9 @@ public class IndexCopier implements CopyOnReadStatsMBean {
             filesToBeDeleted = new HashSet<String>(filesToBeDeleted);
             filesToBeDeleted.removeAll(failedToDelete);
             if(!filesToBeDeleted.isEmpty()) {
-                log.debug("Following files have been removed from Lucene " +
-                        "index directory [{}]", filesToBeDeleted);
+                log.debug(
+                        "[{}] Following files have been removed from Lucene index directory {}",
+                        indexPath, filesToBeDeleted);
             }
         }
 
