@@ -533,7 +533,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         if (type == null || !isSupportedMediaType(type)) {
             log.trace(
                     "[{}] Ignoring binary content for node {} due to unsupported (or null) jcr:mimeType [{}]",
-                    getIndexName(), nodePath, type);
+                    getIndexName(), path, type);
             return fields;
         }
 
