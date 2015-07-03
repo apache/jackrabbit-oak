@@ -1152,11 +1152,11 @@ class IndexDefinition implements Aggregate.AggregateMapper{
     }
 
     private static String determineIndexName(NodeState defn, String indexPath) {
+        if (indexPath == null){
+            indexPath = defn.getString(LuceneIndexConstants.INDEX_PATH);
+        }
         String indexName = defn.getString(PROP_NAME);
         if (indexName ==  null){
-            if (indexPath == null){
-                indexPath = defn.getString(LuceneIndexConstants.INDEX_PATH);
-            }
             if (indexPath != null) {
                 return indexPath;
             }
