@@ -111,16 +111,23 @@ public class IndexCopier implements CopyOnReadStatsMBean {
     private final Map<String, String> indexPathVersionMapping = newConcurrentMap();
     private final ConcurrentMap<String, LocalIndexFile> failedToDeleteFiles = newConcurrentMap();
     private final Set<LocalIndexFile> copyInProgressFiles = Collections.newSetFromMap(new ConcurrentHashMap<LocalIndexFile, Boolean>());
+    private final boolean prefetchEnabled;
 
     public IndexCopier(Executor executor, File indexRootDir) throws IOException {
+        this(executor, indexRootDir, false);
+    }
+
+    public IndexCopier(Executor executor, File indexRootDir, boolean prefetchEnabled) throws IOException {
         this.executor = executor;
         this.indexRootDir = indexRootDir;
+        this.prefetchEnabled = prefetchEnabled;
         this.indexWorkDir = initializerWorkDir(indexRootDir);
     }
 
-    public Directory wrapForRead(String indexPath, IndexDefinition definition, Directory remote) throws IOException {
+    public Directory wrapForRead(String indexPath, IndexDefinition definition,
+            Directory remote) throws IOException {
         Directory local = createLocalDirForIndexReader(indexPath, definition);
-        return new CopyOnReadDirectory(remote, local);
+        return new CopyOnReadDirectory(remote, local, prefetchEnabled, indexPath);
     }
 
     public Directory wrapForWrite(IndexDefinition definition, Directory remote, boolean reindexMode) throws IOException {
@@ -241,6 +248,7 @@ public class IndexCopier implements CopyOnReadStatsMBean {
     private class CopyOnReadDirectory extends FilterDirectory {
         private final Directory remote;
         private final Directory local;
+        private final String indexPath;
 
         private final ConcurrentMap<String, CORFileReference> files = newConcurrentMap();
         /**
@@ -249,11 +257,15 @@ public class IndexCopier implements CopyOnReadStatsMBean {
          */
         private final Set<String> localFileNames = Sets.newConcurrentHashSet();
 
-        public CopyOnReadDirectory(Directory remote, Directory local) throws IOException {
+        public CopyOnReadDirectory(Directory remote, Directory local, boolean prefetch, String indexPath) throws IOException {
             super(remote);
             this.remote = remote;
             this.local = local;
+            this.indexPath = indexPath;
             this.localFileNames.addAll(Arrays.asList(local.listAll()));
+            if (prefetch) {
+                prefetchIndexFiles();
+            }
         }
 
         @Override
@@ -269,15 +281,20 @@ public class IndexCopier implements CopyOnReadStatsMBean {
         @Override
         public IndexInput openInput(String name, IOContext context) throws IOException {
             if (REMOTE_ONLY.contains(name)) {
+                log.trace("[{}] opening remote only file {}", indexPath, name);
                 return remote.openInput(name, context);
             }
 
             CORFileReference ref = files.get(name);
             if (ref != null) {
                 if (ref.isLocalValid()) {
+                    log.trace("[{}] opening existing local file {}", indexPath, name);
                     return files.get(name).openLocalInput(context);
                 } else {
                     readerRemoteReadCount.incrementAndGet();
+                    log.trace(
+                            "[{}] opening existing remote file as local version is not valid {}",
+                            indexPath, name);
                     return remote.openInput(name, context);
                 }
             }
@@ -285,14 +302,17 @@ public class IndexCopier implements CopyOnReadStatsMBean {
             CORFileReference toPut = new CORFileReference(name);
             CORFileReference old = files.putIfAbsent(name, toPut);
             if (old == null) {
+                log.trace("[{}] scheduled local copy for {}", indexPath, name);
                 copy(toPut);
             }
 
             //If immediate executor is used the result would be ready right away
             if (toPut.isLocalValid()) {
+                log.trace("[{}] opening new local file {}", indexPath, name);
                 return toPut.openLocalInput(context);
             }
 
+            log.trace("[{}] opening new remote file {}", indexPath, name);
             readerRemoteReadCount.incrementAndGet();
             return remote.openInput(name, context);
         }
@@ -302,55 +322,89 @@ public class IndexCopier implements CopyOnReadStatsMBean {
             executor.execute(new Runnable() {
                 @Override
                 public void run() {
-                    String name = reference.name;
-                    boolean success = false;
-                    boolean copyAttempted = false;
-                    try {
-                        scheduledForCopyCount.decrementAndGet();
-                        if (!local.fileExists(name)) {
-                            long fileSize = remote.fileLength(name);
-                            LocalIndexFile file = new LocalIndexFile(local, name, fileSize, true);
-                            long start = startCopy(file);
-                            copyAttempted = true;
-
-                            remote.copy(local, name, name, IOContext.READ);
-                            reference.markValid();
-
-                            doneCopy(file, start);
-                        } else {
-                            long localLength = local.fileLength(name);
-                            long remoteLength = remote.fileLength(name);
-
-                            //Do a simple consistency check. Ideally Lucene index files are never
-                            //updated but still do a check if the copy is consistent
-                            if (localLength != remoteLength) {
-                                log.warn("Found local copy for {} in {} but size of local {} differs from remote {}. " +
-                                                "Content would be read from remote file only",
-                                        name, local, localLength, remoteLength);
-                                invalidFileCount.incrementAndGet();
-                            } else {
-                                reference.markValid();
-                            }
-                        }
-                        success = true;
-                    } catch (IOException e) {
-                        //TODO In case of exception there would not be any other attempt
-                        //to download the file. Look into support for retry
-                        log.warn("Error occurred while copying file [{}] " +
-                                "from {} to {}", name, remote, local, e);
-                    } finally {
-                        if (copyAttempted && !success){
-                            try {
-                                if (local.fileExists(name)) {
-                                    local.deleteFile(name);
-                                }
-                            } catch (IOException e) {
-                                log.warn("Error occurred while deleting corrupted file [{}] from [{}]", name, local, e);
-                            }
-                        }
-                    }
+                    scheduledForCopyCount.decrementAndGet();
+                    copyFilesToLocal(reference, true);
                 }
             });
+        }
+
+        private void prefetchIndexFiles() throws IOException {
+            long start = PERF_LOGGER.start();
+            long totalSize = 0;
+            int copyCount = 0;
+            for (String name : remote.listAll()) {
+                if (REMOTE_ONLY.contains(name)) {
+                    continue;
+                }
+                CORFileReference fileRef = new CORFileReference(name);
+                files.putIfAbsent(name, fileRef);
+                long fileSize = copyFilesToLocal(fileRef, false);
+                if (fileSize > 0) {
+                    copyCount++;
+                    totalSize += fileSize;
+                }
+            }
+            PERF_LOGGER.end(start, -1, "[{}] Copied {} files totaling {}", indexPath, copyCount, humanReadableByteCount(totalSize));
+        }
+
+        private long copyFilesToLocal(CORFileReference reference, boolean logDuration) {
+            String name = reference.name;
+            boolean success = false;
+            boolean copyAttempted = false;
+            long fileSize = 0;
+            try {
+                if (!local.fileExists(name)) {
+                    long perfStart = -1;
+                    if (logDuration) {
+                        perfStart = PERF_LOGGER.start();
+                    }
+
+                    fileSize = remote.fileLength(name);
+                    LocalIndexFile file = new LocalIndexFile(local, name, fileSize, true);
+                    long start = startCopy(file);
+                    copyAttempted = true;
+
+                    remote.copy(local, name, name, IOContext.READ);
+                    reference.markValid();
+
+                    doneCopy(file, start);
+                    if (logDuration) {
+                        PERF_LOGGER.end(perfStart, 0,
+                                "[{}] Copied file {} of size {}", indexPath,
+                                name, humanReadableByteCount(fileSize));
+                    }
+                } else {
+                    long localLength = local.fileLength(name);
+                    long remoteLength = remote.fileLength(name);
+
+                    //Do a simple consistency check. Ideally Lucene index files are never
+                    //updated but still do a check if the copy is consistent
+                    if (localLength != remoteLength) {
+                        log.warn("[{}] Found local copy for {} in {} but size of local {} differs from remote {}. " +
+                                        "Content would be read from remote file only",
+                                indexPath, name, local, localLength, remoteLength);
+                        invalidFileCount.incrementAndGet();
+                    } else {
+                        reference.markValid();
+                    }
+                }
+                success = true;
+            } catch (IOException e) {
+                //TODO In case of exception there would not be any other attempt
+                //to download the file. Look into support for retry
+                log.warn("[{}] Error occurred while copying file [{}] from {} to {}", indexPath, name, remote, local, e);
+            } finally {
+                if (copyAttempted && !success){
+                    try {
+                        if (local.fileExists(name)) {
+                            local.deleteFile(name);
+                        }
+                    } catch (IOException e) {
+                        log.warn("[{}] Error occurred while deleting corrupted file [{}] from [{}]", indexPath, name, local, e);
+                    }
+                }
+            }
+            return fileSize;
         }
 
         /**
@@ -381,8 +435,9 @@ public class IndexCopier implements CopyOnReadStatsMBean {
                     try{
                         removeDeletedFiles();
                     } catch (IOException e) {
-                        log.warn("Error occurred while removing deleted files from Local {}, " +
-                                "Remote {}", local, remote, e);
+                        log.warn(
+                                "[{}] Error occurred while removing deleted files from Local {}, Remote {}",
+                                indexPath, local, remote, e);
                     }
 
                     try {
@@ -392,7 +447,9 @@ public class IndexCopier implements CopyOnReadStatsMBean {
                         local.close();
                         remote.close();
                     } catch (IOException e) {
-                        log.warn("Error occurred while closing directory ", e);
+                        log.warn(
+                                "[{}] Error occurred while closing directory ",
+                                indexPath, e);
                     }
                 }
             });
@@ -1065,6 +1122,11 @@ public class IndexCopier implements CopyOnReadStatsMBean {
             throw new IllegalStateException(e);
         }
         return tds;
+    }
+
+    @Override
+    public boolean isPrefetchEnabled() {
+        return prefetchEnabled;
     }
 
     @Override
