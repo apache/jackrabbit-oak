@@ -34,11 +34,17 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class LuceneIndexProviderServiceTest {
+    /*
+        The test case uses raw config name and not access it via
+         constants in LuceneIndexProviderService to ensure that change
+         in names are detected
+     */
 
     @Rule
     public final TemporaryFolder folder = new TemporaryFolder();
@@ -59,6 +65,10 @@ public class LuceneIndexProviderServiceTest {
         LuceneIndexEditorProvider editorProvider =
                 (LuceneIndexEditorProvider) context.getService(IndexEditorProvider.class);
         assertNull(editorProvider.getIndexCopier());
+
+        IndexCopier indexCopier = service.getIndexCopier();
+        assertNotNull("IndexCopier should be initialized as CopyOnRead is enabled by default", indexCopier);
+        assertFalse(indexCopier.isPrefetchEnabled());
 
         assertNotNull("CopyOnRead should be enabled by default", context.getService(CopyOnReadStatsMBean.class));
 
@@ -90,6 +100,18 @@ public class LuceneIndexProviderServiceTest {
 
         assertNotNull(editorProvider);
         assertNotNull(editorProvider.getIndexCopier());
+
+        MockOsgi.deactivate(service);
+    }
+
+    @Test
+    public void enablePrefetchIndexFiles() throws Exception{
+        Map<String,Object> config = getDefaultConfig();
+        config.put("prefetchIndexFiles", true);
+        MockOsgi.activate(service, context.bundleContext(), config);
+
+        IndexCopier indexCopier = service.getIndexCopier();
+        assertTrue(indexCopier.isPrefetchEnabled());
 
         MockOsgi.deactivate(service);
     }

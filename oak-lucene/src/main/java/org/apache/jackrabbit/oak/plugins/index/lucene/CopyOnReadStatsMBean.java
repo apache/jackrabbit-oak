@@ -21,11 +21,16 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import javax.management.openmbean.TabularData;
 
+import aQute.bnd.annotation.ProviderType;
+
 @SuppressWarnings("UnusedDeclaration")
+@ProviderType
 public interface CopyOnReadStatsMBean {
     String TYPE = "IndexCopierStats";
 
     TabularData getIndexPathMapping();
+
+    boolean isPrefetchEnabled();
 
     int getReaderLocalReadCount();
 
