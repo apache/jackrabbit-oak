@@ -62,6 +62,11 @@ class CompactionGainEstimate implements TarEntryVisitor {
                     collectUUID(((SegmentPropertyState) property)
                             .getRecordId().getSegmentId());
                 }
+
+                // Get the underlying value as stream so we can collect
+                // the segments ids involved in storing the value.
+                // This works as primitives are stored as strings and strings
+                // as binaries of their UTF-8 encoding.
                 for (Blob blob : property.getValue(BINARIES)) {
                     for (SegmentId id : SegmentBlob.getBulkSegmentIds(blob)) {
                         collectUUID(id);
