@@ -186,7 +186,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
             if (addOrUpdate(path, after, before.exists())) {
                 long indexed = context.incIndexedNodes();
                 if (indexed % 1000 == 0) {
-                    log.debug("{} => Indexed {} nodes...", context.getDefinition().getIndexName(), indexed);
+                    log.debug("[{}] => Indexed {} nodes...", getIndexName(), indexed);
                 }
             }
         }
@@ -203,7 +203,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                         "Failed to close the Lucene index", e);
             }
             if (context.getIndexedNodes() > 0) {
-                log.debug("{} => Indexed {} nodes, done.", context.getDefinition().getIndexName(), context.getIndexedNodes());
+                log.debug("[{}] => Indexed {} nodes, done.", getIndexName(), context.getIndexedNodes());
             }
         }
     }
@@ -281,8 +281,8 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         try {
             Document d = makeDocument(path, state, isUpdate);
             if (d != null) {
-                if (log.isTraceEnabled()){
-                    log.trace("Indexed document for {} is {}", path, d);
+                if (log.isTraceEnabled()) {
+                    log.trace("[{}] Indexed document for {} is {}", getIndexName(), path, d);
                 }
                 context.indexUpdate();
                 context.getWriter().updateDocument(newPathTerm(path), d);
@@ -458,8 +458,9 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         // Ignore and warn if property multi-valued as not supported
         if (property.getType().isArray()) {
             log.warn(
-                "Ignoring ordered property {} of type {} for path {} as multivalued ordered property not supported",
-                pname, Type.fromTag(property.getType().tag(), true), getPath());
+                    "[{}] Ignoring ordered property {} of type {} for path {} as multivalued ordered property not supported",
+                    getIndexName(), pname,
+                    Type.fromTag(property.getType().tag(), true), getPath());
             return false;
         }
 
@@ -468,10 +469,11 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         // Try converting type to the defined type in the index definition
         if (tag != idxDefinedTag) {
             log.debug(
-                "Ordered property defined with type {} differs from property {} with type {} in " +
-                    "path {}",
-                Type.fromTag(idxDefinedTag, false), property.toString(), Type.fromTag(tag, false),
-                getPath());
+                    "[{}] Ordered property defined with type {} differs from property {} with type {} in "
+                            + "path {}",
+                    getIndexName(),
+                    Type.fromTag(idxDefinedTag, false), property.toString(),
+                    Type.fromTag(tag, false), getPath());
             tag = idxDefinedTag;
         }
 
@@ -502,10 +504,10 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
             }
         } catch (Exception e) {
             log.warn(
-                "Ignoring ordered property. Could not convert property {} of type {} to type " +
-                    "{} for path {}",
-                pname, Type.fromTag(property.getType().tag(), false),
-                Type.fromTag(tag, false), getPath(), e);
+                    "[{}] Ignoring ordered property. Could not convert property {} of type {} to type {} for path {}",
+                    getIndexName(), pname,
+                    Type.fromTag(property.getType().tag(), false),
+                    Type.fromTag(tag, false), getPath(), e);
         }
         return fieldAdded;
     }
@@ -522,9 +524,10 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         //jcr:mimeType is mandatory for a binary to be indexed
         String type = state.getString(JcrConstants.JCR_MIMETYPE);
 
-        if (type == null || !isSupportedMediaType(type)){
-            log.trace("Ignoring binary content for node {} due to unsupported " +
-                    "(or null) jcr:mimeType [{}]", nodePath, type);
+        if (type == null || !isSupportedMediaType(type)) {
+            log.trace(
+                    "[{}] Ignoring binary content for node {} due to unsupported (or null) jcr:mimeType [{}]",
+                    getIndexName(), path, type);
             return fields;
         }
 
@@ -796,17 +799,22 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
             // Capture and report any other full text extraction problems.
             // The special STOP exception is used for normal termination.
             if (!handler.isWriteLimitReached(t)) {
-                log.debug("Failed to extract text from a binary property: "
-                        + path
+                log.debug(
+                        "[{}] Failed to extract text from a binary property: {}."
                         + " This is a fairly common case, and nothing to"
                         + " worry about. The stack trace is included to"
-                        + " help improve the text extraction feature.", t);
+                        + " help improve the text extraction feature.",
+                        getIndexName(), path, t);
                 return "TextExtractionError";
             }
         }
         String result = handler.toString();
         context.recordTextExtractionStats(System.currentTimeMillis() - start, size);
         return result;
+    }
+
+    private String getIndexName() {
+        return context.getDefinition().getIndexName();
     }
 
 }
