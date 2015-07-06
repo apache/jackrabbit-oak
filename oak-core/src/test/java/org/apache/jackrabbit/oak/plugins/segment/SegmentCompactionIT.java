@@ -67,6 +67,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListenableScheduledFuture;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
@@ -365,7 +366,7 @@ public class SegmentCompactionIT {
         }
 
         @Override
-        public Void call() throws Exception {
+        public Void call() throws IOException, CommitFailedException {
             NodeBuilder root = nodeStore.getRoot().builder();
             boolean deleteOnly = fileStore.size() > maxStoreSize;
             for (int k = 0; k < opCount; k++) {
@@ -740,12 +741,7 @@ public class SegmentCompactionIT {
 
         @Override
         public long getFileStoreSize() {
-            try {
-                return fileStore.size();
-            } catch (IOException e) {
-                error("Error getting size of file store", e);
-                return -1;
-            }
+            return fileStore.size();
         }
 
         private CompactionMap getCompactionMap() {

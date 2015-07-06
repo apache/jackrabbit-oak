@@ -231,11 +231,7 @@ public class StandbyStore implements SegmentStore {
 
     public long size() {
         if (delegate instanceof FileStore) {
-            try {
-                return ((FileStore) delegate).size();
-            } catch (IOException e) {
-                log.error("Error getting delegate size", e);
-            }
+            return ((FileStore) delegate).size();
         }
         return -1;
     }

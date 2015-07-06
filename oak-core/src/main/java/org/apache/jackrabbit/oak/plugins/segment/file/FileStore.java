@@ -559,7 +559,7 @@ public class FileStore implements SegmentStore {
         return dataFiles;
     }
 
-    public synchronized long size() throws IOException {
+    public synchronized long size() {
         long size = writeFile.length();
         for (TarReader reader : readers) {
             size += reader.size();
