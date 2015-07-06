@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -563,7 +564,7 @@ public class LuceneIndexTest {
         builder.setProperty("foo", "bar");
         NodeState after = builder.getNodeState();
 
-        NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
         File indexRootDir = new File(getIndexDir());
         IndexTracker tracker = new IndexTracker(new IndexCopier(sameThreadExecutor(), indexRootDir));
@@ -636,7 +637,7 @@ public class LuceneIndexTest {
         singleProp.setProperty(LuceneIndexConstants.PROP_INCLUDED_TYPE, PropertyType.TYPENAME_STRING);
 
         NodeState before = builder.getNodeState();
-        builder.setProperty("single", asList("baz", "bar"), Type.STRINGS);
+        builder.setProperty("single", Arrays.asList("baz", "bar"), Type.STRINGS);
         NodeState after = builder.getNodeState();
 
         try {
