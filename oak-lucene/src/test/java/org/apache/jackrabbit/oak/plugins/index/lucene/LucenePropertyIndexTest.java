@@ -809,6 +809,37 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertSortedString();
     }
 
+    @Test
+    public void sortQueriesWithStringIgnoredMulti_OrderedProps() throws Exception {
+        Tree idx = createIndex("test1", of("foo", "bar"));
+        idx.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("bar"), STRINGS));
+        idx.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo"), STRINGS));
+        idx.addChild(PROP_NODE).addChild("foo");
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        List<String> values = createStrings(NUMBER_OF_NODES);
+        List<Tuple> tuples = Lists.newArrayListWithCapacity(values.size());
+        for(int i = 0; i < values.size(); i++){
+            Tree child = test.addChild("n" + i);
+            child.setProperty("foo", values.get(i));
+            child.setProperty("bar", "baz");
+            tuples.add(new Tuple(values.get(i), child.getPath()));
+        }
+
+        //Add a wrong multi-valued property
+        Tree child = test.addChild("a");
+        child.setProperty("foo", of("w", "z"), Type.STRINGS);
+        child.setProperty("bar", "baz");
+        root.commit();
+
+        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]", Lists
+            .newArrayList(Iterables.concat(Lists.newArrayList("/test/a"), getSortedPaths(tuples, OrderDirection.ASC))));
+        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", Lists
+            .newArrayList(Iterables.concat(getSortedPaths(tuples, OrderDirection.DESC), Lists.newArrayList("/test/a")
+            )));
+    }
+
     void assertSortedString() throws CommitFailedException {
         Tree test = root.getTree("/").addChild("test");
         List<String> values = createStrings(NUMBER_OF_NODES);
