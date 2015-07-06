@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.segment.file;
 
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
-import static org.apache.jackrabbit.oak.api.Type.BINARY;
 
 import java.io.File;
 import java.util.UUID;
@@ -25,10 +24,8 @@ import java.util.UUID;
 import com.google.common.hash.BloomFilter;
 import com.google.common.hash.Funnel;
 import com.google.common.hash.PrimitiveSink;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.segment.RecordIdSet;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
@@ -65,17 +62,9 @@ class CompactionGainEstimate implements TarEntryVisitor {
                     collectUUID(((SegmentPropertyState) property)
                             .getRecordId().getSegmentId());
                 }
-                Type<?> type = property.getType();
-                if (type == BINARY) {
-                    Blob blob = property.getValue(BINARY);
+                for (Blob blob : property.getValue(BINARIES)) {
                     for (SegmentId id : SegmentBlob.getBulkSegmentIds(blob)) {
                         collectUUID(id);
-                    }
-                } else if (type == BINARIES) {
-                    for (Blob blob : property.getValue(BINARIES)) {
-                        for (SegmentId id : SegmentBlob.getBulkSegmentIds(blob)) {
-                            collectUUID(id);
-                        }
                     }
                 }
             }
