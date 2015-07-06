@@ -128,6 +128,15 @@ public class LuceneIndexProviderService {
     )
     private static final String PROP_THREAD_POOL_SIZE = "threadPoolSize";
 
+    private static final boolean PROP_PREFETCH_INDEX_FILES_DEFAULT = false;
+    @Property(
+            boolValue = PROP_PREFETCH_INDEX_FILES_DEFAULT,
+            label = "Prefetch Index Files",
+            description = "Prefetch the index files when CopyOnRead is enabled. When enabled all new Lucene" +
+                    " index files would be copied locally before the index is made available to QueryEngine"
+    )
+    private static final String PROP_PREFETCH_INDEX_FILES = "prefetchIndexFiles";
+
     private Whiteboard whiteboard;
 
     private BackgroundObserver backgroundObserver;
@@ -192,6 +201,10 @@ public class LuceneIndexProviderService {
         InfoStream.setDefault(InfoStream.NO_OUTPUT);
     }
 
+    IndexCopier getIndexCopier() {
+        return indexCopier;
+    }
+
     private void initialize(){
         if(indexProvider == null){
             return;
@@ -242,6 +255,8 @@ public class LuceneIndexProviderService {
             return;
         }
         String indexDirPath = PropertiesUtil.toString(config.get(PROP_LOCAL_INDEX_DIR), null);
+        boolean prefetchEnabled = PropertiesUtil.toBoolean(config.get(PROP_PREFETCH_INDEX_FILES),
+                PROP_PREFETCH_INDEX_FILES_DEFAULT);
         if (Strings.isNullOrEmpty(indexDirPath)) {
             String repoHome = bundleContext.getProperty(REPOSITORY_HOME);
             if (repoHome != null){
@@ -252,8 +267,12 @@ public class LuceneIndexProviderService {
         checkNotNull(indexDirPath, "Index directory cannot be determined as neither index " +
                 "directory path [%s] nor repository home [%s] defined", PROP_LOCAL_INDEX_DIR, REPOSITORY_HOME);
 
+        if (prefetchEnabled){
+            log.info("Prefetching of index files enabled. Index would be opened after copying all new files locally");
+        }
+
         indexDir = new File(indexDirPath);
-        indexCopier = new IndexCopier(getExecutorService(), indexDir);
+        indexCopier = new IndexCopier(getExecutorService(), indexDir, prefetchEnabled);
 
         oakRegs.add(registerMBean(whiteboard,
                 CopyOnReadStatsMBean.class,
