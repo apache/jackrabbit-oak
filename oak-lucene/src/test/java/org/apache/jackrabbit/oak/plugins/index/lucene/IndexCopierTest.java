@@ -111,6 +111,33 @@ public class IndexCopierTest {
     }
 
     @Test
+    public void basicTestWithPrefetch() throws Exception{
+        Directory baseDir = new RAMDirectory();
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+        IndexCopier c1 = new RAMIndexCopier(baseDir, sameThreadExecutor(), getWorkDir(), true);
+
+        Directory remote = new RAMDirectory();
+
+        byte[] t1 = writeFile(remote, "t1");
+        byte[] t2 = writeFile(remote , "t2");
+
+        Directory wrapped = c1.wrapForRead("/foo", defn, remote);
+        assertEquals(2, wrapped.listAll().length);
+
+        assertTrue(wrapped.fileExists("t1"));
+        assertTrue(wrapped.fileExists("t2"));
+
+        assertTrue(baseDir.fileExists("t1"));
+        assertTrue(baseDir.fileExists("t2"));
+
+        assertEquals(t1.length, wrapped.fileLength("t1"));
+        assertEquals(t2.length, wrapped.fileLength("t2"));
+
+        readAndAssert(wrapped, "t1", t1);
+
+    }
+
+    @Test
     public void basicTestWithFS() throws Exception{
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
         IndexCopier c1 = new IndexCopier(sameThreadExecutor(), getWorkDir());
@@ -849,9 +876,14 @@ public class IndexCopierTest {
     private class RAMIndexCopier extends IndexCopier {
         final Directory baseDir;
 
-        public RAMIndexCopier(Directory baseDir, Executor executor, File indexRootDir) throws IOException {
-            super(executor, indexRootDir);
+        public RAMIndexCopier(Directory baseDir, Executor executor, File indexRootDir,
+                              boolean prefetchEnabled) throws IOException {
+            super(executor, indexRootDir, prefetchEnabled);
             this.baseDir = baseDir;
+        }
+
+        public RAMIndexCopier(Directory baseDir, Executor executor, File indexRootDir) throws IOException {
+            this(baseDir, executor, indexRootDir, false);
         }
 
         @Override
