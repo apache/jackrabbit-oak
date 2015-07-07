@@ -23,8 +23,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
-
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -764,6 +764,88 @@ public class GroupTest extends AbstractUserTest {
         checkDeclaredMembers(grp2, user1.getID());
         checkDeclaredMemberOf(user1, grp2.getID());
         checkDeclaredMemberOf(user2, grp1.getID());
+    }
+
+    @Test
+    public void testRemoveMembership() throws RepositoryException {
+        String grId2 = createGroupId();
+        Group gr2 = null;
+
+        try {
+            gr2 = userMgr.createGroup(grId2);
+            gr2.addMember(user);
+            superuser.save();
+
+            Iterator<Group> groups = user.declaredMemberOf();
+            while (groups.hasNext()) {
+                Group group = groups.next();
+                group.removeMember(user);
+                superuser.save();
+            }
+
+            assertFalse(userMgr.getAuthorizable(group.getID(), Group.class).isDeclaredMember(user));
+            assertFalse(userMgr.getAuthorizable(grId2, Group.class).isDeclaredMember(user));
+
+            groups = user.declaredMemberOf();
+            while (groups.hasNext()) {
+                String id = groups.next().getID();
+                assertFalse(group.getID().equals(id));
+                assertFalse(grId2.equals(id));
+            }
+        } finally {
+            if (gr2 != null) {
+                gr2.remove();
+                superuser.save();
+            }
+        }
+    }
+
+    @Test
+    public void testRemoveMembershipWithDifferentSessions() throws Exception {
+        String grId2 = createGroupId();
+        Group gr2 = null;
+
+        Session s2 = null;
+        Session s3 = null;
+
+        try {
+            gr2 = userMgr.createGroup(grId2);
+            gr2.addMember(user);
+            superuser.save();
+
+            s2 = getHelper().getReadWriteSession();
+            Authorizable u2 = getUserManager(s2).getAuthorizable(user.getID());
+
+            Iterator<Group> groups = u2.declaredMemberOf();
+            while (groups.hasNext()) {
+                Group group = groups.next();
+                group.removeMember(u2);
+            }
+            s2.save();
+
+            s3 = getHelper().getReadWriteSession();
+            Authorizable u3 = getUserManager(s3).getAuthorizable(user.getID());
+            assertFalse(getUserManager(s3).getAuthorizable(group.getID(), Group.class).isDeclaredMember(u3));
+            assertFalse(getUserManager(s3).getAuthorizable(grId2, Group.class).isDeclaredMember(u3));
+
+            groups = u3.declaredMemberOf();
+            while (groups.hasNext()) {
+                String id = groups.next().getID();
+                assertFalse(group.getID().equals(id));
+                assertFalse(grId2.equals(id));
+            }
+        } finally {
+            if (gr2 != null) {
+                gr2.remove();
+                superuser.save();
+            }
+            if (s2 != null) {
+                s2.logout();
+            }
+            if (s3 != null) {
+                s3.logout();
+            }
+        }
     }
 
     private void checkDeclaredMembers(Group grp, String ... ids) throws RepositoryException {
