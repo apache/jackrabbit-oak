@@ -28,7 +28,6 @@ import static com.google.common.util.concurrent.MoreExecutors.listeningDecorator
 import static java.io.File.createTempFile;
 import static java.lang.String.valueOf;
 import static java.lang.System.getProperty;
-import static java.util.concurrent.Executors.newScheduledThreadPool;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.commons.io.FileUtils.deleteDirectory;
@@ -53,6 +52,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import javax.annotation.Nonnull;
 import javax.management.InstanceAlreadyExistsException;
@@ -110,8 +110,8 @@ public class SegmentCompactionIT {
     private final MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
 
     private final Random rnd = new Random();
-    private final ListeningScheduledExecutorService scheduler =
-            listeningDecorator(newScheduledThreadPool(50));
+    private final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(50);
+    private final ListeningScheduledExecutorService scheduler = listeningDecorator(executor);
     private final FileStoreGCMonitor fileStoreGCMonitor = new FileStoreGCMonitor(Clock.SIMPLE);
     private final TestGCMonitor gcMonitor = new TestGCMonitor(fileStoreGCMonitor);
     private final Set<ListenableScheduledFuture<?>> writers = newConcurrentHashSet();
@@ -609,6 +609,14 @@ public class SegmentCompactionIT {
         @Override
         public void stop() {
             SegmentCompactionIT.this.stop();
+        }
+
+        public void setCorePoolSize(int corePoolSize) {
+            executor.setCorePoolSize(corePoolSize);
+        }
+
+        public int getCorePoolSize() {
+            return executor.getCorePoolSize();
         }
 
         @Override
