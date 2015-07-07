@@ -53,7 +53,6 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 import javax.management.InstanceAlreadyExistsException;
@@ -271,12 +270,12 @@ public class SegmentCompactionIT {
     }
 
     private void scheduleSizeMonitor() {
-        scheduler.schedule(new Runnable() {
+        scheduler.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
                 fileStoreSize = fileStore.size();
             }
-        }, 1, TimeUnit.MINUTES);
+        }, 1, 1, MINUTES);
     }
 
     private synchronized void scheduleCompactor() {
