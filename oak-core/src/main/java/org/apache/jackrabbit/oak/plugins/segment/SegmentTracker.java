@@ -16,17 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static com.google.common.collect.Lists.newLinkedList;
 import static com.google.common.collect.Queues.newArrayDeque;
 import static com.google.common.collect.Sets.newHashSet;
 
 import java.security.SecureRandom;
+import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.slf4j.Logger;
@@ -87,11 +88,11 @@ public class SegmentTracker {
      */
     private final SegmentIdTable[] tables = new SegmentIdTable[32];
 
+    private final LinkedList<Segment> segments = newLinkedList();
+
     private long currentSize;
     
     private final StringCache stringCache;
-
-    private final CacheLIRS<SegmentId, Segment> segmentCache;
 
     public SegmentTracker(SegmentStore store, int cacheSizeMB,
             SegmentVersion version) {
@@ -105,10 +106,6 @@ public class SegmentTracker {
         this.compactionMap = new AtomicReference<CompactionMap>(
                 CompactionMap.EMPTY);
         stringCache = new StringCache((int) Math.min(Integer.MAX_VALUE, cacheSize));
-        segmentCache = new CacheLIRS.Builder()
-            .maximumSize((int) Math.min(Integer.MAX_VALUE, cacheSize))
-            .averageWeight(Segment.MAX_SEGMENT_SIZE/2)
-            .build();
     }
 
     public SegmentTracker(SegmentStore store, SegmentVersion version) {
@@ -131,7 +128,7 @@ public class SegmentTracker {
      * Clear the segment cache
      */
     public synchronized void clearCache() {
-        segmentCache.invalidateAll();
+        segments.clear();
         stringCache.clear();
         currentSize = 0;
     }
@@ -157,9 +154,34 @@ public class SegmentTracker {
         // done before synchronization to allow concurrent segment access
         // while we update the cache below
         id.setSegment(segment);
-        Segment previous = segmentCache.put(id, segment, segment.size());
-        if (previous != null) {
-            previous.getSegmentId().setSegment(null);
+
+        synchronized (this) {
+            long size = segment.getCacheSize();
+
+            segments.addFirst(segment);
+            currentSize += size;
+
+            log.debug("Added segment {} to tracker cache ({} bytes)",
+                    id, size);
+
+            // TODO possibly this cache could be improved
+            while (currentSize > cacheSize && segments.size() > 1) {
+                Segment last = segments.removeLast();
+                SegmentId lastId = last.getSegmentId();
+                if (last.accessed()) {
+                    segments.addFirst(last);
+                    log.debug("Segment {} was recently used, keeping in cache",
+                            lastId);
+                } else {
+                    long lastSize = last.getCacheSize();
+
+                    lastId.setSegment(null);
+                    currentSize -= lastSize;
+
+                    log.debug("Removed segment {} from tracker cache ({} bytes)",
+                            lastId, lastSize);
+                }
+            }
         }
     }
 
