@@ -142,6 +142,11 @@ public class SegmentCompactionIT {
     private volatile int maxReferences = 10;
     private volatile int maxNodeCount = 1000;
     private volatile int maxPropertyCount = 1000;
+    private volatile int nodeRemoveRatio = 10;
+    private volatile int propertyRemoveRatio = 10;
+    private volatile int nodeAddRatio = 40;
+    private volatile int addStringRatio = 20;
+    private volatile int addBinaryRatio = 20;
     private volatile int compactionInterval = 1;
     private volatile boolean stopping;
     private volatile Reference rootReference;
@@ -382,14 +387,21 @@ public class SegmentCompactionIT {
 
         private void modify(NodeStore nodeStore, NodeBuilder nodeBuilder, boolean deleteOnly)
                 throws IOException {
-            int k = rnd.nextInt(100);
-            if (k < 10) {
+            int p0 = nodeRemoveRatio;
+            int p1 = propertyRemoveRatio;
+            int p2 = nodeAddRatio;
+            int p3 = addStringRatio;
+            int p4 = addBinaryRatio;
+            double p = p0 + p1 + p2 + p3 + p4;
+
+            double k = rnd.nextDouble();
+            if (k < p0/p) {
                 chooseRandomNode(nodeBuilder).remove();
-            } else if (k < 20) {
+            } else if (k < (p0 + p1)/p) {
                 removeRandomProperty(chooseRandomNode(nodeBuilder));
-            } else if (k < 60 && !deleteOnly)  {
+            } else if (k < (p0 + p1 + p2)/p && !deleteOnly)  {
                 addRandomNode(nodeBuilder);
-            } else if (k < 80 && !deleteOnly) {
+            } else if (k < (p0 + p1 + p2 + p3)/p && !deleteOnly) {
                 addRandomValue(nodeBuilder);
             } else if (!deleteOnly) {
                 addRandomBlob(nodeStore, nodeBuilder);
@@ -768,6 +780,56 @@ public class SegmentCompactionIT {
         @Override
         public int getMaxPropertyCount() {
             return maxPropertyCount;
+        }
+
+        @Override
+        public void setNodeRemoveRatio(int ratio) {
+            nodeRemoveRatio = ratio;
+        }
+
+        @Override
+        public int getNodeRemoveRatio() {
+            return nodeRemoveRatio;
+        }
+
+        @Override
+        public void setPropertyRemoveRatio(int ratio) {
+            propertyRemoveRatio = ratio;
+        }
+
+        @Override
+        public int getPropertyRemoveRatio() {
+            return propertyRemoveRatio;
+        }
+
+        @Override
+        public void setNodeAddRatio(int ratio) {
+            nodeAddRatio = ratio;
+        }
+
+        @Override
+        public int getNodeAddRatio() {
+            return nodeAddRatio;
+        }
+
+        @Override
+        public void setAddStringRatio(int ratio) {
+            addStringRatio = ratio;
+        }
+
+        @Override
+        public int getAddStringRatio() {
+            return addStringRatio;
+        }
+
+        @Override
+        public void setAddBinaryRatio(int ratio) {
+            addBinaryRatio = ratio;
+        }
+
+        @Override
+        public int getAddBinaryRatio() {
+            return addBinaryRatio;
         }
 
         @Override
