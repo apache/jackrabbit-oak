@@ -62,6 +62,7 @@ import javax.management.MalformedObjectNameException;
 import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
 
+import com.google.common.base.Predicate;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListenableScheduledFuture;
@@ -139,6 +140,8 @@ public class SegmentCompactionIT {
     private volatile int maxBlobSize = 1000000;
     private volatile int maxStringSize = 10000;
     private volatile int maxReferences = 10;
+    private volatile int maxNodeCount = 1000;
+    private volatile int maxPropertyCount = 1000;
     private volatile int compactionInterval = 1;
     private volatile boolean stopping;
     private volatile Reference rootReference;
@@ -401,6 +404,14 @@ public class SegmentCompactionIT {
             return childBuilder;
         }
 
+        private NodeBuilder chooseRandomNode(NodeBuilder nodeBuilder, Predicate<NodeBuilder> predicate) {
+            NodeBuilder childBuilder = chooseRandomNode(nodeBuilder);
+            while (!predicate.apply(childBuilder)) {
+                childBuilder = randomStep(nodeBuilder, nodeBuilder = childBuilder);
+            }
+            return childBuilder;
+        }
+
         private NodeBuilder randomStep(NodeBuilder parent, NodeBuilder node) {
             int count = (int) node.getChildNodeCount(Long.MAX_VALUE);
             int k = rnd.nextInt(count + 1);
@@ -421,23 +432,34 @@ public class SegmentCompactionIT {
         }
 
         private void addRandomNode(NodeBuilder nodeBuilder) {
-            if (nodeBuilder.getChildNodeCount(1000) < 1000) {
-                chooseRandomNode(nodeBuilder).setChildNode('N' + itemPrefix + rnd.nextInt(1000));
-            }
+            chooseRandomNode(nodeBuilder, new Predicate<NodeBuilder>() {
+                @Override
+                public boolean apply(NodeBuilder builder) {
+                    return builder.getChildNodeCount(maxNodeCount) < maxNodeCount;
+                }
+            }).setChildNode('N' + itemPrefix + rnd.nextInt(maxNodeCount));
         }
 
         private void addRandomValue(NodeBuilder nodeBuilder) {
-            if (nodeBuilder.getPropertyCount() < 1000) {
-                chooseRandomNode(nodeBuilder).setProperty('P' + itemPrefix + rnd.nextInt(1000),
-                        randomAlphabetic(rnd.nextInt(maxStringSize)));
-            }
+            chooseRandomNode(nodeBuilder, new Predicate<NodeBuilder>() {
+                @Override
+                public boolean apply(NodeBuilder builder) {
+                    return builder.getPropertyCount() < maxPropertyCount;
+                }
+            })
+            .setProperty('P' + itemPrefix + rnd.nextInt(maxPropertyCount),
+                    randomAlphabetic(rnd.nextInt(maxStringSize)));
         }
 
         private void addRandomBlob(NodeStore nodeStore, NodeBuilder nodeBuilder) throws IOException {
-            if (nodeBuilder.getPropertyCount() < 1000) {
-                chooseRandomNode(nodeBuilder).setProperty('B' + itemPrefix + rnd.nextInt(1000),
-                        createBlob(nodeStore, rnd.nextInt(maxBlobSize)));
-            }
+            chooseRandomNode(nodeBuilder, new Predicate<NodeBuilder>() {
+                @Override
+                public boolean apply(NodeBuilder builder) {
+                    return builder.getPropertyCount() < maxPropertyCount;
+                }
+            })
+            .setProperty('B' + itemPrefix + rnd.nextInt(maxPropertyCount),
+                    createBlob(nodeStore, rnd.nextInt(maxBlobSize)));
         }
 
         private Blob createBlob(NodeStore nodeStore, int size) throws IOException {
@@ -724,6 +746,28 @@ public class SegmentCompactionIT {
         @Override
         public int getMaxReferences() {
             return maxReferences;
+        }
+
+        @Override
+        public void setMaxNodeCount(int count) {
+            checkArgument(count >= 0);
+            maxNodeCount = count;
+        }
+
+        @Override
+        public int getMaxNodeCount() {
+            return maxNodeCount;
+        }
+
+        @Override
+        public void setMaxPropertyCount(int count) {
+            checkArgument(count >= 0);
+            maxPropertyCount = count;
+        }
+
+        @Override
+        public int getMaxPropertyCount() {
+            return maxPropertyCount;
         }
 
         @Override

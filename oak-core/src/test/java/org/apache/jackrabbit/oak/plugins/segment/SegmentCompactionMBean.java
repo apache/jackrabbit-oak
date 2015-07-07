@@ -140,6 +140,28 @@ public interface SegmentCompactionMBean {
     int getMaxReferences();
 
     /**
+     * Set the maximal number of child node of a node
+     * @param count  maximal number of child nodes
+     */
+    void setMaxNodeCount(int count);
+
+    /**
+     * @return  Maximal number of child nodes of a node
+     */
+    int getMaxNodeCount();
+
+    /**
+     * Set the maximal number of properties of a node
+     * @param count  maximal number of properties
+     */
+    void setMaxPropertyCount(int count);
+
+    /**
+     * @return  Maximal number of properties of a node
+     */
+    int getMaxPropertyCount();
+
+    /**
      * Add a reference to the current root or release a held reference.
      * @param set  add a reference if {@code true}, otherwise release any held reference
      */
