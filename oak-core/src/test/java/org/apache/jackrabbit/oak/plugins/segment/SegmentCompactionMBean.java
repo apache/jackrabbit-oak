@@ -107,6 +107,17 @@ public interface SegmentCompactionMBean {
     long getMaxStoreSize();
 
     /**
+     * Set the maximal size of string properties
+     * @param size  size in bytes
+     */
+    void setMaxStringSize(int size);
+
+    /**
+     * @return  maximal size of string properties in bytes
+     */
+    int getMaxStringSize();
+
+    /**
      * Set the maximal size of binary properties
      * @param size  size in bytes
      */

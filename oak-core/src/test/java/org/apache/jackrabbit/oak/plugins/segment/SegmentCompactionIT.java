@@ -137,6 +137,7 @@ public class SegmentCompactionIT {
     private volatile int maxWriters = 10;
     private volatile long maxStoreSize = 200000000000L;
     private volatile int maxBlobSize = 1000000;
+    private volatile int maxStringSize = 10000;
     private volatile int maxReferences = 10;
     private volatile int compactionInterval = 1;
     private volatile boolean stopping;
@@ -428,7 +429,7 @@ public class SegmentCompactionIT {
         private void addRandomValue(NodeBuilder nodeBuilder) {
             if (nodeBuilder.getPropertyCount() < 1000) {
                 chooseRandomNode(nodeBuilder).setProperty('P' + itemPrefix + rnd.nextInt(1000),
-                        randomAlphabetic(rnd.nextInt(10000)));
+                        randomAlphabetic(rnd.nextInt(maxStringSize)));
             }
         }
 
@@ -689,6 +690,16 @@ public class SegmentCompactionIT {
         @Override
         public long getMaxStoreSize() {
             return maxStoreSize;
+        }
+
+        @Override
+        public void setMaxStringSize(int size) {
+            maxStringSize = size;
+        }
+
+        @Override
+        public int getMaxStringSize() {
+            return maxStringSize;
         }
 
         @Override
