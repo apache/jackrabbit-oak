@@ -36,10 +36,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 
-import javax.annotation.Nullable;
-
 import com.google.common.base.Charsets;
-import com.google.common.base.Function;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
@@ -124,12 +121,18 @@ public class Segment {
     private final SegmentId[] refids;
 
     /**
+     * String records read from segment. Used to avoid duplicate
+     * copies and repeated parsing of the same strings.
+     */
+    private final ConcurrentMap<Integer, String> strings = newConcurrentMap();
+
+    /**
      * Template records read from segment. Used to avoid duplicate
      * copies and repeated parsing of the same templates.
      */
     private final ConcurrentMap<Integer, Template> templates = newConcurrentMap();
 
-    private volatile long accessed;
+    private volatile long accessed = 0;
 
     /**
      * Decode a 4 byte aligned segment offset.
@@ -364,43 +367,44 @@ public class Segment {
     }
 
     private String readString(int offset) {
-        return tracker.getStringCache().getString(this, offset, loadString);
+        String string = strings.get(offset);
+        if (string == null) {
+            string = loadString(offset);
+            strings.putIfAbsent(offset, string); // only keep the first copy
+        }
+        return string;
     }
 
-    private final Function<Integer, String> loadString = new Function<Integer, String>() {
-        @Nullable
-        @Override
-        public String apply(Integer offset) {
-            int pos = pos(offset, 1);
-            long length = internalReadLength(pos);
-            if (length < SMALL_LIMIT) {
-                byte[] bytes = new byte[(int) length];
-                ByteBuffer buffer = data.duplicate();
-                buffer.position(pos + 1);
-                buffer.get(bytes);
-                return new String(bytes, Charsets.UTF_8);
-            } else if (length < MEDIUM_LIMIT) {
-                byte[] bytes = new byte[(int) length];
-                ByteBuffer buffer = data.duplicate();
-                buffer.position(pos + 2);
-                buffer.get(bytes);
-                return new String(bytes, Charsets.UTF_8);
-            } else if (length < Integer.MAX_VALUE) {
-                int size = (int) ((length + BLOCK_SIZE - 1) / BLOCK_SIZE);
-                ListRecord list =
-                        new ListRecord(internalReadRecordId(pos + 8), size);
-                SegmentStream stream = new SegmentStream(
-                        new RecordId(id, offset), list, length);
-                try {
-                    return stream.getString();
-                } finally {
-                    stream.close();
-                }
-            } else {
-                throw new IllegalStateException("String is too long: " + length);
+    private String loadString(int offset) {
+        int pos = pos(offset, 1);
+        long length = internalReadLength(pos);
+        if (length < SMALL_LIMIT) {
+            byte[] bytes = new byte[(int) length];
+            ByteBuffer buffer = data.duplicate();
+            buffer.position(pos + 1);
+            buffer.get(bytes);
+            return new String(bytes, Charsets.UTF_8);
+        } else if (length < MEDIUM_LIMIT) {
+            byte[] bytes = new byte[(int) length];
+            ByteBuffer buffer = data.duplicate();
+            buffer.position(pos + 2);
+            buffer.get(bytes);
+            return new String(bytes, Charsets.UTF_8);
+        } else if (length < Integer.MAX_VALUE) {
+            int size = (int) ((length + BLOCK_SIZE - 1) / BLOCK_SIZE);
+            ListRecord list =
+                    new ListRecord(internalReadRecordId(pos + 8), size);
+            SegmentStream stream = new SegmentStream(
+                    new RecordId(id, offset), list, length);
+            try {
+                return stream.getString();
+            } finally {
+                stream.close();
             }
+        } else {
+            throw new IllegalStateException("String is too long: " + length);
         }
-    };
+    }
 
     MapRecord readMap(RecordId id) {
         return new MapRecord(id);
