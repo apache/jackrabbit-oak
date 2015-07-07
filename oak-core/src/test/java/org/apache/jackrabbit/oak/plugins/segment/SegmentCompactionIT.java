@@ -611,10 +611,12 @@ public class SegmentCompactionIT {
             SegmentCompactionIT.this.stop();
         }
 
+        @Override
         public void setCorePoolSize(int corePoolSize) {
             executor.setCorePoolSize(corePoolSize);
         }
 
+        @Override
         public int getCorePoolSize() {
             return executor.getCorePoolSize();
         }
