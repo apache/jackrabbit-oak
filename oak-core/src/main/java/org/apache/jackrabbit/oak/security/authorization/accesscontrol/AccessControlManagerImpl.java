@@ -574,10 +574,10 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
             }
 
             if (PermissionUtil.isAdminOrSystem(ImmutableSet.of(principal), configParams)) {
-                log.warn("Attempt to create an ACE for the admin principal which always has full access.");
+                log.warn("Attempt to create an ACE for an administrative principal which always has full access:" + getPath());
                 switch (Util.getImportBehavior(getConfig())) {
                     case ImportBehavior.ABORT:
-                        throw new AccessControlException("Attempt to create an ACE for the admin principal which always has full access.");
+                        throw new AccessControlException("Attempt to create an ACE for an administrative principal which always has full access.");
                     case ImportBehavior.IGNORE:
                         return false;
                     case ImportBehavior.BESTEFFORT:
