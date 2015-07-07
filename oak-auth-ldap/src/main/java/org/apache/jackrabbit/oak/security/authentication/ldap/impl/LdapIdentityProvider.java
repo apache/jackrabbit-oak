@@ -459,9 +459,13 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
             Entry entry = connection.lookup(ref.getId());
             timer.mark("lookup");
             Attribute attr = entry.get(config.getGroupMemberAttribute());
-            for (Value value: attr) {
-                ExternalIdentityRef memberRef = new ExternalIdentityRef(value.getString(), this.getName());
-                members.put(memberRef.getId(), memberRef);
+            if (attr == null) {
+                log.warn("LDAP group does not have configured attribute: {}", config.getGroupMemberAttribute());
+            } else {
+                for (Value value: attr) {
+                    ExternalIdentityRef memberRef = new ExternalIdentityRef(value.getString(), this.getName());
+                    members.put(memberRef.getId(), memberRef);
+                }
             }
             timer.mark("iterate");
             if (log.isDebugEnabled()) {
