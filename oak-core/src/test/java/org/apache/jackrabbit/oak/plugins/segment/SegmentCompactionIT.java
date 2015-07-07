@@ -399,21 +399,20 @@ public class SegmentCompactionIT {
 
         private void modify(NodeStore nodeStore, NodeBuilder nodeBuilder) throws IOException {
             int p0 = nodeRemoveRatio;
-            int p1 = propertyRemoveRatio;
-            int p2 = nodeAddRatio;
-            int p3 = addStringRatio;
-            int p4 = addBinaryRatio;
-            double p = p0 + p1 + p2 + p3 + p4;
+            int p1 = p0 + propertyRemoveRatio;
+            int p2 = p1 + nodeAddRatio;
+            int p3 = p2 + addStringRatio;
+            double p = p3 + addBinaryRatio;
 
             boolean deleteOnly = fileStoreSize > maxStoreSize;
             double k = rnd.nextDouble();
             if (k < p0/p) {
                 chooseRandomNode(nodeBuilder).remove();
-            } else if (k < (p0 + p1)/p) {
+            } else if (k < p1/p) {
                 removeRandomProperty(chooseRandomNode(nodeBuilder));
-            } else if (k < (p0 + p1 + p2)/p && !deleteOnly)  {
+            } else if (k < p2/p && !deleteOnly)  {
                 addRandomNode(nodeBuilder);
-            } else if (k < (p0 + p1 + p2 + p3)/p && !deleteOnly) {
+            } else if (k < p3/p && !deleteOnly) {
                 addRandomValue(nodeBuilder);
             } else if (!deleteOnly) {
                 addRandomBlob(nodeStore, nodeBuilder);
