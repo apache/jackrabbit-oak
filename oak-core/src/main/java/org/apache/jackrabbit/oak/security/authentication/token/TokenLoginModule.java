@@ -155,36 +155,38 @@ public final class TokenLoginModule extends AbstractLoginModule {
             updateSubject(tokenCredentials, getAuthInfo(tokenInfo), principals);
             return true;
         }
-
-        if (tokenProvider != null && sharedState.containsKey(SHARED_KEY_CREDENTIALS)) {
-            Credentials shared = getSharedCredentials();
-            if (shared != null && tokenProvider.doCreateToken(shared)) {
-                Root r = getRoot();
-                if (r != null) {
-                    r.refresh(); // refresh root, in case the external login module created users
-                }
-                TokenInfo ti = tokenProvider.createToken(shared);
-                if (ti != null) {
-                    TokenCredentials tc = new TokenCredentials(ti.getToken());
-                    Map<String, String> attributes = ti.getPrivateAttributes();
-                    for (String name : attributes.keySet()) {
-                        tc.setAttribute(name, attributes.get(name));
+        try{
+            if (tokenProvider != null && sharedState.containsKey(SHARED_KEY_CREDENTIALS)) {
+                Credentials shared = getSharedCredentials();
+                if (shared != null && tokenProvider.doCreateToken(shared)) {
+                    Root r = getRoot();
+                    if (r != null) {
+                        r.refresh(); // refresh root, in case the external login module created users
                     }
-                    attributes = ti.getPublicAttributes();
-                    for (String name : attributes.keySet()) {
-                        tc.setAttribute(name, attributes.get(name));
+                    TokenInfo ti = tokenProvider.createToken(shared);
+                    if (ti != null) {
+                        TokenCredentials tc = new TokenCredentials(ti.getToken());
+                        Map<String, String> attributes = ti.getPrivateAttributes();
+                        for (String name : attributes.keySet()) {
+                            tc.setAttribute(name, attributes.get(name));
+                        }
+                        attributes = ti.getPublicAttributes();
+                        for (String name : attributes.keySet()) {
+                            tc.setAttribute(name, attributes.get(name));
+                        }
+                        sharedState.put(SHARED_KEY_ATTRIBUTES, attributes);
+                        updateSubject(tc, null, null);
+                    } else {
+                        // failed to create token -> fail commit()
+                        log.debug("TokenProvider failed to create a login token for user " + userId);
+                        throw new LoginException("Failed to create login token for user " + userId);
                     }
-                    sharedState.put(SHARED_KEY_ATTRIBUTES, attributes);
-                    updateSubject(tc, null, null);
-                } else {
-                    // failed to create token -> fail commit()
-                    log.debug("TokenProvider failed to create a login token for user " + userId);
-                    throw new LoginException("Failed to create login token for user " + userId);
                 }
             }
+        } finally {
+            // the login attempt on this module did not succeed: clear state
+            clearState();
         }
-        // the login attempt on this module did not succeed: clear state
-        clearState();
 
         return false;
     }
