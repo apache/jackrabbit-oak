@@ -31,6 +31,19 @@ public interface SegmentCompactionMBean {
     void stop();
 
     /**
+     * Set the core pool size of the scheduler used to execute concurrent
+     * operations.
+     * @param corePoolSize
+     */
+    void setCorePoolSize(int corePoolSize);
+
+    /**
+     * @return the core pool size of the scheduler used to execute concurrent
+     * operations.
+     */
+    int getCorePoolSize();
+
+    /**
      * Set the compaction interval
      * @param minutes  number of minutes to wait between compaction cycles.
      */
