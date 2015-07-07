@@ -18,11 +18,13 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
@@ -31,6 +33,7 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import static com.google.common.collect.ImmutableList.of;
 import static java.util.Arrays.asList;
 import static junit.framework.Assert.assertEquals;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
@@ -348,5 +351,31 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         assertQuery("//*[jcr:contains(., '美女')]", "xpath",
                 ImmutableList.of(one.getPath()));
     }
-
+    
+    @Test
+    public void testMultiValuedPropUpdate() throws Exception {
+        Tree test = root.getTree("/").addChild("test");
+        String child = "child";
+        String mulValuedProp = "prop";
+        test.addChild(child).setProperty(mulValuedProp, of("foo","bar"), Type.STRINGS);
+        root.commit();
+        assertQuery(
+               "/jcr:root//*[jcr:contains(@" + mulValuedProp + ", 'foo')]",
+               "xpath", of("/test/" + child));
+        test.getChild(child).setProperty(mulValuedProp, new ArrayList<String>(), Type.STRINGS);
+        root.commit();
+        assertQuery("/jcr:root//*[jcr:contains(@" + mulValuedProp + ", 'foo')]", "xpath", new ArrayList<String>());
+        
+        test.getChild(child).setProperty(mulValuedProp, of("bar"), Type.STRINGS);
+        root.commit();
+        assertQuery(
+               "/jcr:root//*[jcr:contains(@" + mulValuedProp + ", 'foo')]",
+               "xpath", new ArrayList<String>());
+        
+        test.getChild(child).removeProperty(mulValuedProp);
+        root.commit();
+        assertQuery(
+               "/jcr:root//*[jcr:contains(@" + mulValuedProp + ", 'foo')]",
+               "xpath", new ArrayList<String>());
+    }    
 }
