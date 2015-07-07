@@ -30,6 +30,10 @@
   <artifactId>oak-exercise</artifactId>
   <name>Oak Exercises</name>
 
+  <properties>
+    <skip.deployment>false</skip.deployment>
+  </properties>
+
   <build>
     <plugins>
       <plugin>
