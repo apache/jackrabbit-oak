@@ -140,6 +140,7 @@ public class SegmentCompactionIT {
     private volatile int maxBlobSize = 1000000;
     private volatile int maxStringSize = 10000;
     private volatile int maxReferences = 10;
+    private volatile int maxWriteOps = 10000;
     private volatile int maxNodeCount = 1000;
     private volatile int maxPropertyCount = 1000;
     private volatile int nodeRemoveRatio = 10;
@@ -286,7 +287,7 @@ public class SegmentCompactionIT {
     private void scheduleWriter() {
         if (writers.size() < maxWriters) {
             final ListenableScheduledFuture<Void> writer = scheduler.schedule(
-                    new RandomWriter(rnd, nodeStore, rnd.nextInt(500), "W" + rnd.nextInt(5)),
+                    new RandomWriter(rnd, nodeStore, rnd.nextInt(maxWriteOps), "W" + rnd.nextInt(5)),
                     rnd.nextInt(30), SECONDS);
             writers.add(writer);
             addCallback(writer, new FutureCallback<Void>() {
@@ -758,6 +759,17 @@ public class SegmentCompactionIT {
         @Override
         public int getMaxReferences() {
             return maxReferences;
+        }
+
+        @Override
+        public void setMaxWriteOps(int count) {
+            checkArgument(count >= 0);
+            maxWriteOps = count;
+        }
+
+        @Override
+        public int getMaxWriteOps() {
+            return maxWriteOps;
         }
 
         @Override
