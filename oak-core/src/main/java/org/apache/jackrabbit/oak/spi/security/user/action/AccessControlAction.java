@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
 import java.security.Principal;
+import java.util.Collections;
+import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
@@ -34,6 +36,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.slf4j.Logger;
@@ -105,6 +108,7 @@ public class AccessControlAction extends AbstractAuthorizableAction {
     private SecurityProvider securityProvider;
     private String[] groupPrivilegeNames = new String[0];
     private String[] userPrivilegeNames = new String[0];
+    private Set<String> administrativePrincipals = Collections.emptySet();
 
     //-------------------------------------------------< AuthorizableAction >---
     @Override
@@ -112,6 +116,8 @@ public class AccessControlAction extends AbstractAuthorizableAction {
         this.securityProvider = securityProvider;
         userPrivilegeNames = privilegeNames(config, USER_PRIVILEGE_NAMES);
         groupPrivilegeNames = privilegeNames(config, GROUP_PRIVILEGE_NAMES);
+
+        administrativePrincipals = securityProvider.getConfiguration(AuthorizationConfiguration.class).getParameters().getConfigValue(PermissionConstants.PARAM_ADMINISTRATIVE_PRINCIPALS, Collections.EMPTY_SET);
     }
 
     @Override
@@ -154,6 +160,11 @@ public class AccessControlAction extends AbstractAuthorizableAction {
             log.debug("No privileges configured for groups and users; omit ac setup.");
             return;
         }
+        Principal principal = authorizable.getPrincipal();
+        if (administrativePrincipals.contains(principal.getName())) {
+            log.debug("Administrative principal: " + principal.getName() + "; omit ac setup.");
+            return;
+        }
 
         String path = authorizable.getPath();
         AuthorizationConfiguration acConfig = securityProvider.getConfiguration(AuthorizationConfiguration.class);
@@ -171,7 +182,6 @@ public class AccessControlAction extends AbstractAuthorizableAction {
             log.warn("Cannot process AccessControlAction: no applicable ACL at " + path);
         } else {
             // setup acl according to configuration.
-            Principal principal = authorizable.getPrincipal();
             boolean modified = false;
             if (authorizable.isGroup()) {
                 // new authorizable is a Group
