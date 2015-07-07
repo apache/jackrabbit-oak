@@ -20,8 +20,6 @@ import javax.naming.directory.BasicAttributes;
 import javax.naming.directory.DirContext;
 import javax.naming.ldap.LdapContext;
 
-import org.apache.directory.server.constants.ServerDNConstants;
-
 class InternalLdapServer extends AbstractServer {
 
     public static final String GROUP_MEMBER_ATTR = "member";
@@ -48,21 +46,25 @@ class InternalLdapServer extends AbstractServer {
         String dn = buildDn(cn, false);
         StringBuilder entries = new StringBuilder();
         entries.append("dn: ").append(dn).append('\n')
-                .append("objectClass: inetOrgPerson\n").append("cn: ").append(cn)
-                .append('\n').append("sn: ").append(lastName)
-                .append('\n').append("givenName:").append(firstName)
-                .append('\n').append("uid: ").append(userId)
-                .append('\n').append("userPassword: ").append(password).append("\n\n");
+                .append("objectClass: inetOrgPerson\n")
+                .append("cn: ").append(cn).append('\n')
+                .append("sn: ").append(lastName).append('\n')
+                .append("givenName:").append(firstName).append('\n')
+                .append("uid: ").append(userId).append('\n')
+                .append("userPassword: ").append(password).append("\n")
+                .append("\n");
         addEntry(entries.toString());
         return dn;
     }
 
-    public String addGroup(String name) throws Exception {
+    public String addGroup(String name, String member) throws Exception {
         String dn = buildDn(name, true);
         StringBuilder entries = new StringBuilder();
-        entries.append("dn: ").append(dn).append('\n').append("objectClass: ")
-                .append(GROUP_CLASS_ATTR).append('\n').append(GROUP_MEMBER_ATTR)
-                .append(":\n").append("cn: ").append(name).append("\n\n");
+        entries.append("dn: ").append(dn).append('\n')
+                .append("objectClass: ").append(GROUP_CLASS_ATTR).append('\n')
+                .append(GROUP_MEMBER_ATTR).append(":").append(member).append("\n")
+                .append("cn: ").append(name).append("\n")
+                .append("\n");
         addEntry(entries.toString());
         return dn;
     }
@@ -83,12 +85,7 @@ class InternalLdapServer extends AbstractServer {
 
     private static String buildDn(String name, boolean isGroup) {
         StringBuilder dn = new StringBuilder();
-        dn.append("cn=").append(name).append(',');
-        if (isGroup) {
-            dn.append(ServerDNConstants.GROUPS_SYSTEM_DN);
-        } else {
-            dn.append(ServerDNConstants.USERS_SYSTEM_DN);
-        }
+        dn.append("cn=").append(name).append(',').append(EXAMPLE_DN);
         return dn.toString();
     }
 }
