@@ -78,7 +78,7 @@ class Aggregate {
         return includes;
     }
 
-    public void collectAggregates(NodeState root, ResultCollector collector) throws CommitFailedException {
+    public void collectAggregates(NodeState root, ResultCollector collector) {
         if (nodeTypeName.equals(ConfigUtil.getPrimaryTypeName(root))) {
             List<Matcher> matchers = createMatchers();
             collectAggregates(root, matchers, collector);
@@ -112,7 +112,7 @@ class Aggregate {
     }
 
     private static void collectAggregates(NodeState nodeState, List<Matcher> matchers,
-                                          ResultCollector collector) throws CommitFailedException {
+                                          ResultCollector collector) {
         for (ChildNodeEntry cne : nodeState.getChildNodeEntries()) {
             List<Matcher> nextSet = newArrayListWithCapacity(matchers.size());
             for (Matcher m : matchers) {
@@ -190,13 +190,12 @@ class Aggregate {
         }
 
         public void collectResults(T rootInclude, String rootIncludePath,
-                                   String nodePath, NodeState nodeState,  ResultCollector results)
-                throws CommitFailedException {
+                                   String nodePath, NodeState nodeState,  ResultCollector results) {
             collectResults(nodePath, nodeState, results);
         }
 
         public void collectResults(String nodePath, NodeState nodeState,
-                                            ResultCollector results) throws CommitFailedException {
+                                            ResultCollector results) {
 
         }
 
@@ -240,7 +239,7 @@ class Aggregate {
 
         @Override
         public void collectResults(NodeInclude rootInclude, String rootIncludePath, String nodePath,
-                                   NodeState nodeState, ResultCollector results) throws CommitFailedException {
+                                   NodeState nodeState, ResultCollector results) {
             //For supporting jcr:contains(jcr:content, 'foo')
             if (rootInclude.relativeNode){
                 results.onResult(new NodeIncludeResult(nodePath, rootIncludePath, nodeState));
@@ -309,8 +308,7 @@ class Aggregate {
         }
 
         @Override
-        public void collectResults(String nodePath, NodeState nodeState, ResultCollector results)
-                throws CommitFailedException {
+        public void collectResults(String nodePath, NodeState nodeState, ResultCollector results) {
             if (pattern != null) {
                 for (PropertyState ps : nodeState.getProperties()) {
                     if (pattern.matcher(ps.getName()).matches()) {
@@ -340,9 +338,9 @@ class Aggregate {
     }
 
     public static interface ResultCollector {
-        void onResult(NodeIncludeResult result) throws CommitFailedException;
+        void onResult(NodeIncludeResult result);
 
-        void onResult(PropertyIncludeResult result) throws CommitFailedException;
+        void onResult(PropertyIncludeResult result);
     }
 
     public static class NodeIncludeResult {
@@ -508,8 +506,7 @@ class Aggregate {
                     null, currentPath));
         }
 
-        public void collectResults(ResultCollector results)
-                throws CommitFailedException {
+        public void collectResults(ResultCollector results) {
             checkArgument(status == Status.MATCH_FOUND);
 
             //If result being collected as part of reaggregation then take path
