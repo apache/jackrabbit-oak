@@ -91,8 +91,6 @@ public class SegmentTracker {
     private final LinkedList<Segment> segments = newLinkedList();
 
     private long currentSize;
-    
-    private final StringCache stringCache;
 
     public SegmentTracker(SegmentStore store, int cacheSizeMB,
             SegmentVersion version) {
@@ -105,7 +103,6 @@ public class SegmentTracker {
         this.cacheSize = cacheSizeMB * MB;
         this.compactionMap = new AtomicReference<CompactionMap>(
                 CompactionMap.EMPTY);
-        stringCache = new StringCache((int) Math.min(Integer.MAX_VALUE, cacheSize));
     }
 
     public SegmentTracker(SegmentStore store, SegmentVersion version) {
@@ -129,12 +126,7 @@ public class SegmentTracker {
      */
     public synchronized void clearCache() {
         segments.clear();
-        stringCache.clear();
         currentSize = 0;
-    }
-    
-    public StringCache getStringCache() {
-        return stringCache;
     }
 
     Segment getSegment(SegmentId id) {
