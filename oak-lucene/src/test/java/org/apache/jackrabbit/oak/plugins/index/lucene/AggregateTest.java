@@ -386,12 +386,12 @@ public class AggregateTest {
         final ListMultimap<String, NodeIncludeResult> nodeResults = ArrayListMultimap.create();
         final Map<String, PropertyIncludeResult> propResults = newHashMap();
         @Override
-        public void onResult(NodeIncludeResult result) throws CommitFailedException{
+        public void onResult(NodeIncludeResult result) {
             nodeResults.put(result.nodePath, result);
         }
 
         @Override
-        public void onResult(PropertyIncludeResult result) throws CommitFailedException {
+        public void onResult(PropertyIncludeResult result) {
             propResults.put(result.propertyPath, result);
 
         }
