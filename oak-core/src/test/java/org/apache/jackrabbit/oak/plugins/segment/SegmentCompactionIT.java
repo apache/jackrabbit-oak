@@ -53,6 +53,7 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 import javax.management.InstanceAlreadyExistsException;
@@ -151,6 +152,7 @@ public class SegmentCompactionIT {
     private volatile int compactionInterval = 1;
     private volatile boolean stopping;
     private volatile Reference rootReference;
+    private volatile long fileStoreSize;
 
     public synchronized void stop() {
         stopping = true;
@@ -256,6 +258,7 @@ public class SegmentCompactionIT {
 
     @Test
     public void run() throws InterruptedException {
+        scheduleSizeMonitor();
         scheduleCompactor();
         addReaders(maxReaders);
         addWriters(maxWriters);
@@ -265,6 +268,15 @@ public class SegmentCompactionIT {
                 wait();
             }
         }
+    }
+
+    private void scheduleSizeMonitor() {
+        scheduler.schedule(new Runnable() {
+            @Override
+            public void run() {
+                fileStoreSize = fileStore.size();
+            }
+        }, 1, TimeUnit.MINUTES);
     }
 
     private synchronized void scheduleCompactor() {
@@ -378,16 +390,14 @@ public class SegmentCompactionIT {
         @Override
         public Void call() throws IOException, CommitFailedException {
             NodeBuilder root = nodeStore.getRoot().builder();
-            boolean deleteOnly = fileStore.size() > maxStoreSize;
             for (int k = 0; k < opCount; k++) {
-                modify(nodeStore, root, deleteOnly);
+                modify(nodeStore, root);
             }
             nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
             return null;
         }
 
-        private void modify(NodeStore nodeStore, NodeBuilder nodeBuilder, boolean deleteOnly)
-                throws IOException {
+        private void modify(NodeStore nodeStore, NodeBuilder nodeBuilder) throws IOException {
             int p0 = nodeRemoveRatio;
             int p1 = propertyRemoveRatio;
             int p2 = nodeAddRatio;
@@ -395,6 +405,7 @@ public class SegmentCompactionIT {
             int p4 = addBinaryRatio;
             double p = p0 + p1 + p2 + p3 + p4;
 
+            boolean deleteOnly = fileStoreSize > maxStoreSize;
             double k = rnd.nextDouble();
             if (k < p0/p) {
                 chooseRandomNode(nodeBuilder).remove();
@@ -880,7 +891,7 @@ public class SegmentCompactionIT {
 
         @Override
         public long getFileStoreSize() {
-            return fileStore.size();
+            return fileStoreSize;
         }
 
         private CompactionMap getCompactionMap() {
