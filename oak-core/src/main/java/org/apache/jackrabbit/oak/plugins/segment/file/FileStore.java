@@ -647,7 +647,7 @@ public class FileStore implements SegmentStore {
                 humanReadableByteCount(initialSize));
 
         newWriter();
-        tracker.clearCache();
+//        tracker.clearCache();
 
         // Suggest to the JVM that now would be a good time
         // to clear stale weak references in the SegmentTracker
