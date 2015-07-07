@@ -140,6 +140,17 @@ public interface SegmentCompactionMBean {
     int getMaxReferences();
 
     /**
+     * Maximal number of write operations per scheduled writer
+     * @param count  maximal number of operations
+     */
+    void setMaxWriteOps(int count);
+
+    /**
+     * @return  maximal number of operations
+     */
+    int getMaxWriteOps();
+
+    /**
      * Set the maximal number of child node of a node
      * @param count  maximal number of child nodes
      */
