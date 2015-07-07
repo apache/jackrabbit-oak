@@ -292,13 +292,12 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
             throw new CommitFailedException("Lucene", 3,
                     "Failed to index the node " + path, e);
         } catch (IllegalArgumentException ie) {
-            throw new CommitFailedException("Lucene", 3,
-                "Failed to index the node " + path, ie);
+            log.warn("Failed to index the node [{}]", path, ie);
         }
         return false;
     }
 
-    private Document makeDocument(String path, NodeState state, boolean isUpdate) throws CommitFailedException {
+    private Document makeDocument(String path, NodeState state, boolean isUpdate) {
         if (!isIndexable()) {
             return null;
         }
@@ -380,7 +379,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                                   NodeState state,
                                   PropertyState property,
                                   String pname,
-                                  PropertyDefinition pd) throws CommitFailedException {
+                                  PropertyDefinition pd) {
         boolean includeTypeForFullText = indexingRule.includePropertyType(property.getType().tag());
         if (Type.BINARY.tag() == property.getType().tag()
                 && includeTypeForFullText) {
@@ -427,7 +426,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         return pname;
     }
 
-    private boolean addTypedFields(List<Field> fields, PropertyState property, String pname) throws CommitFailedException {
+    private boolean addTypedFields(List<Field> fields, PropertyState property, String pname) {
         int tag = property.getType().tag();
         boolean fieldAdded = false;
         for (int i = 0; i < property.count(); i++) {
@@ -454,7 +453,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
     private boolean addTypedOrderedFields(List<Field> fields,
                                           PropertyState property,
                                           String pname,
-                                          PropertyDefinition pd) throws CommitFailedException {
+                                          PropertyDefinition pd) {
         // Ignore and warn if property multi-valued as not supported
         if (property.getType().isArray()) {
             log.warn(
@@ -618,11 +617,11 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
     }
 
     private boolean indexAggregates(final String path, final List<Field> fields,
-                                    final NodeState state) throws CommitFailedException {
+                                    final NodeState state) {
         final AtomicBoolean dirtyFlag = new AtomicBoolean();
         indexingRule.getAggregate().collectAggregates(state, new Aggregate.ResultCollector() {
             @Override
-            public void onResult(Aggregate.NodeIncludeResult result) throws CommitFailedException {
+            public void onResult(Aggregate.NodeIncludeResult result) {
                 boolean dirty = indexAggregatedNode(path, fields, result);
                 if (dirty) {
                     dirtyFlag.set(true);
@@ -630,7 +629,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
             }
 
             @Override
-            public void onResult(Aggregate.PropertyIncludeResult result) throws CommitFailedException {
+            public void onResult(Aggregate.PropertyIncludeResult result) {
                 boolean dirty = false;
                 if (result.pd.ordered) {
                     dirty |= addTypedOrderedFields(fields, result.propertyState,
@@ -654,10 +653,8 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
      * @param fields indexed fields
      * @param result aggregate result
      * @return true if a field was created for passed node result
-     * @throws CommitFailedException
      */
-    private boolean indexAggregatedNode(String path, List<Field> fields, Aggregate.NodeIncludeResult result)
-            throws CommitFailedException {
+    private boolean indexAggregatedNode(String path, List<Field> fields, Aggregate.NodeIncludeResult result) {
         //rule for node being aggregated might be null if such nodes
         //are not indexed on there own. In such cases we rely in current
         //rule for some checks
