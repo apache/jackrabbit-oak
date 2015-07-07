@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
@@ -110,23 +111,52 @@ public class Compactor {
 
     private class CompactDiff extends ApplyDiff {
 
+        /**
+         * Current processed path, or null if the trace log is not enabled at
+         * the beginning of the compaction call. The null check will also be
+         * used to verify if a trace log will be needed or not
+         */
+        private final String path;
+
         CompactDiff(NodeBuilder builder) {
             super(builder);
+            if (log.isTraceEnabled()) {
+                this.path = "/";
+            } else {
+                this.path = null;
+            }
+        }
+
+        private CompactDiff(NodeBuilder builder, String path, String childName) {
+            super(builder);
+            if (path != null) {
+                this.path = concat(path, childName);
+            } else {
+                this.path = null;
+            }
         }
 
         @Override
         public boolean propertyAdded(PropertyState after) {
+            if (path != null) {
+                log.trace("propertyAdded {}/{}", path, after.getName());
+            }
             return super.propertyAdded(compact(after));
         }
 
         @Override
-        public boolean propertyChanged(
-                PropertyState before, PropertyState after) {
+        public boolean propertyChanged(PropertyState before, PropertyState after) {
+            if (path != null) {
+                log.trace("propertyChanged {}/{}", path, after.getName());
+            }
             return super.propertyChanged(before, compact(after));
         }
 
         @Override
         public boolean childNodeAdded(String name, NodeState after) {
+            if (path != null) {
+                log.trace("childNodeAdded {}/{}", path, name);
+            }
             RecordId id = null;
             if (after instanceof SegmentNodeState) {
                 id = ((SegmentNodeState) after).getRecordId();
@@ -139,7 +169,7 @@ public class Compactor {
 
             NodeBuilder child = EmptyNodeState.EMPTY_NODE.builder();
             boolean success = EmptyNodeState.compareAgainstEmptyState(after,
-                    new CompactDiff(child));
+                    new CompactDiff(child, path, name));
 
             if (success) {
                 SegmentNodeState state = writer.writeNode(child.getNodeState());
@@ -155,6 +185,10 @@ public class Compactor {
         @Override
         public boolean childNodeChanged(
                 String name, NodeState before, NodeState after) {
+            if (path != null) {
+                log.trace("childNodeChanged {}/{}", path, name);
+            }
+
             RecordId id = null;
             if (after instanceof SegmentNodeState) {
                 id = ((SegmentNodeState) after).getRecordId();
@@ -167,7 +201,7 @@ public class Compactor {
 
             NodeBuilder child = builder.getChildNode(name);
             boolean success = after.compareAgainstBaseState(before,
-                    new CompactDiff(child));
+                    new CompactDiff(child, path, name));
 
             if (success) {
                 RecordId compactedId = writer.writeNode(child.getNodeState())
