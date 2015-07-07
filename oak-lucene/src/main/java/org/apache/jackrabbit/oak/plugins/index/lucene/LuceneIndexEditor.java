@@ -100,6 +100,8 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
     private boolean propertiesChanged = false;
 
+    private List<PropertyState> propertiesModified = Lists.newArrayList();
+
     private final NodeState root;
 
     /**
@@ -222,12 +224,14 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) {
         markPropertyChanged(before.getName());
+        propertiesModified.add(before);
         checkAggregates(before.getName());
     }
 
     @Override
     public void propertyDeleted(PropertyState before) {
         markPropertyChanged(before.getName());
+        propertiesModified.add(before);
         checkAggregates(before.getName());
     }
 
@@ -332,6 +336,11 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         dirty |= indexAggregates(path, fields, state);
         dirty |= indexNullCheckEnabledProps(path, fields, state);
         dirty |= indexNotNullCheckEnabledProps(path, fields, state);
+        
+        // Check if a node having a single property was modified/deleted
+        if (!dirty) {
+            dirty = indexIfSinglePropertyRemoved();
+        }
 
         if (isUpdate && !dirty) {
             // updated the state but had no relevant changes
@@ -575,7 +584,22 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         }
         return fieldAdded;
     }
-
+    
+    private boolean indexIfSinglePropertyRemoved() {
+        boolean dirty = false;
+        for (PropertyState ps : propertiesModified) {
+            PropertyDefinition pd = indexingRule.getConfig(ps.getName());
+            if (pd != null 
+                    && pd.index 
+                    && (pd.includePropertyType(ps.getType().tag()) 
+                            || indexingRule.includePropertyType(ps.getType().tag()))) {
+                dirty = true;
+                break;
+            }
+        }
+        return dirty;
+    }
+    
     /**
      * Determine if the property as defined by PropertyDefinition exists or not.
      *
