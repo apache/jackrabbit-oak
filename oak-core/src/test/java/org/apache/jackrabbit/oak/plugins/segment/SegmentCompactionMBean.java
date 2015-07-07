@@ -162,6 +162,61 @@ public interface SegmentCompactionMBean {
     int getMaxPropertyCount();
 
     /**
+     * Set the ration of remove node operations wrt. all other operations.
+     * @param ratio  ratio of node remove operations
+     */
+    void setNodeRemoveRatio(int ratio);
+
+    /**
+     * @return  Ratio of node remove operations
+     */
+    int getNodeRemoveRatio();
+
+    /**
+     * Set the ration of remove property operations wrt. all other operations.
+     * @param ratio  ratio of property remove operations
+     */
+    void setPropertyRemoveRatio(int ratio);
+
+    /**
+     * @return  Ratio of property remove operations
+     */
+    int getPropertyRemoveRatio();
+
+    /**
+     * Set the ration of add node operations wrt. all other operations.
+     * @param ratio  ratio of node add operations
+     */
+    void setNodeAddRatio(int ratio);
+
+    /**
+     * @return  Ratio of node add operations
+     */
+    int getNodeAddRatio();
+
+    /**
+     * Set the ration of add string property operations wrt. all other operations.
+     * @param ratio  ratio of string property add operations
+     */
+    void setAddStringRatio(int ratio);
+
+    /**
+     * @return  Ratio of string property add operations
+     */
+    int getAddStringRatio();
+
+    /**
+     * Set the ration of add binary property operations wrt. all other operations.
+     * @param ratio  ratio of binary property add operations
+     */
+    void setAddBinaryRatio(int ratio);
+
+    /**
+     * @return  Ratio of binary property add operations
+     */
+    int getAddBinaryRatio();
+
+    /**
      * Add a reference to the current root or release a held reference.
      * @param set  add a reference if {@code true}, otherwise release any held reference
      */
