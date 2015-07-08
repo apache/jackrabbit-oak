@@ -67,6 +67,12 @@ public class IndexDefinitionTest {
     private NodeBuilder builder = root.builder();
 
     @Test
+    public void defaultConfig() throws Exception{
+        IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState());
+        assertTrue(idxDefn.saveDirListing());
+    }
+
+    @Test
     public void fullTextEnabled() throws Exception{
         IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState());
         IndexingRule rule = idxDefn.getApplicableIndexingRule(NT_BASE);
