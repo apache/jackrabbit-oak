@@ -39,6 +39,8 @@ import javax.naming.ldap.LdapContext;
 import org.apache.commons.io.FileUtils;
 import org.apache.directory.api.ldap.model.constants.SupportedSaslMechanisms;
 import org.apache.directory.api.ldap.model.entry.DefaultEntry;
+import org.apache.directory.api.ldap.model.entry.Entry;
+import org.apache.directory.api.ldap.model.exception.LdapException;
 import org.apache.directory.api.ldap.model.ldif.LdifEntry;
 import org.apache.directory.api.ldap.model.ldif.LdifReader;
 import org.apache.directory.api.ldap.model.name.Dn;
@@ -73,6 +75,9 @@ import org.slf4j.LoggerFactory;
  * A simple ldap test server
  */
 public abstract class AbstractServer {
+
+    public static final String  EXAMPLE_DN = "dc=example,dc=com";
+
     private static final Logger LOG = LoggerFactory.getLogger(AbstractServer.class);
     private static final List<LdifEntry> EMPTY_LIST = Collections.unmodifiableList(new ArrayList<LdifEntry>(0));
     private static final String CTX_FACTORY = "com.sun.jndi.ldap.LdapCtxFactory";
@@ -209,21 +214,72 @@ public abstract class AbstractServer {
         sysPart.setSuffixDn(directoryService.getDnFactory().create(ServerDNConstants.SYSTEM_DN));
         directoryService.setSystemPartition(sysPart);
 
+        LdifPartition examplePart = new LdifPartition(directoryService.getSchemaManager(), directoryService.getDnFactory());
+        examplePart.setId("example");
+        examplePart.setPartitionPath(new File(directoryService.getInstanceLayout().getPartitionsDirectory(), "example").toURI());
+        examplePart.setSuffixDn(directoryService.getDnFactory().create(EXAMPLE_DN));
+        examplePart.setCacheService(cache);
+        directoryService.addPartition(examplePart);
+
         // setup ldap server
         port = AvailablePortFinder.getNextAvailable(1024);
         ldapServer = new LdapServer();
-        ldapServer.setTransports(new TcpTransport(port));
-        ldapServer.setDirectoryService(directoryService);
-
+        setupLdapServer();
         setupSaslMechanisms();
 
         directoryService.startup();
-
-        ldapServer.addExtendedOperationHandler(new StartTlsHandler());
-        ldapServer.addExtendedOperationHandler(new StoredProcedureExtendedOperationHandler());
-
+        setupExamplePartition();
         ldapServer.start();
         setContexts(ServerDNConstants.ADMIN_SYSTEM_DN, "secret");
+    }
+
+    protected void setupLdapServer() throws Exception {
+        ldapServer.setTransports(new TcpTransport(port));
+        ldapServer.setDirectoryService(directoryService);
+        ldapServer.addExtendedOperationHandler(new StartTlsHandler());
+        ldapServer.addExtendedOperationHandler(new StoredProcedureExtendedOperationHandler());
+    }
+
+    protected void setupExamplePartition() throws Exception {
+        // setup acl to allow read all users
+        // Inject the context entry for dc=example,dc=com partition if it does not already exist
+        try {
+            directoryService.getAdminSession().lookup(new Dn(EXAMPLE_DN));
+        } catch (LdapException lnnfe) {
+            Entry entry = directoryService.newEntry(new Dn(EXAMPLE_DN));
+            entry.add("objectClass", "top", "domain", "extensibleObject");
+            entry.add("dc", "example");
+            entry.add("administrativeRole", "accessControlSpecificArea");
+            directoryService.getAdminSession().add(entry);
+
+            entry = directoryService.newEntry(new Dn("cn=enableSearchForAllUsers," + EXAMPLE_DN));
+            entry.add("objectClass", "top", "subentry", "accessControlSubentry");
+            entry.add("cn", "enableSearchForAllUsers");
+            entry.add("subtreeSpecification", "{}");
+            entry.add("prescriptiveACI",
+                    "{ \n" +
+                            "  identificationTag \"enableSearchForAllUsers\",\n" +
+                            "  precedence 14,\n" +
+                            "  authenticationLevel simple,\n" +
+                            "  itemOrUserFirst userFirst: \n" +
+                            "  { \n" +
+                            "    userClasses { allUsers }, \n" +
+                            "    userPermissions \n" +
+                            "    { \n" +
+                            "      {\n" +
+                            "        protectedItems {entry, allUserAttributeTypesAndValues}, \n" +
+                            "        grantsAndDenials { grantRead, grantReturnDN, grantBrowse } \n" +
+                            "      }\n" +
+                            "    } \n" +
+                            "  } \n" +
+                            "}");
+            directoryService.getAdminSession().add(entry);
+            directoryService.sync();
+        }
+    }
+
+    public void setMaxSizeLimit(long maxSizeLimit) {
+        ldapServer.setMaxSizeLimit(maxSizeLimit);
     }
 
     private void setupSaslMechanisms() {

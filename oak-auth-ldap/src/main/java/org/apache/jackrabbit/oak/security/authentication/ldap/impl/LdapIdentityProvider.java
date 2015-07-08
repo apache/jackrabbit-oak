@@ -33,6 +33,7 @@ import javax.net.ssl.SSLContext;
 import javax.security.auth.login.LoginException;
 
 import org.apache.commons.pool.impl.GenericObjectPool;
+import org.apache.directory.api.ldap.codec.controls.search.pagedSearch.PagedResultsDecorator;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
 import org.apache.directory.api.ldap.model.cursor.CursorException;
 import org.apache.directory.api.ldap.model.cursor.SearchCursor;
@@ -43,10 +44,13 @@ import org.apache.directory.api.ldap.model.exception.LdapAuthenticationException
 import org.apache.directory.api.ldap.model.exception.LdapException;
 import org.apache.directory.api.ldap.model.exception.LdapInvalidAttributeValueException;
 import org.apache.directory.api.ldap.model.message.Response;
+import org.apache.directory.api.ldap.model.message.ResultCodeEnum;
 import org.apache.directory.api.ldap.model.message.SearchRequest;
 import org.apache.directory.api.ldap.model.message.SearchRequestImpl;
+import org.apache.directory.api.ldap.model.message.SearchResultDone;
 import org.apache.directory.api.ldap.model.message.SearchResultEntry;
 import org.apache.directory.api.ldap.model.message.SearchScope;
+import org.apache.directory.api.ldap.model.message.controls.PagedResults;
 import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.api.ldap.model.name.Rdn;
 import org.apache.directory.ldap.client.api.AbstractPoolableLdapConnectionFactory;
@@ -458,9 +462,13 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
             Entry entry = connection.lookup(ref.getId());
             timer.mark("lookup");
             Attribute attr = entry.get(config.getGroupMemberAttribute());
-            for (Value value: attr) {
-                ExternalIdentityRef memberRef = new ExternalIdentityRef(value.getString(), this.getName());
-                members.put(memberRef.getId(), memberRef);
+            if (attr == null) {
+                log.warn("LDAP group does not have configured attribute: {}", config.getGroupMemberAttribute());
+            } else {
+                for (Value value: attr) {
+                    ExternalIdentityRef memberRef = new ExternalIdentityRef(value.getString(), this.getName());
+                    members.put(memberRef.getId(), memberRef);
+                }
             }
             timer.mark("iterate");
             if (log.isDebugEnabled()) {
@@ -625,36 +633,62 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
                 ? "(&" + filter + ')'
                 : filter.toString();
 
-        // Create the SearchRequest object
-        SearchRequest req = new SearchRequestImpl();
-        req.setScope(SearchScope.SUBTREE);
-        req.addAttributes(SchemaConstants.ALL_USER_ATTRIBUTES);
-        req.setTimeLimit((int) config.getSearchTimeout());
-        req.setBase(new Dn(idConfig.getBaseDN()));
-        req.setFilter(searchFilter);
+        // do paged searches (OAK-2874)
+        int pageSize = 1000;
+        byte[] cookie = null;
 
-        // Process the request
         List<Entry> result = new LinkedList<Entry>();
-        SearchCursor searchCursor = null;
-        try {
-            searchCursor = connection.search(req);
-            while (searchCursor.next()) {
-                Response response = searchCursor.get();
+        do {
 
-                // process the SearchResultEntry
-                if (response instanceof SearchResultEntry) {
-                    Entry resultEntry = ((SearchResultEntry) response).getEntry();
-                    result.add(resultEntry);
-                    if (log.isDebugEnabled()) {
-                        log.debug("search below {} with {} found {}", idConfig.getBaseDN(), searchFilter, resultEntry.getDn());
+            // Create the SearchRequest object
+            SearchRequest req = new SearchRequestImpl();
+            req.setScope(SearchScope.SUBTREE);
+            req.addAttributes(SchemaConstants.ALL_USER_ATTRIBUTES);
+            req.setTimeLimit((int) config.getSearchTimeout());
+            req.setBase(new Dn(idConfig.getBaseDN()));
+            req.setFilter(searchFilter);
+
+            PagedResults pagedSearchControl = new PagedResultsDecorator(connection.getCodecService());
+            pagedSearchControl.setSize(pageSize);
+            pagedSearchControl.setCookie(cookie);
+            req.addControl(pagedSearchControl);
+
+            // Process the request
+            SearchCursor searchCursor = null;
+            try {
+                searchCursor = connection.search(req);
+                while (searchCursor.next()) {
+                    Response response = searchCursor.get();
+
+                    // process the SearchResultEntry
+                    if (response instanceof SearchResultEntry) {
+                        Entry resultEntry = ((SearchResultEntry) response).getEntry();
+                        result.add(resultEntry);
+                        if (log.isDebugEnabled()) {
+                            log.debug("search below {} with {} found {}", idConfig.getBaseDN(), searchFilter, resultEntry.getDn());
+                        }
                     }
                 }
+
+                SearchResultDone done = searchCursor.getSearchResultDone();
+                cookie = null;
+                if (done.getLdapResult().getResultCode() == ResultCodeEnum.UNWILLING_TO_PERFORM) {
+                    break;
+                }
+
+                PagedResults ctrl = (PagedResults) done.getControl(PagedResults.OID);
+                if (ctrl != null) {
+                    cookie = ctrl.getCookie();
+                }
+
+            } finally {
+                if (searchCursor != null) {
+                    searchCursor.close();
+                }
             }
-        } finally {
-            if (searchCursor != null) {
-                searchCursor.close();
-            }
-        }
+
+        } while (cookie != null);
+
         if (log.isDebugEnabled()) {
             log.debug("search below {} with {} found {} entries.", idConfig.getBaseDN(), searchFilter, result.size());
         }
