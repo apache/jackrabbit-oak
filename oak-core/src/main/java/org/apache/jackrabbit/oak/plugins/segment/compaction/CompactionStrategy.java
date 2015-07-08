@@ -76,6 +76,8 @@ public abstract class CompactionStrategy {
 
     public static final boolean PERSIST_COMPACTION_MAP_DEFAULT = true;
 
+    public static final byte GAIN_THRESHOLD_DEFAULT = 10;
+
     /**
      * Default value for {@link #getRetryCount()}
      */
@@ -121,6 +123,11 @@ public abstract class CompactionStrategy {
     private boolean forceAfterFail = FORCE_AFTER_FAIL_DEFAULT;
 
     private long compactionStart = currentTimeMillis();
+
+    /**
+     * Compaction gain estimate threshold beyond which compaction should run
+     */
+    private byte gainThreshold = GAIN_THRESHOLD_DEFAULT;
 
     protected CompactionStrategy(boolean paused,
             boolean cloneBinaries, @Nonnull CleanupType cleanupType, long olderThan, byte memoryThreshold) {
@@ -249,6 +256,24 @@ public abstract class CompactionStrategy {
      */
     public void setRetryCount(int retryCount) {
         this.retryCount = retryCount;
+    }
+
+    /**
+     * Get the compaction gain estimate threshold beyond which compaction should
+     * run
+     * @return gainThreshold
+     */
+    public byte getGainThreshold() {
+        return gainThreshold;
+    }
+
+    /**
+     * Set the compaction gain estimate threshold beyond which compaction should
+     * run
+     * @param gainThreshold
+     */
+    public void setGainThreshold(byte gainThreshold) {
+        this.gainThreshold = gainThreshold;
     }
 
     public abstract boolean compacted(@Nonnull Callable<Boolean> setHead) throws Exception;

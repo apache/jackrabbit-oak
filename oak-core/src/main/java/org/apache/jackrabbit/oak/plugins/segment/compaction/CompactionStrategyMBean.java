@@ -72,4 +72,19 @@ public interface CompactionStrategyMBean {
      * @param retryCount
      */
     void setRetryCount(int retryCount);
+
+    /**
+     * Get the compaction gain estimate threshold beyond which compaction should
+     * run
+     * @return gainThreshold
+     */
+    byte getGainThreshold();
+
+    /**
+     * Set the compaction gain estimate threshold beyond which compaction should
+     * run
+     * @param gainThreshold
+     */
+    void setGainThreshold(byte gainThreshold);
+
 }
