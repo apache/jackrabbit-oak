@@ -128,7 +128,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         rootNode.addChild(testName, JcrConstants.NT_UNSTRUCTURED);
         root.commit();
 
-        testPrivileges = privilegesFromNames(Privilege.JCR_ADD_CHILD_NODES, Privilege.JCR_READ);
+        testPrivileges = privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_READ);
         testPrincipal = getTestPrincipal();
     }
 
@@ -1780,6 +1780,73 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
                 assertEquals(2, policies.length);
             } else {
                 assertEquals(0, policies.length);
+            }
+        }
+    }
+
+    @Test
+    public void testNoEffectiveDuplicateEntries() throws Exception {
+        Set<Principal> principalSet = ImmutableSet.of(testPrincipal, EveryonePrincipal.getInstance());
+
+        // create first policy with multiple ACEs for the test principal set.
+        ACL policy = getApplicablePolicy(testPath);
+        policy.addEntry(testPrincipal, testPrivileges, true, getGlobRestriction("*"));
+        policy.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_VERSION_MANAGEMENT), false);
+        policy.addEntry(EveryonePrincipal.getInstance(), privilegesFromNames(PrivilegeConstants.JCR_LIFECYCLE_MANAGEMENT), false);
+        assertEquals(3, policy.getAccessControlEntries().length);
+        acMgr.setPolicy(testPath, policy);
+        root.commit();
+
+        AccessControlPolicy[] policies = acMgr.getEffectivePolicies(principalSet);
+        assertEquals(1, policies.length);
+
+        // add another policy
+        NodeUtil child = new NodeUtil(root.getTree(testPath)).addChild("child", JcrConstants.NT_UNSTRUCTURED);
+        String childPath = child.getTree().getPath();
+        setupPolicy(childPath);
+        root.commit();
+
+        policies = acMgr.getEffectivePolicies(principalSet);
+        assertEquals(2, policies.length);
+    }
+
+    @Test
+    public void testEffectiveSorting() throws Exception {
+        Set<Principal> principalSet = ImmutableSet.of(testPrincipal, EveryonePrincipal.getInstance());
+
+        ACL nullPathPolicy = null;
+        try {
+            // 1. policy at 'testPath'
+            ACL policy = getApplicablePolicy(testPath);
+            policy.addEntry(testPrincipal, testPrivileges, true, getGlobRestriction("*"));
+            policy.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_VERSION_MANAGEMENT), false);
+            policy.addEntry(EveryonePrincipal.getInstance(), privilegesFromNames(PrivilegeConstants.JCR_LIFECYCLE_MANAGEMENT), false);
+            acMgr.setPolicy(testPath, policy);
+
+            // 2. policy at child node
+            NodeUtil child = new NodeUtil(root.getTree(testPath)).addChild("child", JcrConstants.NT_UNSTRUCTURED);
+            String childPath = child.getTree().getPath();
+            setupPolicy(childPath);
+
+            // 3. policy for null-path
+            nullPathPolicy = getApplicablePolicy(null);
+            assertNotNull(nullPathPolicy);
+
+            nullPathPolicy.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.REP_PRIVILEGE_MANAGEMENT), true);
+            acMgr.setPolicy(null, nullPathPolicy);
+            root.commit();
+
+            AccessControlPolicy[] effectivePolicies = acMgr.getEffectivePolicies(principalSet);
+            assertEquals(3, effectivePolicies.length);
+
+            assertNull(((JackrabbitAccessControlPolicy) effectivePolicies[0]).getPath());
+            assertEquals(testPath, ((JackrabbitAccessControlPolicy) effectivePolicies[1]).getPath());
+            assertEquals(childPath, ((JackrabbitAccessControlPolicy) effectivePolicies[2]).getPath());
+
+        } finally {
+            if (nullPathPolicy != null) {
+                acMgr.removePolicy(null, nullPathPolicy);
+                root.commit();
             }
         }
 
