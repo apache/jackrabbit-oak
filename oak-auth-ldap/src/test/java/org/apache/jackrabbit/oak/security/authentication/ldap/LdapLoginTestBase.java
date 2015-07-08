@@ -306,7 +306,6 @@ public abstract class LdapLoginTestBase extends ExternalLoginModuleTestBase {
         }
     }
 
-    @Ignore("OAK-3032")
     @Test
     public void testPrincipalsFromAuthInfo() throws Exception {
         ContentSession cs = null;

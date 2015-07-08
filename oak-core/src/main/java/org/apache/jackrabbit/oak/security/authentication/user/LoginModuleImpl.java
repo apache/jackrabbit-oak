@@ -139,6 +139,10 @@ public final class LoginModuleImpl extends AbstractLoginModule {
             log.debug("Adding login name to shared state.");
             //noinspection unchecked
             sharedState.put(SHARED_KEY_LOGIN_NAME, userId);
+        } else {
+            // ensure that we don't commit (OAK-2998, OAK-3032)
+            credentials = null;
+            userId = null;
         }
         return success;
     }
