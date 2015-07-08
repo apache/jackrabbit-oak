@@ -949,7 +949,7 @@ public final class Main {
             }
 
             RepositoryContext source =
-                    RepositoryContext.create(RepositoryConfig.create(dir, xml));
+                    RepositoryContext.create(RepositoryConfig.create(xml, dir));
             try {
                 if (dst.startsWith("mongodb://")) {
                     MongoClientURI uri = new MongoClientURI(dst);
