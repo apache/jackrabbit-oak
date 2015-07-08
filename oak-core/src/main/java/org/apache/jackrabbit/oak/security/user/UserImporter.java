@@ -240,6 +240,12 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                 }
                 String id = propInfo.getTextValue().getString();
                 Authorizable existing = userManager.getAuthorizable(id);
+                if (existing == null) {
+                    String msg = "Cannot handle protected PropInfo " + propInfo + ". Invalid rep:authorizableId.";
+                    log.warn(msg);
+                    throw new ConstraintViolationException(msg);
+                }
+
                 if (a.getPath().equals(existing.getPath())) {
                     parent.setProperty(REP_AUTHORIZABLE_ID, id);
                 } else {
