@@ -751,7 +751,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
             @Override
             public void run() {
                 try {
-                    for (int i = 0; i < 1000; i++) {
+                    for (int i = 0; i < 200; i++) {
                         NodeBuilder builder = ns.getRoot().builder();
                         builder.child("foo").child("node").child("node").child("node").child("node");
                         builder.child("bar").child("node").child("node").child("node").child("node");
@@ -778,17 +778,38 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
             for (String id : ns.getSplitCandidates()) {
                 NodeDocument doc = store.find(NODES, id);
                 List<UpdateOp> ops = SplitOperations.forDocument(doc, rc);
+                Set<Revision> removed = Sets.newHashSet();
+                Set<Revision> added = Sets.newHashSet();
                 for (UpdateOp op : ops) {
                     for (Map.Entry<Key, Operation> e : op.getChanges().entrySet()) {
-                        assertFalse("SplitOperations must not remove committed changes",
-                                "_deleted".equals(e.getKey().getName()));
+                        if (!"_deleted".equals(e.getKey().getName())) {
+                            continue;
+                        }
+                        Revision r = e.getKey().getRevision();
+                        if (e.getValue().type == Operation.Type.REMOVE_MAP_ENTRY) {
+                            removed.add(r);
+                        } else if (e.getValue().type == Operation.Type.SET_MAP_ENTRY) {
+                            added.add(r);
+                        }
                     }
                 }
+                removed.removeAll(added);
+                assertTrue("SplitOperations must not remove committed changes: " + removed, removed.isEmpty());
             }
             // perform the actual cleanup
             ns.runBackgroundOperations();
         }
 
+        // check documents below /foo and /bar
+        // the _deleted map must contain all revisions
+        for (NodeDocument doc : Utils.getAllDocuments(store)) {
+            if (doc.isSplitDocument() || Utils.getDepthFromId(doc.getId()) < 2) {
+                continue;
+            }
+            Set<Revision> revs = Sets.newHashSet(revisions);
+            revs.removeAll(doc.getValueMap("_deleted").keySet());
+            assertTrue("Missing _deleted entries on " + doc.getId() + ": " + revs, revs.isEmpty());
+        }
     }
 
     private static class TestRevisionContext implements RevisionContext {
