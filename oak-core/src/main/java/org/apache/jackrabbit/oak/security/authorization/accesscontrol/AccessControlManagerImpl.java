@@ -22,6 +22,7 @@ import java.security.Principal;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -47,6 +48,8 @@ import javax.jcr.security.Privilege;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import com.google.common.primitives.Ints;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
@@ -361,7 +364,30 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         Root r = getLatestRoot();
 
         Result aceResult = searchAces(principals, r);
-        List<AccessControlPolicy> effective = new ArrayList<AccessControlPolicy>();
+        Set<JackrabbitAccessControlList> effective = Sets.newTreeSet(new Comparator<JackrabbitAccessControlList>() {
+            @Override
+            public int compare(JackrabbitAccessControlList list1, JackrabbitAccessControlList list2) {
+                if (list1.equals(list2)) {
+                    return 0;
+                } else {
+                    String p1 = list1.getPath();
+                    String p2 = list2.getPath();
+
+                    if (p1 == null) {
+                        return -1;
+                    } else if (p2 == null) {
+                        return 1;
+                    } else {
+                        int depth1 = PathUtils.getDepth(p1);
+                        int depth2 = PathUtils.getDepth(p2);
+                        return (depth1 == depth2) ? p1.compareTo(p2) : Ints.compare(depth1, depth2);
+                    }
+
+                }
+            }
+        });
+
+        Set<String> paths = Sets.newHashSet();
         for (ResultRow row : aceResult.getRows()) {
             String acePath = row.getPath();
             String aclName = Text.getName(Text.getRelativeParent(acePath, 1));
@@ -373,9 +399,13 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
             }
 
             String path = (REP_REPO_POLICY.equals(aclName)) ? null : accessControlledTree.getPath();
-            AccessControlPolicy policy = createACL(path, accessControlledTree, true);
+            if (paths.contains(path)) {
+                continue;
+            }
+            JackrabbitAccessControlList policy = createACL(path, accessControlledTree, true);
             if (policy != null) {
                 effective.add(policy);
+                paths.add(path);
             }
         }
         return effective.toArray(new AccessControlPolicy[effective.size()]);
