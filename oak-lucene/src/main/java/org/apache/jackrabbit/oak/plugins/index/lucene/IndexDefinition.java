@@ -246,7 +246,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         this.reindexCount = determineReindexCount(defn, defnb);
         this.pathFilter = PathFilter.from(new ReadOnlyBuilder(defn));
         this.queryPaths = getQueryPaths(defn);
-        this.saveDirListing = getOptionalValue(defn, LuceneIndexConstants.SAVE_DIR_LISTING, false);
+        this.saveDirListing = getOptionalValue(defn, LuceneIndexConstants.SAVE_DIR_LISTING, true);
         this.suggesterUpdateFrequencyMinutes = getOptionalValue(defn, LuceneIndexConstants.SUGGEST_UPDATE_FREQUENCY_MINUTES, 60);
     }
 
