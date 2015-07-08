@@ -2176,6 +2176,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         session.save();
 
         rootLogger().detachAppender(a);
+        a.stop();
 
         assertTrue(logMessages.size() >= 2);
         assertThat("Warn log message must contains a reference to the large array property path",
