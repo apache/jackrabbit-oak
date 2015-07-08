@@ -92,6 +92,7 @@
                                 <exclude>**/LdapDefaultLoginModuleTest.class</exclude>
                                 <exclude>**/LdapLoginStandaloneTest.class</exclude>
                                 <exclude>**/TokenDefaultLdapLoginModuleTest.class</exclude>
+                                <exclude>**/LargeLdapProviderTest.class</exclude>
                             </excludes>
                         </configuration>
                     </plugin>
@@ -121,6 +122,7 @@
                                 <exclude>**/LdapDefaultLoginModuleTest.class</exclude>
                                 <exclude>**/LdapLoginStandaloneTest.class</exclude>
                                 <exclude>**/TokenDefaultLdapLoginModuleTest.class</exclude>
+                                <exclude>**/LargeLdapProviderTest.class</exclude>
                             </excludes>
                         </configuration>
                     </plugin>
