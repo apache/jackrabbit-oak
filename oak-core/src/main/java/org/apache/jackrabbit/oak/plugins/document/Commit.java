@@ -341,6 +341,7 @@ public class Commit {
             NodeDocument.setRevision(commitRoot, revision, commitValue);
             newNodes.add(commitRoot);
         }
+        boolean success = false;
         try {
             if (newNodes.size() > 0) {
                 // set commit root on new nodes
@@ -394,6 +395,7 @@ public class Commit {
                                 "Update operation failed: " + commitRoot;
                         throw new DocumentStoreException(msg);
                     } else {
+                        success = true;
                         // if we get here the commit was successful and
                         // the commit revision is set on the commitRoot
                         // document for this commit.
@@ -411,8 +413,13 @@ public class Commit {
                 operations.put(commitRootPath, commitRoot);
             }
         } catch (DocumentStoreException e) {
-            rollback(newNodes, opLog, commitRoot);
-            throw e;
+            // OAK-3084 do not roll back if already committed
+            if (success) {
+                LOG.error("Exception occurred after commit. Rollback will be suppressed.", e);
+            } else {
+                rollback(newNodes, opLog, commitRoot);
+                throw e;
+            }
         }
     }
 
