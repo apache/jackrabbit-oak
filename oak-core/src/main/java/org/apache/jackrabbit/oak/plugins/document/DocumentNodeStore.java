@@ -1984,6 +1984,11 @@ public final class DocumentNodeStore
         }
     }
 
+    @Nonnull
+    Set<String> getSplitCandidates() {
+        return Collections.unmodifiableSet(splitCandidates.keySet());
+    }
+
     BackgroundWriteStats backgroundWrite() {
         return unsavedLastRevisions.persist(this, new UnsavedModifications.Snapshot() {
             @Override
