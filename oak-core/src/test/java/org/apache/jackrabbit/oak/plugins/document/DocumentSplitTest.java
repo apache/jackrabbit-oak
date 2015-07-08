@@ -44,7 +44,6 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
@@ -537,7 +536,8 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
 
         doc = store.find(NODES, id);
         assertNotNull(doc);
-        List<UpdateOp> splitOps = Lists.newArrayList(doc.split(mk.getNodeStore()));
+        List<UpdateOp> splitOps = Lists.newArrayList(
+                doc.split(mk.getNodeStore(), mk.getNodeStore().getHeadRevision()));
         assertEquals(2, splitOps.size());
         // first update op is for the new intermediate doc
         op = splitOps.get(0);
@@ -592,7 +592,8 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
 
         // must split document and create a previous document starting at
         // the second most recent revision
-        List<UpdateOp> splitOps = Lists.newArrayList(doc.split(mk.getNodeStore()));
+        List<UpdateOp> splitOps = Lists.newArrayList(
+                doc.split(mk.getNodeStore(), mk.getNodeStore().getHeadRevision()));
         assertEquals(2, splitOps.size());
         String prevId = Utils.getPreviousIdFor("/test", revs.get(revs.size() - 2), 0);
         assertEquals(prevId, splitOps.get(0).getId());
@@ -668,7 +669,8 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         NodeDocument doc = new NodeDocument(mk.getDocumentStore());
         doc.put(NodeDocument.ID, Utils.getIdFromPath("/test"));
         doc.put(NodeDocument.SD_TYPE, NodeDocument.SplitDocType.DEFAULT.type);
-        SplitOperations.forDocument(doc, DummyRevisionContext.INSTANCE);
+        Revision head = mk.getNodeStore().getHeadRevision();
+        SplitOperations.forDocument(doc, DummyRevisionContext.INSTANCE, head);
     }
 
     @Test
@@ -739,7 +741,6 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
     }
 
     // OAK-3081
-    @Ignore
     @Test
     public void removeGarbage() throws Exception {
         final DocumentStore store = mk.getDocumentStore();
@@ -776,8 +777,9 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         RevisionContext rc = new TestRevisionContext(ns);
         while (t.isAlive()) {
             for (String id : ns.getSplitCandidates()) {
+                Revision head = ns.getHeadRevision();
                 NodeDocument doc = store.find(NODES, id);
-                List<UpdateOp> ops = SplitOperations.forDocument(doc, rc);
+                List<UpdateOp> ops = SplitOperations.forDocument(doc, rc, head);
                 Set<Revision> removed = Sets.newHashSet();
                 Set<Revision> added = Sets.newHashSet();
                 for (UpdateOp op : ops) {
