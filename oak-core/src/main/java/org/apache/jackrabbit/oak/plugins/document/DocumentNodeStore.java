@@ -1960,13 +1960,14 @@ public final class DocumentNodeStore
     }
 
     private void backgroundSplit() {
+        Revision head = getHeadRevision();
         for (Iterator<String> it = splitCandidates.keySet().iterator(); it.hasNext();) {
             String id = it.next();
             NodeDocument doc = store.find(Collection.NODES, id);
             if (doc == null) {
                 continue;
             }
-            for (UpdateOp op : doc.split(this)) {
+            for (UpdateOp op : doc.split(this, head)) {
                 NodeDocument before = store.createOrUpdate(Collection.NODES, op);
                 if (before != null) {
                     if (LOG.isDebugEnabled()) {
