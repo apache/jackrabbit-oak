@@ -15,17 +15,12 @@ stable and targeted for production use.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-New configuration options since Oak 1.0.15
+New configuration options since Oak 1.0.17
 ------------------------------------------
 
-The DocumentNodeStore has a new system property, which controls the time a
-commit tries to acquire the merge lock: -Doak.maxLockTryTimeMultiplier=30
-The default value is 30 and roughly translates to 60 seconds. See OAK-2762
-and OAK-2823 for more details.
-
-LuceneIndexEditor now supports CopyOnWrite mode (OAK-2247) for faster indexing.
-Refer to http://jackrabbit.apache.org/oak/docs/query/lucene.html#CopyOnWrite
-for more details.
+LuceneIndex CopyOnRead feature now supports pre fetching of index files (OAK-3069).
+This reduces time taken in opening a new index. It can be enabled via OSGi config
+of LuceneIndexProviderService
 
 Changes in Oak 1.0.17
 ---------------------
