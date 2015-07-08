@@ -1040,14 +1040,21 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
 
     /**
      * Returns update operations to split this document. The implementation may
-     * decide to not return any operations if no splitting is required.
+     * decide to not return any operations if no splitting is required. A caller
+     * must explicitly pass a head revision even though it is available through
+     * the {@link RevisionContext}. The given head revision must reflect a head
+     * state before {@code doc} was retrieved from the document store. This is
+     * important in order to maintain consistency. See OAK-3081 for details.
      *
      * @param context the revision context.
+     * @param head    the head revision before this document was retrieved from
+     *                the document store.
      * @return the split operations.
      */
     @Nonnull
-    public Iterable<UpdateOp> split(@Nonnull RevisionContext context) {
-        return SplitOperations.forDocument(this, context);
+    public Iterable<UpdateOp> split(@Nonnull RevisionContext context,
+                                    @Nonnull Revision head) {
+        return SplitOperations.forDocument(this, context, head);
     }
 
     /**

@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -25,12 +26,16 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
+import javax.annotation.Nonnull;
+
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -531,7 +536,8 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
 
         doc = store.find(NODES, id);
         assertNotNull(doc);
-        List<UpdateOp> splitOps = Lists.newArrayList(doc.split(mk.getNodeStore()));
+        List<UpdateOp> splitOps = Lists.newArrayList(
+                doc.split(mk.getNodeStore(), mk.getNodeStore().getHeadRevision()));
         assertEquals(2, splitOps.size());
         // first update op is for the new intermediate doc
         op = splitOps.get(0);
@@ -540,7 +546,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         // second update op is for the main document
         op = splitOps.get(1);
         assertEquals(id, op.getId());
-        for (Map.Entry<UpdateOp.Key, UpdateOp.Operation> entry : op.getChanges().entrySet()) {
+        for (Map.Entry<Key, Operation> entry : op.getChanges().entrySet()) {
             Revision r = entry.getKey().getRevision();
             assertNotNull(r);
             assertEquals(clusterId, r.getClusterId());
@@ -586,7 +592,8 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
 
         // must split document and create a previous document starting at
         // the second most recent revision
-        List<UpdateOp> splitOps = Lists.newArrayList(doc.split(mk.getNodeStore()));
+        List<UpdateOp> splitOps = Lists.newArrayList(
+                doc.split(mk.getNodeStore(), mk.getNodeStore().getHeadRevision()));
         assertEquals(2, splitOps.size());
         String prevId = Utils.getPreviousIdFor("/test", revs.get(revs.size() - 2), 0);
         assertEquals(prevId, splitOps.get(0).getId());
@@ -662,7 +669,8 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         NodeDocument doc = new NodeDocument(mk.getDocumentStore());
         doc.put(NodeDocument.ID, Utils.getIdFromPath("/test"));
         doc.put(NodeDocument.SD_TYPE, NodeDocument.SplitDocType.DEFAULT.type);
-        SplitOperations.forDocument(doc, DummyRevisionContext.INSTANCE);
+        Revision head = mk.getNodeStore().getHeadRevision();
+        SplitOperations.forDocument(doc, DummyRevisionContext.INSTANCE, head);
     }
 
     @Test
@@ -730,6 +738,120 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test"));
         assertNotNull(doc);
         assertTrue(doc.getLocalCommitRoot().size() < NUM_REVS_THRESHOLD);
+    }
+
+    // OAK-3081
+    @Test
+    public void removeGarbage() throws Exception {
+        final DocumentStore store = mk.getDocumentStore();
+        final DocumentNodeStore ns = mk.getNodeStore();
+        final List<Exception> exceptions = Lists.newArrayList();
+        final List<Revision> revisions = Lists.newArrayList();
+
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    for (int i = 0; i < 200; i++) {
+                        NodeBuilder builder = ns.getRoot().builder();
+                        builder.child("foo").child("node").child("node").child("node").child("node");
+                        builder.child("bar").child("node").child("node").child("node").child("node");
+                        merge(ns, builder);
+                        revisions.add(ns.getHeadRevision());
+
+                        builder = ns.getRoot().builder();
+                        builder.child("foo").child("node").remove();
+                        builder.child("bar").child("node").remove();
+                        merge(ns, builder);
+                        revisions.add(ns.getHeadRevision());
+                    }
+                } catch (CommitFailedException e) {
+                    exceptions.add(e);
+                }
+            }
+        });
+        t.start();
+
+        // Use a revision context, which wraps the DocumentNodeStore and
+        // randomly delays calls to get the head revision
+        RevisionContext rc = new TestRevisionContext(ns);
+        while (t.isAlive()) {
+            for (String id : ns.getSplitCandidates()) {
+                Revision head = ns.getHeadRevision();
+                NodeDocument doc = store.find(NODES, id);
+                List<UpdateOp> ops = SplitOperations.forDocument(doc, rc, head);
+                Set<Revision> removed = Sets.newHashSet();
+                Set<Revision> added = Sets.newHashSet();
+                for (UpdateOp op : ops) {
+                    for (Map.Entry<Key, Operation> e : op.getChanges().entrySet()) {
+                        if (!"_deleted".equals(e.getKey().getName())) {
+                            continue;
+                        }
+                        Revision r = e.getKey().getRevision();
+                        if (e.getValue().type == Operation.Type.REMOVE_MAP_ENTRY) {
+                            removed.add(r);
+                        } else if (e.getValue().type == Operation.Type.SET_MAP_ENTRY) {
+                            added.add(r);
+                        }
+                    }
+                }
+                removed.removeAll(added);
+                assertTrue("SplitOperations must not remove committed changes: " + removed, removed.isEmpty());
+            }
+            // perform the actual cleanup
+            ns.runBackgroundOperations();
+        }
+
+        // check documents below /foo and /bar
+        // the _deleted map must contain all revisions
+        for (NodeDocument doc : Utils.getAllDocuments(store)) {
+            if (doc.isSplitDocument() || Utils.getDepthFromId(doc.getId()) < 2) {
+                continue;
+            }
+            Set<Revision> revs = Sets.newHashSet(revisions);
+            revs.removeAll(doc.getValueMap("_deleted").keySet());
+            assertTrue("Missing _deleted entries on " + doc.getId() + ": " + revs, revs.isEmpty());
+        }
+    }
+
+    private static class TestRevisionContext implements RevisionContext {
+
+        private final RevisionContext rc;
+
+        TestRevisionContext(RevisionContext rc) {
+            this.rc = rc;
+        }
+
+        @Override
+        public UnmergedBranches getBranches() {
+            return rc.getBranches();
+        }
+
+        @Override
+        public UnsavedModifications getPendingModifications() {
+            return rc.getPendingModifications();
+        }
+
+        @Override
+        public Comparator<Revision> getRevisionComparator() {
+            return rc.getRevisionComparator();
+        }
+
+        @Override
+        public int getClusterId() {
+            return rc.getClusterId();
+        }
+
+        @Nonnull
+        @Override
+        public Revision getHeadRevision() {
+            try {
+                Thread.sleep((long) (Math.random() * 100));
+            } catch (InterruptedException e) {
+                // ignore
+            }
+            return rc.getHeadRevision();
+        }
     }
 
     private static NodeState merge(NodeStore store, NodeBuilder root)
