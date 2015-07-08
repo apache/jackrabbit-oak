@@ -611,6 +611,11 @@ localIndexDir
 : Directory to be used for when copy index files to local file system. To be 
 specified when `enableCopyOnReadSupport` is enabled
 
+prefetchIndexFiles
+: Prefetch the index files when CopyOnRead is enabled. When enabled all new Lucene 
+index files would be copied locally before the index is made available to 
+QueryEngine (1.0.17,1.2.3)
+
 debug
 : Boolean value. Defaults to `false`
 : If enabled then Lucene logging would be integrated with Slf4j
