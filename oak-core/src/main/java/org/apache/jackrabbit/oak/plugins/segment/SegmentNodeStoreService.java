@@ -25,6 +25,7 @@ import static org.apache.jackrabbit.oak.osgi.OsgiUtil.fallbackLookup;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CLEANUP_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CLONE_BINARIES_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.FORCE_AFTER_FAIL_DEFAULT;
+import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.GAIN_THRESHOLD_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.MEMORY_THRESHOLD_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.PAUSE_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.PERSIST_COMPACTION_MAP_DEFAULT;
@@ -167,6 +168,14 @@ public class SegmentNodeStoreService extends ProxyNodeStore
             description = "TarMK compaction available memory multiplier needed to run compaction"
     )
     public static final String COMPACTION_MEMORY_THRESHOLD = "compaction.memoryThreshold";
+
+    @Property(
+            byteValue = GAIN_THRESHOLD_DEFAULT,
+            label = "Compaction gain threshold",
+            description = "TarMK compaction gain threshold. The gain estimation prevents compaction from running " +
+                    "if the provided threshold is not met. Value represents a percentage so an input beween 0 and 100 is expected."
+    )
+    public static final String COMPACTION_GAIN_THRESHOLD = "compaction.gainThreshold";
 
     @Property(
             boolValue = PAUSE_DEFAULT,
@@ -354,6 +363,12 @@ public class SegmentNodeStoreService extends ProxyNodeStore
             memoryThreshold = Byte.valueOf(memoryThresholdS);
         }
 
+        String gainThresholdS = fallbackLookup(context, COMPACTION_GAIN_THRESHOLD);
+        byte gainThreshold = GAIN_THRESHOLD_DEFAULT;
+        if (gainThresholdS != null) {
+            gainThreshold = Byte.valueOf(gainThresholdS);
+        }
+
         final long blobGcMaxAgeInSecs = toLong(fallbackLookup(context, PROP_BLOB_GC_MAX_AGE), DEFAULT_BLOB_GC_MAX_AGE);
 
         OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
@@ -374,7 +389,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                 .newSegmentNodeStore(store);
         nodeStoreBuilder.withCompactionStrategy(pauseCompaction, cloneBinaries,
                 cleanup, cleanupTs, memoryThreshold, lockWaitTime, retryCount,
-                forceCommit, persistCompactionMap);
+                forceCommit, persistCompactionMap, gainThreshold);
         delegate = nodeStoreBuilder.create();
 
         CompactionStrategy compactionStrategy = nodeStoreBuilder

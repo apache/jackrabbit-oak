@@ -102,4 +102,15 @@ public class DefaultCompactionStrategyMBean
     public void setRetryCount(int retryCount) {
         strategy.setRetryCount(retryCount);
     }
+
+    @Override
+    public byte getGainThreshold() {
+        return strategy.getGainThreshold();
+    }
+
+    @Override
+    public void setGainThreshold(byte gainThreshold) {
+        strategy.setGainThreshold(gainThreshold);
+    }
+
 }
