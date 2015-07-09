@@ -21,7 +21,9 @@ import java.util.Map;
 import com.google.common.collect.ImmutableMap;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.kernel.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler.Resolution;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -113,6 +115,13 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
                     NodeState theirs = parent.getChildNode(name);
                     Resolution resolution = nodeConflictHandler.resolve(name, ours, theirs);
                     applyResolution(resolution, conflictType, name, ours);
+                    if (LOG.isDebugEnabled()) {
+                        String diff = JsopDiff.diffToJsop(ours, theirs);
+                        LOG.debug(
+                                "{} resolved conflict of type {} with resolution {} on node {}, conflict trace {}",
+                                nodeConflictHandler, conflictType, resolution,
+                                name, diff);
+                    }
                 }
             }
             else {
@@ -180,11 +189,21 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
             public Resolution resolve(PropertyState ours, PropertyState theirs) {
                 return conflictHandler.addExistingProperty(target, ours, theirs);
             }
+
+            @Override
+            public String toString() {
+                return "PropertyConflictHandler<ADD_EXISTING_PROPERTY>";
+            }
         },
         CHANGE_DELETED_PROPERTY, new PropertyConflictHandler() {
             @Override
             public Resolution resolve(PropertyState ours, PropertyState theirs) {
                 return conflictHandler.changeDeletedProperty(target, ours);
+            }
+
+            @Override
+            public String toString() {
+                return "PropertyConflictHandler<CHANGE_DELETED_PROPERTY>";
             }
         },
         CHANGE_CHANGED_PROPERTY, new PropertyConflictHandler() {
@@ -192,17 +211,32 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
             public Resolution resolve(PropertyState ours, PropertyState theirs) {
                 return conflictHandler.changeChangedProperty(target, ours, theirs);
             }
+
+            @Override
+            public String toString() {
+                return "PropertyConflictHandler<CHANGE_CHANGED_PROPERTY>";
+            }
         },
         DELETE_DELETED_PROPERTY, new PropertyConflictHandler() {
             @Override
             public Resolution resolve(PropertyState ours, PropertyState theirs) {
                 return conflictHandler.deleteDeletedProperty(target, ours);
             }
+
+            @Override
+            public String toString() {
+                return "PropertyConflictHandler<DELETE_DELETED_PROPERTY>";
+            }
         },
         DELETE_CHANGED_PROPERTY, new PropertyConflictHandler() {
             @Override
             public Resolution resolve(PropertyState ours, PropertyState theirs) {
                 return conflictHandler.deleteChangedProperty(target, theirs);
+            }
+
+            @Override
+            public String toString() {
+                return "PropertyConflictHandler<DELETE_CHANGED_PROPERTY>";
             }
         }
     );
@@ -213,11 +247,21 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
             public Resolution resolve(String name, NodeState ours, NodeState theirs) {
                 return conflictHandler.addExistingNode(target, name, ours, theirs);
             }
+
+            @Override
+            public String toString() {
+                return "NodeConflictHandler<ADD_EXISTING_NODE>";
+            }
         },
         CHANGE_DELETED_NODE, new NodeConflictHandler() {
             @Override
             public Resolution resolve(String name, NodeState ours, NodeState theirs) {
                 return conflictHandler.changeDeletedNode(target, name, ours);
+            }
+
+            @Override
+            public String toString() {
+                return "NodeConflictHandler<CHANGE_DELETED_NODE>";
             }
         },
         DELETE_CHANGED_NODE, new NodeConflictHandler() {
@@ -225,11 +269,21 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
             public Resolution resolve(String name, NodeState ours, NodeState theirs) {
                 return conflictHandler.deleteChangedNode(target, name, theirs);
             }
+
+            @Override
+            public String toString() {
+                return "NodeConflictHandler<DELETE_CHANGED_NODE>";
+            }
         },
         DELETE_DELETED_NODE, new NodeConflictHandler() {
             @Override
             public Resolution resolve(String name, NodeState ours, NodeState theirs) {
                 return conflictHandler.deleteDeletedNode(target, name);
+            }
+
+            @Override
+            public String toString() {
+                return "NodeConflictHandler<DELETE_DELETED_NODE>";
             }
         }
     );
