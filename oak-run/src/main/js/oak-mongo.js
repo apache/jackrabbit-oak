@@ -588,6 +588,47 @@ var oak = (function(global){
         return mongoExportCommand;
     };
 
+    /**
+     * Prints mongoexport command to export oplog entries around time represented by revision.
+     * e.g.
+     * > oak.printOplogSliceCommand("r14e64620028-0-1", {db: "aem-author"})
+     * Note, this assumed that time on mongo instance is synchronized with time on oak instance. If that's
+     * not the case, then adjust revStr to account for the difference.
+     *
+     * @memberof oak
+     * @method printOplogSliceCommand
+     * @param {string} revStr revision string around which oplog is to be exported.
+     * @param {object} options pass optional parameters for host, port, db, filename, oplogTimeBuffer
+     * @returns {string} command line which can be used to export oplog entries using mongoexport
+     */
+
+    api.printOplogSliceCommand = function (revStr, options) {
+        options = options || {};
+        var host = options.host || "127.0.0.1";
+        var port = options.port || "27017";
+        var db = options.db || "oak";
+        var filename = options.filename || "oplog.json";
+        var oplogTimeBuffer = options.oplogTimeBuffer || 10;
+
+        var rev = new Revision(revStr);
+        var revTimeInSec = rev.asDate().getTime()/1000;
+        var startOplogTime = Math.floor(revTimeInSec - oplogTimeBuffer);
+        var endOplogTime = Math.ceil(revTimeInSec + oplogTimeBuffer);
+
+        var query = '{"ns" : "' + db + '.nodes", "ts": {"$gte": Timestamp(' + startOplogTime
+                                                + ', 1), "$lte": Timestamp(' + endOplogTime + ', 1)}}';
+
+        var mongoExportCommand = "mongoexport"
+                                    + " --host " + host
+                                    + " --port " + port
+                                    + " --db local"
+                                    + " --collection oplog.rs"
+                                    + " --out " + filename
+                                    + " --query '" + query + "'";
+
+        return mongoExportCommand;
+    };
+
     //~--------------------------------------------------< internal >
 
     var checkOrFixDeepHistory = function(path, fix, prepare, verbose) {
