@@ -17,10 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
 import java.security.Principal;
-import java.util.Iterator;
-import java.util.Set;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
@@ -29,9 +26,9 @@ import javax.jcr.security.AccessControlPolicyIterator;
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugPolicy;
@@ -79,7 +76,15 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
     @Override
     protected SecurityProvider getSecurityProvider() {
         if (securityProvider == null) {
-            securityProvider = new CugSecurityProvider(super.getSecurityProvider());
+            securityProvider = new CugSecurityProvider(getSecurityConfigParameters());
+            AuthorizationConfiguration authorizationConfiguration = securityProvider.getConfiguration(AuthorizationConfiguration.class);
+            if (!(authorizationConfiguration instanceof CompositeAuthorizationConfiguration)) {
+                CompositeAuthorizationConfiguration composite = new CompositeAuthorizationConfiguration(securityProvider);
+                composite.setDefaultConfig(authorizationConfiguration);
+                composite.addConfiguration(new CugConfiguration(securityProvider));
+                composite.addConfiguration(authorizationConfiguration);
+                ((CugSecurityProvider) securityProvider).bindAuthorizationConfiguration(composite);
+            }
         }
         return securityProvider;
     }
@@ -105,55 +110,14 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
         throw new IllegalStateException("Unable to create CUG at " + absPath);
     }
 
-    final class CugSecurityProvider implements SecurityProvider {
-
-        private final SecurityProvider base;
-
-        private final CugConfiguration cugConfiguration;
-
-        private CugSecurityProvider(@Nonnull SecurityProvider base) {
-            this.base = base;
-            cugConfiguration = new CugConfiguration(this);
+    final class CugSecurityProvider extends SecurityProviderImpl {
+        public CugSecurityProvider(@Nonnull ConfigurationParameters configuration) {
+            super(configuration);
         }
 
-        @Nonnull
         @Override
-        public ConfigurationParameters getParameters(@Nullable String name) {
-            return base.getParameters(name);
-        }
-
-        @Nonnull
-        @Override
-        public Iterable<? extends SecurityConfiguration> getConfigurations() {
-            Set<SecurityConfiguration> configs = (Set<SecurityConfiguration>) base.getConfigurations();
-
-            CompositeAuthorizationConfiguration composite = new CompositeAuthorizationConfiguration(this);
-            Iterator<SecurityConfiguration> it = configs.iterator();
-            while (it.hasNext()) {
-                SecurityConfiguration sc = it.next();
-                if (sc instanceof AuthorizationConfiguration) {
-                    composite.addConfiguration((AuthorizationConfiguration) sc);
-                    it.remove();
-                }
-            }
-            composite.addConfiguration(cugConfiguration);
-            configs.add(composite);
-
-            return configs;
-        }
-
-        @Nonnull
-        @Override
-        public <T> T getConfiguration(@Nonnull Class<T> configClass) {
-            T c = base.getConfiguration(configClass);
-            if (AuthorizationConfiguration.class == configClass) {
-                CompositeAuthorizationConfiguration composite = new CompositeAuthorizationConfiguration(this);
-                composite.addConfiguration(cugConfiguration);
-                composite.addConfiguration((AuthorizationConfiguration) c);
-                return (T) composite;
-            } else {
-                return c;
-            }
+        protected void bindAuthorizationConfiguration(@Nonnull AuthorizationConfiguration reference) {
+            super.bindAuthorizationConfiguration(reference);
         }
     }
 }

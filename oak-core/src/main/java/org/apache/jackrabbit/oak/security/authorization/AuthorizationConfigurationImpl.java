@@ -181,7 +181,7 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
     @Nonnull
     @Override
     public PermissionProvider getPermissionProvider(@Nonnull Root root, @Nonnull String workspaceName, @Nonnull Set<Principal> principals) {
-        return new PermissionProviderImpl(root, workspaceName, principals, this);
+        Context ctx = getSecurityProvider().getConfiguration(AuthorizationConfiguration.class).getContext();
+        return new PermissionProviderImpl(root, workspaceName, principals, getRestrictionProvider(), getParameters(), ctx);
     }
-
 }
