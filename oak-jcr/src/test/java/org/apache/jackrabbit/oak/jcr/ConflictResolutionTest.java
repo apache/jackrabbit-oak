@@ -24,6 +24,7 @@ import static org.junit.Assert.fail;
 import static org.junit.matchers.JUnitMatchers.containsString;
 
 import java.util.List;
+import java.util.Set;
 
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.RepositoryException;
@@ -33,6 +34,8 @@ import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.google.common.collect.Sets;
 
 import ch.qos.logback.classic.Level;
 
@@ -93,11 +96,10 @@ public class ConflictResolutionTest extends AbstractRepositoryTest {
             session2.logout();
         }
 
-        // MergingNodeStateDif debug: [MergingNodeStateDiff]
-        // NodeConflictHandler<DELETE_CHANGED_NODE> resolved conflict of
-        // type DELETE_CHANGED_NODE with resolution THEIRS, conflict
-        // trace ^"/metadata/updated":"myself"
-        List<String> mnsdLogs = logMergingNodeStateDiff.getLogs();
+        // MergingNodeStateDif debug: NodeConflictHandler<DELETE_CHANGED_NODE>
+        // resolved conflict of type DELETE_CHANGED_NODE with resolution THEIRS
+        // on node jcr:content, conflict trace ^"/metadata/updated":"myself"
+        Set<String> mnsdLogs = Sets.newHashSet(logMergingNodeStateDiff.getLogs());
         assertTrue(mnsdLogs.size() == 1);
         assertThat(
                 "MergingNodeStateDiff log message must contain a reference to the handler",
@@ -114,7 +116,7 @@ public class ConflictResolutionTest extends AbstractRepositoryTest {
 
         // ConflictValidator debug: Commit failed due to unresolved
         // conflicts in /node = {deleteChangedNode = {jcr:content}}
-        List<String> cvLogs = logConflictValidator.getLogs();
+        Set<String> cvLogs = Sets.newHashSet(logConflictValidator.getLogs());
         assertTrue(cvLogs.size() == 1);
         assertThat(
                 "ConflictValidator log message must contain a reference to the path",

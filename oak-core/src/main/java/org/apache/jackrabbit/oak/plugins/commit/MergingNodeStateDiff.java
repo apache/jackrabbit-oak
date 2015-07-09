@@ -116,9 +116,9 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
                     if (LOG.isDebugEnabled()) {
                         String diff = JsopDiff.diffToJsop(ours, theirs);
                         LOG.debug(
-                                "{} resolved conflict of type {} with resolution {}, conflict trace {}",
+                                "{} resolved conflict of type {} with resolution {} on node {}, conflict trace {}",
                                 nodeConflictHandler, conflictType, resolution,
-                                diff);
+                                name, diff);
                     }
                 }
             }
