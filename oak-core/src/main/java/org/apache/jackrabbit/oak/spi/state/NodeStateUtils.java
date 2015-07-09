@@ -21,6 +21,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -78,6 +79,51 @@ public final class NodeStateUtils {
             node = node.getChildNode(checkNotNull(name));
         }
         return node;
+    }
+
+    /**
+     * Provides a string representation of the given node state
+     * 
+     * @param node
+     *            node state
+     * @return a string representation of {@code node}.
+     */
+    public static String toString(NodeState node) {
+        if (node == null) {
+            return "[null]";
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append(toString(node, 1, "  ", "/"));
+        return sb.toString();
+    }
+
+    private static String toString(NodeState ns, int level, String prepend,
+            String name) {
+        StringBuilder node = new StringBuilder();
+        node.append(prepend).append(name);
+
+        StringBuilder props = new StringBuilder();
+        boolean first = true;
+        for (PropertyState ps : ns.getProperties()) {
+            if (!first) {
+                props.append(", ");
+            } else {
+                first = false;
+            }
+            props.append(ps);
+        }
+
+        if (props.length() > 0) {
+            node.append("{");
+            node.append(props);
+            node.append("}");
+        }
+        for (ChildNodeEntry c : ns.getChildNodeEntries()) {
+            node.append(IOUtils.LINE_SEPARATOR);
+            node.append(toString(c.getNodeState(), level++, prepend + prepend,
+                    c.getName()));
+        }
+        return node.toString();
     }
 
 }
