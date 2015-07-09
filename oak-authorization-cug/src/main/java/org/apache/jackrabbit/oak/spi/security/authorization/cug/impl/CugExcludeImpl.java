@@ -41,7 +41,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude;
  * principal names) in order to be activated.
  */
 @Component(metatype = true,
-        label = "Exclude Principals from CUG",
+        label = "Apache Jackrabbit Oak CUG Exclude List",
         description = "Allows to exclude principal(s) with the configured name(s) from CUG evaluation.",
         policy = ConfigurationPolicy.REQUIRE)
 @Service({CugExclude.class})
