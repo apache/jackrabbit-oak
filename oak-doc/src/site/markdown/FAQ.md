@@ -33,6 +33,13 @@ Enabling `DEBUG` logging for `SessionDelegate` provides stack traces for both se
 
 You need to setup a regular job for [compacting the segments](nodestore/segmentmk.html#Segment_Compaction).
 
+#### How do I debug merge conflict errors
+
+Debugging merge conflict errors is now possible by enabling `DEBUG` logs on
+`org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff` and
+`org.apache.jackrabbit.oak.plugins.commit.ConflictValidator`. 
+This option is available via [OAK-3057](https://issues.apache.org/jira/browse/OAK-3057) since Oak 1.0.17, 1.2.3, 1.3.3. 
+
 #### My question is not listed here
 
 Search the [Oak dev list](http://jackrabbit.markmail.org/search/+list:org.apache.jackrabbit.oak-dev)
