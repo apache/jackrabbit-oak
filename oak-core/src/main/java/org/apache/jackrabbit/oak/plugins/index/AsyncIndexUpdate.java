@@ -786,7 +786,7 @@ public class AsyncIndexUpdate implements Runnable {
                 return;
             }
             throw new CommitFailedException("Async", 2,
-                    "Missing index provider detected");
+                    "Missing index provider detected for type ["+type+"]");
         }
     }
 
