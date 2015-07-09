@@ -16,23 +16,25 @@
  */
 package org.apache.jackrabbit.oak.plugins.commit;
 
-import com.google.common.base.Joiner;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.MIX_REP_MERGE_CONFLICT;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ConflictType;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.MIX_REP_MERGE_CONFLICT;
+import com.google.common.base.Joiner;
 
 /**
  * {@link Validator} which checks the presence of conflict markers
@@ -43,10 +45,50 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.MIX_R
 public class ConflictValidator extends DefaultValidator {
     private static Logger log = LoggerFactory.getLogger(ConflictValidator.class);
 
-    private final Tree parentAfter;
+    /**
+     * Current processed path, or null if the debug log is not enabled at the
+     * beginning of the call. The null check will also be used to verify if a
+     * debug log will be needed or not
+     */
+    private final String path;
 
+    private NodeState after;
+
+    @Deprecated
     public ConflictValidator(Tree parentAfter) {
-        this.parentAfter = parentAfter;
+        this();
+    }
+
+    ConflictValidator() {
+        if (log.isDebugEnabled()) {
+            this.path = "/";
+        } else {
+            this.path = null;
+        }
+    }
+
+    private ConflictValidator(String path, String name) {
+        if (path != null) {
+            this.path = PathUtils.concat(path, name);
+        } else {
+            this.path = null;
+        }
+    }
+
+    private boolean isLogEnabled() {
+        return path != null;
+    }
+
+    @Override
+    public void enter(NodeState before, NodeState after)
+            throws CommitFailedException {
+        this.after = after;
+    }
+
+    @Override
+    public void leave(NodeState before, NodeState after)
+            throws CommitFailedException {
+        this.after = null;
     }
 
     @Override
@@ -62,12 +104,13 @@ public class ConflictValidator extends DefaultValidator {
 
     @Override
     public Validator childNodeAdded(String name, NodeState after) {
-        return new ConflictValidator(parentAfter.getChild(name));
+        return new ConflictValidator(path, name);
     }
 
     @Override
-    public Validator childNodeChanged(String name, NodeState before, NodeState after) {
-        return new ConflictValidator(parentAfter.getChild(name));
+    public Validator childNodeChanged(String name, NodeState before,
+            NodeState after) {
+        return new ConflictValidator(path, name);
     }
 
     @Override
@@ -82,12 +125,12 @@ public class ConflictValidator extends DefaultValidator {
                 if (MIX_REP_MERGE_CONFLICT.equals(v)) {
 
                     CommitFailedException ex = new CommitFailedException(
-                            CommitFailedException.STATE, 1, "Unresolved conflicts in " + parentAfter.getPath());
+                            CommitFailedException.STATE, 1, "Unresolved conflicts in " + path);
 
                     //Conflict details are not made part of ExceptionMessage instead they are
                     //logged. This to avoid exposing property details to the caller as it might not have
                     //permission to access it
-                    if (log.isDebugEnabled()) {
+                    if (isLogEnabled()) {
                         log.debug(getConflictMessage(), ex);
                     }
                     throw ex;
@@ -98,16 +141,17 @@ public class ConflictValidator extends DefaultValidator {
 
     private String getConflictMessage() {
         StringBuilder sb = new StringBuilder("Commit failed due to unresolved conflicts in ");
-        sb.append(parentAfter.getPath());
+        sb.append(path);
         sb.append(" = {");
-        for (Tree conflict : parentAfter.getChild(NodeTypeConstants.REP_OURS).getChildren()) {
-            ConflictType ct = ConflictType.fromName(conflict.getName());
 
+        for (ChildNodeEntry conflict : after.getChildNode(NodeTypeConstants.REP_OURS).getChildNodeEntries()) {
+            ConflictType ct = ConflictType.fromName(conflict.getName());
+            NodeState node = conflict.getNodeState();
             sb.append(ct.getName()).append(" = {");
             if (ct.effectsNode()) {
-                sb.append(getChildNodeNamesAsString(conflict));
+                sb.append(getChildNodeNamesAsString(node));
             } else {
-                for (PropertyState ps : conflict.getProperties()) {
+                for (PropertyState ps : node.getProperties()) {
                     PropertyState ours = null, theirs = null;
                     switch (ct) {
                         case DELETE_CHANGED_PROPERTY:
@@ -117,7 +161,7 @@ public class ConflictValidator extends DefaultValidator {
                         case ADD_EXISTING_PROPERTY:
                         case CHANGE_CHANGED_PROPERTY:
                             ours = ps;
-                            theirs = parentAfter.getProperty(ps.getName());
+                            theirs = after.getProperty(ps.getName());
                             break;
                         case CHANGE_DELETED_PROPERTY:
                             ours = ps;
@@ -145,8 +189,8 @@ public class ConflictValidator extends DefaultValidator {
         return sb.toString();
     }
 
-    private static String getChildNodeNamesAsString(Tree t) {
-        return Joiner.on(',').join(transform(t.getChildren(), Tree.GET_NAME));
+    private static String getChildNodeNamesAsString(NodeState ns) {
+        return Joiner.on(',').join(ns.getChildNodeNames());
     }
 
     private static String toString(PropertyState ps) {
@@ -154,7 +198,7 @@ public class ConflictValidator extends DefaultValidator {
             return "<N/A>";
         }
 
-        final Type type = ps.getType();
+        final Type<?> type = ps.getType();
         if (type.isArray()) {
             return "<ARRAY>";
         }
