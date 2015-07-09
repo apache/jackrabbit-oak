@@ -341,10 +341,9 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
         TreePermission falseCugTp = cugPermProvider.getTreePermission(root.getTree("/content/aa/rep:cugPolicy"), aaTp2);
         assertNotSame(TreePermission.EMPTY, falseCugTp);
 
-        // ac content
+        // cug content
         TreePermission cugTp = cugPermProvider.getTreePermission(root.getTree("/content/a/rep:cugPolicy"), aTp);
         assertSame(TreePermission.EMPTY, cugTp);
-        // TODO: for regular acl-node
 
         // paths that may not contain cugs anyway
         assertSame(TreePermission.EMPTY, cugPermProvider.getTreePermission(root.getTree("/jcr:system"), rootTp));

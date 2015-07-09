@@ -155,13 +155,11 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
             Root r = cs.getLatestRoot();
 
             assertTrue(r.getTree("/content/rep:policy").exists());
-            assertFalse(r.getTree("/content2/rep:cugPolicy").exists());
         } finally {
             cs.close();
         }
     }
 
-    @Ignore("FIXME: cugpolicy not detected as ac-content") // FIXME
     @Test
     public void testReadCug() throws Exception {
         List<String> noAccess = ImmutableList.of(
@@ -236,7 +234,6 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
         }
     }
 
-    @Ignore("FIXME: cugpolicy not detected as ac-content") // FIXME
     @Test
     public void testWriteCug() throws Exception {
         ContentSession cs = login(new SimpleCredentials(TEST_USER2_ID, TEST_USER2_ID.toCharArray()));

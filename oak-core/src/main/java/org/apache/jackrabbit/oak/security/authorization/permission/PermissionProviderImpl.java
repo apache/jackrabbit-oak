@@ -28,7 +28,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
-import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
@@ -36,6 +37,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 
 public class PermissionProviderImpl implements PermissionProvider, AccessControlConstants, PermissionConstants, AggregatedPermissionProvider {
@@ -44,24 +46,27 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     private final String workspaceName;
 
-    private final AuthorizationConfiguration acConfig;
+    private final Context ctx;
 
     private final CompiledPermissions compiledPermissions;
 
     private Root immutableRoot;
 
-    public PermissionProviderImpl(@Nonnull Root root, @Nonnull String workspaceName, @Nonnull Set<Principal> principals,
-                                  @Nonnull AuthorizationConfiguration acConfig) {
+    public PermissionProviderImpl(@Nonnull Root root, @Nonnull String workspaceName,
+                                  @Nonnull Set<Principal> principals,
+                                  @Nonnull RestrictionProvider restrictionProvider,
+                                  @Nonnull ConfigurationParameters options,
+                                  @Nonnull Context ctx) {
         this.root = root;
         this.workspaceName = workspaceName;
-        this.acConfig = acConfig;
+        this.ctx = ctx;
 
         immutableRoot = RootFactory.createReadOnlyRoot(root);
 
-        if (PermissionUtil.isAdminOrSystem(principals, acConfig.getParameters())) {
+        if (PermissionUtil.isAdminOrSystem(principals, options)) {
             compiledPermissions = AllPermissions.getInstance();
         } else {
-            compiledPermissions = CompiledPermissionImpl.create(immutableRoot, workspaceName, principals, acConfig);
+            compiledPermissions = CompiledPermissionImpl.create(immutableRoot, workspaceName, principals, restrictionProvider, options, ctx);
         }
     }
 
@@ -102,7 +107,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     @Override
     public boolean isGranted(@Nonnull String oakPath, @Nonnull String jcrActions) {
         TreeLocation location = TreeLocation.create(immutableRoot, oakPath);
-        boolean isAcContent = acConfig.getContext().definesLocation(location);
+        boolean isAcContent = ctx.definesLocation(location);
         long permissions = Permissions.getPermissions(jcrActions, location, isAcContent);
 
         boolean isGranted = false;

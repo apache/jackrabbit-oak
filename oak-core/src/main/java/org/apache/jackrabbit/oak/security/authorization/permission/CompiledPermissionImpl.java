@@ -42,7 +42,7 @@ import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
@@ -87,12 +87,14 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
     private CompiledPermissionImpl(@Nonnull Set<Principal> principals,
                                    @Nonnull Root root, @Nonnull String workspaceName,
                                    @Nonnull RestrictionProvider restrictionProvider,
-                                   @Nonnull AuthorizationConfiguration acConfig) {
+                                   @Nonnull ConfigurationParameters options,
+                                   @Nonnull Context ctx) {
         this.root = root;
         this.workspaceName = workspaceName;
 
         bitsProvider = new PrivilegeBitsProvider(root);
-        Set<String> readPaths = acConfig.getParameters().getConfigValue(PARAM_READ_PATHS, DEFAULT_READ_PATHS);
+
+        Set<String> readPaths = options.getConfigValue(PARAM_READ_PATHS, DEFAULT_READ_PATHS);
         readPolicy = (readPaths.isEmpty()) ? EmptyReadPolicy.INSTANCE : new DefaultReadPolicy(readPaths);
 
         // setup
@@ -107,22 +109,23 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
             }
         }
 
-        ConfigurationParameters options = acConfig.getParameters();
         PermissionEntryCache cache = new PermissionEntryCache();
         userStore = new PermissionEntryProviderImpl(store, cache, userNames, options);
         groupStore = new PermissionEntryProviderImpl(store, cache, groupNames, options);
 
-        typeProvider = new TreeTypeProvider(acConfig.getContext());
+        typeProvider = new TreeTypeProvider(ctx);
     }
 
     static CompiledPermissions create(@Nonnull Root root, @Nonnull String workspaceName,
                                       @Nonnull Set<Principal> principals,
-                                      @Nonnull AuthorizationConfiguration acConfig) {
+                                      @Nonnull RestrictionProvider restrictionProvider,
+                                      @Nonnull ConfigurationParameters options,
+                                      @Nonnull Context ctx) {
         Tree permissionsTree = PermissionUtil.getPermissionsRoot(root, workspaceName);
         if (!permissionsTree.exists() || principals.isEmpty()) {
             return NoPermissions.getInstance();
         } else {
-            return new CompiledPermissionImpl(principals, root, workspaceName, acConfig.getRestrictionProvider(), acConfig);
+            return new CompiledPermissionImpl(principals, root, workspaceName, restrictionProvider, options, ctx);
         }
     }
 

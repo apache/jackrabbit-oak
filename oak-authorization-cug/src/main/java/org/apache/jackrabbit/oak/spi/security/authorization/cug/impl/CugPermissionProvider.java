@@ -232,12 +232,10 @@ class CugPermissionProvider implements PermissionProvider, AggregatedPermissionP
     }
 
     private boolean isAcContent(@Nonnull Tree tree, boolean testForCtxRoot) {
-        // FIXME: this should also take other ac-configurations into considerations
         return (testForCtxRoot) ? ctx.definesContextRoot(tree) : ctx.definesTree(tree);
     }
 
     private boolean isAcContent(@Nonnull TreeLocation location) {
-        // FIXME: this should also take other ac-configurations into considerations
         return ctx.definesLocation(location);
     }
 

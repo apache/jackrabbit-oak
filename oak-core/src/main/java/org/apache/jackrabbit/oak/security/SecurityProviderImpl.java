@@ -227,6 +227,18 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
         tokenConfiguration.removeConfiguration(reference);
     }
 
+    @SuppressWarnings("UnusedDeclaration")
+    protected void bindAuthorizationConfiguration(@Nonnull AuthorizationConfiguration reference) {
+        authorizationConfiguration = initConfiguration(reference);
+        // TODO (OAK-1268): authorizationConfiguration.addConfiguration(initConfiguration(reference));
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    protected void unbindAuthorizationConfiguration(@Nonnull AuthorizationConfiguration reference) {
+        authorizationConfiguration = new AuthorizationConfigurationImpl(this);
+       // TODO (OAK-1268): authorizationConfiguration.removeConfiguration(reference);
+    }
+
     //------------------------------------------------------------< private >---
     private void initializeConfigurations() {
         initConfiguration(authorizationConfiguration, ConfigurationParameters.of(
