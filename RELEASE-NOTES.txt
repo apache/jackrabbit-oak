@@ -27,15 +27,35 @@ Changes in Oak 1.0.17
 
 Bugs
 
+  	[OAK-2401] - SegmentNodeStoreService prone to deadlocks
+  	[OAK-2845] - Memory leak in ObserverTracker#removedService
+  	[OAK-2934] - Certain searches cause lucene index to hit OutOfMemoryError
+  	[OAK-2961] - Async index fails with OakState0001: Unresolved conflicts in /:async
+  	[OAK-2999] - Index updation fails on updating multivalued property
+  	[OAK-3020] - Async Update fails after IllegalArgumentException
+  	[OAK-3023] - Long running MongoDB query may block other threads
+  	[OAK-3026] - test failures for oak-auth-ldap on Windows
+  	[OAK-3035] - ReferenceEditor reindex detection broken
+  	[OAK-3046] - Test extending AbstractRepositoryTest not getting executed on 1.0 branch
+  	[OAK-3053] - Locking issues seen with CopyOnWrite mode enabled
+  	[OAK-3062] - VersionGC failing on Mongo with CursorNotFoundException
+  	[OAK-3067] - Lucene IndexCopier should increase readerRemoteReadCount for new files
+  	[OAK-3081] - SplitOperations may undo committed changes
+  	[OAK-3084] - Commit.applyToDocumentStore(Revision) may rollback committed changes
 
 Improvements
 
+  	[OAK-2766] - Log time to acquire backgroundOperationLock in background operation tasks
+  	[OAK-2885] - Enable saveDirListing by default
+  	[OAK-3034] - backport OAK-2373 to 1.0 branch
+  	[OAK-3043] - Provide item path with InvalidItemStateException
+  	[OAK-3069] - Provide option to eagerly copy the new index files in CopyOnRead
+  	[OAK-3076] - Compaction should trace log the current processed path
+  	[OAK-3088] - IndexUpdate reports at debug level quite verbose
 
-New Features
+Tasks
 
-
-Sub-tasks
-
+  	[OAK-3058] - Backport OAK-2872 to 1.0 and 1.2 branches
 
 
 In addition to the above-mentioned changes, this release contains
