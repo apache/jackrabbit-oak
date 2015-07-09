@@ -22,6 +22,10 @@ LuceneIndex CopyOnRead feature now supports pre fetching of index files (OAK-306
 This reduces time taken in opening a new index. It can be enabled via OSGi config
 of LuceneIndexProviderService
 
+Debugging merge conflict errors is now possible by enabling DEBUG logs on 
+org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff and 
+org.apache.jackrabbit.oak.plugins.commit.ConflictValidator via OAK-3057
+
 Changes in Oak 1.0.17
 ---------------------
 
@@ -45,10 +49,12 @@ Bugs
 
 Improvements
 
+    [OAK-2721] - LogDumper rule to dump logs as part of system out in case of test failure
   	[OAK-2766] - Log time to acquire backgroundOperationLock in background operation tasks
   	[OAK-2885] - Enable saveDirListing by default
   	[OAK-3034] - backport OAK-2373 to 1.0 branch
   	[OAK-3043] - Provide item path with InvalidItemStateException
+    [OAK-3057] - Simplify debugging conflict related errors
   	[OAK-3069] - Provide option to eagerly copy the new index files in CopyOnRead
   	[OAK-3076] - Compaction should trace log the current processed path
   	[OAK-3088] - IndexUpdate reports at debug level quite verbose
