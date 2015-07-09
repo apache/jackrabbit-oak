@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.commit;
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
-import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
@@ -35,7 +34,7 @@ public class ConflictValidatorProvider extends ValidatorProvider {
     @Override
     public Validator getRootValidator(
             NodeState before, NodeState after, CommitInfo info) {
-        return new ConflictValidator(TreeFactory.createReadOnlyTree(after));
+        return new ConflictValidator();
     }
 
 }
