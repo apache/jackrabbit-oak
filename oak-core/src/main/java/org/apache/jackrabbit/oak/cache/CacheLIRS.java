@@ -409,8 +409,8 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
      * @param maxMemory the maximum size (1 or larger)
      */
     public void setMaxMemory(long maxMemory) {
-        if (maxMemory <= 0) {
-            throw new IllegalArgumentException("Max memory must be larger than 0");
+        if (maxMemory < 0) {
+            throw new IllegalArgumentException("Max memory must not be negative");
         }
         this.maxMemory = maxMemory;
         if (segments != null) {
