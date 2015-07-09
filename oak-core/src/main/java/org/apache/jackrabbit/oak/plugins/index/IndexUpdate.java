@@ -224,7 +224,7 @@ public class IndexUpdate implements Editor {
         if (parent == null){
             if (rootState.isReindexingPerformed()){
                 log.info(rootState.getReport());
-            } else if (log.isDebugEnabled()){
+            } else if (log.isDebugEnabled() && rootState.somethingIndexed()){
                 log.debug(rootState.getReport());
             }
         }
@@ -363,7 +363,9 @@ public class IndexUpdate implements Editor {
                 if (!log.isDebugEnabled() && !cb.reindex) {
                     continue;
                 }
-                pw.printf("    - %s%n", cb);
+                if (cb.count > 0) {
+                    pw.printf("    - %s%n", cb);
+                }
             }
             return sw.toString();
         }
@@ -376,6 +378,15 @@ public class IndexUpdate implements Editor {
                 }
             }
             return stats;
+        }
+
+        public boolean somethingIndexed() {
+            for (CountingCallback cb : callbacks.values()) {
+                if (cb.count > 0){
+                    return true;
+                }
+            }
+            return false;
         }
 
         public boolean isReindexingPerformed(){
