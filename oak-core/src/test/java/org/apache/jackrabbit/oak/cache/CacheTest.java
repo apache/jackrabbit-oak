@@ -90,7 +90,7 @@ public class CacheTest {
             // expected
         }
         try {
-            test.setMaxMemory(0);
+            test.setMaxMemory(-1);
             fail();
         } catch (IllegalArgumentException e) {
             // expected
@@ -626,6 +626,15 @@ public class CacheTest {
         map.put(1, "Hello");
         map.clear();
         assertTrue(map.isEmpty());
+    }
+    
+    @Test
+    public void testZeroSizeCache() {
+        CacheLIRS<Integer, String> cache = createCache(0, 100);
+        cache.put(1, "Hello", 100);
+        cache.put(2, "World", 100);
+        cache.put(3, "!", 100);
+        assertFalse(cache.containsKey(1));
     }
     
     @Test
