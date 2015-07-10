@@ -101,6 +101,7 @@ import org.apache.jackrabbit.oak.plugins.segment.standby.client.StandbyClient;
 import org.apache.jackrabbit.oak.plugins.segment.standby.server.StandbyServer;
 import org.apache.jackrabbit.oak.remote.content.ContentRemoteRepository;
 import org.apache.jackrabbit.oak.remote.http.RemoteServlet;
+import org.apache.jackrabbit.oak.plugins.tika.TextExtractorMain;
 import org.apache.jackrabbit.oak.scalability.ScalabilityRunner;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -188,6 +189,9 @@ public final class Main {
                 break;
             case REPAIR:
                 repair(args);
+                break;
+            case TIKA:
+                TextExtractorMain.main(args);
                 break;
             case HELP:
             default:
@@ -1180,7 +1184,8 @@ public final class Main {
         HELP("help"),
         CHECKPOINTS("checkpoints"),
         RECOVERY("recovery"),
-        REPAIR("repair");
+        REPAIR("repair"),
+        TIKA("tika");
 
         private final String name;
 
