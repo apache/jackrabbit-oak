@@ -32,15 +32,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CSVFileGenerator {
-    /*
-        Instead of using the FORMAT from CSVFileBinaryResourceProvider
-        defining our own without header. Otherwise commons-csv was always
-        adding the header
-     */
-    private static final CSVFormat FORMAT = CSVFormat.DEFAULT
-            .withCommentMarker('#')
-            .withNullString("") //Empty string are considered as null
-            .withIgnoreSurroundingSpaces();
     private final Logger log = LoggerFactory.getLogger(getClass());
     private File outFile;
 
@@ -52,7 +43,8 @@ public class CSVFileGenerator {
         Closer closer = Closer.create();
         int count = 0;
         try{
-            CSVPrinter printer = new CSVPrinter(Files.newWriter(outFile, Charsets.UTF_8), FORMAT);
+            CSVPrinter printer = new CSVPrinter(Files.newWriter(outFile, Charsets.UTF_8),
+                    CSVFileBinaryResourceProvider.FORMAT);
             for (BinaryResource br : binaries){
                 count++;
                 printer.printRecord(

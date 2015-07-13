@@ -109,6 +109,11 @@ public class NodeStoreBinaryResourceProviderTest {
         }
 
         @Override
+        public String getReference() {
+            return id;
+        }
+
+        @Override
         public String getContentIdentity() {
             return id;
         }
