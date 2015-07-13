@@ -19,8 +19,13 @@
 
 package org.apache.jackrabbit.oak.plugins.tika;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -28,13 +33,18 @@ import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
 
 public class NodeStoreBinaryResourceProviderTest {
+    @Rule
+    public final TemporaryFolder temporaryFolder = new TemporaryFolder();
+
     private NodeState root = INITIAL_CONTENT;
 
     @Test
@@ -57,6 +67,24 @@ public class NodeStoreBinaryResourceProviderTest {
         assertEquals("text/foo", bs.getMimeType());
         assertEquals("bar", bs.getEncoding());
         assertEquals("id2", bs.getBlobId());
+    }
+
+    @Test
+    public void csvGenerator() throws Exception {
+        File csv = new File(temporaryFolder.getRoot(), "test.csv");
+        BlobStore blobStore = new MemoryBlobStore();
+        NodeBuilder builder = root.builder();
+        createFileNode(builder, "a", blobOf("foo", blobStore), "text/plain");
+        createFileNode(builder, "b", blobOf("hello", blobStore), "text/plain");
+
+        NodeStore store = new MemoryNodeStore(builder.getNodeState());
+
+        NodeStoreBinaryResourceProvider extractor = new NodeStoreBinaryResourceProvider(store, blobStore);
+        CSVFileGenerator generator = new CSVFileGenerator(csv);
+        generator.generate(extractor.getBinaries("/"));
+
+        CSVFileBinaryResourceProvider csvbrp = new CSVFileBinaryResourceProvider(csv, blobStore);
+        assertEquals(2, csvbrp.getBinaries("/").size());
 
     }
 
@@ -65,6 +93,11 @@ public class NodeStoreBinaryResourceProviderTest {
         jcrContent.setProperty(JcrConstants.JCR_DATA, content);
         jcrContent.setProperty(JcrConstants.JCR_MIMETYPE, mimeType);
         return jcrContent;
+    }
+
+    private Blob blobOf(String content, BlobStore bs) throws IOException {
+        String id = bs.writeBlob(new ByteArrayInputStream(content.getBytes()));
+        return new BlobStoreBlob(bs, id);
     }
 
     private static class IdBlob extends ArrayBasedBlob {

@@ -72,7 +72,9 @@ class NodeStoreBinaryResourceProvider implements BinaryResourceProvider {
 
             Blob blob = data.getValue(Type.BINARY);
             String blobId = blob.getContentIdentity();
-            if (blobId == null) {
+            //Check for ref being non null to ensure its not an inlined binary
+            //For Segment ContentIdentity defaults to RecordId
+            if (blob.getReference() == null || blobId == null) {
                 log.debug("Ignoring jcr:data property at {} as its an inlined blob", tree.getPath());
                 return null;
             }
