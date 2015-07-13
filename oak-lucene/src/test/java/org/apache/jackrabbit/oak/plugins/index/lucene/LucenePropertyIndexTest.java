@@ -25,6 +25,7 @@ import java.text.ParseException;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -51,6 +52,9 @@ import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
+import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText.ExtractionResult;
+import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
@@ -92,6 +96,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.matchers.JUnitMatchers.containsString;
 
 public class LucenePropertyIndexTest extends AbstractQueryTest {
@@ -105,6 +110,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
+    private LuceneIndexEditorProvider editorProvider;
+
     @Override
     protected void createTestIndexNode() throws Exception {
         setTraversalEnabled(false);
@@ -112,13 +119,14 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Override
     protected ContentRepository createRepository() {
+        editorProvider = new LuceneIndexEditorProvider(createIndexCopier());
         LuceneIndexProvider provider = new LuceneIndexProvider();
         return new Oak()
                 .with(new InitialContent())
                 .with(new OpenSecurityProvider())
                 .with((QueryIndexProvider) provider)
                 .with((Observer) provider)
-                .with(new LuceneIndexEditorProvider(createIndexCopier()))
+                .with(editorProvider)
                 .with(new PropertyIndexEditorProvider())
                 .with(new NodeTypeIndexProvider())
                 .createContentRepository();
@@ -205,8 +213,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         Tree indexWithType = createIndex("test2", of("propa"));
         indexWithType.setProperty(PropertyStates
-            .createProperty(DECLARING_NODE_TYPES, of("nt:unstructured"),
-                Type.STRINGS));
+                .createProperty(DECLARING_NODE_TYPES, of("nt:unstructured"),
+                        Type.STRINGS));
 
         Tree test = root.getTree("/").addChild("test");
         test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
@@ -237,8 +245,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     public void declaringNodeTypeSingleIndex() throws Exception {
         Tree indexWithType = createIndex("test2", of("propa", "propb"));
         indexWithType.setProperty(PropertyStates
-            .createProperty(DECLARING_NODE_TYPES, of("nt:unstructured"),
-                Type.STRINGS));
+                .createProperty(DECLARING_NODE_TYPES, of("nt:unstructured"),
+                        Type.STRINGS));
 
         Tree test = root.getTree("/").addChild("test");
         test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
@@ -257,7 +265,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         String propabQuery = "select [jcr:path] from [nt:unstructured] where [propb] = 'baz' and " +
-            "[propa] = 'foo'";
+                "[propa] = 'foo'";
         assertThat(explain(propabQuery), containsString("lucene:test2"));
         assertQuery(propabQuery, asList("/test/a", "/test/b"));
 
@@ -600,11 +608,11 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         assertQuery("select [jcr:path] from [nt:base] where propa like 'hum%'",
-            asList("/test/a", "/test/c"));
+                asList("/test/a", "/test/c"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '%ty'",
-            asList("/test/a", "/test/b"));
+                asList("/test/a", "/test/b"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '%ump%'",
-            asList("/test/a", "/test/b", "/test/c"));
+                asList("/test/a", "/test/b", "/test/c"));
     }
 
     @Test
@@ -834,10 +842,10 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]", Lists
-            .newArrayList(Iterables.concat(Lists.newArrayList("/test/a"), getSortedPaths(tuples, OrderDirection.ASC))));
+                .newArrayList(Iterables.concat(Lists.newArrayList("/test/a"), getSortedPaths(tuples, OrderDirection.ASC))));
         assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", Lists
-            .newArrayList(Iterables.concat(getSortedPaths(tuples, OrderDirection.DESC), Lists.newArrayList("/test/a")
-            )));
+                .newArrayList(Iterables.concat(getSortedPaths(tuples, OrderDirection.DESC), Lists.newArrayList("/test/a")
+                )));
     }
 
     void assertSortedString() throws CommitFailedException {
@@ -893,7 +901,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]",
-            getSortedPaths(tuples, OrderDirection.ASC));
+                getSortedPaths(tuples, OrderDirection.ASC));
         assertOrderedQuery(
                 "select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC",
                 getSortedPaths(tuples, OrderDirection.DESC));
@@ -925,8 +933,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         // Add the path of property added as timestamp string in the sorted list
         assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]",
-            Lists.newArrayList(Iterables.concat(Lists.newArrayList("/test/n0"),
-                getSortedPaths(tuples, OrderDirection.ASC))));
+                Lists.newArrayList(Iterables.concat(Lists.newArrayList("/test/n0"),
+                        getSortedPaths(tuples, OrderDirection.ASC))));
         // Append the path of property added as timestamp string to the sorted list
         assertOrderedQuery(
                 "select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", Lists
@@ -1010,12 +1018,12 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         // Descending matches with lucene native sort
         String query =
-            "measure select [jcr:path] from [nt:base] where [propa] = 'foo' order by [jcr:score] desc";
+                "measure select [jcr:path] from [nt:base] where [propa] = 'foo' order by [jcr:score] desc";
         assertThat(measureWithLimit(query, SQL2, 1), containsString("scanCount: 1"));
 
         // Ascending needs to be sorted by query engine
         query =
-            "measure select [jcr:path] from [nt:base] where [propa] = 'foo' order by [jcr:score]";
+                "measure select [jcr:path] from [nt:base] where [propa] = 'foo' order by [jcr:score]";
         assertThat(measureWithLimit(query, SQL2, 1), containsString("scanCount: 3"));
     }
 
@@ -1088,8 +1096,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     private String measureWithLimit(String query, String lang, int limit) throws ParseException {
         List<? extends ResultRow> result = Lists.newArrayList(
-            qe.executeQuery(query, lang, limit, 0, Maps.<String, PropertyValue>newHashMap(),
-                NO_MAPPINGS).getRows());
+                qe.executeQuery(query, lang, limit, 0, Maps.<String, PropertyValue>newHashMap(),
+                        NO_MAPPINGS).getRows());
 
         String measure = "";
         if (result.size() > 0) {
@@ -1178,6 +1186,41 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         assertFalse(testBlob.isStreamAccessed());
         assertEquals(0, testBlob.readByteCount());
+    }
+
+    @Test
+    public void preExtractedTextProvider() throws Exception{
+        Tree idx = createFulltextIndex(root.getTree("/"), "test");
+        TestUtil.useV2(idx);
+        root.commit();
+
+        AccessStateProvidingBlob testBlob =
+                new AccessStateProvidingBlob("fox is jumping", "id1");
+
+        MapBasedProvider textProvider = new MapBasedProvider();
+        textProvider.write("id1","lion");
+        editorProvider.getExtractedTextCache().setExtractedTextProvider(textProvider);
+
+        Tree test = root.getTree("/").addChild("test");
+        createFileNode(test, "text", testBlob, "text/plain");
+        root.commit();
+
+        //As its not a reindex case actual blob content would be accessed
+        assertTrue(testBlob.isStreamAccessed());
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'fox ')", asList("/test/text/jcr:content"));
+        assertEquals(0, textProvider.accessCount);
+
+        testBlob.resetState();
+
+        //Lets trigger a reindex
+        root.getTree(idx.getPath()).setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+        root.commit();
+
+        //Now the content should be provided by the PreExtractedTextProvider
+        //and instead of fox its lion!
+        assertFalse(testBlob.isStreamAccessed());
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'lion ')", asList("/test/text/jcr:content"));
+        assertEquals(1, textProvider.accessCount);
     }
 
     @Test
@@ -1423,6 +1466,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     private static class AccessStateProvidingBlob extends ArrayBasedBlob {
         private CountingInputStream stream;
+        private String id;
 
         public AccessStateProvidingBlob(byte[] value) {
             super(value);
@@ -1430,6 +1474,11 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         public AccessStateProvidingBlob(String content) {
             this(content.getBytes(Charsets.UTF_8));
+        }
+
+        public AccessStateProvidingBlob(String content, String id) {
+            this(content.getBytes(Charsets.UTF_8));
+            this.id = id;
         }
 
         @Nonnull
@@ -1452,6 +1501,33 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
                 return 0;
             }
             return stream.getCount();
+        }
+
+        @Override
+        public String getContentIdentity() {
+            return id;
+        }
+    }
+
+    private static class MapBasedProvider implements PreExtractedTextProvider {
+        final Map<String, ExtractedText> idMap = Maps.newHashMap();
+        int accessCount = 0;
+
+        @Override
+        public ExtractedText getText(String propertyPath, Blob blob) throws IOException {
+            ExtractedText result = idMap.get(blob.getContentIdentity());
+            if (result != null){
+                accessCount++;
+            }
+            return result;
+        }
+
+        public void write(String id, String text){
+            idMap.put(id, new ExtractedText(ExtractionResult.SUCCESS, text));
+        }
+
+        public void reset(){
+            accessCount = 0;
         }
     }
 }

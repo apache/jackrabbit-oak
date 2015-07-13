@@ -46,7 +46,7 @@ public class ExtractedText {
 
     public static final ExtractedText ERROR = new ExtractedText(ExtractionResult.ERROR);
 
-    public static final ExtractedText EMPTY = new ExtractedText(ExtractionResult.ERROR, "");
+    public static final ExtractedText EMPTY = new ExtractedText(ExtractionResult.EMPTY, "");
 
     private final ExtractionResult extractionResult;
     private final CharSequence extractedText;

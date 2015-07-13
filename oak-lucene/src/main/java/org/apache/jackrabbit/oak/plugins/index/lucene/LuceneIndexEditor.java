@@ -34,6 +34,8 @@ import org.apache.jackrabbit.oak.commons.io.LazyInputStream;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.PathFilter;
+import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
+import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText.ExtractionResult;
 import org.apache.jackrabbit.oak.plugins.index.lucene.Aggregate.Matcher;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
@@ -84,6 +86,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
     private static final Logger log =
             LoggerFactory.getLogger(LuceneIndexEditor.class);
+    static final String TEXT_EXTRACTION_ERROR = "TextExtractionError";
 
     private final LuceneIndexEditorContext context;
 
@@ -118,12 +121,14 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
     private final PathFilter.Result pathFilterResult;
 
     LuceneIndexEditor(NodeState root, NodeBuilder definition,
-        IndexUpdateCallback updateCallback,@Nullable IndexCopier indexCopier) throws CommitFailedException {
+                        IndexUpdateCallback updateCallback,
+                        @Nullable IndexCopier indexCopier,
+                        ExtractedTextCache extractedTextCache) throws CommitFailedException {
         this.parent = null;
         this.name = null;
         this.path = "/";
         this.context = new LuceneIndexEditorContext(root, definition,
-                updateCallback, indexCopier);
+                updateCallback, indexCopier, extractedTextCache);
         this.root = root;
         this.isDeleted = false;
         this.matcherState = MatcherState.NONE;
@@ -548,12 +553,16 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         }
 
         for (Blob v : property.getValue(Type.BINARIES)) {
-            if (nodePath != null){
-                fields.add(newFulltextField(nodePath, parseStringValue(v, metadata, path)));
-            } else {
-                fields.add(newFulltextField(parseStringValue(v, metadata, path)));
+            String value = parseStringValue(v, metadata, path, property.getName());
+            if (value == null){
+                continue;
             }
 
+            if (nodePath != null){
+                fields.add(newFulltextField(nodePath, value));
+            } else {
+                fields.add(newFulltextField(value));
+            }
         }
         return fields;
     }
@@ -799,16 +808,24 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         return context.getDefinition().getPathFilter().doFiler(concat(getPath(), childNodeName));
     }
 
-    private String parseStringValue(Blob v, Metadata metadata, String path) {
+    private String parseStringValue(Blob v, Metadata metadata, String path, String propertyName) {
+        String text = context.getExtractedTextCache().get(path, propertyName, v, context.isReindex());
+        if (text == null){
+            text = parseStringValue0(v, metadata, path);
+        }
+        return text;
+    }
+
+    private String parseStringValue0(Blob v, Metadata metadata, String path) {
         WriteOutContentHandler handler = new WriteOutContentHandler();
         long start = System.currentTimeMillis();
-        long size = 0;
+        long bytesRead = 0;
         try {
             CountingInputStream stream = new CountingInputStream(new LazyInputStream(new BlobByteSource(v)));
             try {
                 context.getParser().parse(stream, handler, metadata, new ParseContext());
             } finally {
-                size = stream.getCount();
+                bytesRead = stream.getCount();
                 stream.close();
             }
         } catch (LinkageError e) {
@@ -826,11 +843,15 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                         + " worry about. The stack trace is included to"
                         + " help improve the text extraction feature.",
                         getIndexName(), path, t);
-                return "TextExtractionError";
+                context.getExtractedTextCache().put(v, ExtractedText.ERROR);
+                return TEXT_EXTRACTION_ERROR;
             }
         }
         String result = handler.toString();
-        context.recordTextExtractionStats(System.currentTimeMillis() - start, size);
+        if (bytesRead > 0) {
+            context.recordTextExtractionStats(System.currentTimeMillis() - start, bytesRead, result.length());
+        }
+        context.getExtractedTextCache().put(v,  new ExtractedText(ExtractionResult.SUCCESS, result));
         return result;
     }
 
