@@ -21,16 +21,26 @@ package org.apache.jackrabbit.oak.plugins.tika;
 
 import java.io.Closeable;
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 
 import com.google.common.io.Closer;
+import com.mongodb.MongoClientURI;
+import com.mongodb.MongoURI;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreTextWriter;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.run.Main;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,8 +99,6 @@ public class TextExtractorMain {
                     .withRequiredArg()
                     .ofType(Integer.class);
 
-            //TODO implement generate support
-
             OptionSpec<String> nonOption = parser.nonOptions(h);
 
             OptionSet options = parser.parse(args);
@@ -108,7 +116,8 @@ public class TextExtractorMain {
 
             boolean report = nonOptions.contains("report");
             boolean extract = nonOptions.contains("extract");
-            File dataFile;
+            boolean generate = nonOptions.contains("generate");
+            File dataFile = null;
             File fdsDir;
             File storeDir = null;
             File tikaConfigFile = null;
@@ -142,21 +151,33 @@ public class TextExtractorMain {
 
             if (options.has(dataFileSpec)) {
                 dataFile = dataFileSpec.value(options);
-                checkArgument(dataFile.exists(), "Data file %s does not exist", dataFile.getAbsolutePath());
-                binaryResourceProvider = new CSVFileBinaryResourceProvider(dataFile, blobStore);
             }
 
-            if (binaryResourceProvider instanceof Closeable) {
-                closer.register((Closeable) binaryResourceProvider);
-            }
+            checkNotNull(dataFile, "Data file not configured with %s", dataFileSpec);
 
             if (report || extract) {
-                checkNotNull(binaryResourceProvider, "BinaryProvider source must be specified either " +
-                        "via '%s' or '%s", dataFileSpec.options(), nodeStoreSpec.options());
+                checkArgument(dataFile.exists(),
+                        "Data file %s does not exist", dataFile.getAbsolutePath());
+
+                binaryResourceProvider = new CSVFileBinaryResourceProvider(dataFile, blobStore);
+                if (binaryResourceProvider instanceof Closeable) {
+                    closer.register((Closeable) binaryResourceProvider);
+                }
 
                 stats = new BinaryStats(tikaConfigFile, binaryResourceProvider);
                 String summary = stats.getSummary();
                 log.info(summary);
+            }
+
+            if (generate){
+                String src = nodeStoreSpec.value(options);
+                checkNotNull(blobStore, "BlobStore found to be null. FileDataStore directory " +
+                        "must be specified via %s", fdsDirSpec.options());
+                checkNotNull(dataFile, "Data file path not provided");
+                NodeStore nodeStore = bootStrapNodeStore(src, blobStore, closer);
+                BinaryResourceProvider brp = new NodeStoreBinaryResourceProvider(nodeStore, blobStore);
+                CSVFileGenerator generator = new CSVFileGenerator(dataFile);
+                generator.generate(brp.getBinaries(path));
             }
 
             if (extract) {
@@ -196,5 +217,57 @@ public class TextExtractorMain {
         } finally {
             closer.close();
         }
+    }
+
+    private static NodeStore bootStrapNodeStore(String src, BlobStore blobStore,
+                                                Closer closer) throws IOException {
+        if (src.startsWith(MongoURI.MONGODB_PREFIX)) {
+            MongoClientURI uri = new MongoClientURI(src);
+            if (uri.getDatabase() == null) {
+                System.err.println("Database missing in MongoDB URI: "
+                        + uri.getURI());
+                System.exit(1);
+            }
+            MongoConnection mongo = new MongoConnection(uri.getURI());
+            closer.register(asCloseable(mongo));
+            DocumentNodeStore store = new DocumentMK.Builder()
+                    .setBlobStore(blobStore)
+                    .setMongoDB(mongo.getDB()).getNodeStore();
+            closer.register(asCloseable(store));
+            return store;
+        }
+        FileStore fs = FileStore.newFileStore(new File(src))
+                .withBlobStore(blobStore)
+                .withMemoryMapping(Main.TAR_STORAGE_MEMORY_MAPPED)
+                .create();
+        closer.register(asCloseable(fs));
+        return SegmentNodeStore.newSegmentNodeStore(fs).create();
+    }
+
+    private static Closeable asCloseable(final FileStore fs) {
+        return new Closeable() {
+            @Override
+            public void close() throws IOException {
+                fs.close();
+            }
+        };
+    }
+
+    private static Closeable asCloseable(final DocumentNodeStore dns) {
+        return new Closeable() {
+            @Override
+            public void close() throws IOException {
+                dns.dispose();
+            }
+        };
+    }
+
+    private static Closeable asCloseable(final MongoConnection con) {
+        return new Closeable() {
+            @Override
+            public void close() throws IOException {
+                con.close();
+            }
+        };
     }
 }
