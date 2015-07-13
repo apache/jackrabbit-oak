@@ -38,13 +38,20 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 public class LuceneIndexEditorProvider implements IndexEditorProvider {
     private final IndexCopier indexCopier;
+    private final ExtractedTextCache extractedTextCache;
 
     public LuceneIndexEditorProvider() {
         this(null);
     }
 
     public LuceneIndexEditorProvider(@Nullable IndexCopier indexCopier) {
+        this(indexCopier, new ExtractedTextCache());
+    }
+
+    public LuceneIndexEditorProvider(@Nullable IndexCopier indexCopier,
+                                     ExtractedTextCache extractedTextCache) {
         this.indexCopier = indexCopier;
+        this.extractedTextCache = extractedTextCache;
     }
 
     @Override
@@ -53,12 +60,16 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
             @Nonnull IndexUpdateCallback callback)
             throws CommitFailedException {
         if (TYPE_LUCENE.equals(type)) {
-            return new LuceneIndexEditor(root, definition, callback, indexCopier);
+            return new LuceneIndexEditor(root, definition, callback, indexCopier, extractedTextCache);
         }
         return null;
     }
 
     IndexCopier getIndexCopier() {
         return indexCopier;
+    }
+
+    ExtractedTextCache getExtractedTextCache() {
+        return extractedTextCache;
     }
 }

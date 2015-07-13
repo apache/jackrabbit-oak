@@ -25,6 +25,7 @@ import java.text.ParseException;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -51,6 +52,9 @@ import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
+import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText.ExtractionResult;
+import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
@@ -93,6 +97,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.matchers.JUnitMatchers.containsString;
 
 public class LucenePropertyIndexTest extends AbstractQueryTest {
@@ -106,6 +111,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
+    private LuceneIndexEditorProvider editorProvider;
+
     @Override
     protected void createTestIndexNode() throws Exception {
         setTraversalEnabled(false);
@@ -113,6 +120,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Override
     protected ContentRepository createRepository() {
+        editorProvider = new LuceneIndexEditorProvider(createIndexCopier());
         LuceneIndexProvider provider = new LuceneIndexProvider();
         return new Oak()
                 .with(new InitialContent())
@@ -1286,6 +1294,41 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
+    public void preExtractedTextProvider() throws Exception{
+        Tree idx = createFulltextIndex(root.getTree("/"), "test");
+        TestUtil.useV2(idx);
+        root.commit();
+
+        AccessStateProvidingBlob testBlob =
+                new AccessStateProvidingBlob("fox is jumping", "id1");
+
+        MapBasedProvider textProvider = new MapBasedProvider();
+        textProvider.write("id1","lion");
+        editorProvider.getExtractedTextCache().setExtractedTextProvider(textProvider);
+
+        Tree test = root.getTree("/").addChild("test");
+        createFileNode(test, "text", testBlob, "text/plain");
+        root.commit();
+
+        //As its not a reindex case actual blob content would be accessed
+        assertTrue(testBlob.isStreamAccessed());
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'fox ')", asList("/test/text/jcr:content"));
+        assertEquals(0, textProvider.accessCount);
+
+        testBlob.resetState();
+
+        //Lets trigger a reindex
+        root.getTree(idx.getPath()).setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+        root.commit();
+
+        //Now the content should be provided by the PreExtractedTextProvider
+        //and instead of fox its lion!
+        assertFalse(testBlob.isStreamAccessed());
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'lion ')", asList("/test/text/jcr:content"));
+        assertEquals(1, textProvider.accessCount);
+    }
+
+    @Test
     public void maxFieldLengthCheck() throws Exception{
         Tree idx = createFulltextIndex(root.getTree("/"), "test");
         TestUtil.useV2(idx);
@@ -1654,6 +1697,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     private static class AccessStateProvidingBlob extends ArrayBasedBlob {
         private CountingInputStream stream;
+        private String id;
 
         public AccessStateProvidingBlob(byte[] value) {
             super(value);
@@ -1661,6 +1705,11 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         public AccessStateProvidingBlob(String content) {
             this(content.getBytes(Charsets.UTF_8));
+        }
+
+        public AccessStateProvidingBlob(String content, String id) {
+            this(content.getBytes(Charsets.UTF_8));
+            this.id = id;
         }
 
         @Nonnull
@@ -1683,6 +1732,33 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
                 return 0;
             }
             return stream.getCount();
+        }
+
+        @Override
+        public String getContentIdentity() {
+            return id;
+        }
+    }
+
+    private static class MapBasedProvider implements PreExtractedTextProvider {
+        final Map<String, ExtractedText> idMap = Maps.newHashMap();
+        int accessCount = 0;
+
+        @Override
+        public ExtractedText getText(String propertyPath, Blob blob) throws IOException {
+            ExtractedText result = idMap.get(blob.getContentIdentity());
+            if (result != null){
+                accessCount++;
+            }
+            return result;
+        }
+
+        public void write(String id, String text){
+            idMap.put(id, new ExtractedText(ExtractionResult.SUCCESS, text));
+        }
+
+        public void reset(){
+            accessCount = 0;
         }
     }
 }
