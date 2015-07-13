@@ -44,8 +44,16 @@ public class ExtractedText {
         ERROR
     }
 
+    public static final ExtractedText ERROR = new ExtractedText(ExtractionResult.ERROR);
+
+    public static final ExtractedText EMPTY = new ExtractedText(ExtractionResult.ERROR, "");
+
     private final ExtractionResult extractionResult;
     private final CharSequence extractedText;
+
+    public ExtractedText(@Nonnull ExtractionResult extractionResult){
+        this(extractionResult, null);
+    }
 
     public ExtractedText(@Nonnull ExtractionResult extractionResult,CharSequence extractedText) {
         this.extractionResult = extractionResult;

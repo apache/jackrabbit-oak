@@ -94,9 +94,9 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
         blobId = stripLength(blobId);
         ExtractedText result = null;
         if (getEmptyBlobs().contains(blobId)) {
-            result = new ExtractedText(ExtractionResult.EMPTY, null);
+            result = ExtractedText.EMPTY;
         } else if (getErrorBlobs().contains(blobId)) {
-            result = new ExtractedText(ExtractionResult.ERROR, null);
+            result = ExtractedText.ERROR;
         } else {
             File textFile = getFile(blobId);
             if (textFile.exists()) {
@@ -150,6 +150,11 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
         writeToFile(EMPTY_BLOB_FILE, getEmptyBlobs());
         writeToFile(ERROR_BLOB_FILE, getErrorBlobs());
         closed = true;
+    }
+
+    @Override
+    public String toString() {
+        return "FileDataStore based text provider";
     }
 
     SetHolder getEmptyBlobsHolder(){
