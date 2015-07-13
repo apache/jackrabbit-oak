@@ -303,7 +303,7 @@
     <dependency>
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
-      <version>1.4.185</version>
+      <version>${h2.version}</version>
       <optional>true</optional>
     </dependency>
 
