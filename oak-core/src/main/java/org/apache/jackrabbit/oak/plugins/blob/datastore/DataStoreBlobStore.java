@@ -19,6 +19,10 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterators.filter;
+import static com.google.common.collect.Iterators.transform;
+
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -55,10 +59,6 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Iterators.filter;
-import static com.google.common.collect.Iterators.transform;
 
 /**
  * BlobStore wrapper for DataStore. Wraps Jackrabbit 2 DataStore and expose them as BlobStores
@@ -106,7 +106,7 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
         this.delegate = delegate;
         this.encodeLengthInId = encodeLengthInId;
 
-        this.cache = CacheLIRS.newBuilder()
+        this.cache = CacheLIRS.<String, byte[]>newBuilder()
                 .maximumWeight(cacheSizeInMB * FileUtils.ONE_MB)
                 .weigher(new Weigher<String, byte[]>() {
                     @Override

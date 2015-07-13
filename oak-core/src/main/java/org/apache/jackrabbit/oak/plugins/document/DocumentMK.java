@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.io.InputStream;
 import java.util.Set;
 import java.util.concurrent.Executor;
@@ -31,7 +33,6 @@ import com.google.common.cache.Weigher;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.mongodb.DB;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheValue;
@@ -58,8 +59,6 @@ import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * A JSON-based wrapper around the NodeStore implementation that stores the
@@ -917,8 +916,13 @@ public class DocumentMK {
                 useLirs = LIRS_CACHE;
             }
             if (useLirs) {
-                return CacheLIRS.newBuilder().
-                        weigher(weigher).
+                return CacheLIRS.<K, V>newBuilder().
+                        weigher(new Weigher<K, V>() {
+                            @Override
+                            public int weigh(K key, V value) {
+                                return weigher.weigh(key, value);
+                            }
+                        }).
                         averageWeight(2000).
                         maximumWeight(maxWeight).
                         segmentCount(cacheSegmentCount).
