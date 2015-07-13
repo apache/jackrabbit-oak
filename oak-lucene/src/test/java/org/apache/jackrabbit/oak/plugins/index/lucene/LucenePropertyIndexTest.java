@@ -127,7 +127,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
                 .with(new OpenSecurityProvider())
                 .with((QueryIndexProvider) provider)
                 .with((Observer) provider)
-                .with(new LuceneIndexEditorProvider(createIndexCopier()))
+                .with(editorProvider)
                 .with(new PropertyIndexEditorProvider())
                 .with(new NodeTypeIndexProvider())
                 .createContentRepository();
