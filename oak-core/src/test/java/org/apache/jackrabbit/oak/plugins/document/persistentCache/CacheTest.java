@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.util.Random;
 
+import com.google.common.cache.Weigher;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
@@ -37,9 +38,25 @@ import org.apache.jackrabbit.oak.plugins.document.PathRev;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class CacheTest {
+
+    @Test
+    @Ignore("OAK-3094")  // FIXME OAK-3094
+    public void builder() {
+        CacheLIRS<Integer, String> cache = CacheLIRS.newBuilder()
+            .weigher(new Weigher<String, Integer>() {
+                @Override
+                public int weigh(String key, Integer value) {
+                    return 0;
+                }
+            })
+            .build();
+
+        cache.put(0, "s");
+    }
 
     @Test
     public void recoverIfCorrupt() throws Exception {
