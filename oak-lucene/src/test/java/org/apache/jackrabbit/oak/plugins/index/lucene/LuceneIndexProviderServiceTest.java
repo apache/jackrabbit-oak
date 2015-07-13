@@ -19,10 +19,14 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
+import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -126,9 +130,31 @@ public class LuceneIndexProviderServiceTest {
         MockOsgi.deactivate(service);
     }
 
+    @Test
+    public void preExtractedTextProvider() throws Exception{
+        MockOsgi.activate(service, context.bundleContext(), getDefaultConfig());
+        LuceneIndexEditorProvider editorProvider =
+                (LuceneIndexEditorProvider) context.getService(IndexEditorProvider.class);
+        assertNull(editorProvider.getExtractedTextCache().getExtractedTextProvider());
+
+        //Mock OSGi does not support components
+        //context.registerService(PreExtractedTextProvider.class, new DummyProvider());
+        service.bindExtractedTextProvider(new DummyProvider());
+
+        assertNotNull(editorProvider.getExtractedTextCache().getExtractedTextProvider());
+    }
+
     private Map<String,Object> getDefaultConfig(){
         Map<String,Object> config = new HashMap<String, Object>();
         config.put("localIndexDir", folder.getRoot().getAbsolutePath());
         return config;
+    }
+
+    private static class DummyProvider implements PreExtractedTextProvider {
+
+        @Override
+        public ExtractedText getText(String propertyPath, Blob blob) throws IOException {
+            return null;
+        }
     }
 }

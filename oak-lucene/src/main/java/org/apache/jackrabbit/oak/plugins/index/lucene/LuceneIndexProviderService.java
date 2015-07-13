@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
+import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserverMBean;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
@@ -85,7 +86,7 @@ public class LuceneIndexProviderService {
             boolValue = false,
             label = "Enable Debug Logging",
             description = "Enables debug logging in Lucene. After enabling this actual logging can be " +
-            "controlled via changing log level for category 'oak.lucene' to debug")
+                    "controlled via changing log level for category 'oak.lucene' to debug")
     private static final String PROP_DEBUG = "debug";
 
     @Property(
@@ -137,6 +138,13 @@ public class LuceneIndexProviderService {
 
     private BackgroundObserver backgroundObserver;
 
+    @Reference(policy = ReferencePolicy.DYNAMIC,
+            cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE,
+            policyOption = ReferencePolicyOption.GREEDY
+    )
+    private volatile PreExtractedTextProvider extractedTextProvider;
+
+
     private IndexCopier indexCopier;
 
     private File indexDir;
@@ -144,6 +152,8 @@ public class LuceneIndexProviderService {
     private ExecutorService executorService;
 
     private int threadPoolSize;
+
+    private ExtractedTextCache extractedTextCache = new ExtractedTextCache();
 
     @Activate
     private void activate(BundleContext bundleContext, Map<String, ?> config)
@@ -223,12 +233,17 @@ public class LuceneIndexProviderService {
         LuceneIndexEditorProvider editorProvider;
         if (enableCopyOnWrite){
             initializeIndexCopier(bundleContext, config);
-            editorProvider = new LuceneIndexEditorProvider(indexCopier);
+            editorProvider = new LuceneIndexEditorProvider(indexCopier, extractedTextCache);
             log.info("Enabling CopyOnWrite support. Index files would be copied under {}", indexDir.getAbsolutePath());
         } else {
-            editorProvider = new LuceneIndexEditorProvider();
+            editorProvider = new LuceneIndexEditorProvider(null, extractedTextCache);
         }
         regs.add(bundleContext.registerService(IndexEditorProvider.class.getName(), editorProvider, null));
+        oakRegs.add(registerMBean(whiteboard,
+                TextExtractionStatsMBean.class,
+                editorProvider.getExtractedTextCache().getStatsMBean(),
+                TextExtractionStatsMBean.TYPE,
+                "TextExtraction statistics"));
     }
 
     private IndexTracker createTracker(BundleContext bundleContext, Map<String, ?> config) throws IOException {
@@ -325,6 +340,17 @@ public class LuceneIndexProviderService {
         regs.add(bundleContext.registerService(Observer.class.getName(), observer, null));
     }
 
+    private void registerExtractedTextProvider(PreExtractedTextProvider provider){
+        if (extractedTextCache != null){
+            if (provider != null){
+                log.info("Registering PreExtractedTextProvider {} with extracted text cache", provider);
+            } else {
+                log.info("Unregistering PreExtractedTextProvider with extracted text cache");
+            }
+            extractedTextCache.setExtractedTextProvider(provider);
+        }
+    }
+
     protected void bindNodeAggregator(NodeAggregator aggregator) {
         this.nodeAggregator = aggregator;
         initialize();
@@ -333,5 +359,15 @@ public class LuceneIndexProviderService {
     protected void unbindNodeAggregator(NodeAggregator aggregator) {
         this.nodeAggregator = null;
         initialize();
+    }
+
+    protected void bindExtractedTextProvider(PreExtractedTextProvider preExtractedTextProvider){
+        this.extractedTextProvider = preExtractedTextProvider;
+        registerExtractedTextProvider(preExtractedTextProvider);
+    }
+
+    protected void unbindExtractedTextProvider(PreExtractedTextProvider preExtractedTextProvider){
+        this.extractedTextProvider = null;
+        registerExtractedTextProvider(null);
     }
 }
