@@ -33,11 +33,14 @@
         <exclude>org.apache.jackrabbit:jackrabbit-core</exclude>
         <exclude>org.apache.lucene</exclude>
         <exclude>org.apache.derby</exclude>
+        <exclude>org.apache.tika:tika-core:*</exclude>
+        <exclude>org.apache.tika:tika-parsers:*</exclude>
       </excludes>
       <useStrictFiltering>true</useStrictFiltering>
       <useProjectArtifact>true</useProjectArtifact>
       <unpack>true</unpack>
       <useTransitiveDependencies>true</useTransitiveDependencies>
+      <useTransitiveFiltering>true</useTransitiveFiltering>
       <unpackOptions>
         <excludes>
           <exclude>META-INF/*.SF</exclude>
@@ -48,6 +51,25 @@
               They would not be usable anyway in jar run so exclude them
           -->
           <exclude>*.jar</exclude>
+        </excludes>
+      </unpackOptions>
+    </dependencySet>
+    <!-- Exclude the transitive dependency as tika-parsers depend
+      on many other jars. Instead users can include tika-app.jar in classpath-->
+    <dependencySet>
+      <outputDirectory>/</outputDirectory>
+      <includes>
+        <include>org.apache.tika:tika-core</include>
+        <include>org.apache.tika:tika-parsers</include>
+      </includes>
+      <useStrictFiltering>true</useStrictFiltering>
+      <useTransitiveDependencies>false</useTransitiveDependencies>
+      <unpack>true</unpack>
+      <unpackOptions>
+        <excludes>
+          <exclude>META-INF/*.SF</exclude>
+          <exclude>META-INF/*.DSA</exclude>
+          <exclude>META-INF/*.RSA</exclude>
         </excludes>
       </unpackOptions>
     </dependencySet>
