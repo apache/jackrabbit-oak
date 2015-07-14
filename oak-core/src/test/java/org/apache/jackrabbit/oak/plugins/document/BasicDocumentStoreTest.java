@@ -25,10 +25,11 @@ import static org.junit.Assert.fail;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
@@ -226,26 +227,63 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
     @Test
     public void testCreatePartialFailure() {
-        String id = this.getClass().getName() + ".testCreatePartialFailure";
+        String bid = this.getClass().getName() + ".testCreatePartialFailure-";
+        int cnt = 10;
+        assertTrue(cnt > 8);
 
-        // remove if present
-        NodeDocument nd = super.ds.find(Collection.NODES, id);
-        if (nd != null) {
-            super.ds.remove(Collection.NODES, id);
+        // clear repo
+        for (int i = 0; i < cnt; i++) {
+            super.ds.remove(Collection.NODES, bid + i);
+            removeMe.add(bid + i);
         }
 
-        // create a test node
-        UpdateOp up = new UpdateOp(id, true);
-        up.set("_id", id);
-        boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
-        assertTrue(success);
-        removeMe.add(id);
+        // create one of the test nodes
+        int pre = cnt / 2;
+        UpdateOp up = new UpdateOp(bid + pre, true);
+        up.set("_id", bid + pre);
+        up.set("foo", "bar");
+        assertTrue(super.ds.create(Collection.NODES, Collections.singletonList(up)));
 
-        // try to create two nodes, of which one exists
-        UpdateOp up2 = new UpdateOp(id + "2", true);
-        up2.set("_id", id + "2");
-        success = super.ds.create(Collection.NODES, Arrays.asList(new UpdateOp[] { up, up2 }));
-        assertFalse(success);
+        // batch create
+        Set<String> toCreate = new HashSet<String>();
+        Set<String> toCreateFailEarly = new HashSet<String>();
+        List<UpdateOp> ups = new ArrayList<UpdateOp>();
+        for (int i = 0; i < cnt; i++) {
+            UpdateOp op = new UpdateOp(bid + i, true);
+            op.set("_id", bid + i);
+            op.set("foo", "qux");
+            ups.add(op);
+            if (i != pre) {
+                toCreate.add(bid + i);
+            }
+            if (i < pre) {
+                toCreateFailEarly.add(bid + i);
+            }
+        }
+        assertFalse(super.ds.create(Collection.NODES, ups));
+
+        // check how many nodes are there
+        Set<String> created = new HashSet<String>();
+        for (int i = 0; i < cnt; i++) {
+            boolean present = null != super.ds.find(Collection.NODES, bid + i, 0);
+            if (i == pre && !present) {
+                fail(super.dsname + ": batch update removed previously existing node " + (bid + i));
+            } else if (present && i != pre) {
+                created.add(bid + i);
+            }
+        }
+
+        // diagnostics
+        toCreate.removeAll(created);
+        if (created.isEmpty()) {
+            LOG.info(super.dsname + ": create() apparently is atomic");
+        } else if (created.size() == toCreate.size()) {
+            LOG.info(super.dsname + ": create() apparently is best-effort");
+        } else if (created.equals(toCreateFailEarly)) {
+            LOG.info(super.dsname + ": create() stops at first failure");
+        } else {
+            LOG.info(super.dsname + ": create() created: " + created + ", missing: " + toCreate);
+        }
     }
 
     @Test
