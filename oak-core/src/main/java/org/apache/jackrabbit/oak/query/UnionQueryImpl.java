@@ -42,7 +42,7 @@ import com.google.common.collect.Iterators;
  */
 public class UnionQueryImpl implements Query {
     
-    private static final Logger LOG = LoggerFactory.getLogger(QueryImpl.class);
+    private static final Logger LOG = LoggerFactory.getLogger(UnionQueryImpl.class);
     
     private final boolean unionAll;
     private final Query left, right;

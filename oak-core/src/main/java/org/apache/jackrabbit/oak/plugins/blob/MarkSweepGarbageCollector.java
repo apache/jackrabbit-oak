@@ -302,7 +302,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         int count = 0;
         state = State.SWEEPING;
         LOG.debug("Starting sweep phase of the garbage collector");
-        LOG.debug("Sweeping blobs with modified time > than the configured max deleted time ({}). " +
+        LOG.debug("Sweeping blobs with modified time > than the configured max deleted time ({}). ",
                 timestampToString(getLastMaxModifiedTime(earliestRefAvailTime)));
 
         ConcurrentLinkedQueue<String> exceptionQueue = new ConcurrentLinkedQueue<String>();

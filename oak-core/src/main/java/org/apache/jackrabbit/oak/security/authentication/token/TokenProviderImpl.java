@@ -186,7 +186,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
      */
     @Override
     public TokenInfo createToken(@Nonnull String userId, @Nonnull Map<String, ?> attributes) {
-        String error = "Failed to create login token. ";
+        String error = "Failed to create login token. {}";
         User user = getUser(userId);
         NodeUtil tokenParent = getTokenParent(user);
         if (tokenParent != null && user != null) {
@@ -336,7 +336,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
                     return authorizable.getID();
                 }
             } catch (RepositoryException e) {
-                log.debug("Cannot determine userID from token: ", e.getMessage());
+                log.debug("Cannot determine userID from token: {}", e.getMessage());
             }
         }
         return null;
@@ -375,11 +375,11 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
             root.commit();
         } catch (RepositoryException e) {
             // error while creating token node.
-            log.debug("Error while creating token node ", e.getMessage());
+            log.debug("Error while creating token node {}", e.getMessage());
         } catch (CommitFailedException e) {
             // conflict while creating token store for this user -> refresh and
             // try to get the tree from the updated root.
-            log.debug("Conflict while creating token store -> retrying", e.getMessage());
+            log.debug("Conflict while creating token store -> retrying {}", e.getMessage());
             root.refresh();
             Tree parentTree = root.getTree(parentPath);
             if (parentTree.exists()) {
@@ -509,7 +509,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
                             log.debug("Successfully reset token expiration time.");
                             return true;
                         } catch (CommitFailedException e) {
-                            log.debug("Failed to reset token expiration", e.getMessage());
+                            log.debug("Failed to reset token expiration {}", e.getMessage());
                             root.refresh();
                         }
                     }
@@ -528,7 +528,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
                         return true;
                     }
                 } catch (CommitFailedException e) {
-                    log.debug("Error while removing expired token", e.getMessage());
+                    log.debug("Error while removing expired token {}", e.getMessage());
                 }
             }
             return false;

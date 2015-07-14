@@ -69,7 +69,7 @@ abstract class AbstractGroupPrincipal extends TreeBasedPrincipal implements java
                 }
             }
         } catch (RepositoryException e) {
-            log.warn("Failed to determine group membership", e.getMessage());
+            log.warn("Failed to determine group membership: {}", e.getMessage());
         }
 
         // principal doesn't represent a known authorizable or an error occurred.
