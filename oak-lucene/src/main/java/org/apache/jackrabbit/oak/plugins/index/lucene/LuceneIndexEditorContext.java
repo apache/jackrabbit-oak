@@ -130,18 +130,20 @@ public class LuceneIndexEditorContext {
 
     private final TextExtractionStats textExtractionStats = new TextExtractionStats();
 
+    private final ExtractedTextCache extractedTextCache;
     /**
      * The media types supported by the parser used.
      */
     private Set<MediaType> supportedMediaTypes;
 
     LuceneIndexEditorContext(NodeState root, NodeBuilder definition, IndexUpdateCallback updateCallback,
-                             @Nullable IndexCopier indexCopier) {
+                             @Nullable IndexCopier indexCopier, ExtractedTextCache extractedTextCache) {
         this.definitionBuilder = definition;
         this.indexCopier = indexCopier;
         this.definition = new IndexDefinition(root, definition);
         this.indexedNodes = 0;
         this.updateCallback = updateCallback;
+        this.extractedTextCache = extractedTextCache;
         if (this.definition.isOfOldFormat()){
             IndexDefinition.updateDefinition(definition);
         }
@@ -200,6 +202,7 @@ public class LuceneIndexEditorContext {
             PERF_LOGGER.end(start, -1, "Closed IndexWriter for directory {}", definition);
 
             textExtractionStats.log(reindex);
+            textExtractionStats.collectStats(extractedTextCache);
         }
     }
 
@@ -269,8 +272,22 @@ public class LuceneIndexEditorContext {
         return definition;
     }
 
-    public void recordTextExtractionStats(long timeInMillis, long size) {
-        textExtractionStats.addStats(timeInMillis, size);
+    @Deprecated
+    public void recordTextExtractionStats(long timeInMillis, long bytesRead) {
+        //Keeping deprecated method to avoid major version change
+        recordTextExtractionStats(timeInMillis, bytesRead, 0);
+    }
+
+    public void recordTextExtractionStats(long timeInMillis, long bytesRead, int textLength) {
+        textExtractionStats.addStats(timeInMillis, bytesRead, textLength);
+    }
+
+    ExtractedTextCache getExtractedTextCache() {
+        return extractedTextCache;
+    }
+
+    public boolean isReindex() {
+        return reindex;
     }
 
     private static Parser initializeTikaParser(IndexDefinition definition) {
@@ -324,15 +341,17 @@ public class LuceneIndexEditorContext {
         /**
          * Log stats only if time spent is more than 2 min
          */
-        private static final long LOGGING_THRESHOLD = TimeUnit.MINUTES.toMillis(2);
+        private static final long LOGGING_THRESHOLD = TimeUnit.MINUTES.toMillis(1);
         private int count;
-        private long totalSize;
+        private long totalBytesRead;
         private long totalTime;
+        private long totalTextLength;
 
-        public void addStats(long timeInMillis, long size) {
+        public void addStats(long timeInMillis, long bytesRead, int textLength) {
             count++;
-            totalSize += size;
+            totalBytesRead += bytesRead;
             totalTime += timeInMillis;
+            totalTextLength += textLength;
         }
 
         public void log(boolean reindex) {
@@ -341,6 +360,10 @@ public class LuceneIndexEditorContext {
             } else if (anyParsingDone() && (reindex || isTakingLotsOfTime())) {
                 log.info("Text extraction stats {}", this);
             }
+        }
+
+        public void collectStats(ExtractedTextCache cache){
+            cache.addStats(count, totalTime, totalBytesRead, totalTextLength);
         }
 
         private boolean isTakingLotsOfTime() {
@@ -353,8 +376,11 @@ public class LuceneIndexEditorContext {
 
         @Override
         public String toString() {
-            return String.format(" %d (%s, %s)", count,
-                    timeInWords(totalTime), humanReadableByteCount(totalSize));
+            return String.format(" %d (Time Taken %s, Bytes Read %s, Extracted text size %s)",
+                    count,
+                    timeInWords(totalTime),
+                    humanReadableByteCount(totalBytesRead),
+                    humanReadableByteCount(totalTextLength));
         }
 
         private static String timeInWords(long millis) {
