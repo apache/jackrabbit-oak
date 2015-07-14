@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.cache;
 
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -25,13 +27,12 @@ import com.google.common.base.Objects;
 import com.google.common.cache.Cache;
 import com.google.common.cache.Weigher;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
-
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 
 /**
  * Cache statistics.
  */
-public class CacheStats implements CacheStatsMBean {
+public class CacheStats extends AnnotatedStandardMBean implements CacheStatsMBean {
     private final Cache<Object, Object> cache;
     private final Weigher<Object, Object> weigher;
     private final long maxWeight;
@@ -43,6 +44,7 @@ public class CacheStats implements CacheStatsMBean {
     @SuppressWarnings("unchecked")
     public CacheStats(Cache<?, ?> cache, String name, 
             Weigher<?, ?> weigher, long maxWeight) {
+        super(CacheStatsMBean.class);
         this.cache = (Cache<Object, Object>) cache;
         this.name = name;
         this.weigher = (Weigher<Object, Object>) weigher;
