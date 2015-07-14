@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.cache;
 
+import static com.google.common.collect.Sets.newHashSet;
+import static java.lang.String.valueOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -29,10 +31,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 
+import org.apache.jackrabbit.oak.cache.CacheLIRS.EvictionCallback;
 import org.junit.Test;
 
 import com.google.common.cache.CacheLoader;
@@ -573,7 +577,7 @@ public class CacheTest {
     }
 
     private static <K, V> CacheLIRS<K, V> createCache(int maxSize, int averageSize) {
-        return new CacheLIRS<K, V>(null, maxSize, averageSize, 1, 0, null);
+        return new CacheLIRS<K, V>(null, maxSize, averageSize, 1, 0, null, null);
     }
     
     @Test
@@ -658,7 +662,7 @@ public class CacheTest {
                         }
                         return "n" + key;
                     }
-                    
+
                     @Override
                     public ListenableFuture<String> reload(Integer key, String oldValue) {
                         assertTrue(oldValue != null);
@@ -666,7 +670,7 @@ public class CacheTest {
                         f.set(oldValue);
                         return f;
                     }
-                    
+
                 });
         assertEquals("n1", cache.get(1));
         cache.refresh(1);
@@ -680,5 +684,38 @@ public class CacheTest {
         // expected to log a warning, but not fail
         cache.refresh(-1);
     }
-    
+
+    @Test
+    public void evictionCallback() throws ExecutionException {
+        final Set<String> evictedKeys = newHashSet();
+        final Set<Integer> evictedValues = newHashSet();
+        CacheLIRS<String, Integer> cache = CacheLIRS.<String, Integer>newBuilder()
+                .maximumSize(100)
+                .evictionCallback(new EvictionCallback<String, Integer>() {
+                    @Override
+                    public void evicted(String key, Integer value) {
+                        evictedKeys.add(key);
+                        if (value != null) {
+                            assertEquals(key, valueOf(value));
+                            evictedValues.add(value);
+                        }
+                    }
+                })
+                .build();
+
+        for (int k = 0; k < 200; k++) {
+            cache.put(valueOf(k), k);
+        }
+
+        assertTrue(evictedKeys.size() <= evictedValues.size());
+        for (String key : evictedKeys) {
+            assertFalse(cache.containsKey(key));
+        }
+
+        cache.invalidateAll();
+        assertEquals(200, evictedKeys.size());
+        assertEquals(200, evictedValues.size());
+    }
+
+
 }
