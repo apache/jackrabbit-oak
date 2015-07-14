@@ -19,11 +19,9 @@ package org.apache.jackrabbit.oak.core;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.io.IOException;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.Nonnull;
-import javax.security.auth.Subject;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.oak.api.AuthInfo;
