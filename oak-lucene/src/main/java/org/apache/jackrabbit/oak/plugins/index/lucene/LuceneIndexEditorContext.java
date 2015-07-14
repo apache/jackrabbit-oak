@@ -345,7 +345,7 @@ public class LuceneIndexEditorContext {
         /**
          * Log stats only if time spent is more than 2 min
          */
-        private static final long LOGGING_THRESHOLD = TimeUnit.MINUTES.toMillis(2);
+        private static final long LOGGING_THRESHOLD = TimeUnit.MINUTES.toMillis(1);
         private int count;
         private long totalBytesRead;
         private long totalTime;
@@ -380,8 +380,11 @@ public class LuceneIndexEditorContext {
 
         @Override
         public String toString() {
-            return String.format(" %d (Time Taken %s, Bytes Read %s, Extracted text size %d)", count,
-                    timeInWords(totalTime), humanReadableByteCount(totalBytesRead), totalTextLength);
+            return String.format(" %d (Time Taken %s, Bytes Read %s, Extracted text size %s)",
+                    count,
+                    timeInWords(totalTime),
+                    humanReadableByteCount(totalBytesRead),
+                    humanReadableByteCount(totalTextLength));
         }
 
         private static String timeInWords(long millis) {
