@@ -45,8 +45,11 @@ import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.NamedAccessControlPolicy;
 import javax.jcr.security.Privilege;
 
+import com.google.common.base.Function;
 import com.google.common.base.Objects;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
@@ -402,7 +405,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
             if (paths.contains(path)) {
                 continue;
             }
-            JackrabbitAccessControlList policy = createACL(path, accessControlledTree, true);
+            JackrabbitAccessControlList policy = createACL(path, accessControlledTree, true, new AcePredicate(principals));
             if (policy != null) {
                 effective.add(policy);
                 paths.add(path);
@@ -462,6 +465,14 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
     private JackrabbitAccessControlList createACL(@Nullable String oakPath,
                                                   @Nonnull Tree accessControlledTree,
                                                   boolean isEffectivePolicy) throws RepositoryException {
+        return createACL(oakPath, accessControlledTree, isEffectivePolicy, null);
+    }
+
+    @CheckForNull
+    private JackrabbitAccessControlList createACL(@Nullable String oakPath,
+                                                  @Nonnull Tree accessControlledTree,
+                                                  boolean isEffectivePolicy,
+                                                  @CheckForNull Predicate<ACE> predicate) throws RepositoryException {
         JackrabbitAccessControlList acl = null;
         String aclName = Util.getAclName(oakPath);
         if (accessControlledTree.exists() && Util.isAccessControlled(oakPath, accessControlledTree, ntMgr)) {
@@ -470,7 +481,10 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
                 List<ACE> entries = new ArrayList<ACE>();
                 for (Tree child : aclTree.getChildren()) {
                     if (Util.isACE(child, ntMgr)) {
-                        entries.add(createACE(oakPath, child, restrictionProvider));
+                        ACE ace = createACE(oakPath, child, restrictionProvider);
+                        if (predicate == null || predicate.apply(ace)) {
+                            entries.add(ace);
+                        }
                     }
                 }
                 if (isEffectivePolicy) {
@@ -747,6 +761,25 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         @Override
         public String getName() {
             return "Grants read access on configured trees.";
+        }
+    }
+
+    private static final class AcePredicate implements Predicate<ACE> {
+
+        private final Iterable<String> principalNames;
+
+        private AcePredicate(@Nonnull Set<Principal> principals) {
+            principalNames = Iterables.transform(principals, new Function<Principal, String>() {
+                @Override
+                public String apply(Principal input) {
+                    return input.getName();
+                }
+            });
+        }
+
+        @Override
+        public boolean apply(@Nullable ACE ace) {
+            return ace != null && Iterables.contains(principalNames, ace.getPrincipal().getName());
         }
     }
 }
