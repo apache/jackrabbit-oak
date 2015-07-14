@@ -17,6 +17,9 @@
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -118,5 +121,23 @@ public class RDBJDBCTools {
                 break;
         }
         return String.format("%s (%d)", name, isolationLevel);
+    }
+
+    /**
+     * Return a string containing additional messages from chained exceptions.
+     */
+    protected static @Nonnull String getAdditionalMessages(SQLException ex) {
+        List<String> messages = new ArrayList<String>();
+        String message = ex.getMessage();
+        SQLException next = ex.getNextException();
+        while (next != null) {
+            String m = next.getMessage();
+            if (!message.equals(m)) {
+                messages.add(m);
+            }
+            next = next.getNextException();
+        }
+
+        return messages.isEmpty() ? "" : messages.toString();
     }
 }
