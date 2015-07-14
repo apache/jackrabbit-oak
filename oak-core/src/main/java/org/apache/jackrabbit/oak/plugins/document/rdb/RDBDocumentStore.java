@@ -1499,15 +1499,25 @@ public class RDBDocumentStore implements DocumentStore {
     private <T extends Document> boolean insertDocuments(Collection<T> collection, List<T> documents) {
         Connection connection = null;
         String tableName = getTable(collection);
-        List<String> ids = new ArrayList<String>();
         try {
             connection = this.ch.getRWConnection();
             boolean result = dbInsert(connection, tableName, documents);
             connection.commit();
             return result;
         } catch (SQLException ex) {
-            LOG.debug("insert of " + ids + " failed", ex);
             this.ch.rollbackConnection(connection);
+
+            List<String> ids = new ArrayList<String>();
+            for (T doc : documents) {
+                ids.add(doc.getId());
+            }
+            LOG.debug("insert of " + ids + " failed", ex);
+
+            // collect additional exceptions
+            String messages = LOG.isDebugEnabled() ? RDBJDBCTools.getAdditionalMessages(ex) : "";
+            if (!messages.isEmpty()) {
+                LOG.debug("additional diagnostics: " + messages);
+            }
             throw new DocumentStoreException(ex);
         } finally {
             this.ch.closeConnection(connection);
