@@ -188,7 +188,7 @@ class UserAuthentication implements Authentication, UserConstants {
                 return user.getImpersonation().allows(subject);
             }
         } catch (RepositoryException e) {
-            log.debug("Error while validating impersonation", e.getMessage());
+            log.debug("Error while validating impersonation: {}", e.getMessage());
         }
         return false;
     }

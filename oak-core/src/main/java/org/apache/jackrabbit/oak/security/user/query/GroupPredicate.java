@@ -71,7 +71,7 @@ class GroupPredicate implements Predicate<Authorizable> {
                     }
                 }
             } catch (RepositoryException e) {
-                log.debug("Cannot determine group membership for {}", authorizable, e.getMessage());
+                log.debug("Cannot determine group membership for {}", authorizable, e);
             }
         }
         return false;
@@ -82,7 +82,7 @@ class GroupPredicate implements Predicate<Authorizable> {
         try {
             return authorizable.getID();
         } catch (RepositoryException e) {
-            log.debug("Error while retrieving ID for authorizable {}", authorizable, e.getMessage());
+            log.debug("Error while retrieving ID for authorizable {}", authorizable, e);
         }
         return null;
     }

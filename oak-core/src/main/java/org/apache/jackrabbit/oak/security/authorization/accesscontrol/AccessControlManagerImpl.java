@@ -549,7 +549,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
                     QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
         } catch (ParseException e) {
             String msg = "Error while collecting effective policies.";
-            log.error(msg, e.getMessage());
+            log.error(msg, e);
             throw new RepositoryException(msg, e);
         }
     }
