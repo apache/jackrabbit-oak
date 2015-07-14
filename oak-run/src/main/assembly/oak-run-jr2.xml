@@ -38,11 +38,13 @@
       <excludes>
         <exclude>org.apache.jackrabbit:oak-lucene</exclude>
         <exclude>org.apache.lucene</exclude>
+        <exclude>org.apache.tika</exclude>
       </excludes>
       <useStrictFiltering>true</useStrictFiltering>
       <useProjectArtifact>true</useProjectArtifact>
       <unpack>true</unpack>
       <useTransitiveDependencies>true</useTransitiveDependencies>
+      <useTransitiveFiltering>true</useTransitiveFiltering>
       <unpackOptions>
         <excludes>
           <exclude>META-INF/*.SF</exclude>

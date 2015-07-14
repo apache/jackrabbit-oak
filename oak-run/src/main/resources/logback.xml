@@ -36,6 +36,8 @@
   <!-- Display info messages from the scalability suite -->
   <logger name="org.apache.jackrabbit.oak.scalability" level="INFO"/>
 
+  <logger name="org.apache.jackrabbit.oak.plugins.tika" level="INFO"/>
+
   <logger name="org.apache.jackrabbit.oak.plugins.segment.file.tooling.ConsistencyChecker" level="DEBUG"/>
 
   <root level="warn">
