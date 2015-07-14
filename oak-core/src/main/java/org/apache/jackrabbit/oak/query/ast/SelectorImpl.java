@@ -722,7 +722,7 @@ public class SelectorImpl extends SourceImpl {
     public boolean equals(Object other) {
         if (this == other) {
             return true;
-        } else if (!(this instanceof SelectorImpl)) {
+        } else if (!(other instanceof SelectorImpl)) {
             return false;
         }
         return selectorName.equals(((SelectorImpl) other).selectorName);
