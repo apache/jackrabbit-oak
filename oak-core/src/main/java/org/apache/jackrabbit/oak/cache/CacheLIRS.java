@@ -28,10 +28,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.CacheStats;
@@ -40,6 +38,8 @@ import com.google.common.cache.Weigher;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.UncheckedExecutionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A scan resistant cache. It is meant to cache objects that are relatively
@@ -71,8 +71,30 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
  * @param <V> the value type
  */
 public class CacheLIRS<K, V> implements LoadingCache<K, V> {
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(CacheLIRS.class);
+
+    /**
+     * Listener for items that are evicted from the cache. The listener
+     * is called for both, resident and non-resident items. In the
+     * latter case the passed value is {@code null}.
+     * @param <K>  type of the key
+     * @param <V>  type of the value
+     */
+    public interface EvictionCallback<K, V> {
+
+        /**
+         * Indicates eviction of an item.
+         * <p>
+         * <em>Note:</em> It is not safe to call any of {@code CacheLIRS}'s method
+         * from withing this callback. Any such call might result in undefined
+         * behaviour.
+         *
+         * @param key    the evicted item's key
+         * @param value  the evicted item's value or {@code null} if non-resident
+         */
+        void evicted(@Nonnull K key, @Nullable V value);
+    }
 
     /**
      * The maximum memory this cache should use.
@@ -90,20 +112,25 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     private final int segmentShift;
     private final int segmentMask;
     private final int stackMoveDistance;
-    
+
     private final Weigher<K, V> weigher;
-    
+
     private final CacheLoader<K, V> loader;
-    
+
+    /**
+     * The eviction listener of this cache or {@code null} if none.
+     */
+    private final EvictionCallback<K, V> evicted;
+
     /**
      * A concurrent hash map of keys where loading is in progress. Key: the
      * cache key. Value: a synchronization object. The threads that wait for the
      * value to be loaded need to wait on the synchronization object. The
      * loading thread will notify all waiting threads once loading is done.
      */
-    final ConcurrentHashMap<K, Object> loadingInProgress = 
+    final ConcurrentHashMap<K, Object> loadingInProgress =
             new ConcurrentHashMap<K, Object>();
-    
+
     /**
      * Create a new cache with the given number of entries, and the default
      * settings (an average size of 1 per entry, 16 segments, and stack move
@@ -112,7 +139,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
      * @param maxEntries the maximum number of entries
      */
     public CacheLIRS(int maxEntries) {
-        this(null, maxEntries, 1, 16, maxEntries / 100, null);
+        this(null, maxEntries, 1, 16, maxEntries / 100, null, null);
     }
 
     /**
@@ -123,10 +150,12 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
      * @param segmentCount the number of cache segments (must be a power of 2)
      * @param stackMoveDistance how many other item are to be moved to the top
      *        of the stack before the current item is moved
+     * @param  evicted the eviction listener of this segment or {@code null} if none.
      */
     @SuppressWarnings("unchecked")
-    CacheLIRS(Weigher<K, V> weigher, long maxMemory, int averageMemory, 
-            int segmentCount, int stackMoveDistance, final CacheLoader<K, V> loader) {
+    CacheLIRS(Weigher<K, V> weigher, long maxMemory, int averageMemory,
+            int segmentCount, int stackMoveDistance, final CacheLoader<K, V> loader,
+            EvictionCallback<K, V> evicted) {
         this.weigher = weigher;
         setMaxMemory(maxMemory);
         setAverageMemory(averageMemory);
@@ -137,6 +166,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         this.segmentMask = segmentCount - 1;
         this.stackMoveDistance = stackMoveDistance;
         segments = new Segment[segmentCount];
+        this.evicted = evicted;
         invalidateAll();
         this.segmentShift = Integer.numberOfTrailingZeros(segments[0].entries.length);
         this.loader = loader;
@@ -151,7 +181,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         for (int i = 0; i < segmentCount; i++) {
             Segment<K, V> old = segments[i];
             Segment<K, V> s = new Segment<K, V>(this,
-                    max, averageMemory, stackMoveDistance);
+                    max, averageMemory, stackMoveDistance, evicted);
             if (old != null) {
                 s.hitCount = old.hitCount;
                 s.missCount = old.missCount;
@@ -159,6 +189,15 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
                 s.loadExceptionCount = old.loadExceptionCount;
                 s.totalLoadTime = old.totalLoadTime;
                 s.evictionCount = old.evictionCount;
+
+                if (evicted != null) {
+                    for (Entry<K, V> entry : old.entries) {
+                        while (entry != null) {
+                            evicted.evicted(entry.key, entry.value);
+                            entry = entry.mapNext;
+                        }
+                    }
+                }
             }
             segments[i] = s;
         }
@@ -214,20 +253,20 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     public void put(K key, V value) {
         put(key, value, sizeOf(key, value));
     }
-    
+
     @Override
     public V get(K key, Callable<? extends V> valueLoader)
             throws ExecutionException {
         int hash = getHash(key);
         return getSegment(hash).get(key, hash, valueLoader);
     }
-    
+
     /**
      * Get the value, loading it if needed.
      * <p>
      * If there is an exception loading, an UncheckedExecutionException is
      * thrown.
-     * 
+     *
      * @param key the key
      * @return the value
      * @throws UncheckedExecutionException
@@ -240,10 +279,10 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             throw new UncheckedExecutionException(e);
         }
     }
-    
+
     /**
      * Get the value, loading it if needed.
-     * 
+     *
      * @param key the key
      * @return the value
      * @throws ExecutionException
@@ -253,14 +292,14 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         int hash = getHash(key);
         return getSegment(hash).get(key, hash, loader);
     }
-    
+
     /**
      * Re-load the value for the given key.
      * <p>
      * If there is an exception while loading, it is logged and ignored. This
      * method calls CacheLoader.reload, but synchronously replaces the old
      * value.
-     * 
+     *
      * @param key the key
      */
     @Override
@@ -272,7 +311,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             LOG.warn("Could not refresh value for key " + key, e);
         }
     }
-    
+
     V replace(K key, V value) {
         int hash = getHash(key);
         return getSegment(hash).replace(key, hash, value, sizeOf(key, value));
@@ -292,7 +331,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         int hash = getHash(key);
         return getSegment(hash).putIfAbsent(key, hash, value, sizeOf(key, value));
     }
-    
+
     /**
      * Get the value for the given key if the entry is cached. This method
      * adjusts the internal state of the cache sometimes, to ensure commonly
@@ -322,7 +361,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         }
         return weigher.weigh(key, value);
     }
-    
+
     /**
      * Remove an entry. Both resident and non-resident entries can be
      * removed.
@@ -334,7 +373,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         int hash = getHash(key);
         getSegment(hash).invalidate(key, hash);
     }
-    
+
     /**
      * Remove an entry. Both resident and non-resident entries can be
      * removed.
@@ -346,7 +385,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         int hash = getHash(key);
         return getSegment(hash).remove(key, hash);
     }
-    
+
     @SuppressWarnings("unchecked")
     @Override
     public void invalidateAll(Iterable<?> keys) {
@@ -472,7 +511,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         }
         return map.entrySet();
     }
-    
+
     protected Collection<V> values() {
         ArrayList<V> list = new ArrayList<V>();
         for (K k : keySet()) {
@@ -483,7 +522,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         }
         return list;
     }
-    
+
     boolean containsValue(Object value) {
         for (Segment<K, V> s : segments) {
             for (K k : s.keySet()) {
@@ -561,7 +600,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         }
         return x;
     }
-    
+
     void clear() {
         for (Segment<K, V> s : segments) {
             s.clear();
@@ -583,11 +622,11 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         }
         return keys;
     }
-    
+
     @Override
     public CacheStats stats() {
         long hitCount = 0;
-        long missCount = 0; 
+        long missCount = 0;
         long loadSuccessCount = 0;
         long loadExceptionCount = 0;
         long totalLoadTime = 0;
@@ -600,7 +639,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             totalLoadTime += s.totalLoadTime;
             evictionCount += s.evictionCount;
         }
-        CacheStats stats = new CacheStats(hitCount, missCount, loadSuccessCount, 
+        CacheStats stats = new CacheStats(hitCount, missCount, loadSuccessCount,
                 loadExceptionCount, totalLoadTime, evictionCount);
         return stats;
     }
@@ -639,7 +678,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
          * The currently used memory.
          */
         long usedMemory;
-        
+
         long hitCount;
         long missCount;
         long loadSuccessCount;
@@ -703,18 +742,25 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         private int stackMoveCounter;
 
         /**
+         * The eviction listener of this segment or {@code null} if none.
+         */
+        private final EvictionCallback<K, V> evicted;
+
+        /**
          * Create a new cache.
-         *
-         * @param maxMemory the maximum memory to use
+         *  @param maxMemory the maximum memory to use
          * @param averageMemory the average memory usage of an object
          * @param stackMoveDistance the number of other entries to be moved to
          *        the top of the stack before moving an entry to the top
+         * @param evicted  the eviction listener of this segment or {@code null} if none.
          */
-        Segment(CacheLIRS<K, V> cache, long maxMemory, int averageMemory, int stackMoveDistance) {
+        Segment(CacheLIRS<K, V> cache, long maxMemory, int averageMemory, int stackMoveDistance,
+                EvictionCallback<K, V> evicted) {
             this.cache = cache;
             setMaxMemory(maxMemory);
             setAverageMemory(averageMemory);
             this.stackMoveDistance = stackMoveDistance;
+            this.evicted = evicted;
             clear();
         }
 
@@ -844,7 +890,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
                 addToStack(e);
             }
         }
-        
+
         V get(K key, int hash, Callable<? extends V> valueLoader) throws ExecutionException {
             // we can not synchronize on a per-segment object while loading,
             // because we don't want to block cache access while loading, and
@@ -881,7 +927,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
                             loadNow.notifyAll();
                         }
                     }
-                }             
+                }
                 // another thread is (or was) already loading
                 synchronized (alreadyLoading) {
                     // loading might have been finished, so check again
@@ -903,7 +949,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
                 }
             }
         }
-            
+
         V load(K key, int hash, Callable<? extends V> valueLoader) throws ExecutionException {
             V value;
             long start = System.nanoTime();
@@ -920,7 +966,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             put(key, hash, value, cache.sizeOf(key, value));
             return value;
         }
-        
+
         V get(K key, int hash, CacheLoader<K, V> loader) throws ExecutionException {
             // avoid synchronization if it's in the cache
             V value = get(key, hash);
@@ -950,9 +996,9 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
                 return value;
             }
         }
-        
+
         synchronized V replace(K key, int hash, V value, int memory) {
-            if (containsKey(key, hash)) {   
+            if (containsKey(key, hash)) {
                 return put(key, hash, value, memory);
             }
             return null;
@@ -975,7 +1021,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             }
             return false;
         }
-        
+
         synchronized V remove(Object key, int hash) {
             V old = get(key, hash);
             // even if old is null, there might still be a cold entry
@@ -996,7 +1042,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             if (loader == null) {
                 // no loader - no refresh
                 return;
-            }            
+            }
             V value;
             V old = get(key, hash);
             long start = System.nanoTime();
@@ -1070,7 +1116,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
          */
         synchronized void invalidate(Object key, int hash) {
             Entry<K, V>[] array = entries;
-            int mask = array.length - 1;            
+            int mask = array.length - 1;
             int index = hash & mask;
             Entry<K, V> e = array[index];
             if (e == null) {
@@ -1108,6 +1154,9 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
                 removeFromQueue(e);
             }
             pruneStack();
+            if (evicted != null && e.key != null) {
+                evicted.evicted(e.key, e.value);
+            }
         }
 
         /**
@@ -1135,6 +1184,9 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
                 usedMemory -= e.memory;
                 evictionCount++;
                 removeFromQueue(e);
+                if (evicted != null) {
+                    evicted.evicted(e.key, e.value);
+                }
                 e.value = null;
                 e.memory = 0;
                 addToQueue(queue2, e);
@@ -1189,7 +1241,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
          */
         Entry<K, V> find(Object key, int hash) {
             Entry<K, V>[] array = entries;
-            int mask = array.length - 1;                
+            int mask = array.length - 1;
             int index = hash & mask;
             Entry<K, V> e = array[index];
             while (e != null && !e.key.equals(key)) {
@@ -1394,17 +1446,18 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         }
 
     }
-    
+
     /**
      * A builder for the cache.
      */
     public static class Builder<K, V> {
-        
+
         private Weigher<K, V> weigher;
         private long maxWeight;
         private int averageWeight = 100;
         private int segmentCount = 16;
         private int stackMoveDistance = 16;
+        private EvictionCallback<K, V> evicted;
 
         public Builder<K, V> recordStats() {
             return this;
@@ -1419,12 +1472,12 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             this.maxWeight = maxWeight;
             return this;
         }
-        
+
         public Builder<K, V> averageWeight(int averageWeight) {
             this.averageWeight = averageWeight;
             return this;
         }
-        
+
         public Builder<K, V> maximumSize(int maxSize) {
             this.maxWeight = maxSize;
             this.averageWeight = 1;
@@ -1444,25 +1497,29 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             if (stackMoveDistance < 0) {
                 LOG.warn("Illegal stack move distance: " + stackMoveDistance + ", using 16");
                 stackMoveDistance = 16;
-            }            
+            }
             this.stackMoveDistance = stackMoveDistance;
+            return this;
+        }
+
+        public Builder<K, V> evictionCallback(EvictionCallback<K, V> evicted) {
+            this.evicted = evicted;
             return this;
         }
 
         public CacheLIRS<K, V> build() {
             return build(null);
         }
-        
+
         public CacheLIRS<K, V> build(CacheLoader<K, V> cacheLoader) {
             return new CacheLIRS<K, V>(weigher, maxWeight, averageWeight,
-                    segmentCount, stackMoveDistance, cacheLoader);
+                    segmentCount, stackMoveDistance, cacheLoader, evicted);
         }
-
     }
 
     /**
      * Create a builder.
-     * 
+     *
      * @return the builder
      */
     public static <K, V> Builder<K, V> newBuilder() {
