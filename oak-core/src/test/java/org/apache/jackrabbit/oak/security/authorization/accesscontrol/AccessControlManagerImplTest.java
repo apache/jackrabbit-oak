@@ -1853,6 +1853,42 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     }
 
     @Test
+    public void testEffectivePoliciesFiltering() throws Exception {
+        // create first policy with multiple ACEs for the test principal set.
+        ACL policy = getApplicablePolicy(testPath);
+        policy.addEntry(testPrincipal, testPrivileges, true, getGlobRestriction("*"));
+        policy.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_VERSION_MANAGEMENT), false);
+        policy.addEntry(EveryonePrincipal.getInstance(), privilegesFromNames(PrivilegeConstants.JCR_LIFECYCLE_MANAGEMENT), false);
+        assertEquals(3, policy.getAccessControlEntries().length);
+        acMgr.setPolicy(testPath, policy);
+        root.commit();
+
+        // different ways to create the principal-set to make sure the filtering
+        // doesn't rely on principal equality but rather on the name.
+        List<Principal> principals = ImmutableList.of(
+                testPrincipal,
+                new PrincipalImpl(testPrincipal.getName()),
+                new Principal() {
+                    @Override
+                    public String getName() {
+                        return testPrincipal.getName();
+                    }
+                });
+
+        for (Principal princ : principals) {
+            AccessControlPolicy[] policies = acMgr.getEffectivePolicies(ImmutableSet.of(princ));
+            assertEquals(1, policies.length);
+            assertTrue(policies[0] instanceof AccessControlList);
+
+            AccessControlList acl = (AccessControlList) policies[0];
+            assertEquals(2, acl.getAccessControlEntries().length);
+            for (AccessControlEntry ace : acl.getAccessControlEntries()) {
+                assertEquals(princ.getName(), ace.getPrincipal().getName());
+            }
+        }
+    }
+
+    @Test
     public void testTestSessionGetEffectivePoliciesByPrincipal() throws Exception {
         NodeUtil child = new NodeUtil(root.getTree(testPath)).addChild("child", JcrConstants.NT_UNSTRUCTURED);
         String childPath = child.getTree().getPath();
