@@ -27,8 +27,10 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.slf4j.Logger;
@@ -133,6 +135,13 @@ public class SegmentTracker {
         this(store, DEFAULT_MEMORY_CACHE_SIZE, SegmentVersion.V_11);
     }
 
+    @CheckForNull
+    public CacheStats getStringCacheStats() {
+        return stringCache == null
+            ? null
+            : stringCache.getStats();
+    }
+
     public SegmentWriter getWriter() {
         return writer;
     }
@@ -151,10 +160,10 @@ public class SegmentTracker {
         }
         currentSize = 0;
     }
-    
+
     /**
      * Get the string cache, if there is one.
-     * 
+     *
      * @return the string cache or {@code null} if none is configured
      */
     StringCache getStringCache() {
