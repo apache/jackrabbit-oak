@@ -23,6 +23,7 @@ import static java.lang.Boolean.getBoolean;
 import java.security.SecureRandom;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.CheckForNull;
@@ -143,6 +144,11 @@ public class SegmentTracker {
         this(store, DEFAULT_MEMORY_CACHE_SIZE, SegmentVersion.V_11);
     }
 
+    @Nonnull
+    public CacheStats getSegmentCacheStats() {
+        return new CacheStats(segmentCache, "Segment Cache", null, -1);
+    }
+
     @CheckForNull
     public CacheStats getStringCacheStats() {
         return stringCache == null
@@ -177,7 +183,27 @@ public class SegmentTracker {
         return stringCache;
     }
 
-    Segment getSegment(SegmentId id) {
+    /**
+     * Get a segment from the cache
+     * @param id  segment id
+     * @return  segment with the given {@code id} or {@code null} if not in the cache
+     */
+    Segment getCachedSegment(SegmentId id) {
+        try {
+            return segmentCache.get(id);
+        } catch (ExecutionException e) {
+            log.error("Error reading from segment cache", e);
+            return null;
+        }
+    }
+
+    /**
+     * Read a segment from the underlying segment store.
+     * @param id  segment id
+     * @return  segment with the given id
+     * @throws SegmentNotFoundException  if no segment with the given {@code id} exists.
+     */
+    Segment readSegment(SegmentId id) {
         try {
             Segment segment = store.readSegment(id);
             setSegment(id, segment);
