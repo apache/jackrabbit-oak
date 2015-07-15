@@ -30,6 +30,8 @@
   <!-- Display info messages from the benchmark suite -->
   <logger name="org.apache.jackrabbit.oak.benchmark" level="INFO"/>
 
+  <logger name="org.apache.jackrabbit.oak.plugins.tika" level="INFO"/>
+  
   <root level="warn">
     <appender-ref ref="STDERR" />
   </root>
