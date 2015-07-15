@@ -140,4 +140,18 @@ public class RDBJDBCTools {
 
         return messages.isEmpty() ? "" : messages.toString();
     }
+
+    /**
+     * Check whether the exception matches one of the given states.
+     */
+    protected static boolean matchesSQLState(SQLException ex, String... statePrefix) {
+        String state = ex.getSQLState();
+        if (state != null) {
+            for (String sp : statePrefix) {
+                if (state.startsWith(sp))
+                    return true;
+            }
+        }
+        return false;
+    }
 }
