@@ -177,7 +177,7 @@ public class LuceneIndexProviderService {
     }
 
     @Deactivate
-    private void deactivate() throws InterruptedException {
+    private void deactivate() throws InterruptedException, IOException {
         for (ServiceRegistration reg : regs) {
             reg.unregister();
         }
@@ -193,6 +193,11 @@ public class LuceneIndexProviderService {
         if (indexProvider != null) {
             indexProvider.close();
             indexProvider = null;
+        }
+
+        //Close the copier first i.e. before executorService
+        if (indexCopier != null){
+            indexCopier.close();
         }
 
         if (executorService != null){

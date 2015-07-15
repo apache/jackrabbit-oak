@@ -166,6 +166,11 @@ class OakDirectory extends Directory {
         return lockFactory;
     }
 
+    @Override
+    public String toString() {
+        return "Directory for " + definition.getIndexName();
+    }
+
     private Set<String> getListing(){
         long start = PERF_LOGGER.start();
         Iterable<String> fileNames = null;
