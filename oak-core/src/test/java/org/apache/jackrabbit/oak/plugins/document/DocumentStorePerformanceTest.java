@@ -72,6 +72,7 @@ public class DocumentStorePerformanceTest extends AbstractDocumentStoreTest {
         List<String> ids = new ArrayList<String>();
 
         while (System.currentTimeMillis() < end) {
+            ids.clear();
             List<UpdateOp> ups = new ArrayList<UpdateOp>();
             for (int i = 0; i < amount; i++) {
                 String id = this.getClass().getName() + ".testCreatePerf-" + size + "-" + cnt + "-" + i;
