@@ -138,7 +138,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     @Test
-    public void testInterestingPropLengths() {
+    public void testInterestingPropLengths() throws UnsupportedEncodingException {
         int lengths[] = { 1, 10, 100, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 11000, 12000, 13000, 14000,
                 15000, 16000, 20000 };
 
@@ -162,12 +162,19 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             up.set("foo", pval);
             super.ds.remove(Collection.NODES, id);
             boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
-            try {
-                assertTrue("failed to insert a document with property of length " + test
-                        + "(potentially non-ASCII, actual octet length in UTF-8: " + pval.getBytes("UTF-8").length + ") in "
-                        + super.dsname, success);
-            } catch (UnsupportedEncodingException e) {
-                // outch
+            assertTrue("failed to insert a document with property of length " + test
+                    + " (potentially non-ASCII, actual octet length with UTF-8 encoding: " + pval.getBytes("UTF-8").length + ") in "
+                    + super.dsname, success);
+            // check that update works as well
+            if (success) {
+                try {
+                    super.ds.findAndUpdate(Collection.NODES, up);
+                } catch (Exception ex) {
+                    ex.printStackTrace(System.err);
+                    fail("failed to update a document with property of length " + test
+                            + " (potentially non-ASCII, actual octet length with UTF-8 encoding: " + pval.getBytes("UTF-8").length + ") in "
+                            + super.dsname);
+                }
             }
             super.ds.remove(Collection.NODES, id);
         }
