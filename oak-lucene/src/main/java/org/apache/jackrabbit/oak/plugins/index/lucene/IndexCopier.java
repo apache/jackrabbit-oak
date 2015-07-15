@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -35,6 +36,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -68,13 +70,14 @@ import org.apache.lucene.store.NoLockFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Iterables.toArray;
 import static com.google.common.collect.Iterables.transform;
 import static com.google.common.collect.Maps.newConcurrentMap;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
-public class IndexCopier implements CopyOnReadStatsMBean {
+public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
     private static final Set<String> REMOTE_ONLY = ImmutableSet.of("segments.gen");
     private static final int MAX_FAILURE_ENTRIES = 10000;
     private static final AtomicInteger UNIQUE_COUNTER = new AtomicInteger();
@@ -112,6 +115,7 @@ public class IndexCopier implements CopyOnReadStatsMBean {
     private final ConcurrentMap<String, LocalIndexFile> failedToDeleteFiles = newConcurrentMap();
     private final Set<LocalIndexFile> copyInProgressFiles = Collections.newSetFromMap(new ConcurrentHashMap<LocalIndexFile, Boolean>());
     private final boolean prefetchEnabled;
+    private volatile boolean closed;
 
     public IndexCopier(Executor executor, File indexRootDir) throws IOException {
         this(executor, indexRootDir, false);
@@ -133,6 +137,11 @@ public class IndexCopier implements CopyOnReadStatsMBean {
     public Directory wrapForWrite(IndexDefinition definition, Directory remote, boolean reindexMode) throws IOException {
         Directory local = createLocalDirForIndexWriter(definition);
         return new CopyOnWriteDirectory(remote, local, reindexMode);
+    }
+
+    @Override
+    public void close() throws IOException {
+        this.closed = true;
     }
 
     File getIndexWorkDir() {
@@ -457,6 +466,11 @@ public class IndexCopier implements CopyOnReadStatsMBean {
             });
         }
 
+        @Override
+        public String toString() {
+            return String.format("[COR] Local %s, Remote %s", local, remote);
+        }
+
         private void removeDeletedFiles() throws IOException {
             //Files present in dest but not present in source have to be deleted
             Set<String> filesToBeDeleted = Sets.difference(
@@ -567,7 +581,12 @@ public class IndexCopier implements CopyOnReadStatsMBean {
             @Override
             public void run() {
                 currentTask = new NotifyingFutureTask(task);
-                executor.execute(currentTask);
+                try {
+                    executor.execute(currentTask);
+                } catch (RejectedExecutionException e){
+                    checkIfClosed(false);
+                    throw e;
+                }
             }
         };
 
@@ -645,7 +664,16 @@ public class IndexCopier implements CopyOnReadStatsMBean {
             //Wait for all pending copy task to finish
             try {
                 long start = PERF_LOGGER.start();
-                copyDone.await();
+
+                //Loop untill queue finished or IndexCopier
+                //found to be closed. Doing it with timeout to
+                //prevent any bug causing the thread to wait indefinitely
+                while (!copyDone.await(10, TimeUnit.SECONDS)) {
+                    if (closed) {
+                        throw new IndexCopierClosedException("IndexCopier found to be closed " +
+                                "while processing copy task for" + remote.toString());
+                    }
+                }
                 PERF_LOGGER.end(start, -1, "Completed pending copying task {}", pendingCopies);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -656,6 +684,10 @@ public class IndexCopier implements CopyOnReadStatsMBean {
             if (t != null){
                 throw new IOException("Error occurred while copying files", t);
             }
+
+            //Sanity check
+            checkArgument(queue.isEmpty(), "Copy queue still " +
+                    "has pending task left [%d]. %s", queue.size(), queue);
 
             long skippedFilesSize = getSkippedFilesSize();
 
@@ -678,6 +710,11 @@ public class IndexCopier implements CopyOnReadStatsMBean {
 
             local.close();
             remote.close();
+        }
+
+        @Override
+        public String toString() {
+            return String.format("[COW] Local %s, Remote %s", local, remote);
         }
 
         private long getSkippedFilesSize() {
@@ -757,8 +794,22 @@ public class IndexCopier implements CopyOnReadStatsMBean {
         }
 
         private void addTask(Callable<Void> task){
+            checkIfClosed(true);
             queue.add(task);
             currentTask.onComplete(completionHandler);
+        }
+
+        private void checkIfClosed(boolean throwException) {
+            if (closed) {
+                IndexCopierClosedException e = new IndexCopierClosedException("IndexCopier found to be closed " +
+                        "while processing" +remote.toString());
+                errorInCopy.set(e);
+                copyDone.countDown();
+
+                if (throwException) {
+                    throw e;
+                }
+            }
         }
 
         private abstract class COWFileReference {
@@ -999,6 +1050,11 @@ public class IndexCopier implements CopyOnReadStatsMBean {
                     log.warn("Not able to remove old version of copied index at {}", oldIndexDir, e);
                 }
             }
+        }
+
+        @Override
+        public String toString() {
+            return "DeleteOldDirOnClose wrapper for " + getDelegate();
         }
     }
     
