@@ -70,7 +70,7 @@ public class FileBlobStoreService {
     protected static String lookup(ComponentContext context, String property) {
         //Prefer property from BundleContext first
         if (context.getBundleContext().getProperty(property) != null) {
-            return context.getBundleContext().getProperty(property).toString();
+            return context.getBundleContext().getProperty(property);
         }
 
         if (context.getProperties().get(property) != null) {
