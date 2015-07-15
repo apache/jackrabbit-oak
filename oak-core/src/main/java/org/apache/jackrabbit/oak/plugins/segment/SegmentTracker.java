@@ -16,13 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import static com.google.common.collect.Lists.newLinkedList;
 import static com.google.common.collect.Queues.newArrayDeque;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.Boolean.getBoolean;
 
 import java.security.SecureRandom;
-import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
@@ -30,6 +28,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.cache.CacheLIRS;
+import org.apache.jackrabbit.oak.cache.CacheLIRS.EvictionCallback;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
@@ -84,8 +84,6 @@ public class SegmentTracker {
      */
     private final AtomicReference<CompactionMap> compactionMap;
 
-    private final long cacheSize;
-
     /**
      * Hash table of weak references to segment identifiers that are
      * currently being accessed. The size of the table is always a power
@@ -97,14 +95,15 @@ public class SegmentTracker {
      */
     private final SegmentIdTable[] tables = new SegmentIdTable[32];
 
-    private final LinkedList<Segment> segments = newLinkedList();
-
-    private long currentSize;
-
     /**
      * Cache for string records
      */
     private final StringCache stringCache;
+
+    /**
+     * Cache of recently accessed segments
+     */
+    private final CacheLIRS<SegmentId, Segment> segmentCache;
 
     public SegmentTracker(SegmentStore store, int cacheSizeMB,
             SegmentVersion version) {
@@ -114,17 +113,26 @@ public class SegmentTracker {
 
         this.store = store;
         this.writer = new SegmentWriter(store, this, version);
-        this.cacheSize = cacheSizeMB * MB;
         this.compactionMap = new AtomicReference<CompactionMap>(
                 CompactionMap.EMPTY);
         StringCache c;
         if (DISABLE_STRING_CACHE) {
             c = null;
         } else {
-            int stringCacheSize = (int) Math.min(Integer.MAX_VALUE, cacheSize);
+            int stringCacheSize = (int) Math.min(Integer.MAX_VALUE, (long) (cacheSizeMB * MB));
             c = new StringCache(stringCacheSize);
         }
         stringCache = c;
+        segmentCache = CacheLIRS.<SegmentId, Segment>newBuilder()
+            .maximumSize((int) Math.min(Integer.MAX_VALUE, (long) (cacheSizeMB * MB)))
+            .averageWeight(Segment.MAX_SEGMENT_SIZE/2)
+            .evictionCallback(new EvictionCallback<SegmentId, Segment>() {
+                @Override
+                public void evicted(SegmentId segmentId, Segment segment) {
+                    segmentId.setSegment(null);
+                }
+            })
+            .build();
     }
 
     public SegmentTracker(SegmentStore store, SegmentVersion version) {
@@ -154,11 +162,10 @@ public class SegmentTracker {
      * Clear the caches
      */
     public synchronized void clearCache() {
-        segments.clear();
+        segmentCache.invalidateAll();
         if (stringCache != null) {
             stringCache.clear();
         }
-        currentSize = 0;
     }
 
     /**
@@ -184,38 +191,8 @@ public class SegmentTracker {
     }
 
     void setSegment(SegmentId id, Segment segment) {
-        // done before synchronization to allow concurrent segment access
-        // while we update the cache below
         id.setSegment(segment);
-
-        synchronized (this) {
-            long size = segment.getCacheSize();
-
-            segments.addFirst(segment);
-            currentSize += size;
-
-            log.debug("Added segment {} to tracker cache ({} bytes)",
-                    id, size);
-
-            // TODO possibly this cache could be improved
-            while (currentSize > cacheSize && segments.size() > 1) {
-                Segment last = segments.removeLast();
-                SegmentId lastId = last.getSegmentId();
-                if (last.accessed()) {
-                    segments.addFirst(last);
-                    log.debug("Segment {} was recently used, keeping in cache",
-                            lastId);
-                } else {
-                    long lastSize = last.getCacheSize();
-
-                    lastId.setSegment(null);
-                    currentSize -= lastSize;
-
-                    log.debug("Removed segment {} from tracker cache ({} bytes)",
-                            lastId, lastSize);
-                }
-            }
-        }
+        segmentCache.put(id, segment, segment.size());
     }
 
     public void setCompactionMap(PartialCompactionMap map) {
