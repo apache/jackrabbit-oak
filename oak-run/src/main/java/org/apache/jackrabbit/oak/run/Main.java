@@ -74,6 +74,7 @@ import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.C
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.standby.client.StandbyClient;
 import org.apache.jackrabbit.oak.plugins.segment.standby.server.StandbyServer;
+import org.apache.jackrabbit.oak.plugins.tika.TextExtractorMain;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade;
@@ -146,6 +147,9 @@ public class Main {
                 break;
             case REPAIR:
                 repair(args);
+                break;
+            case TIKA:
+                TextExtractorMain.main(args);
                 break;
             default:
                 System.err.println("Unknown command: " + mode);
@@ -882,7 +886,8 @@ public class Main {
         PRIMARY("primary"),
         STANDBY("standy"),
         CHECKPOINTS("checkpoints"),
-        REPAIR("repair");
+        REPAIR("repair"),
+        TIKA("tika");
 
         private final String name;
 
