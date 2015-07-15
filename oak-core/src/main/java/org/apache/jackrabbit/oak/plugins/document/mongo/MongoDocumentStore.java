@@ -1135,6 +1135,10 @@ public class MongoDocumentStore implements DocumentStore {
         return nodesCache.getIfPresent(new StringValue(id));
     }
 
+    protected Cache<CacheValue, NodeDocument> getNodeDocumentCache() {
+        return nodesCache;
+    }
+
     private static void log(String message, Object... args) {
         if (LOG.isDebugEnabled()) {
             String argList = Arrays.toString(args);
