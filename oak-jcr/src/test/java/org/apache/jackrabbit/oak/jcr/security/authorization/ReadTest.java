@@ -30,7 +30,6 @@ import javax.jcr.util.TraversingItemVisitor;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
-import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
@@ -560,15 +559,6 @@ public class ReadTest extends AbstractEvaluationTest {
             group2.remove();
             group3.remove();
             superuser.save();
-        }
-    }
-
-    private static boolean canReadNode(Session session, String nodePath) throws RepositoryException {
-        try {
-            session.getNode(nodePath);
-            return session.nodeExists(nodePath);
-        } catch (PathNotFoundException e) {
-            return session.nodeExists(nodePath);
         }
     }
 
