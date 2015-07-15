@@ -346,7 +346,8 @@ class IndexPlanner {
                 .setPathPrefix(getPathPrefix())
                 .setDelayed(true) //Lucene is always async
                 .setAttribute(LucenePropertyIndex.ATTR_PLAN_RESULT, result)
-                .setEstimatedEntryCount(estimatedEntryCount());
+                .setEstimatedEntryCount(estimatedEntryCount())
+                .setPlanName(indexPath);
     }
 
     private long estimatedEntryCount() {
