@@ -258,6 +258,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     private Registration revisionGCRegistration;
     private Registration blobGCRegistration;
     private Registration compactionStrategyRegistration;
+    private Registration segmentCacheMBean;
     private Registration stringCacheMBean;
     private Registration fsgcMonitorMBean;
     private WhiteboardExecutor executor;
@@ -399,6 +400,11 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                 .getCompactionStrategy();
         store.setCompactionStrategy(compactionStrategy);
 
+        CacheStats segmentCacheStats = store.getTracker().getSegmentCacheStats();
+        segmentCacheMBean = registerMBean(whiteboard, CacheStatsMBean.class,
+                segmentCacheStats,
+                CacheStats.TYPE, segmentCacheStats.getName());
+
         CacheStats stringCacheStats = store.getTracker().getStringCacheStats();
         if (stringCacheStats != null) {
             stringCacheMBean = registerMBean(whiteboard, CacheStatsMBean.class,
@@ -500,6 +506,10 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     }
 
     private void unregisterNodeStore() {
+        if (segmentCacheMBean != null) {
+            segmentCacheMBean.unregister();
+            segmentCacheMBean = null;
+        }
         if (stringCacheMBean != null) {
             stringCacheMBean.unregister();
             stringCacheMBean = null;

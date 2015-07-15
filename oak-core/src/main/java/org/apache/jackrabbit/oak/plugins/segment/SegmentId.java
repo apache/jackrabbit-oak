@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static java.lang.Integer.getInteger;
+import static java.lang.Integer.rotateLeft;
+import static java.lang.Math.abs;
+
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -30,6 +34,14 @@ public class SegmentId implements Comparable<SegmentId> {
 
     /** Logger instance */
     private static final Logger log = LoggerFactory.getLogger(SegmentId.class);
+
+    /**
+     * Sample rate of {@link SegmentTracker#segmentCache}. Lower values will cause
+     * more frequent accesses to that cache instead of the short circuit through
+     * {@link SegmentId#segment}. Access to that cache is slower but allows tracking
+     * access statistics.
+     */
+    private static final int SEGMENT_CACHE_SAMPLE_RATE = getInteger("SegmentCacheSampleRate", 1000);
 
     /**
      * Checks whether this is a data segment identifier.
@@ -51,8 +63,10 @@ public class SegmentId implements Comparable<SegmentId> {
     /**
      * A reference to the segment object, if it is available in memory. It is
      * used for fast lookup. The segment tracker will set or reset this field.
+     * <p>
+     * Needs to be volatile so {@link #setSegment(Segment)} doesn't need to
+     * be synchronized as this would lead to deadlocks.
      */
-    // TODO: possibly we could remove the volatile
     private volatile Segment segment;
 
     private SegmentId(SegmentTracker tracker, long msb, long lsb,
@@ -98,14 +112,31 @@ public class SegmentId implements Comparable<SegmentId> {
         return lsb;
     }
 
+    private static volatile int RND = 0;
+    private static int randomInt(int bound) {
+        // There is a race here on concurrent access. However, given the usage the resulting
+        // bias seems preferable to the performance penalty of synchronization
+        RND = 0xc3e157c1 - rotateLeft(RND, 19);
+        return abs(RND) % 1000;
+    }
+
     public Segment getSegment() {
+        // Sample the segment cache once in a while to get some cache hit/miss statistics
+        if (randomInt(SEGMENT_CACHE_SAMPLE_RATE) == 0) {
+            Segment segment = tracker.getCachedSegment(this);
+            if (segment != null) {
+                return segment;
+            }
+        }
+
+        // Fall back to short circuit via this.segment if not in the cache
         Segment segment = this.segment;
         if (segment == null) {
             synchronized (this) {
                 segment = this.segment;
                 if (segment == null) {
                     log.debug("Loading segment {}", this);
-                    segment = tracker.getSegment(this);
+                    segment = tracker.readSegment(this);
                 }
             }
         }
@@ -113,7 +144,7 @@ public class SegmentId implements Comparable<SegmentId> {
         return segment;
     }
 
-    synchronized void setSegment(Segment segment) {
+    void setSegment(Segment segment) {
         this.segment = segment;
     }
 
