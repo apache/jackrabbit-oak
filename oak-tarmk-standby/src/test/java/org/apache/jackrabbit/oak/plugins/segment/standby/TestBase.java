@@ -18,14 +18,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.standby;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.SystemUtils;
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentTestUtils.createTmpTargetDir;
 
 import java.io.File;
 import java.io.IOException;
 
-import static org.apache.jackrabbit.oak.plugins.segment.SegmentTestUtils.createTmpTargetDir;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.SystemUtils;
+import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 
 public class TestBase {
     int port = Integer.valueOf(System.getProperty("standby.server.port", "52800"));
@@ -56,8 +56,16 @@ public class TestBase {
         storeC = setupSecondary(directoryC);
     }
 
+    private static FileStore newFileStore(File directory) throws IOException {
+        return FileStore.newFileStore(directory)
+            .withMaxFileSize(1)
+            .withMemoryMapping(false)
+            .withCacheSize(1)
+            .create();
+    }
+
     protected FileStore setupPrimary(File directory) throws IOException {
-        return new FileStore(directory, 1, false);
+        return newFileStore(directory);
     }
 
     protected FileStore getPrimary() {
@@ -65,7 +73,7 @@ public class TestBase {
     }
 
     protected FileStore setupSecondary(File directory) throws IOException {
-        return new FileStore(directoryC, 1, false);
+        return newFileStore(directoryC);
     }
 
     protected FileStore getSecondary() {
@@ -80,7 +88,7 @@ public class TestBase {
         setUpServerAndClient();
 
         directoryC2 = createTmpTargetDir("FailoverClient2Test");
-        storeC2 = new FileStore(directoryC2, 1, false);
+        storeC2 = newFileStore(directoryC2);
     }
 
     public void closeServerAndClient() {
