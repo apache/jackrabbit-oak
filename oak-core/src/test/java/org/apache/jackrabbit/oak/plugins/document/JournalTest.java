@@ -172,6 +172,7 @@ public class JournalTest extends AbstractJournalTest {
         ns1.renewClusterIdLease();
         JournalGarbageCollector gc = new JournalGarbageCollector(ns1);
         // first clean up
+        Thread.sleep(100); // OAK-2979 : wait 100ms before doing the cleanup
         gc.gc(1, TimeUnit.MILLISECONDS);
         Thread.sleep(100); // sleep just quickly
         assertEquals(0, gc.gc(1, TimeUnit.DAYS));
