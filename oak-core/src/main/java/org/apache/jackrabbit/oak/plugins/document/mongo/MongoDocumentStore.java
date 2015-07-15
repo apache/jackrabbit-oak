@@ -819,8 +819,15 @@ public class MongoDocumentStore implements DocumentStore {
             if (oldDoc != null) {
                 putToCache(collection, oldDoc, updateOp);
                 oldDoc.seal();
+            } else if (upsert) {
+                if (collection == Collection.NODES) {
+                    NodeDocument doc = (NodeDocument) collection.newDocument(this);
+                    UpdateUtils.applyChanges(doc, updateOp, comparator);
+                    addToCache(doc);
+                }
             } else {
-                applyToCache(collection, null, updateOp);
+                // updateOp without conditions and not an upsert
+                // this means the document does not exist
             }
             return oldDoc;
         } catch (Exception e) {
@@ -954,8 +961,7 @@ public class MongoDocumentStore implements DocumentStore {
                                 // make sure concurrently loaded document is invalidated
                                 nodesCache.invalidate(new StringValue(entry.getKey()));
                             } else {
-                                applyToCache(Collection.NODES, entry.getValue(),
-                                        updateOp.shallowCopy(entry.getKey()));
+                                updateCache(Collection.NODES, entry.getValue(), updateOp.shallowCopy(entry.getKey()));
                             }
                         } finally {
                             lock.unlock();
@@ -1163,43 +1169,34 @@ public class MongoDocumentStore implements DocumentStore {
      *
      * @param <T> the document type.
      * @param collection the document collection.
-     * @param oldDoc the old document or <code>null</code> if the update is for
-     *               a new document (insert).
+     * @param oldDoc the old document.
      * @param updateOp the update operation.
      */
-    private <T extends Document> void applyToCache(@Nonnull Collection<T> collection,
-                                                   @Nullable T oldDoc,
-                                                   @Nonnull UpdateOp updateOp) {
+    private <T extends Document> void updateCache(@Nonnull Collection<T> collection,
+                                                  @Nonnull T oldDoc,
+                                                  @Nonnull UpdateOp updateOp) {
         // cache the new document
         if (collection == Collection.NODES) {
+            checkNotNull(oldDoc);
+            checkNotNull(updateOp);
+            // we can only update the cache based on the oldDoc if we
+            // still have the oldDoc in the cache, otherwise we may
+            // update the cache with an outdated document
             CacheValue key = new StringValue(updateOp.getId());
-            NodeDocument newDoc = (NodeDocument) collection.newDocument(this);
-            if (oldDoc != null) {
-                // we can only update the cache based on the oldDoc if we
-                // still have the oldDoc in the cache, otherwise we may
-                // update the cache with an outdated document
-                NodeDocument cached = nodesCache.getIfPresent(key);
-                if (cached == null) {
-                    // cannot use oldDoc to update cache
-                    return;
-                }
-                oldDoc.deepCopy(newDoc);
+            NodeDocument cached = nodesCache.getIfPresent(key);
+            if (cached == null) {
+                // cannot use oldDoc to update cache
+                return;
             }
-            UpdateUtils.applyChanges(newDoc, updateOp, comparator);
-            newDoc.seal();
 
-            NodeDocument cached = addToCache(newDoc);
-            if (cached == newDoc) {
-                // successful
-                return;
-            }
-            if (oldDoc == null) {
-                // this is an insert and some other thread was quicker
-                // loading it into the cache -> return now
-                return;
-            }
-            // this is an update (oldDoc != null)
+            // check if the currently cached document matches oldDoc
             if (Objects.equal(cached.getModCount(), oldDoc.getModCount())) {
+                NodeDocument newDoc = (NodeDocument) collection.newDocument(this);
+                oldDoc.deepCopy(newDoc);
+
+                UpdateUtils.applyChanges(newDoc, updateOp, comparator);
+                newDoc.seal();
+
                 nodesCache.put(key, newDoc);
             } else {
                 // the cache entry was modified by some other thread in

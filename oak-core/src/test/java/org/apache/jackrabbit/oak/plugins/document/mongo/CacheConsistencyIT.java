@@ -33,7 +33,6 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -43,7 +42,6 @@ import static org.junit.Assert.assertTrue;
 /**
  * Test for OAK-3103
  */
-@Ignore
 public class CacheConsistencyIT extends AbstractMongoConnectionTest {
 
     private MongoDocumentStore store;
