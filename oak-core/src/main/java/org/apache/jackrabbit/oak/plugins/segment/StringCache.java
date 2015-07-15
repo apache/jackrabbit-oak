@@ -21,8 +21,11 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import java.util.Arrays;
 
+import javax.annotation.Nonnull;
+
 import com.google.common.base.Function;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
+import org.apache.jackrabbit.oak.cache.CacheStats;
 
 /**
  * A string cache. It has two components: a fast cache for small strings, based
@@ -47,9 +50,14 @@ public class StringCache {
      */
     StringCache(int maxSize) {
         cache = CacheLIRS.<StringCacheEntry, String>newBuilder()
-            .maximumSize(maxSize)
-            .averageWeight(100)
-            .build();
+                .maximumSize(maxSize)
+                .averageWeight(100)
+                .build();
+    }
+
+    @Nonnull
+    public CacheStats getStats() {
+        return new CacheStats(cache, "String Cache", null, -1);
     }
 
     /**
