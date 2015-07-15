@@ -177,6 +177,15 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
         return hint + UUID.randomUUID();
     }
 
+    protected static boolean canReadNode(Session session, String nodePath) throws RepositoryException {
+        try {
+            session.getNode(nodePath);
+            return session.nodeExists(nodePath);
+        } catch (PathNotFoundException e) {
+            return session.nodeExists(nodePath);
+        }
+    }
+
     protected Group getTestGroup() throws Exception {
         return testGroup;
     }
