@@ -797,20 +797,24 @@ mentioned steps
         
 From the Luke UI shown you can access various details.
 
-#### Advanced search features
+### Advanced search features
 
-##### Suggestions
+#### Suggestions
 
 `@since Oak 1.1.17, 1.0.15`
 
-In order to use Lucene index to perform search suggestions, the index definition node (the one of type `oak:QueryIndexDefinition`)
- needs to have the `compatVersion` set to `2`, then one or more property nodes, depending on use case, need to have the 
- property `useForSuggest` set to `true`, such setting controls from which properties terms to be used for suggestions will be taken.
+In order to use Lucene index to perform search suggestions, the index definition 
+node (the one of type `oak:QueryIndexDefinition`) needs to have the `compatVersion` 
+set to `2`, then one or more property nodes, depending on use case, need to have 
+the property `useForSuggest` set to `true`, such setting controls from which 
+properties terms to be used for suggestions will be taken.
  
-Once the above configuration has been done, by default, the Lucene suggester is updated every 10 minutes but that can be 
-changed by setting the property `suggestUpdateFrequencyMinutes` in the index definition node to a different value.
+Once the above configuration has been done, by default, the Lucene suggester is 
+updated every 10 minutes but that can be changed by setting the property 
+`suggestUpdateFrequencyMinutes` in the index definition node to a different value.
 
-Sample configuration for suggestions based on terms contained in `jcr:description` property.
+Sample configuration for suggestions based on terms contained in `jcr:description` 
+property.
 
 ```
 /oak:index/lucene-suggest
@@ -830,16 +834,18 @@ Sample configuration for suggestions based on terms contained in `jcr:descriptio
           - useForSuggest = true
 ```
 
-##### Spellchecking
+#### Spellchecking
 
 `@since Oak 1.1.17, 1.0.13`
 
-In order to use Lucene index to perform spellchecking, the index definition node (the one of type `oak:QueryIndexDefinition`)
- needs to have the `compatVersion` set to `2`, then one or more property nodes, depending on use case, need to have the 
- property `useForSpellcheck` set to `true`, such setting controls from which properties terms to be used for spellcheck 
- corrections will be taken.
+In order to use Lucene index to perform spellchecking, the index definition node 
+(the one of type `oak:QueryIndexDefinition`) needs to have the `compatVersion` 
+set to `2`, then one or more property nodes, depending on use case, need to have 
+the property `useForSpellcheck` set to `true`, such setting controls from which 
+properties terms to be used for spellcheck corrections will be taken.
  
-Sample configuration for spellchecking based on terms contained in `jcr:title` property.
+Sample configuration for spellchecking based on terms contained in `jcr:title` 
+property.
 
 ```
 /oak:index/lucene-spellcheck
