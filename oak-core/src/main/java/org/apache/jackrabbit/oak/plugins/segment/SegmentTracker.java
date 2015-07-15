@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import static com.google.common.collect.Lists.newLinkedList;
 import static com.google.common.collect.Queues.newArrayDeque;
 import static com.google.common.collect.Sets.newHashSet;
+import static java.lang.Boolean.getBoolean;
 
 import java.security.SecureRandom;
 import java.util.LinkedList;
@@ -44,6 +45,12 @@ public class SegmentTracker {
     /** Logger instance */
     private static final Logger log =
             LoggerFactory.getLogger(SegmentTracker.class);
+
+    /**
+     * Disable the {@link #stringCache} if {@code true} and fall back to
+     * the previous {@link Segment#strings} caching mechanism.
+     */
+    private static final boolean DISABLE_STRING_CACHE = getBoolean("oak.segment.disableStringCache");
 
     private static final long MSB_MASK = ~(0xfL << 12);
 
@@ -92,6 +99,11 @@ public class SegmentTracker {
 
     private long currentSize;
 
+    /**
+     * Cache for string records
+     */
+    private final StringCache stringCache;
+
     public SegmentTracker(SegmentStore store, int cacheSizeMB,
             SegmentVersion version) {
         for (int i = 0; i < tables.length; i++) {
@@ -103,6 +115,14 @@ public class SegmentTracker {
         this.cacheSize = cacheSizeMB * MB;
         this.compactionMap = new AtomicReference<CompactionMap>(
                 CompactionMap.EMPTY);
+        StringCache c;
+        if (DISABLE_STRING_CACHE) {
+            c = null;
+        } else {
+            int stringCacheSize = (int) Math.min(Integer.MAX_VALUE, cacheSize);
+            c = new StringCache(stringCacheSize);
+        }
+        stringCache = c;
     }
 
     public SegmentTracker(SegmentStore store, SegmentVersion version) {
@@ -122,11 +142,23 @@ public class SegmentTracker {
     }
 
     /**
-     * Clear the segment cache
+     * Clear the caches
      */
     public synchronized void clearCache() {
         segments.clear();
+        if (stringCache != null) {
+            stringCache.clear();
+        }
         currentSize = 0;
+    }
+    
+    /**
+     * Get the string cache, if there is one.
+     * 
+     * @return the string cache or {@code null} if none is configured
+     */
+    StringCache getStringCache() {
+        return stringCache;
     }
 
     Segment getSegment(SegmentId id) {
