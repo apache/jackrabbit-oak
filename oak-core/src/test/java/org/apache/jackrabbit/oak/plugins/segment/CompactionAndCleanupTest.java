@@ -312,13 +312,16 @@ public class CompactionAndCleanupTest {
         FileStore fileStore = new NonCachingFileStore(directory, 1);
         try {
             final SegmentNodeStore nodeStore = new SegmentNodeStore(fileStore);
-            fileStore.setCompactionStrategy(new CompactionStrategy(false, false, CLEAN_ALL, 0, (byte) 0) {
+            CompactionStrategy strategy = new CompactionStrategy(false, false, CLEAN_ALL, 0, (byte) 0) {
                 @Override
                 public boolean compacted(@Nonnull Callable<Boolean> setHead)
                         throws Exception {
                     return nodeStore.locked(setHead);
                 }
-            });
+            };
+            // CLEAN_ALL and persisted compaction map results in SNFE in compaction map segments
+            strategy.setPersistCompactionMap(false);
+            fileStore.setCompactionStrategy(strategy);
 
             // Add a property
             NodeBuilder builder = nodeStore.getRoot().builder();
