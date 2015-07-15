@@ -20,6 +20,7 @@ The following runmodes are currently available:
     * scalability : Run scalability tests against different Oak repository fixtures.
     * recovery    : Run a _lastRev recovery on a MongoMK repository
     * checkpoints : Manage checkpoints
+    * tika        : Performs text extraction
     * help        : Print a list of available runmodes
     
 
@@ -180,6 +181,118 @@ The 'list' option (treated as a default when nothing is specified) will list all
 The 'rm-all' option will wipe clean the 'checkpoints' node.
 The 'rm-unreferenced' option will remove all checkpoints except the one referenced from the async indexer (/:async@async).
 The 'rm <checkpoint>' option will remove a specific checkpoint from the repository.
+
+<a name="tika"></a>
+Tika
+----
+
+The 'tika' mode enables performing text extraction, report generation and 
+csv generation required for text extraction
+
+
+    Apache Jackrabbit Oak 1.4-SNAPSHOT
+    Non-option arguments:                                                         
+    tika [extract|report|generate]                                                
+    report   : Generates a summary report related to binary data                  
+    extract  : Performs the text extraction                                       
+    generate : Generates the csv data file based on configured NodeStore/BlobStore
+    
+    Option                 Description                            
+    ------                 -----------                            
+    -?, -h, --help         show help                              
+    --data-file <File>     Data file in csv format containing the 
+                             binary metadata                      
+    --fds-path <File>      Path of directory used by FileDataStore
+    --nodestore            NodeStore detail                       
+                             /path/to/oak/repository | mongodb:   
+                             //host:port/database                 
+    --path                 Path in repository under which the     
+                             binaries would be searched           
+    --pool-size <Integer>  Size of the thread pool used to        
+                             perform text extraction. Defaults to 
+                             number of cores on the system        
+    --store-path <File>    Path of directory used to store        
+                             extracted text content               
+    --tika-config <File>   Tika config file path   
+
+<a name="tika-csv"></a>
+### CSV File Format
+
+Text extraction tool reads a csv file which contains details regarding those
+binary files from which text needs to be extracted. Entries in csv file look like
+below
+
+```
+43844ed22d640a114134e5a25550244e8836c00c#28705,28705,"application/octet-stream",,"/content/activities/jcr:content/folderThumbnail/jcr:content"
+43844ed22d640a114134e5a25550244e8836c00c#28705,28705,"application/octet-stream",,"/content/snowboarding/jcr:content/folderThumbnail/jcr:content"
+...
+```
+
+Where the columns are in following order
+
+1. BlobId - Value of [Jackrabbit ContentIdentity](http://jackrabbit.apache.org/api/2.0/org/apache/jackrabbit/api/JackrabbitValue.html)
+2. Length
+3. jcr:mimeType
+4. jcr:encoding
+5. path of parent node    
+
+The csv file can be generated programatically. For Oak based repositories
+it can be generated via `generate` command. 
+
+### Generate
+
+CSV file required for `extract` and `report` can  be generated via `generate` 
+mode
+
+    java -jar oak-run.jar tika \  
+    --fds-path /path/to/datastore \
+    --nodestore /path/to/segmentstore --data-file dump.csv generate
+
+Above command would scan the NodeStore and create the csv file. This file can 
+then be passed to `extract` command
+    
+### Report
+
+Tool can generate a summary report from a [csv](#tika-csv) file
+
+    java -jar oak-run.jar tika \ 
+        --data-file /path/to/binary-stats.csv report
+
+The report provides a summary like
+
+```
+14:39:05.402 [main] INFO  o.a.j.o.p.tika.TextExtractorMain - MimeType Stats
+        Total size         : 89.3 MB
+        Total indexed size : 3.4 MB
+        Total count        : 1048
+
+               Type                 Indexed   Supported    Count       Size   
+___________________________________________________________________________________
+application/epub+zip              |      true|      true|  1       |    3.4 MB
+image/png                         |     false|      true|  544     |   40.2 MB
+image/jpeg                        |     false|      true|  444     |   34.0 MB
+image/tiff                        |     false|      true|  11      |    6.1 MB
+application/x-indesign            |     false|     false|  1       |    3.7 MB
+application/octet-stream          |     false|     false|  39      |    1.2 MB
+application/x-shockwave-flash     |     false|     false|  4       |  372.2 kB
+application/pdf                   |     false|     false|  3       |  168.3 kB
+video/quicktime                   |     false|     false|  1       |   95.9 kB
+```
+
+### Extract
+
+Extraction can be performed via following command
+
+    java -cp oak-run.jar:tika-app-1.8.jar \
+    org.apache.jackrabbit.oak.run.Main tika \
+    --data-file binary-stats.csv \
+    --store-path ./store 
+    --fds-path /path/to/datastore  extract
+    
+You would need to provide the tika-app jar which contains all the parsers. 
+It can be downloaded from [here](https://tika.apache.org/download.html). 
+Extraction would then be performed in a multi threaded mode. Extracted text
+would be stored in the `store-path`
 
 Upgrade
 -------
