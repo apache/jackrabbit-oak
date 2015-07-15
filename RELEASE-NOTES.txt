@@ -15,16 +15,11 @@ stable and targeted for production use.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-New configuration options since Oak 1.0.17
+New configuration options in Oak 1.0.18
 ------------------------------------------
 
-LuceneIndex CopyOnRead feature now supports pre fetching of index files (OAK-3069).
-This reduces time taken in opening a new index. It can be enabled via OSGi config
-of LuceneIndexProviderService
-
-Debugging merge conflict errors is now possible by enabling DEBUG logs on 
-org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff and 
-org.apache.jackrabbit.oak.plugins.commit.ConflictValidator via OAK-3057
+Support for pre extracting text to speed up reindexing has been added in OAK-2892
+For more details refer to http://jackrabbit.apache.org/oak/docs/query/lucene.html#text-extraction
 
 Changes in Oak 1.0.17
 ---------------------
