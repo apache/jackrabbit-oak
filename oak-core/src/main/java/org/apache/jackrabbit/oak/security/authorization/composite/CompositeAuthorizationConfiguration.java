@@ -106,7 +106,7 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
                         pp = aggrPermissionProviders.get(0);
                         break;
                     default :
-                        pp = new CompositePermissionProvider(root, aggrPermissionProviders);
+                        pp = new CompositePermissionProvider(root, aggrPermissionProviders, getContext());
                 }
                 return pp;
         }

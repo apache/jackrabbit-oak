@@ -17,8 +17,11 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.permission;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 
 /**
@@ -29,13 +32,24 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
  */
 public interface AggregatedPermissionProvider extends PermissionProvider {
 
-    boolean handles(@Nonnull String path, @Nonnull String jcrAction);
+    PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits);
 
-    boolean handles(@Nonnull Tree tree, @Nonnull PrivilegeBits privilegeBits);
+    long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property, long permissions);
 
-    boolean handles(@Nonnull Tree tree, long permission);
+    long supportedPermissions(@Nonnull TreeLocation location, long permissions);
 
-    boolean handles(@Nonnull TreePermission treePermission, long permission);
+    long supportedPermissions(@Nonnull TreePermission treePermission, long permissions);
 
-    boolean handlesRepositoryPermissions();
+    /**
+     * Test if the specified permissions are granted for the set of {@code Principal}s
+     * associated with this provider instance for the item identified by the
+     * given {@code location} and optionally property. This method will only return {@code true}
+     * if all permissions are granted.
+     *
+     * @param location The {@code TreeLocation} to test the permissions for.
+     * @param permissions The permissions to be tested.
+     * @return {@code true} if the specified permissions are granted for the existing
+     * or non-existing item identified by the given location.
+     */
+    boolean isGranted(@Nonnull TreeLocation location, long permissions);
 }

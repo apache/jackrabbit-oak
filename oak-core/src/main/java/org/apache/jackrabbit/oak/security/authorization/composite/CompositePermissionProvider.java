@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,15 +23,15 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
+import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionUtil;
+import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
@@ -41,7 +40,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermi
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.util.Text;
 
 /**
  * Permission provider implementation that aggregates a list of different
@@ -55,14 +53,17 @@ class CompositePermissionProvider implements PermissionProvider {
 
     private final Root root;
     private final List<AggregatedPermissionProvider> pps;
+    private final Context ctx;
+
     private final CompositeRepositoryPermission repositoryPermission;
 
     private Root immutableRoot;
     private PrivilegeBitsProvider privilegeBitsProvider;
 
-    CompositePermissionProvider(@Nonnull Root root, @Nonnull List<AggregatedPermissionProvider> pps) {
+    CompositePermissionProvider(@Nonnull Root root, @Nonnull List<AggregatedPermissionProvider> pps, @Nonnull Context acContext) {
         this.root = root;
         this.pps = pps;
+        this.ctx = acContext;
 
         repositoryPermission = new CompositeRepositoryPermission();
         immutableRoot = RootFactory.createReadOnlyRoot(root);
@@ -83,16 +84,24 @@ class CompositePermissionProvider implements PermissionProvider {
     @Nonnull
     @Override
     public Set<String> getPrivileges(@Nullable Tree tree) {
-        PrivilegeBits result = null;
         Tree immutableTree = PermissionUtil.getImmutableTree(tree, immutableRoot);
-        for (AggregatedPermissionProvider pp : filter(pps, immutableTree)) {
-            PrivilegeBits privs = privilegeBitsProvider.getBits(pp.getPrivileges(immutableTree));
-            if (result == null) {
-                result = PrivilegeBits.getInstance();
-                result.add(privs);
-            } else {
-                // FIXME: only retain privs that are handled by prev. pp (and thus are denied)
-                result.retain(privs);
+
+        PrivilegeBits result = PrivilegeBits.getInstance();
+        PrivilegeBits denied = PrivilegeBits.getInstance();
+
+        for (AggregatedPermissionProvider aggregatedPermissionProvider : pps) {
+            PrivilegeBits supported = aggregatedPermissionProvider.supportedPrivileges(immutableTree, null).modifiable();
+            if (doEvaluate(supported)) {
+                PrivilegeBits granted = privilegeBitsProvider.getBits(aggregatedPermissionProvider.getPrivileges(immutableTree));
+                // make sure privs denied by a previous provider are substracted
+                if (!denied.isEmpty()) {
+                    result.add(granted.modifiable().diff(denied));
+                } else {
+                    result.add(granted);
+                }
+                // update the set of denied privs by comparing the granted privs
+                // the complete set of supported privileges.
+                denied.add(supported.diff(granted));
             }
         }
         return privilegeBitsProvider.getPrivilegeNames(result);
@@ -100,22 +109,25 @@ class CompositePermissionProvider implements PermissionProvider {
 
     @Override
     public boolean hasPrivileges(@Nullable Tree tree, @Nonnull String... privilegeNames) {
-        final Tree immutableTree = PermissionUtil.getImmutableTree(tree, immutableRoot);
-        for (final String privName : privilegeBitsProvider.getAggregatedPrivilegeNames(privilegeNames)) {
-            Iterable<AggregatedPermissionProvider> providers = Iterables.filter(pps, new Predicate<AggregatedPermissionProvider>() {
-                @Override
-                public boolean apply(AggregatedPermissionProvider pp) {
-                    // the permissionprovider is never null
-                    return (immutableTree == null) ? pp.handlesRepositoryPermissions() : pp.handles(immutableTree, privilegeBitsProvider.getBits(privName));
-                }
-            });
-            for (AggregatedPermissionProvider pp : providers) {
-                if (!pp.hasPrivileges(immutableTree, privName)) {
-                    return false;
+        Tree immutableTree = PermissionUtil.getImmutableTree(tree, immutableRoot);
+        PrivilegeBits privilegeBits = privilegeBitsProvider.getBits(privilegeNames);
+
+        boolean hasPrivileges = false;
+        PrivilegeBits coveredPrivs = PrivilegeBits.getInstance();
+
+        for (AggregatedPermissionProvider aggregatedPermissionProvider : pps) {
+            PrivilegeBits supported = aggregatedPermissionProvider.supportedPrivileges(immutableTree, privilegeBits);
+            if (doEvaluate(supported)) {
+                Set<String> supportedNames = privilegeBitsProvider.getPrivilegeNames(supported);
+                hasPrivileges = aggregatedPermissionProvider.hasPrivileges(immutableTree, supportedNames.toArray(new String[supportedNames.size()]));
+                coveredPrivs.add(supported);;
+
+                if (!hasPrivileges) {
+                    break;
                 }
             }
         }
-        return true;
+        return hasPrivileges && coveredPrivs.includes(privilegeBits);
     }
 
     @Nonnull
@@ -141,102 +153,68 @@ class CompositePermissionProvider implements PermissionProvider {
     @Override
     public boolean isGranted(@Nonnull Tree parent, @Nullable PropertyState property, long permissions) {
         Tree immParent = PermissionUtil.getImmutableTree(parent, immutableRoot);
-        if (Permissions.isAggregate(permissions)) {
-            for (final long permission : Permissions.aggregates(permissions)) {
-                if (!grantsPermission(immParent, property, permission, filter(parent, permission))) {
-                    return false;
+
+        boolean isGranted = false;
+        long coveredPermissions = Permissions.NO_PERMISSION;
+
+        for (AggregatedPermissionProvider aggregatedPermissionProvider : pps) {
+            long supportedPermissions = aggregatedPermissionProvider.supportedPermissions(immParent, property, permissions);
+            if (doEvaluate(supportedPermissions)) {
+                isGranted = aggregatedPermissionProvider.isGranted(immParent, property, supportedPermissions);
+                coveredPermissions |= supportedPermissions;
+
+                if (!isGranted) {
+                    break;
                 }
             }
-            return true;
-        } else {
-            return grantsPermission(immParent, property, permissions, filter(immParent, permissions));
         }
+        return isGranted && coveredPermissions == permissions;
     }
 
     @Override
     public boolean isGranted(@Nonnull String oakPath, @Nonnull String jcrActions) {
-        final String[] actions = Text.explode(jcrActions, ',', false);
-        switch (actions.length) {
-            case 0: return true;
-            case 1:
-                return grantsAction(oakPath, actions[0], filter(oakPath, actions[0]));
-            default:
-                for (final String action : actions) {
-                    if (!grantsAction(oakPath, action, filter(oakPath, action))) {
-                        return false;
+        TreeLocation location = TreeLocation.create(immutableRoot, oakPath);
+        boolean isAcContent = ctx.definesLocation(location);
+
+        long permissions = Permissions.getPermissions(jcrActions, location, isAcContent);
+
+        PropertyState property = location.getProperty();
+        Tree tree = (property == null) ? location.getTree() : location.getParent().getTree();
+
+        if (tree != null) {
+            return isGranted(tree, property, permissions);
+        } else {
+            boolean isGranted = false;
+            long coveredPermissions = Permissions.NO_PERMISSION;
+
+            for (AggregatedPermissionProvider aggregatedPermissionProvider : pps) {
+                long supportedPermissions = aggregatedPermissionProvider.supportedPermissions(location, permissions);
+                if (doEvaluate(supportedPermissions)) {
+                    isGranted = aggregatedPermissionProvider.isGranted(location, supportedPermissions);
+                    coveredPermissions |= supportedPermissions;
+
+                    if (!isGranted) {
+                        break;
                     }
                 }
-                return true;
+            }
+            return isGranted && coveredPermissions == permissions;
         }
     }
 
-    //--------------------------------------------------------------------------
-
-    private Iterable<AggregatedPermissionProvider> filter(@Nonnull final Tree tree, final long permissions) {
-        return Iterables.filter(pps, new Predicate<AggregatedPermissionProvider>() {
-            @Override
-            public boolean apply(AggregatedPermissionProvider pp) {
-                // the permissionprovider is never null
-                return pp.handles(tree, permissions);
-            }
-        });
+    //------------------------------------------------------------< private >---
+    private static boolean doEvaluate(long supportedPermissions) {
+        return supportedPermissions != Permissions.NO_PERMISSION;
     }
 
-    private Iterable<AggregatedPermissionProvider> filter(@Nonnull final String oakPath, final String actions) {
-        return Iterables.filter(pps, new Predicate<AggregatedPermissionProvider>() {
-            @Override
-            public boolean apply(AggregatedPermissionProvider pp) {
-                // the permissionprovider is never null
-                return pp.handles(oakPath, actions);
-            }
-        });
+    private static boolean doEvaluate(PrivilegeBits supportedPrivileges) {
+        return !supportedPrivileges.isEmpty();
     }
 
-    private static Iterable<AggregatedPermissionProvider> filter(
-            @Nonnull final List<AggregatedPermissionProvider> providers,
-            @Nullable final Tree tree) {
-        return Iterables.filter(providers, new Predicate<AggregatedPermissionProvider>() {
-            @Override
-            public boolean apply(AggregatedPermissionProvider pp) {
-                // the permissionprovider is never null
-                return (tree != null) || pp.handlesRepositoryPermissions();
-            }
-        });
-    }
-
-    private static boolean grantsPermission(@Nonnull final Tree parent,
-                                            @Nullable PropertyState property,
-                                            final long permission,
-                                            @Nonnull Iterable<AggregatedPermissionProvider> providers) {
-        Iterator<AggregatedPermissionProvider> it = providers.iterator();
-        boolean isGranted = false;
-        while (it.hasNext()) {
-            AggregatedPermissionProvider pp = it.next();
-            isGranted = pp.isGranted(parent, property, permission);
-            if (!isGranted) {
-                break;
-            }
-        }
-        return isGranted;
-    }
-
-    private static boolean grantsAction(@Nonnull final String oakPath,
-                                        @Nonnull final String action,
-                                        @Nonnull Iterable<AggregatedPermissionProvider> providers) {
-        Iterator<AggregatedPermissionProvider> it = providers.iterator();
-        boolean isGranted = false;
-        while (it.hasNext()) {
-            AggregatedPermissionProvider pp = it.next();
-            isGranted = pp.isGranted(oakPath, action);
-            if (!isGranted) {
-                return false;
-            }
-        }
-        return isGranted;
-    }
-
-    //--------------------------------------------------------------------------
-
+    //-----------------------------------------------------< TreePermission >---
+    /**
+     * {@code TreePermission} implementation that wraps multiple implementations.
+     */
     private final class CompositeTreePermission implements TreePermission {
 
         private final ImmutableTree tree;
@@ -274,16 +252,18 @@ class CompositePermissionProvider implements PermissionProvider {
         @Override
         public boolean canRead() {
             if (canRead == null) {
-                canRead = false;
+                boolean readable = false;
                 for (Map.Entry<AggregatedPermissionProvider, TreePermission> entry : map.entrySet()) {
                     TreePermission tp = entry.getValue();
-                    if (entry.getKey().handles(tp, Permissions.READ_NODE)) {
-                        canRead = entry.getValue().canRead();
-                        if (!canRead) {
+                    long supported = entry.getKey().supportedPermissions(tp, Permissions.READ_NODE);
+                    if (doEvaluate(supported)) {
+                        readable = tp.canRead();
+                        if (!readable) {
                             break;
                         }
                     }
                 }
+                canRead = readable;
             }
             return canRead;
         }
@@ -293,10 +273,11 @@ class CompositePermissionProvider implements PermissionProvider {
             boolean canReadProperty = false;
             for (Map.Entry<AggregatedPermissionProvider, TreePermission> entry : map.entrySet()) {
                 TreePermission tp = entry.getValue();
-                if (entry.getKey().handles(tp, Permissions.READ_PROPERTY)) {
-                    canReadProperty = entry.getValue().canRead(property);
+                long supported = entry.getKey().supportedPermissions(tp, Permissions.READ_PROPERTY);
+                if (doEvaluate(supported)) {
+                    canReadProperty = tp.canRead(property);
                     if (!canReadProperty) {
-                        return false;
+                        break;
                     }
                 }
             }
@@ -315,44 +296,31 @@ class CompositePermissionProvider implements PermissionProvider {
 
         @Override
         public boolean isGranted(long permissions) {
-            if (Permissions.isAggregate(permissions)) {
-                for (long permission : Permissions.aggregates(permissions)) {
-                    if (!grantsPermission(permission, null)) {
-                        return false;
-                    }
-                }
-                return true;
-            } else {
-                return grantsPermission(permissions, null);
-            }
+            return grantsPermission(permissions, null);
         }
 
         @Override
         public boolean isGranted(long permissions, @Nonnull PropertyState property) {
-            if (Permissions.isAggregate(permissions)) {
-                for (long permission : Permissions.aggregates(permissions)) {
-                    if (!grantsPermission(permission, property)) {
-                        return false;
-                    }
-                }
-                return true;
-            } else {
-                return grantsPermission(permissions, property);
-            }
+            return grantsPermission(permissions, property);
         }
 
-        private boolean grantsPermission(long permission, @Nullable PropertyState property) {
+        private boolean grantsPermission(long permissions, @Nullable PropertyState property) {
             boolean isGranted = false;
+            long coveredPermissions = Permissions.NO_PERMISSION;
+
             for (Map.Entry<AggregatedPermissionProvider, TreePermission> entry : map.entrySet()) {
-                if (entry.getKey().handles(this, permission)) {
+                long supportedPermissions = entry.getKey().supportedPermissions(tree, property, permissions);
+                if (doEvaluate(supportedPermissions)) {
                     TreePermission tp = entry.getValue();
-                    isGranted = (property == null) ? tp.isGranted(permission) : tp.isGranted(permission, property);
+                    isGranted = (property == null) ? tp.isGranted(supportedPermissions) : tp.isGranted(supportedPermissions, property);
+                    coveredPermissions |= supportedPermissions;
+
                     if (!isGranted) {
                         return false;
                     }
                 }
             }
-            return isGranted;
+            return isGranted && coveredPermissions == permissions;
         }
 
         @Nonnull
@@ -365,24 +333,28 @@ class CompositePermissionProvider implements PermissionProvider {
         }
     }
 
+    //-----------------------------------------------< RepositoryPermission >---
     /**
-     * TODO
+     * {@code RepositoryPermission} implementation that wraps multiple implementations.
      */
     private final class CompositeRepositoryPermission implements RepositoryPermission {
 
         @Override
         public boolean isGranted(long repositoryPermissions) {
-            Iterator<AggregatedPermissionProvider> it = filter(pps, null).iterator();
             boolean isGranted = false;
-            while (it.hasNext()) {
-                AggregatedPermissionProvider pp = it.next();
-                isGranted = pp.getRepositoryPermission().isGranted(repositoryPermissions);
-                if (!isGranted) {
-                    return false;
-                }
+            long coveredPermissions = Permissions.NO_PERMISSION;
 
+            for (AggregatedPermissionProvider aggregatedPermissionProvider : pps) {
+                long supportedPermissions = aggregatedPermissionProvider.supportedPermissions(null, null, repositoryPermissions);
+                if (doEvaluate(supportedPermissions)) {
+                    isGranted = aggregatedPermissionProvider.getRepositoryPermission().isGranted(supportedPermissions);
+                    coveredPermissions |= supportedPermissions;
+                    if (!isGranted) {
+                        break;
+                    }
+                }
             }
-            return isGranted;
+            return isGranted && coveredPermissions == repositoryPermissions;
         }
     }
 }
