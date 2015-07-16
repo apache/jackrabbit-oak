@@ -896,10 +896,15 @@ public class IndexCopierTest {
         assertNotNull("Close should have thrown an exception", error.get());
     }
 
-    @Ignore("OAK-3110")
+    /**
+     * Test the interaction between COR and COW using same underlying directory
+     */
     @Test
-    public void cowAndCorConcurrentAccess() throws Exception{
+    public void cowConcurrentAccess() throws Exception{
         CollectingExecutor executor = new CollectingExecutor();
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
+        executor.setForwardingExecutor(executorService);
+
         Directory baseDir = new CloseSafeDir();
         String indexPath = "/foo";
         builder.setProperty(LuceneIndexConstants.INDEX_PATH, indexPath);
@@ -948,6 +953,7 @@ public class IndexCopierTest {
         cow1.close();
         assertTrue("f2 should exist", remote.fileExists("f2"));
 
+        executorService.shutdown();
     }
 
     private byte[] writeFile(Directory dir, String name) throws IOException {
@@ -1028,20 +1034,22 @@ public class IndexCopierTest {
 
     private static class CollectingExecutor implements Executor {
         final BlockingQueue<Runnable> commands = new LinkedBlockingQueue<Runnable>();
-        private boolean immediateExecution = false;
+        private volatile boolean immediateExecution = false;
         private volatile Executor forwardingExecutor;
 
         @Override
         public void execute(Runnable command) {
+            if (immediateExecution){
+                command.run();
+                return;
+            }
+
             if (forwardingExecutor != null){
                 forwardingExecutor.execute(command);
                 return;
             }
-            if (immediateExecution){
-                command.run();
-            } else {
-                commands.add(command);
-            }
+
+            commands.add(command);
         }
 
         void executeAll(){
