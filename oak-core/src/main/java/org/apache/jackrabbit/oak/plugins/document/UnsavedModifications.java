@@ -66,14 +66,23 @@ class UnsavedModifications implements Closeable {
     /**
      * The map factory for this instance.
      */
-    private final MapFactory mapFactory = MapFactory.createFactory();
+    private final MapFactory mapFactory;
 
-    private final ConcurrentMap<String, Revision> map = mapFactory.create();
+    private final ConcurrentMap<String, Revision> map;
 
     /**
      * Monitor object to synchronize updates on the {@link #map}. See OAK-2888.
      */
     private final Object update = new Object();
+
+    public UnsavedModifications() {
+        this(MapFactory.createFactory());
+    }
+
+    UnsavedModifications(MapFactory mapFactory) {
+        this.mapFactory = mapFactory;
+        this.map = mapFactory.create();
+    }
 
     /**
      * Puts a revision for the given path. The revision for the given path is
