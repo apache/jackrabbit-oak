@@ -54,10 +54,12 @@ import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FilterDirectory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.RAMDirectory;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -892,6 +894,60 @@ public class IndexCopierTest {
         pauseCopyLatch.countDown();
         closer.join();
         assertNotNull("Close should have thrown an exception", error.get());
+    }
+
+    @Ignore("OAK-3110")
+    @Test
+    public void cowAndCorConcurrentAccess() throws Exception{
+        CollectingExecutor executor = new CollectingExecutor();
+        Directory baseDir = new CloseSafeDir();
+        String indexPath = "/foo";
+        builder.setProperty(LuceneIndexConstants.INDEX_PATH, indexPath);
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+        IndexCopier copier = new RAMIndexCopier(baseDir, executor, getWorkDir(), true);
+
+        Directory remote = new CloseSafeDir();
+        byte[] f1 = writeFile(remote, "f1");
+
+        Directory cor1 = copier.wrapForRead(indexPath, defn, remote);
+        readAndAssert(cor1, "f1", f1);
+        cor1.close();
+
+        final CountDownLatch pauseCopyLatch = new CountDownLatch(1);
+        Directory remote2 = new FilterDirectory(remote) {
+            @Override
+            public IndexOutput createOutput(String name, IOContext context) throws IOException {
+                try {
+                    pauseCopyLatch.await();
+                } catch (InterruptedException ignore) {
+
+                }
+                return super.createOutput(name, context);
+            }
+        };
+
+        //Start copying a file to remote via COW
+        Directory cow1 = copier.wrapForWrite(defn, remote2, false);
+        byte[] f2 = writeFile(cow1, "f2");
+
+        //Before copy is done to remote lets delete f1 from remote and
+        //open a COR and close it such that it triggers delete of f1
+        remote.deleteFile("f1");
+        Directory cor2 = copier.wrapForRead(indexPath, defn, remote);
+
+        //Ensure that deletion task submitted to executor get processed immediately
+        executor.enableImmediateExecution();
+        cor2.close();
+        executor.enableDelayedExecution();
+
+        assertFalse(baseDir.fileExists("f1"));
+        assertFalse("f2 should not have been copied to remote so far", remote.fileExists("f2"));
+        assertTrue("f2 should exist", baseDir.fileExists("f2"));
+
+        pauseCopyLatch.countDown();
+        cow1.close();
+        assertTrue("f2 should exist", remote.fileExists("f2"));
+
     }
 
     private byte[] writeFile(Directory dir, String name) throws IOException {
