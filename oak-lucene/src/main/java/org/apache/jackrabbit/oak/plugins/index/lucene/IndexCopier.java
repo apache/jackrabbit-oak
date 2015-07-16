@@ -136,7 +136,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
 
     public Directory wrapForWrite(IndexDefinition definition, Directory remote, boolean reindexMode) throws IOException {
         Directory local = createLocalDirForIndexWriter(definition);
-        return new CopyOnWriteDirectory(remote, local, reindexMode);
+        return new CopyOnWriteDirectory(remote, local, reindexMode, getIndexPathForLogging(definition));
     }
 
     @Override
@@ -248,6 +248,14 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
         FileUtils.deleteDirectory(workDir);
         checkState(workDir.mkdirs(), "Cannot create directory %s", workDir);
         return workDir;
+    }
+
+    private static String getIndexPathForLogging(IndexDefinition defn){
+        String indexPath = defn.getIndexPathFromConfig();
+        if (indexPath == null){
+            return "UNKNOWN";
+        }
+        return indexPath;
     }
 
     /**
@@ -540,6 +548,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
         private final AtomicReference<Throwable> errorInCopy = new AtomicReference<Throwable>();
         private final CountDownLatch copyDone = new CountDownLatch(1);
         private final boolean reindexMode;
+        private final String indexPathForLogging;
 
         /**
          * Current background task
@@ -558,7 +567,8 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
                         Callable<Void> task = queue.poll();
                         if (task != null && task != STOP) {
                             if (errorInCopy.get() != null) {
-                                log.trace("Skipping task {} as some exception occurred in previous run", task);
+                                log.trace("[COW][{}] Skipping task {} as some exception occurred in previous run",
+                                        indexPathForLogging, task);
                             } else {
                                 task.call();
                             }
@@ -571,7 +581,8 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
                         }
                     } catch (Throwable t) {
                         errorInCopy.set(t);
-                        log.debug("Error occurred while copying files. Further processing would be skipped", t);
+                        log.debug("[COW][{}] Error occurred while copying files. Further processing would " +
+                                "be skipped", indexPathForLogging, t);
                         currentTask.onComplete(completionHandler);
                     }
                     return null;
@@ -590,10 +601,12 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
             }
         };
 
-        public CopyOnWriteDirectory(Directory remote, Directory local, boolean reindexMode) throws IOException {
+        public CopyOnWriteDirectory(Directory remote, Directory local, boolean reindexMode,
+                                    String indexPathForLogging) throws IOException {
             super(local);
             this.remote = remote;
             this.local = local;
+            this.indexPathForLogging = indexPathForLogging;
             this.reindexMode = reindexMode;
             initialize();
         }
@@ -610,7 +623,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
 
         @Override
         public void deleteFile(String name) throws IOException {
-            log.trace("[COW] Deleted file {}", name);
+            log.trace("[COW][{}] Deleted file {}", indexPathForLogging, name);
             COWFileReference ref = fileMap.remove(name);
             if (ref != null) {
                 ref.delete();
@@ -674,7 +687,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
                                 "while processing copy task for" + remote.toString());
                     }
                 }
-                PERF_LOGGER.end(start, -1, "Completed pending copying task {}", pendingCopies);
+                PERF_LOGGER.end(start, -1, "[COW][{}] Completed pending copying task {}", indexPathForLogging, pendingCopies);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new IOException(e);
@@ -682,7 +695,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
 
             Throwable t = errorInCopy.get();
             if (t != null){
-                throw new IOException("Error occurred while copying files", t);
+                throw new IOException("Error occurred while copying files for " + indexPathForLogging, t);
             }
 
             //Sanity check
@@ -697,15 +710,15 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
 
             skippedFromUploadSize.addAndGet(skippedFilesSize);
 
-            String msg = "CopyOnWrite stats : Skipped copying {} files with total size {}";
+            String msg = "[COW][{}] CopyOnWrite stats : Skipped copying {} files with total size {}";
             if (reindexMode || skippedFilesSize > 10 * FileUtils.ONE_MB){
-                log.info(msg, skippedFiles.size(), humanReadableByteCount(skippedFilesSize));
+                log.info(msg, indexPathForLogging, skippedFiles.size(), humanReadableByteCount(skippedFilesSize));
             } else {
-                log.debug(msg, skippedFiles.size(), humanReadableByteCount(skippedFilesSize));
+                log.debug(msg,indexPathForLogging, skippedFiles.size(), humanReadableByteCount(skippedFilesSize));
             }
 
             if (log.isTraceEnabled()){
-                log.trace("File listing - Upon completion {}", Arrays.toString(remote.listAll()));
+                log.trace("[COW][{}] File listing - Upon completion {}", indexPathForLogging, Arrays.toString(remote.listAll()));
             }
 
             local.close();
@@ -714,7 +727,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
 
         @Override
         public String toString() {
-            return String.format("[COW] Local %s, Remote %s", local, remote);
+            return String.format("[COW][%s] Local %s, Remote %s", indexPathForLogging, local, remote);
         }
 
         private long getSkippedFilesSize() {
@@ -741,7 +754,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
             }
 
             if (log.isTraceEnabled()){
-                log.trace("File listing - Start" + Arrays.toString(remote.listAll()));
+                log.trace("[COW][{}] File listing - At start {}", indexPathForLogging, Arrays.toString(remote.listAll()));
             }
         }
 
@@ -753,7 +766,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
                     scheduledForCopyCount.decrementAndGet();
                     if (deletedFilesLocal.contains(name)){
                         skippedFiles.add(name);
-                        log.trace("[COW] Skip copying of deleted file {}", name);
+                        log.trace("[COW][{}] Skip copying of deleted file {}", indexPathForLogging, name);
                         return null;
                     }
                     long fileSize = local.fileLength(name);
@@ -764,7 +777,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
                     local.copy(remote, name, name, IOContext.DEFAULT);
 
                     doneCopy(file, start);
-                    PERF_LOGGER.end(perfStart, 0, "Copied to remote {} ", name);
+                    PERF_LOGGER.end(perfStart, 0, "[COW][{}] Copied to remote {} ",indexPathForLogging, name);
                     return null;
                 }
 
@@ -780,7 +793,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
                 @Override
                 public Void call() throws Exception {
                     if (!skippedFiles.contains(name)) {
-                        log.trace("[COW] Marking as deleted {}", name);
+                        log.trace("[COW][{}] Marking as deleted {}", indexPathForLogging, name);
                         remote.deleteFile(name);
                     }
                     return null;
@@ -895,7 +908,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
 
             @Override
             public IndexOutput createOutput(IOContext context) throws IOException {
-                log.debug("[COW] Creating output {}", name);
+                log.debug("[COW][{}] Creating output {}", indexPathForLogging, name);
                 return new CopyOnCloseIndexOutput(local.createOutput(name, context));
             }
 
