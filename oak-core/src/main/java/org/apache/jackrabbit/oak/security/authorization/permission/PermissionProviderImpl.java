@@ -39,6 +39,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Repositor
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 
 public class PermissionProviderImpl implements PermissionProvider, AccessControlConstants, PermissionConstants, AggregatedPermissionProvider {
 
@@ -110,41 +112,33 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         boolean isAcContent = ctx.definesLocation(location);
         long permissions = Permissions.getPermissions(jcrActions, location, isAcContent);
 
-        boolean isGranted = false;
-        PropertyState property = location.getProperty();
-        Tree tree = (property == null) ? location.getTree() : location.getParent().getTree();
-        if (tree != null) {
-            isGranted = isGranted(tree, property, permissions);
-        } else if (!isVersionStorePath(oakPath)) {
-            isGranted = compiledPermissions.isGranted(oakPath, permissions);
-        }
-        return isGranted;
+        return isGranted(location, oakPath, permissions);
     }
 
     //---------------------------------------< AggregatedPermissionProvider >---
     @Override
-    public boolean handles(@Nonnull String path, @Nonnull String jcrAction) {
-        return true;
+    public PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits) {
+        return (privilegeBits != null) ? privilegeBits : new PrivilegeBitsProvider(immutableRoot).getBits(PrivilegeConstants.JCR_ALL);
     }
 
     @Override
-    public boolean handles(@Nonnull Tree tree, @Nonnull PrivilegeBits privilegeBits) {
-        return true;
+    public long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property, long permissions) {
+        return permissions;
     }
 
     @Override
-    public boolean handles(@Nonnull Tree tree, long permission) {
-        return true;
+    public long supportedPermissions(@Nonnull TreeLocation location, long permissions) {
+        return permissions;
     }
 
     @Override
-    public boolean handles(@Nonnull TreePermission treePermission, long permission) {
-        return true;
+    public long supportedPermissions(@Nonnull TreePermission treePermission, long permissions) {
+        return permissions;
     }
 
     @Override
-    public boolean handlesRepositoryPermissions() {
-        return true;
+    public boolean isGranted(@Nonnull TreeLocation location, long permissions) {
+        return isGranted(location, location.getPath(), permissions);
     }
 
     //--------------------------------------------------------------------------
@@ -158,5 +152,17 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
             }
         }
         return false;
+    }
+
+    private boolean isGranted(@Nonnull TreeLocation location, @Nonnull String oakPath, long permissions) {
+        boolean isGranted = false;
+        PropertyState property = location.getProperty();
+        Tree tree = (property == null) ? location.getTree() : location.getParent().getTree();
+        if (tree != null) {
+            isGranted = isGranted(tree, property, permissions);
+        } else if (!isVersionStorePath(location.getPath())) {
+            isGranted = compiledPermissions.isGranted(oakPath, permissions);
+        }
+        return isGranted;
     }
 }

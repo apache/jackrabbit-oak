@@ -355,6 +355,15 @@ public final class PrivilegeBits implements PrivilegeConstants {
         }
     }
 
+    @Nonnull
+    public PrivilegeBits modifiable() {
+        if (d instanceof ModifiableData) {
+            return this;
+        } else {
+            return getInstance(this);
+        }
+    }
+
     /**
      * Returns {@code true} if all privileges defined by the specified
      * {@code otherBits} are present in this instance.

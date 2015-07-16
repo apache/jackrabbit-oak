@@ -34,16 +34,17 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -65,6 +66,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
     public void before() throws Exception {
         super.before();
 
+        // create testGroup with 'testuser2' being a declared member (testUser is not)
         Group testGroup = getUserManager(root).createGroup(TEST_GROUP_ID);
         testGroupPrincipal = testGroup.getPrincipal();
         User testUser2 = getUserManager(root).createUser(TEST_USER2_ID, TEST_USER2_ID);
@@ -82,7 +84,9 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
         createCug("/content/a/b/c", EveryonePrincipal.getInstance());
         createCug("/content2", EveryonePrincipal.getInstance());
 
-        // setup regular acl at /content
+        // setup regular acl at /content:
+        // - testUser  ; allow ; jcr:read
+        // - testGroup ; allow ; jcr:read, jcr:write, jcr:readAccessControl
         AccessControlManager acMgr = getAccessControlManager(root);
         AccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/content");
         acl.addAccessControlEntry(getTestUser().getPrincipal(), privilegesFromNames(
@@ -202,11 +206,16 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
 
     @Test
     public void testWrite2() throws Exception {
+        Set<Principal> principalSet = (Set<Principal>) getConfig(PrincipalConfiguration.class).getPrincipalProvider(root, NamePathMapper.DEFAULT).getPrincipals(TEST_USER2_ID);
+        PermissionProvider pp = createPermissionProvider(principalSet);
+        assertTrue(pp.isGranted(root.getTree("/content/writeTest"), null, Permissions.ADD_NODE));
+        assertTrue(pp.isGranted(root.getTree("/content/a/b/c/writeTest"), null, Permissions.ADD_NODE));
+
         ContentSession cs = login(new SimpleCredentials(TEST_USER2_ID, TEST_USER2_ID.toCharArray()));
         Root r = cs.getLatestRoot();
         try {
-            List<String> readOnly = ImmutableList.of("/content", "/content/a/b/c");
-            for (String p : readOnly) {
+            List<String> paths = ImmutableList.of("/content", "/content/a/b/c");
+            for (String p : paths) {
                 NodeUtil content = new NodeUtil(r.getTree(p));
                 content.addChild("writeTest", NT_OAK_UNSTRUCTURED);
                 r.commit();
@@ -401,10 +410,10 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
         assertTrue(pp.hasPrivileges(root.getTree("/content/a/b/c"), PrivilegeConstants.JCR_ALL));
     }
 
-    @Ignore() // FIXME
     @Test
     public void testGetPrivileges() throws Exception {
         Tree content = root.getTree("/content");
+        Tree content2 = root.getTree("/content2");
         Tree a = root.getTree("/content/a");
         Tree c = root.getTree("/content/a/b/c");
 
@@ -419,6 +428,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
         assertEquals(r_w_rac, pp.getPrivileges(content));
         assertEquals(r_w_rac, pp.getPrivileges(a));
         assertEquals(w_rac, pp.getPrivileges(c));
+        assertTrue(pp.getPrivileges(content2).isEmpty());
 
         // everyone
         principals = ImmutableSet.<Principal>of(EveryonePrincipal.getInstance());
@@ -426,7 +436,8 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
 
         assertTrue(pp.getPrivileges(content).isEmpty());
         assertTrue(pp.getPrivileges(a).isEmpty());
-        assertTrue(pp.getPrivileges(c).isEmpty());
+        assertEquals(r, pp.getPrivileges(c));
+        assertEquals(r, pp.getPrivileges(content2));
 
         // testGroup + everyone
         principals = ImmutableSet.of(testGroupPrincipal, EveryonePrincipal.getInstance());
@@ -435,6 +446,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
         assertEquals(r_w_rac, pp.getPrivileges(content));
         assertEquals(r_w_rac, pp.getPrivileges(a));
         assertEquals(r_w_rac, pp.getPrivileges(c));
+        assertEquals(r, pp.getPrivileges(content2));
 
         // testUser + everyone
         principals = ImmutableSet.of(getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
@@ -443,5 +455,6 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
         assertEquals(r, pp.getPrivileges(content));
         assertTrue(pp.getPrivileges(a).isEmpty());
         assertEquals(r, pp.getPrivileges(c));
+        assertEquals(r, pp.getPrivileges(content2));
     }
 }
