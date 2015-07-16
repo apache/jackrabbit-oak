@@ -74,6 +74,8 @@ class FilterQueryParser {
                 String sortingField;
                 if ("jcr:path".equals(orderEntry.getPropertyName())) {
                     sortingField = configuration.getPathField();
+                } else if ("jcr:score".equals(orderEntry.getPropertyName())) {
+                    sortingField = "score";
                 } else {
                     sortingField = getSortingField(orderEntry.getPropertyType().tag(), orderEntry.getPropertyName());
                 }
