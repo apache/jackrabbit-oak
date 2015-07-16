@@ -20,15 +20,16 @@ import java.util.Iterator;
 
 import com.google.common.collect.ImmutableList;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.TestUtils;
 import org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.solr.util.SolrIndexInitializer;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
@@ -37,6 +38,8 @@ import org.apache.solr.client.solrj.SolrServer;
 import org.junit.After;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import javax.jcr.query.Query;
 
 import static java.util.Arrays.asList;
 import static junit.framework.Assert.assertEquals;
@@ -71,7 +74,6 @@ public class SolrIndexQueryTestIT extends AbstractQueryTest {
         solrServer = provider.getSolrServer();
         try {
             return new Oak().with(new InitialContent())
-                    .with(new SolrIndexInitializer())
                     .with(new OpenSecurityProvider())
                     .with(new CompositeQueryIndexProvider(
                             new SolrQueryIndexProvider(provider, provider),
@@ -486,5 +488,33 @@ public class SolrIndexQueryTestIT extends AbstractQueryTest {
         assertTrue(result.hasNext());
         assertEquals("/test/b", result.next());
         assertFalse(result.hasNext());
+    }
+    
+    @Test
+    public void testOrderByJcrScore() throws Exception {
+        Tree index = root.getTree("/oak:index/" + TEST_INDEX_NAME);
+        assertTrue(index.exists());
+
+        index.setProperty("pathRestrictions", true);
+        index.setProperty("rows", 10000);
+        index.setProperty("reindex", true);
+        root.commit();
+        
+        Tree content = root.getTree("/").addChild("content");
+        Tree a = content.addChild("a");
+        a.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
+        a.setProperty("type", "doc doc doc");
+        root.commit();
+                
+        String statement = "select [jcr:path], [jcr:score], [rep:excerpt] " +
+            "from [nt:unstructured] as a " + 
+            "where contains(*, 'doc') " +
+            "and isdescendantnode(a, '/content') " +
+            "order by [jcr:score] desc";
+
+        Iterator<String> results = executeQuery(statement, Query.JCR_SQL2, true).iterator();
+        assertTrue(results.hasNext());
+        assertEquals("/content/a", results.next());
+        assertFalse(results.hasNext());
     }
 }
