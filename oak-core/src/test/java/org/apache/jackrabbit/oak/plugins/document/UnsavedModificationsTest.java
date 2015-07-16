@@ -20,17 +20,24 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.google.common.base.Stopwatch;
+import com.google.common.collect.Sets;
+
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.util.MapDBMapFactory;
+import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.junit.Ignore;
 import org.junit.Test;
 
-/**
- * Test for OAK-2888
- */
 public class UnsavedModificationsTest {
 
+    private static final String CHARS = "abcdefghijklmnopqrstuvwxyz";
+
+    // OAK-2888
     @Test
     public void concurrent() throws Exception {
         final List<Exception> exceptions = Collections.synchronizedList(
@@ -115,4 +122,78 @@ public class UnsavedModificationsTest {
         }
     }
 
+    // OAK-3112
+    @Ignore
+    @Test
+    public void performance() throws Exception {
+        DocumentStore store = new MemoryDocumentStore() {
+            @Override
+            public <T extends Document> void update(Collection<T> collection,
+                                                    List<String> keys,
+                                                    UpdateOp updateOp) {
+                // ignore call
+            }
+        };
+        final DocumentNodeStore ns = new DocumentMK.Builder().setDocumentStore(store)
+                .getNodeStore();
+
+        // MapFactory factory = MapFactory.getInstance();
+        MapFactory factory = new MapDBMapFactory();
+        final UnsavedModifications pending = new UnsavedModifications(factory);
+
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Random random = new Random(42);
+                Set<String> paths = Sets.newHashSet();
+                int num = 0;
+                for (int i = 0; i < 1000; i++) {
+                    String n1 = randomName(random, 20);
+                    for (int j = 0; j < 100; j++) {
+                        String n2 = randomName(random, 20);
+                        for (int k = 0; k < 100; k++) {
+                            num++;
+                            String n3 = randomName(random, 20);
+                            paths.add("/");
+                            paths.add(PathUtils.concat("/", n1));
+                            paths.add(PathUtils.concat("/", n1, n2));
+                            paths.add(PathUtils.concat("/", n1, n2, n3));
+                            if (paths.size() >= 20) {
+                                Revision r = new Revision(num, 0, 1);
+                                for (String p : paths) {
+                                    pending.put(p, r);
+                                }
+                                paths.clear();
+                            }
+                            if (num % 1000 == 0) {
+                                pending.persist(ns, new ReentrantLock());
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        t.start();
+
+        Set<String> keys = Sets.newHashSet();
+        while (t.isAlive()) {
+            keys.clear();
+            Stopwatch sw = Stopwatch.createStarted();
+            keys.addAll(pending.getPaths());
+            sw.stop();
+            System.out.println(keys.size() + " keys in " + sw);
+            keys.clear();
+            Thread.sleep(1000);
+        }
+        pending.close();
+        ns.dispose();
+    }
+
+    private static String randomName(Random r, int len) {
+        StringBuilder sb = new StringBuilder(len);
+        for (int i = 0; i < len; i++) {
+            sb.append(CHARS.charAt(r.nextInt(CHARS.length())));
+        }
+        return sb.toString();
+    }
 }
