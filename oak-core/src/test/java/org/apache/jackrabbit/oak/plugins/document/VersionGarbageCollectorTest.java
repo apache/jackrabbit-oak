@@ -46,6 +46,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import com.google.common.base.Predicate;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -191,13 +192,22 @@ public class VersionGarbageCollectorTest {
     }
 
     @Test
-    public void gcSplitDocs() throws Exception{
+    public void gcSplitDocs() throws Exception {
+        gcSplitDocsInternal("foo");
+    }
+    
+    @Test
+    public void gcLongPathSplitDocs() throws Exception {
+        gcSplitDocsInternal(Strings.repeat("sub", 120));
+    }
+    
+    private void gcSplitDocsInternal(String subNodeName) throws Exception {
         long maxAge = 1; //hrs
         long delta = TimeUnit.MINUTES.toMillis(10);
 
         NodeBuilder b1 = store.getRoot().builder();
-        b1.child("test").child("foo").child("bar");
-        b1.child("test2").child("foo");
+        b1.child("test").child(subNodeName).child("bar");
+        b1.child("test2").child(subNodeName);
         store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         //Commit on a node which has a child and where the commit root
@@ -206,18 +216,18 @@ public class VersionGarbageCollectorTest {
             b1 = store.getRoot().builder();
             //This updates a middle node i.e. one which has child bar
             //Should result in SplitDoc of type PROP_COMMIT_ONLY
-            b1.child("test").child("foo").setProperty("prop",i);
+            b1.child("test").child(subNodeName).setProperty("prop",i);
 
             //This should result in SplitDoc of type DEFAULT_NO_CHILD
-            b1.child("test2").child("foo").setProperty("prop", i);
+            b1.child("test2").child(subNodeName).setProperty("prop", i);
             store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         }
         store.runBackgroundOperations();
 
         List<NodeDocument> previousDocTestFoo =
-                ImmutableList.copyOf(getDoc("/test/foo").getAllPreviousDocs());
+                ImmutableList.copyOf(getDoc("/test/" + subNodeName).getAllPreviousDocs());
         List<NodeDocument> previousDocTestFoo2 =
-                ImmutableList.copyOf(getDoc("/test2/foo").getAllPreviousDocs());
+                ImmutableList.copyOf(getDoc("/test2/" + subNodeName).getAllPreviousDocs());
 
         assertEquals(1, previousDocTestFoo.size());
         assertEquals(1, previousDocTestFoo2.size());
@@ -314,9 +324,9 @@ public class VersionGarbageCollectorTest {
         b1 = store.getRoot().builder();
         b1.getChildNode("test-7").remove();
         names.remove("test-7");
-
+    
         store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
+    
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge) + delta);
 
         VersionGCStats stats = gc.gc(maxAge, HOURS);
