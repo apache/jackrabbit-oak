@@ -24,8 +24,8 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
+import java.io.IOException;
 import java.io.InputStream;
-import java.util.Random;
 
 import com.google.common.base.Strings;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
@@ -40,7 +40,7 @@ import org.junit.rules.TemporaryFolder;
 public class ExternalBlobReferenceTest {
 
     @Rule
-    public TemporaryFolder segmentFolder = new TemporaryFolder();
+    public final TemporaryFolder segmentFolder = new TemporaryFolder();
 
     private FileStore fileStore;
 
@@ -53,15 +53,15 @@ public class ExternalBlobReferenceTest {
     }
 
     @After
-    public void destroyFileStore() throws Exception {
+    public void destroyFileStore() {
         fileStore.close();
     }
 
     /**
      * The {@code SegmentWriter} should be able to write blob IDs whose length
-     * is between 0 and 4095 bytes. It should be possible to correctly read the
-     * blob ID back and pass it to the {@code BlobStore} to obtain information
-     * about the blob.
+     * is between 0 and {@code Segment.BLOB_ID_SMALL_LIMIT - 1} bytes. It should
+     * be possible to correctly read the blob ID back and pass it to the {@code
+     * BlobStore} to obtain information about the blob.
      * <p/>
      * This code path executes only if the written stream is {@code
      * Segment.MEDIUM_LIMIT} bytes long (or more). If the length of the stream
@@ -71,8 +71,32 @@ public class ExternalBlobReferenceTest {
      * See OAK-3105.
      */
     @Test
-    public void testBlobIdLengthUpperLimit() throws Exception {
-        String blobId = Strings.repeat("x", 4095);
+    public void testShortBlobId() throws Exception {
+        testBlobIdWithLength(Segment.BLOB_ID_SMALL_LIMIT - 1);
+    }
+
+    /**
+     * If the {@code BlobStore} returns a blob ID whose length is {@code
+     * Segment.BLOB_ID_SMALL_LIMIT} bytes long (or more), writing the stream
+     * should succeed. In this case, the blob ID is considered a long blob ID
+     * and an alternate encoding is used. It should be possible to correctly
+     * read the blob ID back and pass it to the {@code BlobStore} to obtain
+     * information about the blob.
+     * <p/>
+     * This code path executes only if the written stream is {@code
+     * Segment.MEDIUM_LIMIT} bytes long (or more). If the length of the stream
+     * is smaller, the binary value is inlined in the segment and the {@code
+     * BlobStore} is never called.
+     * <p/>
+     * See OAK-3105 and OAK-3107.
+     */
+    @Test
+    public void testLongBlobId() throws Exception {
+        testBlobIdWithLength(Segment.BLOB_ID_SMALL_LIMIT);
+    }
+
+    private void testBlobIdWithLength(int blobIdLength) throws Exception {
+        String blobId = Strings.repeat("x", blobIdLength);
         long blobLength = Segment.MEDIUM_LIMIT;
 
         doReturn(blobId).when(blobStore).writeBlob(any(InputStream.class));
@@ -83,47 +107,49 @@ public class ExternalBlobReferenceTest {
         assertEquals(blobLength, blob.length());
     }
 
-    /**
-     * If the {@code BlobStore} returns a blob ID whose length is 4096 byes long
-     * (or more), writing the stream should throw an {@code
-     * IllegalArgumentException}.
-     * <p/>
-     * This code path executes only if the written stream is {@code
-     * Segment.MEDIUM_LIMIT} bytes long (or more). If the length of the stream
-     * is smaller, the binary value is inlined in the segment and the {@code
-     * BlobStore} is never called.
-     * <p/>
-     * See OAK-3105.
-     */
-    @Test(expected = IllegalArgumentException.class)
-    public void testBlobIdLengthLongerThanUpperLimit() throws Exception {
-        String blobId = Strings.repeat("x", 4096);
-        long blobLength = Segment.MEDIUM_LIMIT;
-
-        doReturn(blobId).when(blobStore).writeBlob(any(InputStream.class));
-
-        fileStore.getTracker().getWriter().writeStream(newRandomInputStream(blobLength));
+    private static InputStream newRandomInputStream(long size) {
+        return new LimitInputStream(new ConstantInputStream(0), size);
     }
 
-    private InputStream newRandomInputStream(final long size) {
-        return new InputStream() {
+    private static class ConstantInputStream extends InputStream {
 
-            private Random random = new Random();
+        private final int value;
 
-            private int read = 0;
+        public ConstantInputStream(int value) {
+            this.value = value;
+        }
 
-            @Override
-            public int read() {
-                if (read >= size) {
-                    return -1;
-                }
+        @Override
+        public int read() {
+            return value;
+        }
 
-                read += 1;
+    }
 
-                return random.nextInt() & 0xFF;
+    private static class LimitInputStream extends InputStream {
+
+        private final InputStream stream;
+
+        private final long limit;
+
+        private long read = 0;
+
+        public LimitInputStream(InputStream stream, long limit) {
+            this.stream = stream;
+            this.limit = limit;
+        }
+
+        @Override
+        public int read() throws IOException {
+            if (read >= limit) {
+                return -1;
             }
 
-        };
+            read = read + 1;
+
+            return stream.read();
+        }
+
     }
 
 }
