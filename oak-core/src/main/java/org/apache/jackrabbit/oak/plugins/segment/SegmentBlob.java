@@ -79,10 +79,11 @@ public class SegmentBlob extends Record implements Blob {
                     segment.readRecordId(offset + 8), listSize);
             return new SegmentStream(getRecordId(), list, length);
         } else if ((head & 0xf0) == 0xe0) {
-            // 1110 xxxx: external value
-            String refererence = readReference(segment, offset, head);
-            return segment.getSegmentId().getTracker().getStore()
-                    .readBlob(refererence).getNewStream();
+            // 1110 xxxx: external value, short blob ID
+            return getNewStream(readShortBlobId(segment, offset, head));
+        } else if ((head & 0xf8) == 0xf0) {
+            // 1111 0xxx: external value, long blob ID
+            return getNewStream(readLongBlobId(segment, offset));
         } else {
             throw new IllegalStateException(String.format(
                     "Unexpected value record type: %02x", head & 0xff));
@@ -104,15 +105,11 @@ public class SegmentBlob extends Record implements Blob {
             // 110x xxxx: long value
             return (segment.readLong(offset) & 0x1fffffffffffffffL) + MEDIUM_LIMIT;
         } else if ((head & 0xf0) == 0xe0) {
-            // 1110 xxxx: external value
-            String reference = readReference(segment, offset, head);
-            long length = segment.getSegmentId().getTracker().getStore()
-                    .readBlob(reference).length();
-            if (length == -1) {
-                throw new IllegalStateException(
-                        "Unknown length of external binary: " + reference);
-            }
-            return length;
+            // 1110 xxxx: external value, short blob ID
+            return getLength(readShortBlobId(segment, offset, head));
+        } else if ((head & 0xf8) == 0xf0) {
+            // 1111 0xxx: external value, long blob ID
+            return getLength(readLongBlobId(segment, offset));
         } else {
             throw new IllegalStateException(String.format(
                     "Unexpected value record type: %02x", head & 0xff));
@@ -150,8 +147,8 @@ public class SegmentBlob extends Record implements Blob {
         Segment segment = getSegment();
         int offset = getOffset();
         byte head = segment.readByte(offset);
-        // 1110 xxxx: external value
-        return (head & 0xf0) == 0xe0;
+        // 1110 xxxx or 1111 0xxx: external value
+        return (head & 0xf0) == 0xe0 || (head & 0xf8) == 0xf0;
     }
 
     public String getBlobId() {
@@ -159,8 +156,11 @@ public class SegmentBlob extends Record implements Blob {
         int offset = getOffset();
         byte head = segment.readByte(offset);
         if ((head & 0xf0) == 0xe0) {
-            // 1110 xxxx: external value
-            return readReference(segment, offset, head);
+            // 1110 xxxx: external value, small blob ID
+            return readShortBlobId(segment, offset, head);
+        } else if ((head & 0xf8) == 0xf0) {
+            // 1111 0xxx: external value, long blob ID
+            return readLongBlobId(segment, offset);
         } else {
             return null;
         }
@@ -191,7 +191,10 @@ public class SegmentBlob extends Record implements Blob {
                 return writer.writeLargeBlob(length, list.getEntries());
             }
         } else if ((head & 0xf0) == 0xe0) {
-            // 1110 xxxx: external value
+            // 1110 xxxx: external value, short blob ID
+            return writer.writeExternalBlob(getBlobId());
+        } else if ((head & 0xf8) == 0xf0) {
+            // 1111 0xxx: external value, long blob ID
             return writer.writeExternalBlob(getBlobId());
         } else {
             throw new IllegalStateException(String.format(
@@ -222,12 +225,16 @@ public class SegmentBlob extends Record implements Blob {
 
     //-----------------------------------------------------------< private >--
 
-    private static String readReference(
-            Segment segment, int offset, byte head) {
+    private static String readShortBlobId(Segment segment, int offset, byte head) {
         int length = (head & 0x0f) << 8 | (segment.readByte(offset + 1) & 0xff);
         byte[] bytes = new byte[length];
         segment.readBytes(offset + 2, bytes, 0, length);
         return new String(bytes, UTF_8);
+    }
+
+    private static String readLongBlobId(Segment segment, int offset) {
+        RecordId blobIdRecordId = segment.readRecordId(offset + 1);
+        return Segment.readString(blobIdRecordId);
     }
 
     private Iterable<SegmentId> getBulkSegmentIds() {
@@ -248,6 +255,24 @@ public class SegmentBlob extends Record implements Blob {
         } else {
             return emptySet();
         }
+    }
+
+    private Blob getBlob(String blobId) {
+        return getSegment().getSegmentId().getTracker().getStore().readBlob(blobId);
+    }
+
+    private InputStream getNewStream(String blobId) {
+        return getBlob(blobId).getNewStream();
+    }
+
+    private long getLength(String blobId) {
+        long length = getBlob(blobId).length();
+
+        if (length == -1) {
+            throw new IllegalStateException(String.format("Unknown length of external binary: %s", blobId));
+        }
+
+        return length;
     }
 
 }
