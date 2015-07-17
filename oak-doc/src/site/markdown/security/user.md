@@ -241,6 +241,17 @@ are
 See section [Password Expiry and Force Initial Password Change](user/expiry.html)
 for details.
 
+#### Password History
+
+Since Oak 1.3.3 the default user management implementation provides password
+history support.
+
+By default this feature is disabled. The corresponding configuration option is
+
+- `PARAM_PASSWORD_HISTORY_SIZE`: number of changed passwords to remember.
+
+See section [Password History](user/history.html) for details.
+
 #### Utilities
 
 `org.apache.jackrabbit.oak.spi.security.user.*`
@@ -283,6 +294,7 @@ as of OAK 1.0:
 | `PARAM_IMPORT_BEHAVIOR`             | String ("abort", "ignore", "besteffort") | "ignore"    |
 | `PARAM_PASSWORD_MAX_AGE`            | int     | 0                                            |
 | `PARAM_PASSWORD_INITIAL_CHANGE`     | boolean | false                                        |
+| `PARAM_PASSWORD_HISTORY_SIZE`       | int (upper limit: 1000) | 0                            |
 | | | |
 
 The following configuration parameters present with the default implementation in Jackrabbit 2.x are no longer supported and will be ignored:
@@ -317,6 +329,7 @@ implementation on various levels:
 - [Authorizable Node Name](user/authorizablenodename.html)
 - [Searching Users and Groups](user/query.html)
 - [Password Expiry and Force Initial Password Change](user/expiry.html)
+- [Password History](user/history.html)
 
 <!-- hidden references -->
 [everyone]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/EveryonePrincipal.html#NAME

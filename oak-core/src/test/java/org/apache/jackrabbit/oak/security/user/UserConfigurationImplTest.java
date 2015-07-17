@@ -41,6 +41,7 @@ public class UserConfigurationImplTest extends AbstractSecurityTest {
     private static final boolean SUPPORT_AUTOSAVE = true;
     private static final Integer MAX_AGE = 10;
     private static final boolean INITIAL_PASSWORD_CHANGE = true;
+    private static final Integer PASSWORD_HISTORY_SIZE = 12;
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
@@ -71,6 +72,7 @@ public class UserConfigurationImplTest extends AbstractSecurityTest {
         assertEquals(parameters.getConfigValue(UserConstants.PARAM_SUPPORT_AUTOSAVE, false), SUPPORT_AUTOSAVE);
         assertEquals(parameters.getConfigValue(UserConstants.PARAM_PASSWORD_MAX_AGE, UserConstants.DEFAULT_PASSWORD_MAX_AGE), MAX_AGE);
         assertEquals(parameters.getConfigValue(UserConstants.PARAM_PASSWORD_INITIAL_CHANGE, UserConstants.DEFAULT_PASSWORD_INITIAL_CHANGE), INITIAL_PASSWORD_CHANGE);
+        assertEquals(parameters.getConfigValue(UserConstants.PARAM_PASSWORD_HISTORY_SIZE, UserConstants.PASSWORD_HISTORY_DISABLED_SIZE), PASSWORD_HISTORY_SIZE);
     }
 
     private ConfigurationParameters getParams() {
@@ -85,6 +87,7 @@ public class UserConfigurationImplTest extends AbstractSecurityTest {
             put(UserConstants.PARAM_SUPPORT_AUTOSAVE, SUPPORT_AUTOSAVE);
             put(UserConstants.PARAM_PASSWORD_MAX_AGE, MAX_AGE);
             put(UserConstants.PARAM_PASSWORD_INITIAL_CHANGE, INITIAL_PASSWORD_CHANGE);
+            put(UserConstants.PARAM_PASSWORD_HISTORY_SIZE, PASSWORD_HISTORY_SIZE);
         }});
         return params;
     }
