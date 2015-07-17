@@ -65,7 +65,7 @@ public class DataStoreTestBase extends TestBase {
         return FileStore.newFileStore(d)
             .withMaxFileSize(1)
             .withMemoryMapping(false)
-            .withCacheSize(1)
+            .withNoCache()
             .withBlobStore(blobStore)
             .create();
     }
