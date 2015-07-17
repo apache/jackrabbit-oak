@@ -89,6 +89,15 @@ public class Segment {
      */
     public static final int MEDIUM_LIMIT = (1 << (16 - 2)) + SMALL_LIMIT;
 
+    /**
+     * Maximum size of small blob IDs. A small blob ID is stored in a value
+     * record whose length field contains the pattern "1110" in its most
+     * significant bits. Since two bytes are used to store both the bit pattern
+     * and the actual length of the blob ID, a maximum of 2^12 values can be
+     * stored in the length field.
+     */
+    public static final int BLOB_ID_SMALL_LIMIT = 1 << 12;
+
     public static int REF_COUNT_OFFSET = 5;
 
     static int ROOT_COUNT_OFFSET = 6;
