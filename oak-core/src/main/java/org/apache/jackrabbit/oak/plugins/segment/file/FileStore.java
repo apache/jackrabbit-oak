@@ -475,12 +475,18 @@ public class FileStore implements SegmentStore {
                 gcMonitor.skipped("TarMK compaction paused");
             }
         } else {
-            gcMonitor.skipped(
-                    "Estimated compaction in {}, gain is {}% ({}/{}) or ({}/{}), so skipping compaction for now",
-                    watch, gain, estimate.getReachableSize(),
-                    estimate.getTotalSize(),
-                    humanReadableByteCount(estimate.getReachableSize()),
-                    humanReadableByteCount(estimate.getTotalSize()));
+            if (estimate.getTotalSize() == 0) {
+                gcMonitor.skipped(
+                        "Estimated compaction in {}. Skipping compaction for now as repository " +
+                        "consists of a single tar file only", watch);
+            } else {
+                gcMonitor.skipped(
+                        "Estimated compaction in {}, gain is {}% ({}/{}) or ({}/{}), so skipping compaction for now",
+                        watch, gain, estimate.getReachableSize(),
+                        estimate.getTotalSize(),
+                        humanReadableByteCount(estimate.getReachableSize()),
+                        humanReadableByteCount(estimate.getTotalSize()));
+            }
         }
         if (cleanup) {
             cleanupNeeded.set(true);
