@@ -74,10 +74,10 @@ been introduced, leaving open future enhancements to password management
         - * (UNDEFINED) protected
         - * (UNDEFINED) protected multiple
 
-##### Node rep:passwords and Property rep:passwordLastModified
+##### Node rep:pwd and Property rep:passwordLastModified
 
     [rep:User]  > rep:Authorizable, rep:Impersonatable
-        + rep:pw (rep:Password) = rep:Password protected
+        + rep:pwd (rep:Password) = rep:Password protected
         ...
         
 The _rep:pw_ node and the _rep:passwordLastModified_ property are defined

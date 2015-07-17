@@ -105,7 +105,11 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
         @Property(name = UserConstants.PARAM_PASSWORD_INITIAL_CHANGE,
                 label = "Change Password On First Login",
                 description = "When enabled, forces users to change their password upon first login.",
-                boolValue = UserConstants.DEFAULT_PASSWORD_INITIAL_CHANGE)
+                boolValue = UserConstants.DEFAULT_PASSWORD_INITIAL_CHANGE),
+        @Property(name = UserConstants.PARAM_PASSWORD_HISTORY_SIZE,
+                label = "Maximum Password History Size",
+                description = "Maximum number of passwords recorded for a user after changing her password (NOTE: upper limit is 1000). When changing the password the new password must not be present in the password history. A value of 0 indicates no password history is recorded.",
+                intValue = UserConstants.PASSWORD_HISTORY_DISABLED_SIZE)
 })
 public class UserConfigurationImpl extends ConfigurationBase implements UserConfiguration, SecurityConfiguration {
 

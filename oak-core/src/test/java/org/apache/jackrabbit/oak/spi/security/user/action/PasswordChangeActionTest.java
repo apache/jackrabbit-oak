@@ -25,8 +25,6 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.fail;
-
 public class PasswordChangeActionTest extends AbstractSecurityTest {
 
     private PasswordChangeAction pwChangeAction;
@@ -38,26 +36,16 @@ public class PasswordChangeActionTest extends AbstractSecurityTest {
         pwChangeAction.init(getSecurityProvider(), ConfigurationParameters.EMPTY);
     }
 
-    @Test
+    @Test(expected = ConstraintViolationException.class)
     public void testNullPassword() throws Exception {
-        try {
-            pwChangeAction.onPasswordChange(getTestUser(), null, root, getNamePathMapper());
-            fail("ConstraintViolationException expected.");
-        } catch (ConstraintViolationException e) {
-            // success
-        }
+        pwChangeAction.onPasswordChange(getTestUser(), null, root, getNamePathMapper());
     }
 
-    @Test
+    @Test(expected = ConstraintViolationException.class)
     public void testSamePassword() throws Exception {
-        try {
-            User user = getTestUser();
-            String pw = user.getID();
-            pwChangeAction.onPasswordChange(user, pw, root, getNamePathMapper());
-            fail("ConstraintViolationException expected.");
-        } catch (ConstraintViolationException e) {
-            // success
-        }
+        User user = getTestUser();
+        String pw = user.getID();
+        pwChangeAction.onPasswordChange(user, pw, root, getNamePathMapper());
     }
 
     @Test
@@ -69,7 +57,10 @@ public class PasswordChangeActionTest extends AbstractSecurityTest {
     public void testUserWithoutPassword() throws Exception {
         String uid = "testUser" + UUID.randomUUID();
         User user = getUserManager(root).createUser(uid, null);
-
-        pwChangeAction.onPasswordChange(user, "changedPassword", root, getNamePathMapper());
+        try {
+            pwChangeAction.onPasswordChange(user, "changedPassword", root, getNamePathMapper());
+        } finally {
+            user.remove();
+        }
     }
 }
