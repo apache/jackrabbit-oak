@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 /**
  * Default implementation for a system user.
  */
-public class SystemUserImpl extends UserImpl {
+class SystemUserImpl extends UserImpl {
 
     SystemUserImpl(@Nonnull String id, @Nonnull Tree tree, @Nonnull UserManagerImpl userManager) throws RepositoryException {
         super(id, tree, userManager);

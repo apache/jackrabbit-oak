@@ -25,7 +25,7 @@ import javax.jcr.Credentials;
  * Credentials implementation to cover
  * {@link org.apache.jackrabbit.api.security.user.User#getCredentials()}
  */
-public class CredentialsImpl implements Credentials {
+class CredentialsImpl implements Credentials {
 
     private final String userId;
     private final String pwHash;
