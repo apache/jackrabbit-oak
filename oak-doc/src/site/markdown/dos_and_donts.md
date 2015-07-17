@@ -78,3 +78,9 @@ might hit some limit causing the commit to fail. For e.g. SegmentMK enforces a l
 8k for any inlined binary value. Further this would also lead to repository growth as
 by default when binaries are stored in BlobStore then they are deduplicated.
 
+### Don't use Thread.interrupt()
+
+`Thread.interrupt()` can severely impact or even stop the repository. The reason for 
+this is that Oak internally uses various classes from the `nio` package that implement 
+`InterruptibleChannel`, which are [asynchronously closed](http://docs.oracle.com/javase/7/docs/api/java/nio/channels/InterruptibleChannel.html) 
+when receiving an `InterruptedException` while blocked on IO. See [OAK-2609](https://issues.apache.org/jira/browse/OAK-2609).  
