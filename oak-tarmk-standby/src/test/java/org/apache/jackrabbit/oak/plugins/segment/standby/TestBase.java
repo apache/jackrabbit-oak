@@ -60,7 +60,7 @@ public class TestBase {
         return FileStore.newFileStore(directory)
             .withMaxFileSize(1)
             .withMemoryMapping(false)
-            .withCacheSize(1)
+            .withNoCache()
             .create();
     }
 
