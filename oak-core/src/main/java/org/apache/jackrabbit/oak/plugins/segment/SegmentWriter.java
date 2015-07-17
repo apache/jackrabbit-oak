@@ -586,32 +586,77 @@ public class SegmentWriter {
     }
 
     /**
-     * Write a reference to an external blob.
+     * Write a reference to an external blob. This method handles blob IDs of
+     * every length, but behaves differently for small and large blob IDs.
      *
-     * @param reference reference
-     * @return record id
+     * @param blobId Blob ID.
+     * @return Record ID pointing to the written blob ID.
+     * @see Segment#BLOB_ID_SMALL_LIMIT
      */
-    private synchronized RecordId writeValueRecord(String reference) {
-        byte[] data = reference.getBytes(Charsets.UTF_8);
-        int length = data.length;
+    private RecordId writeBlobId(String blobId) {
+        byte[] data = blobId.getBytes(Charsets.UTF_8);
 
-        // When writing a binary ID, the four most significant bits of the
-        // length field should be "1110", leaving 12 other bits to store the
-        // length itself. This means that the values of the length field can
-        // only range between 0 and 2^12 - 1.
+        if (data.length < Segment.BLOB_ID_SMALL_LIMIT) {
+            return writeSmallBlobId(data);
+        } else {
+            return writeLargeBlobId(blobId);
+        }
+    }
 
-        checkArgument(length < 4096);
+    /**
+     * Write a large blob ID. A blob ID is considered large if the length of its
+     * binary representation is equal to or greater than {@code
+     * Segment.BLOB_ID_SMALL_LIMIT}.
+     *
+     * @param blobId Blob ID.
+     * @return A record ID pointing to the written blob ID.
+     */
+    private RecordId writeLargeBlobId(String blobId) {
+        RecordId stringRecord = writeString(blobId);
 
-        RecordId id = prepare(RecordType.VALUE, 2 + length);
-        int len = length | 0xE000;
-        buffer[position++] = (byte) (len >> 8);
-        buffer[position++] = (byte) len;
+        synchronized (this) {
+            RecordId blobIdRecord = prepare(RecordType.VALUE, 1, Collections.singletonList(stringRecord));
 
-        System.arraycopy(data, 0, buffer, position, length);
-        position += length;
+            // The length uses a fake "length" field that is always equal to 0xF0.
+            // This allows the code to take apart small from a large blob IDs.
 
-        blobrefs.add(id);
-        return id;
+            buffer[position++] = (byte) 0xF0;
+            writeRecordId(stringRecord);
+
+            blobrefs.add(blobIdRecord);
+
+            return blobIdRecord;
+        }
+    }
+
+    /**
+     * Write a small blob ID. A blob ID is considered small if the length of its
+     * binary representation is less than {@code Segment.BLOB_ID_SMALL_LIMIT}.
+     *
+     * @param blobId Blob ID.
+     * @return A record ID pointing to the written blob ID.
+     */
+    private RecordId writeSmallBlobId(byte[] blobId) {
+        int length = blobId.length;
+
+        checkArgument(length < Segment.BLOB_ID_SMALL_LIMIT);
+
+        synchronized (this) {
+            RecordId id = prepare(RecordType.VALUE, 2 + length);
+
+            int masked = length | 0xE000;
+
+            buffer[position++] = (byte) (masked >> 8);
+            buffer[position++] = (byte) (masked);
+
+            System.arraycopy(blobId, 0, buffer, position, length);
+
+            position += length;
+
+            blobrefs.add(id);
+
+            return id;
+        }
     }
 
     /**
@@ -778,7 +823,7 @@ public class SegmentWriter {
         if (reference != null && store.getBlobStore() != null) {
             String blobId = store.getBlobStore().getBlobId(reference);
             if (blobId != null) {
-                RecordId id = writeValueRecord(blobId);
+                RecordId id = writeBlobId(blobId);
                 return new SegmentBlob(id);
             } else {
                 log.debug("No blob found for reference {}, inlining...", reference);
@@ -788,8 +833,8 @@ public class SegmentWriter {
         return writeStream(blob.getNewStream());
     }
 
-    SegmentBlob writeExternalBlob(String blobId) throws IOException {
-        RecordId id = writeValueRecord(blobId);
+    SegmentBlob writeExternalBlob(String blobId) {
+        RecordId id = writeBlobId(blobId);
         return new SegmentBlob(id);
     }
 
@@ -837,7 +882,7 @@ public class SegmentWriter {
         } else if (blobStore != null) {
             String blobId = blobStore.writeBlob(new SequenceInputStream(
                     new ByteArrayInputStream(data, 0, n), stream));
-            return writeValueRecord(blobId);
+            return writeBlobId(blobId);
         }
 
         long length = n;
