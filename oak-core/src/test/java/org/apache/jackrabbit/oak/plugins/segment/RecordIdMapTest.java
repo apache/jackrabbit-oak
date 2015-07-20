@@ -25,7 +25,10 @@ import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ALIGN_BIT
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.encode;
 import static org.apache.jackrabbit.oak.plugins.segment.TestUtils.newValidOffset;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.Map;
 import java.util.Map.Entry;
@@ -35,6 +38,22 @@ import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.junit.Test;
 
 public class RecordIdMapTest {
+
+    @Test
+    public void testEmpty() {
+        RecordIdMap map = new RecordIdMap();
+        assertFalse(map.containsKey((short) 0));
+        assertNull(map.get((short) 0));
+        assertEquals(0, map.size());
+        try {
+            map.getKey(0);
+            fail("Expected AIOBE");
+        } catch (ArrayIndexOutOfBoundsException ignored) {}
+        try {
+            map.getRecordId(0);
+            fail("Expected AIOBE");
+        } catch (ArrayIndexOutOfBoundsException ignored) {}
+    }
 
     @Test
     public void testRecordIdMap() {
