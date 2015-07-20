@@ -75,7 +75,6 @@ public class SolrServerProviderService implements SolrServerProvider {
 
     private String serverType;
 
-    private SolrServer cachedSolrServer;
     private SolrServer cachedSearchingSolrServer;
     private SolrServer cachedIndexingSolrServer;
 
@@ -91,15 +90,6 @@ public class SolrServerProviderService implements SolrServerProvider {
     }
 
     private void shutdownSolrServers() {
-        if (cachedSolrServer != null) {
-            try {
-                cachedSolrServer.shutdown();
-            } catch (Exception e) {
-                log.error("could not correctly shutdown Solr {} server {}", serverType, cachedSolrServer);
-            } finally {
-                cachedSolrServer = null;
-            }
-        }
         if (cachedIndexingSolrServer != null) {
             try {
                 cachedIndexingSolrServer.shutdown();
@@ -146,12 +136,7 @@ public class SolrServerProviderService implements SolrServerProvider {
 
     @Override
     public SolrServer getSolrServer() throws Exception {
-        synchronized (solrServerConfigurationProviders) {
-            if (cachedSolrServer == null) {
-                cachedSolrServer = getServer();
-            }
-            return cachedSolrServer;
-        }
+        return getSearchingSolrServer();
     }
 
     @CheckForNull
@@ -159,7 +144,7 @@ public class SolrServerProviderService implements SolrServerProvider {
     public SolrServer getIndexingSolrServer() throws Exception {
         synchronized (solrServerConfigurationProviders) {
             if (cachedIndexingSolrServer == null) {
-                cachedIndexingSolrServer = getServer();
+                cachedIndexingSolrServer = getServer(true);
             }
             return cachedIndexingSolrServer;
         }
@@ -170,13 +155,13 @@ public class SolrServerProviderService implements SolrServerProvider {
     public SolrServer getSearchingSolrServer() throws Exception {
         synchronized (solrServerConfigurationProviders) {
             if (cachedSearchingSolrServer == null) {
-                cachedSearchingSolrServer = getServer();
+                cachedSearchingSolrServer = getServer(false);
             }
             return cachedSearchingSolrServer;
         }
     }
 
-    private SolrServer getServer() {
+    private SolrServer getServer(boolean indexing) {
         SolrServer solrServer = null;
         if (serverType != null && !"none".equals(serverType)) {
             SolrServerConfigurationProvider solrServerConfigurationProvider = solrServerConfigurationProviders.get(serverType);
@@ -184,7 +169,12 @@ public class SolrServerProviderService implements SolrServerProvider {
                 try {
                     SolrServerConfiguration solrServerConfiguration = solrServerConfigurationProvider.getSolrServerConfiguration();
                     SolrServerProvider solrServerProvider = solrServerConfiguration.getProvider();
-                    solrServer = solrServerProvider.getSolrServer();
+                    if (indexing) {
+                        solrServer = solrServerProvider.getIndexingSolrServer();
+                    } else {
+                        solrServer = solrServerProvider.getSearchingSolrServer();
+                    }
+
                     log.info("created new SolrServer {}", solrServer);
                 } catch (Exception e) {
                     log.error("could not get a SolrServerProvider of type {}", serverType, e);
