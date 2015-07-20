@@ -27,6 +27,7 @@ import static com.google.common.util.concurrent.Futures.addCallback;
 import static com.google.common.util.concurrent.Futures.immediateCancelledFuture;
 import static com.google.common.util.concurrent.MoreExecutors.listeningDecorator;
 import static java.io.File.createTempFile;
+import static java.lang.Boolean.getBoolean;
 import static java.lang.Integer.MAX_VALUE;
 import static java.lang.String.valueOf;
 import static java.lang.System.getProperty;
@@ -105,7 +106,7 @@ import org.slf4j.LoggerFactory;
  * TODO Leverage longeivity test support from OAK-2771 once we have it.
  */
 public class SegmentCompactionIT {
-    private static final boolean PERSIST_COMPACTION_MAP = Boolean.getBoolean("persist-compaction-map");
+    private static final boolean PERSIST_COMPACTION_MAP = !getBoolean("in-memory-compaction-map");
 
     /** Only run if explicitly asked to via -Dtest=SegmentCompactionIT */
     private static final boolean ENABLED =
