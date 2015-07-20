@@ -49,7 +49,7 @@ public final class UpdateOp {
      * @param id the primary key
      * @param isNew whether this is a new document
      */
-    UpdateOp(String id, boolean isNew) {
+    public UpdateOp(String id, boolean isNew) {
         this(id, isNew, false, new HashMap<Key, Operation>(), null);
     }
 
@@ -176,7 +176,7 @@ public final class UpdateOp {
      * @param property the property name
      * @param value the value
      */
-    void set(String property, Object value) {
+    public void set(String property, Object value) {
         Operation op = new Operation(Operation.Type.SET, value);
         changes.put(new Key(property, null), op);
     }
