@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
@@ -28,10 +29,13 @@ import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.util.HybridMapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MapDBMapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
 
 public class UnsavedModificationsTest {
 
@@ -123,7 +127,7 @@ public class UnsavedModificationsTest {
     }
 
     // OAK-3112
-    @Ignore
+    @Ignore("Long running performance test")
     @Test
     public void performance() throws Exception {
         DocumentStore store = new MemoryDocumentStore() {
@@ -137,8 +141,7 @@ public class UnsavedModificationsTest {
         final DocumentNodeStore ns = new DocumentMK.Builder().setDocumentStore(store)
                 .getNodeStore();
 
-        // MapFactory factory = MapFactory.getInstance();
-        MapFactory factory = new MapDBMapFactory();
+        MapFactory factory = new HybridMapFactory();
         final UnsavedModifications pending = new UnsavedModifications(factory);
 
         Thread t = new Thread(new Runnable() {
@@ -165,7 +168,7 @@ public class UnsavedModificationsTest {
                                 }
                                 paths.clear();
                             }
-                            if (num % 1000 == 0) {
+                            if (random.nextFloat() < 0.00005) {
                                 pending.persist(ns, new ReentrantLock());
                             }
                         }
@@ -187,6 +190,105 @@ public class UnsavedModificationsTest {
         }
         pending.close();
         ns.dispose();
+    }
+
+    @Test
+    public void getPathsAfterPersist() throws Exception {
+        DocumentStore store = new MemoryDocumentStore() {
+            @Override
+            public <T extends Document> void update(Collection<T> collection,
+                                                    List<String> keys,
+                                                    UpdateOp updateOp) {
+                // ignore call
+            }
+        };
+        final DocumentNodeStore ns = new DocumentMK.Builder().setDocumentStore(store)
+                .getNodeStore();
+
+        MapFactory factory = new HybridMapFactory();
+        UnsavedModifications pending = new UnsavedModifications(factory);
+
+        Revision r = new Revision(1, 0, 1);
+        for (int i = 0; i <= UnsavedModifications.IN_MEMORY_SIZE_LIMIT; i++) {
+            pending.put("/node-" + i, r);
+        }
+
+        // start iterating over paths
+        Iterator<String> paths = pending.getPaths().iterator();
+        for (int i = 0; i < 1000; i++) {
+            paths.next();
+        }
+
+        // drain pending, this will force it back to in-memory
+        pending.persist(ns, new ReentrantLock());
+
+        // loop over remaining paths
+        while (paths.hasNext()) {
+            paths.next();
+        }
+        pending.close();
+    }
+
+    @Test
+    public void getPathsWithRevisionAfterPersist() throws Exception {
+        DocumentStore store = new MemoryDocumentStore() {
+            @Override
+            public <T extends Document> void update(Collection<T> collection,
+                                                    List<String> keys,
+                                                    UpdateOp updateOp) {
+                // ignore call
+            }
+        };
+        final DocumentNodeStore ns = new DocumentMK.Builder().setDocumentStore(store)
+                .getNodeStore();
+
+        MapFactory factory = new HybridMapFactory();
+        UnsavedModifications pending = new UnsavedModifications(factory);
+
+        Revision r = new Revision(1, 0, 1);
+        for (int i = 0; i <= UnsavedModifications.IN_MEMORY_SIZE_LIMIT; i++) {
+            pending.put("/node-" + i, r);
+        }
+
+        // start iterating over paths
+        Iterator<String> paths = pending.getPaths(r).iterator();
+        for (int i = 0; i < 1000; i++) {
+            paths.next();
+        }
+
+        // drain pending, this will force it back to in-memory
+        pending.persist(ns, new ReentrantLock());
+
+        // loop over remaining paths
+        while (paths.hasNext()) {
+            paths.next();
+        }
+        pending.close();
+    }
+
+    @Test
+    public void defaultMapFactoryCreate() {
+        MapFactory factory = MapFactory.createFactory();
+        assertEquals(MapDBMapFactory.class, factory.getClass());
+        factory.dispose();
+    }
+
+    @Test
+    public void useHybridMapFactory() {
+        System.setProperty("oak.useHybridMapFactory", "true");
+        MapFactory factory = MapFactory.createFactory();
+        assertEquals(HybridMapFactory.class, factory.getClass());
+        factory.dispose();
+        System.clearProperty("oak.useHybridMapFactory");
+    }
+
+    @Test
+    public void useMemoryMapFactory() {
+        System.setProperty("oak.useMemoryMapFactory", "true");
+        MapFactory factory = MapFactory.createFactory();
+        assertEquals(MapFactory.DEFAULT.getClass(), factory.getClass());
+        factory.dispose();
+        System.clearProperty("oak.useMemoryMapFactory");
     }
 
     private static String randomName(Random r, int len) {

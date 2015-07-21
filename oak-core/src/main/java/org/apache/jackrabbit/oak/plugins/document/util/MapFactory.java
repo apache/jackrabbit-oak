@@ -32,10 +32,15 @@ import org.apache.jackrabbit.oak.plugins.document.Revision;
  */
 public abstract class MapFactory {
 
-    private static final boolean USE_MEMORY_MAP_FACTORY
-            = Boolean.getBoolean("oak.useMemoryMapFactory");
+    private static boolean useMemoryMapFactory() {
+        return Boolean.getBoolean("oak.useMemoryMapFactory");
+    }
 
-    private static MapFactory DEFAULT = new MapFactory() {
+    private static boolean useHybridMapFactory() {
+        return Boolean.getBoolean("oak.useHybridMapFactory");
+    }
+
+    public static final MapFactory DEFAULT = new MapFactory() {
         @Override
         public ConcurrentMap<String, Revision> create() {
             return new ConcurrentHashMap<String, Revision>();
@@ -69,8 +74,10 @@ public abstract class MapFactory {
     }
 
     public static MapFactory createFactory() {
-        if (USE_MEMORY_MAP_FACTORY) {
+        if (useMemoryMapFactory()) {
             return MapFactory.getInstance();
+        } else if (useHybridMapFactory()) {
+            return new HybridMapFactory();
         } else {
             return new MapDBMapFactory();
         }
