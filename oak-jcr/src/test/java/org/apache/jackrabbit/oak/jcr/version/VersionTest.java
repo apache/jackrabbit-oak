@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.jcr.version;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.Property;
+import javax.jcr.ReferentialIntegrityException;
 import javax.jcr.RepositoryException;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
@@ -100,5 +101,25 @@ public class VersionTest extends AbstractJCRTest {
         assertEquals(child.getIdentifier(),
                 frozenChild.getProperty(Property.JCR_FROZEN_UUID).getString());
         vMgr.restore(v, true);
+    }
+
+    // OAK-3130
+    public void testRemoveVersion() throws RepositoryException {
+        Node n = testRootNode.addNode(nodeName1, testNodeType);
+        n.addMixin(mixVersionable);
+        superuser.save();
+
+        VersionManager vMgr = superuser.getWorkspace().getVersionManager();
+        vMgr.checkin(n.getPath());
+        // comment out the next line and the test will fail
+        vMgr.checkout(n.getPath());
+
+        Version v = vMgr.getBaseVersion(n.getPath());
+        try {
+            v.getContainingHistory().removeVersion(v.getName());
+            fail("removeVersion() must fail with ReferentialIntegrityException");
+        } catch (ReferentialIntegrityException e) {
+            // expected
+        }
     }
 }
