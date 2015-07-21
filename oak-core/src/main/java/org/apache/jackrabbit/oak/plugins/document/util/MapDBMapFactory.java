@@ -36,19 +36,22 @@ import org.mapdb.Serializer;
 public class MapDBMapFactory extends MapFactory {
 
     private final AtomicInteger counter = new AtomicInteger();
-    private final DB db;
+    private DB db;
 
-    public MapDBMapFactory() {
-        this.db = DBMaker.newTempFileDB()
-                .deleteFilesAfterClose()
-                .transactionDisable()
-                .asyncWriteEnable()
-                .make();
+    private synchronized DB getDB() {
+        if (db == null) {
+            this.db = DBMaker.newTempFileDB()
+                    .deleteFilesAfterClose()
+                    .transactionDisable()
+                    .asyncWriteEnable()
+                    .make();
+        }
+        return db;
     }
 
     @Override
     public BTreeMap<String, Revision> create() {
-        return db.createTreeMap(String.valueOf(counter.incrementAndGet()))
+        return getDB().createTreeMap(String.valueOf(counter.incrementAndGet()))
                 .valueSerializer(new RevisionSerializer())
                 .counterEnable()
                 .makeStringMap();
@@ -57,7 +60,7 @@ public class MapDBMapFactory extends MapFactory {
     @Override
     public synchronized BTreeMap<String, Revision> create(
             Comparator<String> comparator) {
-        return db.createTreeMap(String.valueOf(counter.incrementAndGet()))
+        return getDB().createTreeMap(String.valueOf(counter.incrementAndGet()))
                 .valueSerializer(new RevisionSerializer())
                 .keySerializer(new CustomKeySerializer(comparator))
                 .counterEnable()
@@ -65,8 +68,11 @@ public class MapDBMapFactory extends MapFactory {
     }
 
     @Override
-    public void dispose() {
-        db.close();
+    public synchronized void dispose() {
+        if (db != null) {
+            db.close();
+            db = null;
+        }
     }
 
     private static class CustomKeySerializer extends BTreeKeySerializer<String>

@@ -16,12 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.plugins.document.PathComparator;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
+import org.junit.After;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import com.google.common.collect.Lists;
 
@@ -30,12 +35,32 @@ import static org.junit.Assert.assertEquals;
 /**
  * <code>MapDBMapFactoryTest</code>...
  */
+@RunWith(Parameterized.class)
 public class MapDBMapFactoryTest {
+
+    private MapFactory factory;
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> factories() {
+        Object[][] factories = new Object[][] {
+                {new MapDBMapFactory()},
+                {new HybridMapFactory()},
+                {MapFactory.DEFAULT}
+        };
+        return Arrays.asList(factories);
+    }
+
+    public MapDBMapFactoryTest(MapFactory factory) {
+        this.factory = factory;
+    }
+
+    @After
+    public void dispose() {
+        factory.dispose();
+    }
 
     @Test
     public void comparator() {
-        MapFactory factory = new MapDBMapFactory();
-
         Revision r = new Revision(1, 0, 1);
         Map<String, Revision> map = factory.create(PathComparator.INSTANCE);
 
@@ -58,7 +83,5 @@ public class MapDBMapFactoryTest {
         List<String> actual = Lists.newArrayList(map.keySet());
 
         assertEquals(expected, actual);
-
-        factory.dispose();
     }
 }

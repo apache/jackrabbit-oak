@@ -21,6 +21,10 @@ New configuration options in Oak 1.0.18
 Support for pre extracting text to speed up reindexing has been added in OAK-2892
 For more details refer to http://jackrabbit.apache.org/oak/docs/query/lucene.html#text-extraction
 
+For DocumentNodeStore based deployments a new MapFactory implementation has
+been introduced and can be enabled with -Doak.useHybridMapFactory=true
+See OAK-3112 for details.
+
 Changes in Oak 1.0.18
 ---------------------
 
