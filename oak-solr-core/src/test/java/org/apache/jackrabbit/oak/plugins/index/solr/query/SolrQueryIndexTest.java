@@ -32,12 +32,18 @@ import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.solr.client.solrj.SolrServer;
+import org.apache.solr.client.solrj.response.QueryResponse;
+import org.apache.solr.common.SolrDocument;
+import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.SolrInputDocument;
+import org.apache.solr.common.params.SolrParams;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
@@ -428,5 +434,62 @@ public class SolrQueryIndexTest {
         long sizeFastApprox = cursor.getSize(Result.SizePrecision.FAST_APPROXIMATION, 100000);
         assertTrue(Math.abs(sizeExact - sizeApprox) < 10);
         assertTrue(Math.abs(sizeExact - sizeFastApprox) > 10000);
+    }
+
+    @Test
+    public void testNoMoreThanThreeSolrRequests() throws Exception {
+        NodeState root = mock(NodeState.class);
+        when(root.getNames(any(String.class))).thenReturn(Collections.<String>emptySet());
+        SelectorImpl selector = new SelectorImpl(root, "a");
+        String sqlQuery = "select [jcr:path], [jcr:score] from [nt:base] as a where" +
+                " contains([jcr:content/*], 'founded')";
+        SolrServer solrServer = mock(SolrServer.class);
+        OakSolrConfiguration configuration = new DefaultSolrConfiguration() {
+            @Override
+            public boolean useForPropertyRestrictions() {
+                return true;
+            }
+
+            @Override
+            public int getRows() {
+                return 10;
+            }
+        };
+        SolrQueryIndex solrQueryIndex = new SolrQueryIndex("solr", solrServer, configuration);
+        FilterImpl filter = new FilterImpl(selector, sqlQuery, new QueryEngineSettings());
+        CountingResponse response = new CountingResponse(0);
+        when(solrServer.query(any(SolrParams.class))).thenReturn(response);
+
+        Cursor cursor = solrQueryIndex.query(filter, root);
+        assertNotNull(cursor);
+        while (cursor.hasNext()) {
+            IndexRow row = cursor.next();
+            assertNotNull(row);
+        }
+        assertEquals(3, response.getCounter());
+    }
+
+    private class CountingResponse extends QueryResponse {
+
+        private int counter;
+
+        public CountingResponse(int counter) {
+            this.counter = counter;
+        }
+
+        @Override
+        public SolrDocumentList getResults() {
+            SolrDocumentList results = new SolrDocumentList();
+            for (int i = 0; i < 1000; i++) {
+                results.add(new SolrDocument());
+            }
+            results.setNumFound(1000);
+            counter++;
+            return results;
+        }
+
+        public int getCounter() {
+            return counter;
+        }
     }
 }
