@@ -459,33 +459,50 @@ public class FileStore implements SegmentStore {
             ? sum(tracker.getCompactionMap().getRecordCounts()) * PersistedCompactionMap.BYTES_PER_ENTRY
             : 0;
 
-        CompactionGainEstimate estimate = estimateCompactionGain();
-        long gain = estimate.estimateCompactionGain(offset);
-        if (gain >= compactionStrategy.getGainThreshold()) {
-            gcMonitor.info(
-                    "Estimated compaction in {}, gain is {}% ({}/{}) or ({}/{}), so running compaction",
-                    watch, gain, estimate.getReachableSize(),
-                    estimate.getTotalSize(),
-                    humanReadableByteCount(estimate.getReachableSize()),
-                    humanReadableByteCount(estimate.getTotalSize()));
+        byte gainThreshold = compactionStrategy.getGainThreshold();
+        boolean runCompaction = true;
+        if (gainThreshold > 0) {
+            CompactionGainEstimate estimate = estimateCompactionGain();
+            long gain = estimate.estimateCompactionGain(offset);
+            gcMonitor
+                    .info("Estimated compaction in {}, gain is {}% ({}/{}) or ({}/{}), so running compaction",
+                            watch,
+                            gain,
+                            estimate.getReachableSize(),
+                            estimate.getTotalSize(),
+                            humanReadableByteCount(estimate.getReachableSize()),
+                            humanReadableByteCount(estimate.getTotalSize()));
+            runCompaction = gain >= gainThreshold;
+            if (!runCompaction) {
+                if (estimate.getTotalSize() == 0) {
+                    gcMonitor
+                            .skipped(
+                                    "Estimated compaction in {}. Skipping compaction for now as repository consists of a single tar file only",
+                                    watch);
+                } else {
+                    gcMonitor
+                            .skipped(
+                                    "Estimated compaction in {}, gain is {}% ({}/{}) or ({}/{}), so skipping compaction for now",
+                                    watch, gain, estimate.getReachableSize(),
+                                    estimate.getTotalSize(),
+                                    humanReadableByteCount(estimate
+                                            .getReachableSize()),
+                                    humanReadableByteCount(estimate
+                                            .getTotalSize()));
+                }
+            }
+        } else {
+            gcMonitor
+                    .info("Compaction estimation is skipped due to threshold value ({}).",
+                            gainThreshold);
+        }
+
+        if (runCompaction) {
             if (!compactionStrategy.isPaused()) {
                 compact();
                 compacted = true;
             } else {
                 gcMonitor.skipped("TarMK compaction paused");
-            }
-        } else {
-            if (estimate.getTotalSize() == 0) {
-                gcMonitor.skipped(
-                        "Estimated compaction in {}. Skipping compaction for now as repository " +
-                        "consists of a single tar file only", watch);
-            } else {
-                gcMonitor.skipped(
-                        "Estimated compaction in {}, gain is {}% ({}/{}) or ({}/{}), so skipping compaction for now",
-                        watch, gain, estimate.getReachableSize(),
-                        estimate.getTotalSize(),
-                        humanReadableByteCount(estimate.getReachableSize()),
-                        humanReadableByteCount(estimate.getTotalSize()));
             }
         }
         if (cleanup) {
