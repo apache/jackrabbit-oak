@@ -1372,10 +1372,13 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
         if(deleted) {
             //DELETED_ONCE would be set upon every delete.
             //possibly we can avoid that
-            checkNotNull(op).set(DELETED_ONCE, Boolean.TRUE);
+            setDeletedOnce(op);
         }
-        checkNotNull(op).setMapEntry(DELETED, checkNotNull(revision),
-                String.valueOf(deleted));
+        checkNotNull(op).setMapEntry(DELETED, checkNotNull(revision), String.valueOf(deleted));
+    }
+
+    public static void setDeletedOnce(@Nonnull UpdateOp op) {
+        checkNotNull(op).set(DELETED_ONCE, Boolean.TRUE);
     }
 
     public static void removeDeleted(@Nonnull UpdateOp op,
