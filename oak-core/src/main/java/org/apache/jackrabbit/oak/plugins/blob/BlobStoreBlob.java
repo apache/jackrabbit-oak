@@ -74,6 +74,10 @@ public class BlobStoreBlob implements Blob {
         return blobId;
     }
 
+    public BlobStore getBlobStore() {
+        return blobStore;
+    }
+
     //------------------------------------------------------------< Object >--
 
     @Override
