@@ -274,12 +274,19 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                     }
                     SolrQuery query = FilterQueryParser.getQuery(filter, sortOrder, configuration);
                     if (numFound > 0) {
-                        offset++;
-                        int newOffset = offset * configuration.getRows();
+                        long rows = configuration.getRows();
+                        long maxQueries = numFound / 2;
+                        if (maxQueries > configuration.getRows()) {
+                            // adjust the rows to avoid making more than 3 Solr requests for this particular query
+                            rows = maxQueries;
+                            query.setParam("rows", String.valueOf(rows));
+                        }
+                        long newOffset = configuration.getRows() + offset * rows;
                         if (newOffset >= numFound) {
                             return false;
                         }
                         query.setParam("start", String.valueOf(newOffset));
+                        offset++;
                     }
                     if (log.isDebugEnabled()) {
                         log.debug("sending query {}", query);
