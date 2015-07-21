@@ -226,7 +226,10 @@ public class SegmentCompactionIT {
         directory.delete();
         directory.mkdir();
 
-        fileStore = newFileStore(directory).withGCMonitor(gcMonitor).create();
+        fileStore = newFileStore(directory)
+                .withMemoryMapping(true)
+                .withGCMonitor(gcMonitor)
+                .create();
         nodeStore = new SegmentNodeStore(fileStore);
         compactionStrategy.setPersistCompactionMap(PERSIST_COMPACTION_MAP);
         fileStore.setCompactionStrategy(compactionStrategy);
