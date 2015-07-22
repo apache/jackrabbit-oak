@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.solr.client.solrj.SolrQuery;
@@ -24,6 +25,7 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Testcase for {@link org.apache.jackrabbit.oak.plugins.index.solr.query.FilterQueryParser}
@@ -38,5 +40,26 @@ public class FilterQueryParserTest {
         assertNotNull(solrQuery);
         assertEquals("*:*", solrQuery.getQuery());
     }
+
+    @Test
+    public void testAllChildrenQueryParsing() throws Exception {
+        String query = "select [jcr:path], [jcr:score], * from [nt:hierarchy] as a where isdescendantnode(a, '/')";
+        Filter filter = mock(Filter.class);
+        OakSolrConfiguration configuration = new DefaultSolrConfiguration(){
+            @Override
+            public boolean useForPathRestrictions() {
+                return true;
+            }
+        };
+        when(filter.getQueryStatement()).thenReturn(query);
+        Filter.PathRestriction pathRestriction = Filter.PathRestriction.ALL_CHILDREN;
+        when(filter.getPathRestriction()).thenReturn(pathRestriction);
+        when(filter.getPath()).thenReturn("/");
+        SolrQuery solrQuery = FilterQueryParser.getQuery(filter, null, configuration);
+        assertNotNull(solrQuery);
+        assertEquals(configuration.getFieldForPathRestriction(pathRestriction)+":\\/", solrQuery.get("q"));
+    }
+
+
 
 }
