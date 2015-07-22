@@ -207,12 +207,16 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
 
     private void shutdownNetty() {
         if (group != null && !group.isShuttingDown()) {
-            group.shutdownGracefully(1, 2, TimeUnit.SECONDS)
+            group.shutdownGracefully(1, 1, TimeUnit.SECONDS)
                     .syncUninterruptibly();
         }
         if (executor != null && !executor.isShuttingDown()) {
-            executor.shutdownGracefully(1, 2, TimeUnit.SECONDS)
+            executor.shutdownGracefully(1, 1, TimeUnit.SECONDS)
                     .syncUninterruptibly();
+        }
+        if (handler != null) {
+            handler.close();
+            handler = null;
         }
     }
 

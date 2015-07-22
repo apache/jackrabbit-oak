@@ -19,17 +19,25 @@
 package org.apache.jackrabbit.oak.plugins.segment.standby;
 
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentTestUtils.createTmpTargetDir;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SystemUtils;
+import org.apache.jackrabbit.oak.commons.CIHelper;
+import org.apache.jackrabbit.oak.commons.FixturesHelper;
+import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.junit.BeforeClass;
 
 public class TestBase {
     int port = Integer.valueOf(System.getProperty("standby.server.port", "52800"));
     final static String LOCALHOST = "127.0.0.1";
+
+    private static final Set<Fixture> FIXTURES = FixturesHelper.getFixtures();
 
     File directoryS;
     FileStore storeS;
@@ -45,6 +53,12 @@ public class TestBase {
      tests.
     */
     protected final boolean noDualStackSupport = SystemUtils.IS_OS_WINDOWS && SystemUtils.IS_JAVA_1_6;
+
+    @BeforeClass
+    public static void assumptions() {
+        assumeTrue(!CIHelper.travis());
+        assumeTrue(FIXTURES.contains(Fixture.SEGMENT_MK));
+    }
 
     public void setUpServerAndClient() throws IOException {
         // server

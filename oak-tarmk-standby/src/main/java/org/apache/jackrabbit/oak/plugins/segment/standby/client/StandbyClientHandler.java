@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.segment.standby.client;
 
 import static org.apache.jackrabbit.oak.plugins.segment.standby.codec.Messages.newGetHeadReq;
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
@@ -87,7 +88,6 @@ public class StandbyClientHandler extends SimpleChannelInboundHandler<RecordId>
         if (store.getHead().getRecordId().equals(head)) {
             // all sync'ed up
             log.debug("no changes on sync.");
-            ctx.close();
             return;
         }
 
@@ -114,14 +114,17 @@ public class StandbyClientHandler extends SimpleChannelInboundHandler<RecordId>
     }
 
     @Override
-    public void close() {
-        ctx.close();
-        if (!executor.isShuttingDown()) {
-            executor.shutdownGracefully(1, 2, TimeUnit.SECONDS)
-                    .syncUninterruptibly();
+    public synchronized void close() {
+        if (ctx != null) {
+            for (ChannelHandler h : ctx.pipeline().toMap().values()) {
+                ctx.pipeline().remove(h);
+            }
+
+            ctx.close();
+            ctx = null;
         }
         if (loaderExecutor != null && !loaderExecutor.isShuttingDown()) {
-            loaderExecutor.shutdownGracefully(1, 2, TimeUnit.SECONDS)
+            loaderExecutor.shutdownGracefully(1, 1, TimeUnit.SECONDS)
                     .syncUninterruptibly();
         }
     }
