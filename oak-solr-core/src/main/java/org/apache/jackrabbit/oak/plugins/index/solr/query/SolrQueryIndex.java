@@ -129,11 +129,20 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
             match++; // full text queries have usually a significant recall
         }
 
+        // property restriction OR native language property restriction defined AND property restriction handled
+        if (filter.getPropertyRestrictions() != null && filter.getPropertyRestrictions().size() > 0
+                && (filter.getPropertyRestriction(NATIVE_SOLR_QUERY) != null || filter.getPropertyRestriction(NATIVE_LUCENE_QUERY) != null
+                || configuration.useForPropertyRestrictions()) && !hasIgnoredProperties(filter.getPropertyRestrictions(), configuration)) {
+            match++;
+        }
+
         // path restriction defined AND path restrictions handled
         if (filter.getPathRestriction() != null &&
                 !Filter.PathRestriction.NO_RESTRICTION.equals(filter.getPathRestriction())
                 && configuration.useForPathRestrictions()) {
-            match++;
+            if (match > 0) {
+                match++;
+            }
         }
 
         // primary type restriction defined AND primary type restriction handled
@@ -142,12 +151,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
             match++;
         }
 
-        // property restriction OR native language property restriction defined AND property restriction handled
-        if (filter.getPropertyRestrictions() != null && filter.getPropertyRestrictions().size() > 0
-                && (filter.getPropertyRestriction(NATIVE_SOLR_QUERY) != null || filter.getPropertyRestriction(NATIVE_LUCENE_QUERY) != null
-                || configuration.useForPropertyRestrictions()) && !hasIgnoredProperties(filter.getPropertyRestrictions(), configuration)) {
-            match++;
-        }
+
 
         return match;
     }
