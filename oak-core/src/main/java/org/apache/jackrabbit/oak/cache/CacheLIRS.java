@@ -86,12 +86,15 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         /**
          * Indicates eviction of an item.
          * <p>
-         * <em>Note:</em> It is not safe to call any of {@code CacheLIRS}'s method
-         * from withing this callback. Any such call might result in undefined
-         * behaviour.
-         *
-         * @param key    the evicted item's key
-         * @param value  the evicted item's value or {@code null} if non-resident
+         * <em>Note:</em> It is not safe to call any of {@code CacheLIRS}'s
+         * method from withing this callback. Any such call might result in
+         * undefined behaviour and Java level deadlocks.
+         * <p>
+         * The method may be called twice for the same key (first if the entry
+         * is resident, and later if the entry is non-resident).
+         * 
+         * @param key the evicted item's key
+         * @param value the evicted item's value or {@code null} if non-resident
          */
         void evicted(@Nonnull K key, @Nullable V value);
     }
@@ -181,7 +184,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         for (int i = 0; i < segmentCount; i++) {
             Segment<K, V> old = segments[i];
             Segment<K, V> s = new Segment<K, V>(this,
-                    max, averageMemory, stackMoveDistance, evicted);
+                    max, averageMemory, stackMoveDistance);
             if (old != null) {
                 s.hitCount = old.hitCount;
                 s.missCount = old.missCount;
@@ -189,17 +192,26 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
                 s.loadExceptionCount = old.loadExceptionCount;
                 s.totalLoadTime = old.totalLoadTime;
                 s.evictionCount = old.evictionCount;
-
-                if (evicted != null) {
-                    for (Entry<K, V> entry : old.entries) {
-                        while (entry != null) {
-                            evicted.evicted(entry.key, entry.value);
-                            entry = entry.mapNext;
-                        }
-                    }
-                }
             }
-            segments[i] = s;
+            setSegment(i, s);
+        }
+    }
+
+    private void setSegment(int index, Segment<K, V> s) {
+        Segment<K, V> old = segments[index];
+        segments[index] = s;
+        if (evicted != null && old != null && old != s) {
+            old.evictedAll();
+        }
+    }
+
+    void evicted(Entry<K, V> entry) {
+        if (evicted == null) {
+            return;
+        }
+        K key = entry.key;
+        if (key != null) {
+            evicted.evicted(key, entry.value);
         }
     }
 
@@ -603,7 +615,12 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
 
     void clear() {
         for (Segment<K, V> s : segments) {
-            s.clear();
+            synchronized (s) {
+                if (evicted != null) {
+                    s.evictedAll();
+                }
+                s.clear();
+            }
         }
     }
 
@@ -742,11 +759,6 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         private int stackMoveCounter;
 
         /**
-         * The eviction listener of this segment or {@code null} if none.
-         */
-        private final EvictionCallback<K, V> evicted;
-
-        /**
          * Create a new cache.
          *  @param maxMemory the maximum memory to use
          * @param averageMemory the average memory usage of an object
@@ -754,14 +766,28 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
          *        the top of the stack before moving an entry to the top
          * @param evicted  the eviction listener of this segment or {@code null} if none.
          */
-        Segment(CacheLIRS<K, V> cache, long maxMemory, int averageMemory, int stackMoveDistance,
-                EvictionCallback<K, V> evicted) {
+        Segment(CacheLIRS<K, V> cache, long maxMemory, int averageMemory, int stackMoveDistance) {
             this.cache = cache;
             setMaxMemory(maxMemory);
             setAverageMemory(averageMemory);
             this.stackMoveDistance = stackMoveDistance;
-            this.evicted = evicted;
             clear();
+        }
+
+        public void evictedAll() {
+            for (Entry<K, V> e = stack.stackNext; e != stack; e = e.stackNext) {
+                if (e.value != null) {
+                    cache.evicted(e);
+                }
+            }
+            for (Entry<K, V> e = queue.queueNext; e != queue; e = e.queueNext) {
+                if (e.stackNext == null) {
+                    cache.evicted(e);
+                }
+            }
+            for (Entry<K, V> e = queue2.queueNext; e != queue2; e = e.queueNext) {
+                cache.evicted(e);
+            }
         }
 
         synchronized void clear() {
@@ -1143,20 +1169,18 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             if (e.isHot()) {
                 // when removing a hot entry, the newest cold entry gets hot,
                 // so the number of hot entries does not change
-                e = queue.queueNext;
-                if (e != queue) {
-                    removeFromQueue(e);
-                    if (e.stackNext == null) {
-                        addToStackBottom(e);
+                Entry<K, V> nc = queue.queueNext;
+                if (nc != queue) {
+                    removeFromQueue(nc);
+                    if (nc.stackNext == null) {
+                        addToStackBottom(nc);
                     }
                 }
             } else {
                 removeFromQueue(e);
             }
             pruneStack();
-            if (evicted != null && e.key != null) {
-                evicted.evicted(e.key, e.value);
-            }
+            cache.evicted(e);
         }
 
         /**
@@ -1184,9 +1208,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
                 usedMemory -= e.memory;
                 evictionCount++;
                 removeFromQueue(e);
-                if (evicted != null) {
-                    evicted.evicted(e.key, e.value);
-                }
+                cache.evicted(e);
                 e.value = null;
                 e.memory = 0;
                 addToQueue(queue2, e);
