@@ -150,7 +150,7 @@ public final class DocumentNodeStore
      * Use fair mode for background operation lock.
      */
     private boolean fairBackgroundOperationLock =
-            Boolean.getBoolean("oak.fairBackgroundOperationLock");
+            Boolean.parseBoolean(System.getProperty("oak.fairBackgroundOperationLock", "true"));
 
     /**
      * How long to remember the relative order of old revision of all cluster
