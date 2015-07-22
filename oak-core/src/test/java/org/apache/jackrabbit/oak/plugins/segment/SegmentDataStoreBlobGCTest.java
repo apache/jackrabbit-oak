@@ -88,7 +88,10 @@ public class SegmentDataStoreBlobGCTest {
 
     protected SegmentNodeStore getNodeStore(BlobStore blobStore) throws IOException {
         if (nodeStore == null) {
-            store = new FileStore(blobStore, getWorkDir(), 256, false);
+            FileStore.Builder builder = FileStore.newFileStore(getWorkDir())
+                    .withBlobStore(blobStore).withMaxFileSize(256)
+                    .withCacheSize(64).withMemoryMapping(false);
+            store = builder.create();
             CompactionStrategy compactionStrategy =
                 new CompactionStrategy(false, true,
                     CompactionStrategy.CleanupType.CLEAN_OLD, 0, CompactionStrategy.MEMORY_THRESHOLD_DEFAULT) {
