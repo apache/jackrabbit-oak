@@ -80,8 +80,8 @@ public interface Query {
     void setOrderings(OrderingImpl[] orderings);
     
     /**
-     * Initialize the query. This will 'wire' selectors into constraints bind
-     * variables into expressions. It will also simplify expressions if
+     * Initialize the query. This will 'wire' selectors into constraints, and
+     * collect bind variable names. It will also simplify expressions if
      * possible, but will not prepare the query.
      */
     void init();
