@@ -14,7 +14,7 @@
 # limitations under the License.
 
 install:  true
-script:   mvn --batch-mode verify -PintegrationTesting -Dnsfixtures=DOCUMENT_NS -pl :oak-jcr -am
+script:   mvn --batch-mode verify -PintegrationTesting -Dnsfixtures=DOCUMENT_NS -pl :oak-lucene -am
 language: java
 jdk:
   - oraclejdk7
