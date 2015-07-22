@@ -78,8 +78,6 @@ public class SolrServerProviderService implements SolrServerProvider {
     private String serverType;
 
     private SolrServer cachedSolrServer;
-    private SolrServer cachedSearchingSolrServer;
-    private SolrServer cachedIndexingSolrServer;
 
     @Activate
     protected void activate(ComponentContext context) throws Exception {
