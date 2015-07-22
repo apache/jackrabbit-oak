@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static java.lang.Integer.getInteger;
 import static java.lang.Integer.rotateLeft;
-import static java.lang.Math.abs;
 
 import java.util.UUID;
 
@@ -36,13 +35,20 @@ public class SegmentId implements Comparable<SegmentId> {
     private static final Logger log = LoggerFactory.getLogger(SegmentId.class);
 
     /**
-     * Sample rate of {@link SegmentTracker#segmentCache}. Lower values will cause
-     * more frequent accesses to that cache instead of the short circuit through
-     * {@link SegmentId#segment}. Access to that cache is slower but allows tracking
-     * access statistics.
+     * Sample rate bit mask of {@link SegmentTracker#segmentCache}. Lower values
+     * will cause more frequent accesses to that cache instead of the short
+     * circuit through {@link SegmentId#segment}. Access to that cache is slower
+     * but allows tracking access statistics. Should be 2^x - 1 (for example
+     * 1023, 255, 15,...).
      */
-    private static final int SEGMENT_CACHE_SAMPLE_RATE = getInteger("SegmentCacheSampleRate", 1000);
+    private static final int SEGMENT_CACHE_SAMPLE_MASK = getInteger("SegmentCacheSampleRate", 1023);
 
+    /**
+     * The initial random value for the pseudo random number generator. Initial
+     * values of 0 - 0xffff will ensure a long period, but other values don't.
+     */
+    private static volatile int random = (int) (System.currentTimeMillis() & 0xffff);
+    
     /**
      * Checks whether this is a data segment identifier.
      *
@@ -112,17 +118,21 @@ public class SegmentId implements Comparable<SegmentId> {
         return lsb;
     }
 
-    private static volatile int RND = 0;
-    private static int randomInt(int bound) {
+    /**
+     * Get a random integer. A fast, but lower quality pseudo random number
+     * generator is used.
+     * 
+     * @return a random value.
+     */
+    private static int randomInt() {
         // There is a race here on concurrent access. However, given the usage the resulting
         // bias seems preferable to the performance penalty of synchronization
-        RND = 0xc3e157c1 - rotateLeft(RND, 19);
-        return abs(RND) % 1000;
+        return random = 0xc3e157c1 - rotateLeft(random, 19);
     }
 
     public Segment getSegment() {
         // Sample the segment cache once in a while to get some cache hit/miss statistics
-        if (randomInt(SEGMENT_CACHE_SAMPLE_RATE) == 0) {
+        if ((randomInt() & SEGMENT_CACHE_SAMPLE_MASK) == 0) {
             Segment segment = tracker.getCachedSegment(this);
             if (segment != null) {
                 return segment;
