@@ -14,7 +14,7 @@
 # limitations under the License.
 
 install:  true
-script:   mvn --batch-mode verify -Ppedantic,integrationTesting
+script:   mvn --batch-mode verify -Ppedantic,integrationTesting -pl :oak-lucene -am
 language: java
 jdk:
   - oraclejdk7
