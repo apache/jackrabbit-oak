@@ -19,17 +19,13 @@
 package org.apache.jackrabbit.oak.plugins.segment.standby;
 
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentTestUtils.createTmpTargetDir;
-import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
 import java.io.IOException;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.commons.CIHelper;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
-
 import org.junit.After;
-import org.junit.Before;
 
 public class ExternalSharedStoreIT extends DataStoreTestBase {
     private File externalStore;
@@ -37,11 +33,6 @@ public class ExternalSharedStoreIT extends DataStoreTestBase {
     public ExternalSharedStoreIT() {
         super();
         this.storesCanBeEqual = true;
-    }
-
-    @Before
-    public void checkEnvironment() {
-        assumeTrue(!CIHelper.travis());
     }
 
     @After

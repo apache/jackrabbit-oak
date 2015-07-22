@@ -206,11 +206,6 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
 
     @Override
     public void close() {
-        ctx.close();
-        if (loaderExecutor != null && !loaderExecutor.isShuttingDown()) {
-            loaderExecutor.shutdownGracefully(1, 2, TimeUnit.SECONDS)
-                    .syncUninterruptibly();
-        }
     }
 
     @Override
