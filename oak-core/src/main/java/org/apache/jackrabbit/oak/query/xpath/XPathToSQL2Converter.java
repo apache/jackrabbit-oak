@@ -497,8 +497,14 @@ public class XPathToSQL2Converter {
         if (readIf("@")) {
             return readProperty();
         } else if (readIf("true")) {
+            if (readIf("(")) {
+                read(")");
+            }
             return Expression.Literal.newBoolean(true);
         } else if (readIf("false")) {
+            if (readIf("(")) {
+                read(")");
+            }
             return Expression.Literal.newBoolean(false);
         } else if (currentTokenType == VALUE_NUMBER) {
             Expression.Literal l = Expression.Literal.newNumber(currentToken);

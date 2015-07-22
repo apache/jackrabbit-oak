@@ -1184,6 +1184,24 @@ select [jcr:path], [jcr:score], *
   /* xpath ... */
 
 xpath2sql /jcr:root/etc/workflow//element(*,Item)
+  [not(meta/@archived) and not(meta/@archived = true())]
+select [jcr:path], [jcr:score], *
+  from [Item] as a
+  where [meta/archived] is null
+  and not([meta/archived] = true)
+  and isdescendantnode(a, '/etc/workflow')
+  /* xpath ... */
+
+xpath2sql /jcr:root/etc/workflow//element(*,Item)
+  [not(meta/@archived) and not(meta/@archived = false())]
+select [jcr:path], [jcr:score], *
+  from [Item] as a
+  where [meta/archived] is null
+  and not([meta/archived] = false)
+  and isdescendantnode(a, '/etc/workflow')
+  /* xpath ... */
+
+xpath2sql /jcr:root/etc/workflow//element(*,Item)
   [not(meta/@archived) and not(meta/@archived = true)]
 select [jcr:path], [jcr:score], *
   from [Item] as a
