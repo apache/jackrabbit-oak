@@ -464,37 +464,27 @@ public class FileStore implements SegmentStore {
         if (gainThreshold > 0) {
             CompactionGainEstimate estimate = estimateCompactionGain();
             long gain = estimate.estimateCompactionGain(offset);
-            gcMonitor
-                    .info("Estimated compaction in {}, gain is {}% ({}/{}) or ({}/{}), so running compaction",
-                            watch,
-                            gain,
-                            estimate.getReachableSize(),
-                            estimate.getTotalSize(),
-                            humanReadableByteCount(estimate.getReachableSize()),
-                            humanReadableByteCount(estimate.getTotalSize()));
             runCompaction = gain >= gainThreshold;
-            if (!runCompaction) {
+            if (runCompaction) {
+                gcMonitor.info(
+                    "Estimated compaction in {}, gain is {}% ({}/{}) or ({}/{}), so running compaction",
+                    watch, gain, estimate.getReachableSize(), estimate.getTotalSize(),
+                    humanReadableByteCount(estimate.getReachableSize()), humanReadableByteCount(estimate.getTotalSize()));
+            } else {
                 if (estimate.getTotalSize() == 0) {
-                    gcMonitor
-                            .skipped(
-                                    "Estimated compaction in {}. Skipping compaction for now as repository consists of a single tar file only",
-                                    watch);
+                    gcMonitor.skipped(
+                        "Estimated compaction in {}. Skipping compaction for now as repository consists " +
+                        "of a single tar file only", watch);
                 } else {
-                    gcMonitor
-                            .skipped(
-                                    "Estimated compaction in {}, gain is {}% ({}/{}) or ({}/{}), so skipping compaction for now",
-                                    watch, gain, estimate.getReachableSize(),
-                                    estimate.getTotalSize(),
-                                    humanReadableByteCount(estimate
-                                            .getReachableSize()),
-                                    humanReadableByteCount(estimate
-                                            .getTotalSize()));
+                    gcMonitor.skipped(
+                        "Estimated compaction in {}, gain is {}% ({}/{}) or ({}/{}), so skipping compaction for now",
+                        watch, gain, estimate.getReachableSize(), estimate.getTotalSize(),
+                        humanReadableByteCount(estimate.getReachableSize()), humanReadableByteCount(estimate.getTotalSize()));
                 }
             }
         } else {
-            gcMonitor
-                    .info("Compaction estimation is skipped due to threshold value ({}).",
-                            gainThreshold);
+            gcMonitor.info("Compaction estimation is skipped due to threshold value ({}). Running compaction",
+                gainThreshold);
         }
 
         if (runCompaction) {
