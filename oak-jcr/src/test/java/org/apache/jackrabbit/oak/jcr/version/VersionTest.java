@@ -16,9 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr.version;
 
+import java.util.Set;
+
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.Property;
+import javax.jcr.PropertyIterator;
 import javax.jcr.ReferentialIntegrityException;
 import javax.jcr.RepositoryException;
 import javax.jcr.query.Query;
@@ -27,8 +30,14 @@ import javax.jcr.query.RowIterator;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionManager;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.test.NotExecutableException;
+
+import static java.util.Collections.emptySet;
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
 /**
  * <code>VersionTest</code> performs tests on JCR Version nodes.
@@ -111,8 +120,6 @@ public class VersionTest extends AbstractJCRTest {
 
         VersionManager vMgr = superuser.getWorkspace().getVersionManager();
         vMgr.checkin(n.getPath());
-        // comment out the next line and the test will fail
-        vMgr.checkout(n.getPath());
 
         Version v = vMgr.getBaseVersion(n.getPath());
         try {
@@ -121,5 +128,51 @@ public class VersionTest extends AbstractJCRTest {
         } catch (ReferentialIntegrityException e) {
             // expected
         }
+
+        vMgr.checkout(n.getPath());
+        v = vMgr.getBaseVersion(n.getPath());
+        try {
+            v.getContainingHistory().removeVersion(v.getName());
+            fail("removeVersion() must fail with ReferentialIntegrityException");
+        } catch (ReferentialIntegrityException e) {
+            // expected
+        }
+    }
+
+    // OAK-3130
+    public void testVersionReferences() throws RepositoryException {
+        Node n = testRootNode.addNode(nodeName1, testNodeType);
+        n.addMixin(mixVersionable);
+        superuser.save();
+
+        VersionManager vMgr = superuser.getWorkspace().getVersionManager();
+        Version v = vMgr.checkin(n.getPath());
+        Version rootVersion = v.getContainingHistory().getRootVersion();
+
+        Set<String> refs = getReferencingPaths(rootVersion);
+        // the rootVersion actually has referencing property
+        // from the version 'v' created by checkin() (jcr:predecessors
+        // points to the rootVersion), but for compatibility with
+        // Jackrabbit 2.x it is not returned by Node.getReferences()
+        assertEquals("references mismatch", emptySet(), refs);
+
+        refs = getReferencingPaths(v);
+        // Similar to above, the version is actually also referenced
+        // from the rootVersion's jcr:successors property, but for
+        // compatibility reasons it is not returned
+        Set<String> expected = ImmutableSet.of(
+                concat(n.getPath(), jcrBaseVersion)
+        );
+        assertEquals("references mismatch", expected, refs);
+    }
+
+    private static Set<String> getReferencingPaths(Node n)
+            throws RepositoryException {
+        Set<String> refs = Sets.newHashSet();
+        PropertyIterator it = n.getReferences();
+        while (it.hasNext()) {
+            refs.add(it.nextProperty().getPath());
+        }
+        return refs;
     }
 }
