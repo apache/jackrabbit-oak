@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentVersion;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -42,7 +43,7 @@ import com.google.common.collect.Maps;
  */
 public class MemoryStore implements SegmentStore {
 
-    private final SegmentTracker tracker = new SegmentTracker(this);
+    private final SegmentTracker tracker = new SegmentTracker(this, 16, SegmentVersion.V_11);
 
     private SegmentNodeState head;
 
