@@ -148,7 +148,9 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
         // primary type restriction defined AND primary type restriction handled
         if (filter.getPrimaryTypes() != null && filter.getPrimaryTypes().size() > 0
                 && configuration.useForPrimaryTypes()) {
-            match++;
+            if (match > 0) {
+                match++;
+            }
         }
 
 

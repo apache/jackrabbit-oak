@@ -190,7 +190,7 @@ public class SolrQueryIndexTest {
     }
 
     @Test
-    public void testCostWithPrimaryTypeRestrictionsEnabled() throws Exception {
+    public void testCostWithOnlyPrimaryTypeRestrictionsEnabled() throws Exception {
         NodeState root = mock(NodeState.class);
         when(root.getNames(any(String.class))).thenReturn(Collections.<String>emptySet());
         SelectorImpl selector = new SelectorImpl(root, "a");
@@ -207,7 +207,34 @@ public class SolrQueryIndexTest {
         FilterImpl filter = new FilterImpl(selector, "select * from [nt:base] as a where jcr:primaryType = 'nt:unstructured')", new QueryEngineSettings());
         filter.restrictProperty("jcr:primaryType", Operator.EQUAL, PropertyValues.newString("nt:unstructured"));
         double cost = solrQueryIndex.getCost(filter, root);
-        assertEquals(10, cost, 0);
+        assertEquals(Double.POSITIVE_INFINITY, cost, 0);
+    }
+
+    @Test
+    public void testCostWithPropertyAndPrimaryTypeRestrictionsEnabled() throws Exception {
+        NodeState root = mock(NodeState.class);
+        when(root.getNames(any(String.class))).thenReturn(Collections.<String>emptySet());
+        SelectorImpl selector = new SelectorImpl(root, "a");
+
+        SolrServer solrServer = mock(SolrServer.class);
+        OakSolrConfiguration configuration = new DefaultSolrConfiguration() {
+            @Override
+            public boolean useForPrimaryTypes() {
+                return true;
+            }
+
+            @Override
+            public boolean useForPropertyRestrictions() {
+                return true;
+            }
+        };
+        SolrQueryIndex solrQueryIndex = new SolrQueryIndex("solr", solrServer, configuration);
+
+        FilterImpl filter = new FilterImpl(selector, "select * from [nt:base] as a where jcr:primaryType = 'nt:unstructured')", new QueryEngineSettings());
+        filter.restrictProperty("jcr:primaryType", Operator.EQUAL, PropertyValues.newString("nt:unstructured"));
+        filter.restrictProperty("name", Operator.EQUAL, PropertyValues.newString("hello"));
+        double cost = solrQueryIndex.getCost(filter, root);
+        assertEquals(5, cost, 0);
     }
 
     @Test
