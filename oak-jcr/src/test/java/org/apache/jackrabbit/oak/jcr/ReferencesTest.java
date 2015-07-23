@@ -484,10 +484,6 @@ public class ReferencesTest extends AbstractJCRTest {
     }
 
     public void testRemoveReferenced2() throws RepositoryException {
-        if (true) {
-            // FIXME OAK-3130
-            return;
-        }
         Node ref = testRootNode.addNode(nodeName1, testNodeType);
         ref.addMixin(mixReferenceable);
         superuser.save();
@@ -511,10 +507,6 @@ public class ReferencesTest extends AbstractJCRTest {
     }
 
     public void testRemoveReferenced3() throws RepositoryException {
-        if (true) {
-            // FIXME OAK-3130
-            return;
-        }
         Node ref = testRootNode.addNode(nodeName1, testNodeType);
         ref.addMixin(mixReferenceable);
         superuser.save();
@@ -529,6 +521,51 @@ public class ReferencesTest extends AbstractJCRTest {
         assertEquals(PropertyType.REFERENCE, n2.getProperty("ref").getType());
         ref.remove();
         n1.remove();
+        try {
+            superuser.save();
+            fail("must fail with ReferentialIntegrityException");
+        } catch (ReferentialIntegrityException e) {
+            // expected
+        }
+    }
+
+    public void testRecreateWithDifferentUUID() throws RepositoryException {
+        Node ref = testRootNode.addNode(nodeName1, testNodeType);
+        ref.addMixin(mixReferenceable);
+        superuser.save();
+        String uuid = ref.getIdentifier();
+
+        Node n1 = testRootNode.addNode(nodeName2, testNodeType);
+        n1.setProperty("ref", ref);
+        assertEquals(PropertyType.REFERENCE, n1.getProperty("ref").getType());
+        superuser.save();
+
+        // recreate
+        ref.remove();
+        ref = testRootNode.addNode(nodeName1, testNodeType);
+        ref.addMixin(mixReferenceable);
+        assertFalse(uuid.equals(ref.getIdentifier()));
+        try {
+            superuser.save();
+            fail("must fail with ReferentialIntegrityException");
+        } catch (ReferentialIntegrityException e) {
+            // expected
+        }
+    }
+
+    public void testRecreateNonReferenceable() throws RepositoryException {
+        Node ref = testRootNode.addNode(nodeName1, testNodeType);
+        ref.addMixin(mixReferenceable);
+        superuser.save();
+
+        Node n1 = testRootNode.addNode(nodeName2, testNodeType);
+        n1.setProperty("ref", ref);
+        assertEquals(PropertyType.REFERENCE, n1.getProperty("ref").getType());
+        superuser.save();
+
+        // recreate
+        ref.remove();
+        testRootNode.addNode(nodeName1, testNodeType);
         try {
             superuser.save();
             fail("must fail with ReferentialIntegrityException");
