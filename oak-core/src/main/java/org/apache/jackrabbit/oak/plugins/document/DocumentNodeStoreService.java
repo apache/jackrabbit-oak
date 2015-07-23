@@ -35,6 +35,7 @@ import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -236,7 +237,7 @@ public class DocumentNodeStoreService {
             if (type == null) {
                 return MONGO;
             }
-            return valueOf(type.toUpperCase());
+            return valueOf(type.toUpperCase(Locale.ROOT));
         }
     }
 
