@@ -227,7 +227,25 @@ public interface DocumentStore {
     <T extends Document> T findAndUpdate(Collection<T> collection, UpdateOp update);
 
     /**
-     * Invalidate the document cache.
+     * Invalidate the document cache. Calling this method instructs the
+     * implementation to invalidate each document from the cache, which is not
+     * up to date with the underlying storage at the time this method is called.
+     * A document is considered in the cache if {@link #getIfCached(Collection, String)}
+     * returns a non-null value for a key.
+     * <p>
+     * An implementation is allowed to perform lazy invalidation and only check
+     * whether a document is up-to-date when it is accessed after this method
+     * is called. However, this also includes a call to {@link #getIfCached(Collection, String)},
+     * which must only return the document if it was up-to-date at the time
+     * this method was called. Similarly, a call to {@link #find(Collection, String)}
+     * must guarantee the returned document reflects all the changes done up to
+     * when {@code invalidateCache()} was called.
+     * <p>
+     * In some implementations this method can be a NOP because documents can
+     * only be modified through a single instance of a {@code DocumentStore}.
+     *
+     * @return cache invalidation statistics or {@code null} if none are
+     *          available.
      */
     @CheckForNull
     CacheInvalidationStats invalidateCache();
@@ -235,6 +253,13 @@ public interface DocumentStore {
     /**
      * Invalidate the document cache but only with entries that match one
      * of the keys provided.
+     *
+     * See {@link #invalidateCache()} for the general contract of cache
+     * invalidation.
+     *
+     * @param keys the keys of the documents to invalidate.
+     * @return cache invalidation statistics or {@code null} if none are
+     *          available.
      */
     @CheckForNull
     CacheInvalidationStats invalidateCache(Iterable<String> keys);
@@ -242,7 +267,9 @@ public interface DocumentStore {
     /**
      * Invalidate the document cache for the given key.
      *
-     * @param <T> the document type
+     * See {@link #invalidateCache()} for the general contract of cache
+     * invalidation.
+     *
      * @param collection the collection
      * @param key the key
      */
