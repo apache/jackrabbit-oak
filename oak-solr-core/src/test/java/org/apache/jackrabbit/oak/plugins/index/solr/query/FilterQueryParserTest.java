@@ -57,7 +57,8 @@ public class FilterQueryParserTest {
         when(filter.getPath()).thenReturn("/");
         SolrQuery solrQuery = FilterQueryParser.getQuery(filter, null, configuration);
         assertNotNull(solrQuery);
-        assertEquals(configuration.getFieldForPathRestriction(pathRestriction)+":\\/", solrQuery.get("q"));
+        assertEquals(configuration.getFieldForPathRestriction(pathRestriction)+":\\/", solrQuery.get("fq"));
+        assertEquals("*:*", solrQuery.get("q"));
     }
 
 

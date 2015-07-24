@@ -200,20 +200,22 @@ class FilterQueryParser {
 
         if (configuration.useForPrimaryTypes()) {
             String[] pts = filter.getPrimaryTypes().toArray(new String[filter.getPrimaryTypes().size()]);
+            StringBuilder ptQueryBuilder = new StringBuilder();
             for (int i = 0; i < pts.length; i++) {
                 String pt = pts[i];
                 if (i == 0) {
-                    queryBuilder.append("(");
+                    ptQueryBuilder.append("(");
                 }
                 if (i > 0 && i < pts.length) {
-                    queryBuilder.append("OR ");
+                    ptQueryBuilder.append("OR ");
                 }
-                queryBuilder.append("jcr\\:primaryType").append(':').append(partialEscape(pt)).append(" ");
+                ptQueryBuilder.append("jcr\\:primaryType").append(':').append(partialEscape(pt)).append(" ");
                 if (i == pts.length - 1) {
-                    queryBuilder.append(")");
-                    queryBuilder.append(' ');
+                    ptQueryBuilder.append(")");
+                    ptQueryBuilder.append(' ');
                 }
             }
+            solrQuery.addFilterQuery(ptQueryBuilder.toString());
         }
 
         if (configuration.useForPathRestrictions()) {
@@ -222,9 +224,13 @@ class FilterQueryParser {
                 String path = purgePath(filter);
                 String fieldName = configuration.getFieldForPathRestriction(pathRestriction);
                 if (fieldName != null) {
-                    queryBuilder.append(fieldName);
-                    queryBuilder.append(':');
-                    queryBuilder.append(path);
+                    if (pathRestriction.equals(Filter.PathRestriction.ALL_CHILDREN)) {
+                        solrQuery.addFilterQuery(fieldName + ':' + path);
+                    } else {
+                        queryBuilder.append(fieldName);
+                        queryBuilder.append(':');
+                        queryBuilder.append(path);
+                    }
                 }
             }
         }
