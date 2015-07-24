@@ -857,7 +857,7 @@ For more details on this feature refer to [OAK-2892][OAK-2892]
 In order to use Lucene index to perform search suggestions, the index definition 
 node (the one of type `oak:QueryIndexDefinition`) needs to have the `compatVersion` 
 set to `2`, then one or more property nodes, depending on use case, need to have 
-the property `useForSuggest` set to `true`, such setting controls from which 
+the property `useInSuggest` set to `true`, such setting controls from which 
 properties terms to be used for suggestions will be taken.
  
 Once the above configuration has been done, by default, the Lucene suggester is 
@@ -892,7 +892,7 @@ property.
 In order to use Lucene index to perform spellchecking, the index definition node 
 (the one of type `oak:QueryIndexDefinition`) needs to have the `compatVersion` 
 set to `2`, then one or more property nodes, depending on use case, need to have 
-the property `useForSpellcheck` set to `true`, such setting controls from which 
+the property `useInSpellcheck` set to `true`, such setting controls from which 
 properties terms to be used for spellcheck corrections will be taken.
  
 Sample configuration for spellchecking based on terms contained in `jcr:title` 
