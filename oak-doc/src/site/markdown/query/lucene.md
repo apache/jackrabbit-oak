@@ -882,7 +882,7 @@ property.
         + jcr:description
           - propertyIndex = true
           - analyzed = true
-          - useForSuggest = true
+          - useInSuggest = true
 ```
 
 #### Spellchecking
@@ -912,7 +912,7 @@ property.
         + jcr:title
           - propertyIndex = true
           - analyzed = true
-          - useForSpellcheck = true
+          - useInSpellcheck = true
 ```
 
 ### Design Considerations
