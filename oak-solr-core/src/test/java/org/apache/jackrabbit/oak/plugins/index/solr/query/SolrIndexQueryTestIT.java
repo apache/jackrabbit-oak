@@ -296,20 +296,27 @@ public class SolrIndexQueryTestIT extends AbstractQueryTest {
     public void testRepSimilarXPathQuery() throws Exception {
         String query = "//element(*, nt:base)[rep:similar(., '/test/a')]";
         Tree test = root.getTree("/").addChild("test");
-        test.addChild("a").setProperty("text", "Hello World Hello World");
-        test.addChild("b").setProperty("text", "Hello World");
-        test.addChild("c").setProperty("text", "World");
-        test.addChild("d").setProperty("text", "Hello");
-        test.addChild("e").setProperty("text", "World");
-        test.addChild("f").setProperty("text", "Hello");
-        test.addChild("g").setProperty("text", "World");
-        test.addChild("h").setProperty("text", "Hello");
+        test.addChild("a").setProperty("text", "the quick brown fox jumped over the lazy white dog");
+        test.addChild("b").setProperty("text", "I am a dog");
+        test.addChild("c").setProperty("text", "dogs don't hurt");
+        test.addChild("d").setProperty("text", "white men can't jump");
+        test.addChild("e").setProperty("text", "the fox is brown");
+        test.addChild("f").setProperty("text", "a quickest dog jumped over the quick white dog");
+        test.addChild("g").setProperty("text", "hello world");
+        test.addChild("h").setProperty("text", "over the lazy top");
         root.commit();
         Iterator<String> result = executeQuery(query, "xpath").iterator();
         assertTrue(result.hasNext());
         assertEquals("/test/b", result.next());
         assertTrue(result.hasNext());
-        assertEquals("/test/c", result.next());
+        assertEquals("/test/d", result.next());
+        assertTrue(result.hasNext());
+        assertEquals("/test/e", result.next());
+        assertTrue(result.hasNext());
+        assertEquals("/test/f", result.next());
+        assertTrue(result.hasNext());
+        assertEquals("/test/h", result.next());
+        assertFalse(result.hasNext());
     }
 
     @Test
