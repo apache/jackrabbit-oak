@@ -17,13 +17,6 @@
 
 package org.apache.jackrabbit.oak.security.authentication.ldap;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertNull;
-import static junit.framework.Assert.assertTrue;
-import static junit.framework.Assert.fail;
-import static org.junit.Assert.assertThat;
-
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collections;
@@ -50,6 +43,14 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
+
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertNotNull;
+import static junit.framework.Assert.assertNull;
+import static junit.framework.Assert.assertTrue;
+import static junit.framework.Assert.fail;
+
+import static org.junit.Assert.assertThat;
 
 public class LdapProviderTest {
 
@@ -169,7 +170,7 @@ public class LdapProviderTest {
         assertNotNull("User 1 must exist", user);
         assertEquals("User Ref", TEST_USER1_DN, user.getExternalId().getId());
     }
-    
+
     @Test
     public void testGetUserProperties() throws Exception {
         ExternalUser user = idp.getUser(TEST_USER1_UID);

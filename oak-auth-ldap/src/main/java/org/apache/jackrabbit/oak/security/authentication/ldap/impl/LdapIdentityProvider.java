@@ -709,20 +709,20 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
         LdapUser user = new LdapUser(this, ref, id, path);
         Map<String, Object> props = user.getProperties();
         for (Attribute attr: entry.getAttributes()) {
-        	if (attr.isHumanReadable()) {
-        		final Object propValue;
-        		// for multivalue properties, store as collection
-        		if (attr.size() > 1) {
-	        		List<String> values = new ArrayList<String>();
-	        		for (Value<?> value : attr) {
-		                values.add(value.getString());
-		            }
-	        		propValue = values;
-        		} else {
-        			propValue = attr.getString();
-        		}
-        		props.put(attr.getId(), propValue);
-        	}
+            if (attr.isHumanReadable()) {
+                final Object propValue;
+                // for multivalue properties, store as collection
+                if (attr.size() > 1) {
+                    List<String> values = new ArrayList<String>();
+                    for (Value<?> value : attr) {
+                        values.add(value.getString());
+                    }
+                    propValue = values;
+                } else {
+                    propValue = attr.getString();
+                }
+                props.put(attr.getId(), propValue);
+            }
         }
         return user;
     }
