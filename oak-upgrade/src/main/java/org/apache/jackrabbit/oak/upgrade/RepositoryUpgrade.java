@@ -17,11 +17,11 @@
 package org.apache.jackrabbit.oak.upgrade;
 
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.ImmutableSet.of;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONSTORAGE;
 import static org.apache.jackrabbit.core.RepositoryImpl.ACTIVITIES_NODE_ID;
 import static org.apache.jackrabbit.core.RepositoryImpl.ROOT_NODE_ID;
 import static org.apache.jackrabbit.core.RepositoryImpl.VERSION_STORAGE_NODE_ID;
@@ -33,6 +33,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -73,6 +74,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
@@ -85,7 +87,6 @@ import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.ReadWriteNodeTypeManager;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -107,6 +108,7 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier;
 import org.apache.jackrabbit.oak.upgrade.security.GroupEditorProvider;
 import org.apache.jackrabbit.oak.upgrade.security.RestrictionEditorProvider;
 import org.apache.jackrabbit.spi.Name;
@@ -506,6 +508,12 @@ public class RepositoryUpgrade {
         logger.debug("Registering custom non-aggregated privileges");
         for (Privilege privilege : registry.getRegisteredPrivileges()) {
             String privilegeName = privilege.getName();
+
+            if (hasPrivilege(pMgr, privilegeName)) {
+                logger.debug("Privilege {} already exists", privilegeName);
+                continue;
+            }
+
             if (PrivilegeBits.BUILT_IN.containsKey(privilegeName) || JCR_ALL.equals(privilegeName)) {
                 // Ignore built in privileges as those have been installed by the PrivilegesInitializer already
                 logger.debug("Built-in privilege -> ignore.");
@@ -555,6 +563,16 @@ public class RepositoryUpgrade {
             }
             throw new RepositoryException("Failed to register custom privileges. The following privileges contained an invalid aggregation:" + invalid);
         }
+    }
+
+    private boolean hasPrivilege(PrivilegeManager pMgr, String privilegeName) throws RepositoryException {
+        final Privilege[] registeredPrivileges = pMgr.getRegisteredPrivileges();
+        for (Privilege registeredPrivilege : registeredPrivileges) {
+            if (registeredPrivilege.getName().equals(privilegeName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean allAggregatesRegistered(PrivilegeManager privilegeManager, List<String> aggrNames) {
@@ -694,16 +712,18 @@ public class RepositoryUpgrade {
         NodeBuilder system = builder.child(JCR_SYSTEM);
 
         logger.info("Copying version histories");
-        copyState(system, JCR_VERSIONSTORAGE, new JackrabbitNodeState(
+        copyState(system, "/jcr:system/jcr:versionStorage", new JackrabbitNodeState(
                 pm, root, uriToPrefix, VERSION_STORAGE_NODE_ID,
                 "/jcr:system/jcr:versionStorage",
-                workspaceName, versionablePaths, copyBinariesByReference, skipOnError));
+                workspaceName, versionablePaths, copyBinariesByReference, skipOnError),
+                true);
 
         logger.info("Copying activities");
-        copyState(system, "jcr:activities", new JackrabbitNodeState(
+        copyState(system, "/jcr:system/jcr:activities", new JackrabbitNodeState(
                 pm, root, uriToPrefix, ACTIVITIES_NODE_ID,
                 "/jcr:system/jcr:activities",
-                workspaceName, versionablePaths, copyBinariesByReference, skipOnError));
+                workspaceName, versionablePaths, copyBinariesByReference, skipOnError),
+                true);
     }
 
     private String copyWorkspace(
@@ -725,40 +745,30 @@ public class RepositoryUpgrade {
         for (ChildNodeEntry child : state.getChildNodeEntries()) {
             String childName = child.getName();
             if (!JCR_SYSTEM.equals(childName)) {
-                logger.info("Copying subtree /{}", childName);
-                copyState(builder, childName, child.getNodeState());
+                final String path = PathUtils.concat("/", childName);
+                logger.info("Copying subtree {}", path);
+                copyState(builder, path, child.getNodeState(), false);
             }
         }
 
         return workspaceName;
     }
 
-    private void copyState(NodeBuilder parent, String name, NodeState state) {
-        if (parent instanceof SegmentNodeBuilder) {
-            parent.setChildNode(name, state);
-        } else {
-            setChildNode(parent, name, state);
-        }
-    }
-
-    /**
-     * NodeState are copied by value by recursing down the complete tree
-     * This is a temporary approach for OAK-1760 for 1.0 branch.
-     */
-    private void setChildNode(NodeBuilder parent, String name, NodeState state) {
+    private void copyState(NodeBuilder targetParent, String path, NodeState source, boolean merge) {
+        final String name = PathUtils.getName(path);
         // OAK-1589: maximum supported length of name for DocumentNodeStore
         // is 150 bytes. Skip the sub tree if the the name is too long
         if (name.length() > 37 && name.getBytes(Charsets.UTF_8).length > 150) {
-            logger.warn("Node name too long. Skipping {}", state);
+            logger.warn("Node name too long. Skipping {}", source);
             return;
         }
-        NodeBuilder builder = parent.setChildNode(name);
-        for (PropertyState property : state.getProperties()) {
-            builder.setProperty(property);
-        }
-        for (ChildNodeEntry child : state.getChildNodeEntries()) {
-            setChildNode(builder, child.getName(), child.getNodeState());
-        }
+        NodeBuilder target = targetParent.child(name);
+        NodeStateCopier.copyNodeState(
+                source,
+                target,
+                path,
+                merge ? of(path) : Collections.<String>emptySet()
+        );
     }
 
     private static class LoggingCompositeHook implements CommitHook {
