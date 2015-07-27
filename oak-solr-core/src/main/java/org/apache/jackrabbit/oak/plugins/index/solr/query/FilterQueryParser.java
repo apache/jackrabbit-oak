@@ -234,6 +234,10 @@ class FilterQueryParser {
             }
         }
 
+        if (configuration.collapseJcrContentNodes()) {
+            solrQuery.addFilterQuery("{!collapse field=" + configuration.getCollapsedPathField() + "}");
+        }
+
         if (queryBuilder.length() == 0) {
             queryBuilder.append("*:*");
         }
