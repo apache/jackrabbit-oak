@@ -19,12 +19,14 @@
 package org.apache.jackrabbit.oak.upgrade;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
 import javax.jcr.Credentials;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
 import org.apache.commons.io.FileUtils;
@@ -40,63 +42,118 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 public abstract class AbstractRepositoryUpgradeTest {
 
     protected static final Credentials CREDENTIALS = new SimpleCredentials("admin", "admin".toCharArray());
 
-    private static Repository targetRepository;
+    private static NodeStore targetNodeStore;
+
+    private static File testDirectory;
 
     @BeforeClass
-    public static void init() {
+    public static void init() throws InterruptedException {
         // ensure that we create a new repository for the next test
-        targetRepository = null;
+        targetNodeStore = null;
+        testDirectory = createTestDirectory();
+    }
+
+    protected static File createTestDirectory() throws InterruptedException {
+        final File dir = new File("target", "upgrade-" + Clock.SIMPLE.getTimeIncreasing());
+        FileUtils.deleteQuietly(dir);
+        return dir;
+    }
+
+    protected NodeStore createTargetNodeStore() {
+        return new SegmentNodeStore();
     }
 
     @Before
     public synchronized void upgradeRepository() throws Exception {
-        if (targetRepository == null) {
-            File directory = new File(
-                    "target", "upgrade-" + Clock.SIMPLE.getTimeIncreasing());
-            FileUtils.deleteQuietly(directory);
-
+        if (targetNodeStore == null) {
+            File directory = getTestDirectory();
             File source = new File(directory, "source");
             source.mkdirs();
-
-            InputStream repoConfig = getRepositoryConfig();
-            RepositoryConfig config;
-            if (repoConfig == null) {
-                config = RepositoryConfig.install(source);
-            } else {
-                OutputStream out = FileUtils.openOutputStream(new File(source, "repository.xml"));
-                IOUtils.copy(repoConfig, out);
-                out.close();
-                repoConfig.close();
-                config = RepositoryConfig.create(source);
-            }
-            RepositoryImpl repository = RepositoryImpl.create(config);
+            RepositoryImpl repository = createSourceRepository(source);
             try {
                 createSourceContent(repository);
             } finally {
                 repository.shutdown();
             }
-            NodeStore target = new SegmentNodeStore();
-            RepositoryUpgrade.copy(source, target);
-            targetRepository = new Jcr(new Oak(target)).createRepository();
+            final NodeStore target = getTargetNodeStore();
+            doUpgradeRepository(source, target);
+            targetNodeStore = target;
         }
     }
 
-    public InputStream getRepositoryConfig() {
+    protected synchronized NodeStore getTargetNodeStore() {
+        if (targetNodeStore == null) {
+            targetNodeStore = createTargetNodeStore();
+        }
+        return targetNodeStore;
+    }
+
+    protected static File getTestDirectory() {
+        return testDirectory;
+    }
+
+    protected RepositoryImpl createSourceRepository(File repositoryHome) throws IOException, RepositoryException {
+        InputStream repoConfig = getRepositoryConfig();
+        RepositoryConfig config;
+        if (repoConfig == null) {
+            config = RepositoryConfig.install(repositoryHome);
+        } else {
+            OutputStream out = FileUtils.openOutputStream(new File(repositoryHome, "repository.xml"));
+            IOUtils.copy(repoConfig, out);
+            out.close();
+            repoConfig.close();
+            config = RepositoryConfig.create(repositoryHome);
+        }
+        return RepositoryImpl.create(config);
+    }
+
+
+    protected void doUpgradeRepository(File source, NodeStore target)throws RepositoryException{
+        RepositoryUpgrade.copy(source, target);
+    }
+
+    public InputStream getRepositoryConfig(){
         return null;
     }
 
-    public Repository getTargetRepository() {
-        return targetRepository;
+    public Repository getTargetRepository(){
+        return new Jcr(new Oak(targetNodeStore)).createRepository();
     }
 
-    public JackrabbitSession createAdminSession() throws RepositoryException {
-        return (JackrabbitSession) getTargetRepository().login(CREDENTIALS);
+    public JackrabbitSession createAdminSession()throws RepositoryException{
+        return(JackrabbitSession)getTargetRepository().login(CREDENTIALS);
     }
 
     protected abstract void createSourceContent(Repository repository) throws Exception;
 
+    protected void assertExisting(final String... paths) throws RepositoryException {
+        final Session session = createAdminSession();
+        try {
+            for (final String path : paths) {
+                final String relPath = path.substring(1);
+                assertTrue("node " + path + " should exist", session.getRootNode().hasNode(relPath));
+            }
+        } finally {
+            session.logout();
+        }
+    }
+
+    protected void assertMissing(final String... paths) throws RepositoryException {
+        final Session session = createAdminSession();
+        try {
+            for (final String path : paths) {
+                final String relPath = path.substring(1);
+                assertFalse("node " + path + " should not exist", session.getRootNode().hasNode(relPath));
+            }
+        } finally {
+            session.logout();
+        }
+    }
 }
