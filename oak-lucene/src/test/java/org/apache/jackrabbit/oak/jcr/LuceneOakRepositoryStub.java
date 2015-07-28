@@ -86,8 +86,7 @@ public class LuceneOakRepositoryStub extends OakTarMKRepositoryStub {
                         .setProperty(REINDEX_PROPERTY_NAME, true)
                         .setProperty(LuceneIndexConstants.TEST_MODE, true)
                         .setProperty(LuceneIndexConstants.EVALUATE_PATH_RESTRICTION, true)
-                        .setProperty(LuceneIndexConstants.SUGGEST_UPDATE_FREQUENCY_MINUTES, 10)
-                        .setProperty(LuceneIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
+                        .setProperty(LuceneIndexConstants.SUGGEST_UPDATE_FREQUENCY_MINUTES, 10);
 
                 NodeBuilder props = index.child(LuceneIndexConstants.INDEX_RULES)
                         .child("nt:base")
