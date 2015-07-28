@@ -76,6 +76,10 @@ public class ExternalLoginModule extends AbstractLoginModule {
      */
     public static final String PARAM_SYNC_HANDLER_NAME = "sync.handlerName";
 
+    private ExternalIdentityProviderManager idpManager;
+
+    private SyncManager syncManager;
+
     /**
      * internal configuration when invoked from a factory rather than jaas
      */
@@ -136,11 +140,13 @@ public class ExternalLoginModule extends AbstractLoginModule {
         if (idpName.isEmpty()) {
             log.error("External login module needs IPD name. Will not be used for login.");
         } else {
-            ExternalIdentityProviderManager idpMgr = WhiteboardUtils.getService(whiteboard, ExternalIdentityProviderManager.class);
-            if (idpMgr == null) {
+            if (idpManager == null) {
+                idpManager = WhiteboardUtils.getService(whiteboard, ExternalIdentityProviderManager.class);
+            }
+            if (idpManager == null) {
                 log.error("External login module needs IDPManager. Will not be used for login.");
             } else {
-                idp = idpMgr.getProvider(idpName);
+                idp = idpManager.getProvider(idpName);
                 if (idp == null) {
                     log.error("No IDP found with name {}. Will not be used for login.", idpName);
                 }
@@ -151,11 +157,13 @@ public class ExternalLoginModule extends AbstractLoginModule {
         if (syncHandlerName.isEmpty()) {
             log.error("External login module needs SyncHandler name. Will not be used for login.");
         } else {
-            SyncManager syncMgr = WhiteboardUtils.getService(whiteboard, SyncManager.class);
-            if (syncMgr == null) {
+            if (syncManager == null) {
+                syncManager = WhiteboardUtils.getService(whiteboard, SyncManager.class);
+            }
+            if (syncManager == null) {
                 log.error("External login module needs SyncManager. Will not be used for login.");
             } else {
-                syncHandler = syncMgr.getSyncHandler(syncHandlerName);
+                syncHandler = syncManager.getSyncHandler(syncHandlerName);
                 if (syncHandler == null) {
                     log.error("No SyncHandler found with name {}. Will not be used for login.", syncHandlerName);
                 }
@@ -404,5 +412,14 @@ public class ExternalLoginModule extends AbstractLoginModule {
         // TODO: maybe delegate getSupportedCredentials to IDP
         Class scClass = SimpleCredentials.class;
         return Collections.singleton(scClass);
+    }
+
+
+    public void setSyncManager(SyncManager syncManager) {
+        this.syncManager = syncManager;
+    }
+
+    public void setIdpManager(ExternalIdentityProviderManager idpManager) {
+        this.idpManager = idpManager;
     }
 }
