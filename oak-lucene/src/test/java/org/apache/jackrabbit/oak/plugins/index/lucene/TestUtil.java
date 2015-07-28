@@ -59,11 +59,15 @@ public class TestUtil {
             " + * (nt:base) = oak:TestNode VERSION";
 
     static void useV2(NodeBuilder idxNb) {
-        idxNb.setProperty(LuceneIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
+        if (!IndexFormatVersion.getDefault().isAtLeast(IndexFormatVersion.V2)) {
+            idxNb.setProperty(LuceneIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
+        }
     }
 
     static void useV2(Tree idxTree) {
-        idxTree.setProperty(LuceneIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
+        if (!IndexFormatVersion.getDefault().isAtLeast(IndexFormatVersion.V2)) {
+            idxTree.setProperty(LuceneIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
+        }
     }
 
     public static NodeBuilder newLuceneIndexDefinitionV2(
