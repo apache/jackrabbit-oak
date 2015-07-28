@@ -175,6 +175,17 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
         return usedProperties;
     }
 
+    @Override
+    public boolean collapseJcrContentNodes() {
+        return getBooleanValueFor(Properties.COLLAPSE_JCR_CONTENT_NODES, SolrServerConfigurationDefaults.COLLAPSE_JCR_CONTENT_NODES);
+    }
+
+    @Nonnull
+    @Override
+    public String getCollapsedPathField() {
+        return getStringValueFor(Properties.COLLAPSED_PATH_FIELD, SolrServerConfigurationDefaults.COLLAPSED_PATH_FIELD);
+    }
+
     private boolean getBooleanValueFor(String propertyName, boolean defaultValue) {
         boolean value = defaultValue;
         NodeState configurationNodeState = getConfigurationNodeState();
@@ -259,5 +270,7 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
         public static final String TYPE_MAPPINGS = "typeMappings";
         public static final String PROPERTY_MAPPINGS = "propertyMappings";
         public static final String USED_PROPERTIES = "usedProperties";
+        public static final String COLLAPSED_PATH_FIELD = "collapsedPathField";
+        public static final String COLLAPSE_JCR_CONTENT_NODES = "collapseJcrContentNodes";
     }
 }

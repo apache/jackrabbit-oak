@@ -22,8 +22,11 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.junit.Test;
 
+import java.util.Arrays;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -57,7 +60,8 @@ public class FilterQueryParserTest {
         when(filter.getPath()).thenReturn("/");
         SolrQuery solrQuery = FilterQueryParser.getQuery(filter, null, configuration);
         assertNotNull(solrQuery);
-        assertEquals(configuration.getFieldForPathRestriction(pathRestriction)+":\\/", solrQuery.get("fq"));
+        String[] filterQueries = solrQuery.getFilterQueries();
+        assertTrue(Arrays.asList(filterQueries).contains(configuration.getFieldForPathRestriction(pathRestriction) + ":\\/"));
         assertEquals("*:*", solrQuery.get("q"));
     }
 
