@@ -167,9 +167,7 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory {
      */
     @Override
     public LoginModule createLoginModule() {
-        ExternalLoginModule lm = new ExternalLoginModule(osgiConfig);
-        lm.setIdpManager(idpManager);
-        lm.setSyncManager(syncManager);
-        return lm;
+        return new ExternalLoginModule(osgiConfig);
     }
+
 }
