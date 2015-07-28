@@ -22,9 +22,13 @@ import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -36,12 +40,14 @@ import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.benchmark.wikipedia.WikipediaImport;
 import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
+import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneInitializerHelper;
@@ -59,6 +65,8 @@ public class FullTextSearchTest extends AbstractTest<FullTextSearchTest.TestCont
 
     private int maxSampleSize = 100;
 
+    private final boolean disableCopyOnRead = Boolean.getBoolean("disableCopyOnRead");
+
     private final WikipediaImport importer;
 
     private final Set<String> sampleSet = newHashSet();
@@ -75,6 +83,10 @@ public class FullTextSearchTest extends AbstractTest<FullTextSearchTest.TestCont
      * null means true; true means true
      */
     protected Boolean storageEnabled;
+
+    private ExecutorService executorService = Executors.newFixedThreadPool(2);
+
+    private File indexCopierDir;
 
     public FullTextSearchTest(File dump, boolean flat, boolean doReport, Boolean storageEnabled) {
         this.importer = new WikipediaImport(dump, flat, doReport) {
@@ -98,6 +110,7 @@ public class FullTextSearchTest extends AbstractTest<FullTextSearchTest.TestCont
             }
         };
         this.storageEnabled = storageEnabled;
+        this.indexCopierDir = createTemporaryFolder(null);
     }
 
     @Override
@@ -110,6 +123,13 @@ public class FullTextSearchTest extends AbstractTest<FullTextSearchTest.TestCont
         Thread.sleep(10); // allow some time for the indexer to catch up
 
         defaultContext = new TestContext();
+    }
+
+    @Override
+    protected void afterSuite() throws Exception {
+        executorService.shutdown();
+        executorService.awaitTermination(1, TimeUnit.MINUTES);
+        FileUtils.deleteDirectory(indexCopierDir);
     }
 
     @Override
@@ -161,11 +181,11 @@ public class FullTextSearchTest extends AbstractTest<FullTextSearchTest.TestCont
             return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCreator() {
                 @Override
                 public Jcr customize(Oak oak) {
-                    LuceneIndexProvider provider = new LuceneIndexProvider();
+                    LuceneIndexProvider provider = createLuceneIndexProvider();
                     oak.with((QueryIndexProvider) provider)
-                       .with((Observer) provider)
-                       .with(new LuceneIndexEditorProvider())
-                       .with(new LuceneInitializerHelper("luceneGlobal", storageEnabled));
+                            .with((Observer) provider)
+                            .with(new LuceneIndexEditorProvider())
+                            .with(new LuceneInitializerHelper("luceneGlobal", storageEnabled));
                     return new Jcr(oak);
                 }
             });
@@ -173,4 +193,27 @@ public class FullTextSearchTest extends AbstractTest<FullTextSearchTest.TestCont
         return super.createRepository(fixture);
     }
 
+    private LuceneIndexProvider createLuceneIndexProvider() {
+        if (!disableCopyOnRead) {
+            try {
+                IndexCopier copier = new IndexCopier(executorService, indexCopierDir, true);
+                return new LuceneIndexProvider(copier);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return new LuceneIndexProvider();
+    }
+
+    private File createTemporaryFolder(File parentFolder){
+        File createdFolder = null;
+        try {
+            createdFolder = File.createTempFile("oak", "", parentFolder);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        createdFolder.delete();
+        createdFolder.mkdir();
+        return createdFolder;
+    }
 }
