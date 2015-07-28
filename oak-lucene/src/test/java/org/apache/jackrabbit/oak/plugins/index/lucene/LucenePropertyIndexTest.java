@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -65,6 +66,7 @@ import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.util.ISO8601;
 import org.junit.After;
 import org.junit.Rule;
@@ -75,6 +77,7 @@ import static com.google.common.collect.ImmutableSet.of;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
+import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
@@ -225,13 +228,38 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
+    public void indexSelectionFulltextVsNodeType() throws Exception {
+        Tree nodeTypeIdx = root.getTree("/oak:index/nodetype");
+        nodeTypeIdx.setProperty(PropertyStates.createProperty(DECLARING_NODE_TYPES, of("nt:file"), NAMES));
+        nodeTypeIdx.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+        //Set the cost to highest to ensure that if Lucene index opts in then
+        //it always wins. In actual case Lucene index should not participate
+        //in such queries
+        nodeTypeIdx.setProperty(IndexConstants.ENTRY_COUNT_PROPERTY_NAME, Long.MAX_VALUE);
+
+        Tree luceneIndex = createFullTextIndex(root.getTree("/"), "lucene");
+
+        Tree test = root.getTree("/").addChild("test");
+        setNodeType(test, "nt:file");
+
+        setNodeType(test.addChild("a"), "nt:file");
+        setNodeType(test.addChild("b"), "nt:file");
+        setNodeType(test.addChild("c"), "nt:base");
+        root.commit();
+
+        String propabQuery = "/jcr:root//element(*, nt:file)";
+        System.out.println(explainXpath(propabQuery));
+        assertThat(explainXpath(propabQuery), containsString("nodeType"));
+    }
+
+    @Test
     public void declaringNodeTypeSameProp() throws Exception {
         createIndex("test1", of("propa"));
 
         Tree indexWithType = createIndex("test2", of("propa"));
         indexWithType.setProperty(PropertyStates
-            .createProperty(DECLARING_NODE_TYPES, of("nt:unstructured"),
-                Type.STRINGS));
+                .createProperty(DECLARING_NODE_TYPES, of("nt:unstructured"),
+                        Type.STRINGS));
 
         Tree test = root.getTree("/").addChild("test");
         test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
@@ -406,8 +434,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         System.out.println(explain);
         String luceneQuery = explain.substring(0, explain.indexOf('\n'));
         assertEquals("[nt:unstructured] as [content] /* lucene:test1(/oak:index/test1) " +
-                "+(tags:Products:A tags:Products:A/B) " +
-                "+(tags:DocTypes:A tags:DocTypes:B tags:DocTypes:C tags:ProblemType:A)",
+                        "+(tags:Products:A tags:Products:A/B) " +
+                        "+(tags:DocTypes:A tags:DocTypes:B tags:DocTypes:C tags:ProblemType:A)",
                 luceneQuery);
     }
 
@@ -695,7 +723,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertQuery("select [jcr:path] from [nt:base] where propa like 'hum%'",
                 asList("/test/a", "/test/c"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '%ty'",
-            asList("/test/a", "/test/b"));
+                asList("/test/a", "/test/b"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '%ump%'",
             asList("/test/a", "/test/b", "/test/c"));
     }
@@ -1018,8 +1046,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         // Add the path of property added as timestamp string in the sorted list
         assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]",
-            Lists.newArrayList(Iterables.concat(Lists.newArrayList("/test/n0"),
-                getSortedPaths(tuples, OrderDirection.ASC))));
+                Lists.newArrayList(Iterables.concat(Lists.newArrayList("/test/n0"),
+                        getSortedPaths(tuples, OrderDirection.ASC))));
         // Append the path of property added as timestamp string to the sorted list
         assertOrderedQuery(
                 "select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", Lists
@@ -1562,6 +1590,13 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         return executeQuery(explain, "JCR-SQL2").get(0);
     }
 
+    private String explainXpath(String query) throws ParseException {
+        String explain = "explain " + query;
+        Result result = executeQuery(explain, "xpath", NO_BINDINGS);
+        ResultRow row = Iterables.getOnlyElement(result.getRows());
+        return row.getValue("plan").getValue(Type.STRING);
+    }
+
     private Tree createIndex(String name, Set<String> propNames) throws CommitFailedException {
         Tree index = root.getTree("/");
         return createIndex(index, name, propNames);
@@ -1577,6 +1612,27 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         def.setProperty(PropertyStates.createProperty(LuceneIndexConstants.INCLUDE_PROPERTY_NAMES, propNames, Type.STRINGS));
         def.setProperty(LuceneIndexConstants.SAVE_DIR_LISTING, true);
         return index.getChild(INDEX_DEFINITIONS_NAME).getChild(name);
+    }
+
+    private Tree createFullTextIndex(Tree index, String name) throws CommitFailedException {
+        Tree def = index.addChild(INDEX_DEFINITIONS_NAME).addChild(name);
+        def.setProperty(JcrConstants.JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
+        def.setProperty(TYPE_PROPERTY_NAME, LuceneIndexConstants.TYPE_LUCENE);
+        def.setProperty(REINDEX_PROPERTY_NAME, true);
+        def.setProperty(LuceneIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+        def.setProperty(LuceneIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
+
+        Tree props = def.addChild(LuceneIndexConstants.INDEX_RULES)
+                .addChild("nt:base")
+                .addChild(LuceneIndexConstants.PROP_NODE)
+                .addChild("allProps");
+
+        props.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
+        props.setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
+        props.setProperty(LuceneIndexConstants.PROP_USE_IN_EXCERPT, true);
+        props.setProperty(LuceneIndexConstants.PROP_NAME, LuceneIndexConstants.REGEX_ALL_PROPS);
+        props.setProperty(LuceneIndexConstants.PROP_IS_REGEX, true);
+        return def;
     }
 
     private static String dt(String date) throws ParseException {
