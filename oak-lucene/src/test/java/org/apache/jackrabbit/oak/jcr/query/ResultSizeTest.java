@@ -26,6 +26,8 @@ import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 
 import org.apache.jackrabbit.core.query.AbstractQueryTest;
+import org.apache.jackrabbit.oak.plugins.index.lucene.IndexFormatVersion;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 
 public class ResultSizeTest extends AbstractQueryTest {
 
@@ -40,6 +42,7 @@ public class ResultSizeTest extends AbstractQueryTest {
         luceneGlobal.setProperty("type", "disabled");
         Node luceneV1 = index.addNode("luceneV1", "oak:QueryIndexDefinition");
         luceneV1.setProperty("type", "lucene");
+        luceneV1.setProperty(LuceneIndexConstants.COMPAT_MODE, IndexFormatVersion.V1.getVersion());
         session.save();
 
         doTestResultSize(true);
