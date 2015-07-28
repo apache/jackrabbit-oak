@@ -54,7 +54,6 @@ public class LuceneIndexExclusionQueryTest extends AbstractQueryTest {
         lucene.setProperty(INCLUDE_PROPERTY_TYPES,
                 of(TYPENAME_BINARY, TYPENAME_STRING), STRINGS);
         lucene.setProperty(EXCLUDE_PROPERTY_NAMES, of(NOT_IN), STRINGS);
-        lucene.setProperty(LuceneIndexConstants.COMPAT_MODE, of(NOT_IN), STRINGS);
         useV2(lucene);
         root.commit();
     }
