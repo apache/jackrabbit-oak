@@ -60,8 +60,7 @@ public enum IndexFormatVersion {
     }
 
     public static IndexFormatVersion getDefault(){
-        //TODO FIXME Should be V2 or above once OAK-2290 is fixed
-        return V1;
+        return V2;
     }
 
     public static IndexFormatVersion max(IndexFormatVersion o1, IndexFormatVersion o2){

@@ -126,7 +126,8 @@ public class LuceneIndexTest {
     @Test
     public void testLuceneV1NonExistentProperty() throws Exception {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
-        newLuceneIndexDefinition(index, "lucene", ImmutableSet.of("String"));
+        NodeBuilder defn = newLuceneIndexDefinition(index, "lucene", ImmutableSet.of("String"));
+        defn.setProperty(LuceneIndexConstants.COMPAT_MODE, IndexFormatVersion.V1.getVersion());
 
         NodeState before = builder.getNodeState();
         builder.setProperty("foo", "value-with-dash");
