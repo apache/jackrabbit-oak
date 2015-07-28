@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.TestUtils;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
@@ -523,5 +524,28 @@ public class SolrIndexQueryTestIT extends AbstractQueryTest {
         assertTrue(results.hasNext());
         assertEquals("/content/a", results.next());
         assertFalse(results.hasNext());
+    }
+
+    @Test
+    @Ignore("need to be able to inject configuration")
+    public void testCollapsedJcrContentNodeDescandants() throws Exception {
+        Tree test = root.getTree("/").addChild("test");
+        Tree content = test.addChild("content");
+        Tree content1 = content.addChild("sample1").addChild("jcr:content");
+        content1.setProperty("foo", "bar");
+        content1.addChild("text").setProperty("text", "bar");
+        Tree content2 = content.addChild("sample2").addChild("jcr:content");
+        content2.setProperty("foo", "bar");
+        content2.addChild("text").setProperty("text", "bar");
+        root.commit();
+
+        String xpath = "/jcr:root/test/content//element(*, nt:base)[jcr:contains(., 'bar')]";
+
+        Iterator<String> result = executeQuery(xpath, XPATH).iterator();
+        assertTrue(result.hasNext());
+        assertEquals("/test/content/sample1/jcr:content", result.next());
+        assertTrue(result.hasNext());
+        assertEquals("/test/content/sample2/jcr:content", result.next());
+        assertFalse(result.hasNext());
     }
 }
