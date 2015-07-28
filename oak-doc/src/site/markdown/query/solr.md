@@ -175,6 +175,23 @@ The number of documents per 'page' to be fetched for each query.
 
 Default is _Integer.MAX_VALUE_ (was _50_ in Oak 1.0).
 
+#### Collapse _jcr:content_ nodes
+
+`@since 1.3.4, 1.2.4, 1.0.18`
+
+Whether the [Collapsing query parser](https://cwiki.apache.org/confluence/display/solr/Collapse+and+Expand+Results) should
+be used when searching in order to collapse nodes that are descendants of 'jcr:content' nodes into the 'jcr:content' node only.
+E.g. if normal query results would include '/a/jcr:content' and '/a/jcr:content/b/', with this option enabled only 
+'/a/jcr:content' would be returned by Solr using the Collapsing query parser.
+This feature requires an additional field to be indexed, therefore if this is turned on, reindexing should be triggered
+in order to make it work properly.  
+
+#### Collapsed path field 
+
+`@since 1.3.4, 1.2.4, 1.0.18`
+
+The name of the field used for collapsing descendants of jcr:content nodes, see 'Collapse jcr:content nodes' option.
+
 ##### Solr server configuration options
 
 TBD
