@@ -157,7 +157,7 @@ class MapRecord extends Record {
         if (isDiff(head)) {
             if (hash == segment.readInt(getOffset(4))) {
                 RecordId key = segment.readRecordId(getOffset(8));
-                if (name.equals(segment.readString(key))) {
+                if (name.equals(Segment.readString(key))) {
                     RecordId value = segment.readRecordId(getOffset(8, 1));
                     return new MapEntry(name, key, value);
                 }
@@ -212,7 +212,7 @@ class MapRecord extends Record {
                         getOffset(4 + size * 4, i * 2));
                 RecordId valueId = segment.readRecordId(
                         getOffset(4 + size * 4, i * 2 + 1));
-                diff = segment.readString(keyId).compareTo(name);
+                diff = Segment.readString(keyId).compareTo(name);
                 if (diff == 0) {
                     return new MapEntry(name, keyId, valueId);
                 }
@@ -316,7 +316,7 @@ class MapRecord extends Record {
 
         String[] keys = new String[size];
         for (int i = 0; i < size; i++) {
-            keys[i] = segment.readString(ids[i]);
+            keys[i] = Segment.readString(ids[i]);
         }
         return Arrays.asList(keys);
     }
@@ -371,7 +371,7 @@ class MapRecord extends Record {
 
         MapEntry[] entries = new MapEntry[size];
         for (int i = 0; i < size; i++) {
-            String name = segment.readString(keys[i]);
+            String name = Segment.readString(keys[i]);
             entries[i] = new MapEntry(name, keys[i], values[i]);
         }
         return Arrays.asList(entries);
@@ -387,7 +387,7 @@ class MapRecord extends Record {
         if (isDiff(head)) {
             int hash = segment.readInt(getOffset(4));
             RecordId keyId = segment.readRecordId(getOffset(8));
-            final String key = segment.readString(keyId);
+            final String key = Segment.readString(keyId);
             final RecordId value = segment.readRecordId(getOffset(8, 1));
             MapRecord base = new MapRecord(segment.readRecordId(getOffset(8, 2)));
 
@@ -429,7 +429,7 @@ class MapRecord extends Record {
         if (isDiff(beforeHead)) {
             int hash = beforeSegment.readInt(before.getOffset(4));
             RecordId keyId = beforeSegment.readRecordId(before.getOffset(8));
-            final String key = beforeSegment.readString(keyId);
+            final String key = Segment.readString(keyId);
             final RecordId value = beforeSegment.readRecordId(before.getOffset(8, 1));
             MapRecord base = new MapRecord(beforeSegment.readRecordId(before.getOffset(8, 2)));
 

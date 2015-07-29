@@ -47,9 +47,9 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
      * 
      * The value encodes both the counter and the type of the node builder:
      * <ul>
-     * <li>value >= <code>0</code> represents a root builder (builder keeps
+     * <li>value >= {@code 0} represents a root builder (builder keeps
      * counter updates)</li>
-     * <li>value = <code>-1</code> represents a child builder (value doesn't
+     * <li>value = {@code -1} represents a child builder (value doesn't
      * change, builder doesn't keep an updated counter)</li>
      * </ul>
      * 
