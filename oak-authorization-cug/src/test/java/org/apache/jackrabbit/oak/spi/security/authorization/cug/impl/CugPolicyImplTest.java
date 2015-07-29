@@ -24,6 +24,7 @@ import javax.jcr.security.AccessControlException;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.api.security.authorization.PrincipalSetPolicy;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
@@ -60,6 +61,11 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
 
     private CugPolicyImpl createCugPolicy(@Nonnull Set<Principal> principals) {
         return new CugPolicyImpl(path, NamePathMapper.DEFAULT, principalManager, ImportBehavior.ABORT, principals);
+    }
+
+    @Test
+    public void testPrincipalSetPolicy() {
+        assertTrue(createCugPolicy(principals) instanceof PrincipalSetPolicy);
     }
 
     @Test
