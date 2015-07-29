@@ -22,11 +22,12 @@ import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlException;
 
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
+import org.apache.jackrabbit.api.security.authorization.PrincipalSetPolicy;
 
 /**
  * Denies read access for all principals except for the specified principals.
  */
-public interface CugPolicy extends JackrabbitAccessControlPolicy {
+public interface CugPolicy extends PrincipalSetPolicy, JackrabbitAccessControlPolicy {
 
     /**
      * Returns the set of {@code Principal}s that are allowed to access the items
