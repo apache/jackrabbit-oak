@@ -51,5 +51,5 @@ public class SolrServerConfigurationDefaults {
     public static final String PROPERTY_MAPPINGS = "";
     public static final boolean COLLAPSE_JCR_CONTENT_NODES = false;
     public static final String COLLAPSED_PATH_FIELD = "path_collapsed";
-
+    public static final String PATH_DEPTH_FIELD = "path_depth";
 }

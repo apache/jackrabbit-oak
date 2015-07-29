@@ -211,6 +211,7 @@ class SolrIndexEditor implements IndexEditor {
         SolrInputDocument inputDocument = new SolrInputDocument();
         String path = getPath();
         inputDocument.addField(configuration.getPathField(), path);
+        inputDocument.addField(configuration.getPathDepthField(), PathUtils.getDepth(path));
 
         if (configuration.collapseJcrContentNodes()) {
             int jcrContentIndex = path.lastIndexOf(JcrConstants.JCR_CONTENT);
@@ -218,8 +219,6 @@ class SolrIndexEditor implements IndexEditor {
                 int index = jcrContentIndex + JcrConstants.JCR_CONTENT.length();
                 String collapsedPath = path.substring(0, index);
                 inputDocument.addField(configuration.getCollapsedPathField(), collapsedPath);
-            } else {
-                inputDocument.addField(configuration.getCollapsedPathField(), path);
             }
         }
 
