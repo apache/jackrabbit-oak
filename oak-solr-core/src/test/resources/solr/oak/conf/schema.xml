@@ -131,6 +131,7 @@
         <field name=":suggest-weight" type="tint" indexed="false" stored="false" default="1"  docValues="true"/>
         <field name=":suggest" type="string" indexed="true" stored="true" multiValued="true" />
         <field name="path_collapsed" type="string" indexed="true" stored="true"/>
+        <field name="path_depth" type="tint" indexed="true" stored="false"/>
         <field name="_version_" type="long" indexed="true" stored="true"/>
 
         <!-- sorting dynamic fields -->

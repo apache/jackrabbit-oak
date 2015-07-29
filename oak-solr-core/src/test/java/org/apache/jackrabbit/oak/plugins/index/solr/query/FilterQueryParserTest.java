@@ -79,7 +79,8 @@ public class FilterQueryParserTest {
         SolrQuery solrQuery = FilterQueryParser.getQuery(filter, null, configuration);
         assertNotNull(solrQuery);
         String[] filterQueries = solrQuery.getFilterQueries();
-        assertTrue(Arrays.asList(filterQueries).contains("{!collapse field=" + configuration.getCollapsedPathField() + "}"));
+        assertTrue(Arrays.asList(filterQueries).contains("{!collapse field=" + configuration.getCollapsedPathField()
+                + " min=" + configuration.getPathDepthField() + " hint=top_fc nullPolicy=expand}"));
         assertEquals("*:*", solrQuery.get("q"));
     }
 
