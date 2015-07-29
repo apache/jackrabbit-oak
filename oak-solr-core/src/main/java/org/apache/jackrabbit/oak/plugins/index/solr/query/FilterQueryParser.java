@@ -235,7 +235,8 @@ class FilterQueryParser {
         }
 
         if (configuration.collapseJcrContentNodes()) {
-            solrQuery.addFilterQuery("{!collapse field=" + configuration.getCollapsedPathField() + "}");
+            solrQuery.addFilterQuery("{!collapse field=" + configuration.getCollapsedPathField() + " min=" +
+                    configuration.getPathDepthField() + " hint=top_fc nullPolicy=expand}");
         }
 
         if (queryBuilder.length() == 0) {

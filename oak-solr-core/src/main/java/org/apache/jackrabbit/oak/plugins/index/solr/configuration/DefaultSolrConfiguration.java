@@ -132,4 +132,9 @@ public class DefaultSolrConfiguration implements OakSolrConfiguration {
         return OakSolrConfigurationDefaults.COLLAPSED_PATH_FIELD;
     }
 
+    @Override
+    public String getPathDepthField() {
+        return OakSolrConfigurationDefaults.PATH_DEPTH_FIELD;
+    }
+
 }
