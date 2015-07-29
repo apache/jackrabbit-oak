@@ -703,6 +703,13 @@ public class FileStore implements SegmentStore {
     }
 
     /**
+     * @return  a new {@link SegmentWriter} instance for writing to this store.
+     */
+    public SegmentWriter createSegmentWriter() {
+        return new SegmentWriter(this, tracker, getVersion());
+    }
+
+    /**
      * Copy every referenced record in data (non-bulk) segments. Bulk segments
      * are fully kept (they are only removed in cleanup, if there is no
      * reference to them).
@@ -713,11 +720,7 @@ public class FileStore implements SegmentStore {
         gcMonitor.info("TarMK compaction running, strategy={}", compactionStrategy);
 
         long start = System.currentTimeMillis();
-        SegmentWriter writer = new SegmentWriter(this, tracker, getVersion());
-        SegmentWriter mapWriter = compactionStrategy.getPersistCompactionMap()
-            ? new SegmentWriter(this, tracker, getVersion())
-            : null;
-        final Compactor compactor = new Compactor(writer, mapWriter, compactionStrategy.cloneBinaries());
+        Compactor compactor = new Compactor(this, compactionStrategy);
         SegmentNodeState before = getHead();
         long existing = before.getChildNode(SegmentNodeStore.CHECKPOINTS)
                 .getChildNodeCount(Long.MAX_VALUE);

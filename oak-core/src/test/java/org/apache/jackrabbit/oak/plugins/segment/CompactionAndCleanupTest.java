@@ -61,7 +61,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -163,7 +162,7 @@ public class CompactionAndCleanupTest {
             // no data content =>
             // fileStore.size() == blobSize
             // some data content =>
-            // fileStore.size() in [blobSize + dataSize, blobSize + 2xdataSize]
+            // fileStore.size() in [blobSize + dataSize, blobSize + 2 x dataSize]
             assertTrue(fileStore.maybeCompact(false));
             fileStore.cleanup();
             assertSize("post cleanup", fileStore.size(), 0, blobSize + 2 * dataSize);
@@ -190,14 +189,12 @@ public class CompactionAndCleanupTest {
         }
     }
 
-    @Ignore("OAK-3139")  // FIXME OAK-3139
     @Test
     public void noCleanupOnCompactionMap() throws Exception {
         // 2MB data, 5MB blob
         final int blobSize = 5 * 1024 * 1024;
         final int dataNodes = 10000;
 
-        // really long time span, no binary cloning
         FileStore fileStore = new FileStore(directory, 1);
         final SegmentNodeStore nodeStore = new SegmentNodeStore(fileStore);
         CompactionStrategy custom = new CompactionStrategy(false, false,
@@ -231,33 +228,32 @@ public class CompactionAndCleanupTest {
             builder.setProperty("b", "foo");
             nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-            log.debug("File store pre removal {}, expecting {}",
-                    byteCountToDisplaySize(fileStore.size()),
-                    byteCountToDisplaySize(blobSize + dataSize));
-            assertEquals(mb(blobSize + dataSize), mb(fileStore.size()));
-
             // 2. Now remove the property
             builder = nodeStore.getRoot().builder();
             builder.removeProperty("a1");
             nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
             // 3. Compact
-            assertTrue(fileStore.maybeCompact(false));
+            fileStore.maybeCompact(false);
 
             // 4. Add some more property to flush the current TarWriter
             builder = nodeStore.getRoot().builder();
             builder.setProperty("a2", createBlob(nodeStore, blobSize));
             nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
+            // There should be no SNFE when running cleanup as compaction map segments
+            // should be pinned and thus not collected
+            fileStore.maybeCompact(false);
+            fileStore.cleanup();
+
             // refresh the ts ref, to simulate a long wait time
             custom.setOlderThan(0);
             TimeUnit.MILLISECONDS.sleep(5);
 
-            // This should not lead to a SNFE in the persisted compaction map (See OAK-3139)
             boolean needsCompaction = true;
             for (int i = 0; i < 3 && needsCompaction; i++) {
-                fileStore.cleanup();
                 needsCompaction = fileStore.maybeCompact(false);
+                fileStore.cleanup();
             }
         } finally {
             fileStore.close();
@@ -383,7 +379,7 @@ public class CompactionAndCleanupTest {
     }
 
     @Test
-    public void propertyRetention() throws IOException, CommitFailedException, InterruptedException {
+    public void propertyRetention() throws IOException, CommitFailedException {
         FileStore fileStore = new NonCachingFileStore(directory, 1);
         try {
             final SegmentNodeStore nodeStore = new SegmentNodeStore(fileStore);

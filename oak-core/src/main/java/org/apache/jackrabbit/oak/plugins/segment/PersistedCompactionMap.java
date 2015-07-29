@@ -34,6 +34,8 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+
 /**
  * A {@code PartialCompactionMap} implementation persisting its entries
  * to segments.
@@ -61,14 +63,15 @@ public class PersistedCompactionMap implements PartialCompactionMap {
     public static final String PERSISTED_COMPACTION_MAP = "PersistedCompactionMap";
 
     private final TreeMap<UUID, RecordIdMap> recent = newTreeMap();
-    private final SegmentWriter writer;
+
+    private final FileStore store;
 
     private int recentCount;
     private long recordCount;
     private MapRecord entries;
 
-    PersistedCompactionMap(@Nonnull SegmentWriter writer) {
-        this.writer = writer;
+    PersistedCompactionMap(@Nonnull FileStore store) {
+        this.store = store;
     }
 
     @Override
@@ -97,7 +100,7 @@ public class PersistedCompactionMap implements PartialCompactionMap {
             return recordId;
         }
 
-        return get(writer.getTracker(), entries, uuid, offset);
+        return get(store.getTracker(), entries, uuid, offset);
     }
 
     @CheckForNull
@@ -172,6 +175,7 @@ public class PersistedCompactionMap implements PartialCompactionMap {
             return;
         }
 
+        SegmentWriter writer = store.createSegmentWriter();
         Map<String, RecordId> segmentIdMap = newHashMap();
         for (Entry<UUID, RecordIdMap> recentEntry : recent.entrySet()) {
             UUID uuid = recentEntry.getKey();
