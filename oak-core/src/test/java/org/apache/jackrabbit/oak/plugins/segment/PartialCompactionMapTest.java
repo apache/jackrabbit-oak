@@ -51,6 +51,7 @@ import java.util.UUID;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.commons.benchmark.MicroBenchmark.Benchmark;
+import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -66,7 +67,7 @@ public class PartialCompactionMapTest {
     private final boolean usePersistedMap;
 
     private File directory;
-    private SegmentStore segmentStore;
+    private FileStore segmentStore;
 
     private Map<RecordId, RecordId> reference;
     private PartialCompactionMap map;
@@ -102,7 +103,7 @@ public class PartialCompactionMapTest {
     private PartialCompactionMap createCompactionMap() {
         SegmentWriter writer = new SegmentWriter(segmentStore, getTracker(), V_11);
         if (usePersistedMap) {
-            return new PersistedCompactionMap(writer);
+            return new PersistedCompactionMap(segmentStore);
         } else {
             return new InMemoryCompactionMap(writer.getTracker());
         }

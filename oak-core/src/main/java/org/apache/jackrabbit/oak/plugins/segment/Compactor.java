@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.hash.Hashing;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -36,13 +37,13 @@ import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MultiBinaryPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
+import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.hash.Hashing;
 
 /**
  * Tool for compacting segments.
@@ -78,17 +79,19 @@ public class Compactor {
     private final boolean cloneBinaries;
 
     public Compactor(SegmentWriter writer) {
-        this(writer, null, false);
+        this.writer = writer;
+        this.map = new InMemoryCompactionMap(writer.getTracker());
+        this.cloneBinaries = false;
     }
 
-    public Compactor(SegmentWriter writer, SegmentWriter mapWriter, boolean cloneBinaries) {
-        this.writer = writer;
-        if (mapWriter != null) {
-            this.map = new PersistedCompactionMap(mapWriter);
+    public Compactor(FileStore store, CompactionStrategy compactionStrategy) {
+        this.writer = store.createSegmentWriter();
+        if (compactionStrategy.getPersistCompactionMap()) {
+            this.map = new PersistedCompactionMap(store);
         } else {
             this.map = new InMemoryCompactionMap(writer.getTracker());
         }
-        this.cloneBinaries = cloneBinaries;
+        this.cloneBinaries = compactionStrategy.cloneBinaries();
     }
 
     protected SegmentNodeBuilder process(NodeState before, NodeState after) {
