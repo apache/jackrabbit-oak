@@ -139,4 +139,11 @@ public interface OakSolrConfiguration {
     @Nonnull
     String getCollapsedPathField();
 
+    /**
+     * Provide the name of the field containing information about the depth of a certain path / node
+     *
+     * @return the name of the Solr field to be used for indexing and searching on path depth.
+     */
+    @Nonnull
+    String getPathDepthField();
 }
