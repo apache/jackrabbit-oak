@@ -227,15 +227,6 @@ public class Segment {
         this.version = SegmentVersion.fromByte(buffer[3]);
     }
 
-    void access() {
-        accessed++;
-    }
-
-    boolean accessed() {
-        accessed >>>= 1;
-        return accessed != 0;
-    }
-
     SegmentVersion getSegmentVersion() {
         return version;
     }
