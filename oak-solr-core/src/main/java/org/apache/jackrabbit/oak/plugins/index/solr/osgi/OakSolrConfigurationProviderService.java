@@ -63,6 +63,9 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
     @Property(value = SolrServerConfigurationDefaults.COLLAPSED_PATH_FIELD, label = "field for collapsing jcr:content paths")
     private static final String COLLAPSED_PATH_FIELD = "collapsed.path.field";
 
+    @Property(value = SolrServerConfigurationDefaults.PATH_DEPTH_FIELD, label = "field for path depth")
+    private static final String PATH_DEPTH_FIELD = "path.depth.field";
+
     @Property(options = {
             @PropertyOption(name = "HARD",
                     value = "Hard commit"
@@ -125,6 +128,7 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
     private String[] typeMappings;
     private String[] propertyMappings;
     private boolean collapseJcrContentNodes;
+    private String depthField;
 
     private OakSolrConfiguration oakSolrConfiguration;
 
@@ -136,6 +140,7 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
         collapsedPathField= String.valueOf(componentContext.getProperties().get(COLLAPSED_PATH_FIELD));
         pathDescendantsFieldName = String.valueOf(componentContext.getProperties().get(PATH_DESCENDANTS_FIELD));
         catchAllField = String.valueOf(componentContext.getProperties().get(CATCH_ALL_FIELD));
+        depthField = String.valueOf(componentContext.getProperties().get(PATH_DEPTH_FIELD));
         rows = Integer.parseInt(String.valueOf(componentContext.getProperties().get(ROWS)));
         commitPolicy = OakSolrConfiguration.CommitPolicy.valueOf(String.valueOf(componentContext.getProperties().get(COMMIT_POLICY)));
         useForPathRestrictions = Boolean.valueOf(String.valueOf(componentContext.getProperties().get(PATH_RESTRICTIONS)));
@@ -282,6 +287,11 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
                 @Override
                 public String getCollapsedPathField() {
                     return collapsedPathField;
+                }
+
+                @Override
+                public String getPathDepthField() {
+                    return depthField;
                 }
             };
         }

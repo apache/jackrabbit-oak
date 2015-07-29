@@ -125,7 +125,7 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
     @Nonnull
     @Override
     public CommitPolicy getCommitPolicy() {
-        return CommitPolicy.valueOf(getStringValueFor(Properties.COMMIT_POLICY, CommitPolicy.SOFT.toString()));
+        return CommitPolicy.valueOf(getStringValueFor(Properties.COMMIT_POLICY, CommitPolicy.SOFT.toString()).toUpperCase());
     }
 
     @Override
@@ -189,6 +189,12 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
     @Override
     public String getCollapsedPathField() {
         return getStringValueFor(Properties.COLLAPSED_PATH_FIELD, SolrServerConfigurationDefaults.COLLAPSED_PATH_FIELD);
+    }
+
+    @Nonnull
+    @Override
+    public String getPathDepthField() {
+        return getStringValueFor(Properties.DEPTH_FIELD, SolrServerConfigurationDefaults.PATH_DEPTH_FIELD);
     }
 
     private boolean getBooleanValueFor(String propertyName, boolean defaultValue) {
@@ -255,5 +261,6 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
         public static final String PROPERTY_MAPPINGS = "propertyMappings";
         public static final String USED_PROPERTIES = "usedProperties";
         public static final String COLLAPSE_JCR_CONTENT_NODES = "collapseJcrContentNodes";
+        public static final String DEPTH_FIELD= "depthField";
     }
 }
