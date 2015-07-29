@@ -687,7 +687,7 @@ public class SegmentWriter {
      */
     public RecordId writeList(List<RecordId> list) {
         checkNotNull(list);
-        checkArgument(list.size() > 0);
+        checkArgument(!list.isEmpty());
 
         List<RecordId> thisLevel = list;
         while (thisLevel.size() > 1) {

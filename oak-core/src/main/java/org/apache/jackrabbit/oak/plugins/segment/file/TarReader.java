@@ -182,8 +182,7 @@ class TarReader {
         }
     }
 
-    private static TarReader openFirstFileWithValidIndex(
-            List<File> files, boolean memoryMapping) throws IOException {
+    private static TarReader openFirstFileWithValidIndex(List<File> files, boolean memoryMapping) {
         for (File file : files) {
             String name = file.getName();
             try {
@@ -369,7 +368,6 @@ class TarReader {
                 if (checkbytes[i] != header[148 + i]) {
                     log.warn("Invalid entry checksum at offset {} in tar file {}, skipping...",
                              access.getFilePointer() - BLOCK_SIZE, file);
-                    continue;
                 }
             }
 

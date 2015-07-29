@@ -16,17 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import java.util.List;
-import java.util.Map;
-import javax.annotation.Nonnull;
-import javax.jcr.PropertyType;
-
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.memory.AbstractPropertyState;
-import org.apache.jackrabbit.oak.plugins.value.Conversions;
-import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
-
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkElementIndex;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -48,6 +37,18 @@ import static org.apache.jackrabbit.oak.api.Type.REFERENCE;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.URI;
 import static org.apache.jackrabbit.oak.api.Type.WEAKREFERENCE;
+
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Nonnull;
+import javax.jcr.PropertyType;
+
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.memory.AbstractPropertyState;
+import org.apache.jackrabbit.oak.plugins.value.Conversions;
+import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 
 /**
  * A property, which can read a value or list record from a segment. It
@@ -88,7 +89,7 @@ public class SegmentPropertyState extends Record implements PropertyState {
         ListRecord values = getValueList(segment);
         for (int i = 0; i < values.size(); i++) {
             RecordId valueId = values.getEntry(i);
-            String value = segment.readString(valueId);
+            String value = Segment.readString(valueId);
             map.put(value, valueId);
         }
 
@@ -171,7 +172,7 @@ public class SegmentPropertyState extends Record implements PropertyState {
             return (T) new SegmentBlob(id); // load binaries lazily
         }
 
-        String value = segment.readString(id);
+        String value = Segment.readString(id);
         if (type == STRING || type == URI || type == DATE
                 || type == NAME || type == PATH
                 || type == REFERENCE || type == WEAKREFERENCE) {

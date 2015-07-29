@@ -396,7 +396,7 @@ class TarWriter {
         access.write(buffer.array());
     }
 
-    private byte[] newEntryHeader(String name, int size) throws IOException {
+    private static byte[] newEntryHeader(String name, int size) {
         byte[] header = new byte[BLOCK_SIZE];
 
         // File name
@@ -460,7 +460,7 @@ class TarWriter {
      * @param referencedIds
      * @throws IOException
      */
-    synchronized void collectReferences(Set<UUID> referencedIds) throws IOException {
+    synchronized void collectReferences(Set<UUID> referencedIds) {
         for (UUID uuid : reverse(newArrayList(index.keySet()))) {
             if (referencedIds.remove(uuid)) {
                 List<UUID> refs = graph.get(uuid);

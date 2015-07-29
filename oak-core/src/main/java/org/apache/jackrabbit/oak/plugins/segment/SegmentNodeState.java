@@ -290,7 +290,7 @@ public class SegmentNodeState extends Record implements NodeState {
         } else {
             id = getRecordIdV10(segment, template, propertyTemplate);
         }
-        return segment.readString(id);
+        return Segment.readString(id);
     }
 
     /**
@@ -341,13 +341,13 @@ public class SegmentNodeState extends Record implements NodeState {
 
         id = segment.readRecordId(id.getOffset() + 4);
         if (size == 1) {
-            return singletonList(segment.readString(id));
+            return singletonList(Segment.readString(id));
         }
 
         List<String> values = newArrayListWithCapacity(size);
         ListRecord list = new ListRecord(id, size);
         for (RecordId value : list.getEntries()) {
-            values.add(segment.readString(value));
+            values.add(Segment.readString(value));
         }
         return values;
     }
