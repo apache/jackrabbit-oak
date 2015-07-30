@@ -25,6 +25,8 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.junit.LogDumper;
+import org.apache.jackrabbit.oak.commons.junit.LogLevelModifier;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -33,7 +35,9 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 
 import static java.util.Collections.synchronizedList;
 import static org.junit.Assert.assertEquals;
@@ -44,6 +48,14 @@ public class JournalTest extends AbstractJournalTest {
 
     private MemoryDocumentStore ds;
     private MemoryBlobStore bs;
+
+    @Rule
+    public TestRule logDumper = new LogDumper();
+
+    @Rule
+    public TestRule logLevelModifier = new LogLevelModifier()
+                                            .addAppenderFilter("console", "warn")
+                                            .setLoggerLevel("org.apache.jackrabbit.oak", "trace");
 
     class DiffingObserver implements Observer, Runnable, NodeStateDiff {
 
