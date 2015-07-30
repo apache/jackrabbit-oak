@@ -53,6 +53,7 @@ public class MembershipWriter {
 
     /**
      * Adds a new member to the given {@code groupTree}.
+     *
      * @param groupTree the group to add the member to
      * @param memberContentId the id of the new member
      * @return {@code true} if the member was added
@@ -73,7 +74,7 @@ public class MembershipWriter {
             PropertyState refs = t.getProperty(UserConstants.REP_MEMBERS);
             if (refs != null) {
                 int numRefs = 0;
-                for (String ref: refs.getValue(Type.WEAKREFERENCES)) {
+                for (String ref : refs.getValue(Type.WEAKREFERENCES)) {
                     if (ref.equals(memberContentId)) {
                         return false;
                     }
@@ -100,7 +101,7 @@ public class MembershipWriter {
                     bestTree = membersList.addChild("0");
                 } else {
                     // keep node names linear
-                    int i=0;
+                    int i = 0;
                     String name = String.valueOf(i);
                     while (membersList.hasChild(name)) {
                         name = String.valueOf(++i);
@@ -172,7 +173,7 @@ public class MembershipWriter {
 
         int count = 0;
         int numNodes = 0;
-        for (String ref: members) {
+        for (String ref : members) {
             if (prop == null) {
                 prop = PropertyBuilder.array(Type.WEAKREFERENCE, UserConstants.REP_MEMBERS);
             }
@@ -194,6 +195,4 @@ public class MembershipWriter {
             node.setProperty(prop.getPropertyState());
         }
     }
-
-
 }
