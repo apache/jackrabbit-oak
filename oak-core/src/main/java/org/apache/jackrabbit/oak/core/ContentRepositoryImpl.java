@@ -116,6 +116,7 @@ public class ContentRepositoryImpl implements ContentRepository, Closeable {
     private final SecurityProvider securityProvider;
     private final QueryIndexProvider indexProvider;
     private final QueryEngineSettings queryEngineSettings;
+    private final Descriptors baseDescriptors;
 
     private GenericDescriptors descriptors;
     
@@ -134,13 +135,15 @@ public class ContentRepositoryImpl implements ContentRepository, Closeable {
                                  @Nonnull String defaultWorkspaceName,
                                  QueryEngineSettings queryEngineSettings,
                                  @Nullable QueryIndexProvider indexProvider,
-                                 @Nonnull SecurityProvider securityProvider) {
+                                 @Nonnull SecurityProvider securityProvider,
+                                 @Nullable Descriptors baseDescriptors) {
         this.nodeStore = checkNotNull(nodeStore);
         this.commitHook = checkNotNull(commitHook);
         this.defaultWorkspaceName = checkNotNull(defaultWorkspaceName);
         this.securityProvider = checkNotNull(securityProvider);
         this.queryEngineSettings = queryEngineSettings != null ? queryEngineSettings : new QueryEngineSettings();
         this.indexProvider = indexProvider != null ? indexProvider : new CompositeQueryIndexProvider();
+        this.baseDescriptors = baseDescriptors;
     }
 
     @Nonnull
@@ -185,7 +188,7 @@ public class ContentRepositoryImpl implements ContentRepository, Closeable {
         final Value trueValue = valueFactory.createValue(true);
         final Value falseValue = valueFactory.createValue(false);
 
-        GenericDescriptors gd = new GenericDescriptors()
+        GenericDescriptors gd = new GenericDescriptors(baseDescriptors)
                 .put(IDENTIFIER_STABILITY, valueFactory.createValue(Repository.IDENTIFIER_STABILITY_METHOD_DURATION), true, true)
                 .put(LEVEL_1_SUPPORTED, trueValue, true, true)
                 .put(LEVEL_2_SUPPORTED, trueValue, true, true)
