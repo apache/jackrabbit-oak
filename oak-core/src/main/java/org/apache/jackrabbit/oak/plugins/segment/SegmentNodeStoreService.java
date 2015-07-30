@@ -35,6 +35,8 @@ import java.io.IOException;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.io.FilenameUtils;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -382,7 +384,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                     MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector(
                             new SegmentBlobReferenceRetriever(store.getTracker()),
                             (GarbageCollectableBlobStore) store.getBlobStore(),
-                            executor, blobGcMaxAgeInSecs,
+                            executor, TimeUnit.SECONDS.toMillis(blobGcMaxAgeInSecs),
                             ClusterRepositoryInfo.getId(delegate));
                     gc.collectGarbage(sweep);
                 }
