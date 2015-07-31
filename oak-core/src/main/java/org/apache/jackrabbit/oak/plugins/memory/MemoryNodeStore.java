@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.CheckForNull;
@@ -59,6 +60,8 @@ public class MemoryNodeStore implements NodeStore, Observable {
     private final Map<String, NodeState> checkpoints = newHashMap();
 
     private final Map<Closeable, Observer> observers = newHashMap();
+
+    private final AtomicInteger checkpointCounter = new AtomicInteger();
 
     public MemoryNodeStore(NodeState state) {
         this.root = new AtomicReference<NodeState>(state);
@@ -190,7 +193,7 @@ public class MemoryNodeStore implements NodeStore, Observable {
     @Override @Nonnull
     public synchronized String checkpoint(long lifetime) {
         checkArgument(lifetime > 0);
-        String checkpoint = "checkpoint" + checkpoints.size();
+        String checkpoint = "checkpoint" + checkpointCounter.incrementAndGet();
         checkpoints.put(checkpoint, getRoot());
         return checkpoint;
     }
