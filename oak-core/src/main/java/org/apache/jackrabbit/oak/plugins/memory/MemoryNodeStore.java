@@ -29,6 +29,7 @@ import java.io.InputStream;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.CheckForNull;
@@ -61,6 +62,8 @@ public class MemoryNodeStore implements NodeStore, Observable {
     private final Map<String, Checkpoint> checkpoints = newHashMap();
 
     private final Map<Closeable, Observer> observers = newHashMap();
+
+    private final AtomicInteger checkpointCounter = new AtomicInteger();
 
     public MemoryNodeStore(NodeState state) {
         this.root = new AtomicReference<NodeState>(state);
@@ -194,7 +197,7 @@ public class MemoryNodeStore implements NodeStore, Observable {
     public String checkpoint(long lifetime, @Nonnull Map<String, String> properties) {
         checkArgument(lifetime > 0);
         checkNotNull(properties);
-        String checkpoint = "checkpoint" + checkpoints.size();
+        String checkpoint = "checkpoint" + checkpointCounter.incrementAndGet();
         checkpoints.put(checkpoint, new Checkpoint(getRoot(), properties));
         return checkpoint;
     }
