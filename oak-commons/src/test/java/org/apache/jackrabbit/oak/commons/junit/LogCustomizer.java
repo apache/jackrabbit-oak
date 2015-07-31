@@ -124,8 +124,8 @@ public class LogCustomizer {
             protected void append(ILoggingEvent e) {
                 if (filterLevel == null) {
                     logs.add(e.getFormattedMessage());
-                } else if (filterLevel.isGreaterOrEqual(e.getLevel())) {
-                    filterLevel.isGreaterOrEqual(e.getLevel());
+                } else if (e.getLevel().isGreaterOrEqual(filterLevel)) {
+                    logs.add(e.getFormattedMessage());
                 }
             }
         };
