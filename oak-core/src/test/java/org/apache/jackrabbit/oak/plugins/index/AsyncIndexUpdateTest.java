@@ -39,9 +39,11 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import ch.qos.logback.classic.Level;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate.IndexTaskSpliter;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
@@ -804,4 +806,52 @@ public class AsyncIndexUpdateTest {
         assertNull(firstCp, asyncNode.getString("async-slow"));
 
     }
+
+    @Test
+    public void checkpointStability() throws Exception{
+        NodeStore store = new MemoryNodeStore();
+        IndexEditorProvider provider = new PropertyIndexEditorProvider();
+
+        NodeBuilder builder = store.getRoot().builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, "async");
+        builder.child("testRoot").setProperty("foo", "abc");
+
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
+
+        //Initial indexing
+        async.run();
+        //Now checkpoints = [checkpoints0]
+
+        //Index again so as to get change in reindex flag done
+        async.run();
+        //Now checkpoints = [checkpoints1]. checkpoints0 released
+
+        //Now make some changes to
+        builder = store.getRoot().builder();
+        builder.child("testRoot2").setProperty("foo", "abc");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        async.run();
+        //Now checkpoints = [checkpoints1]. Note that size is 1 so new checkpoint name remains same
+
+        LogCustomizer customLogs = LogCustomizer.forLogger(AsyncIndexUpdate.class.getName())
+                .filter(Level.WARN)
+                .create();
+
+        builder = store.getRoot().builder();
+        builder.child("testRoot3").setProperty("foo", "abc");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        customLogs.starting();
+
+        async.run();
+
+        assertEquals(Collections.emptyList(), customLogs.getLogs());
+        customLogs.finished();
+    }
+
 }
