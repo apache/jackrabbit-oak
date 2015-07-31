@@ -34,6 +34,7 @@ Release Notes - Jackrabbit Oak - Version 1.0.18
 Bugs
 
     [OAK-1842] - ISE: "Unexpected value record type: f2" is thrown when FileBlobStore is used
+    [OAK-2567] - AsyncIndex should update the run status after the merge has completed
     [OAK-3091] - Remove duplicate logback-classic dependency entry from oak-lucene pom
     [OAK-3098] - CopyOnWrite might block Async indexer thread indefinitely
     [OAK-3099] - Revision GC fails when split documents with very long paths are present
@@ -45,6 +46,8 @@ Bugs
     [OAK-3112] - Performance degradation of UnsavedModifications on MapDB
     [OAK-3124] - SolrServerProviderService should provide index / search specific servers
     [OAK-3130] - ReferenceEditor may not enforce referential integrity
+    [OAK-3155] - AsyncIndex stats do not capture execution for runs where no indexing is performed
+    [OAK-3164] - MemoryNodeStore issues duplicate checkpoint
     [OAK-3167] - [Blob GC] Wrong time units for blobGcMaxAge are passed from SegmentNodeStoreService
 
 Improvements
