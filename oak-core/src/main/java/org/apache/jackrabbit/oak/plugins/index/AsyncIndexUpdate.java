@@ -277,6 +277,9 @@ public class AsyncIndexUpdate implements Runnable {
             return;
         }
 
+        // start collecting runtime statistics
+        preAsyncRunStatsStats(indexStats);
+
         // find the last indexed state, and check if there are recent changes
         NodeState before;
         String beforeCheckpoint = async.getString(name);
@@ -292,6 +295,7 @@ public class AsyncIndexUpdate implements Runnable {
                 log.debug(
                         "[{}] No changes since last checkpoint; skipping the index update",
                         name);
+                postAsyncRunStatsStatus(indexStats);
                 return;
             } else {
                 before = state;
@@ -312,12 +316,15 @@ public class AsyncIndexUpdate implements Runnable {
             log.debug(
                     "[{}] Unable to retrieve newly created checkpoint {}, skipping the index update",
                     name, afterCheckpoint);
+            //Do not update the status as technically the run is not complete
             return;
         }
 
         String checkpointToRelease = afterCheckpoint;
+        boolean updatePostRunStatus = false;
         try {
-            updateIndex(before, beforeCheckpoint, after, afterCheckpoint, afterTime);
+            updatePostRunStatus = updateIndex(before, beforeCheckpoint,
+                    after, afterCheckpoint, afterTime);
 
             // the update succeeded, i.e. it no longer fails
             if (failing) {
@@ -354,18 +361,20 @@ public class AsyncIndexUpdate implements Runnable {
                             checkpointToRelease);
                 }
             }
+
+            if (updatePostRunStatus) {
+                postAsyncRunStatsStatus(indexStats);
+            }
         }
     }
 
-    private void updateIndex(
+    private boolean updateIndex(
             NodeState before, String beforeCheckpoint,
             NodeState after, String afterCheckpoint, String afterTime)
             throws CommitFailedException {
         Stopwatch watch = Stopwatch.createStarted();
+        boolean updatePostRunStatus = true;
         boolean progressLogged = false;
-        // start collecting runtime statistics
-        preAsyncRunStatsStats(indexStats);
-
         // create an update callback for tracking index updates
         // and maintaining the update lease
         AsyncUpdateCallback callback =
@@ -389,7 +398,6 @@ public class AsyncIndexUpdate implements Runnable {
 
             builder.child(ASYNC).setProperty(name, afterCheckpoint);
             builder.child(ASYNC).setProperty(PropertyStates.createProperty(lastIndexedTo, afterTime, Type.DATE));
-            boolean updatePostRunStatus = true;
             if (callback.isDirty() || before == MISSING_NODE) {
                 if (switchOnSync) {
                     reindexedDefinitions.addAll(indexUpdate
@@ -419,9 +427,6 @@ public class AsyncIndexUpdate implements Runnable {
                 updatePostRunStatus = true;
             }
             mergeWithConcurrencyCheck(builder, beforeCheckpoint, callback.lease);
-            if (updatePostRunStatus) {
-                postAsyncRunStatsStatus(indexStats);
-            }
             if (indexUpdate.isReindexingPerformed()) {
                 log.info("[{}] Reindexing completed for indexes: {} in {}",
                         name, indexUpdate.getReindexStats(), watch);
@@ -440,6 +445,8 @@ public class AsyncIndexUpdate implements Runnable {
                 log.debug(msg, name, watch, callback.updates);
             }
         }
+
+        return updatePostRunStatus;
     }
 
     private void mergeWithConcurrencyCheck(
