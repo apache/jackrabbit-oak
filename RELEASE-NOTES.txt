@@ -28,18 +28,46 @@ See OAK-3112 for details.
 Changes in Oak 1.0.18
 ---------------------
 
+
+Release Notes - Jackrabbit Oak - Version 1.0.18
+
 Bugs
 
+    [OAK-1842] - ISE: "Unexpected value record type: f2" is thrown when FileBlobStore is used
+    [OAK-3091] - Remove duplicate logback-classic dependency entry from oak-lucene pom
+    [OAK-3098] - CopyOnWrite might block Async indexer thread indefinitely
+    [OAK-3099] - Revision GC fails when split documents with very long paths are present
+    [OAK-3101] - wrong use of jcr:score in Solr when sorting
+    [OAK-3103] - Stale document in MongoDocumentStore cache
+    [OAK-3105] - SegmentWriter doesn't properly check the length of external blob IDs
+    [OAK-3106] - DocumentStorePerformanceTest collects duplicate ids to remove
+    [OAK-3110] - AsyncIndexer fails due to FileNotFoundException thrown by CopyOnWrite logic
+    [OAK-3112] - Performance degradation of UnsavedModifications on MapDB
+    [OAK-3124] - SolrServerProviderService should provide index / search specific servers
+    [OAK-3130] - ReferenceEditor may not enforce referential integrity
+    [OAK-3167] - [Blob GC] Wrong time units for blobGcMaxAge are passed from SegmentNodeStoreService
 
 Improvements
 
+    [OAK-2292] - Use ConcurrentUpdateSolrServer for remote updates
+    [OAK-3093] - Update H2 dependency to recommended minimum version
+    [OAK-3107] - SegmentWriter should be able to store blob IDs longer than 4096 bytes
+    [OAK-3129] - SolrQueryIndex making too many Solr requests per jCR query
+    [OAK-3135] - Solr index should not be used for path/pt restrictions only
+    [OAK-3142] - All children path and primary type restrictions should be converted to filter queries
+    [OAK-3147] - Make it possible to collapse results under jcr:content nodes
 
 New Features
 
+    [OAK-2892] - Speed up lucene indexing post migration by pre extracting the text content from binaries
+
+Sub-task
+
+    [OAK-2953] - Implement text extractor as part of oak-run
+    [OAK-3096] - RDBDocumentStore: improve diagnostics for failed batch inserts
+    [OAK-3108] - RDBDocumentStore: improve diagnostics for failed inserts/updates caused by long data
+    [OAK-3114] - RDBDocumentStore: add BDATA DDL information to startup diagnostics
     
-Tasks
-
-
 
 In addition to the above-mentioned changes, this release contains
 all changes included in previous Apache Jackrabbit Oak 1.0.x releases.
