@@ -37,6 +37,7 @@ import java.util.concurrent.Semaphore;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.management.openmbean.CompositeData;
 
 import ch.qos.logback.classic.Level;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -680,6 +681,71 @@ public class AsyncIndexUpdateTest {
             return null;
         }
 
+    }
+
+    @Test
+    public void testAsyncExecutionStats() throws Exception {
+        final Set<String> knownCheckpoints = Sets.newHashSet();
+        MemoryNodeStore store = new MemoryNodeStore(){
+            @Override
+            public synchronized NodeState retrieve(@Nonnull String checkpoint) {
+                if (!knownCheckpoints.isEmpty() && !knownCheckpoints.contains(checkpoint)){
+                    return null;
+                }
+                return super.retrieve(checkpoint);
+            }
+        };
+        IndexEditorProvider provider = new PropertyIndexEditorProvider();
+
+        NodeBuilder builder = store.getRoot().builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, "async");
+        builder.child("testRoot").setProperty("foo", "abc");
+
+        // merge it back in
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
+        runOneCycle(async);
+        assertEquals(1, lastExecutionStats(async.getIndexStats().getExecutionCount()));
+
+        //Run a cycle so that change of reindex flag gets indexed
+        runOneCycle(async);
+        assertEquals(1, lastExecutionStats(async.getIndexStats().getExecutionCount()));
+
+        //Now run so that it results in an empty cycle
+        runOneCycle(async);
+        assertEquals(1, lastExecutionStats(async.getIndexStats().getExecutionCount()));
+
+        //Do some updates and counter should increase
+        builder = store.getRoot().builder();
+        builder.child("testRoot2").setProperty("foo", "abc");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        runOneCycle(async);
+        assertEquals(1, lastExecutionStats(async.getIndexStats().getExecutionCount()));
+
+        //Do some updates but disable checkpoints. Counter should not increase
+        builder = store.getRoot().builder();
+        builder.child("testRoot3").setProperty("foo", "abc");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        //Disable new checkpoint retrieval
+        knownCheckpoints.addAll(store.listCheckpoints());
+        runOneCycle(async);
+        assertEquals(0, lastExecutionStats(async.getIndexStats().getExecutionCount()));
+    }
+
+
+    private static long lastExecutionStats(CompositeData cd){
+        //Last stat is the last entry in the array
+        return ((long[]) cd.get("per second"))[59];
+    }
+
+    private static void runOneCycle(AsyncIndexUpdate async){
+        async.run();
+        async.getIndexStats().run();
     }
 
     @Test
