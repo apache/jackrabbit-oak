@@ -54,7 +54,7 @@ public class JournalTest extends AbstractJournalTest {
 
     @Rule
     public TestRule logLevelModifier = new LogLevelModifier()
-                                            .addAppenderFilter("console", "warn")
+                                            .addAppenderFilter("file", "warn")
                                             .setLoggerLevel("org.apache.jackrabbit.oak", "trace");
 
     class DiffingObserver implements Observer, Runnable, NodeStateDiff {
