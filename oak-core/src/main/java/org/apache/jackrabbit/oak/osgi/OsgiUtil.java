@@ -49,7 +49,7 @@ public class OsgiUtil {
      * {@code null} if the property is not found or if the property is found but
      * it is an empty string.
      *
-     * @param context Component context.
+     * @param context Bundle context.
      * @param name    Name of the property.
      * @return The property value serialized as a string, or {@code null}.
      */
@@ -67,17 +67,73 @@ public class OsgiUtil {
      * @param name    Name of the property.
      * @return The property value serialized as a string, or {@code null}.
      */
-    public static String fallbackLookup(ComponentContext context, String name) {
-        String fromComponent = lookup(context, name);
+    public static String lookupConfigurationThenFramework(ComponentContext context, String name) {
+        return lookupConfigurationThenFramework(context, name, name);
+    }
+
+    /**
+     * Looks a property up by name in the component context first, falling back
+     * in the framework properties if not found. Returns {@code null} if the
+     * property is not found or if the property is found but it is an empty
+     * string.
+     *
+     * @param context         Component context.
+     * @param nameInComponent Name of the property in the component context.
+     * @param nameInFramework Name of the property in the framework properties.
+     * @return The property value serialized as a string, or {@code null}.
+     */
+    public static String lookupConfigurationThenFramework(ComponentContext context, String nameInComponent, String nameInFramework) {
+        String fromComponent = lookup(context, nameInComponent);
 
         if (fromComponent != null) {
             return fromComponent;
         }
 
-        String fromFramework = lookup(context.getBundleContext(), name);
+        String fromFramework = lookup(context.getBundleContext(), nameInFramework);
 
         if (fromFramework != null) {
             return fromFramework;
+        }
+
+        return null;
+    }
+
+    /**
+     * Looks a property up by name in the framework properties first, falling
+     * back to the component context if not not found. Returns {@code null} if
+     * the property is not found or if the property is found but it is an empty
+     * string.
+     *
+     * @param context Component context.
+     * @param name    Name of the property.
+     * @return The property value serialized as a string, or {@code null}.
+     */
+    public static String lookupFrameworkThenConfiguration(ComponentContext context, String name) {
+        return lookupFrameworkThenConfiguration(context, name, name);
+    }
+
+    /**
+     * Looks a property up by name in the framework properties first, falling
+     * back to the component context if not not found. Returns {@code null} if
+     * the property is not found or if the property is found but it is an empty
+     * string.
+     *
+     * @param context         Component context.
+     * @param nameInComponent Name of the property in the component context.
+     * @param nameInFramework Name of the property in the framework properties.
+     * @return The property value serialized as a string, or {@code null}.
+     */
+    public static String lookupFrameworkThenConfiguration(ComponentContext context, String nameInComponent, String nameInFramework) {
+        String fromFramework = lookup(checkNotNull(context).getBundleContext(), nameInFramework);
+
+        if (fromFramework != null) {
+            return fromFramework;
+        }
+
+        String fromComponent = lookup(context, nameInComponent);
+
+        if (fromComponent != null) {
+            return fromComponent;
         }
 
         return null;

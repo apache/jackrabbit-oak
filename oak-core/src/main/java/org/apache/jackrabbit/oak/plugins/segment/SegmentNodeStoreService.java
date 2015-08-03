@@ -21,7 +21,7 @@ import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toBoolean;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toInteger;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
-import static org.apache.jackrabbit.oak.osgi.OsgiUtil.fallbackLookup;
+import static org.apache.jackrabbit.oak.osgi.OsgiUtil.lookupConfigurationThenFramework;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CLEANUP_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CLONE_BINARIES_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.FORCE_AFTER_FAIL_DEFAULT;
@@ -287,7 +287,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     @Activate
     private void activate(ComponentContext context) throws IOException {
         this.context = context;
-        this.customBlobStore = Boolean.parseBoolean(fallbackLookup(context, CUSTOM_BLOB_STORE));
+        this.customBlobStore = Boolean.parseBoolean(property(CUSTOM_BLOB_STORE));
 
         if (blobStore == null && customBlobStore) {
             log.info("BlobStore use enabled. SegmentNodeStore would be initialized when BlobStore would be available");
@@ -298,7 +298,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
     public void registerNodeStore() throws IOException {
         if (registerSegmentStore()) {
-            boolean standby = toBoolean(fallbackLookup(context, STANDBY), false);
+            boolean standby = toBoolean(property(STANDBY), false);
             providerRegistration = context.getBundleContext().registerService(
                     SegmentStoreProvider.class.getName(), this, null);
             if (!standby) {
@@ -319,62 +319,62 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         Dictionary<?, ?> properties = context.getProperties();
         name = String.valueOf(properties.get(NAME));
 
-        String directory = fallbackLookup(context, DIRECTORY);
+        String directory = property(DIRECTORY);
         if (directory == null) {
             directory = "tarmk";
         }else{
             directory = FilenameUtils.concat(directory, "segmentstore");
         }
 
-        String mode = fallbackLookup(context, MODE);
+        String mode = property(MODE);
         if (mode == null) {
             mode = System.getProperty(MODE,
                     System.getProperty("sun.arch.data.model", "32"));
         }
 
-        String size = fallbackLookup(context, SIZE);
+        String size = property(SIZE);
         if (size == null) {
             size = System.getProperty(SIZE, "256");
         }
 
-        String cache = fallbackLookup(context, CACHE);
+        String cache = property(CACHE);
         if (cache == null) {
             cache = System.getProperty(CACHE);
         }
 
-        boolean pauseCompaction = toBoolean(fallbackLookup(context, PAUSE_COMPACTION),
+        boolean pauseCompaction = toBoolean(property(PAUSE_COMPACTION),
                 PAUSE_DEFAULT);
         boolean cloneBinaries = toBoolean(
-                fallbackLookup(context, COMPACTION_CLONE_BINARIES),
+                property(COMPACTION_CLONE_BINARIES),
                 CLONE_BINARIES_DEFAULT);
-        long cleanupTs = toLong(fallbackLookup(context, COMPACTION_CLEANUP_TIMESTAMP),
+        long cleanupTs = toLong(property(COMPACTION_CLEANUP_TIMESTAMP),
                 TIMESTAMP_DEFAULT);
-        int retryCount = toInteger(fallbackLookup(context, COMPACTION_RETRY_COUNT),
+        int retryCount = toInteger(property(COMPACTION_RETRY_COUNT),
                 RETRY_COUNT_DEFAULT);
-        boolean forceCommit = toBoolean(fallbackLookup(context, COMPACTION_FORCE_AFTER_FAIL),
+        boolean forceCommit = toBoolean(property(COMPACTION_FORCE_AFTER_FAIL),
                 FORCE_AFTER_FAIL_DEFAULT);
-        final int lockWaitTime = toInteger(fallbackLookup(context, COMPACTION_LOCK_WAIT_TIME),
+        final int lockWaitTime = toInteger(property(COMPACTION_LOCK_WAIT_TIME),
                 COMPACTION_LOCK_WAIT_TIME_DEFAULT);
-        boolean persistCompactionMap = toBoolean(fallbackLookup(context, PERSIST_COMPACTION_MAP),
+        boolean persistCompactionMap = toBoolean(property(PERSIST_COMPACTION_MAP),
                 PERSIST_COMPACTION_MAP_DEFAULT);
-        String cleanup = fallbackLookup(context, COMPACTION_CLEANUP);
+        String cleanup = property(COMPACTION_CLEANUP);
         if (cleanup == null) {
             cleanup = CLEANUP_DEFAULT.toString();
         }
 
-        String memoryThresholdS = fallbackLookup(context, COMPACTION_MEMORY_THRESHOLD);
+        String memoryThresholdS = property(COMPACTION_MEMORY_THRESHOLD);
         byte memoryThreshold = MEMORY_THRESHOLD_DEFAULT;
         if (memoryThresholdS != null) {
             memoryThreshold = Byte.valueOf(memoryThresholdS);
         }
 
-        String gainThresholdS = fallbackLookup(context, COMPACTION_GAIN_THRESHOLD);
+        String gainThresholdS = property(COMPACTION_GAIN_THRESHOLD);
         byte gainThreshold = GAIN_THRESHOLD_DEFAULT;
         if (gainThresholdS != null) {
             gainThreshold = Byte.valueOf(gainThresholdS);
         }
 
-        final long blobGcMaxAgeInSecs = toLong(fallbackLookup(context, PROP_BLOB_GC_MAX_AGE), DEFAULT_BLOB_GC_MAX_AGE);
+        final long blobGcMaxAgeInSecs = toLong(property(PROP_BLOB_GC_MAX_AGE), DEFAULT_BLOB_GC_MAX_AGE);
 
         OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
         gcMonitor = new GCMonitorTracker();
@@ -474,6 +474,10 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
         log.info("SegmentNodeStore initialized");
         return true;
+    }
+
+    private String property(String name) {
+        return lookupConfigurationThenFramework(context, name);
     }
 
     @Deactivate
