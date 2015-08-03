@@ -23,8 +23,9 @@ import org.osgi.service.component.ComponentContext;
 
 import java.util.Dictionary;
 
-import static org.apache.jackrabbit.oak.osgi.OsgiUtil.fallbackLookup;
 import static org.apache.jackrabbit.oak.osgi.OsgiUtil.lookup;
+import static org.apache.jackrabbit.oak.osgi.OsgiUtil.lookupConfigurationThenFramework;
+import static org.apache.jackrabbit.oak.osgi.OsgiUtil.lookupFrameworkThenConfiguration;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.doReturn;
@@ -140,63 +141,67 @@ public class OsgiUtilTest {
     }
 
     @Test
-    public void testFallbackLookupWithNotFoundValue() {
+    public void testFallbackLookupWithNoValue() {
         Dictionary dictionary = mock(Dictionary.class);
-        doReturn(null).when(dictionary).get("name");
+        doReturn(null).when(dictionary).get("cname");
 
         BundleContext bundleContext = mock(BundleContext.class);
-        doReturn(null).when(bundleContext).getProperty("name");
+        doReturn(null).when(bundleContext).getProperty("fname");
 
         ComponentContext componentContext = mock(ComponentContext.class);
         doReturn(dictionary).when(componentContext).getProperties();
         doReturn(bundleContext).when(componentContext).getBundleContext();
 
-        assertNull(fallbackLookup(componentContext, "name"));
+        assertNull(lookupConfigurationThenFramework(componentContext, "cname", "fname"));
+        assertNull(lookupFrameworkThenConfiguration(componentContext, "cname", "fname"));
     }
 
     @Test
     public void testFallbackLookupWithValueInComponent() {
         Dictionary dictionary = mock(Dictionary.class);
-        doReturn("value").when(dictionary).get("name");
+        doReturn("value").when(dictionary).get("cname");
 
         BundleContext bundleContext = mock(BundleContext.class);
-        doReturn(null).when(bundleContext).getProperty("name");
+        doReturn(null).when(bundleContext).getProperty("fname");
 
         ComponentContext componentContext = mock(ComponentContext.class);
         doReturn(dictionary).when(componentContext).getProperties();
         doReturn(bundleContext).when(componentContext).getBundleContext();
 
-        assertEquals("value", fallbackLookup(componentContext, "name"));
+        assertEquals("value", lookupConfigurationThenFramework(componentContext, "cname", "fname"));
+        assertEquals("value", lookupFrameworkThenConfiguration(componentContext, "cname", "fname"));
     }
 
     @Test
     public void testFallbackLookupWithValueInFramework() {
         Dictionary dictionary = mock(Dictionary.class);
-        doReturn(null).when(dictionary).get("name");
+        doReturn(null).when(dictionary).get("cname");
 
         BundleContext bundleContext = mock(BundleContext.class);
-        doReturn("value").when(bundleContext).getProperty("name");
+        doReturn("value").when(bundleContext).getProperty("fname");
 
         ComponentContext componentContext = mock(ComponentContext.class);
         doReturn(dictionary).when(componentContext).getProperties();
         doReturn(bundleContext).when(componentContext).getBundleContext();
 
-        assertEquals("value", fallbackLookup(componentContext, "name"));
+        assertEquals("value", lookupConfigurationThenFramework(componentContext, "cname", "fname"));
+        assertEquals("value", lookupFrameworkThenConfiguration(componentContext, "cname", "fname"));
     }
 
     @Test
     public void testFallbackLookupWithValueInComponentAndFramework() {
         Dictionary dictionary = mock(Dictionary.class);
-        doReturn("value").when(dictionary).get("name");
+        doReturn("cvalue").when(dictionary).get("cname");
 
         BundleContext bundleContext = mock(BundleContext.class);
-        doReturn("ignored").when(bundleContext).getProperty("name");
+        doReturn("fvalue").when(bundleContext).getProperty("fname");
 
         ComponentContext componentContext = mock(ComponentContext.class);
         doReturn(dictionary).when(componentContext).getProperties();
         doReturn(bundleContext).when(componentContext).getBundleContext();
 
-        assertEquals("value", fallbackLookup(componentContext, "name"));
+        assertEquals("cvalue", lookupConfigurationThenFramework(componentContext, "cname", "fname"));
+        assertEquals("fvalue", lookupFrameworkThenConfiguration(componentContext, "cname", "fname"));
     }
 
 }
