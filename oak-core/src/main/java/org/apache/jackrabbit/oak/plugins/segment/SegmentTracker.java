@@ -130,7 +130,9 @@ public class SegmentTracker {
             .evictionCallback(new EvictionCallback<SegmentId, Segment>() {
                 @Override
                 public void evicted(SegmentId segmentId, Segment segment) {
-                    segmentId.setSegment(null);
+                    if (segment != null) {
+                        segmentId.setSegment(null);
+                    }
                 }
             })
             .build();
