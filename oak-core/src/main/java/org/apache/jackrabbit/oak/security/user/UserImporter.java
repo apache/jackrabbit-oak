@@ -55,6 +55,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.NodeInfo;
 import org.apache.jackrabbit.oak.spi.xml.PropInfo;
@@ -161,8 +162,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     private Map<String, Principal> principals = new HashMap<String, Principal>();
 
     UserImporter(ConfigurationParameters config) {
-        String importBehaviorStr = config.getConfigValue(PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_IGNORE);
-        importBehavior = ImportBehavior.valueFromString(importBehaviorStr);
+        importBehavior = UserUtil.getImportBehavior(config);
     }
 
     //----------------------------------------------< ProtectedItemImporter >---

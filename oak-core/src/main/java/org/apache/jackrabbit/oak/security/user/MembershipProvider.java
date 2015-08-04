@@ -358,6 +358,17 @@ class MembershipProvider extends AuthorizableBaseProvider {
     }
 
     /**
+     * Removes the member with the specified contentID from the given group.
+     *
+     * @param groupTree group to remove the member from
+     * @param memberContentId the contentID of the member to remove
+     * @return {@code true} if the member was removed.
+     */
+    boolean removeMember(@Nonnull Tree groupTree, @Nonnull String memberContentId) {
+        return writer.removeMember(groupTree, memberContentId);
+    }
+
+    /**
      * Iterator that provides member references based on the rep:members properties of a underlying tree iterator.
      */
     private static final class MemberReferenceIterator extends AbstractLazyIterator<String> {

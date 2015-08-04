@@ -27,6 +27,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
+import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 
@@ -162,5 +164,22 @@ public final class UserUtil implements UserConstants {
         } else {
             throw new AuthorizableTypeException("Invalid authorizable type '" + ((authorizableClass == null) ? "null" : authorizableClass) + '\'');
         }
+    }
+
+    /**
+     * Return the configured {@link org.apache.jackrabbit.oak.spi.xml.ImportBehavior}
+     * for the given {@code config}. The default behavior in case
+     * {@link org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter#PARAM_IMPORT_BEHAVIOR}
+     * is not contained in the {@code config} object is
+     * {@link org.apache.jackrabbit.oak.spi.xml.ImportBehavior#IGNORE}
+     *
+     * @param config The configuration parameters.
+     * @return The import behavior as defined by {@link org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter#PARAM_IMPORT_BEHAVIOR}
+     * or {@link org.apache.jackrabbit.oak.spi.xml.ImportBehavior#IGNORE} if this
+     * config parameter is missing.
+     */
+    public static int getImportBehavior(@Nonnull ConfigurationParameters config) {
+        String importBehaviorStr = config.getConfigValue(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_IGNORE);
+        return ImportBehavior.valueFromString(importBehaviorStr);
     }
 }

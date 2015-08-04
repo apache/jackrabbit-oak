@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.security.user.autosave;
 
 import java.util.Iterator;
+import java.util.Set;
+import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -74,6 +76,15 @@ class GroupImpl extends AuthorizableImpl implements Group {
     }
 
     @Override
+    public Set<String> addMembers(@Nonnull String... memberIds) throws RepositoryException {
+        try {
+            return getDelegate().addMembers(memberIds);
+        } finally {
+            getMgr().autosave();
+        }
+    }
+
+    @Override
     public boolean removeMember(Authorizable authorizable) throws RepositoryException {
         try {
             if (isValid(authorizable)) {
@@ -81,6 +92,15 @@ class GroupImpl extends AuthorizableImpl implements Group {
             } else {
                 return false;
             }
+        } finally {
+            getMgr().autosave();
+        }
+    }
+
+    @Override
+    public Set<String> removeMembers(@Nonnull String... memberIds) throws RepositoryException {
+        try {
+            return getDelegate().removeMembers(memberIds);
         } finally {
             getMgr().autosave();
         }
