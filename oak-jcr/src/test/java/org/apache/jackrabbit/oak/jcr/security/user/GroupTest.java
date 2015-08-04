@@ -848,6 +848,39 @@ public class GroupTest extends AbstractUserTest {
         }
     }
 
+    public void testAddMembersById() throws Exception {
+        Group newGroup = null;
+        try {
+            newGroup = userMgr.createGroup(createGroupId());
+
+            Set<String> failed = group.addMembers("nonExistingMember", newGroup.getID());
+            assertFalse(failed.isEmpty());
+            assertTrue(group.isMember(newGroup));
+        } finally {
+            if (newGroup != null) {
+                newGroup.remove();
+                superuser.save();
+            }
+        }
+    }
+
+    public void testRemoveMembersById() throws Exception {
+        Group newGroup = null;
+        try {
+            newGroup = userMgr.createGroup(createGroupId());
+
+            Set<String> failed = group.removeMembers("nonExistingMember", newGroup.getID(), user.getID());
+            assertFalse(failed.isEmpty());
+            assertFalse(group.isMember(user));
+        } finally {
+            if (newGroup != null) {
+                newGroup.remove();
+                superuser.save();
+            }
+        }
+
+    }
+
     private void checkDeclaredMembers(Group grp, String ... ids) throws RepositoryException {
         TreeSet<String> members = new TreeSet<String>();
         Iterator<Authorizable> iter = grp.getMembers();

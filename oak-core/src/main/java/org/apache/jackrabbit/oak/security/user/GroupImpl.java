@@ -18,12 +18,17 @@ package org.apache.jackrabbit.oak.security.user;
 
 import java.security.Principal;
 import java.util.Iterator;
+import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
+import javax.jcr.nodetype.ConstraintViolationException;
 
 import com.google.common.base.Predicate;
+import com.google.common.base.Strings;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -31,6 +36,7 @@ import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
+import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -113,6 +119,11 @@ class GroupImpl extends AuthorizableImpl implements Group {
         return getMembershipProvider().addMember(getTree(), authorizableImpl.getTree());
     }
 
+    @Override
+    public Set<String> addMembers(@Nonnull String... memberIds) throws RepositoryException {
+        return updateMembers(false, memberIds);
+    }
+
     /**
      * Returns {@code true} if the given {@code newMember} is a Group
      * and contains {@code this} Group as declared or inherited member.
@@ -145,6 +156,11 @@ class GroupImpl extends AuthorizableImpl implements Group {
             Tree memberTree = ((AuthorizableImpl) authorizable).getTree();
             return getMembershipProvider().removeMember(getTree(), memberTree);
         }
+    }
+
+    @Override
+    public Set<String> removeMembers(@Nonnull String... memberIds) throws RepositoryException {
+        return updateMembers(true, memberIds);
     }
 
     //--------------------------------------------------------------------------
@@ -214,6 +230,61 @@ class GroupImpl extends AuthorizableImpl implements Group {
             MembershipProvider mgr = getUserManager().getMembershipProvider();
             return mgr.isMember(this.getTree(), authorizableTree, includeInherited);
         }
+    }
+
+    /**
+     * Internal method to add or remove members by ID.
+     *
+     * @param isRemove Boolean flag indicating if members should be added or removed.
+     * @param memberIds The {@code memberIds} to be added or removed.
+     * @return The sub-set of {@code memberIds} that could not be added/removed.
+     * @throws javax.jcr.nodetype.ConstraintViolationException If any of the specified
+     * IDs is empty string or null or if {@link org.apache.jackrabbit.oak.spi.xml.ImportBehavior#ABORT}
+     * is configured and an ID cannot be resolved to an existing (or accessible)
+     * authorizable.
+     * @throws javax.jcr.RepositoryException If another error occurs.
+     */
+    private final Set<String> updateMembers(boolean isRemove, @Nonnull String... memberIds) throws RepositoryException {
+        Set<String> idSet = Sets.newLinkedHashSet(Lists.newArrayList(memberIds));
+        int importBehavior = UserUtil.getImportBehavior(getUserManager().getConfig());
+
+        Iterator<String> idIterator = idSet.iterator();
+        while (idIterator.hasNext()) {
+            String memberId = idIterator.next();
+            if (Strings.isNullOrEmpty(memberId)) {
+                throw new ConstraintViolationException("MemberId must not be null or empty.");
+            }
+            if (getID().equals(memberId)) {
+                String msg = "Attempt to add or remove a group as member of itself (" + getID() + ").";
+                log.debug(msg);
+                continue;
+            }
+
+            if (ImportBehavior.BESTEFFORT != importBehavior) {
+                Authorizable member = getUserManager().getAuthorizable(memberId);
+                if (member == null) {
+                    if (ImportBehavior.ABORT == importBehavior) {
+                        throw new ConstraintViolationException("Attempt to add or remove a non-existing member " + memberId);
+                    } else if (ImportBehavior.IGNORE == importBehavior) {
+                        String msg = "Attempt to add or remove non-existing member '" + getID() + "' with ImportBehavior = IGNORE.";
+                        log.debug(msg);
+                        continue;
+                    }
+                }
+            }
+
+            boolean success;
+            String contentId = AuthorizableBaseProvider.getContentID(memberId);
+            if (isRemove) {
+                success = getMembershipProvider().removeMember(getTree(), contentId);
+            } else {
+                success = getMembershipProvider().addMember(getTree(), contentId);
+            }
+            if (success) {
+                idIterator.remove();
+            }
+        }
+        return idSet;
     }
 
     /**
