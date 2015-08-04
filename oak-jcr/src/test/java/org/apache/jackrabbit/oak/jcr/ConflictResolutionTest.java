@@ -23,7 +23,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.matchers.JUnitMatchers.containsString;
 
-import java.util.List;
 import java.util.Set;
 
 import javax.jcr.InvalidItemStateException;
@@ -32,12 +31,11 @@ import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.collect.Sets;
-
 import ch.qos.logback.classic.Level;
+
+import com.google.common.collect.Sets;
 
 public class ConflictResolutionTest extends AbstractRepositoryTest {
 
@@ -56,50 +54,33 @@ public class ConflictResolutionTest extends AbstractRepositoryTest {
         super(fixture);
     }
 
-    @Before
-    public void setup() throws RepositoryException {
-        logMergingNodeStateDiff.starting();
-        logConflictValidator.starting();
-    }
-
     @After
     public void after() {
         super.logout();
-        logMergingNodeStateDiff.finished();
-        logConflictValidator.finished();
     }
 
     @Test
     public void deleteChangedNode() throws RepositoryException {
-        getAdminSession().getRootNode().addNode("node").addNode("jcr:content")
-                .addNode("metadata");
-        getAdminSession().save();
+        // first INFO level
+        deleteChangedNodeOps("node0");
 
-        Session session1 = createAdminSession();
-        Session session2 = createAdminSession();
+        // DEBUG level
+        Set<String> mnsdLogs;
+        Set<String> cvLogs;
         try {
-            session1.getNode("/node/jcr:content").remove();
-            session2.getNode("/node/jcr:content/metadata").setProperty(
-                    "updated", "myself");
-            session2.save();
-            try {
-                session1.save();
-                fail("Expected InvalidItemStateException");
-            } catch (InvalidItemStateException expected) {
-                assertThat(
-                        "Expecting 'Unresolved conflicts in /node'",
-                        expected.getMessage(),
-                        containsString("OakState0001: Unresolved conflicts in /node"));
-            }
+            logMergingNodeStateDiff.starting();
+            logConflictValidator.starting();
+            deleteChangedNodeOps("node1");
         } finally {
-            session1.logout();
-            session2.logout();
+            mnsdLogs = Sets.newHashSet(logMergingNodeStateDiff.getLogs());
+            cvLogs = Sets.newHashSet(logConflictValidator.getLogs());
+            logMergingNodeStateDiff.finished();
+            logConflictValidator.finished();
         }
 
         // MergingNodeStateDif debug: NodeConflictHandler<DELETE_CHANGED_NODE>
         // resolved conflict of type DELETE_CHANGED_NODE with resolution THEIRS
         // on node jcr:content, conflict trace ^"/metadata/updated":"myself"
-        Set<String> mnsdLogs = Sets.newHashSet(logMergingNodeStateDiff.getLogs());
         assertTrue(mnsdLogs.size() == 1);
         assertThat(
                 "MergingNodeStateDiff log message must contain a reference to the handler",
@@ -115,12 +96,38 @@ public class ConflictResolutionTest extends AbstractRepositoryTest {
                 containsString("^\"/metadata/updated\":\"myself\"]"));
 
         // ConflictValidator debug: Commit failed due to unresolved
-        // conflicts in /node = {deleteChangedNode = {jcr:content}}
-        Set<String> cvLogs = Sets.newHashSet(logConflictValidator.getLogs());
+        // conflicts in /node1 = {deleteChangedNode = {jcr:content}}
         assertTrue(cvLogs.size() == 1);
         assertThat(
                 "ConflictValidator log message must contain a reference to the path",
                 cvLogs.toString(),
-                containsString("/node = {deleteChangedNode = {jcr:content}}"));
+                containsString("/node1 = {deleteChangedNode = {jcr:content}}"));
+    }
+
+    private void deleteChangedNodeOps(String node) throws RepositoryException {
+        getAdminSession().getRootNode().addNode(node).addNode("jcr:content")
+                .addNode("metadata");
+        getAdminSession().save();
+
+        Session session1 = createAdminSession();
+        Session session2 = createAdminSession();
+        try {
+            session1.getNode("/"+node+"/jcr:content").remove();
+            session2.getNode("/"+node+"/jcr:content/metadata").setProperty(
+                    "updated", "myself");
+            session2.save();
+            try {
+                session1.save();
+                fail("Expected InvalidItemStateException");
+            } catch (InvalidItemStateException expected) {
+                assertThat(
+                        "Expecting 'Unresolved conflicts in /"+node+"'",
+                        expected.getMessage(),
+                        containsString("OakState0001: Unresolved conflicts in /"+node+""));
+            }
+        } finally {
+            session1.logout();
+            session2.logout();
+        }
     }
 }
