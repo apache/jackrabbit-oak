@@ -888,7 +888,7 @@ public class FileStore implements SegmentStore {
                 if (reader.isClosed()) {
                     // Cleanup might already have closed the file.
                     // The segment should be available from another file.
-                    log.info("Skipping closed tar file {}", reader);
+                    log.debug("Skipping closed tar file {}", reader);
                     continue;
                 }
 
