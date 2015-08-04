@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.commit;
 
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.MIX_REP_MERGE_CONFLICT;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -24,7 +25,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
@@ -60,23 +60,11 @@ public class ConflictValidator extends DefaultValidator {
     }
 
     ConflictValidator() {
-        if (log.isDebugEnabled()) {
-            this.path = "/";
-        } else {
-            this.path = null;
-        }
+        this.path = "/";
     }
 
     private ConflictValidator(String path, String name) {
-        if (path != null) {
-            this.path = PathUtils.concat(path, name);
-        } else {
-            this.path = null;
-        }
-    }
-
-    private boolean isLogEnabled() {
-        return path != null;
+        this.path = concat(path, name);
     }
 
     @Override
@@ -130,7 +118,7 @@ public class ConflictValidator extends DefaultValidator {
                     //Conflict details are not made part of ExceptionMessage instead they are
                     //logged. This to avoid exposing property details to the caller as it might not have
                     //permission to access it
-                    if (isLogEnabled()) {
+                    if (log.isDebugEnabled()) {
                         log.debug(getConflictMessage(), ex);
                     }
                     throw ex;
