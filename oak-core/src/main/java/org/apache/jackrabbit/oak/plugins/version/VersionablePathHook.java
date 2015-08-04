@@ -111,7 +111,7 @@ public class VersionablePathHook implements CommitHook {
                 String name, NodeState before, NodeState after) {
             if (NodeStateUtils.isHidden(name)) {
                 // stop comparison
-                return false;
+                return true;
             }
             Node node = new Node(nodeAfter, name);
             return after.compareAgainstBaseState(
