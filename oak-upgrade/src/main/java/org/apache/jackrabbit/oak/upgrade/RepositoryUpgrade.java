@@ -16,28 +16,32 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.ImmutableSet.copyOf;
 import static com.google.common.collect.ImmutableSet.of;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newHashMap;
+import static com.google.common.collect.Sets.newHashSet;
+import static com.google.common.collect.Sets.union;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.core.RepositoryImpl.ACTIVITIES_NODE_ID;
-import static org.apache.jackrabbit.core.RepositoryImpl.ROOT_NODE_ID;
-import static org.apache.jackrabbit.core.RepositoryImpl.VERSION_STORAGE_NODE_ID;
 import static org.apache.jackrabbit.oak.plugins.name.Namespaces.addCustomMapping;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_ALL;
+import static org.apache.jackrabbit.oak.upgrade.nodestate.FilteringNodeState.ALL;
+import static org.apache.jackrabbit.oak.upgrade.nodestate.FilteringNodeState.NONE;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -51,7 +55,6 @@ import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 import javax.jcr.security.Privilege;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.HashBiMap;
@@ -67,14 +70,11 @@ import org.apache.jackrabbit.core.config.SecurityConfig;
 import org.apache.jackrabbit.core.fs.FileSystem;
 import org.apache.jackrabbit.core.fs.FileSystemException;
 import org.apache.jackrabbit.core.nodetype.NodeTypeRegistry;
-import org.apache.jackrabbit.core.persistence.PersistenceManager;
 import org.apache.jackrabbit.core.security.authorization.PrivilegeRegistry;
 import org.apache.jackrabbit.core.security.user.UserManagerImpl;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
@@ -104,7 +104,6 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -127,6 +126,12 @@ public class RepositoryUpgrade {
 
     private static final Logger logger = LoggerFactory.getLogger(RepositoryUpgrade.class);
 
+    public static final Set<String> DEFAULT_INCLUDE_PATHS = ALL;
+
+    public static final Set<String> DEFAULT_EXCLUDE_PATHS = NONE;
+
+    public static final Set<String> DEFAULT_MERGE_PATHS = NONE;
+
     /**
      * Source repository context.
      */
@@ -137,6 +142,24 @@ public class RepositoryUpgrade {
      */
     private final NodeStore target;
 
+    /**
+     * Paths to include during the copy process. Defaults to the root path "/".
+     */
+    private Set<String> includePaths = DEFAULT_INCLUDE_PATHS;
+
+    /**
+     * Paths to exclude during the copy process. Empty by default.
+     */
+    private Set<String> excludePaths = DEFAULT_EXCLUDE_PATHS;
+
+    /**
+     * Paths to merge during the copy process. Empty by default.
+     */
+    private Set<String> mergePaths = DEFAULT_MERGE_PATHS;
+
+    /**
+     * Whether or not to copy binaries by reference. Defaults to false.
+     */
     private boolean copyBinariesByReference = false;
 
     private boolean skipOnError = false;
@@ -234,6 +257,37 @@ public class RepositoryUpgrade {
     }
 
     /**
+     * Sets the paths that should be included when the source repository
+     * is copied to the target repository.
+     *
+     * @param includes Paths to be included in the copy.
+     */
+    public void setIncludes(@Nonnull String... includes) {
+        this.includePaths = copyOf(checkNotNull(includes));
+    }
+
+    /**
+     * Sets the paths that should be excluded when the source repository
+     * is copied to the target repository.
+     *
+     * @param excludes Paths to be excluded from the copy.
+     */
+    public void setExcludes(@Nonnull String... excludes) {
+        this.excludePaths = copyOf(checkNotNull(excludes));
+    }
+
+
+    /**
+     * Sets the paths that should be merged when the source repository
+     * is copied to the target repository.
+     *
+     * @param merges Paths to be merged during copy.
+     */
+    public void setMerges(@Nonnull String... merges) {
+        this.mergePaths = copyOf(checkNotNull(merges));
+    }
+
+    /**
      * Copies the full content from the source to the target repository.
      * <p>
      * The source repository <strong>must not be modified</strong> while
@@ -313,14 +367,22 @@ public class RepositoryUpgrade {
             Map<String, String> versionablePaths = newHashMap();
             NodeState root = builder.getNodeState();
 
+            final NodeState sourceState = JackrabbitNodeState.createRootNodeState(
+                    source, workspaceName, root, uriToPrefix, versionablePaths, copyBinariesByReference, skipOnError);
+
+            final Stopwatch watch = Stopwatch.createStarted();
+
             logger.info("Copying workspace content");
-            copyWorkspace(builder, root, workspaceName, uriToPrefix, versionablePaths);
-            logger.debug("Upgrading workspace content completed.");
+            copyWorkspace(sourceState, builder, workspaceName);
+            builder.getNodeState(); // on TarMK this does call triggers the actual copy
+            logger.info("Upgrading workspace content completed in {}s ({})", watch.elapsed(TimeUnit.SECONDS), watch);
 
+            watch.reset().start();
             logger.info("Copying version store content");
-            copyVersionStore(builder, root, workspaceName, uriToPrefix, versionablePaths);
-            logger.debug("Upgrading version store content completed.");
+            copyVersionStore(sourceState, builder);
+            logger.debug("Upgrading version store content completed in {}s ({}).", watch.elapsed(TimeUnit.SECONDS), watch);
 
+            watch.reset().start();
             logger.info("Applying default commit hooks");
             // TODO: default hooks?
             List<CommitHook> hooks = newArrayList();
@@ -334,7 +396,8 @@ public class RepositoryUpgrade {
             // hooks specific to the upgrade, need to run first
             hooks.add(new EditorHook(new CompositeEditorProvider(
                     new RestrictionEditorProvider(),
-                    new GroupEditorProvider(groupsPath))));
+                    new GroupEditorProvider(groupsPath)
+            )));
 
             // security-related hooks
             for (SecurityConfiguration sc : security.getConfigurations()) {
@@ -352,6 +415,7 @@ public class RepositoryUpgrade {
             )));
 
             target.merge(builder, new LoggingCompositeHook(hooks, source, earlyShutdown), CommitInfo.EMPTY);
+            logger.info("Processing commit hooks completed in {}s ({})", watch.elapsed(TimeUnit.SECONDS), watch);
             logger.debug("Repository upgrade completed.");
         } catch (Exception e) {
             throw new RepositoryException("Failed to copy content", e);
@@ -704,71 +768,40 @@ public class RepositoryUpgrade {
         return tmpl;
     }
 
-    private void copyVersionStore(
-            NodeBuilder builder, NodeState root, String workspaceName,
-            Map<String, String> uriToPrefix,
-            Map<String, String> versionablePaths) {
-        PersistenceManager pm = source.getInternalVersionManager().getPersistenceManager();
-        NodeBuilder system = builder.child(JCR_SYSTEM);
-
-        logger.info("Copying version histories");
-        copyState(system, "/jcr:system/jcr:versionStorage", new JackrabbitNodeState(
-                pm, root, uriToPrefix, VERSION_STORAGE_NODE_ID,
-                "/jcr:system/jcr:versionStorage",
-                workspaceName, versionablePaths, copyBinariesByReference, skipOnError),
-                true);
-
-        logger.info("Copying activities");
-        copyState(system, "/jcr:system/jcr:activities", new JackrabbitNodeState(
-                pm, root, uriToPrefix, ACTIVITIES_NODE_ID,
-                "/jcr:system/jcr:activities",
-                workspaceName, versionablePaths, copyBinariesByReference, skipOnError),
-                true);
-    }
-
-    private String copyWorkspace(
-            NodeBuilder builder, NodeState root, String workspaceName,
-            Map<String, String> uriToPrefix, Map<String, String> versionablePaths)
+    private void copyWorkspace(NodeState sourceState, NodeBuilder builder, String workspaceName)
             throws RepositoryException {
-        logger.info("Copying workspace {}", workspaceName);
+        final Set<String> includes = calculateEffectiveIncludePaths(sourceState);
+        final Set<String> excludes = union(copyOf(this.excludePaths), of("/jcr:system/jcr:versionStorage", "/jcr:system/jcr:activities"));
+        final Set<String> merges = union(copyOf(this.mergePaths), of("/jcr:system"));
 
-        PersistenceManager pm =
-                source.getWorkspaceInfo(workspaceName).getPersistenceManager();
+        logger.info("Copying workspace {} [i: {}, e: {}, m: {}]", workspaceName, includes, excludes, merges);
 
-        NodeState state = new JackrabbitNodeState(
-                pm, root, uriToPrefix, ROOT_NODE_ID, "/",
-                workspaceName, versionablePaths, copyBinariesByReference, skipOnError);
-
-        for (PropertyState property : state.getProperties()) {
-            builder.setProperty(property);
-        }
-        for (ChildNodeEntry child : state.getChildNodeEntries()) {
-            String childName = child.getName();
-            if (!JCR_SYSTEM.equals(childName)) {
-                final String path = PathUtils.concat("/", childName);
-                logger.info("Copying subtree {}", path);
-                copyState(builder, path, child.getNodeState(), false);
-            }
-        }
-
-        return workspaceName;
+        NodeStateCopier.builder()
+                .include(includes)
+                .exclude(excludes)
+                .merge(merges)
+                .copy(sourceState, builder);
     }
 
-    private void copyState(NodeBuilder targetParent, String path, NodeState source, boolean merge) {
-        final String name = PathUtils.getName(path);
-        // OAK-1589: maximum supported length of name for DocumentNodeStore
-        // is 150 bytes. Skip the sub tree if the the name is too long
-        if (name.length() > 37 && name.getBytes(Charsets.UTF_8).length > 150) {
-            logger.warn("Node name too long. Skipping {}", source);
-            return;
+    private void copyVersionStore(NodeState sourceState, NodeBuilder builder)
+            throws RepositoryException {
+        NodeStateCopier.builder()
+                .include("/jcr:system/jcr:versionStorage", "/jcr:system/jcr:activities")
+                .merge("/jcr:system")
+                .copy(sourceState, builder);
+    }
+
+    private Set<String> calculateEffectiveIncludePaths(NodeState state) {
+        if (!this.includePaths.contains("/")) {
+            return copyOf(this.includePaths);
         }
-        NodeBuilder target = targetParent.child(name);
-        NodeStateCopier.copyNodeState(
-                source,
-                target,
-                path,
-                merge ? of(path) : Collections.<String>emptySet()
-        );
+
+        // include child nodes from source individually to avoid deleting other initialized content
+        final Set<String> includes = newHashSet();
+        for (String childNodeName : state.getChildNodeNames()) {
+            includes.add("/" + childNodeName);
+        }
+        return includes;
     }
 
     private static class LoggingCompositeHook implements CommitHook {

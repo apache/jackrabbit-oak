@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.upgrade.nodestate;
 
-import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -27,8 +26,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 
-import static com.google.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
+import static org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier.builder;
 import static org.apache.jackrabbit.oak.upgrade.util.NodeStateTestUtils.commit;
 import static org.apache.jackrabbit.oak.upgrade.util.NodeStateTestUtils.create;
 import static org.apache.jackrabbit.oak.upgrade.util.NodeStateTestUtils.createNodeStoreWithContent;
@@ -38,6 +37,39 @@ public class NodeStateCopierTest {
 
     private final PropertyState primaryType =
             createProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+
+    @Test
+    public void shouldCreateMissingAncestors() throws CommitFailedException {
+        final NodeStore source = createPrefilledNodeStore();
+        final NodeStore target = createNodeStoreWithContent();
+
+        builder()
+                .include("/a/b/c")
+                .copy(source, target);
+
+        expectDifference()
+                .childNodeChanged("/a", "/a/b")
+                .childNodeDeleted("/excluded", "/a/b/excluded")
+                .strict()
+                .verify(source.getRoot(), target.getRoot());
+    }
+
+    @Test
+    public void shouldIncludeMultiplePaths() throws CommitFailedException {
+        final NodeStore source = createPrefilledNodeStore();
+        final NodeStore target = createNodeStoreWithContent();
+
+        builder()
+                .include("/a/b/c/d", "/a/b/c/e")
+                .copy(source, target);
+
+        expectDifference()
+                .propertyDeleted("/a/b/c/f/jcr:primaryType")
+                .childNodeChanged("/a", "/a/b", "/a/b/c")
+                .childNodeDeleted("/excluded", "/a/b/excluded", "/a/b/c/f")
+                .strict()
+                .verify(source.getRoot(), target.getRoot());
+    }
 
     @Test
     public void shouldMergeIdenticalContent() throws CommitFailedException {
@@ -68,13 +100,63 @@ public class NodeStateCopierTest {
     }
 
     @Test
+    public void shouldSkipNonMatchingIncludes() throws CommitFailedException {
+        final NodeStore source = createNodeStoreWithContent();
+        final NodeBuilder builder = source.getRoot().builder();
+        create(builder, "/a", primaryType);
+        create(builder, "/a/b", primaryType);
+        create(builder, "/a/b/c", primaryType);
+        commit(source, builder);
+
+        final NodeStore target = createNodeStoreWithContent();
+        builder()
+                .include("/a", "/z")
+                .copy(source, target);
+
+        expectDifference()
+                .strict()
+                .verify(source.getRoot(), target.getRoot());
+    }
+
+    @Test
+    public void shouldCopyFromMultipleSources() throws CommitFailedException {
+        final NodeStore source1 = createNodeStoreWithContent(
+                "/content/foo/en", "/content/foo/de");
+        final NodeStore source2 = createNodeStoreWithContent(
+                "/content/bar/en", "/content/bar/de", "/content/baz/en");
+        final NodeStore target = createNodeStoreWithContent();
+
+        final NodeState before = target.getRoot();
+        builder()
+                .include("/content/foo")
+                .copy(source1, target);
+        builder()
+                .include("/content/bar")
+                .exclude("/content/bar/de")
+                .copy(source2, target);
+        final NodeState after = target.getRoot();
+
+        expectDifference()
+                .strict()
+                .childNodeAdded(
+                        "/content",
+                        "/content/foo",
+                        "/content/foo/en",
+                        "/content/foo/de",
+                        "/content/bar",
+                        "/content/bar/en"
+                )
+                .verify(before, after);
+    }
+
+    @Test
     public void shouldRespectMergePaths() throws CommitFailedException {
         final NodeStore source = createNodeStoreWithContent("/content/foo/en", "/content/bar/en");
         final NodeStore target = createNodeStoreWithContent("/content/foo/de");
 
-        final NodeBuilder builder = target.getRoot().builder();
-        NodeStateCopier.copyNodeState(source.getRoot(), builder, "/", of("/content"));
-        commit(target, builder);
+        builder()
+                .merge("/content")
+                .copy(source, target);
         final NodeState after = target.getRoot();
 
         expectDifference()
@@ -84,6 +166,23 @@ public class NodeStateCopierTest {
                 .verify(source.getRoot(), after);
     }
 
+    @Test
+    public void shouldNotDeleteMergedExcludedPaths() throws CommitFailedException {
+        final NodeStore source = createNodeStoreWithContent("/content/foo/en", "/jcr:system");
+        final NodeStore target = createNodeStoreWithContent("/jcr:system/jcr:versionStorage");
+
+        final NodeState before = target.getRoot();
+        builder()
+                .merge("/jcr:system")
+                .exclude("/jcr:system")
+                .copy(source, target);
+        final NodeState after = target.getRoot();
+
+        expectDifference()
+                .strict()
+                .childNodeAdded("/content", "/content/foo", "/content/foo/en")
+                .verify(before, after);
+    }
 
     @Test
     public void shouldDeleteExistingNodes() throws CommitFailedException {
@@ -91,9 +190,7 @@ public class NodeStateCopierTest {
         final NodeStore target = createNodeStoreWithContent("/content/bar");
 
         final NodeState before = target.getRoot();
-        final NodeBuilder builder = before.builder();
-        NodeStateCopier.copyNodeState(source.getRoot(), builder, "/", ImmutableSet.<String>of());
-        commit(target, builder);
+        builder().copy(source, target);
         final NodeState after = target.getRoot();
 
         expectDifference()
@@ -108,14 +205,12 @@ public class NodeStateCopierTest {
     public void shouldDeleteExistingPropertyIfMissingInSource() throws CommitFailedException {
         final NodeStore source = createNodeStoreWithContent("/a");
         final NodeStore target = createNodeStoreWithContent();
-        NodeBuilder builder = target.getRoot().builder();
+        final NodeBuilder builder = target.getRoot().builder();
         create(builder, "/a", primaryType);
         commit(target, builder);
 
         final NodeState before = target.getRoot();
-        builder = before.builder();
-        NodeStateCopier.copyNodeState(source.getRoot(), builder, "/", ImmutableSet.<String>of());
-        commit(target, builder);
+        builder().copy(source, target);
         final NodeState after = target.getRoot();
 
         expectDifference()
@@ -131,9 +226,9 @@ public class NodeStateCopierTest {
         final NodeStore target = createNodeStoreWithContent("/content/bar");
 
         final NodeState before = target.getRoot();
-        final NodeBuilder builder = before.builder();
-        NodeStateCopier.copyNodeState(source.getRoot(), builder, "/", of("/content/bar"));
-        commit(target, builder);
+        builder()
+                .merge("/content/bar")
+                .copy(source, target);
         final NodeState after = target.getRoot();
 
         expectDifference()
@@ -149,9 +244,9 @@ public class NodeStateCopierTest {
         final NodeStore target = createNodeStoreWithContent("/content/bar");
 
         final NodeState before = target.getRoot();
-        final NodeBuilder builder = before.builder();
-        NodeStateCopier.copyNodeState(source.getRoot(), builder, "/", of("/content"));
-        commit(target, builder);
+        builder()
+                .merge("/content")
+                .copy(source, target);
         final NodeState after = target.getRoot();
 
         expectDifference()
@@ -161,15 +256,16 @@ public class NodeStateCopierTest {
                 .verify(before, after);
     }
 
+
     @Test
     public void shouldIgnoreNonMatchingMergePaths() throws CommitFailedException {
         final NodeStore source = createNodeStoreWithContent("/content/foo");
         final NodeStore target = createNodeStoreWithContent("/content/bar");
 
         final NodeState before = target.getRoot();
-        final NodeBuilder builder = before.builder();
-        NodeStateCopier.copyNodeState(source.getRoot(), builder, "/", of("/con"));
-        commit(target, builder);
+        builder()
+                .merge("/con")
+                .copy(source, target);
         final NodeState after = target.getRoot();
 
         expectDifference()
