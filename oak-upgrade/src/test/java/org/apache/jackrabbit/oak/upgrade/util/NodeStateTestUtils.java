@@ -38,6 +38,8 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class NodeStateTestUtils {
 
@@ -66,12 +68,28 @@ public class NodeStateTestUtils {
         store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
+    public static NodeState getNodeState(NodeState state, String path) {
+        NodeState current = state;
+        for (final String name : PathUtils.elements(path)) {
+            current = current.getChildNode(name);
+        }
+        return current;
+    }
+
     public static NodeBuilder createOrGetBuilder(NodeBuilder builder, String path) {
         NodeBuilder current = builder;
         for (final String name : PathUtils.elements(path)) {
             current = current.child(name);
         }
         return current;
+    }
+
+    public static void assertExists(NodeState state, String relPath) {
+        assertTrue(relPath + " should exist", getNodeState(state, relPath).exists());
+    }
+
+    public static void assertMissing(NodeState state, String relPath) {
+        assertFalse(relPath + " should not exist", getNodeState(state, relPath).exists());
     }
 
     public static ExpectedDifference expectDifference() {
