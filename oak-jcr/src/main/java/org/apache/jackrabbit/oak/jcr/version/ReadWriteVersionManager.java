@@ -120,9 +120,8 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
                     versionable.getPath() + " is not versionable");
         }
         if (isCheckedOut(versionable)) {
-            versionable.setProperty(JCR_ISCHECKEDOUT,
-                    Boolean.FALSE, Type.BOOLEAN);
-            Tree baseVersion = getBaseVersion(versionable);
+            Tree baseVersion = getExistingBaseVersion(versionable);
+            versionable.setProperty(JCR_ISCHECKEDOUT, Boolean.FALSE, Type.BOOLEAN);
             PropertyState created = baseVersion.getProperty(JCR_CREATED);
             if (created != null) {
                 long c = ISO8601.parse(created.getValue(Type.DATE)).getTimeInMillis();
@@ -139,7 +138,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
                 throw e.asRepositoryException();
             }
         }
-        return getBaseVersion(getWorkspaceRoot().getTree(versionable.getPath()));
+        return getExistingBaseVersion(getWorkspaceRoot().getTree(versionable.getPath()));
     }
 
     /**
@@ -153,7 +152,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
      * @throws RepositoryException if an error occurs while checking the
      *                             node type of the tree.
      * @throws IllegalStateException if the workspaceRoot has pending changes.
-     * @throws IllegalArgumentException if the <code>versionablePath</code> is
+     * @throws IllegalArgumentException if the {@code versionablePath} is
      *                             not absolute.
      */
     public void checkout(@Nonnull Root workspaceRoot,
@@ -241,7 +240,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
                               @Nonnull String oakVersionName)
             throws RepositoryException {
         Tree versionHistory = TreeUtil.getTree(versionStorage.getTree(), versionHistoryOakRelPath);
-        if (!versionHistory.exists()) {
+        if (versionHistory == null || !versionHistory.exists()) {
             throw new VersionException("Version history " + versionHistoryOakRelPath + " does not exist on this version storage");
         }
         Tree version = versionHistory.getChild(oakVersionName);
@@ -260,4 +259,14 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
     }
 
     // TODO: more methods that modify versions
+
+    //------------------------------------------------------------< private >---
+    @Nonnull
+    private Tree getExistingBaseVersion(@Nonnull Tree versionableTree) throws RepositoryException {
+        Tree baseVersion = getBaseVersion(versionableTree);
+        if (baseVersion == null) {
+            throw new IllegalStateException("Base version does not exist.");
+        }
+        return baseVersion;
+    }
 }
