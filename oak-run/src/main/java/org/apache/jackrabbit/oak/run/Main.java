@@ -112,7 +112,7 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 
-public class Main {
+public final class Main {
 
     public static final int PORT = 8080;
     public static final String URI = "http://localhost:" + PORT + "/";
@@ -369,7 +369,7 @@ public class Main {
             failoverServer = new StandbyServer(
                     options.has(port)? options.valueOf(port) : defaultPort,
                     store,
-                    admissibleSlaves.toArray(new String[0]),
+                    admissibleSlaves.toArray(new String[admissibleSlaves.size()]),
                     options.has(secure) && options.valueOf(secure));
             failoverServer.startAndWait();
         } finally {
@@ -922,7 +922,7 @@ public class Main {
      */
     private static boolean isValidFileStore(String path) {
         File store = new File(path);
-        if (store == null || !store.isDirectory()) {
+        if (!store.isDirectory()) {
             return false;
         }
         // for now the only check is the existence of the journal file
