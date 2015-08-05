@@ -23,7 +23,6 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.PropertyDefinition;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
@@ -121,8 +120,13 @@ class CugImporter implements ProtectedPropertyImporter, CugConstants {
     }
 
     @Override
-    public void propertiesCompleted(@Nonnull Tree protectedParent) throws IllegalStateException, ConstraintViolationException, RepositoryException {
-        // nothing to do
+    public void propertiesCompleted(@Nonnull Tree protectedParent) throws IllegalStateException, RepositoryException {
+        if (CugUtil.definesCug(protectedParent) && !protectedParent.hasProperty(REP_PRINCIPAL_NAMES)) {
+            // remove the rep:cugPolicy node if mandatory property is missing
+            // (which may also happen upon an attempt to create a cug at an unsupported path).
+            log.debug("Removing incomplete rep:cugPolicy node (due to missing mandatory property or unsupported path).");
+            protectedParent.remove();
+        }
     }
 
     //--------------------------------------------------------------------------

@@ -40,7 +40,7 @@ class CugValidatorProvider extends ValidatorProvider implements CugConstants {
     @Override
     protected Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
         this.isMixCug = new TypePredicate(after, MIX_REP_CUG_MIXIN);
-        return new CugValidator(after);
+        return new CugValidator("", after);
     }
 
     private static CommitFailedException accessViolation(int code, String message) {
@@ -57,13 +57,26 @@ class CugValidatorProvider extends ValidatorProvider implements CugConstants {
     }
 
     private final class CugValidator extends DefaultValidator {
-        private final NodeState parentAfter;
 
-        private CugValidator(@Nonnull NodeState parentAfter) {
+        private final NodeState parentAfter;
+        private final String parentName;
+
+        private CugValidator(@Nonnull String parentName, @Nonnull NodeState parentAfter) {
             this.parentAfter = parentAfter;
+            this.parentName = parentName;
         }
 
         //------------------------------------------------------< Validator >---
+        @Override
+        public void propertyAdded(PropertyState after) throws CommitFailedException {
+            String name = after.getName();
+            if (JcrConstants.JCR_PRIMARYTYPE.equals(name)) {
+                if (NT_REP_CUG_POLICY.equals(after.getValue(Type.STRING)) && !REP_CUG_POLICY.equals(parentName)) {
+                    throw accessViolation(23, "Attempt create Cug node with different name than 'rep:cugPolicy'.");
+                }
+            }
+        }
+
         @Override
         public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
             String name = after.getName();
@@ -79,7 +92,7 @@ class CugValidatorProvider extends ValidatorProvider implements CugConstants {
             if (REP_CUG_POLICY.equals(name)) {
                 validateCugNode(parentAfter, after);
             }
-            return new VisibleValidator(new CugValidator(after), true, true);
+            return new VisibleValidator(new CugValidator(name, after), true, true);
         }
 
         @Override
@@ -87,7 +100,7 @@ class CugValidatorProvider extends ValidatorProvider implements CugConstants {
             if (after.hasChildNode(REP_CUG_POLICY)) {
                 validateCugNode(after, after.getChildNode(REP_CUG_POLICY));
             }
-            return new VisibleValidator(new CugValidator(after), true, true);
+            return new VisibleValidator(new CugValidator(name, after), true, true);
         }
     }
 }

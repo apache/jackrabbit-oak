@@ -48,6 +48,7 @@ all of type `AccessControl` with the following codes:
 | 0020              | Attempt to change primary type of/to cug policy          |
 | 0021              | Wrong primary type of 'rep:cugPolicy' node               |
 | 0022              | Access controlled not not of mixin 'rep:CugMixin'        |
+| 0023              | Wrong name of node with primary type 'rep:CugPolicy'     |
 
 ### Configuration
 
