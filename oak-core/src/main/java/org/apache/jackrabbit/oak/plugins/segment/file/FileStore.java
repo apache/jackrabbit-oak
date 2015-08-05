@@ -653,44 +653,49 @@ public class FileStore implements SegmentStore {
      * A new generation of a tar file is created (and segments are only
      * discarded) if doing so releases more than 25% of the space in a tar file.
      */
-    public synchronized void cleanup() throws IOException {
+    public void cleanup() throws IOException {
         Stopwatch watch = Stopwatch.createStarted();
         long initialSize = size();
-        gcMonitor.info("TarMK revision cleanup started. Current repository size {}",
-                humanReadableByteCount(initialSize));
-
-        newWriter();
-        tracker.clearCache();
-
-        // Suggest to the JVM that now would be a good time
-        // to clear stale weak references in the SegmentTracker
-        System.gc();
-
-        Set<UUID> ids = newHashSet();
-        for (SegmentId id : tracker.getReferencedSegmentIds()) {
-            ids.add(new UUID(
-                    id.getMostSignificantBits(),
-                    id.getLeastSignificantBits()));
-        }
-        writer.collectReferences(ids);
-
         CompactionMap cm = tracker.getCompactionMap();
-        List<TarReader> list = newArrayListWithCapacity(readers.size());
         Set<UUID> cleanedIds = newHashSet();
-        for (TarReader reader : readers) {
-            TarReader cleaned = reader.cleanup(ids, cm, cleanedIds);
-            if (cleaned == reader) {
-                list.add(reader);
-            } else {
-                if (cleaned != null) {
-                    list.add(cleaned);
-                }
-                File file = reader.close();
-                gcMonitor.info("TarMK revision cleanup reclaiming {}", file.getName());
-                toBeRemoved.addLast(file);
+
+        synchronized (this) {
+            gcMonitor.info("TarMK revision cleanup started. Current repository size {}",
+                    humanReadableByteCount(initialSize));
+
+            newWriter();
+            tracker.clearCache();
+
+            // Suggest to the JVM that now would be a good time
+            // to clear stale weak references in the SegmentTracker
+            System.gc();
+
+            Set<UUID> ids = newHashSet();
+            for (SegmentId id : tracker.getReferencedSegmentIds()) {
+                ids.add(new UUID(
+                        id.getMostSignificantBits(),
+                        id.getLeastSignificantBits()));
             }
+            writer.collectReferences(ids);
+
+            List<TarReader> list = newArrayListWithCapacity(readers.size());
+            for (TarReader reader : readers) {
+                TarReader cleaned = reader.cleanup(ids, cm, cleanedIds);
+                if (cleaned == reader) {
+                    list.add(reader);
+                } else {
+                    if (cleaned != null) {
+                        list.add(cleaned);
+                    }
+                    File file = reader.close();
+                    gcMonitor.info("TarMK revision cleanup reclaiming {}", file.getName());
+                    toBeRemoved.addLast(file);
+                }
+            }
+            readers = list;
         }
-        readers = list;
+
+        // Do this outside sync to avoid deadlock with SegmentId.getSegment(). See OAK-3179
         cm.remove(cleanedIds);
         long finalSize = size();
         gcMonitor.cleaned(initialSize - finalSize, finalSize);
