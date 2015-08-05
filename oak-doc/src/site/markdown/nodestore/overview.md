@@ -17,9 +17,10 @@
 
 # Node Storage
 
-Oak comes with two node storage flavours: [Segment](segmentmk.html) and [Document](documentmk.html). 
-Segment storage is optimised for maximal performance in standalone deployments,
-and document storage is optimised for maximal scalability in clustered deployments.
+Oak comes with two node storage flavours: [Segment](segment/overview.html) and
+[Document](documentmk.html). Segment storage is optimised for maximal
+performance in standalone deployments, and document storage is optimised for
+maximal scalability in clustered deployments.
 
 ## NodeStore API
 
