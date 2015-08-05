@@ -335,6 +335,7 @@ public class LuceneIndexEditorTest {
     }
 
     @Test
+    @Ignore("OAK-3072")
     public void copyOnWriteAndLocks() throws Exception {
         ExecutorService executorService = Executors.newFixedThreadPool(2);
         IndexCopier copier = new IndexCopier(executorService, temporaryFolder.getRoot());
