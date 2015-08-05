@@ -469,7 +469,9 @@ public class ImporterImpl implements Importer {
         // process properties
         importProperties(tree, propInfos, false);
 
-        parents.push(tree);
+        if (tree.exists()) {
+            parents.push(tree);
+        }
     }
 
 

@@ -26,7 +26,6 @@ import javax.jcr.security.AccessControlPolicyIterator;
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -77,14 +76,6 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
     protected SecurityProvider getSecurityProvider() {
         if (securityProvider == null) {
             securityProvider = new CugSecurityProvider(getSecurityConfigParameters());
-            AuthorizationConfiguration authorizationConfiguration = securityProvider.getConfiguration(AuthorizationConfiguration.class);
-            if (!(authorizationConfiguration instanceof CompositeAuthorizationConfiguration)) {
-                CompositeAuthorizationConfiguration composite = new CompositeAuthorizationConfiguration(securityProvider);
-                composite.setDefaultConfig(authorizationConfiguration);
-                composite.addConfiguration(new CugConfiguration(securityProvider));
-                composite.addConfiguration(authorizationConfiguration);
-                ((CugSecurityProvider) securityProvider).bindAuthorizationConfiguration(composite);
-            }
         }
         return securityProvider;
     }
@@ -108,16 +99,5 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
             }
         }
         throw new IllegalStateException("Unable to create CUG at " + absPath);
-    }
-
-    final class CugSecurityProvider extends SecurityProviderImpl {
-        public CugSecurityProvider(@Nonnull ConfigurationParameters configuration) {
-            super(configuration);
-        }
-
-        @Override
-        protected void bindAuthorizationConfiguration(@Nonnull AuthorizationConfiguration reference) {
-            super.bindAuthorizationConfiguration(reference);
-        }
     }
 }
