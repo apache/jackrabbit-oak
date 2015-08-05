@@ -324,7 +324,7 @@ public class Main {
             failoverServer = new StandbyServer(
                     options.has(port)? options.valueOf(port) : defaultPort,
                     store,
-                    admissibleSlaves.toArray(new String[0]),
+                    admissibleSlaves.toArray(new String[admissibleSlaves.size()]),
                     options.has(secure) && options.valueOf(secure));
             failoverServer.startAndWait();
         } finally {
@@ -646,7 +646,7 @@ public class Main {
      */
     private static boolean isValidFileStore(String path) {
         File store = new File(path);
-        if (store == null || !store.isDirectory()) {
+        if (!store.isDirectory()) {
             return false;
         }
         // for now the only check is the existence of the journal file
