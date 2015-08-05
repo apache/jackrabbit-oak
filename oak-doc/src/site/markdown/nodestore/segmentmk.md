@@ -18,6 +18,8 @@
 Segment Storage Design Overview
 =========================
 
+TODO: merge with [Records and segments](segment/records.html).
+
 The SegmentNodeStore is an Oak storage backend that stores content as various
 types of *records* within larger *segments*. One or more *journals* are
 used to track the latest state of the repository. In the Tar implementation
