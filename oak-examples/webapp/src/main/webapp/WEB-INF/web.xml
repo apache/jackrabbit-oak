@@ -34,7 +34,7 @@
 
         <init-param>
             <param-name>bootstrap-config</param-name>
-            <param-value>jackrabbit/bootstrap.properties</param-value>
+            <param-value>oak/bootstrap.properties</param-value>
             <description>
                 Property file that hold the same initialization properties than
                 the init-params below. If a parameter is specified in both
@@ -125,7 +125,7 @@
 
         <init-param>
             <param-name>bootstrap-config</param-name>
-            <param-value>jackrabbit/bootstrap.properties</param-value>
+            <param-value>oak/bootstrap.properties</param-value>
             <description>
                 Property file that hold the same initialization properties than
                 the init-params below. If a parameter is specified in both
