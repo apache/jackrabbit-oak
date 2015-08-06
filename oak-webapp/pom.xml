@@ -25,17 +25,17 @@
 <!-- ====================================================================== -->
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
-    <artifactId>jackrabbit-parent</artifactId>
-    <version>2.10.3-SNAPSHOT</version>
-    <relativePath>../jackrabbit-parent/pom.xml</relativePath>
+    <artifactId>oak-parent</artifactId>
+    <version>1.4-SNAPSHOT</version>
   </parent>
-  <artifactId>jackrabbit-webapp</artifactId>
+  <artifactId>oak-webapp</artifactId>
   <packaging>war</packaging>
-  <name>Jackrabbit Web Application</name>
-  <description>Web application that hosts and serves a Jackrabbit content repository</description>
+  <name>Oak Web Application</name>
+  <description>Web application that hosts and serves a Jackrabbit Oak content repository</description>
 
   <properties>
-    <oak.version>1.0.12</oak.version>
+    <oak.version>1.4-SNAPSHOT</oak.version>
+    <jackrabbit.version>2.10.1</jackrabbit.version>
     <tomcat.version>7.0.40</tomcat.version>
   </properties>
 
@@ -43,11 +43,6 @@
     <dependency>
       <groupId>javax.jcr</groupId>
       <artifactId>jcr</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>jackrabbit-core</artifactId>
-      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.tika</groupId>
@@ -66,17 +61,17 @@
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>jackrabbit-jcr-server</artifactId>
-      <version>${project.version}</version>
+      <version>${jackrabbit.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>jackrabbit-jcr-servlet</artifactId>
-      <version>${project.version}</version>
+      <version>${jackrabbit.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>jackrabbit-jcr-rmi</artifactId>
-      <version>${project.version}</version>
+      <version>${jackrabbit.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
@@ -85,7 +80,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-upgrade</artifactId>
+      <artifactId>oak-lucene</artifactId>
       <version>${oak.version}</version>
     </dependency>
     <dependency>
