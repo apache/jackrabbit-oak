@@ -37,16 +37,20 @@
     <oak.version>1.4-SNAPSHOT</oak.version>
     <jackrabbit.version>2.10.1</jackrabbit.version>
     <tomcat.version>7.0.40</tomcat.version>
+    <tika.version>1.7</tika.version>
+    <jetty.version>6.1.22</jetty.version>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>javax.jcr</groupId>
       <artifactId>jcr</artifactId>
+      <version>2.0</version>
     </dependency>
     <dependency>
       <groupId>org.apache.tika</groupId>
       <artifactId>tika-parsers</artifactId>
+      <version>${tika.version}</version>
       <exclusions>
         <exclusion>
           <groupId>commons-logging</groupId>
@@ -179,6 +183,7 @@
         <!-- add the jar created by maven-antrun-plugin in our artifacts -->
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
+        <version>1.9</version>
         <executions>
           <execution>
             <id>attach-artifacts</id>
