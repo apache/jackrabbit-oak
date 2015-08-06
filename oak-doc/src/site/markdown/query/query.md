@@ -282,7 +282,8 @@ Optionally you can specify:
 * `entryCount` (Long): the estimated number of path entries in the index, 
   to override the cost estimation (a high entry count means a high cost).
 * `keyCount` (Long), the estimated number of keys in the index,
-  to override the cost estimation (a high key count means a lower cost,
+  to override the cost estimation (a high key count means a lower cost and
+  a low key count means a high cost
   when searching for specific keys; has no effect when searching for "is not null").
 * `reindex` (Boolean): if set to `true`, the full content is re-indexed.
   This can take a long time, and is run synchronously with storing the index
