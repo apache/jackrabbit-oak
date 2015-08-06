@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.benchmark.wikipedia.WikipediaImport;
 import org.apache.jackrabbit.oak.fixture.JackrabbitRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
+import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 
 public class BenchmarkRunner {
 
@@ -95,6 +96,10 @@ public class BenchmarkRunner {
                         .withOptionalArg().ofType(Integer.class).defaultsTo(LoginWithMembershipTest.NUMBER_OF_GROUPS_DEFAULT);
         OptionSpec<Boolean> nestedGroups = parser.accepts("nestedGroups", "Use nested groups.")
                         .withOptionalArg().ofType(Boolean.class).defaultsTo(false);
+        OptionSpec<Integer> batchSize = parser.accepts("batchSize", "Batch size before persisting operations.")
+                .withOptionalArg().ofType(Integer.class).defaultsTo(ManyGroupMembersTest.DEFAULT_BATCH_SIZE);
+        OptionSpec<String> importBehavior = parser.accepts("importBehavior", "Protected Item Import Behavior")
+                                .withOptionalArg().ofType(String.class).defaultsTo(ImportBehavior.NAME_BESTEFFORT);
         OptionSpec<Integer> itemsToRead = parser.accepts("itemsToRead", "Number of items to read")
                 .withRequiredArg().ofType(Integer.class).defaultsTo(1000);
         OptionSpec<Integer> concurrency = parser.accepts("concurrency", "Number of test threads.")
@@ -289,6 +294,10 @@ public class BenchmarkRunner {
             new GetGroupPrincipalsTest(
                     numberOfGroups.value(options),
                     nestedGroups.value(options)),
+            new ManyGroupMembersTest(
+                    numberOfUsers.value(options),
+                    batchSize.value(options),
+                    importBehavior.value(options)),
             new FullTextSearchTest(
                     wikipedia.value(options),
                     flatStructure.value(options),
