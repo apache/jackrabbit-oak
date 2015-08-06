@@ -26,6 +26,7 @@ import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.union;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONSTORAGE;
 import static org.apache.jackrabbit.oak.plugins.name.Namespaces.addCustomMapping;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_ALL;
@@ -35,6 +36,7 @@ import static org.apache.jackrabbit.oak.upgrade.nodestate.FilteringNodeState.NON
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -110,6 +112,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier;
 import org.apache.jackrabbit.oak.upgrade.security.GroupEditorProvider;
 import org.apache.jackrabbit.oak.upgrade.security.RestrictionEditorProvider;
+import org.apache.jackrabbit.oak.upgrade.version.VersionCopier;
+import org.apache.jackrabbit.oak.upgrade.version.VersionCopyConfiguration;
+import org.apache.jackrabbit.oak.upgrade.version.VersionableEditor;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.QNodeDefinition;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
@@ -167,6 +172,8 @@ public class RepositoryUpgrade {
     private boolean earlyShutdown = false;
 
     private List<CommitHook> customCommitHooks = null;
+
+    private VersionCopyConfiguration versionCopyConfiguration = new VersionCopyConfiguration();
 
     /**
      * Copies the contents of the repository in the given source directory
@@ -288,6 +295,41 @@ public class RepositoryUpgrade {
     }
 
     /**
+     * Configures the version storage copy. Be default all versions are copied.
+     * One may disable it completely by setting {@code null} here or limit it to
+     * a selected date range: {@code <minDate, now()>}.
+     * 
+     * @param minDate
+     *            minimum date of the versions to copy or {@code null} to
+     *            disable the storage version copying completely. Default value:
+     *            {@code 1970-01-01 00:00:00}.
+     */
+    public void setCopyVersions(Calendar minDate) {
+        versionCopyConfiguration.setCopyVersions(minDate);
+    }
+
+    /**
+     * Configures copying of the orphaned version histories (eg. ones that are
+     * not referenced by the existing nodes). By default all orphaned version
+     * histories are copied. One may disable it completely by setting
+     * {@code null} here or limit it to a selected date range:
+     * {@code <minDate, now()>}. <br/>
+     * <br/>
+     * Please notice, that this option is overriden by the
+     * {@link #setCopyVersions(Calendar)}. You can't copy orphaned versions
+     * older than set in {@link #setCopyVersions(Calendar)} and if you set
+     * {@code null} there, this option will be ignored.
+     * 
+     * @param minDate
+     *            minimum date of the orphaned versions to copy or {@code null}
+     *            to not copy them at all. Default value:
+     *            {@code 1970-01-01 00:00:00}.
+     */
+    public void setCopyOrphanedVersions(Calendar minDate) {
+        versionCopyConfiguration.setCopyOrphanedVersions(minDate);
+    }
+
+    /**
      * Copies the full content from the source to the target repository.
      * <p>
      * The source repository <strong>must not be modified</strong> while
@@ -364,11 +406,10 @@ public class RepositoryUpgrade {
             new TypeEditorProvider(false).getRootEditor(
                     base, builder.getNodeState(), builder, null);
 
-            Map<String, String> versionablePaths = newHashMap();
             NodeState root = builder.getNodeState();
 
             final NodeState sourceState = JackrabbitNodeState.createRootNodeState(
-                    source, workspaceName, root, uriToPrefix, versionablePaths, copyBinariesByReference, skipOnError);
+                    source, workspaceName, root, uriToPrefix, copyBinariesByReference, skipOnError);
 
             final Stopwatch watch = Stopwatch.createStarted();
 
@@ -377,10 +418,15 @@ public class RepositoryUpgrade {
             builder.getNodeState(); // on TarMK this does call triggers the actual copy
             logger.info("Upgrading workspace content completed in {}s ({})", watch.elapsed(TimeUnit.SECONDS), watch);
 
-            watch.reset().start();
-            logger.info("Copying version store content");
-            copyVersionStore(sourceState, builder);
-            logger.debug("Upgrading version store content completed in {}s ({}).", watch.elapsed(TimeUnit.SECONDS), watch);
+            if (!versionCopyConfiguration.skipOrphanedVersionsCopy()) {
+                logger.info("Copying version storage");
+                watch.reset().start();
+                copyVersionStorage(sourceState, builder);
+                builder.getNodeState(); // on TarMK this does call triggers the actual copy
+                logger.info("Version storage copied in {}s ({})", watch.elapsed(TimeUnit.SECONDS), watch);
+            } else {
+                logger.info("Skipping the version storage as the copyOrphanedVersions is set to false");
+            }
 
             watch.reset().start();
             logger.info("Applying default commit hooks");
@@ -396,7 +442,9 @@ public class RepositoryUpgrade {
             // hooks specific to the upgrade, need to run first
             hooks.add(new EditorHook(new CompositeEditorProvider(
                     new RestrictionEditorProvider(),
-                    new GroupEditorProvider(groupsPath)
+                    new GroupEditorProvider(groupsPath),
+                    // copy referenced version histories
+                    new VersionableEditor.Provider(sourceState, workspaceName, versionCopyConfiguration)
             )));
 
             // security-related hooks
@@ -768,10 +816,10 @@ public class RepositoryUpgrade {
         return tmpl;
     }
 
-    private void copyWorkspace(NodeState sourceState, NodeBuilder builder, String workspaceName)
+    private String copyWorkspace(NodeState sourceState, NodeBuilder builder, String workspaceName)
             throws RepositoryException {
         final Set<String> includes = calculateEffectiveIncludePaths(sourceState);
-        final Set<String> excludes = union(copyOf(this.excludePaths), of("/jcr:system/jcr:versionStorage", "/jcr:system/jcr:activities"));
+        final Set<String> excludes = union(copyOf(this.excludePaths), of("/jcr:system/jcr:versionStorage"));
         final Set<String> merges = union(copyOf(this.mergePaths), of("/jcr:system"));
 
         logger.info("Copying workspace {} [i: {}, e: {}, m: {}]", workspaceName, includes, excludes, merges);
@@ -781,14 +829,22 @@ public class RepositoryUpgrade {
                 .exclude(excludes)
                 .merge(merges)
                 .copy(sourceState, builder);
+
+        return workspaceName;
     }
 
-    private void copyVersionStore(NodeState sourceState, NodeBuilder builder)
+    private void copyVersionStorage(NodeState sourceState, NodeBuilder builder)
             throws RepositoryException {
-        NodeStateCopier.builder()
-                .include("/jcr:system/jcr:versionStorage", "/jcr:system/jcr:activities")
-                .merge("/jcr:system")
-                .copy(sourceState, builder);
+        final NodeState versionStorage = sourceState.getChildNode(JCR_SYSTEM).getChildNode(JCR_VERSIONSTORAGE);
+        final Iterator<NodeState> versionStorageIterator = new DescendantsIterator(versionStorage, 3);
+        final VersionCopier versionCopier = new VersionCopier(sourceState, builder);
+
+        while (versionStorageIterator.hasNext()) {
+            final NodeState versionHistoryBucket = versionStorageIterator.next();
+            for (String versionHistory : versionHistoryBucket.getChildNodeNames()) {
+                versionCopier.copyVersionHistory(versionHistory, versionCopyConfiguration.getOrphanedMinDate());
+            }
+        }
     }
 
     private Set<String> calculateEffectiveIncludePaths(NodeState state) {

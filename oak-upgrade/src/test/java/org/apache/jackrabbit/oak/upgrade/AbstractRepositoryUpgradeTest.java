@@ -47,7 +47,7 @@ import static org.junit.Assert.assertTrue;
 
 public abstract class AbstractRepositoryUpgradeTest {
 
-    protected static final Credentials CREDENTIALS = new SimpleCredentials("admin", "admin".toCharArray());
+    public static final Credentials CREDENTIALS = new SimpleCredentials("admin", "admin".toCharArray());
 
     private static NodeStore targetNodeStore;
 
