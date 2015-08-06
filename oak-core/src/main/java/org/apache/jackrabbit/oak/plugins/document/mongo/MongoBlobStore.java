@@ -205,7 +205,7 @@ public class MongoBlobStore extends CachingBlobStore {
     }
 
     @Override
-    public boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
+    public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
         DBCollection collection = getBlobCollection();
         QueryBuilder queryBuilder = new QueryBuilder();
         if (chunkIds != null) {
@@ -217,11 +217,7 @@ public class MongoBlobStore extends CachingBlobStore {
         }
 
         WriteResult result = collection.remove(queryBuilder.get());
-        if (result.getN() == chunkIds.size()) {
-            return true;
-        }
-
-        return false;
+        return result.getN();
     }
 
     @Override

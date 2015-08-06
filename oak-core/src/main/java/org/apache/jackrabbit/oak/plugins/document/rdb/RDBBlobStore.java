@@ -605,12 +605,12 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
     }
 
     @Override
-    public boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
-
+    public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
+        long count = 0;
         // sanity check
         if (chunkIds.isEmpty()) {
             // sanity check, nothing to do
-            return true;
+            return count;
         }
 
         Connection con = this.ch.getRWConnection();
@@ -645,7 +645,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                 prepData.setString(idx + 1, chunkIds.get(idx));
             }
 
-            prepMeta.execute();
+            count = prepMeta.executeUpdate();
             prepData.execute();
             prepMeta.close();
             prepMeta = null;
@@ -658,7 +658,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
             this.ch.closeConnection(con);
         }
 
-        return true;
+        return count;
     }
 
     @Override

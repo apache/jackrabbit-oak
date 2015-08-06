@@ -161,6 +161,11 @@ public class BlobCache implements BlobStore, GarbageCollectableBlobStore, Genera
     }
 
     @Override
+    public long countDeleteChunks(List<String> arg0, long arg1) throws Exception {
+        return base.countDeleteChunks(arg0, arg1);
+    }
+    
+    @Override
     public Iterator<String> getAllChunkIds(long arg0) throws Exception {
         return base.getAllChunkIds(arg0);
     }

@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.WeakHashMap;
@@ -573,6 +574,11 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
     @Override
     public Iterator<String> resolveChunks(String blobId) throws IOException {
         return new ChunkIterator(blobId);
+    }
+
+    @Override
+    public boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
+        return (chunkIds.size() == countDeleteChunks(chunkIds, maxLastModifiedTime));
     }
     
     /**
