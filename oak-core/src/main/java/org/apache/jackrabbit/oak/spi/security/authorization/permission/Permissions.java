@@ -362,7 +362,8 @@ public final class Permissions {
      * @throws IllegalArgumentException If the string contains unknown actions
      * or permission names.
      */
-    public static long getPermissions(String jcrActions, TreeLocation location,
+    public static long getPermissions(@Nonnull String jcrActions,
+                                      @Nonnull TreeLocation location,
                                       boolean isAccessControlContent) {
         Set<String> actions = Sets.newHashSet(Text.explode(jcrActions, ',', false));
         long permissions = NO_PERMISSION;
