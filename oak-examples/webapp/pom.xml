@@ -27,10 +27,11 @@
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
     <version>1.4-SNAPSHOT</version>
+    <relativePath>../../oak-parent/pom.xml</relativePath>
   </parent>
   <artifactId>oak-webapp</artifactId>
   <packaging>war</packaging>
-  <name>Oak Web Application</name>
+  <name>Oak Web Application Example</name>
   <description>Web application that hosts and serves a Jackrabbit Oak content repository</description>
 
   <properties>
@@ -38,7 +39,6 @@
     <jackrabbit.version>2.10.1</jackrabbit.version>
     <tomcat.version>7.0.40</tomcat.version>
     <tika.version>1.7</tika.version>
-    <jetty.version>6.1.22</jetty.version>
   </properties>
 
   <dependencies>
@@ -46,6 +46,11 @@
       <groupId>javax.jcr</groupId>
       <artifactId>jcr</artifactId>
       <version>2.0</version>
+    </dependency>
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>2.4</version>
     </dependency>
     <dependency>
       <groupId>org.apache.tika</groupId>
@@ -80,6 +85,11 @@
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-jcr</artifactId>
+      <version>${oak.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-pojosr</artifactId>
       <version>${oak.version}</version>
     </dependency>
     <dependency>
@@ -149,9 +159,9 @@
   <build>
     <plugins>
       <plugin>
-         <groupId>org.mortbay.jetty</groupId>
-         <artifactId>maven-jetty-plugin</artifactId>
-         <version>${jetty.version}</version>
+         <groupId>org.eclipse.jetty</groupId>
+         <artifactId>jetty-maven-plugin</artifactId>
+         <version>9.2.8.v20150217</version>
          <configuration>
            <scanIntervalSeconds>10</scanIntervalSeconds>
            <connectors>
@@ -210,6 +220,47 @@
             <exclude>src/main/webapp/WEB-INF/log4j.dtd</exclude>
           </excludes>
         </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-clean-plugin</artifactId>
+        <version>2.5</version>
+        <configuration>
+          <filesets>
+            <fileset>
+              <directory>${basedir}</directory>
+              <includes>
+                <include>oak</include>
+              </includes>
+            </fileset>
+          </filesets>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <java.util.logging.config.file>
+              src/test/resources/logging.properties
+            </java.util.logging.config.file>
+          </systemPropertyVariables>
+        </configuration>
+        <executions>
+          <execution>
+            <id>failsafe-integration-tests</id>
+            <phase>integration-test</phase>
+            <goals>
+              <goal>integration-test</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>failsafe-verify</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>verify</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
