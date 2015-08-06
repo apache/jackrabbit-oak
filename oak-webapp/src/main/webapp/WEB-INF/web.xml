@@ -20,14 +20,6 @@
 <web-app>
     <display-name>Jackrabbit JCR Server</display-name>
 
-    <listener>
-        <!-- Releases all Derby resources when the webapp is undeployed.  -->
-        <!-- See https://issues.apache.org/jira/browse/JCR-1301           -->
-        <listener-class>
-            org.apache.jackrabbit.j2ee.DerbyShutdown
-        </listener-class>
-    </listener>
-
     <!-- ====================================================================== -->
     <!-- R E P O S I T O R Y   S T A R T U P  S E R V L E T                     -->
     <!-- ====================================================================== -->
