@@ -491,20 +491,25 @@ public class Utils {
     /**
      * Returns an {@link Iterable} over all {@link NodeDocument}s in the given
      * store matching a condition on an <em>indexed property</em>. The returned
-     * {@linkplain Iterable} does not guarantee a consistent view on the store.
+     * {@link Iterable} does not guarantee a consistent view on the store.
      * it may return documents that have been added to the store after this
      * method had been called.
      *
      * @param store
      *            a {@link DocumentStore}.
+     * @param indexedProperty the name of the indexed property.
+     * @param startValue the lower bound value for the indexed property
+     *                   (inclusive).
      * @return an {@link Iterable} over all documents in the store matching the
      *         condition
      */
-    public static Iterable<NodeDocument> getSelectedDocuments(final DocumentStore store, String indexedProperty, long startValue) {
+    public static Iterable<NodeDocument> getSelectedDocuments(
+            DocumentStore store, String indexedProperty, long startValue) {
         return internalGetSelectedDocuments(store, indexedProperty, startValue);
     }
 
-    private static Iterable<NodeDocument> internalGetSelectedDocuments(final DocumentStore store, final String indexedProperty,
+    private static Iterable<NodeDocument> internalGetSelectedDocuments(
+            final DocumentStore store, final String indexedProperty,
             final long startValue) {
         return new Iterable<NodeDocument>() {
             @Override
