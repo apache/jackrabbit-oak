@@ -95,7 +95,7 @@ public class Installer {
      * todo: to be configured
      */
     private final String configTemplate =
-        "/org/apache/jackrabbit/core/repository.xml";
+            "/WEB-INF/templates/repository-config.json";
 
     /**
      * the place for the bootstrap properties template
@@ -125,62 +125,43 @@ public class Installer {
     public int installRepository(HttpServletRequest req)
             throws ServletException, IOException {
         String repHome = req.getParameter("repository_home");
-        String repType = req.getParameter("repository_type");
-        String repXml = req.getParameter("repository_xml");
         String mode = req.getParameter("mode");
 
         if (repHome == null || mode == null) {
             return C_INVALID_INPUT;
         }
         File home = new File(repHome);
-
-        File config;
-        if ("oak".equals(repType)) {
-            config = null;
-            repXml = null;
-        } else if (repXml == null || repXml.length() == 0) {
-            config = new File(home, "repository.xml");
-            repXml = config.getPath();
-        } else {
-            config = new File(repXml);
-        }
+        File config = new File(home, "repository-config.json");
 
         if ("new".equals(mode)) {
             // Test internal folder repository existence and not home because home is already created
             // by org.apache.jackrabbit.server.remoting.davex.JcrRemotingServlet
-            if (new File(home, "repository").exists()) {
-                log.error("Trying to install new repository home '{}' but it already contain a repository", repHome);
-                return C_HOME_EXISTS;
-            }
-            if (config != null && config.exists()) {
-                log.error("Trying to install new repository config '{}' but already exists", repXml);
+            if (config.exists()) {
+                log.error("Trying to install new repository config '{}' but already exists", config);
                 return C_CONFIG_EXISTS;
             }
             log.info("Creating new repository home '{}'", repHome);
             home.mkdirs();
 
-            if (config != null) {
-                // install repository xml for Jackrabbit Classic
-                try {
-                    installRepositoryConfig(config);
-                } catch (IOException e) {
-                    log.error("Error while installing new repository config '{}': {}", repXml, e.toString());
-                    return C_BOOTSTRAP_EXISTS;
-                }
+            try {
+                installRepositoryConfig(config);
+            } catch (IOException e) {
+                log.error("Error while installing new repository config '{}': {}", config, e.toString());
+                return C_BOOTSTRAP_EXISTS;
             }
         } else {
             if (!home.exists()) {
                 log.error("Trying to use existing repository home '{}' but does not exists", repHome);
                 return C_HOME_MISSING;
             }
-            if (config != null && !config.exists()) {
-                log.error("Trying to use existing repository config '{}' but does not exists", repXml);
+            if (!config.exists()) {
+                log.error("Trying to use existing repository config '{}' but does not exists", config);
                 return C_CONFIG_MISSING;
             }
         }
         // install bootstrap.properties
         try {
-            installBootstrap(bootstrapConfigFile, repHome, repXml);
+            installBootstrap(bootstrapConfigFile, repHome);
         } catch (IOException e) {
             log.error("Error while installing '{}': {}", bootstrapConfigFile.getPath(), e.toString());
             return C_INSTALL_ERROR;
@@ -213,19 +194,15 @@ public class Installer {
      * Installs the bootstrap config file from the template
      * @param dest the destination location
      * @param repHome the repository home location
-     * @param repXml the repository xml location
      * @throws IOException if an I/O error occurs
      */
-    private void installBootstrap(File dest, String repHome, String repXml)
+    private void installBootstrap(File dest, String repHome)
             throws IOException {
         log.info("Creating new bootstrap properties: {}", dest.getPath());
         InputStream in = context.getResourceAsStream(bootstrapTemplate);
         Properties props = new Properties();
         props.load(in);
         props.setProperty("repository.home", repHome);
-        if (repXml != null) {
-            props.setProperty("repository.config", repXml);
-        }
         in.close();
         if (!dest.getParentFile().exists()) {
             dest.getParentFile().mkdirs();

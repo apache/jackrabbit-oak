@@ -16,26 +16,24 @@
  */
 package org.apache.jackrabbit.j2ee;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.api.JackrabbitRepository;
+import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.repository.RepositoryFactory;
-import org.apache.jackrabbit.core.RepositoryImpl;
-import org.apache.jackrabbit.core.config.RepositoryConfig;
-import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory;
 import org.apache.jackrabbit.rmi.server.RemoteAdapterFactory;
 import org.apache.jackrabbit.rmi.server.ServerAdapterFactory;
 import org.apache.jackrabbit.servlet.AbstractRepositoryServlet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xml.sax.InputSource;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.UnknownHostException;
@@ -48,6 +46,8 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.RMIServerSocketFactory;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 import javax.jcr.Repository;
@@ -170,11 +170,6 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
      * Ugly hack to override the bootstrap file location in the test cases
      */
     static String bootstrapOverride = null;
-
-    /**
-     * the TarMK segment store
-     */
-    private SegmentStore store;
 
     /**
      * the registered repository
@@ -410,33 +405,29 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
                     "Repository configuration failure: " + config.getRepositoryHome(), e);
         }
         String repConfig = config.getRepositoryConfig();
-        if (repConfig != null) { // Jackrabbit Classic
-            InputStream in = getServletContext().getResourceAsStream(repConfig);
-            if (in == null) {
+        if (repConfig != null) {
+            File configJson = new File(repHome, repConfig);
+            if (!configJson.exists()){
+                InputStream in = getServletContext().getResourceAsStream(repConfig);
+                if (in == null){
+                    throw new ServletException("No config file found in classpath " + repConfig);
+                }
+                OutputStream os = null;
                 try {
-                    in = new FileInputStream(new File(repConfig));
-                } catch (FileNotFoundException e) {
-                    // fallback to old config
-                    try {
-                        in = new FileInputStream(new File(repHome, repConfig));
-                    } catch (FileNotFoundException e1) {
-                        throw new ServletExceptionWithCause(
-                                "Repository configuration not found: " + repConfig, e);
-                    }
+                    os = FileUtils.openOutputStream(configJson);
+                    IOUtils.copy(in, os);
+                } catch (IOException e1) {
+                    throw new ServletExceptionWithCause(
+                            "Error copying the repository config json", e1);
+                } finally {
+                    IOUtils.closeQuietly(os);
+                    IOUtils.closeQuietly(in);
                 }
             }
 
             try {
-                repository = createRepository(new InputSource(in), repHome);
+                repository = createRepository(configJson, repHome);
             } catch (RepositoryException e) {
-                throw new ServletExceptionWithCause("Error while creating repository", e);
-            }
-        } else { // Jackrabbit Oak
-            try {
-                String model = System.getProperty("sun.arch.data.model", "32");
-                store = new FileStore(repHome, 256, "64".equals(model));
-                repository = new Jcr(new SegmentNodeStore(store)).createRepository();
-            } catch (IOException e) {
                 throw new ServletExceptionWithCause("Error while creating repository", e);
             }
         }
@@ -449,10 +440,7 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
      * <code>nulled</code>.
      */
     private void shutdownRepository() {
-        if (store != null) {
-            store.close();
-            store = null;
-        } else if (repository instanceof JackrabbitRepository) {
+        if (repository instanceof JackrabbitRepository) {
             ((JackrabbitRepository) repository).shutdown();
         }
         repository = null;
@@ -468,10 +456,15 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
      * @return a new jcr repository.
      * @throws RepositoryException if an error during creation occurs.
      */
-    protected Repository createRepository(InputSource is, File homedir)
+    protected Repository createRepository(File configJson, File homedir)
             throws RepositoryException {
-        RepositoryConfig config = RepositoryConfig.create(is, homedir.getAbsolutePath());
-        return RepositoryImpl.create(config);
+        Map<String,String> config = new HashMap<String, String>();
+        config.put("org.apache.jackrabbit.repository.home", homedir.getAbsolutePath());
+        config.put("org.apache.jackrabbit.oak.repository.configFile", configJson.getAbsolutePath());
+        //TODO oak-jcr also provides a dummy RepositoryFactory. Hence this
+        //cannot be used
+        //return JcrUtils.getRepository(config);
+        return new OakOSGiRepositoryFactory().getRepository(config);
     }
 
     /**

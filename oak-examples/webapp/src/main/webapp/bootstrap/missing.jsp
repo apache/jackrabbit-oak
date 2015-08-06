@@ -37,16 +37,7 @@ request.setAttribute("title", "Content Repository Setup");
   <p>
     <label>
       Repository home directory:
-      <input size="40" type="text" name="repository_home" value="jackrabbit">
-    </label>
-  </p>
-  <p>
-    Repository type:
-    <label>
-      <input type="radio" name="repository_type" value="classic" checked> Classic
-    </label>
-    <label>
-      <input type="radio" name="repository_type" value="oak"> Oak
+      <input size="40" type="text" name="repository_home" value="oak">
     </label>
   </p>
   <p><input type="submit" value="Create Content Repository"></p>
@@ -58,7 +49,7 @@ request.setAttribute("title", "Content Repository Setup");
   <p>
     Use this form to access an existing content repository in the given
     directory. The repository configuration file should be available as
-    <code>repository.xml</code> within the given directory.
+    <code>repository-config.json</code> within the given directory.
   </p>
   <p>
     Note that the repository can not be concurrently accessed by multiple
@@ -70,7 +61,7 @@ request.setAttribute("title", "Content Repository Setup");
   <p>
     <label>
       Repository home directory:
-      <input size="40" type="text" name="repository_home" value="jackrabbit">
+      <input size="40" type="text" name="repository_home" value="oak">
     </label>
   </p>
   <p><input type="submit" value="Access Content Repository"></p>
