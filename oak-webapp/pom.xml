@@ -166,7 +166,7 @@
             <phase>package</phase>
             <configuration>
               <target>
-                <jar basedir="${project.build.outputDirectory}" destfile="${project.build.directory}/jackrabbit-webapp-${project.version}.jar" />
+                <jar basedir="${project.build.outputDirectory}" destfile="${project.build.directory}/oak-webapp-${project.version}.jar" />
               </target>
             </configuration>
             <goals>
@@ -189,7 +189,7 @@
             <configuration>
                 <artifacts>
                   <artifact>
-                    <file>${project.build.directory}/jackrabbit-webapp-${project.version}.jar</file>
+                    <file>${project.build.directory}/oak-webapp-${project.version}.jar</file>
                     <type>jar</type>
                   </artifact>
                 </artifacts>
@@ -207,21 +207,6 @@
         </configuration>
       </plugin>
     </plugins>
-    <pluginManagement>
-      <plugins>
-        <plugin>
-          <artifactId>maven-failsafe-plugin</artifactId>
-          <configuration>
-            <systemPropertyVariables>
-              <derby.stream.error.file>target/derby.log</derby.stream.error.file>
-            </systemPropertyVariables>
-            <excludes>
-                <exclude>**/BackwardsCompatibilityIT.java</exclude> <!-- JCR-3640 -->
-            </excludes>
-          </configuration>
-        </plugin>
-      </plugins>
-    </pluginManagement>
   </build>
 
 </project>
