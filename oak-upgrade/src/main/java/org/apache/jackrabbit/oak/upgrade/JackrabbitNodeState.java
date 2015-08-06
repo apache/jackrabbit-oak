@@ -32,7 +32,6 @@ import static org.apache.jackrabbit.JcrConstants.JCR_FROZENUUID;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
-import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONHISTORY;
 import static org.apache.jackrabbit.JcrConstants.MIX_REFERENCEABLE;
 import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
@@ -46,7 +45,6 @@ import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants.OAK_CHILD_ORDER;
-import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.MIX_REP_VERSIONABLE_PATHS;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -139,8 +137,6 @@ class JackrabbitNodeState extends AbstractNodeState {
      */
     private final Map<String, String> uriToPrefix;
 
-    private final Map<String, String> versionablePaths;
-
     private final boolean useBinaryReferences;
 
     private final Map<String, NodeId> nodes;
@@ -158,7 +154,6 @@ class JackrabbitNodeState extends AbstractNodeState {
             String workspaceName,
             NodeState root,
             Map<String, String> uriToPrefix,
-            Map<String, String> versionablePaths,
             boolean copyBinariesByReference,
             boolean skipOnError
     ) throws RepositoryException {
@@ -169,7 +164,6 @@ class JackrabbitNodeState extends AbstractNodeState {
                 versionPM, root, uriToPrefix,
                 VERSION_STORAGE_NODE_ID, "/jcr:system/jcr:versionStorage",
                 null,
-                versionablePaths,
                 emptyMountPoints,
                 copyBinariesByReference,
                 skipOnError
@@ -179,7 +173,6 @@ class JackrabbitNodeState extends AbstractNodeState {
                 versionPM, root, uriToPrefix,
                 ACTIVITIES_NODE_ID, "/jcr:system/jcr:activities",
                 null,
-                versionablePaths,
                 emptyMountPoints,
                 copyBinariesByReference,
                 skipOnError
@@ -193,7 +186,7 @@ class JackrabbitNodeState extends AbstractNodeState {
         );
         return new JackrabbitNodeState(
                 pm, root, uriToPrefix, ROOT_NODE_ID, "/",
-                workspaceName, versionablePaths, mountPoints, copyBinariesByReference, skipOnError);
+                workspaceName, mountPoints, copyBinariesByReference, skipOnError);
     }
 
     private JackrabbitNodeState(
@@ -209,7 +202,6 @@ class JackrabbitNodeState extends AbstractNodeState {
         this.isVersionHistory = parent.isVersionHistory;
         this.isFrozenNode = parent.isFrozenNode;
         this.uriToPrefix = parent.uriToPrefix;
-        this.versionablePaths = parent.versionablePaths;
         this.useBinaryReferences = parent.useBinaryReferences;
         this.properties = createProperties(bundle);
         this.nodes = createNodes(bundle);
@@ -217,7 +209,6 @@ class JackrabbitNodeState extends AbstractNodeState {
         this.mountPoints = parent.mountPoints;
         this.nodeStateCache = parent.nodeStateCache;
         setChildOrder();
-        setVersionablePaths();
         fixFrozenUuid();
         logNewNode(this);
     }
@@ -225,7 +216,7 @@ class JackrabbitNodeState extends AbstractNodeState {
     JackrabbitNodeState(
             PersistenceManager source, NodeState root,
             Map<String, String> uriToPrefix, NodeId id, String path,
-            String workspaceName, Map<String, String> versionablePaths,
+            String workspaceName,
             Map<NodeId, JackrabbitNodeState> mountPoints,
             boolean useBinaryReferences, boolean skipOnError) {
         this.parent = null;
@@ -239,7 +230,6 @@ class JackrabbitNodeState extends AbstractNodeState {
         this.isVersionHistory = new TypePredicate(root, NT_VERSIONHISTORY);
         this.isFrozenNode = new TypePredicate(root, NT_FROZENNODE);
         this.uriToPrefix = uriToPrefix;
-        this.versionablePaths = versionablePaths;
         this.mountPoints = mountPoints;
         final int cacheSize = 50; // cache size 50 results in > 25% cache hits during version copy
         this.nodeStateCache = new LinkedHashMap<NodeId, JackrabbitNodeState>(cacheSize, 0.75f, true) {
@@ -377,28 +367,6 @@ class JackrabbitNodeState extends AbstractNodeState {
         if (isOrderable.apply(this)) {
             properties.put(OAK_CHILD_ORDER, PropertyStates.createProperty(
                     OAK_CHILD_ORDER, nodes.keySet(), Type.NAMES));
-        }
-    }
-
-    private void setVersionablePaths() {
-        if (isVersionable.apply(this)) {
-            String uuid = getString(JCR_VERSIONHISTORY);
-            if (uuid != null) {
-                versionablePaths.put(uuid, getPath());
-            }
-        } else if (isVersionHistory.apply(this)) {
-            String uuid = getString(JCR_UUID);
-            String path = versionablePaths.get(uuid);
-            if (path != null) {
-                properties.put(workspaceName, PropertyStates.createProperty(
-                        workspaceName, path, Type.PATH));
-
-                Set<String> mixins = newLinkedHashSet(getNames(JCR_MIXINTYPES));
-                if (mixins.add(MIX_REP_VERSIONABLE_PATHS)) {
-                    properties.put(JCR_MIXINTYPES, PropertyStates.createProperty(
-                            JCR_MIXINTYPES, mixins, Type.NAMES));
-                }
-            }
         }
     }
 

@@ -28,8 +28,12 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Timestamp;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -60,6 +64,8 @@ import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
+
+import org.apache.commons.lang.time.DateUtils;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.oak.Oak;
@@ -939,6 +945,8 @@ public final class Main {
     private static void upgrade(String[] args) throws Exception {
         OptionParser parser = new OptionParser();
         parser.accepts("datastore", "keep data store");
+        ArgumentAcceptingOptionSpec<String> copyVersions = parser.accepts("copy-versions", "copy referenced versions. valid arguments: true|false|yyyy-mm-dd").withRequiredArg().defaultsTo("true");
+        ArgumentAcceptingOptionSpec<String> copyOrphanedVersions = parser.accepts("copy-orphaned-versions", "copy all versions. valid arguments: true|false|yyyy-mm-dd").withRequiredArg().defaultsTo("true");
         OptionSpec<String> nonOption = parser.nonOptions();
         OptionSet options = parser.parse(args);
 
@@ -967,6 +975,7 @@ public final class Main {
                                     new RepositoryUpgrade(source, target);
                             upgrade.setCopyBinariesByReference(
                                     options.has("datastore"));
+                            setCopyVersionOptions(copyVersions.value(options), copyOrphanedVersions.value(options), upgrade);
                             upgrade.copy(null);
                         } finally {
                             target.dispose();
@@ -994,6 +1003,26 @@ public final class Main {
             System.err.println("usage: upgrade <olddir> <newdir>");
             System.exit(1);
         }
+    }
+
+    private static void setCopyVersionOptions(String copyVersions, String copyOrphanedVersions, RepositoryUpgrade upgrade) throws ParseException {
+        upgrade.setCopyVersions(parseVersionCopyArgument(copyVersions));
+        upgrade.setCopyOrphanedVersions(parseVersionCopyArgument(copyOrphanedVersions));
+    }
+
+    static Calendar parseVersionCopyArgument(String string) throws ParseException {
+        final DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+        final Calendar calendar;
+
+        if (Boolean.parseBoolean(string)) {
+            calendar = Calendar.getInstance();
+            calendar.setTimeInMillis(0);
+        } else if (string != null && string.matches("^\\d{4}-\\d{2}-\\d{2}$")) {
+            calendar = DateUtils.toCalendar(df.parse(string));
+        } else {
+            calendar = null;
+        }
+        return calendar;
     }
 
     private static void server(String defaultUri, String[] args) throws Exception {
