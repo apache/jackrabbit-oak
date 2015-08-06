@@ -23,6 +23,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.Lists;
@@ -42,6 +44,7 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Test;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Tests for MongoMK GC
@@ -146,13 +149,15 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
     }
     private void gc(HashSet<String> set) throws Exception {
         DocumentNodeStore store = mk.getNodeStore();
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
         MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector(
                 new DocumentBlobReferenceRetriever(store),
                 (GarbageCollectableBlobStore) store.getBlobStore(),
-                MoreExecutors.sameThreadExecutor(),
+                executor,
                 "./target", 5, true, 0);
         gc.collectGarbage();
-
+        
+        assertEquals(1, executor.getTaskCount());
         Set<String> existing = iterate();
         boolean empty = Sets.intersection(set, existing).isEmpty();
         assertTrue(empty && !existing.isEmpty());

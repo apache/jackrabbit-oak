@@ -272,13 +272,13 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
             if (ids.size() > getBatchCount()) {
                 count += ids.size();
-                executor.execute(new Sweeper(ids, exceptionQueue));
+                sweepInternal(ids, exceptionQueue);
                 ids = Lists.newArrayList();
             }
         }
         if (!ids.isEmpty()) {
             count += ids.size();
-            executor.execute(new Sweeper(ids, exceptionQueue));
+            sweepInternal(ids, exceptionQueue);
         }
 
         count -= exceptionQueue.size();
@@ -323,35 +323,23 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
     }
 
     /**
-     * Sweeper thread.
+     * Deletes a batch of blobs from blob store.
+     * 
+     * @param ids
+     * @param exceptionQueue
      */
-    class Sweeper implements Runnable {
-
-        /** The exception queue. */
-        private final ConcurrentLinkedQueue<String> exceptionQueue;
-
-        /** The ids to sweep. */
-        private final List<String> ids;
-
-        public Sweeper(List<String> ids, ConcurrentLinkedQueue<String> exceptionQueue) {
-            this.exceptionQueue = exceptionQueue;
-            this.ids = ids;
-        }
-
-        @Override
-        public void run() {
-            try {
-                LOG.debug("Blob ids to be deleted {}", ids);
-                boolean deleted = blobStore.deleteChunks(ids, getLastMaxModifiedTime());
-                if (!deleted) {
-                    // Only log and do not add to exception queue since some blobs may not match the
-                    // lastMaxModifiedTime criteria.
-                    LOG.debug("Some blobs were not deleted from the batch : [{}]", ids);
-                }
-            } catch (Exception e) {
-                LOG.warn("Error occurred while deleting blob with ids [{}]", ids, e);
-                exceptionQueue.addAll(ids);
+    private void sweepInternal(List<String> ids, ConcurrentLinkedQueue<String> exceptionQueue) {
+        try {
+            LOG.debug("Blob ids to be deleted {}", ids);
+            boolean deleted = blobStore.deleteChunks(ids, getLastMaxModifiedTime());
+            if (!deleted) {
+                // Only log and do not add to exception queue since some blobs may not match the
+                // lastMaxModifiedTime criteria.
+                LOG.debug("Some blobs were not deleted from the batch : [{}]", ids);
             }
+        } catch (Exception e) {
+            LOG.warn("Error occurred while deleting blob with ids [{}]", ids, e);
+            exceptionQueue.addAll(ids);
         }
     }
 

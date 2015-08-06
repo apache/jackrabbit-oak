@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -29,6 +30,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -121,14 +124,15 @@ public class SegmentDataStoreBlobGCTest {
     @Test
     public void gc() throws Exception {
         HashSet<String> set = setUp();
-
+        
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
         MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector(
                 new SegmentBlobReferenceRetriever(store.getTracker()),
-                    (GarbageCollectableBlobStore) store.getBlobStore(),
-                    MoreExecutors.sameThreadExecutor(),
+                    (GarbageCollectableBlobStore) store.getBlobStore(), executor,
                     "./target", 2048, true,  0);
         gc.collectGarbage();
 
+        assertEquals(1, executor.getTaskCount());
         Set<String> existing = iterate();
         boolean empty = Sets.intersection(set, existing).isEmpty();
         assertTrue(empty);
