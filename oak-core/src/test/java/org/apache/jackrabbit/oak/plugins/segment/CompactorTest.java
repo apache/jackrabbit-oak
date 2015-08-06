@@ -43,11 +43,11 @@ public class CompactorTest {
 
             NodeState initial = store.getRoot();
             SegmentNodeState after = compactor
-                    .compact(initial, store.getRoot());
+                    .compact(initial, store.getRoot(), initial);
             Assert.assertEquals(store.getRoot(), after);
 
             addTestContent(store, 1);
-            after = compactor.compact(initial, store.getRoot());
+            after = compactor.compact(initial, store.getRoot(), initial);
             Assert.assertEquals(store.getRoot(), after);
 
         } finally {

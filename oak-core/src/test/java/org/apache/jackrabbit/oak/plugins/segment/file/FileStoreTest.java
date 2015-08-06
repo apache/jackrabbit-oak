@@ -21,6 +21,7 @@ import static com.google.common.collect.Sets.newTreeSet;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.V_11;
 
 import java.io.ByteArrayInputStream;
@@ -35,7 +36,6 @@ import java.util.Random;
 
 import com.google.common.base.Strings;
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.Compactor;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
@@ -114,7 +114,7 @@ public class FileStoreTest {
 
         Compactor compactor = new Compactor(writer);
         SegmentNodeState compacted =
-                compactor.compact(EmptyNodeState.EMPTY_NODE, head);
+                compactor.compact(EMPTY_NODE, head, EMPTY_NODE);
         store.close();
 
         // First simulate the case where during compaction a reference to the
@@ -142,7 +142,7 @@ public class FileStoreTest {
         assertTrue(store.size() > largeBinarySize);
         writer = new SegmentWriter(store, store.getTracker(), V_11);
         compactor = new Compactor(writer);
-        compacted = compactor.compact(EmptyNodeState.EMPTY_NODE, head);
+        compacted = compactor.compact(EMPTY_NODE, head, EMPTY_NODE);
         builder = head.builder();
         builder.setChildNode("old", head); // reference to pre-compacted state
         builder.getNodeState();
