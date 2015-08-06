@@ -221,19 +221,19 @@ public class CloudBlobStore extends CachingBlobStore {
     }
 
     @Override
-    public boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
+    public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
         Preconditions.checkNotNull(context);
-
+        long count = 0;
         for (String chunkId : chunkIds) {
             final org.jclouds.blobstore.BlobStore blobStore = context.getBlobStore();
             StorageMetadata metadata = blobStore.blobMetadata(cloudContainer, chunkId);
             if ((maxLastModifiedTime <= 0) 
                     || (metadata.getLastModified().getTime() <= maxLastModifiedTime)) {
                 blobStore.removeBlob(cloudContainer, chunkId);
-                return true;
+                count++;
             }
         }
-        return true;
+        return count;
     }
 
     class CloudStoreIterator implements Iterator<String> {
