@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -26,6 +27,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.Lists;
@@ -158,16 +161,16 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
                 new ByteArrayInputStream(new byte[0]),
                 REPOSITORY.getNameFromId(repoId));
         }
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
         MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector(
                 new DocumentBlobReferenceRetriever(store),
-                (GarbageCollectableBlobStore) store.getBlobStore(),
-                MoreExecutors.sameThreadExecutor(),
-                "./target", 5, 0, repoId);
+                (GarbageCollectableBlobStore) store.getBlobStore(), executor, "./target", 5, 0, repoId);
         Thread.sleep(4000);
         gc.collectGarbage(false);
-
+        
+        assertEquals(0, executor.getTaskCount());
         Set<String> existingAfterGC = iterate();
-    boolean empty = Sets.symmetricDifference(remaining, existingAfterGC).isEmpty();
+        boolean empty = Sets.symmetricDifference(remaining, existingAfterGC).isEmpty();
         assertTrue(empty);
     }
 
