@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.blob;
 
+import aQute.bnd.annotation.ProviderType;
+
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
@@ -23,6 +25,7 @@ import java.util.List;
 /**
  * A blob store that supports garbage collection.
  */
+@ProviderType
 public interface GarbageCollectableBlobStore extends BlobStore {
 
     /**
@@ -91,7 +94,18 @@ public interface GarbageCollectableBlobStore extends BlobStore {
      * @return true, if successful
      * @throws Exception the exception
      */
+    @Deprecated
     boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception;
+
+    /**
+     * Deletes the blobs with the given ids.
+     *
+     * @param chunkIds the chunk ids
+     * @param maxLastModifiedTime the max last modified time to consider for retrieval
+     * @return long the count of successful deletions
+     * @throws Exception the exception
+     */
+    long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception;
 
     /**
      * Resolve chunks from the given Id.

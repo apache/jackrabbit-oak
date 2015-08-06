@@ -378,6 +378,12 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
 
     @Override
     public boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
+        return (chunkIds.size() == countDeleteChunks(chunkIds, maxLastModifiedTime));
+    }    
+    
+    @Override
+    public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
+        int count = 0;
         if (delegate instanceof MultiDataStoreAware) {
             for (String chunkId : chunkIds) {
                 String blobId = extractBlobId(chunkId);
@@ -385,15 +391,16 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
                 DataRecord dataRecord = delegate.getRecord(identifier);
                 boolean success = (maxLastModifiedTime <= 0)
                         || dataRecord.getLastModified() <= maxLastModifiedTime;
-                log.debug("Deleting blob [{}] with last modified date [{}] : [{}]", blobId,
+                log.trace("Deleting blob [{}] with last modified date [{}] : [{}]", blobId,
                     dataRecord.getLastModified(), success);
                 if (success) {
                     ((MultiDataStoreAware) delegate).deleteRecord(identifier);
-                    log.debug("Deleted blob [{}]", blobId);
+                    log.trace("Deleted blob [{}]", blobId);
+                    count++;
                 }
             }
         }
-        return true;
+        return count;
     }
 
     @Override
