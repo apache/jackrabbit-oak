@@ -19,14 +19,15 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.util.List;
+import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.RecoverLockState;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
-import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-
-import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.RecoverLockState;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifiedInSecs;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getSelectedDocuments;
 
 /**
  * Utils to retrieve _lastRev missing update candidates.
@@ -38,7 +39,7 @@ public class MissingLastRevSeeker {
     public MissingLastRevSeeker(DocumentStore store) {
         this.store = store;
     }
-    
+
     /**
      * Gets the clusters which potentially need _lastRev recovery.
      *
@@ -47,7 +48,7 @@ public class MissingLastRevSeeker {
     public Iterable<ClusterNodeInfoDocument> getAllClusters() {
         return ClusterNodeInfoDocument.all(store);
     }
-    
+
     /**
      * Gets the cluster node info for the given cluster node id.
      *
@@ -68,14 +69,13 @@ public class MissingLastRevSeeker {
      */
     public Iterable<NodeDocument> getCandidates(final long startTime) {
         // Fetch all documents where lastmod >= startTime
-        List<NodeDocument> nodes = store.query(Collection.NODES, NodeDocument.MIN_ID_VALUE,
-                NodeDocument.MAX_ID_VALUE, NodeDocument.MODIFIED_IN_SECS,  NodeDocument.getModifiedInSecs(startTime), Integer.MAX_VALUE);
+        Iterable<NodeDocument> nodes = getSelectedDocuments(store, 
+                MODIFIED_IN_SECS, getModifiedInSecs(startTime));
         return Iterables.filter(nodes, new Predicate<NodeDocument>() {
             @Override
             public boolean apply(NodeDocument input) {
-                Long modified = (Long) input.get(NodeDocument.MODIFIED_IN_SECS);
-                return (modified != null
-                        && (modified >= NodeDocument.getModifiedInSecs(startTime)));
+                Long modified = (Long) input.get(MODIFIED_IN_SECS);
+                return (modified != null && (modified >= getModifiedInSecs(startTime)));
             }
         });
     }
