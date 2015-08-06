@@ -410,9 +410,9 @@ public final class Permissions {
         // map remaining actions and permission-names that have a simple 1:1
         // mapping between action and permission
         if (!actions.isEmpty()) {
-            for (String action : ACTIONS_MAP.keySet()) {
-                if (actions.remove(action)) {
-                    permissions |= ACTIONS_MAP.get(action);
+            for (Map.Entry<String, Long> actionEntry : ACTIONS_MAP.entrySet()) {
+                if (actions.remove(actionEntry.getKey())) {
+                    permissions |= actionEntry.getValue();
                 }
             }
             permissions |= getPermissions(actions);
