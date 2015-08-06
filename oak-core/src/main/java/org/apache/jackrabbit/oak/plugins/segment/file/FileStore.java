@@ -735,7 +735,7 @@ public class FileStore implements SegmentStore {
                     existing);
         }
 
-        SegmentNodeState after = compactor.compact(EMPTY_NODE, before);
+        SegmentNodeState after = compactor.compact(EMPTY_NODE, before, EMPTY_NODE);
 
         Callable<Boolean> setHead = new SetHead(before, after, compactor);
         try {
@@ -749,7 +749,8 @@ public class FileStore implements SegmentStore {
                 gcMonitor.info("TarMK compaction detected concurrent commits while compacting. " +
                         "Compacting these commits. Cycle {}", cycles);
                 SegmentNodeState head = getHead();
-                after = compactor.compact(after, head);
+                after = compactor.compact(before, head, after);
+                before = head;
                 setHead = new SetHead(head, after, compactor);
             }
             if (!success) {
@@ -757,7 +758,7 @@ public class FileStore implements SegmentStore {
                         "{} cycles.", cycles - 1);
                 if (compactionStrategy.getForceAfterFail()) {
                     gcMonitor.info("TarMK compaction force compacting remaining commits");
-                    if (!forceCompact(after, compactor)) {
+                    if (!forceCompact(before, after, compactor)) {
                         gcMonitor.warn("TarMK compaction failed to force compact remaining commits. " +
                                 "Most likely compaction didn't get exclusive access to the store.");
                     }
@@ -771,11 +772,11 @@ public class FileStore implements SegmentStore {
         }
     }
 
-    private boolean forceCompact(final SegmentNodeState before, final Compactor compactor) throws Exception {
+    private boolean forceCompact(final NodeState before, final SegmentNodeState onto, final Compactor compactor) throws Exception {
         return compactionStrategy.compacted(new Callable<Boolean>() {
             @Override
             public Boolean call() throws Exception {
-                return new SetHead(getHead(), compactor.compact(before, getHead()), compactor).call();
+                return new SetHead(getHead(), compactor.compact(before, getHead(), onto), compactor).call();
             }
         });
     }

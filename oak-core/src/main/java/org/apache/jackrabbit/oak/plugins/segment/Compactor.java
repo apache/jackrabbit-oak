@@ -94,15 +94,38 @@ public class Compactor {
         this.cloneBinaries = compactionStrategy.cloneBinaries();
     }
 
-    protected SegmentNodeBuilder process(NodeState before, NodeState after) {
-        SegmentNodeBuilder builder = new SegmentNodeBuilder(
-                writer.writeNode(before), writer);
+    protected SegmentNodeBuilder process(NodeState before, NodeState after, NodeState onto) {
+        SegmentNodeBuilder builder = new SegmentNodeBuilder(writer.writeNode(onto), writer);
         after.compareAgainstBaseState(before, new CompactDiff(builder));
         return builder;
     }
 
+    /**
+     * Compact the differences between a {@code before} and a {@code after}
+     * on top of the {@code before} state.
+     * <p>
+     * Equivalent to {@code compact(before, after, before)}
+     *
+     * @param before  the before state
+     * @param after   the after state
+     * @return  the compacted state
+     */
     public SegmentNodeState compact(NodeState before, NodeState after) {
-        SegmentNodeState compacted = process(before, after).getNodeState();
+        SegmentNodeState compacted = process(before, after, before).getNodeState();
+        writer.flush();
+        return compacted;
+    }
+
+    /**
+     * Compact the differences between a {@code before} and a {@code after}
+     * on top of an {@code onto} state.
+     * @param before  the before state
+     * @param after   the after state
+     * @param onto    the onto state
+     * @return  the compacted state
+     */
+    public SegmentNodeState compact(NodeState before, NodeState after, NodeState onto) {
+        SegmentNodeState compacted = process(before, after, onto).getNodeState();
         writer.flush();
         return compacted;
     }
