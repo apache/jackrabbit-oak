@@ -180,13 +180,11 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
             mark();
             if (!markOnly) {
-                int deleteCount = sweep();
+                long deleteCount = sweep();
                 threw = false;
 
-                LOG.info(
-                    "Blob garbage collection completed in {}. Number of blobs identified for deletion [{}] (This "
-                        + "includes blobs newer than configured interval [{}] which are ignored for deletion)",
-                    sw.toString(), deleteCount, maxLastModifiedInterval);
+                LOG.info("Blob garbage collection completed in {}. Number of blobs deleted [{}]", sw.toString(),
+                    deleteCount, maxLastModifiedInterval);
             }
         } finally {
             if (!LOG.isTraceEnabled()) {
@@ -282,7 +280,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      * @return the number of blobs deleted
      * @throws Exception the exception
      */
-    private int sweep() throws Exception {
+    private long sweep() throws Exception {
         long earliestRefAvailTime;
         // Merge all the blob references available from all the reference files in the data store meta store
         // Only go ahead if merge succeeded
@@ -299,7 +297,9 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
         // Calculate the references not used
         difference();
-        int count = 0;
+        long count = 0;
+        long deleted = 0;
+
         state = State.SWEEPING;
         LOG.debug("Starting sweep phase of the garbage collector");
         LOG.debug("Sweeping blobs with modified time > than the configured max deleted time ({}). ",
@@ -314,18 +314,17 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         while (iterator.hasNext()) {
             ids.add(iterator.next());
 
-            if (ids.size() > getBatchCount()) {
+            if (ids.size() >= getBatchCount()) {
                 count += ids.size();
-                sweepInternal(ids, exceptionQueue, earliestRefAvailTime);
+                deleted += sweepInternal(ids, exceptionQueue, earliestRefAvailTime);
                 ids = Lists.newArrayList();
             }
         }
         if (!ids.isEmpty()) {
             count += ids.size();
-            sweepInternal(ids, exceptionQueue, earliestRefAvailTime);
+            deleted += sweepInternal(ids, exceptionQueue, earliestRefAvailTime);
         }
 
-        count -= exceptionQueue.size();
         BufferedWriter writer = null;
         try {
             if (!exceptionQueue.isEmpty()) {
@@ -336,16 +335,23 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             LineIterator.closeQuietly(iterator);
             IOUtils.closeQuietly(writer);
         }
+
         if(!exceptionQueue.isEmpty()) {
-            LOG.warn(
-                "Unable to delete some blobs entries from the blob store. This may happen if blob modified time is > "
-                    + "than the max deleted time ({}). Details around such blob entries can be found in [{}]",
-                timestampToString(getLastMaxModifiedTime(earliestRefAvailTime)), fs.getGarbage().getAbsolutePath());
+            LOG.warn("Unable to delete some blobs entries from the blob store. Details around such blob entries can " 
+                         + "be found in [{}]",
+                        fs.getGarbage().getAbsolutePath());
         }
+        if(count != deleted) {
+            LOG.warn("Deleted only [{}] blobs entries from the [{}] candidates identified. This may happen if blob " 
+                         + "modified time is > "
+                         + "than the max deleted time ({})", deleted, count,
+                        timestampToString(getLastMaxModifiedTime(earliestRefAvailTime)));
+        }
+
         // Remove all the merged marked references
         GarbageCollectionType.get(blobStore).removeAllMarkedReferences(blobStore);
         LOG.debug("Ending sweep phase of the garbage collector");
-        return count;
+        return deleted;
     }
 
     private int getBatchCount() {
@@ -375,19 +381,21 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      * @param exceptionQueue
      * @param maxModified
      */
-    private void sweepInternal(List<String> ids, ConcurrentLinkedQueue<String> exceptionQueue, long maxModified) {
+    private long sweepInternal(List<String> ids, ConcurrentLinkedQueue<String> exceptionQueue, long maxModified) {
+        long deleted = 0;
         try {
-            LOG.debug("Blob ids to be deleted {}", ids);
-            boolean deleted = blobStore.deleteChunks(ids, getLastMaxModifiedTime(maxModified));
-            if (!deleted) {
+            LOG.trace("Blob ids to be deleted {}", ids);
+            deleted = blobStore.countDeleteChunks(ids, getLastMaxModifiedTime(maxModified));
+            if (deleted != ids.size()) {
                 // Only log and do not add to exception queue since some blobs may not match the
                 // lastMaxModifiedTime criteria.
-                LOG.debug("Some blobs were not deleted from the batch : [{}]", ids);
+                LOG.debug("Some [{}] blobs were not deleted from the batch : [{}]", ids.size() - deleted, ids);
             }
         } catch (Exception e) {
             LOG.warn("Error occurred while deleting blob with ids [{}]", ids, e);
             exceptionQueue.addAll(ids);
         }
+        return deleted;
     }
 
     /**
