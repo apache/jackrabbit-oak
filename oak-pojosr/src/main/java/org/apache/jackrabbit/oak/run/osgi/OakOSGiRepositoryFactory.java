@@ -44,6 +44,7 @@ import org.apache.felix.connect.launch.PojoServiceRegistry;
 import org.apache.felix.connect.launch.PojoServiceRegistryFactory;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.api.JackrabbitRepository;
+import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleException;
@@ -77,6 +78,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
  *
  *      <dt>org.apache.jackrabbit.oak.repository.bundleFilter</dt>
  *      <dd>Used to specify the bundle filter string which is passed to ClasspathScanner</dd>
+ *
+ *      <dt>org.apache.jackrabbit.oak.repository.startupTimeout</dt>
+ *      <dd>Timeout in seconds for the repository startup should wait. Defaults to 10 minutes</dd>
+ *
+ *      <dt>org.apache.jackrabbit.oak.repository.shutDownOnTimeout</dt>
+ *      <dd>Boolean flag to determine if the OSGi container should be shutdown upon timeout. Defaults to false</dd>
  *  </dl>
  */
 public class OakOSGiRepositoryFactory implements RepositoryFactory {
@@ -93,7 +100,7 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
      * Timeout in seconds for the repository startup should wait
      */
     public static final String REPOSITORY_STARTUP_TIMEOUT
-            = "org.apache.jackrabbit.oak.repository.startupTimeOut";
+            = "org.apache.jackrabbit.oak.repository.startupTimeout";
 
     /**
      * Config key which refers to the map of config where key in that map refers to OSGi
@@ -109,6 +116,9 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
 
     public static final String REPOSITORY_BUNDLE_FILTER
             = "org.apache.jackrabbit.oak.repository.bundleFilter";
+
+    public static final String REPOSITORY_SHUTDOWN_ON_TIMEOUT =
+            "org.apache.jackrabbit.oak.repository.shutDownOnTimeout";
 
     /**
      * Default timeout for repository creation
@@ -168,7 +178,12 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
             throw new RepositoryException(e);
         } catch (TimeoutException e) {
             try {
-                shutdown(registry);
+                if (PropertiesUtil.toBoolean(config.get(REPOSITORY_SHUTDOWN_ON_TIMEOUT), true)) {
+                    shutdown(registry);
+                    log.info("OSGi container shutdown after waiting for repository initialization for {} sec",timeout);
+                }else {
+                    log.warn("[{}] found to be false. Container is not stopped", REPOSITORY_SHUTDOWN_ON_TIMEOUT);
+                }
             } catch (BundleException be) {
                 log.warn("Error occurred while shutting down the service registry (due to " +
                         "startup timeout) backing the Repository ", be);
