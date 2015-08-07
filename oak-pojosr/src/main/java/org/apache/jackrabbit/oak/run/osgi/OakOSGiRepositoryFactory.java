@@ -74,6 +74,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
  *
  *      <dt>org.apache.jackrabbit.repository.home</dt>
  *      <dd>Used to specify the absolute path of the repository home directory</dd>
+ *
+ *      <dt>org.apache.jackrabbit.oak.repository.bundleFilter</dt>
+ *      <dd>Used to specify the bundle filter string which is passed to ClasspathScanner</dd>
  *  </dl>
  */
 public class OakOSGiRepositoryFactory implements RepositoryFactory {
@@ -103,6 +106,9 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
      * JSON content consist of pid as the key and config map as the value
      */
     public static final String REPOSITORY_CONFIG_FILE = "org.apache.jackrabbit.oak.repository.configFile";
+
+    public static final String REPOSITORY_BUNDLE_FILTER
+            = "org.apache.jackrabbit.oak.repository.bundleFilter";
 
     /**
      * Default timeout for repository creation
@@ -179,7 +185,7 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
         PojoServiceRegistry registry = createServiceRegistry(config);
         startConfigTracker(registry, config);
         preProcessRegistry(registry);
-        startBundles(registry);
+        startBundles(registry, (String)config.get(REPOSITORY_BUNDLE_FILTER));
         postProcessRegistry(registry);
 
         return registry;
@@ -278,9 +284,9 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
     }
 
 
-    private void startBundles(PojoServiceRegistry registry) {
+    private void startBundles(PojoServiceRegistry registry, String bundleFilter) {
         try {
-            List<BundleDescriptor> descriptors = new ClasspathScanner().scanForBundles();
+            List<BundleDescriptor> descriptors = new ClasspathScanner().scanForBundles(bundleFilter);
             descriptors = Lists.newArrayList(descriptors);
             descriptors = processDescriptors(descriptors);
             registry.startBundles(descriptors);
