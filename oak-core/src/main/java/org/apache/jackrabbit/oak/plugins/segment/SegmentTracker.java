@@ -65,7 +65,7 @@ public class SegmentTracker {
 
     private static final long BULK = 0xBL << 60;
 
-    private static final int MB = 1024 * 1024;
+    private static final long MB = 1024 * 1024;
 
     private static final int DEFAULT_MEMORY_CACHE_SIZE = 256;
 
@@ -120,12 +120,12 @@ public class SegmentTracker {
         if (DISABLE_STRING_CACHE) {
             c = null;
         } else {
-            int stringCacheSize = (int) Math.min(Integer.MAX_VALUE, (long) (cacheSizeMB * MB));
+            int stringCacheSize = (int) Math.min(Integer.MAX_VALUE, cacheSizeMB * MB);
             c = new StringCache(stringCacheSize);
         }
         stringCache = c;
         segmentCache = CacheLIRS.<SegmentId, Segment>newBuilder()
-            .maximumSize((int) Math.min(Integer.MAX_VALUE, (long) (cacheSizeMB * MB)))
+            .maximumSize((int) Math.min(Integer.MAX_VALUE, cacheSizeMB * MB))
             .averageWeight(Segment.MAX_SEGMENT_SIZE/2)
             .evictionCallback(new EvictionCallback<SegmentId, Segment>() {
                 @Override
