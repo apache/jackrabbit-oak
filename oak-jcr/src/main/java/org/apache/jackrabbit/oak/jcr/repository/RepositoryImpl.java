@@ -43,6 +43,7 @@ import javax.jcr.Value;
 import javax.security.auth.login.LoginException;
 
 import com.google.common.collect.ImmutableMap;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
@@ -302,9 +303,24 @@ public class RepositoryImpl implements JackrabbitRepository {
     public void shutdown() {
         statisticManager.dispose();
         gcMonitorRegistration.unregister();
-        scheduledExecutor.shutdown();
+        closeExecutor();
         if (contentRepository instanceof Closeable) {
             IOUtils.closeQuietly((Closeable) contentRepository);
+        }
+    }
+
+    private void closeExecutor() {
+        try {
+            scheduledExecutor.shutdown();
+            scheduledExecutor.awaitTermination(5, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            log.error("Error while shutting down the executorService", e);
+            Thread.currentThread().interrupt();
+        } finally {
+            if (!scheduledExecutor.isTerminated()) {
+                log.warn("executorService didn't shutdown properly. Will be forced now.");
+            }
+            scheduledExecutor.shutdownNow();
         }
     }
 
