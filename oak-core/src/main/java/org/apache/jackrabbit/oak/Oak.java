@@ -146,8 +146,7 @@ public class Oak {
 
     private final Closer closer = Closer.create();
 
-    private boolean initialized;
-
+    private ContentRepository contentRepository;
 
     /**
      * Default {@code ScheduledExecutorService} used for scheduling background tasks.
@@ -547,10 +546,22 @@ public class Oak {
         return this.whiteboard;
     }
 
+    /**
+     * Returns the content repository instance created with the given
+     * configuration. If the repository doesn't exist yet, a new instance will
+     * be created and returned for each subsequent call of this method.
+     *
+     * @return content repository
+     */
     public ContentRepository createContentRepository() {
-        //TODO FIXME OAK-2736
-        //checkState(!initialized, "Oak instance should be used only once to create the ContentRepository instance");
-        initialized = true;
+        if (contentRepository == null) {
+            contentRepository = createNewContentRepository();
+        }
+
+        return contentRepository;
+    }
+
+    private ContentRepository createNewContentRepository() {
         final List<Registration> regs = Lists.newArrayList();
         regs.add(whiteboard.register(Executor.class, getExecutor(), Collections.emptyMap()));
 
@@ -573,7 +584,6 @@ public class Oak {
                 indexRegistration.registerAsyncIndexer(task, t.getValue());
             }
 
-            // TODO verify how this fits in with OAK-2749
             PropertyIndexAsyncReindex asyncPI = new PropertyIndexAsyncReindex(
                     new AsyncIndexUpdate(IndexConstants.ASYNC_REINDEX_VALUE,
                             store, indexEditors, true), getExecutor());
