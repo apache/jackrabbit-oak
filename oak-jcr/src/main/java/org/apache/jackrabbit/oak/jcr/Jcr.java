@@ -26,6 +26,7 @@ import javax.annotation.Nonnull;
 import javax.jcr.Repository;
 
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
@@ -68,6 +69,8 @@ public class Jcr {
     private SecurityProvider securityProvider;
     private int observationQueueLength = DEFAULT_OBSERVATION_QUEUE_LENGTH;
     private CommitRateLimiter commitRateLimiter = null;
+
+    private Repository repository;
 
     public Jcr(Oak oak) {
         this.oak = oak;
@@ -198,13 +201,21 @@ public class Jcr {
         return this;
     }
 
+    public ContentRepository createContentRepository() {
+        return oak.createContentRepository();
+    }
+
     public Repository createRepository() {
-        return new RepositoryImpl(
-                oak.createContentRepository(), 
-                oak.getWhiteboard(),
-                securityProvider,
-                observationQueueLength,
-                commitRateLimiter);
+        if (repository == null) {
+            repository = new RepositoryImpl(
+                    oak.createContentRepository(),
+                    oak.getWhiteboard(),
+                    securityProvider,
+                    observationQueueLength,
+                    commitRateLimiter);
+        }
+
+        return repository;
     }
 
 }
