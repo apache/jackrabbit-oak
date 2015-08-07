@@ -20,6 +20,10 @@
 <web-app>
     <display-name>Jackrabbit JCR Server</display-name>
 
+    <listener>
+        <listener-class>org.apache.felix.http.proxy.ProxyListener</listener-class>
+    </listener>
+
     <!-- ====================================================================== -->
     <!-- R E P O S I T O R Y   S T A R T U P  S E R V L E T                     -->
     <!-- ====================================================================== -->
@@ -361,6 +365,18 @@
     </servlet>
 
     <!-- ====================================================================== -->
+    <!-- F E L I X   W E B C O N S O L E P R O X Y   S E R V L E T              -->
+    <!-- ====================================================================== -->
+
+    <servlet>
+        <servlet-name>proxy</servlet-name>
+        <description>
+            This servlet is used to enable integration with Felix WebConsole. It
+            routes the call to /osgi/* to servlets running withing OSGi
+        </description>
+        <servlet-class>org.apache.felix.http.proxy.ProxyServlet</servlet-class>
+    </servlet>
+    <!-- ====================================================================== -->
     <!-- S E R V L E T   M A P P I N G                                          -->
     <!-- ====================================================================== -->
     <servlet-mapping>
@@ -378,6 +394,10 @@
     <servlet-mapping>
         <servlet-name>RMI</servlet-name>
         <url-pattern>/rmi</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>proxy</servlet-name>
+        <url-pattern>/osgi/*</url-pattern>
     </servlet-mapping>
 
     <!-- ====================================================================== -->

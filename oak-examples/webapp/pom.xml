@@ -113,6 +113,24 @@
       <version>1.1</version>
     </dependency>
 
+    <!-- Required for Felix WebConsole -->
+    <dependency>
+      <groupId>org.apache.felix</groupId>
+      <artifactId>org.apache.felix.http.proxy</artifactId>
+      <version>2.3.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.felix</groupId>
+      <artifactId>org.apache.felix.http.bridge</artifactId>
+      <version>2.3.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.felix</groupId>
+      <artifactId>org.apache.felix.webconsole</artifactId>
+      <version>4.2.10</version>
+      <classifier>all</classifier>
+    </dependency>
+
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
@@ -163,7 +181,7 @@
          <artifactId>jetty-maven-plugin</artifactId>
          <version>9.2.8.v20150217</version>
          <configuration>
-           <scanIntervalSeconds>10</scanIntervalSeconds>
+           <scanIntervalSeconds>0</scanIntervalSeconds>
            <connectors>
              <connector implementation="org.mortbay.jetty.nio.SelectChannelConnector">
                <port>8080</port>

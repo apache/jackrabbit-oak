@@ -19,12 +19,13 @@ package org.apache.jackrabbit.j2ee;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.api.JackrabbitRepository;
-import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.repository.RepositoryFactory;
 import org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory;
 import org.apache.jackrabbit.rmi.server.RemoteAdapterFactory;
 import org.apache.jackrabbit.rmi.server.ServerAdapterFactory;
 import org.apache.jackrabbit.servlet.AbstractRepositoryServlet;
+import org.osgi.framework.BundleActivator;
+import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -269,6 +270,7 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
             log.info("Shutdown: Repository already stopped.");
         } else {
             log.info("RepositoryStartupServlet shutting down...");
+            unregisterOSGi();
             shutdownRepository();
             unregisterRMI();
             unregisterJNDI();
@@ -458,13 +460,35 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
      */
     protected Repository createRepository(File configJson, File homedir)
             throws RepositoryException {
-        Map<String,String> config = new HashMap<String, String>();
-        config.put("org.apache.jackrabbit.repository.home", homedir.getAbsolutePath());
-        config.put("org.apache.jackrabbit.oak.repository.configFile", configJson.getAbsolutePath());
+        Map<String,Object> config = new HashMap<String, Object>();
+        config.put(OakOSGiRepositoryFactory.REPOSITORY_HOME, homedir.getAbsolutePath());
+        config.put(OakOSGiRepositoryFactory.REPOSITORY_CONFIG_FILE, configJson.getAbsolutePath());
+        config.put(OakOSGiRepositoryFactory.REPOSITORY_BUNDLE_FILTER, getBootstrapConfig().getBundleFilter());
+        config.put(OakOSGiRepositoryFactory.REPOSITORY_SHUTDOWN_ON_TIMEOUT, getBootstrapConfig().isShutdownOnTimeout());
+        config.put(OakOSGiRepositoryFactory.REPOSITORY_STARTUP_TIMEOUT, getBootstrapConfig().getStartupTimeout());
+        configureActivator(config);
         //TODO oak-jcr also provides a dummy RepositoryFactory. Hence this
         //cannot be used
         //return JcrUtils.getRepository(config);
         return new OakOSGiRepositoryFactory().getRepository(config);
+    }
+
+    private void configureActivator(Map<String, Object> config) {
+        try{
+            config.put(BundleActivator.class.getName(), new BundleActivator() {
+                @Override
+                public void start(BundleContext bundleContext) throws Exception {
+                    registerOSGi(bundleContext);
+                }
+
+                @Override
+                public void stop(BundleContext bundleContext) throws Exception {
+                    unregisterOSGi();
+                }
+            });
+        } catch (Throwable t){
+            log.warn("OSGi support not present", t);
+        }
     }
 
     /**
@@ -629,6 +653,20 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
             }
             rmiRegistry = null;
         }
+    }
+
+    /**
+     * Set the BundleContext reference with ServletContext. This is then used by
+     * Felix Proxy Servlet. Kept the type as object to allow logic to work in
+     * absence of OSGi classes also.
+     * @param bundleContext
+     */
+    private void registerOSGi(Object bundleContext) {
+        getServletContext().setAttribute("org.osgi.framework.BundleContext", bundleContext);
+    }
+
+    private void unregisterOSGi() {
+        getServletContext().removeAttribute("org.osgi.framework.BundleContext");
     }
 
     /**
