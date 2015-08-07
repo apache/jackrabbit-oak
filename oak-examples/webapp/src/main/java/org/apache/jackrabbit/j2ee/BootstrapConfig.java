@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.j2ee;
 
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 import javax.servlet.ServletException;
 import javax.servlet.ServletConfig;
@@ -43,6 +44,13 @@ public class BootstrapConfig extends AbstractConfig {
     private String repositoryConfig;
 
     private String repositoryName;
+
+    private String bundleFilter;
+
+    //By default shutdown framework if there is a timeout
+    private boolean shutdownOnTimeout = true;
+
+    private int startupTimeout = (int) TimeUnit.MINUTES.toSeconds(5); //Default 5 minute timeout
 
     private JNDIConfig jndiConfig = new JNDIConfig(this);
 
@@ -84,12 +92,36 @@ public class BootstrapConfig extends AbstractConfig {
         this.repositoryName = repositoryName;
     }
 
+    public String getBundleFilter() {
+        return bundleFilter;
+    }
+
+    public void setBundleFilter(String bundleFilter) {
+        this.bundleFilter = bundleFilter;
+    }
+
     public JNDIConfig getJndiConfig() {
         return jndiConfig;
     }
 
     public RMIConfig getRmiConfig() {
         return rmiConfig;
+    }
+
+    public boolean isShutdownOnTimeout() {
+        return shutdownOnTimeout;
+    }
+
+    public void setShutdownOnTimeout(boolean shutdownOnTimeout) {
+        this.shutdownOnTimeout = shutdownOnTimeout;
+    }
+
+    public int getStartupTimeout() {
+        return startupTimeout;
+    }
+
+    public void setStartupTimeout(int startupTimeout) {
+        this.startupTimeout = startupTimeout;
     }
 
     public void validate() {
