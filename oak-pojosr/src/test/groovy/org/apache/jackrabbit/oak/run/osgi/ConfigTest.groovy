@@ -84,7 +84,8 @@ class ConfigTest {
     void testConfigSync(){
         config[REPOSITORY_CONFIG] = [
                 foo : [a:'a', b:1],
-                bar : [a:'a1', b:2]
+                bar : [a:'a1', b:2],
+                foo2 : [a:'a2', b:2]
         ]
         initRegistry(config)
         Configuration c = cm.getConfiguration('baz')
@@ -93,16 +94,19 @@ class ConfigTest {
         assert cm.getConfiguration('baz').properties.get('a') == 'a2'
         assert cm.getConfiguration('foo').properties.get('a') == 'a'
         assert cm.getConfiguration('bar').properties.get('a') == 'a1'
+        assert cm.getConfiguration('foo2').properties.get('a') == 'a2'
 
         //Now re init and remove the pid bar
         config[REPOSITORY_CONFIG] = [
                 foo : [a:'a-new', b:1],
+                foo2 : [a:'a2', b:2]
         ]
         initRegistry(config)
 
         assert cm.getConfiguration('baz').properties.get('a') == 'a2'
         assert cm.getConfiguration('foo').properties.get('a') == 'a-new'
         assert cm.getConfiguration('bar').properties == null
+        assert cm.getConfiguration('foo2').properties.get('a') == 'a2'
     }
 
     private static Map createConfigMap() {
