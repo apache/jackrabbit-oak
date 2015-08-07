@@ -44,6 +44,8 @@ import org.apache.felix.connect.launch.PojoServiceRegistry;
 import org.apache.felix.connect.launch.PojoServiceRegistryFactory;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.api.JackrabbitRepository;
+import org.osgi.framework.BundleActivator;
+import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleException;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceReference;
@@ -53,6 +55,27 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+/**
+ * RepositoryFactory which constructs an instance of Oak repository. Thi factory supports following
+ * parameters
+ *
+ *  <dl>
+ *      <dt>org.osgi.framework.BundleActivator</dt>
+ *      <dd>(Optional) BundleActivator instance which would be notified about the startup and shutdown</dd>
+ *
+ *      <dt>org.apache.jackrabbit.oak.repository.config</dt>
+ *      <dd>(Optional) Config key which refers to the map of config where key in that map refers to OSGi config</dd>
+ *
+ *      <dt>org.apache.jackrabbit.oak.repository.configFile</dt>
+ *      <dd>
+ *          Comma separated list of file names which referred to config stored in form of JSON. The
+ *          JSON content consist of pid as the key and config map as the value
+ *      </dd>
+ *
+ *      <dt>org.apache.jackrabbit.repository.home</dt>
+ *      <dd>Used to specify the absolute path of the repository home directory</dd>
+ *  </dl>
+ */
 public class OakOSGiRepositoryFactory implements RepositoryFactory {
 
     private static Logger log = LoggerFactory.getLogger(OakOSGiRepositoryFactory.class);
@@ -86,6 +109,17 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
      */
     private static final int DEFAULT_TIMEOUT = (int) TimeUnit.MINUTES.toSeconds(10);
 
+    private static final BundleActivator NOOP = new BundleActivator() {
+        @Override
+        public void start(BundleContext bundleContext) throws Exception {
+
+        }
+        @Override
+        public void stop(BundleContext bundleContext) throws Exception {
+
+        }
+    };
+
     @SuppressWarnings("unchecked")
     public Repository getRepository(Map parameters) throws RepositoryException {
         if(parameters == null || !parameters.containsKey(REPOSITORY_HOME)){
@@ -97,6 +131,13 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
         config.putAll(parameters);
 
         PojoServiceRegistry registry = initializeServiceRegistry(config);
+        BundleActivator activator = getApplicationActivator(config);
+
+        try {
+            activator.start(registry.getBundleContext());
+        } catch (Exception e) {
+            log.warn("Error occurred while starting activator {}", activator.getClass(), e);
+        }
 
         //Future which would be used to notify when repository is ready
         // to be used
@@ -105,7 +146,7 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
         new RunnableJobTracker(registry.getBundleContext());
 
         //Start the tracker for repository creation
-        new RepositoryTracker(registry, repoFuture);
+        new RepositoryTracker(registry, activator, repoFuture);
 
 
         //Now wait for repository to be created with given timeout
@@ -187,6 +228,19 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
         return timeout;
     }
 
+    /**
+     * Return the BundleActivator provided by the embedding application
+     * @param config config passed to factory for initialization
+     * @return BundleActivator instance
+     */
+    private static BundleActivator getApplicationActivator(Map config) {
+        BundleActivator activator = (BundleActivator) config.get(BundleActivator.class.getName());
+        if (activator == null){
+            activator = NOOP;
+        }
+        return activator;
+    }
+
     @SuppressWarnings("unchecked")
     private static void processConfig(Map config) {
         String home = (String) config.get(REPOSITORY_HOME);
@@ -238,12 +292,14 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
     private static class RepositoryTracker extends ServiceTracker<Repository, Repository> {
         private final SettableFuture<Repository> repoFuture;
         private final PojoServiceRegistry registry;
+        private final BundleActivator activator;
         private RepositoryProxy proxy;
 
-        public RepositoryTracker(PojoServiceRegistry registry, SettableFuture<Repository> repoFuture) {
+        public RepositoryTracker(PojoServiceRegistry registry, BundleActivator activator, SettableFuture<Repository> repoFuture) {
             super(registry.getBundleContext(), Repository.class.getName(), null);
             this.repoFuture = repoFuture;
             this.registry = registry;
+            this.activator = activator;
             this.open();
         }
 
@@ -275,6 +331,15 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
             return (Repository) Proxy.newProxyInstance(getClass().getClassLoader(),
                     new Class[]{Repository.class, JackrabbitRepository.class, ServiceRegistryProvider.class}, proxy);
         }
+
+        public void shutdownRepository() throws BundleException {
+            try {
+                activator.stop(getRegistry().getBundleContext());
+            } catch (Exception e) {
+                log.warn("Error occurred while shutting down activator {}", activator.getClass(), e);
+            }
+            shutdown(getRegistry());
+        }
     }
 
     /**
@@ -302,7 +367,7 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
 
             final String name = method.getName();
             if ("shutdown".equals(name)) {
-                shutdown(tracker.getRegistry());
+                tracker.shutdownRepository();
             } else if ("getServiceRegistry".equals(name)){
                 return tracker.getRegistry();
             }
