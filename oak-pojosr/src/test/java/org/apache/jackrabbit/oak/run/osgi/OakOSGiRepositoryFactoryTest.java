@@ -52,10 +52,13 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.osgi.framework.BundleActivator;
+import org.osgi.framework.BundleContext;
 
 import static org.apache.commons.io.FilenameUtils.concat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class OakOSGiRepositoryFactoryTest {
 
@@ -63,6 +66,8 @@ public class OakOSGiRepositoryFactoryTest {
     private RepositoryFactory repositoryFactory = new CustomOakFactory();
     private Map config = new HashMap();
     private String newPassword;
+    private boolean calledOnStart;
+    private boolean calledOnStop;
 
     @Rule
     public final TemporaryFolder tmpFolder = new TemporaryFolder();
@@ -82,9 +87,10 @@ public class OakOSGiRepositoryFactoryTest {
     @Test
     public void testRepositoryTar() throws Exception {
         copyConfig("tar");
-
+        config.put(BundleActivator.class.getName(), new TestActivator());
         Repository repository = repositoryFactory.getRepository(config);
 
+        assertTrue("test activator should have been called on startup", calledOnStart);
         //Give time for system to stablize :(
         TimeUnit.SECONDS.sleep(1);
 
@@ -98,6 +104,7 @@ public class OakOSGiRepositoryFactoryTest {
         testCallback(repository);
 
         shutdown(repository);
+        assertTrue("test activator should have been called on stop", calledOnStop);
     }
 
     private void testCallback(Repository repository) throws RepositoryException {
@@ -156,6 +163,19 @@ public class OakOSGiRepositoryFactoryTest {
                     return Collections.singletonList(new TestAction());
                 }
             }, null);
+        }
+    }
+
+    private class TestActivator implements BundleActivator {
+
+        @Override
+        public void start(BundleContext bundleContext) throws Exception {
+            calledOnStart = true;
+        }
+
+        @Override
+        public void stop(BundleContext bundleContext) throws Exception {
+            calledOnStop = true;
         }
     }
 
