@@ -136,7 +136,7 @@
                 places the one in the bootstrap-config wins.
             </description>
         </init-param>
-        <!-- 
+
         <init-param>
           <param-name>repository.context.attribute.name</param-name>
           <param-value>javax.jcr.Repository</param-value>
@@ -146,7 +146,7 @@
             initialized by the jackrabbit-jcr-servlet module utilities.
           </description>
         </init-param>
-         -->
+
         <!--
         <init-param>
             <param-name>repository-name</param-name>
