@@ -188,6 +188,12 @@
                <maxIdleTime>60000</maxIdleTime>
              </connector>
            </connectors>
+           <webApp>
+             <!-- no need to scan anything as we're using servlet 2.5 and moreover, we're not using ServletContainerInitializer(s) -->
+             <!-- for more relevant information regarding scanning of classes refer to https://java.net/jira/browse/SERVLET_SPEC-36 -->
+             <webInfIncludeJarPattern>^$</webInfIncludeJarPattern>
+             <containerIncludeJarPattern>^$</containerIncludeJarPattern>
+           </webApp>
          </configuration>
       </plugin>
       <plugin>
