@@ -58,6 +58,7 @@ String context =
               <li><a href="<%= context %>/webdav-jcr.jsp">JCR Remoting</a></li>
               <li><a href="<%= context %>/remote.jsp">Remote access</a></li>
               <li><a href="<%= context %>/local.jsp">Local access</a></li>
+              <li><a href="<%= context %>/osgi/system/console">Web Console</a></li>
               <li><a href="<%= context %>/troubleshooting.jsp">Troubleshooting</a></li>
               <li><a href="<%= context %>/about.jsp">About Jackrabbit</a></li>
             </ul>
