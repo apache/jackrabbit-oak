@@ -30,10 +30,10 @@ public class RDBHelper {
             System.out.println(database);
             System.out.println();
 
-            RDBDocumentStore.DB ddb = RDBDocumentStore.DB.getValue(database);
+            RDBDocumentStoreDB ddb = RDBDocumentStoreDB.getValue(database);
             RDBBlobStore.DB bdb = RDBBlobStore.DB.getValue(database);
 
-            for (String table : RDBDocumentStore.getTableNames())  {
+            for (String table : RDBDocumentStore.getTableNames()) {
                 System.out.println("  " + ddb.getTableCreationStatement(table));
                 for (String s : ddb.getIndexCreationStatements(table)) {
                     System.out.println("    " + s);
