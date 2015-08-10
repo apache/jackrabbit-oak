@@ -19,10 +19,12 @@ package org.apache.jackrabbit.oak.jcr.security.user;
 import java.security.Principal;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -32,6 +34,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.test.NotExecutableException;
+import org.apache.jackrabbit.util.Text;
 import org.junit.Test;
 
 /**
@@ -375,6 +378,31 @@ public class FindAuthorizablesTest extends AbstractUserTest {
         Iterator<Authorizable> it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, null, UserManager.SEARCH_TYPE_GROUP);
         while (it.hasNext()) {
             assertTrue(it.next().isGroup());
+        }
+    }
+
+    @Test
+    public void testFindUserWithSpecialCharIdByPrincipalName() throws RepositoryException {
+        List<String> ids = Lists.newArrayList("'", "]", "']", Text.escapeIllegalJcrChars("']"), Text.escape("']"));
+        for (String id : ids) {
+            User user = null;
+            try {
+                user = userMgr.createUser(id, "pw");
+                superuser.save();
+
+                boolean found = false;
+                Iterator<Authorizable> it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, id, UserManager.SEARCH_TYPE_USER);
+                while (it.hasNext() && !found) {
+                    Authorizable a = it.next();
+                    found = id.equals(a.getID());
+                }
+                assertTrue(found);
+            } finally {
+                if (user != null) {
+                    user.remove();
+                    superuser.save();
+                }
+            }
         }
     }
 }
