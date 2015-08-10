@@ -30,13 +30,14 @@
                    java.util.ArrayList,
                    java.util.Iterator,
                    javax.jcr.Value,
+                   javax.jcr.GuestCredentials,
                    javax.jcr.RepositoryException"%>
 <%@ page contentType="text/html;charset=UTF-8" %><%
     Repository rep;
     Session jcrSession;
     try {
         rep = RepositoryAccessServlet.getRepository(pageContext.getServletContext());
-        jcrSession = rep.login(new SimpleCredentials("anonymous", "".toCharArray()));
+        jcrSession = rep.login(new GuestCredentials());
     } catch (Throwable e) {
         %>Error while accessing the repository: <font color="red"><%= Text.encodeIllegalXMLCharacters(e.getMessage()) %></font><br><%
         %>Check the configuration or use the <a href="admin/">easy setup</a> wizard.<%
