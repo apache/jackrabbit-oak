@@ -29,7 +29,6 @@ import javax.jcr.observation.EventIterator;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.observation.ContentChangeInfo;
 import org.apache.jackrabbit.oak.plugins.observation.EventGenerator;
 import org.apache.jackrabbit.oak.plugins.observation.EventHandler;
 import org.apache.jackrabbit.oak.plugins.observation.FilteredHandler;
@@ -52,7 +51,7 @@ class EventQueue implements EventIterator {
             @Nonnull NamePathMapper mapper, CommitInfo info,
             @Nonnull NodeState before, @Nonnull NodeState after,
             @Nonnull Iterable<String> basePaths, @Nonnull EventFilter filter) {
-        this.generator = new EventGenerator(new ContentChangeInfo(before, after, info));
+        this.generator = new EventGenerator();
         EventFactory factory = new EventFactory(mapper, info);
         EventHandler handler = new FilteredHandler(
                 filter, new QueueingHandler(this, factory, before, after));

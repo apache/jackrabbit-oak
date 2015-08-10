@@ -42,6 +42,7 @@ import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.osgi.ObserverTracker;
@@ -457,28 +458,12 @@ public class DocumentNodeStoreService {
                         "Document node store management")
         );
 
-        DiffCache cl = store.getDiffCache();
-        if (cl instanceof MemoryDiffCache) {
-            MemoryDiffCache mcl = (MemoryDiffCache) cl;
+        for (CacheStats cs : store.getDiffCacheStats()) {
             registrations.add(
                     registerMBean(whiteboard,
-                            CacheStatsMBean.class,
-                            mcl.getDiffCacheStats(),
-                            CacheStatsMBean.TYPE,
-                            mcl.getDiffCacheStats().getName()));
+                            CacheStatsMBean.class, cs,
+                            CacheStatsMBean.TYPE, cs.getName()));
         }
-
-        DiffCache localCache = store.getLocalDiffCache();
-        if (localCache instanceof LocalDiffCache) {
-            LocalDiffCache mcl = (LocalDiffCache) localCache;
-            registrations.add(
-                    registerMBean(whiteboard,
-                            CacheStatsMBean.class,
-                            mcl.getDiffCacheStats(),
-                            CacheStatsMBean.TYPE,
-                            mcl.getDiffCacheStats().getName()));
-        }
-
         DocumentStore ds = store.getDocumentStore();
         if (ds.getCacheStats() != null) {
             registrations.add(

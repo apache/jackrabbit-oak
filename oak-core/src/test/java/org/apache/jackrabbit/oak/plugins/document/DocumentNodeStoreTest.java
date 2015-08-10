@@ -823,8 +823,7 @@ public class DocumentNodeStoreTest {
                                                       long startValue,
                                                       int limit) {
                 numQueries.getAndIncrement();
-                return super.query(collection, fromKey, toKey,
-                        indexedProperty, startValue, limit);
+                return super.query(collection, fromKey, toKey, indexedProperty, startValue, limit);
             }
         };
         final DocumentNodeStore ns = new DocumentMK.Builder()
@@ -1139,8 +1138,7 @@ public class DocumentNodeStoreTest {
 
         reads.clear();
         NodeState existingChild = parentNodeState.getChildNode("child25");
-        assertTrue("Fully cached entry in doc child cache should be able to find existing children" +
-                " even if doc store sort order is incompatible to that of Java", reads.size() > 0);
+        assertTrue("Fully cached entry in doc child cache should be able to find existing children" + " even if doc store sort order is incompatible to that of Java", reads.size() > 0);
         assertTrue("Existing children should be reported as such", existingChild.exists());
 
         store.dispose();
@@ -1682,6 +1680,83 @@ public class DocumentNodeStoreTest {
         });
 
         ns.dispose();
+    }
+
+    @Test
+    public void rootRevision() throws Exception {
+        DocumentNodeStore ns = new DocumentMK.Builder().getNodeStore();
+
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("foo").child("child");
+        builder.child("bar").child("child");
+        merge(ns, builder);
+
+        builder = ns.getRoot().builder();
+        builder.child("foo").child("child").child("node");
+        merge(ns, builder);
+
+        Revision head = ns.getHeadRevision();
+        NodeState child = ns.getRoot().getChildNode("bar").getChildNode("child");
+        assertTrue(child instanceof DocumentNodeState);
+        DocumentNodeState state = (DocumentNodeState) child;
+        assertEquals(head, state.getRootRevision());
+
+        ns.dispose();
+    }
+
+    @Test
+    public void diffCache() throws Exception {
+        final AtomicInteger numQueries = new AtomicInteger();
+        MemoryDocumentStore store = new MemoryDocumentStore() {
+            @Nonnull
+            @Override
+            public <T extends Document> List<T> query(Collection<T> collection,
+                                                      String fromKey,
+                                                      String toKey,
+                                                      int limit) {
+                numQueries.incrementAndGet();
+                return super.query(collection, fromKey, toKey, limit);
+            }
+        };
+        DocumentNodeStore ns = new DocumentMK.Builder()
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("foo").child("child");
+        merge(ns, builder);
+
+        builder = ns.getRoot().builder();
+        builder.child("bar");
+        merge(ns, builder);
+
+        DocumentNodeState before = ns.getRoot();
+
+        builder = ns.getRoot().builder();
+        builder.child("foo").child("child").child("node");
+        merge(ns, builder);
+
+        DocumentNodeState after = ns.getRoot();
+
+        numQueries.set(0);
+        final List<String> added = Lists.newArrayList();
+        ns.compare(asDocumentNodeState(after.getChildNode("foo").getChildNode("child")),
+                asDocumentNodeState(before.getChildNode("foo").getChildNode("child")),
+                new DefaultNodeStateDiff() {
+                    @Override
+                    public boolean childNodeAdded(String name,
+                                                  NodeState after) {
+                        added.add(name);
+                        return super.childNodeAdded(name, after);
+                    }
+                });
+
+
+        assertEquals(1, added.size());
+        assertEquals("node", added.get(0));
+        assertEquals("must not run queries", 0, numQueries.get());
+
+        ns.dispose();
+
     }
 
     // OAK-1970

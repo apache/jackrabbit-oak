@@ -218,7 +218,18 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
     @Nonnull
     @Override
     public NodeState getChildNode(@Nonnull String name) {
-        return getChildNode(name, lastRevision);
+        if (!hasChildren) {
+            checkValidName(name);
+            return EmptyNodeState.MISSING_NODE;
+        }
+        String p = PathUtils.concat(getPath(), name);
+        DocumentNodeState child = store.getNode(p, lastRevision);
+        if (child == null) {
+            checkValidName(name);
+            return EmptyNodeState.MISSING_NODE;
+        } else {
+            return child.withRootRevision(rootRevision);
+        }
     }
 
     @Override
@@ -319,23 +330,6 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
         }
         // fall back to the generic node state diff algorithm
         return super.compareAgainstBaseState(base, diff);
-    }
-
-    @Nonnull
-    NodeState getChildNode(@Nonnull String name,
-                           @Nonnull Revision revision) {
-        if (!hasChildren) {
-            checkValidName(name);
-            return EmptyNodeState.MISSING_NODE;
-        }
-        String p = PathUtils.concat(getPath(), name);
-        DocumentNodeState child = store.getNode(p, checkNotNull(revision));
-        if (child == null) {
-            checkValidName(name);
-            return EmptyNodeState.MISSING_NODE;
-        } else {
-            return child.withRootRevision(rootRevision);
-        }
     }
 
     void setProperty(String propertyName, String value) {
