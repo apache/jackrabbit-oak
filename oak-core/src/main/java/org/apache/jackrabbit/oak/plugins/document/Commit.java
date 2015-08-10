@@ -583,7 +583,7 @@ public class Commit {
             }
             list.add(p);
         }
-        DiffCache.Entry cacheEntry = nodeStore.getLocalDiffCache().newEntry(before, revision);
+        DiffCache.Entry cacheEntry = nodeStore.getDiffCache().newEntry(before, revision);
         List<String> added = new ArrayList<String>();
         List<String> removed = new ArrayList<String>();
         List<String> changed = new ArrayList<String>();

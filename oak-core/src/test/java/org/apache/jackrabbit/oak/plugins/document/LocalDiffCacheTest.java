@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.HashMap;
@@ -25,15 +24,18 @@ import java.util.Set;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.Maps;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
-import org.apache.jackrabbit.oak.plugins.document.LocalDiffCache.ConsolidatedDiff;
+import org.apache.jackrabbit.oak.plugins.document.LocalDiffCache.Diff;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.observation.NodeObserver;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.After;
 import org.junit.Test;
 
 import static com.google.common.collect.Maps.newHashMap;
@@ -45,57 +47,65 @@ public class LocalDiffCacheTest {
 
     DocumentNodeStore store;
 
+    @After
+    public void dispose() {
+        if (store != null) {
+            store.dispose();
+            store = null;
+        }
+    }
+
     @Test
     public void simpleDiff() throws Exception{
         TestNodeObserver o = new TestNodeObserver("/");
-         store = createMK().getNodeStore();
+        store = createMK().getNodeStore();
         store.addObserver(o);
 
         o.reset();
 
-        LocalDiffCache cache = getLocalDiffCache();
-        CacheStats stats = cache.getDiffCacheStats();
+        DiffCache cache = store.getDiffCache();
+        Iterable<CacheStats> stats = cache.getStats();
 
-        DocumentNodeState beforeState = store.getRoot();
         NodeBuilder builder = store.getRoot().builder();
         builder.child("a").child("a2").setProperty("foo", "bar");
         builder.child("b");
-        DocumentNodeState afterState = merge(store, builder);
+        merge(store, builder);
 
-        assertTrue(stats.getHitCount() > 0);
-        assertEquals(0, stats.getMissCount());
+        assertTrue(getHitCount(stats) > 0);
+        assertEquals(0, getMissCount(stats));
         assertEquals(3, o.added.size());
-
-        ConsolidatedDiff diff = cache.getDiff(beforeState.getRevision(), afterState.getRevision());
-        String serailized = diff.asString();
-        ConsolidatedDiff diff2 = ConsolidatedDiff.fromString(serailized);
-        assertEquals(diff, diff2);
 
         builder = store.getRoot().builder();
         builder.child("a").child("a2").removeProperty("foo");
 
         o.reset();
-        stats.resetStats();
+        resetStats(stats);
         merge(store, builder);
 
-        assertTrue(stats.getHitCount() > 0);
-        assertEquals(0, stats.getMissCount());
+        assertTrue(getHitCount(stats) > 0);
+        assertEquals(0, getMissCount(stats));
         assertEquals(1, o.changed.size());
+    }
 
-        store.dispose();
+    @Test
+    public void diffFromAsString() {
+        Map<String, String> changes = Maps.newHashMap();
+        changes.put("/", "+\"foo\":{}^\"bar\":{}-\"baz\"");
+        changes.put("/foo", "");
+        changes.put("/bar", "+\"qux\"");
+        changes.put("/bar/qux", "");
+        Diff diff = new Diff(changes, 0);
+
+        assertEquals(changes, Diff.fromString(diff.asString()).getChanges());
     }
 
     @Test
     public void emptyDiff() throws Exception{
         Map<String, String> changes = new HashMap<String, String>();
-        ConsolidatedDiff diff = new ConsolidatedDiff(changes, 100);
+        Diff diff = new Diff(changes, 100);
         String asString = diff.asString();
-        ConsolidatedDiff diff2 = ConsolidatedDiff.fromString(asString);
+        Diff diff2 = Diff.fromString(asString);
         assertEquals(diff, diff2);
-    }
-
-    private LocalDiffCache getLocalDiffCache(){
-        return (LocalDiffCache) store.getLocalDiffCache();
     }
 
     private static DocumentNodeState merge(NodeStore store, NodeBuilder builder)
@@ -114,6 +124,28 @@ public class LocalDiffCacheTest {
                 .setClusterId(clusterId)
                 .setPersistentCache("target/persistentCache,time")
                 .open();
+    }
+
+    private static long getHitCount(Iterable<CacheStats> stats) {
+        long hitCount = 0;
+        for (CacheStats cs : stats) {
+            hitCount += cs.getHitCount();
+        }
+        return hitCount;
+    }
+
+    private static long getMissCount(Iterable<CacheStats> stats) {
+        long missCount = 0;
+        for (CacheStats cs : stats) {
+            missCount += cs.getMissCount();
+        }
+        return missCount;
+    }
+
+    private static void resetStats(Iterable<CacheStats> stats) {
+        for (CacheStats cs : stats) {
+            cs.resetStats();
+        }
     }
 
     //------------------------------------------------------------< TestNodeObserver >---

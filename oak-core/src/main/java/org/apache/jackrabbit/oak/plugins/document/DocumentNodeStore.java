@@ -78,8 +78,6 @@ import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobReferenceIterator;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
-import org.apache.jackrabbit.oak.plugins.observation.ContentChangeInfo;
-import org.apache.jackrabbit.oak.plugins.observation.ContentChangeInfoProvider;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
@@ -309,8 +307,6 @@ public final class DocumentNodeStore
      */
     private final DiffCache diffCache;
 
-    private final LocalDiffCache localDiffCache;
-
     /**
      * The blob store.
      */
@@ -417,7 +413,6 @@ public final class DocumentNodeStore
                 builder.getWeigher(), builder.getDocChildrenCacheSize());
 
         diffCache = builder.getDiffCache();
-        localDiffCache = builder.getLocalDiffCache();
         checkpoints = new Checkpoints(this);
 
         // check if root node exists
@@ -698,6 +693,11 @@ public final class DocumentNodeStore
 
     public CacheStats getDocChildrenCacheStats() {
         return docChildrenCacheStats;
+    }
+
+    @Nonnull
+    public Iterable<CacheStats> getDiffCacheStats() {
+        return diffCache.getStats();
     }
 
     void invalidateDocChildrenCache() {
@@ -1357,53 +1357,14 @@ public final class DocumentNodeStore
         if (node.hasNoChildren() && base.hasNoChildren()) {
             return true;
         }
-        String jsop = getJsopDiffIfLocalChange(diff, node);
-
-        boolean useReadRevision = true;
-        if (jsop == null) {
-            // first lookup with read revisions of nodes and without loader
-            jsop = diffCache.getChanges(base.getRevision(),
-                    node.getRevision(), node.getPath(), null);
-            if (jsop == null) {
-                useReadRevision = false;
-                // fall back to last revisions with loader, this
-                // guarantees we get a diff
-                jsop = diffCache.getChanges(base.getLastRevision(),
-                        node.getLastRevision(), node.getPath(),
-                        new DiffCache.Loader() {
-                            @Override
-                            public String call() {
-                                return diffImpl(base, node);
-                            }
-                        });
-            }
-        }
-        return dispatch(jsop, node, base, diff, useReadRevision);
-    }
-
-    @CheckForNull
-    private String getJsopDiffIfLocalChange(NodeStateDiff diff, DocumentNodeState nodeState) {
-        if (localDiffCache == null){
-            //Local diff cache support not enabled
-            return null;
-        }
-
-        if (diff instanceof ContentChangeInfoProvider){
-            ContentChangeInfo info = ((ContentChangeInfoProvider) diff).getChangeInfo();
-            if (info.isLocalChange() && info.getAfter() instanceof DocumentNodeState){
-                DocumentNodeState rootAfterState = (DocumentNodeState) info.getAfter();
-                DocumentNodeState rootBeforeState = (DocumentNodeState) info.getBefore();
-                String jsopDiff = localDiffCache.getChanges(rootBeforeState.getRevision(),
-                        rootAfterState.getRevision(),
-                        nodeState.getPath(),
-                        null);
-                if (jsopDiff != null){
-                    LOG.trace("Got diff from local cache for path {}", nodeState.getPath());
-                    return jsopDiff;
-                }
-            }
-        }
-        return null;
+        return dispatch(diffCache.getChanges(base.getRootRevision(),
+                node.getRootRevision(), node.getPath(),
+                new DiffCache.Loader() {
+                    @Override
+                    public String call() {
+                        return diffImpl(base, node);
+                    }
+                }), node, base, diff);
     }
 
     String diff(@Nonnull final String fromRevisionId,
@@ -1973,13 +1934,10 @@ public final class DocumentNodeStore
     private boolean dispatch(@Nonnull String jsonDiff,
                              @Nonnull DocumentNodeState node,
                              @Nonnull DocumentNodeState base,
-                             @Nonnull NodeStateDiff diff,
-                             boolean useReadRevision) {
+                             @Nonnull NodeStateDiff diff) {
         if (jsonDiff.trim().isEmpty()) {
             return true;
         }
-        Revision nodeRev = useReadRevision ? node.getRevision() : node.getLastRevision();
-        Revision baseRev = useReadRevision ? base.getRevision() : base.getLastRevision();
         JsopTokenizer t = new JsopTokenizer(jsonDiff);
         boolean continueComparison = true;
         while (continueComparison) {
@@ -1996,13 +1954,13 @@ public final class DocumentNodeStore
                         // skip properties
                     }
                     continueComparison = diff.childNodeAdded(name,
-                            node.getChildNode(name, nodeRev));
+                            node.getChildNode(name));
                     break;
                 }
                 case '-': {
                     String name = unshareString(t.readString());
                     continueComparison = diff.childNodeDeleted(name,
-                            base.getChildNode(name, baseRev));
+                            base.getChildNode(name));
                     break;
                 }
                 case '^': {
@@ -2011,8 +1969,8 @@ public final class DocumentNodeStore
                     if (t.matches('{')) {
                         t.read('}');
                         continueComparison = diff.childNodeChanged(name,
-                                base.getChildNode(name, baseRev),
-                                node.getChildNode(name, nodeRev));
+                                base.getChildNode(name),
+                                node.getChildNode(name));
                     } else if (t.matches('[')) {
                         // ignore multi valued property
                         while (t.read() != ']') {
@@ -2089,29 +2047,32 @@ public final class DocumentNodeStore
         final long getChildrenDoneIn = debug ? now() : 0;
 
         String diffAlgo;
+        Revision fromRev = from.getLastRevision();
+        Revision toRev = to.getLastRevision();
         if (!fromChildren.hasMore && !toChildren.hasMore) {
             diffAlgo = "diffFewChildren";
             diffFewChildren(w, from.getPath(), fromChildren,
-                    from.getLastRevision(), toChildren, to.getLastRevision());
+                    fromRev, toChildren, toRev);
         } else {
             if (FAST_DIFF) {
                 diffAlgo = "diffManyChildren";
-                diffManyChildren(w, from.getPath(),
-                        from.getRootRevision(), to.getRootRevision());
+                fromRev = from.getRootRevision();
+                toRev = to.getRootRevision();
+                diffManyChildren(w, from.getPath(), fromRev, toRev);
             } else {
                 diffAlgo = "diffAllChildren";
                 max = Integer.MAX_VALUE;
                 fromChildren = getChildren(from, null, max);
                 toChildren = getChildren(to, null, max);
                 diffFewChildren(w, from.getPath(), fromChildren,
-                        from.getLastRevision(), toChildren, to.getLastRevision());
+                        fromRev, toChildren, toRev);
             }
         }
 
         if (debug) {
             long end = now();
             LOG.debug("Diff performed via '{}' at [{}] between revisions [{}] => [{}] took {} ms ({} ms)",
-                    diffAlgo, from.getPath(), from.getLastRevision(), to.getLastRevision(),
+                    diffAlgo, from.getPath(), fromRev, toRev,
                     end - start, getChildrenDoneIn - start);
         }
         return w.toString();
@@ -2489,13 +2450,6 @@ public final class DocumentNodeStore
     }
 
     public DiffCache getDiffCache() {
-        return diffCache;
-    }
-
-    public DiffCache getLocalDiffCache(){
-        if (localDiffCache != null){
-            return localDiffCache;
-        }
         return diffCache;
     }
 

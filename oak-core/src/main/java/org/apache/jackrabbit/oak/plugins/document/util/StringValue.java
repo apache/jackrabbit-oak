@@ -37,8 +37,12 @@ public final class StringValue implements CacheValue {
 
     @Override
     public int getMemory() {
+        return getMemory(value);
+    }
+
+    public static int getMemory(@Nonnull String s) {
         return 16                           // shallow size
-                + 40 + value.length() * 2;  // value
+                + 40 + s.length() * 2;  // value
     }
 
     @Override

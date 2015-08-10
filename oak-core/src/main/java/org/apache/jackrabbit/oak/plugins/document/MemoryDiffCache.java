@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.Collections;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
@@ -45,9 +46,9 @@ public class MemoryDiffCache implements DiffCache {
 
 
     protected MemoryDiffCache(DocumentMK.Builder builder) {
-        diffCache = builder.buildDiffCache();
-        diffCacheStats = new CacheStats(diffCache, "Document-Diff",
-                builder.getWeigher(), builder.getDiffCacheSize());
+        diffCache = builder.buildMemoryDiffCache();
+        diffCacheStats = new CacheStats(diffCache, "Document-MemoryDiff",
+                builder.getWeigher(), builder.getMemoryDiffCacheSize());
     }
 
     @CheckForNull
@@ -83,8 +84,10 @@ public class MemoryDiffCache implements DiffCache {
         return new MemoryEntry(from, to);
     }
 
-    public CacheStats getDiffCacheStats() {
-        return diffCacheStats;
+    @Nonnull
+    @Override
+    public Iterable<CacheStats> getStats() {
+        return Collections.singleton(diffCacheStats);
     }
 
     protected class MemoryEntry implements Entry {
