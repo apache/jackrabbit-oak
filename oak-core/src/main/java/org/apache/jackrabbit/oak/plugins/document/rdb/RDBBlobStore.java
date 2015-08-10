@@ -140,36 +140,28 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
     protected String tnMeta;
     private Set<String> tablesToBeDropped = new HashSet<String>();
 
-    private static void versionCheck(DatabaseMetaData md, int xmaj, int xmin, String description) throws SQLException {
-        int maj = md.getDatabaseMajorVersion();
-        int min = md.getDatabaseMinorVersion();
-        if (maj < xmaj || (maj == xmaj && min < xmin)) {
-            LOG.info("Unsupported " + description + " version: " + maj + "." + min + ", expected at least " + xmaj + "." + xmin);
-        }
-    }
-
     /**
      * Defines variation in the capabilities of different RDBs.
      */
     protected enum DB {
         H2("H2") {
             @Override
-            public void checkVersion(DatabaseMetaData md) throws SQLException {
-                versionCheck(md, 1, 4, description);
+            public String checkVersion(DatabaseMetaData md) throws SQLException {
+                return RDBJDBCTools.versionCheck(md, 1, 4, description);
             }
         },
 
         DERBY("Apache Derby") {
             @Override
-            public void checkVersion(DatabaseMetaData md) throws SQLException {
-                versionCheck(md, 10, 11, description);
+            public String checkVersion(DatabaseMetaData md) throws SQLException {
+                return RDBJDBCTools.versionCheck(md, 10, 11, description);
             }
         },
 
         DB2("DB2") {
             @Override
-            public void checkVersion(DatabaseMetaData md) throws SQLException {
-                versionCheck(md, 10, 1, description);
+            public String checkVersion(DatabaseMetaData md) throws SQLException {
+                return RDBJDBCTools.versionCheck(md, 10, 1, description);
             }
 
             @Override
@@ -180,8 +172,8 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
         MSSQL("Microsoft SQL Server") {
             @Override
-            public void checkVersion(DatabaseMetaData md) throws SQLException {
-                versionCheck(md, 11, 0, description);
+            public String checkVersion(DatabaseMetaData md) throws SQLException {
+                return RDBJDBCTools.versionCheck(md, 11, 0, description);
             }
 
             @Override
@@ -192,8 +184,8 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
         MYSQL("MySQL") {
             @Override
-            public void checkVersion(DatabaseMetaData md) throws SQLException {
-                versionCheck(md, 5, 5, description);
+            public String checkVersion(DatabaseMetaData md) throws SQLException {
+                return RDBJDBCTools.versionCheck(md, 5, 5, description);
             }
 
             @Override
@@ -204,8 +196,8 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
         ORACLE("Oracle") {
             @Override
-            public void checkVersion(DatabaseMetaData md) throws SQLException {
-                versionCheck(md, 12, 1, description);
+            public String checkVersion(DatabaseMetaData md) throws SQLException {
+                return RDBJDBCTools.versionCheck(md, 12, 1, description);
             }
 
             @Override
@@ -216,8 +208,8 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
         POSTGRES("PostgreSQL") {
             @Override
-            public void checkVersion(DatabaseMetaData md) throws SQLException {
-                versionCheck(md, 9, 3, description);
+            public String checkVersion(DatabaseMetaData md) throws SQLException {
+                return RDBJDBCTools.versionCheck(md, 9, 3, description);
             }
 
             @Override
@@ -229,8 +221,8 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
         DEFAULT("default") {
         };
 
-        public void checkVersion(DatabaseMetaData md) throws SQLException {
-            LOG.info("Unknown database type: " + md.getDatabaseProductName());
+        public String checkVersion(DatabaseMetaData md) throws SQLException {
+            return "Unknown database type: " + md.getDatabaseProductName();
         }
 
         public String getDataTableCreationStatement(String tableName) {
@@ -286,6 +278,12 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
         }
 
         DatabaseMetaData md = con.getMetaData();
+        DB db = DB.getValue(md.getDatabaseProductName());
+        String versionDiags = db.checkVersion(md);
+        if (!versionDiags.isEmpty()) {
+            LOG.info(versionDiags);
+        }
+
         String dbDesc = String.format("%s %s (%d.%d)", md.getDatabaseProductName(), md.getDatabaseProductVersion(),
                 md.getDatabaseMajorVersion(), md.getDatabaseMinorVersion());
         String driverDesc = String.format("%s %s (%d.%d)", md.getDriverName(), md.getDriverVersion(), md.getDriverMajorVersion(),
@@ -313,8 +311,6 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
  
                     // table does not appear to exist
                     con.rollback();
-
-                    DB db = DB.getValue(md.getDatabaseProductName());
 
                     createStatement = con.createStatement();
 
