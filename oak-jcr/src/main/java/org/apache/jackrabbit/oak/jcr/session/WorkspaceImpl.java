@@ -146,7 +146,6 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
             @Override
             public void performVoid() throws RepositoryException {
-                sessionDelegate.checkProtectedNode(getParentPath(srcOakPath));
                 sessionDelegate.checkProtectedNode(getParentPath(destOakPath));
 
                 checkIndexOnName(destAbsPath);
