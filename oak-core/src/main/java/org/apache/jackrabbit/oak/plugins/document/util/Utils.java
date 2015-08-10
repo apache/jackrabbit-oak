@@ -523,6 +523,27 @@ public class Utils {
     }
 
     /**
+     * Returns the root node document of the given document store. The returned
+     * document is retrieved from the document store via
+     * {@link DocumentStore#find(Collection, String)}, which means the
+     * implementation is allowed to return a cached version of the document.
+     * The document is therefore not guaranteed to be up-to-date.
+     *
+     * @param store a document store.
+     * @return the root document.
+     * @throws IllegalStateException if there is no root document.
+     */
+    @Nonnull
+    public static NodeDocument getRootDocument(@Nonnull DocumentStore store) {
+        String rootId = Utils.getIdFromPath("/");
+        NodeDocument root = store.find(Collection.NODES, rootId);
+        if (root == null) {
+            throw new IllegalStateException("missing root document");
+        }
+        return root;
+    }
+
+    /**
      * Returns an {@link Iterable} over all {@link NodeDocument}s in the given
      * store matching a condition on an <em>indexed property</em>. The returned
      * {@link Iterable} does not guarantee a consistent view on the store.
