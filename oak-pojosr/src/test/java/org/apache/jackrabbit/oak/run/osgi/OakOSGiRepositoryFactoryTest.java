@@ -85,7 +85,6 @@ public class OakOSGiRepositoryFactoryTest {
         copyConfig("common");
     }
 
-    @Ignore
     @Test
     public void testRepositoryTar() throws Exception {
         copyConfig("tar");

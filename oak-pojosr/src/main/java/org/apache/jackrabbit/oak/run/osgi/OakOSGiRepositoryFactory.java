@@ -387,13 +387,17 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
             checkNotNull(obj, "Repository service is not available");
 
             final String name = method.getName();
-            if ("shutdown".equals(name)) {
-                tracker.shutdownRepository();
-            } else if ("getServiceRegistry".equals(name)){
+            if ("getServiceRegistry".equals(name)){
                 return tracker.getRegistry();
             }
 
-            return method.invoke(obj, args);
+            Object result = method.invoke(obj, args);
+
+            //If shutdown then close the framework *after* repository shutdown
+            if ("shutdown".equals(name)) {
+                tracker.shutdownRepository();
+            }
+            return result;
         }
 
         public void clearInitialReference() {

@@ -51,7 +51,6 @@ class LuceneSupportTest extends AbstractRepositoryFactoryTest {
         config[REPOSITORY_CONFIG_FILE] = createConfigValue("oak-base-config.json", "oak-tar-config.json")
     }
 
-    @Ignore
     @Test
     public void fullTextSearch() throws Exception {
         repository = repositoryFactory.getRepository(config)
