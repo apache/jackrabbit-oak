@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder
 import org.junit.Before
+import org.junit.Ignore;
 import org.junit.Test
 
 import javax.jcr.Node
@@ -50,6 +51,7 @@ class LuceneSupportTest extends AbstractRepositoryFactoryTest {
         config[REPOSITORY_CONFIG_FILE] = createConfigValue("oak-base-config.json", "oak-tar-config.json")
     }
 
+    @Ignore
     @Test
     public void fullTextSearch() throws Exception {
         repository = repositoryFactory.getRepository(config)
