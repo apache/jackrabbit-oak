@@ -1915,6 +1915,54 @@ public class DocumentNodeStoreTest {
         }
     }
 
+    @Test
+    public void failFastOnBranchConflict() throws Exception {
+        final AtomicInteger mergeAttempts = new AtomicInteger();
+        MemoryDocumentStore store = new MemoryDocumentStore() {
+            @Override
+            public <T extends Document> T findAndUpdate(Collection<T> collection,
+                                                        UpdateOp update) {
+                for (Key k : update.getConditions().keySet()) {
+                    if (k.getName().equals(NodeDocument.COLLISIONS)) {
+                        mergeAttempts.incrementAndGet();
+                        break;
+                    }
+                }
+                return super.findAndUpdate(collection, update);
+            }
+        };
+        DocumentNodeStore ds = new DocumentMK.Builder()
+                .setDocumentStore(store)
+                .setAsyncDelay(0).getNodeStore();
+
+        DocumentNodeState root = ds.getRoot();
+        DocumentNodeStoreBranch b = ds.createBranch(root);
+        // branch state is now Unmodified
+        NodeBuilder builder = root.builder();
+        builder.child("foo");
+        b.setRoot(builder.getNodeState());
+        // branch state is now InMemory
+        builder.child("bar").setProperty("p", "foo");
+        b.setRoot(builder.getNodeState());
+        // branch state is now Persisted
+
+        // create conflict with persisted branch
+        NodeBuilder nb = ds.getRoot().builder();
+        nb.child("bar").setProperty("p", "bar");
+        merge(ds, nb);
+
+        mergeAttempts.set(0);
+        try {
+            b.merge(EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            fail("must fail with CommitFailedException");
+        } catch (CommitFailedException e) {
+            // expected
+        }
+
+        assertTrue("too many merge attempts: " + mergeAttempts.get(),
+                mergeAttempts.get() <= 1);
+    }
+
     private static DocumentNodeState asDocumentNodeState(NodeState state) {
         if (!(state instanceof DocumentNodeState)) {
             throw new IllegalArgumentException("Not a DocumentNodeState");

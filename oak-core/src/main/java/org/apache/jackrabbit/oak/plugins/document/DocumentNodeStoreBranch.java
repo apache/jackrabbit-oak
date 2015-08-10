@@ -20,11 +20,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.MERGE;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.STATE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COLLISIONS;
 
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
@@ -34,8 +37,11 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
@@ -652,6 +658,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 DocumentNodeState newRoot = withCurrentBranch(new Callable<DocumentNodeState>() {
                     @Override
                     public DocumentNodeState call() throws Exception {
+                        checkForConflicts();
                         NodeState toCommit = checkNotNull(hook).processCommit(base, head, info);
                         head = DocumentNodeStoreBranch.this.persist(toCommit, head, info);
                         return store.getRoot(store.merge(head.getRevision(), info));
@@ -689,6 +696,27 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 CommitFailedException ex = new CommitFailedException(
                         OAK, 100, "Branch reset failed", e);
                 branchState = new ResetFailed(base, ex);
+            }
+        }
+
+        /**
+         * Checks if any of the commits on this branch have a collision marker
+         * set.
+         *
+         * @throws CommitFailedException if a collision marker is set for one
+         *          of the commits on this branch.
+         */
+        private void checkForConflicts() throws CommitFailedException {
+            Branch b = store.getBranches().getBranch(head.getRevision());
+            if (b == null) {
+                return;
+            }
+            NodeDocument doc = Utils.getRootDocument(store.getDocumentStore());
+            Set<Revision> collisions = doc.getLocalMap(COLLISIONS).keySet();
+            Set<Revision> conflicts = Sets.intersection(collisions, b.getCommits());
+            if (!conflicts.isEmpty()) {
+                throw new CommitFailedException(STATE, 2,
+                        "Conflicting concurrent change on branch commits " + conflicts);
             }
         }
     }
