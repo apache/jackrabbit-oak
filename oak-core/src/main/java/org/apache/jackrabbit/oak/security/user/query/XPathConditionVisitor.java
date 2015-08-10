@@ -59,7 +59,7 @@ class XPathConditionVisitor implements ConditionVisitor {
                 .append("')")
                 .append(" or ")
                 .append("jcr:like(fn:name(),'")
-                .append(QueryUtil.escapeNodeName(condition.getPattern()))
+                .append(QueryUtil.escapeForQuery(QueryUtil.escapeNodeName(condition.getPattern())))
                 .append("')")
                 .append(')');
     }
