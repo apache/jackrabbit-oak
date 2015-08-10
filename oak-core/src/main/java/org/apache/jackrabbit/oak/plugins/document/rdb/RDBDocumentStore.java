@@ -402,15 +402,6 @@ public class RDBDocumentStore implements DocumentStore {
 
     enum FETCHFIRSTSYNTAX { FETCHFIRST, LIMIT, TOP};
 
-
-    private static void versionCheck(DatabaseMetaData md, int xmaj, int xmin, String description) throws SQLException {
-        int maj = md.getDatabaseMajorVersion();
-        int min = md.getDatabaseMinorVersion();
-        if (maj < xmaj || (maj == xmaj && min < xmin)) {
-            LOG.info("Unsupported " + description + " version: " + maj + "." + min + ", expected at least " + xmaj + "." + xmin);
-        }
-    }
-
     /**
      * Defines variation in the capabilities of different RDBs.
      */
@@ -420,15 +411,15 @@ public class RDBDocumentStore implements DocumentStore {
 
         H2("H2") {
             @Override
-            public void checkVersion(DatabaseMetaData md) throws SQLException {
-                versionCheck(md, 1, 4, description);
+            public String checkVersion(DatabaseMetaData md) throws SQLException {
+                return RDBJDBCTools.versionCheck(md, 1, 4, description);
             }
         },
 
         DERBY("Apache Derby") {
             @Override
-            public void checkVersion(DatabaseMetaData md) throws SQLException {
-                versionCheck(md, 10, 11, description);
+            public String checkVersion(DatabaseMetaData md) throws SQLException {
+                return RDBJDBCTools.versionCheck(md, 10, 11, description);
             }
 
             public boolean allowsCaseInSelect() {
@@ -438,8 +429,8 @@ public class RDBDocumentStore implements DocumentStore {
 
         POSTGRES("PostgreSQL") {
             @Override
-            public void checkVersion(DatabaseMetaData md) throws SQLException {
-                versionCheck(md, 9, 3, description);
+            public String checkVersion(DatabaseMetaData md) throws SQLException {
+                return RDBJDBCTools.versionCheck(md, 9, 3, description);
             }
 
             @Override
@@ -478,8 +469,8 @@ public class RDBDocumentStore implements DocumentStore {
 
         DB2("DB2") {
             @Override
-            public void checkVersion(DatabaseMetaData md) throws SQLException {
-                versionCheck(md, 10, 1, description);
+            public String checkVersion(DatabaseMetaData md) throws SQLException {
+                return RDBJDBCTools.versionCheck(md, 10, 1, description);
             }
 
             @Override
@@ -517,8 +508,8 @@ public class RDBDocumentStore implements DocumentStore {
 
         ORACLE("Oracle") {
             @Override
-            public void checkVersion(DatabaseMetaData md) throws SQLException {
-                versionCheck(md, 12, 1, description);
+            public String checkVersion(DatabaseMetaData md) throws SQLException {
+                return RDBJDBCTools.versionCheck(md, 12, 1, description);
             }
 
             @Override
@@ -562,8 +553,8 @@ public class RDBDocumentStore implements DocumentStore {
 
         MYSQL("MySQL") {
             @Override
-            public void checkVersion(DatabaseMetaData md) throws SQLException {
-                versionCheck(md, 5, 5, description);
+            public String checkVersion(DatabaseMetaData md) throws SQLException {
+                return RDBJDBCTools.versionCheck(md, 5, 5, description);
             }
 
             @Override
@@ -611,8 +602,8 @@ public class RDBDocumentStore implements DocumentStore {
 
         MSSQL("Microsoft SQL Server") {
             @Override
-            public void checkVersion(DatabaseMetaData md) throws SQLException {
-                versionCheck(md, 11, 0, description);
+            public String checkVersion(DatabaseMetaData md) throws SQLException {
+                return RDBJDBCTools.versionCheck(md, 11, 0, description);
             }
 
             @Override
@@ -668,8 +659,8 @@ public class RDBDocumentStore implements DocumentStore {
         /**
          * Check the database brand and version
          */
-        public void checkVersion(DatabaseMetaData md) throws SQLException {
-            LOG.info("Unknown database type: " + md.getDatabaseProductName());
+        public String checkVersion(DatabaseMetaData md) throws SQLException {
+            return "Unknown database type: " + md.getDatabaseProductName();
         }
 
         /**
@@ -863,7 +854,10 @@ public class RDBDocumentStore implements DocumentStore {
                 .put("db", md.getDatabaseProductName())
                 .put("version", md.getDatabaseProductVersion())
                 .build();
-        db.checkVersion(md);
+        String versionDiags = db.checkVersion(md);
+        if (!versionDiags.isEmpty()) {
+            LOG.info(versionDiags);
+        }
 
         if (! "".equals(db.getInitializationStatement())) {
             Statement stmt = null;

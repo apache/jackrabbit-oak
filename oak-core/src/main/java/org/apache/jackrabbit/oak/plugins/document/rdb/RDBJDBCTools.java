@@ -17,11 +17,11 @@
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 import javax.annotation.Nonnull;
 
@@ -153,5 +153,19 @@ public class RDBJDBCTools {
             }
         }
         return false;
+    }
+
+    /**
+     * Generate version diagnostics.
+     */
+    protected static String versionCheck(DatabaseMetaData md, int xmaj, int xmin, String description) throws SQLException {
+        int maj = md.getDatabaseMajorVersion();
+        int min = md.getDatabaseMinorVersion();
+        if (maj < xmaj || (maj == xmaj && min < xmin)) {
+            return "Unsupported " + description + " version: " + maj + "." + min + ", expected at least " + xmaj + "." + xmin;
+        }
+        else {
+            return "";
+        }
     }
 }
