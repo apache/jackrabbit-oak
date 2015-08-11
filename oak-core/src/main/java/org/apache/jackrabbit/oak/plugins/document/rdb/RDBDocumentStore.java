@@ -282,6 +282,12 @@ public class RDBDocumentStore implements DocumentStore {
         }
         return null;
     }
+    
+    @Override
+    public CacheInvalidationStats invalidateCache(Iterable<String> keys) {
+        //TODO: optimize me
+        return invalidateCache();
+    }
 
     @Override
     public <T extends Document> void invalidateCache(Collection<T> collection, String id) {
@@ -783,7 +789,7 @@ public class RDBDocumentStore implements DocumentStore {
     private Set<String> tablesToBeDropped = new HashSet<String>();
 
     // table names
-    private String tnNodes, tnClusterNodes, tnSettings; 
+    private String tnNodes, tnClusterNodes, tnSettings, tnJournal;
 
     // ratio between Java characters and UTF-8 encoding
     // a) single characters will fit into 3 bytes
@@ -825,6 +831,7 @@ public class RDBDocumentStore implements DocumentStore {
         this.tnNodes = RDBJDBCTools.createTableName(options.getTablePrefix(), TABLEMAP.get(Collection.NODES));
         this.tnClusterNodes = RDBJDBCTools.createTableName(options.getTablePrefix(), TABLEMAP.get(Collection.CLUSTER_NODES));
         this.tnSettings = RDBJDBCTools.createTableName(options.getTablePrefix(), TABLEMAP.get(Collection.SETTINGS));
+        this.tnJournal = RDBJDBCTools.createTableName(options.getTablePrefix(), "JOURNAL");
 
         this.ch = new RDBConnectionHandler(ds);
         this.callStack = LOG.isDebugEnabled() ? new Exception("call stack of RDBDocumentStore creation") : null;
@@ -878,6 +885,7 @@ public class RDBDocumentStore implements DocumentStore {
             createTableFor(con, Collection.CLUSTER_NODES, tablesCreated, tablesPresent, tableDiags);
             createTableFor(con, Collection.NODES, tablesCreated, tablesPresent, tableDiags);
             createTableFor(con, Collection.SETTINGS, tablesCreated, tablesPresent, tableDiags);
+            createTableFor(con, Collection.JOURNAL, tablesCreated, tablesPresent, tableDiags);
         } finally {
             con.commit();
             con.close();
@@ -1314,6 +1322,8 @@ public class RDBDocumentStore implements DocumentStore {
             return this.tnNodes;
         } else if (collection == Collection.SETTINGS) {
             return this.tnSettings;
+        } else if (collection == Collection.JOURNAL) {
+            return this.tnJournal;
         } else {
             throw new IllegalArgumentException("Unknown collection: " + collection.toString());
         }

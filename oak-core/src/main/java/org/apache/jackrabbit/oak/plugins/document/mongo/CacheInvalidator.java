@@ -195,7 +195,7 @@ abstract class CacheInvalidator {
             PeekingIterator<TreeNode> pitr = Iterators.peekingIterator(treeItr);
             Map<String, TreeNode> sameLevelNodes = Maps.newHashMap();
 
-            // Fetch only the lastRev map and id
+            // Fetch only the modCount and id
             final BasicDBObject keys = new BasicDBObject(Document.ID, 1);
             keys.put(Document.MOD_COUNT, 1);
 
@@ -228,7 +228,7 @@ abstract class CacheInvalidator {
                         QueryBuilder query = QueryBuilder.start(Document.ID)
                                 .in(idBatch);
 
-                        // Fetch lastRev and modCount for each such nodes
+                        // Fetch modCount for each such nodes
                         DBCursor cursor = nodes.find(query.get(), keys);
                         cursor.setReadPreference(ReadPreference.primary());
                         LOG.debug(

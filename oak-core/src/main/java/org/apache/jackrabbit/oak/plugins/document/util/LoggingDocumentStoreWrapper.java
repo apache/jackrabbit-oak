@@ -251,6 +251,17 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
             throw convert(e);
         }
     }
+    
+    @Override
+    public CacheInvalidationStats invalidateCache(Iterable<String> keys) {
+        try {
+            logMethod("invalidateCache", keys);
+            return store.invalidateCache(keys);
+        } catch (Exception e) {
+            logException(e);
+            throw convert(e);
+        }
+    }
 
     @Override
     public <T extends Document> void invalidateCache(Collection<T> collection, String key) {

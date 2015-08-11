@@ -162,11 +162,14 @@ class UnsavedModifications implements Closeable {
      * lock for a short period of time.
      *
      * @param store the document node store.
+     * @param snapshot callback when the snapshot of the pending changes is
+     *                 acquired.
      * @param lock the lock to acquire to get a consistent snapshot of the
      *             revisions to write back.
      * @return stats about the write operation.
      */
     public BackgroundWriteStats persist(@Nonnull DocumentNodeStore store,
+                                        @Nonnull Snapshot snapshot,
                                         @Nonnull Lock lock) {
         BackgroundWriteStats stats = new BackgroundWriteStats();
         if (map.size() == 0) {
@@ -178,13 +181,14 @@ class UnsavedModifications implements Closeable {
         Clock clock = store.getClock();
 
         long time = clock.getTime();
-                // get a copy of the map while holding the lock
+        // get a copy of the map while holding the lock
         lock.lock();
         MapFactory tmpFactory = null;
         Map<String, Revision> pending;
         try {
             stats.lock = clock.getTime() - time;
             time = clock.getTime();
+            snapshot.acquiring();
             if (map.size() > IN_MEMORY_SIZE_LIMIT) {
                 tmpFactory = MapFactory.createFactory();
                 pending = tmpFactory.create(PathComparator.INSTANCE);
@@ -264,5 +268,16 @@ class UnsavedModifications implements Closeable {
     @Override
     public String toString() {
         return map.toString();
+    }
+
+    public interface Snapshot {
+
+        Snapshot IGNORE = new Snapshot() {
+            @Override
+            public void acquiring() {
+            }
+        };
+
+        void acquiring();
     }
 }

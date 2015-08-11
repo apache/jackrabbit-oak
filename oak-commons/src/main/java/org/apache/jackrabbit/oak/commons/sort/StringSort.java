@@ -35,6 +35,7 @@ import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
 import com.google.common.io.Closer;
 import com.google.common.io.Files;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
 import org.slf4j.Logger;
@@ -45,7 +46,7 @@ import org.slf4j.LoggerFactory;
  * the list would be maintained in memory. If the size crosses the required threshold then
  * the sorting would be performed externally
  */
-public class StringSort implements Closeable {
+public class StringSort implements Iterable<String>, Closeable {
     private final Logger log = LoggerFactory.getLogger(getClass());
     public static final int BATCH_SIZE = 2048;
 
@@ -116,6 +117,17 @@ public class StringSort implements Closeable {
             persistentState.close();
         }
     }
+
+    @Override
+    public Iterator<String> iterator() {
+        try {
+            return getIds();
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    //--------------------------< internal >------------------------------------
 
     private void addToBatch(String id) throws IOException {
         inMemBatch.add(id);

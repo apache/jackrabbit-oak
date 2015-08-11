@@ -223,6 +223,13 @@ public interface DocumentStore {
     CacheInvalidationStats invalidateCache();
 
     /**
+     * Invalidate the document cache but only with entries that match one
+     * of the keys provided.
+     */
+    @CheckForNull
+    CacheInvalidationStats invalidateCache(Iterable<String> keys);
+
+    /**
      * Invalidate the document cache for the given key.
      *
      * @param <T> the document type

@@ -60,6 +60,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
 import org.apache.jackrabbit.oak.stats.TimeSeriesMax;
+import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,6 +73,8 @@ import org.slf4j.LoggerFactory;
  */
 class ChangeProcessor implements Observer {
     private static final Logger LOG = LoggerFactory.getLogger(ChangeProcessor.class);
+    private static final PerfLogger PERF_LOGGER = new PerfLogger(
+            LoggerFactory.getLogger(ChangeProcessor.class.getName() + ".perf"));
 
     /**
      * Fill ratio of the revision queue at which commits should be delayed
@@ -280,6 +283,7 @@ class ChangeProcessor implements Observer {
     public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
         if (previousRoot != null) {
             try {
+                long start = PERF_LOGGER.start();
                 FilterProvider provider = filterProvider.get();
                 // FIXME don't rely on toString for session id
                 if (provider.includeCommit(contentSession.toString(), info)) {
@@ -297,6 +301,9 @@ class ChangeProcessor implements Observer {
                         }
                     }
                 }
+                PERF_LOGGER.end(start, 100,
+                        "Generated events (before: {}, after: {})",
+                        previousRoot, root);
             } catch (Exception e) {
                 LOG.warn("Error while dispatching observation events for " + tracker, e);
             }

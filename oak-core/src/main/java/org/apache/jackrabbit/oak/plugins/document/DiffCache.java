@@ -56,11 +56,14 @@ public interface DiffCache {
      *
      * @param from the from revision.
      * @param to the to revision.
+     * @param local true indicates that the entry results from a local change,
+     * false if it results from an external change
      * @return the cache entry.
      */
     @Nonnull
     Entry newEntry(@Nonnull Revision from,
-                   @Nonnull Revision to);
+                   @Nonnull Revision to,
+                   boolean local);
 
     /**
      * @return the statistics for this cache.
