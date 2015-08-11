@@ -83,6 +83,7 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
     final Revision rev;
     Revision lastRevision;
     final Revision rootRevision;
+    final boolean fromExternalChange;
     final Map<String, PropertyState> properties;
     final boolean hasChildren;
 
@@ -97,7 +98,7 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
     DocumentNodeState(@Nonnull DocumentNodeStore store, @Nonnull String path,
                       @Nonnull Revision rev, boolean hasChildren) {
         this(store, path, rev, new HashMap<String, PropertyState>(),
-                hasChildren, null, null);
+                hasChildren, null, null, false);
     }
 
     private DocumentNodeState(@Nonnull DocumentNodeStore store,
@@ -106,12 +107,14 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
                               @Nonnull Map<String, PropertyState> properties,
                               boolean hasChildren,
                               @Nullable Revision lastRevision,
-                              @Nullable Revision rootRevision) {
+                              @Nullable Revision rootRevision,
+                              boolean fromExternalChange) {
         this.store = checkNotNull(store);
         this.path = checkNotNull(path);
         this.rev = checkNotNull(rev);
         this.lastRevision = lastRevision;
         this.rootRevision = rootRevision != null ? rootRevision : rev;
+        this.fromExternalChange = fromExternalChange;
         this.hasChildren = hasChildren;
         this.properties = checkNotNull(properties);
     }
@@ -120,18 +123,41 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
      * Creates a copy of this {@code DocumentNodeState} with the
      * {@link #rootRevision} set to the given {@code root} revision. This method
      * returns {@code this} instance if the given {@code root} revision is
-     * the same as the one in this instance.
+     * the same as the one in this instance and the {@link #fromExternalChange}
+     * flags are equal.
      *
      * @param root the root revision for the copy of this node state.
-     * @return a copy of this node state with the given root revision.
+     * @param externalChange if the {@link #fromExternalChange} flag must be
+     *                       set on the returned node state.
+     * @return a copy of this node state with the given root revision and
+     *          external change flag.
      */
-    DocumentNodeState withRootRevision(@Nonnull Revision root) {
-        if (rootRevision.equals(root)) {
+    private DocumentNodeState withRootRevision(@Nonnull Revision root,
+                                               boolean externalChange) {
+        if (rootRevision.equals(root) && fromExternalChange == externalChange) {
             return this;
         } else {
             return new DocumentNodeState(store, path, rev, properties,
-                    hasChildren, lastRevision, root);
+                    hasChildren, lastRevision, root, externalChange);
         }
+    }
+
+    /**
+     * @return a copy of this {@code DocumentNodeState} with the
+     *          {@link #fromExternalChange} flag set to {@code true}.
+     */
+    @Nonnull
+    DocumentNodeState fromExternalChange() {
+        return new DocumentNodeState(store, path, rev, properties, hasChildren,
+                lastRevision, rootRevision, true);
+    }
+
+    /**
+     * @return {@code true} if this node state was created as a result of an
+     *          external change; {@code false} otherwise.
+     */
+    boolean isFromExternalChange() {
+        return fromExternalChange;
     }
 
     @Nonnull
@@ -228,7 +254,7 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
             checkValidName(name);
             return EmptyNodeState.MISSING_NODE;
         } else {
-            return child.withRootRevision(rootRevision);
+            return child.withRootRevision(rootRevision, fromExternalChange);
         }
     }
 
@@ -486,7 +512,7 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
                     @Nonnull
                     @Override
                     public NodeState getNodeState() {
-                        return input.withRootRevision(rootRevision);
+                        return input.withRootRevision(rootRevision, fromExternalChange);
                     }
                 };
             }
