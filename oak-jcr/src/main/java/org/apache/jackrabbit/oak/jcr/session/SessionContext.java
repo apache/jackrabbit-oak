@@ -32,10 +32,8 @@ import javax.annotation.Nonnull;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.ValueFactory;
-import javax.jcr.Workspace;
 import javax.jcr.observation.ObservationManager;
 import javax.jcr.security.AccessControlManager;
 
@@ -109,12 +107,15 @@ public class SessionContext implements NamePathMapper {
 
     /** Paths of all session scoped locks held by this session. */
     private final Set<String> sessionScopedLocks = newHashSet();
+    
+    private final boolean fastQueryResultSize;
 
     public SessionContext(
             @Nonnull Repository repository, @Nonnull StatisticManager statisticManager,
             @Nonnull SecurityProvider securityProvider, @Nonnull Whiteboard whiteboard,
             @Nonnull Map<String, Object> attributes, @Nonnull final SessionDelegate delegate,
-            int observationQueueLength, CommitRateLimiter commitRateLimiter) {
+            int observationQueueLength, CommitRateLimiter commitRateLimiter,
+            boolean fastQueryResultSize) {
         this.repository = checkNotNull(repository);
         this.statisticManager = statisticManager;
         this.securityProvider = checkNotNull(securityProvider);
@@ -131,6 +132,7 @@ public class SessionContext implements NamePathMapper {
                 namespaces, delegate.getIdManager());
         this.valueFactory = new ValueFactoryImpl(
                 delegate.getRoot(), namePathMapper);
+        this.fastQueryResultSize = fastQueryResultSize;
     }
 
     public final Map<String, Object> getAttributes() {
@@ -279,6 +281,13 @@ public class SessionContext implements NamePathMapper {
 
     public Set<String> getSessionScopedLocks() {
         return sessionScopedLocks;
+    }
+    
+    public boolean getFastQueryResultSize() {
+        if (System.getProperty("oak.fastQuerySize") != null) {
+            return Boolean.getBoolean("oak.fastQuerySize");
+        }
+        return fastQueryResultSize;
     }
 
     //-----------------------------------------------------< NamePathMapper >---

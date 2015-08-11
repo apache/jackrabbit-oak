@@ -486,6 +486,18 @@ public class QueryImpl implements Query {
         }
         Iterator<ResultRowImpl> it =
                 FilterIterators.newCombinedFilter(rowIt, distinct, limit, offset, orderBy, settings);
+        if (orderBy != null) {
+            // this will force the rows to be read, so that the size is known
+            it.hasNext();
+            // we need the size, and there is no other way to get it right now
+            // but we also have to take limit and offset into account
+            long read = rowIt.getReadCount();
+            // we will ignore whatever is behind 'limit+offset'
+            read = Math.min(saturatedAdd(limit, offset), read);
+            // and we will skip 'offset' entries
+            read = Math.max(0, read - offset);
+            size = read;
+        }
         if (measure) {
             // return the measuring iterator delegating the readCounts to the rowIterator
             it = new MeasuringIterator(this, it) {
@@ -1091,6 +1103,10 @@ public class QueryImpl implements Query {
     @Override
     public long getSize(SizePrecision precision, long max) {
         // Note: DISTINCT is ignored
+        if (size != -1) {
+            // "order by" was used, so we know the size
+            return size;
+        }
         return Math.min(limit, source.getSize(precision, max));
     }
 

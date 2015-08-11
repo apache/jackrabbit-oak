@@ -37,12 +37,10 @@ import org.apache.jackrabbit.oak.api.Result.SizePrecision;
  */
 public class PrefetchIterator<K> implements Iterator<K> {
     
-    private final boolean fastSize = Boolean.getBoolean("oak.fastQuerySize");
-    
-    private final Result result;
-    
     private final Iterator<K> it;
     private final long minPrefetch, timeout, maxPrefetch;
+    private final boolean fastSize;
+    private final Result fastSizeCallback;
     private boolean prefetchDone;
     private Iterator<K> prefetchIterator;
     private long size, position;
@@ -51,23 +49,17 @@ public class PrefetchIterator<K> implements Iterator<K> {
      * Create a new iterator.
      * 
      * @param it the base iterator
-     * @param min the minimum number of items to pre-fetch
-     * @param timeout the maximum time to pre-fetch in milliseconds
-     * @param max the maximum number of items to pre-fetch
-     * @param size the size (prefetching is only required if -1)
+     * @param options the prefetch options to use
      * @param result (optional) the result to get the size from
      */
-    PrefetchIterator(Iterator<K> it, long min, long timeout, long max, 
-            long size, Result result) {
+    PrefetchIterator(Iterator<K> it, PrefetchOptions options) {
         this.it = it;
-        this.minPrefetch = min;
-        if (fastSize) {
-            timeout = 0;
-        }
-        this.timeout = timeout;
-        this.maxPrefetch = max;
-        this.size = size;
-        this.result = result;
+        this.minPrefetch = options.min;
+        this.maxPrefetch = options.max;
+        this.timeout = options.fastSize ? 0 : options.timeout;
+        this.fastSize = options.fastSize;
+        this.size = options.size;
+        this.fastSizeCallback = options.fastSizeCallback;
     }
 
     @Override
@@ -145,11 +137,52 @@ public class PrefetchIterator<K> implements Iterator<K> {
             position -= list.size();
         }
         if (size == -1 && fastSize) {
-            if (result != null) {
-                size = result.getSize(SizePrecision.EXACT, Long.MAX_VALUE);
+            if (fastSizeCallback != null) {
+                size = fastSizeCallback.getSize(SizePrecision.EXACT, Long.MAX_VALUE);
             }
         }
         return size;
+    }
+    
+    /**
+     * The options to use for prefetching.
+     */
+    public static class PrefetchOptions {
+        
+        // uses the "simple" named-parameter pattern
+        // see also http://stackoverflow.com/questions/1988016/named-parameter-idiom-in-java
+        
+        /**
+         * The minimum number of rows / nodes to pre-fetch.
+         */
+        long min = 20;
+        
+        /**
+         * The maximum number of rows / nodes to pre-fetch.
+         */
+        long max = 100;
+        
+        /**
+         * The maximum number of milliseconds to prefetch rows / nodes
+         * (ignored if fastSize is set).
+         */
+        long timeout = 100;
+        
+        /**
+         * The size if known, or -1 if not (prefetching is only required if -1).
+         */
+        long size;
+        
+        /**
+         * Whether or not the expected size should be read from the result.
+         */
+        boolean fastSize;
+        
+        /**
+         * The result (optional) to get the size from, in case the fast size options is set.
+         */
+        Result fastSizeCallback;
+        
     }
 
 }

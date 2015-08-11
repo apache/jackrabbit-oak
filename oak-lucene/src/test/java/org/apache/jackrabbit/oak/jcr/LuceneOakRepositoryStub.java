@@ -35,7 +35,6 @@ import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.SimpleNodeAggregator;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexFormatVersion;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
@@ -58,6 +57,7 @@ public class LuceneOakRepositoryStub extends OakTarMKRepositoryStub {
                 new LuceneCompatModeInitializer("luceneGlobal", (Set<String>) null))
                 .with((QueryIndexProvider)provider)
                 .with((Observer) provider)
+                .withFastQueryResultSize(true)
                 .with(new LuceneIndexEditorProvider());
     }
 

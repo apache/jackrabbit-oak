@@ -56,6 +56,7 @@ import org.osgi.framework.ServiceRegistration;
 public class RepositoryManager {
     private static final int DEFAULT_OBSERVATION_QUEUE_LENGTH = 1000;
     private static final boolean DEFAULT_COMMIT_RATE_LIMIT = false;
+    private static final boolean DEFAULT_FAST_QUERY_RESULT_SIZE = false;
 
     //TODO Exposed for testing purpose due to SLING-4472
     static boolean ignoreFrameworkProperties = false;
@@ -78,6 +79,8 @@ public class RepositoryManager {
     private int observationQueueLength;
 
     private CommitRateLimiter commitRateLimiter;
+    
+    private boolean fastQueryResultSize;
 
     @Reference
     private SecurityProvider securityProvider;
@@ -98,6 +101,12 @@ public class RepositoryManager {
                 "queue exceed 90% of its capacity.")
     private static final String COMMIT_RATE_LIMIT = "oak.observation.limit-commit-rate";
 
+    @Property(
+            boolValue = DEFAULT_FAST_QUERY_RESULT_SIZE,
+            name = "Fast query result size",
+            description = "Whether the query result size should return an estimation (or -1 if disabled) for large queries")
+    private static final String FAST_QUERY_RESULT_SIZE = "oak.query.fastResultSize";
+
     @Activate
     public void activate(BundleContext bundleContext, Map<String, ?> config) throws Exception {
         observationQueueLength = PropertiesUtil.toInteger(prop(
@@ -109,7 +118,10 @@ public class RepositoryManager {
         } else {
             commitRateLimiter = null;
         }
-
+        
+        fastQueryResultSize = PropertiesUtil.toBoolean(prop(
+                config, bundleContext, FAST_QUERY_RESULT_SIZE), DEFAULT_FAST_QUERY_RESULT_SIZE);
+        
         whiteboard = new OsgiWhiteboard(bundleContext);
         initializers = whiteboard.track(RepositoryInitializer.class);
         editorProvider.start(whiteboard);
@@ -166,7 +178,7 @@ public class RepositoryManager {
         return bundleContext.registerService(
                 Repository.class.getName(),
                 new OsgiRepository(oak.createContentRepository(), whiteboard, securityProvider,
-                        observationQueueLength, commitRateLimiter),
+                        observationQueueLength, commitRateLimiter, fastQueryResultSize),
                 new Properties());
     }
 }
