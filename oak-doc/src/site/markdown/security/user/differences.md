@@ -31,7 +31,9 @@ invalid transient modifications.
 
 - stores user/group information in the workspace associated with the editing Session
 - the autosave feature is no longer supported by default; configuration option
-  `PARAM_SUPPORT_AUTOSAVE` can be used to obtain backwards compatible behavior.
+  `PARAM_SUPPORT_AUTOSAVE` can be used to obtain backwards compatible behavior
+- calling `getAuthorizable` with empty id or `null` id/principal will not throw
+  a runtime exception but silently returns `null`
 
 #### Authorizable
 
@@ -43,6 +45,7 @@ invalid transient modifications.
   it falls back on the node name in case the ID property is missing.
 * Node Name: The name of the authorizable node is generated based on a configurable implementation
   of the `AuthorizableNodeName` interface. Default: ID as name hint.
+  See section [Authorizable Node Name Generation](authorizablenodename.html) for details.
 
 #### User
 
