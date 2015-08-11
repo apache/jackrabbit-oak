@@ -24,19 +24,26 @@ import static org.junit.Assert.fail;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
+import org.apache.jackrabbit.oak.jcr.query.PrefetchIterator.PrefetchOptions;
 import org.junit.Test;
 
 /**
  * Test the PrefetchIterator class.
  */
 public class PrefetchIteratorTest {
-
+    
     @Test
     public void testKnownSize() {
         Iterable<Integer> s;
         PrefetchIterator<Integer> it;
         s = seq(0, 100);
-        it = new PrefetchIterator<Integer>(s.iterator(), 5, 0, 10, 200, null);
+        it = new PrefetchIterator<Integer>(s.iterator(), 
+                new PrefetchOptions() { {
+                    min = 5;
+                    timeout = 0;
+                    max = 10;
+                    size = 200;
+                } });
         // reports the 'wrong' value as it was set manually
         assertEquals(200, it.size());
     }
@@ -47,14 +54,26 @@ public class PrefetchIteratorTest {
         PrefetchIterator<Integer> it;
         
         // long delay (10 ms per row)
-        long timeout = 10;
+        final long testTimeout = 10;
         s = seq(0, 100, 10);
-        it = new PrefetchIterator<Integer>(s.iterator(), 5, timeout, 1000, -1, null);
+        it = new PrefetchIterator<Integer>(s.iterator(), 
+                new PrefetchOptions() { {
+                    min = 5;
+                    timeout = testTimeout;
+                    max = 10;
+                    size = -1;
+                } });
         assertEquals(-1, it.size());
 
         // no delay
         s = seq(0, 100);
-        it = new PrefetchIterator<Integer>(s.iterator(), 5, timeout, 1000, -1, null);
+        it = new PrefetchIterator<Integer>(s.iterator(), 
+                new PrefetchOptions() { {
+                    min = 5;
+                    timeout = testTimeout;
+                    max = 1000;
+                    size = -1;
+                } });
         assertEquals(100, it.size());
     }
 
@@ -65,10 +84,16 @@ public class PrefetchIteratorTest {
         for (int size : seq(0, 100)) {
             for (int readBefore : seq(0, 30)) {
                 // every 3th time, use a timeout
-                long timeout = size % 3 == 0 ? 100 : 0;
+                final long testTimeout = size % 3 == 0 ? 100 : 0;
                 Iterable<Integer> s = seq(0, size);
                 PrefetchIterator<Integer> it = 
-                        new PrefetchIterator<Integer>(s.iterator(), 20, timeout, 30, -1, null);
+                        new PrefetchIterator<Integer>(s.iterator(), 
+                                new PrefetchOptions() { {
+                                    min = 20;
+                                    timeout = testTimeout;
+                                    max = 30;
+                                    size = -1;
+                                } });
                 for (int x : seq(0, readBefore)) {
                     boolean hasNext = it.hasNext();
                     if (!hasNext) {
@@ -80,7 +105,7 @@ public class PrefetchIteratorTest {
                     assertEquals(m, x, it.next().intValue());
                 }
                 String m = "s:" + size + " b:" + readBefore;
-                int max = timeout <= 0 ? 20 : 30;
+                int max = testTimeout <= 0 ? 20 : 30;
                 if (size > max && readBefore <= size) {
                     assertEquals(m, -1, it.size());
                     // calling it twice must not change the result

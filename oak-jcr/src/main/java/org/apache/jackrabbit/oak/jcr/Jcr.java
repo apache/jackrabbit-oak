@@ -68,7 +68,8 @@ public class Jcr {
 
     private SecurityProvider securityProvider;
     private int observationQueueLength = DEFAULT_OBSERVATION_QUEUE_LENGTH;
-    private CommitRateLimiter commitRateLimiter = null;
+    private CommitRateLimiter commitRateLimiter;
+    private boolean fastQueryResultSize;
 
     private Repository repository;
 
@@ -201,6 +202,12 @@ public class Jcr {
         return this;
     }
 
+    @Nonnull
+    public Jcr withFastQueryResultSize(boolean fastQueryResultSize) {
+        this.fastQueryResultSize = fastQueryResultSize;
+        return this;
+    }
+
     public ContentRepository createContentRepository() {
         return oak.createContentRepository();
     }
@@ -212,7 +219,8 @@ public class Jcr {
                     oak.getWhiteboard(),
                     securityProvider,
                     observationQueueLength,
-                    commitRateLimiter);
+                    commitRateLimiter,
+                    fastQueryResultSize);
         }
 
         return repository;

@@ -86,7 +86,8 @@ public class ResultSizeTest extends AbstractQueryTest {
         StringBuilder buff;
         
         // fast (insecure) case
-        System.setProperty("oak.fastQuerySize", "true");
+        // enabled by default now, in LuceneOakRepositoryStub 
+        System.clearProperty("oak.fastQuerySize");
         q = qm.createQuery(xpath, "xpath");
         it = q.execute().getNodes();
         result = it.getSize();
@@ -104,8 +105,10 @@ public class ResultSizeTest extends AbstractQueryTest {
         it = q.execute().getNodes();
         assertEquals(90, it.getSize());
         
+        
         // default (secure) case
-        System.clearProperty("oak.fastQuerySize");
+        // manually disabled
+        System.setProperty("oak.fastQuerySize", "false");
         q = qm.createQuery(xpath, "xpath");
         it = q.execute().getNodes();
         result = it.getSize();
@@ -117,7 +120,8 @@ public class ResultSizeTest extends AbstractQueryTest {
         }
         String regularResult = buff.toString();
         assertEquals(regularResult, fastSizeResult);
-
+        System.clearProperty("oak.fastQuerySize");
+        
     }
     
 }

@@ -38,8 +38,10 @@ public class OsgiRepository extends RepositoryImpl {
                           Whiteboard whiteboard,
                           SecurityProvider securityProvider,
                           int observationQueueLength,
-                          CommitRateLimiter commitRateLimiter) {
-        super(repository, whiteboard, securityProvider, observationQueueLength, commitRateLimiter);
+                          CommitRateLimiter commitRateLimiter,
+                          boolean fastQueryResultSize) {
+        super(repository, whiteboard, securityProvider, observationQueueLength, 
+                commitRateLimiter, fastQueryResultSize);
     }
 
     @Override

@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.jcr.query.PrefetchIterator.PrefetchOptions;
 import org.apache.jackrabbit.oak.jcr.session.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
@@ -50,24 +51,10 @@ public class QueryResultImpl implements QueryResult {
 
     static final Logger LOG = LoggerFactory.getLogger(QueryResultImpl.class);
 
-    /**
-     * The minimum number of rows / nodes to pre-fetch.
-     */ 
-    private static final int PREFETCH_MIN = 20;
-
-    /**
-     * The maximum number of rows / nodes to pre-fetch.
-     */
-    private static final int PREFETCH_MAX = 100;
-
-    /**
-     * The maximum number of milliseconds to prefetch rows / nodes.
-     */
-    private static final int PREFETCH_TIMEOUT = 100;
-
+    protected final SessionContext sessionContext;
+    
     final Result result;
 
-    private final SessionContext sessionContext;
     private final SessionDelegate sessionDelegate;
 
     public QueryResultImpl(SessionContext sessionContext, Result result) {
@@ -136,8 +123,11 @@ public class QueryResultImpl implements QueryResult {
         };
         final PrefetchIterator<RowImpl> prefIt = new  PrefetchIterator<RowImpl>(
                 sessionDelegate.sync(rowIterator),
-                PREFETCH_MIN, PREFETCH_TIMEOUT, PREFETCH_MAX, 
-                result.getSize(), result);
+                new PrefetchOptions() { {
+                    size = result.getSize();
+                    fastSize = sessionContext.getFastQueryResultSize();
+                    fastSizeCallback = result;
+                } });
         return new RowIteratorAdapter(prefIt) {
             @Override
             public long getSize() {
@@ -167,7 +157,8 @@ public class QueryResultImpl implements QueryResult {
             throw new RepositoryException("Query does not contain a selector: " +
                     Arrays.toString(columnSelectorNames));
         }
-        Iterator<NodeImpl<? extends NodeDelegate>> nodeIterator = new Iterator<NodeImpl<? extends NodeDelegate>>() {
+        Iterator<NodeImpl<? extends NodeDelegate>> nodeIterator = 
+                new Iterator<NodeImpl<? extends NodeDelegate>>() {
 
             private final Iterator<? extends ResultRow> it = result.getRows().iterator();
             private NodeImpl<? extends NodeDelegate> current;
@@ -214,10 +205,14 @@ public class QueryResultImpl implements QueryResult {
             }
 
         };
-        final PrefetchIterator<NodeImpl<? extends NodeDelegate>> prefIt = new  PrefetchIterator<NodeImpl<? extends NodeDelegate>>(
-                sessionDelegate.sync(nodeIterator),
-                PREFETCH_MIN, PREFETCH_TIMEOUT, PREFETCH_MAX, 
-                result.getSize(), result);
+        final PrefetchIterator<NodeImpl<? extends NodeDelegate>> prefIt = 
+                new  PrefetchIterator<NodeImpl<? extends NodeDelegate>>(
+                    sessionDelegate.sync(nodeIterator),
+                    new PrefetchOptions() { {
+                        size = result.getSize();
+                        fastSize = sessionContext.getFastQueryResultSize();
+                        fastSizeCallback = result;
+                    } });
         return new NodeIteratorAdapter(prefIt) {
             @Override
             public long getSize() {
