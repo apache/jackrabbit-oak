@@ -67,7 +67,7 @@ public class QueryTest {
         r.commit();
 
         Result result = r2.getQueryEngine().executeQuery(
-                "test//element(*, nt:base)", Query.XPATH, Long.MAX_VALUE, 0,
+                "test//element(*, nt:base)", Query.XPATH,
                 QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
         Set<String> paths = new HashSet<String>();
         for (ResultRow rr : result.getRows()) {

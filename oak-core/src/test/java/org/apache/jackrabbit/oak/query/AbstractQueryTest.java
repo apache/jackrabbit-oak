@@ -112,7 +112,7 @@ public abstract class AbstractQueryTest {
 
     protected Result executeQuery(String statement, String language,
             Map<String, PropertyValue> sv) throws ParseException {
-        return qe.executeQuery(statement, language, Long.MAX_VALUE, 0, sv, NO_MAPPINGS);
+        return qe.executeQuery(statement, language, sv, NO_MAPPINGS);
     }
 
     protected void test(String file) throws Exception {

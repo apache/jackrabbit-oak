@@ -222,7 +222,7 @@ public class IdentifierManager {
             Result result = root.getQueryEngine().executeQuery(
                     "SELECT * FROM [nt:base] WHERE PROPERTY([" + pName + "], '" + reference + "') = $uuid" +
                     QueryEngine.INTERNAL_SQL2_QUERY,
-                    Query.JCR_SQL2, Long.MAX_VALUE, 0, bindings, NO_MAPPINGS);
+                    Query.JCR_SQL2, bindings, NO_MAPPINGS);
             return findPaths(result, uuid, propertyName, nodeTypeNames,
                     weak ? Type.WEAKREFERENCE : Type.REFERENCE,
                     weak ? Type.WEAKREFERENCES : Type.REFERENCES
@@ -315,7 +315,7 @@ public class IdentifierManager {
                     "SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id" + 
                     QueryEngine.INTERNAL_SQL2_QUERY, 
                     Query.JCR_SQL2,
-                    Long.MAX_VALUE, 0, bindings, NO_MAPPINGS);
+                    bindings, NO_MAPPINGS);
 
             String path = null;
             for (ResultRow rr : result.getRows()) {

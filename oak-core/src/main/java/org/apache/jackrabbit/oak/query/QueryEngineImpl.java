@@ -70,7 +70,9 @@ public abstract class QueryEngineImpl implements QueryEngine {
     private boolean traversalEnabled = true;
 
     /**
-     * @return Execution context for a single query execution.
+     * Get the execution context for a single query execution.
+     * 
+     * @return the context
      */
     protected abstract ExecutionContext getExecutionContext();
 
@@ -143,6 +145,14 @@ public abstract class QueryEngineImpl implements QueryEngine {
         } else {
             throw new ParseException("Unsupported language: " + language, 0);
         }
+    }
+    
+    @Override
+    public Result executeQuery(
+            String statement, String language,
+            Map<String, ? extends PropertyValue> bindings,
+            Map<String, String> mappings) throws ParseException {
+        return executeQuery(statement, language, Long.MAX_VALUE, 0, bindings, mappings);
     }
     
     @Override
