@@ -54,6 +54,7 @@ import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
+import org.apache.jackrabbit.oak.plugins.document.JournalEntry;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
@@ -232,6 +233,11 @@ public class MongoDocumentStore implements DocumentStore {
         options.put("sparse", Boolean.TRUE);
         this.nodes.ensureIndex(index, options);
 
+        index = new BasicDBObject();
+        index.put(JournalEntry.MODIFIED, 1);
+        options = new BasicDBObject();
+        options.put("unique", Boolean.FALSE);
+        this.journal.ensureIndex(index, options);
 
         // TODO expire entries if the parent was changed
         if (builder.useOffHeapCache()) {
