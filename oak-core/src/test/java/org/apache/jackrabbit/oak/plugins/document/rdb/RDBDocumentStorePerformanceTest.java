@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
@@ -38,13 +39,18 @@ import org.slf4j.LoggerFactory;
 /**
  * Tests measuring the performance of various {@link RDBDocumentStore}
  * operations.
+ * <p>
+ * These tests are disabled by default due to their long running time. On the command line
+ * specify {@code -DRDBDocumentStorePerformanceTest=true} to enable them.
  */
 public class RDBDocumentStorePerformanceTest extends AbstractDocumentStoreTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(RDBDocumentStorePerformanceTest.class);
+    private static final boolean ENABLED = Boolean.getBoolean(DocumentStorePerformanceTest.class.getSimpleName());
 
     public RDBDocumentStorePerformanceTest(DocumentStoreFixture dsf) {
         super(dsf);
+        assumeTrue(ENABLED);
     }
 
     @Test
