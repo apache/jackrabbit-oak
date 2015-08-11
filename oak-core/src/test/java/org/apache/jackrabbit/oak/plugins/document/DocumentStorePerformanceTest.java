@@ -21,6 +21,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -35,13 +36,18 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Tests measuring the performance of various {@link DocumentStore} operations.
+ * <p>
+ * These tests are disabled by default due to their long running time. On the command line
+ * specify {@code -DDocumentStorePerformanceTest=true} to enable them.
  */
 public class DocumentStorePerformanceTest extends AbstractDocumentStoreTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(DocumentStorePerformanceTest.class);
+    private static final boolean ENABLED = Boolean.getBoolean(DocumentStorePerformanceTest.class.getSimpleName());
 
     public DocumentStorePerformanceTest(DocumentStoreFixture dsf) {
         super(dsf);
+        assumeTrue(ENABLED);
     }
 
     @Test
