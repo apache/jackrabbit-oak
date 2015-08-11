@@ -31,7 +31,7 @@ public class RDBHelper {
             System.out.println();
 
             RDBDocumentStoreDB ddb = RDBDocumentStoreDB.getValue(database);
-            RDBBlobStore.DB bdb = RDBBlobStore.DB.getValue(database);
+            RDBBlobStoreDB bdb = RDBBlobStoreDB.getValue(database);
 
             for (String table : RDBDocumentStore.getTableNames()) {
                 System.out.println("  " + ddb.getTableCreationStatement(table));
