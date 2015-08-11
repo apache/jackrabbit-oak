@@ -66,6 +66,7 @@ import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.apache.jackrabbit.oak.plugins.document.cache.ForwardingListener;
 import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocOffHeapCache;
 import org.apache.jackrabbit.oak.plugins.document.cache.OffHeapCache;
+import org.apache.jackrabbit.oak.plugins.document.mongo.CacheInvalidator.InvalidationResult;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -115,6 +116,7 @@ public class MongoDocumentStore implements DocumentStore {
     private final DBCollection nodes;
     private final DBCollection clusterNodes;
     private final DBCollection settings;
+    private final DBCollection journal;
 
     private final Cache<CacheValue, NodeDocument> nodesCache;
     private final CacheStats cacheStats;
@@ -192,12 +194,10 @@ public class MongoDocumentStore implements DocumentStore {
                 .put("version", version)
                 .build();
 
-        nodes = db.getCollection(
-                Collection.NODES.toString());
-        clusterNodes = db.getCollection(
-                Collection.CLUSTER_NODES.toString());
-        settings = db.getCollection(
-                Collection.SETTINGS.toString());
+        nodes = db.getCollection(Collection.NODES.toString());
+        clusterNodes = db.getCollection(Collection.CLUSTER_NODES.toString());
+        settings = db.getCollection(Collection.SETTINGS.toString());
+        journal = db.getCollection(Collection.JOURNAL.toString());
 
         maxReplicationLagMillis = builder.getMaxReplicationLagMillis();
 
@@ -295,6 +295,59 @@ public class MongoDocumentStore implements DocumentStore {
         //that would lead to lesser number of queries
         return CacheInvalidator.createHierarchicalInvalidator(this).invalidateCache();
     }
+    
+    @Override
+    public CacheInvalidationStats invalidateCache(Iterable<String> keys) {
+        LOG.debug("invalidateCache: start");
+        final InvalidationResult result = new InvalidationResult();
+        int size  = 0;
+
+        final Iterator<String> it = keys.iterator();
+        while(it.hasNext()) {
+            // read chunks of documents only
+            final List<String> ids = new ArrayList<String>(IN_CLAUSE_BATCH_SIZE);
+            while(it.hasNext() && ids.size() < IN_CLAUSE_BATCH_SIZE) {
+                final String id = it.next();
+                if (getCachedNodeDoc(id) != null) {
+                    // only add those that we actually do have cached
+                    ids.add(id);
+                }
+            }
+            size += ids.size();
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("invalidateCache: batch size: {} of total so far {}",
+                        ids.size(), size);
+            }
+            
+            QueryBuilder query = QueryBuilder.start(Document.ID).in(ids);
+            // Fetch only the modCount and id
+            final BasicDBObject fields = new BasicDBObject(Document.ID, 1);
+            fields.put(Document.MOD_COUNT, 1);
+            
+            DBCursor cursor = nodes.find(query.get(), fields);
+            cursor.setReadPreference(ReadPreference.primary());
+            result.queryCount++;
+            
+            for (DBObject obj : cursor) {
+                result.cacheEntriesProcessedCount++;
+                String id = (String) obj.get(Document.ID);
+                Number modCount = (Number) obj.get(Document.MOD_COUNT);
+                
+                CachedNodeDocument cachedDoc = getCachedNodeDoc(id);
+                if (cachedDoc != null
+                        && !Objects.equal(cachedDoc.getModCount(), modCount)) {
+                    invalidateCache(Collection.NODES, id);
+                    result.invalidationCount++;
+                } else {
+                    result.upToDateCount++;
+                }
+            }
+        }
+
+        result.cacheSize = size;
+        LOG.trace("invalidateCache: end. total: {}", size);
+        return result;
+    }
 
     @Override
     public <T extends Document> void invalidateCache(Collection<T> collection, String key) {
@@ -360,29 +413,30 @@ public class MongoDocumentStore implements DocumentStore {
         try {
             TreeLock lock = acquire(key);
             try {
-                if (maxCacheAge == 0) {
-                    invalidateCache(collection, key);
-                }
-                while (true) {
-                    doc = nodesCache.get(cacheKey, new Callable<NodeDocument>() {
-                        @Override
-                        public NodeDocument call() throws Exception {
-                            NodeDocument doc = (NodeDocument) findUncached(collection, key, getReadPreference(maxCacheAge));
-                            if (doc == null) {
-                                doc = NodeDocument.NULL;
+                if (maxCacheAge > 0 || preferCached) {
+                    // try again some other thread may have populated
+                    // the cache by now
+                    doc = nodesCache.getIfPresent(cacheKey);
+                    if (doc != null) {
+                        if (preferCached ||
+                                getTime() - doc.getCreated() < maxCacheAge) {
+                            if (doc == NodeDocument.NULL) {
+                                return null;
                             }
-                            return doc;
+                            return (T) doc;
                         }
-                    });
-                    if (maxCacheAge == 0 || preferCached) {
-                        break;
                     }
-                    if (getTime() - doc.getCreated() < maxCacheAge) {
-                        break;
-                    }
-                    // too old: invalidate, try again
-                    invalidateCache(collection, key);
                 }
+                final NodeDocument d = (NodeDocument) findUncached(
+                        collection, key,
+                        getReadPreference(maxCacheAge));
+                invalidateCache(collection, key);
+                doc = nodesCache.get(cacheKey, new Callable<NodeDocument>() {
+                    @Override
+                    public NodeDocument call() throws Exception {
+                        return d == null ? NodeDocument.NULL : d;
+                    }
+                });
             } finally {
                 lock.unlock();
             }
@@ -393,6 +447,8 @@ public class MongoDocumentStore implements DocumentStore {
             }
         } catch (ExecutionException e) {
             t = e.getCause();
+        } catch (RuntimeException e) {
+            t = e;
         }
         throw new DocumentStoreException("Failed to load document with " + key, t);
     }
@@ -514,9 +570,13 @@ public class MongoDocumentStore implements DocumentStore {
         }
         DBObject query = queryBuilder.get();
         String parentId = Utils.getParentIdFromLowerLimit(fromKey);
+        long lockTime = -1;
         final long start = PERFLOG.start();
-        TreeLock lock = withLock ? acquireExclusive(parentId != null ? parentId : "") : null;
+        TreeLock lock = acquireExclusive(parentId != null ? parentId : "");
         try {
+            if (start != -1) {
+                lockTime = System.currentTimeMillis() - start;
+            }
             DBCursor cursor = dbCollection.find(query).sort(BY_ID_ASC);
             if (!disableIndexHint) {
                 cursor.hint(hint);
@@ -574,7 +634,7 @@ public class MongoDocumentStore implements DocumentStore {
             if (lock != null) {
                 lock.unlock();
             }
-            PERFLOG.end(start, 1, "query for children from [{}] to [{}]", fromKey, toKey);
+            PERFLOG.end(start, 1, "query for children from [{}] to [{}], lock:{}", fromKey, toKey, lockTime);
         }
     }
 
@@ -968,7 +1028,9 @@ public class MongoDocumentStore implements DocumentStore {
             return clusterNodes;
         } else if (collection == Collection.SETTINGS) {
             return settings;
-        }else {
+        } else if (collection == Collection.JOURNAL) {
+            return journal;
+        } else {
             throw new IllegalArgumentException(
                     "Unknown collection: " + collection.toString());
         }

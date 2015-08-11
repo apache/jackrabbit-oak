@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.plugins.document.UnsavedModifications.Snapshot.IGNORE;
 import static org.junit.Assert.assertEquals;
 
 public class UnsavedModificationsTest {
@@ -96,7 +97,7 @@ public class UnsavedModificationsTest {
             public void run() {
                 while (exceptions.isEmpty()) {
                     try {
-                        mod.persist(ns, new ReentrantLock());
+                        mod.persist(ns, IGNORE, new ReentrantLock());
                         Thread.sleep(10);
                     } catch (Exception e) {
                         exceptions.add(e);
@@ -169,7 +170,7 @@ public class UnsavedModificationsTest {
                                 paths.clear();
                             }
                             if (random.nextFloat() < 0.00005) {
-                                pending.persist(ns, new ReentrantLock());
+                                pending.persist(ns, IGNORE, new ReentrantLock());
                             }
                         }
                     }
@@ -220,7 +221,7 @@ public class UnsavedModificationsTest {
         }
 
         // drain pending, this will force it back to in-memory
-        pending.persist(ns, new ReentrantLock());
+        pending.persist(ns, IGNORE, new ReentrantLock());
 
         // loop over remaining paths
         while (paths.hasNext()) {
@@ -257,7 +258,7 @@ public class UnsavedModificationsTest {
         }
 
         // drain pending, this will force it back to in-memory
-        pending.persist(ns, new ReentrantLock());
+        pending.persist(ns, IGNORE, new ReentrantLock());
 
         // loop over remaining paths
         while (paths.hasNext()) {

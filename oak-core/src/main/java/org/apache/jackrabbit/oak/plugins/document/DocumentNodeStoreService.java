@@ -33,6 +33,7 @@ import com.mongodb.DB;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoClientURI;
+
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
@@ -164,6 +165,23 @@ public class DocumentNodeStoreService {
      */
     public static final String CUSTOM_BLOB_STORE = "customBlobStore";
 
+    private static final long DEFAULT_JOURNAL_GC_INTERVAL_MILLIS = 5*60*1000; // default is 5min
+    @Property(longValue = DEFAULT_JOURNAL_GC_INTERVAL_MILLIS,
+            label = "Journal Garbage Collection Interval (millis)",
+            description = "Long value indicating interval (in milliseconds) with which the "
+                    + "journal (for external changes) is cleaned up. Default is " + DEFAULT_JOURNAL_GC_INTERVAL_MILLIS
+    )
+    private static final String PROP_JOURNAL_GC_INTERVAL_MILLIS = "journalGCInterval";
+    
+    private static final long DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS = 6*60*60*1000; // default is 6hours
+    @Property(longValue = DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS,
+            label = "Maximum Age of Journal Entries (millis)",
+            description = "Long value indicating max age (in milliseconds) that "
+                    + "journal (for external changes) entries are kept (older ones are candidates for gc). "
+                    + "Default is " + DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS
+    )
+    private static final String PROP_JOURNAL_GC_MAX_AGE_MILLIS = "journalGCMaxAge";
+    
     private static final long MB = 1024 * 1024;
 
     private static enum DocumentStoreType {
@@ -339,6 +357,7 @@ public class DocumentNodeStoreService {
 
         registerJMXBeans(mk.getNodeStore());
         registerLastRevRecoveryJob(mk.getNodeStore());
+        registerJournalGC(mk.getNodeStore());
 
         NodeStore store;
         if (useMK) {
@@ -516,6 +535,23 @@ public class DocumentNodeStoreService {
         };
         registrations.add(WhiteboardUtils.scheduleWithFixedDelay(whiteboard,
                 recoverJob, TimeUnit.MILLISECONDS.toSeconds(leaseTime)));
+    }
+
+    private void registerJournalGC(final DocumentNodeStore nodeStore) {
+        long journalGCInterval = toLong(context.getProperties().get(PROP_JOURNAL_GC_INTERVAL_MILLIS),
+                DEFAULT_JOURNAL_GC_INTERVAL_MILLIS);
+        final long journalGCMaxAge = toLong(context.getProperties().get(PROP_JOURNAL_GC_MAX_AGE_MILLIS),
+                DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS);
+        Runnable journalGCJob = new Runnable() {
+
+            @Override
+            public void run() {
+                nodeStore.getJournalGarbageCollector().gc(journalGCMaxAge, TimeUnit.MILLISECONDS);
+            }
+
+        };
+        registrations.add(WhiteboardUtils.scheduleWithFixedDelay(whiteboard,
+                journalGCJob, TimeUnit.MILLISECONDS.toSeconds(journalGCInterval), true/*runOnSingleClusterNode*/));
     }
 
     private Object prop(String propName) {

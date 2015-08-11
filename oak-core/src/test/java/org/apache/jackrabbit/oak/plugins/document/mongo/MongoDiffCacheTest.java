@@ -86,7 +86,7 @@ public class MongoDiffCacheTest {
         
         MongoDiffCache diffCache = new MongoDiffCache(db, 32, new DocumentMK.Builder());
         DiffCache.Entry entry = diffCache.newEntry(
-                new Revision(1, 0, 1), new Revision(2, 0, 1));
+                new Revision(1, 0, 1), new Revision(2, 0, 1), false);
         for (int i = 0; i < 100; i++) {
             for (int j = 0; j < 100; j++) {
                 for (int k = 0; k < 64; k++) {

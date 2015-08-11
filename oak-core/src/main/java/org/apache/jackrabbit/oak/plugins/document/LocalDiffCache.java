@@ -73,7 +73,8 @@ public class LocalDiffCache implements DiffCache {
     @Nonnull
     @Override
     public Entry newEntry(final @Nonnull Revision from,
-                          final @Nonnull Revision to) {
+                          final @Nonnull Revision to,
+                          boolean local /*ignored*/) {
         return new Entry() {
             private final Map<String, String> changesPerPath = Maps.newHashMap();
             private int size;
