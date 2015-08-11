@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.junit.Assert.assertEquals;
@@ -27,23 +24,37 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import com.mongodb.DB;
+
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.collect.Sets;
-import com.mongodb.DB;
 
 /**
  * A set of simple cluster tests.
@@ -53,24 +64,15 @@ public class ClusterTest {
     private static final boolean MONGO_DB = false;
     // private static final boolean MONGO_DB = true;
 
+    private List<DocumentMK> mks = Lists.newArrayList();
     private MemoryDocumentStore ds;
     private MemoryBlobStore bs;
 
     @Test
     public void threeNodes() throws Exception {
-        MemoryDocumentStore ds = new MemoryDocumentStore();
-        MemoryBlobStore bs = new MemoryBlobStore();
-        DocumentMK.Builder builder;
-
-        builder = new DocumentMK.Builder();
-        builder.setDocumentStore(ds).setBlobStore(bs).setAsyncDelay(0);
-        DocumentMK mk1 = builder.setClusterId(1).open();
-        builder = new DocumentMK.Builder();
-        builder.setDocumentStore(ds).setBlobStore(bs).setAsyncDelay(0);
-        DocumentMK mk2 = builder.setClusterId(2).open();
-        builder = new DocumentMK.Builder();
-        builder.setDocumentStore(ds).setBlobStore(bs).setAsyncDelay(0);
-        DocumentMK mk3 = builder.setClusterId(3).open();
+        DocumentMK mk1 = createMK(1, 0);
+        DocumentMK mk2 = createMK(2, 0);
+        DocumentMK mk3 = createMK(3, 0);
 
         mk1.commit("/", "+\"test\":{}", null, null);
         mk2.commit("/", "+\"a\":{}", null, null);
@@ -117,10 +119,6 @@ public class ClusterTest {
         assertEquals(1L, obj.get("x"));
         assertEquals(2L, obj.get("y"));
         assertEquals(0L, obj.get(":childNodeCount"));
-
-        mk1.dispose();
-        mk2.dispose();
-        mk3.dispose();
     }
 
     @Test
@@ -164,12 +162,6 @@ public class ClusterTest {
         DocumentMK mk5 = createMK(5, 0, ds, bs);
         mk5.commit("/", "-\"a\"", null, null);
         mk5.commit("/", "+\"a\": {}", null, null);
-
-        mk1.dispose();
-        mk2.dispose();
-        mk3.dispose();
-        mk4.dispose();
-        mk5.dispose();
     }
 
     @Test
@@ -178,8 +170,6 @@ public class ClusterTest {
         DocumentMK mk2 = createMK(0);
         assertEquals(1, mk1.getClusterInfo().getId());
         assertEquals(2, mk2.getClusterInfo().getId());
-        mk1.dispose();
-        mk2.dispose();
     }
 
     @Test
@@ -194,13 +184,11 @@ public class ClusterTest {
         // mk1.merge only becomes visible to mk2 after async delay
         // therefore dispose mk1 now to make sure it flushes
         // unsaved last revisions
-        mk1.dispose();
+        disposeMK(mk1);
 
         DocumentMK mk2 = createMK(2);
         String nodes = mk2.getNodes("/", null, 0, 0, 100, null);
         assertEquals("{\"branchVisible\":{},\"regular\":{},\":childNodeCount\":2}", nodes);
-
-        mk2.dispose();
     }
 
     /**
@@ -246,10 +234,6 @@ public class ClusterTest {
         assertEquals(1, diff.added.size());
         assertEquals(Sets.newHashSet("/mk3"), diff.added);
         assertEquals(new HashSet<String>(), diff.deleted);
-
-        mk1.dispose();
-        mk2.dispose();
-        mk3.dispose();
     }
 
     @Test
@@ -311,9 +295,6 @@ public class ClusterTest {
         String n1 = mk1.getNodes("/", mk1.getHeadRevision(), 0, 0, 10, null);
         String n2 = mk2.getNodes("/", mk2.getHeadRevision(), 0, 0, 10, null);
         assertEquals(n1, n2);
-
-        mk1.dispose();
-        mk2.dispose();
     }
 
     @Test
@@ -349,9 +330,6 @@ public class ClusterTest {
         // so now it should be available
         m2h = mk2.getNodes("/", mk2.getHeadRevision(), 0, 0, 5, null);
         assertEquals("{\"test\":{},\":childNodeCount\":1}", m2h);
-
-        mk1.dispose();
-        mk2.dispose();
     }
 
     @Test
@@ -370,18 +348,66 @@ public class ClusterTest {
             // expected
         }
         mk2.commit("/", "+\"a\": {}", null, null);
+    }
 
-        mk1.dispose();
-        mk2.dispose();
+    @Test
+    public void fromExternalChange() throws Exception {
+        final List<DocumentNodeState> rootStates1 = Lists.newArrayList();
+        DocumentNodeStore ns1 = createMK(1, 0).getNodeStore();
+        ns1.addObserver(new Observer() {
+            @Override
+            public void contentChanged(@Nonnull NodeState root,
+                                       @Nullable CommitInfo info) {
+                rootStates1.add((DocumentNodeState) root);
+            }
+        });
+        final List<DocumentNodeState> rootStates2 = Lists.newArrayList();
+        DocumentNodeStore ns2 = createMK(2, 0).getNodeStore();
+        ns2.addObserver(new Observer() {
+            @Override
+            public void contentChanged(@Nonnull NodeState root,
+                                       @Nullable CommitInfo info) {
+                rootStates2.add((DocumentNodeState) root);
+            }
+        });
+        rootStates1.clear();
+        rootStates2.clear();
+
+        NodeBuilder builder = ns1.getRoot().builder();
+        builder.child("foo");
+        merge(ns1, builder);
+
+        assertEquals(1, rootStates1.size());
+        assertEquals(0, rootStates2.size());
+        assertFalse(rootStates1.get(0).isFromExternalChange());
+
+        ns1.runBackgroundOperations();
+        ns2.runBackgroundOperations();
+
+        assertEquals(1, rootStates1.size());
+        assertEquals(1, rootStates2.size());
+        assertTrue(rootStates2.get(0).isFromExternalChange());
+        NodeState foo = rootStates2.get(0).getChildNode("foo");
+        assertTrue(foo instanceof DocumentNodeState);
+        assertTrue(((DocumentNodeState) foo).isFromExternalChange());
     }
 
     @Before
     @After
     public void clear() {
+        for (DocumentMK mk : mks) {
+            mk.dispose();
+        }
+        mks.clear();
         if (MONGO_DB) {
             DB db = MongoUtils.getConnection().getDB();
             MongoUtils.dropCollections(db);
         }
+    }
+
+    private static NodeState merge(NodeStore store, NodeBuilder builder)
+            throws CommitFailedException {
+        return store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
     private DocumentMK createMK(int clusterId) {
@@ -391,8 +417,8 @@ public class ClusterTest {
     private DocumentMK createMK(int clusterId, int asyncDelay) {
         if (MONGO_DB) {
             DB db = MongoUtils.getConnection().getDB();
-            return new DocumentMK.Builder().setMongoDB(db)
-                    .setClusterId(clusterId).setAsyncDelay(asyncDelay).open();
+            return register(new DocumentMK.Builder().setMongoDB(db)
+                    .setClusterId(clusterId).setAsyncDelay(asyncDelay).open());
         } else {
             if (ds == null) {
                 ds = new MemoryDocumentStore();
@@ -406,8 +432,21 @@ public class ClusterTest {
 
     private DocumentMK createMK(int clusterId, int asyncDelay,
                              DocumentStore ds, BlobStore bs) {
-        return new DocumentMK.Builder().setDocumentStore(ds).setBlobStore(bs)
-                .setClusterId(clusterId).setAsyncDelay(asyncDelay).open();
+        return register(new DocumentMK.Builder().setDocumentStore(ds).setBlobStore(bs).setClusterId(clusterId).setAsyncDelay(asyncDelay).open());
+    }
+
+    private DocumentMK register(DocumentMK mk) {
+        mks.add(mk);
+        return mk;
+    }
+
+    private void disposeMK(DocumentMK mk) {
+        mk.dispose();
+        for (int i = 0; i < mks.size(); i++) {
+            if (mks.get(i) == mk) {
+                mks.remove(i);
+            }
+        }
     }
 
     private void traverse(NodeState node, String path) {
