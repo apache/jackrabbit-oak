@@ -68,6 +68,7 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStoreDB.FETCHFIRSTSYNTAX;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -399,373 +400,6 @@ public class RDBDocumentStore implements DocumentStore {
 
     // implementation
 
-    enum FETCHFIRSTSYNTAX { FETCHFIRST, LIMIT, TOP};
-
-
-    private static void versionCheck(DatabaseMetaData md, int xmaj, int xmin, String description) throws SQLException {
-        int maj = md.getDatabaseMajorVersion();
-        int min = md.getDatabaseMinorVersion();
-        if (maj < xmaj || (maj == xmaj && min < xmin)) {
-            LOG.info("Unsupported " + description + " version: " + maj + "." + min + ", expected at least " + xmaj + "." + xmin);
-        }
-    }
-
-    /**
-     * Defines variation in the capabilities of different RDBs.
-     */
-    protected enum DB {
-        DEFAULT("default") {
-        },
-
-        H2("H2") {
-            @Override
-            public void checkVersion(DatabaseMetaData md) throws SQLException {
-                versionCheck(md, 1, 4, description);
-            }
-        },
-
-        DERBY("Apache Derby") {
-            @Override
-            public void checkVersion(DatabaseMetaData md) throws SQLException {
-                versionCheck(md, 10, 11, description);
-            }
-
-            public boolean allowsCaseInSelect() {
-                return false;
-            }
-        },
-
-        POSTGRES("PostgreSQL") {
-            @Override
-            public void checkVersion(DatabaseMetaData md) throws SQLException {
-                versionCheck(md, 9, 3, description);
-            }
-
-            @Override
-            public String getTableCreationStatement(String tableName) {
-                return ("create table " + tableName + " (ID varchar(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA bytea)");
-            }
-
-            @Override
-            public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
-                Connection con = null;
-                PreparedStatement stmt = null;
-                ResultSet rs = null;
-                Map<String, String> result = new HashMap<String, String>();
-                try {
-                    con = ch.getROConnection();
-                    String cat = con.getCatalog();
-                    stmt = con.prepareStatement("SELECT pg_encoding_to_char(encoding), datcollate FROM pg_database WHERE datname=?");
-                    stmt.setString(1, cat);
-                    rs = stmt.executeQuery();
-                    while (rs.next()) {
-                        result.put("pg_encoding_to_char(encoding)", rs.getString(1));
-                        result.put("datcollate", rs.getString(2));
-                    }
-                    stmt.close();
-                    con.commit();
-                } catch (SQLException ex) {
-                    LOG.debug("while getting diagnostics", ex);
-                } finally {
-                    ch.closeResultSet(rs);
-                    ch.closeStatement(stmt);
-                    ch.closeConnection(con);
-                }
-                return result.toString();
-            }
-        },
-
-        DB2("DB2") {
-            @Override
-            public void checkVersion(DatabaseMetaData md) throws SQLException {
-                versionCheck(md, 10, 1, description);
-            }
-
-            @Override
-            public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
-                Connection con = null;
-                PreparedStatement stmt = null;
-                ResultSet rs = null;
-                Map<String, String> result = new HashMap<String, String>();
-                try {
-                    con = ch.getROConnection();
-                    // we can't look up by schema as con.getSchema is JDK 1.7
-                    stmt = con.prepareStatement("SELECT CODEPAGE, COLLATIONSCHEMA, COLLATIONNAME, TABSCHEMA FROM SYSCAT.COLUMNS WHERE COLNAME=? and COLNO=0 AND UPPER(TABNAME)=UPPER(?)");
-                    stmt.setString(1, "ID");
-                    stmt.setString(2, tableName);
-                    rs = stmt.executeQuery();
-                    while (rs.next() && result.size() < 20) {
-                        // thus including the schema name here
-                        String schema = rs.getString("TABSCHEMA").trim();
-                        result.put(schema + ".CODEPAGE", rs.getString("CODEPAGE").trim());
-                        result.put(schema + ".COLLATIONSCHEMA", rs.getString("COLLATIONSCHEMA").trim());
-                        result.put(schema + ".COLLATIONNAME", rs.getString("COLLATIONNAME").trim());
-                    }
-                    stmt.close();
-                    con.commit();
-                } catch (SQLException ex) {
-                    LOG.debug("while getting diagnostics", ex);
-                } finally {
-                    ch.closeResultSet(rs);
-                    ch.closeStatement(stmt);
-                    ch.closeConnection(con);
-                }
-                return result.toString();
-            }
-},
-
-        ORACLE("Oracle") {
-            @Override
-            public void checkVersion(DatabaseMetaData md) throws SQLException {
-                versionCheck(md, 12, 1, description);
-            }
-
-            @Override
-            public String getInitializationStatement() {
-                // see https://issues.apache.org/jira/browse/OAK-1914
-                // for some reason, the default for NLS_SORT is incorrect
-                return ("ALTER SESSION SET NLS_SORT='BINARY'");
-            }
-
-            @Override
-            public String getTableCreationStatement(String tableName) {
-                // see https://issues.apache.org/jira/browse/OAK-1914
-                return ("create table " + tableName + " (ID varchar(512) not null primary key, MODIFIED number, HASBINARY number, DELETEDONCE number, MODCOUNT number, CMODCOUNT number, DSIZE number, DATA varchar(4000), BDATA blob)");
-            }
-
-            @Override
-            public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
-                Connection con = null;
-                Statement stmt = null;
-                ResultSet rs = null;
-                Map<String, String> result = new HashMap<String, String>();
-                try {
-                    con = ch.getROConnection();
-                    stmt = con.createStatement();
-                    rs = stmt.executeQuery("SELECT PARAMETER, VALUE from NLS_DATABASE_PARAMETERS WHERE PARAMETER IN ('NLS_COMP', 'NLS_CHARACTERSET')");
-                    while (rs.next()) {
-                        result.put(rs.getString(1), rs.getString(2));
-                    }
-                    stmt.close();
-                    con.commit();
-                } catch (SQLException ex) {
-                    LOG.debug("while getting diagnostics", ex);
-                } finally {
-                    ch.closeResultSet(rs);
-                    ch.closeStatement(stmt);
-                    ch.closeConnection(con);
-                }
-                return result.toString();
-            }
-        },
-
-        MYSQL("MySQL") {
-            @Override
-            public void checkVersion(DatabaseMetaData md) throws SQLException {
-                versionCheck(md, 5, 5, description);
-            }
-
-            @Override
-            public String getTableCreationStatement(String tableName) {
-                // see https://issues.apache.org/jira/browse/OAK-1913
-                return ("create table " + tableName + " (ID varbinary(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16000), BDATA longblob)");
-            }
-
-            @Override
-            public FETCHFIRSTSYNTAX getFetchFirstSyntax() {
-                return FETCHFIRSTSYNTAX.LIMIT;
-            }
-
-            @Override
-            public String getConcatQueryString(int dataOctetLimit, int dataLength) {
-                return "CONCAT(DATA, ?)";
-            }
-
-            @Override
-            public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
-                Connection con = null;
-                PreparedStatement stmt = null;
-                ResultSet rs = null;
-                Map<String, String> result = new HashMap<String, String>();
-                try {
-                    con = ch.getROConnection();
-                    stmt = con.prepareStatement("SHOW TABLE STATUS LIKE ?");
-                    stmt.setString(1, tableName);
-                    rs = stmt.executeQuery();
-                    while (rs.next()) {
-                        result.put("collation", rs.getString("Collation"));
-                    }
-                    stmt.close();
-                    con.commit();
-                } catch (SQLException ex) {
-                    LOG.debug("while getting diagnostics", ex);
-                } finally {
-                    ch.closeResultSet(rs);
-                    ch.closeStatement(stmt);
-                    ch.closeConnection(con);
-                }
-                return result.toString();
-            }
-        },
-
-        MSSQL("Microsoft SQL Server") {
-            @Override
-            public void checkVersion(DatabaseMetaData md) throws SQLException {
-                versionCheck(md, 11, 0, description);
-            }
-
-            @Override
-            public String getTableCreationStatement(String tableName) {
-                // see https://issues.apache.org/jira/browse/OAK-2395
-                return ("create table " + tableName + " (ID varbinary(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA nvarchar(4000), BDATA varbinary(max))");
-            }
-
-            @Override
-            public FETCHFIRSTSYNTAX getFetchFirstSyntax() {
-                return FETCHFIRSTSYNTAX.TOP;
-            }
-
-            @Override
-            public String getConcatQueryString(int dataOctetLimit, int dataLength) {
-                /*
-                 * To avoid truncation when concatenating force an error when
-                 * limit is above the octet limit
-                 */
-                return "CASE WHEN LEN(DATA) <= " + (dataOctetLimit - dataLength) + " THEN (DATA + CAST(? AS nvarchar("
-                        + dataOctetLimit + "))) ELSE (DATA + CAST(DATA AS nvarchar(max))) END";
-
-            }
-
-            @Override
-            public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
-                Connection con = null;
-                PreparedStatement stmt = null;
-                ResultSet rs = null;
-                Map<String, String> result = new HashMap<String, String>();
-                try {
-                    con = ch.getROConnection();
-                    String cat = con.getCatalog();
-                    stmt = con.prepareStatement("SELECT collation_name FROM sys.databases WHERE name=?");
-                    stmt.setString(1, cat);
-                    rs = stmt.executeQuery();
-                    while (rs.next()) {
-                        result.put("collation_name", rs.getString(1));
-                    }
-                    stmt.close();
-                    con.commit();
-                } catch (SQLException ex) {
-                    LOG.debug("while getting diagnostics", ex);
-                } finally {
-                    ch.closeResultSet(rs);
-                    ch.closeStatement(stmt);
-                    ch.closeConnection(con);
-                }
-                return result.toString();
-            }
-        };
-
-        /**
-         * Check the database brand and version
-         */
-        public void checkVersion(DatabaseMetaData md) throws SQLException {
-            LOG.info("Unknown database type: " + md.getDatabaseProductName());
-        }
-
-        /**
-         * Allows case in select. Default true.
-         */
-        public boolean allowsCaseInSelect() {
-            return true;
-        }
-
-        /**
-         * Query syntax for "FETCH FIRST"
-         */
-        public FETCHFIRSTSYNTAX getFetchFirstSyntax() {
-            return FETCHFIRSTSYNTAX.FETCHFIRST;
-        }
-
-        /**
-         * Returns the CONCAT function or its equivalent function or sub-query.
-         * Note that the function MUST NOT cause a truncated value to be
-         * written!
-         *
-         * @param dataOctetLimit
-         *            expected capacity of data column
-         * @param dataLength
-         *            length of string to be inserted
-         * 
-         * @return the concat query string
-         */
-        public String getConcatQueryString(int dataOctetLimit, int dataLength) {
-            return "DATA || CAST(? AS varchar(" + dataOctetLimit + "))";
-        }
-
-        /**
-         * Query for any required initialization of the DB.
-         * 
-         * @return the DB initialization SQL string
-         */
-        public @Nonnull String getInitializationStatement() {
-            return "";
-        }
-
-        /**
-         * Table creation statement string
-         *
-         * @param tableName
-         * @return the table creation string
-         */
-        public String getTableCreationStatement(String tableName) {
-            return "create table "
-                    + tableName
-                    + " (ID varchar(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA blob("
-                    + 1024 * 1024 * 1024 + "))";
-        }
-
-        public List<String> getIndexCreationStatements(String tableName) {
-            if (CREATEINDEX.equals("modified-id")) {
-                return Collections.singletonList("create index " + tableName + "_MI on " + tableName + " (MODIFIED, ID)");
-            } else if (CREATEINDEX.equals("id-modified")) {
-                return Collections.singletonList("create index " + tableName + "_MI on " + tableName + " (ID, MODIFIED)");
-            } else if (CREATEINDEX.equals("modified")) {
-                return Collections.singletonList("create index " + tableName + "_MI on " + tableName + " (MODIFIED)");
-            } else {
-                return Collections.emptyList();
-            }
-        }
-
-        public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
-            return "";
-        }
-
-        protected String description;
-
-        private DB(String description) {
-            this.description = description;
-        }
-
-        @Override
-        public String toString() {
-            return this.description;
-        }
-
-        @Nonnull
-        public static DB getValue(String desc) {
-            for (DB db : DB.values()) {
-                if (db.description.equals(desc)) {
-                    return db;
-                } else if (db == DB2 && desc.startsWith("DB2/")) {
-                    return db;
-                }
-            }
-
-            LOG.error("DB type " + desc + " unknown, trying default settings");
-            DEFAULT.description = desc + " - using default settings";
-            return DEFAULT;
-        }
-    }
-
     private static final String MODIFIED = "_modified";
     private static final String MODCOUNT = "_modCount";
 
@@ -811,7 +445,7 @@ public class RDBDocumentStore implements DocumentStore {
     private static final Key MODIFIEDKEY = new Key(MODIFIED, null);
 
     // DB-specific information
-    private DB db;
+    private RDBDocumentStoreDB db;
 
     private Map<String, String> metadata;
 
@@ -856,13 +490,16 @@ public class RDBDocumentStore implements DocumentStore {
                 md.getDriverMinorVersion());
         String dbUrl = md.getURL();
 
-        this.db = DB.getValue(md.getDatabaseProductName());
+        this.db = RDBDocumentStoreDB.getValue(md.getDatabaseProductName());
         this.metadata = ImmutableMap.<String,String>builder()
                 .put("type", "rdb")
                 .put("db", md.getDatabaseProductName())
                 .put("version", md.getDatabaseProductVersion())
                 .build();
-        db.checkVersion(md);
+        String versionDiags = db.checkVersion(md);
+        if (!versionDiags.isEmpty()) {
+            LOG.info(versionDiags);
+        }
 
         if (! "".equals(db.getInitializationStatement())) {
             Statement stmt = null;
@@ -1579,9 +1216,6 @@ public class RDBDocumentStore implements DocumentStore {
     // Number of elapsed ms in a query above which a diagnostic warning is generated
     private static final int QUERYTIMELIMIT = Integer.getInteger(
             "org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QUERYTIMELIMIT", 10000);
-    // whether to create indices
-    private static final String CREATEINDEX = System.getProperty(
-            "org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.CREATEINDEX", "");
 
     private static byte[] asBytes(String data) {
         byte[] bytes;
