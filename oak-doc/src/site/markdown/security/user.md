@@ -295,14 +295,20 @@ as of OAK 1.0:
 | `PARAM_PASSWORD_MAX_AGE`            | int     | 0                                            |
 | `PARAM_PASSWORD_INITIAL_CHANGE`     | boolean | false                                        |
 | `PARAM_PASSWORD_HISTORY_SIZE`       | int (upper limit: 1000) | 0                            |
+| `PARAM_CACHE_EXPIRATION`            | long    | 0                                            |
 | | | |
 
 The following configuration parameters present with the default implementation in Jackrabbit 2.x are no longer supported and will be ignored:
 
-* 'compatibleJR16'
-* 'autoExpandTree'
-* 'autoExpandSize'
-* 'groupMembershipSplitSize'
+* `compatibleJR16`
+* `autoExpandTree`
+* `autoExpandSize`
+* `groupMembershipSplitSize`
+
+The optional `cacheExpiration` configuration option listed above is discussed in
+detail in section [Caching Results of Principal Resolution](principal/cache.html).
+It is not related to user management s.str. but affects the implementation
+specific `PrincipalProvider` implementation exposed by `UserConfiguration.getUserPrincipalProvider`.
 
 ### Pluggability
 

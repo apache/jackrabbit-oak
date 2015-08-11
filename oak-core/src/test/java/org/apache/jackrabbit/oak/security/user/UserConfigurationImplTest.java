@@ -16,9 +16,15 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import java.security.Principal;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -28,6 +34,7 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class UserConfigurationImplTest extends AbstractSecurityTest {
 
@@ -46,6 +53,23 @@ public class UserConfigurationImplTest extends AbstractSecurityTest {
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         return ConfigurationParameters.of(UserConfiguration.NAME, getParams());
+    }
+
+    @Test
+    public void testValidators() {
+        UserConfigurationImpl configuration = new UserConfigurationImpl(getSecurityProvider());
+        List<? extends ValidatorProvider> validators = configuration.getValidators(adminSession.getWorkspaceName(), Collections.<Principal>emptySet(), new MoveTracker());
+        assertEquals(2, validators.size());
+
+        List<String> clNames = Lists.newArrayList(
+                UserValidatorProvider.class.getName(),
+                CacheValidatorProvider.class.getName());
+
+        for (ValidatorProvider vp : validators) {
+            clNames.remove(vp.getClass().getName());
+        }
+
+        assertTrue(clNames.isEmpty());
     }
 
     @Test
