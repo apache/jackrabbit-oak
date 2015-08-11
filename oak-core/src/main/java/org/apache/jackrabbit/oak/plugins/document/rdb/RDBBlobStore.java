@@ -34,7 +34,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
 import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
@@ -116,11 +115,8 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
     private static final Logger LOG = LoggerFactory.getLogger(RDBBlobStore.class);
 
-    // blob size we need to support
-    private static final int MINBLOB = 2 * 1024 * 1024;
-
     // ID size we need to support; is 2 * (hex) size of digest length
-    private static final int IDSIZE;
+    protected static final int IDSIZE;
     static {
         try {
             MessageDigest md = MessageDigest.getInstance(AbstractBlobStore.HASH_ALGORITHM);
@@ -131,6 +127,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
         }
     }
 
+
     private Exception callStack;
 
     protected RDBConnectionHandler ch;
@@ -140,125 +137,6 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
     protected String tnMeta;
     private Set<String> tablesToBeDropped = new HashSet<String>();
 
-    /**
-     * Defines variation in the capabilities of different RDBs.
-     */
-    protected enum DB {
-        H2("H2") {
-            @Override
-            public String checkVersion(DatabaseMetaData md) throws SQLException {
-                return RDBJDBCTools.versionCheck(md, 1, 4, description);
-            }
-        },
-
-        DERBY("Apache Derby") {
-            @Override
-            public String checkVersion(DatabaseMetaData md) throws SQLException {
-                return RDBJDBCTools.versionCheck(md, 10, 11, description);
-            }
-        },
-
-        DB2("DB2") {
-            @Override
-            public String checkVersion(DatabaseMetaData md) throws SQLException {
-                return RDBJDBCTools.versionCheck(md, 10, 1, description);
-            }
-
-            @Override
-            public String getDataTableCreationStatement(String tableName) {
-                return "create table " + tableName + " (ID varchar(" + IDSIZE + ") not null primary key, DATA blob(" + MINBLOB + "))";
-            }
-        },
-
-        MSSQL("Microsoft SQL Server") {
-            @Override
-            public String checkVersion(DatabaseMetaData md) throws SQLException {
-                return RDBJDBCTools.versionCheck(md, 11, 0, description);
-            }
-
-            @Override
-            public String getDataTableCreationStatement(String tableName) {
-                return "create table " + tableName + " (ID varchar(" + IDSIZE + ") not null primary key, DATA varbinary(max))";
-            }
-        },
-
-        MYSQL("MySQL") {
-            @Override
-            public String checkVersion(DatabaseMetaData md) throws SQLException {
-                return RDBJDBCTools.versionCheck(md, 5, 5, description);
-            }
-
-            @Override
-            public String getDataTableCreationStatement(String tableName) {
-                return "create table " + tableName + " (ID varchar(" + IDSIZE + ") not null primary key, DATA mediumblob)";
-            }
-        },
-
-        ORACLE("Oracle") {
-            @Override
-            public String checkVersion(DatabaseMetaData md) throws SQLException {
-                return RDBJDBCTools.versionCheck(md, 12, 1, description);
-            }
-
-            @Override
-            public String getMetaTableCreationStatement(String tableName) {
-                return "create table " + tableName + " (ID varchar(" + IDSIZE + ") not null primary key, LVL number, LASTMOD number)";
-            }
-        },
-
-        POSTGRES("PostgreSQL") {
-            @Override
-            public String checkVersion(DatabaseMetaData md) throws SQLException {
-                return RDBJDBCTools.versionCheck(md, 9, 3, description);
-            }
-
-            @Override
-            public String getDataTableCreationStatement(String tableName) {
-                return "create table " + tableName + " (ID varchar(" + IDSIZE + ") not null primary key, DATA bytea)";
-            }
-        },
-
-        DEFAULT("default") {
-        };
-
-        public String checkVersion(DatabaseMetaData md) throws SQLException {
-            return "Unknown database type: " + md.getDatabaseProductName();
-        }
-
-        public String getDataTableCreationStatement(String tableName) {
-            return "create table " + tableName + " (ID varchar(" + IDSIZE + ") not null primary key, DATA blob)";
-        }
-
-        public String getMetaTableCreationStatement(String tableName) {
-            return "create table " + tableName + " (ID varchar(" + IDSIZE + ") not null primary key, LVL int, LASTMOD bigint)";
-        }
-
-        protected String description;
-
-        private DB(String description) {
-            this.description = description;
-        }
-
-        @Override
-        public String toString() {
-            return this.description;
-        }
-
-        @Nonnull
-        public static DB getValue(String desc) {
-            for (DB db : DB.values()) {
-                if (db.description.equals(desc)) {
-                    return db;
-                } else if (db == DB2 && desc.startsWith("DB2/")) {
-                    return db;
-                }
-            }
-
-            LOG.error("DB type " + desc + " unknown, trying default settings");
-            DEFAULT.description = desc + " - using default settings";
-            return DEFAULT;
-        }
-    }
 
     private void initialize(DataSource ds, RDBOptions options) throws Exception {
 
@@ -278,7 +156,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
         }
 
         DatabaseMetaData md = con.getMetaData();
-        DB db = DB.getValue(md.getDatabaseProductName());
+        RDBBlobStoreDB db = RDBBlobStoreDB.getValue(md.getDatabaseProductName());
         String versionDiags = db.checkVersion(md);
         if (!versionDiags.isEmpty()) {
             LOG.info(versionDiags);
