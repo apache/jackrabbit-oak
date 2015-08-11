@@ -559,7 +559,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         try {
             QueryEngine queryEngine = root.getQueryEngine();
             return queryEngine.executeQuery(
-                    stmt.toString(), Query.XPATH, Long.MAX_VALUE, 0,
+                    stmt.toString(), Query.XPATH,
                     QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
         } catch (ParseException e) {
             String msg = "Error while collecting effective policies.";

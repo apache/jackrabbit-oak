@@ -156,7 +156,7 @@ class UserPrincipalProvider implements PrincipalProvider {
                     .append("')]");
 
             Result result = root.getQueryEngine().executeQuery(
-                    statement.toString(), javax.jcr.query.Query.XPATH, Long.MAX_VALUE, 0,
+                    statement.toString(), javax.jcr.query.Query.XPATH,
                     NO_BINDINGS, namePathMapper.getSessionLocalMappings());
 
             Iterator<Principal> principals = Iterators.filter(

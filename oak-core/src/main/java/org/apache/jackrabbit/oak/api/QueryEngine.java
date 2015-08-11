@@ -23,11 +23,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import aQute.bnd.annotation.ProviderType;
+
 /**
  * The query engine allows to parse and execute queries.
  * <p>
  * What query languages are supported depends on the registered query parsers.
  */
+@ProviderType
 public interface QueryEngine {
     
     /**
@@ -88,5 +91,22 @@ public interface QueryEngine {
             String statement, String language, long limit, long offset,
             Map<String, ? extends PropertyValue> bindings,
             Map<String, String> mappings) throws ParseException;
+    
+    /**
+     * Execute a query and get the result.
+     * This is a convenience method: no limit, and offset 0.
+     *
+     * @param statement the query statement
+     * @param language the language
+     * @param bindings the bind variable value bindings
+     * @param mappings namespace prefix mappings
+     * @return the result
+     * @throws ParseException if the statement could not be parsed
+     * @throws IllegalArgumentException if there was an error executing the query
+     */
+    Result executeQuery(
+            String statement, String language,
+            Map<String, ? extends PropertyValue> bindings,
+            Map<String, String> mappings) throws ParseException;    
 
 }

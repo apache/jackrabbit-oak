@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@Version("2.1")
+@Version("2.2")
 @Export(optional = "provide:=true")
 package org.apache.jackrabbit.oak.query;
 
