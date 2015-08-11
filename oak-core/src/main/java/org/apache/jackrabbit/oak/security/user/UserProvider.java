@@ -328,7 +328,7 @@ class UserProvider extends AuthorizableBaseProvider {
                                  @Nonnull String authRoot) throws ConstraintViolationException {
         if (intermediatePath != null && intermediatePath.charAt(0) == '/') {
             if (!intermediatePath.startsWith(authRoot)) {
-                throw new ConstraintViolationException("Attempt to create authorizable outside of configured tree");
+                throw new ConstraintViolationException("Attempt to create authorizable in '" + intermediatePath +"' which is outside of configured tree '" + authRoot +"'");
             } else {
                 intermediatePath = intermediatePath.substring(authRoot.length() + 1);
             }
