@@ -41,6 +41,9 @@ different sources.
 - [CompositePrincipalProvider]: Implementation that combines different principals
 from different source providers.
 
+See section [Implementations of the PrincipalProvider Interface](principal/principalprovider.html)
+for details.
+
 ##### Special Principals
 - [AdminPrincipal]: Marker interface to identify the principal associated with administrative user(s).
 - [EveryonePrincipal]: built-in group principal implementation that has every other valid principal as member.

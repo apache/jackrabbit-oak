@@ -92,6 +92,8 @@ public class BenchmarkRunner {
                 .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
         OptionSpec<Integer> noIterations = parser.accepts("noIterations", "Change default 'passwordHashIterations' parameter.")
                 .withOptionalArg().ofType(Integer.class).defaultsTo(AbstractLoginTest.DEFAULT_ITERATIONS);
+        OptionSpec<Long> expiration = parser.accepts("expiration", "Expiration time (e.g. principal cache.")
+                        .withOptionalArg().ofType(Long.class).defaultsTo(AbstractLoginTest.NO_CACHE);
         OptionSpec<Integer> numberOfGroups = parser.accepts("numberOfGroups", "Number of groups to create.")
                         .withOptionalArg().ofType(Integer.class).defaultsTo(LoginWithMembershipTest.NUMBER_OF_GROUPS_DEFAULT);
         OptionSpec<Boolean> nestedGroups = parser.accepts("nestedGroups", "Use nested groups.")
@@ -182,11 +184,13 @@ public class BenchmarkRunner {
                     runWithToken.value(options),
                     noIterations.value(options),
                     numberOfGroups.value(options),
-                    nestedGroups.value(options)),
+                    nestedGroups.value(options),
+                    expiration.value(options)),
             new LoginWithMembersTest(
                     runWithToken.value(options),
                     noIterations.value(options),
-                    numberOfGroups.value(options)),
+                    numberOfGroups.value(options),
+                    expiration.value(options)),
             new NamespaceTest(),
             new NamespaceRegistryTest(),
             new ReadPropertyTest(),
