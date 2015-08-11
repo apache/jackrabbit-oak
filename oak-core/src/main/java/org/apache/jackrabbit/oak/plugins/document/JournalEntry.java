@@ -65,6 +65,8 @@ public final class JournalEntry extends Document {
 
     private static final String BRANCH_COMMITS = "_bc";
 
+    public static final String MODIFIED = "_modified";
+
     private static final int READ_CHUNK_SIZE = 100;
 
     /**
@@ -262,6 +264,9 @@ public final class JournalEntry extends Document {
         UpdateOp op = new UpdateOp(id, true);
         op.set(ID, id);
         op.set(CHANGES, getChanges().serialize());
+        // OAK-3085 : introduce a timestamp property
+        // for later being used by OAK-3001
+        op.set(MODIFIED, revision.getTimestamp());
         String bc = (String) get(BRANCH_COMMITS);
         if (bc != null) {
             op.set(BRANCH_COMMITS, bc);
