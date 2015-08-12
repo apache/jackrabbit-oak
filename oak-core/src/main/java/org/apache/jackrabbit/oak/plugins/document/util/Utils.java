@@ -124,11 +124,11 @@ public class Utils {
             if (e.getKey() instanceof Revision) {
                 size += 32;
             } else {
-                size += 48 + e.getKey().toString().length() * 2;
+                size += estimateMemoryUsage(e.getKey().toString());
             }
             Object o = e.getValue();
             if (o instanceof String) {
-                size += 48 + ((String) o).length() * 2;
+                size += estimateMemoryUsage((String) o);
             } else if (o instanceof Long) {
                 size += 16;
             } else if (o instanceof Boolean) {
@@ -156,6 +156,16 @@ public class Utils {
             size += map.size() * 64;
         }
         return size;
+    }
+
+    /**
+     * Estimates the memory usage of the given string.
+     *
+     * @param s the string to estimate.
+     * @return the estimated memory usage.
+     */
+    public static int estimateMemoryUsage(String s) {
+        return 48 + s.length() * 2;
     }
 
     /**
