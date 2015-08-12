@@ -401,5 +401,11 @@ public class MemoryDocumentStore implements DocumentStore {
     public Map<String, String> getMetadata() {
         return metadata;
     }
+    
+    @Override
+    public long determineServerTimeDifferenceMillis() {
+    	// the MemoryDocumentStore has no delays, thus return 0
+    	return 0;
+    }
 
 }

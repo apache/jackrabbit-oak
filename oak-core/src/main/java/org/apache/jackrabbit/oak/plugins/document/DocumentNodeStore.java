@@ -2516,6 +2516,11 @@ public final class DocumentNodeStore
             }
             return sdf.format(r.getTimestamp());
         }
+        
+        @Override
+        public long determineServerTimeDifferenceMillis() {
+        	return store.determineServerTimeDifferenceMillis();
+        }
     }
 
     static abstract class NodeStoreTask implements Runnable {
