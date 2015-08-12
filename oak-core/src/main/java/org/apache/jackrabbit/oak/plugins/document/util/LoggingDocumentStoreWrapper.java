@@ -333,6 +333,14 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     public Map<String, String> getMetadata() {
         return store.getMetadata();
     }
+    
+    @Override
+    public long determineServerTimeDifferenceMillis() {
+    	logMethod("determineServerTimeDifferenceMillis", "start");
+    	long result = store.determineServerTimeDifferenceMillis();
+    	logMethod("determineServerTimeDifferenceMillis", "end", result);
+		return result;
+    }
 
     private void logMethod(String methodName, Object... args) {
         StringBuilder buff = new StringBuilder("ds");
