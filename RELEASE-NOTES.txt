@@ -1,5 +1,5 @@
 
-Release Notes -- Apache Jackrabbit Oak -- Version 1.0.18
+Release Notes -- Apache Jackrabbit Oak -- Version 1.0.19
 
 Introduction
 ------------
@@ -8,68 +8,43 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.0.18 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.0.19 is a patch release that contains fixes and
 improvements over Oak 1.0. Jackrabbit Oak 1.0.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-New configuration options in Oak 1.0.18
-------------------------------------------
+New configuration options in Oak 1.0.19
+---------------------------------------
 
-Support for pre extracting text to speed up reindexing has been added in OAK-2892
-For more details refer to http://jackrabbit.apache.org/oak/docs/query/lucene.html#text-extraction
 
-For DocumentNodeStore based deployments a new MapFactory implementation has
-been introduced and can be enabled with -Doak.useHybridMapFactory=true
-See OAK-3112 for details.
-
-Changes in Oak 1.0.18
+Changes in Oak 1.0.19
 ---------------------
 
+This release of Oak includes an improvement to the DocumentNodeStore,
+which requires a new collection in the DocumentStore. The DocumentStore
+implementations in Oak will try to create the new collection if necessary.
+However, there may be deployments where the configured backend storage user
+for the DocumentStore implementation does not have the require privilege.
+In this case it is required to create the table for the RDB backend or 
+collection for MongoDB manually before Oak is upgraded to 1.0.19.
+See https://issues.apache.org/jira/browse/OAK-2829 for more details.
+ 
 
-Release Notes - Jackrabbit Oak - Version 1.0.18
+Release Notes - Jackrabbit Oak - Version 1.0.19
 
 Bugs
 
-    [OAK-1842] - ISE: "Unexpected value record type: f2" is thrown when FileBlobStore is used
-    [OAK-2567] - AsyncIndex should update the run status after the merge has completed
-    [OAK-3091] - Remove duplicate logback-classic dependency entry from oak-lucene pom
-    [OAK-3098] - CopyOnWrite might block Async indexer thread indefinitely
-    [OAK-3099] - Revision GC fails when split documents with very long paths are present
-    [OAK-3101] - wrong use of jcr:score in Solr when sorting
-    [OAK-3103] - Stale document in MongoDocumentStore cache
-    [OAK-3105] - SegmentWriter doesn't properly check the length of external blob IDs
-    [OAK-3106] - DocumentStorePerformanceTest collects duplicate ids to remove
-    [OAK-3110] - AsyncIndexer fails due to FileNotFoundException thrown by CopyOnWrite logic
-    [OAK-3112] - Performance degradation of UnsavedModifications on MapDB
-    [OAK-3124] - SolrServerProviderService should provide index / search specific servers
-    [OAK-3130] - ReferenceEditor may not enforce referential integrity
-    [OAK-3155] - AsyncIndex stats do not capture execution for runs where no indexing is performed
-    [OAK-3164] - MemoryNodeStore issues duplicate checkpoint
-    [OAK-3167] - [Blob GC] Wrong time units for blobGcMaxAge are passed from SegmentNodeStoreService
 
 Improvements
 
-    [OAK-2292] - Use ConcurrentUpdateSolrServer for remote updates
-    [OAK-3093] - Update H2 dependency to recommended minimum version
-    [OAK-3107] - SegmentWriter should be able to store blob IDs longer than 4096 bytes
-    [OAK-3129] - SolrQueryIndex making too many Solr requests per jCR query
-    [OAK-3135] - Solr index should not be used for path/pt restrictions only
-    [OAK-3142] - All children path and primary type restrictions should be converted to filter queries
-    [OAK-3147] - Make it possible to collapse results under jcr:content nodes
 
 New Features
 
-    [OAK-2892] - Speed up lucene indexing post migration by pre extracting the text content from binaries
 
 Sub-task
 
-    [OAK-2953] - Implement text extractor as part of oak-run
-    [OAK-3096] - RDBDocumentStore: improve diagnostics for failed batch inserts
-    [OAK-3108] - RDBDocumentStore: improve diagnostics for failed inserts/updates caused by long data
-    [OAK-3114] - RDBDocumentStore: add BDATA DDL information to startup diagnostics
     
 
 In addition to the above-mentioned changes, this release contains
