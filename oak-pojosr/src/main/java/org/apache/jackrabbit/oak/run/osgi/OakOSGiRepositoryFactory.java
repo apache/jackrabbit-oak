@@ -19,12 +19,13 @@
 
 package org.apache.jackrabbit.oak.run.osgi;
 
+import java.lang.management.ManagementFactory;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
@@ -35,14 +36,18 @@ import java.util.concurrent.TimeoutException;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.RepositoryFactory;
+import javax.management.Attribute;
+import javax.management.AttributeList;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
 
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.SettableFuture;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.felix.connect.launch.BundleDescriptor;
 import org.apache.felix.connect.launch.ClasspathScanner;
 import org.apache.felix.connect.launch.PojoServiceRegistry;
 import org.apache.felix.connect.launch.PojoServiceRegistryFactory;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.osgi.framework.BundleActivator;
@@ -198,6 +203,7 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
         processConfig(config);
 
         PojoServiceRegistry registry = createServiceRegistry(config);
+        registerMBeanServer(registry);
         startConfigTracker(registry, config);
         preProcessRegistry(registry);
         startBundles(registry, (String)config.get(REPOSITORY_BUNDLE_FILTER));
@@ -308,6 +314,35 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Registers the Platform MBeanServer as OSGi service. This would enable
+     * Aries JMX Whitboard support to then register the JMX MBean which are registered as OSGi service
+     * to be registered against the MBean server
+     */
+    private static void registerMBeanServer(PojoServiceRegistry registry) {
+        MBeanServer platformMBeanServer = ManagementFactory.getPlatformMBeanServer();
+        Hashtable<String, Object> mbeanProps = new Hashtable<String, Object>();
+        try {
+            ObjectName beanName = ObjectName.getInstance("JMImplementation:type=MBeanServerDelegate");
+            AttributeList attrs = platformMBeanServer.getAttributes(beanName,
+                    new String[]{"MBeanServerId", "SpecificationName",
+                            "SpecificationVersion", "SpecificationVendor",
+                            "ImplementationName", "ImplementationVersion",
+                            "ImplementationVendor"});
+            for (Object object : attrs) {
+                Attribute attr = (Attribute) object;
+                if (attr.getValue() != null) {
+                    mbeanProps.put(attr.getName(), attr.getValue().toString());
+                }
+            }
+        } catch (Exception je) {
+            log.info("Cannot set service properties of Platform MBeanServer service, registering without",
+                    je);
+        }
+        registry.registerService(MBeanServer.class.getName(),
+                platformMBeanServer, mbeanProps);
     }
 
     private static class RepositoryTracker extends ServiceTracker<Repository, Repository> {
