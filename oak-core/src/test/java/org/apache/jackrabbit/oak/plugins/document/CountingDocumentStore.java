@@ -221,6 +221,6 @@ public class CountingDocumentStore implements DocumentStore {
 
     @Override
     public long determineServerTimeDifferenceMillis() {
-    	return delegate.determineServerTimeDifferenceMillis();
+        return delegate.determineServerTimeDifferenceMillis();
     }
 }

@@ -357,7 +357,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
     public Map<String, String> getMetadata() {
         return base.getMetadata();
     }
-    
+
     @Override
     public long determineServerTimeDifferenceMillis() {
         try {
