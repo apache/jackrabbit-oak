@@ -52,7 +52,7 @@ abstract class AbstractRepositoryFactoryTest{
         workDir = tmpFolder.getRoot();
         config = [
                 (REPOSITORY_HOME): workDir.absolutePath,
-                (REPOSITORY_STARTUP_TIMEOUT) : 2,
+                (REPOSITORY_STARTUP_TIMEOUT) : 60,
                 (REPOSITORY_BUNDLE_FILTER) : '''
                             (|
                             (Bundle-SymbolicName=org.apache.jackrabbit*)
