@@ -1160,7 +1160,7 @@ public final class Main {
             Jcr jcr = new Jcr(oak);
 
             // 1 - OakServer
-            ContentRepository repository = oak.createContentRepository();
+            ContentRepository repository = jcr.createContentRepository();
             ServletHolder holder = new ServletHolder(new OakServlet(repository));
             context.addServlet(holder, path + "/*");
 
