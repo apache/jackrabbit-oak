@@ -331,6 +331,7 @@ public class RDBDocumentStore implements DocumentStore {
     static {
         Map<Object, String> tmp = new HashMap<Object, String>();
         tmp.put(Collection.CLUSTER_NODES, "CLUSTERNODES");
+        tmp.put(Collection.JOURNAL, "JOURNAL");
         tmp.put(Collection.NODES, "NODES");
         tmp.put(Collection.SETTINGS, "SETTINGS");
         TABLEMAP = Collections.unmodifiableMap(tmp);
@@ -465,7 +466,7 @@ public class RDBDocumentStore implements DocumentStore {
         this.tnNodes = RDBJDBCTools.createTableName(options.getTablePrefix(), TABLEMAP.get(Collection.NODES));
         this.tnClusterNodes = RDBJDBCTools.createTableName(options.getTablePrefix(), TABLEMAP.get(Collection.CLUSTER_NODES));
         this.tnSettings = RDBJDBCTools.createTableName(options.getTablePrefix(), TABLEMAP.get(Collection.SETTINGS));
-        this.tnJournal = RDBJDBCTools.createTableName(options.getTablePrefix(), "JOURNAL");
+        this.tnJournal = RDBJDBCTools.createTableName(options.getTablePrefix(), TABLEMAP.get(Collection.JOURNAL));
 
         this.ch = new RDBConnectionHandler(ds);
         this.callStack = LOG.isDebugEnabled() ? new Exception("call stack of RDBDocumentStore creation") : null;
