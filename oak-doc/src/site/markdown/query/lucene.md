@@ -554,7 +554,7 @@ Analyzers can also be composed based on `Tokenizers`, `TokenFilters` and
                 + filters (nt:unstructured) //The filters needs to be ordered
                     + LowerCase
                     + Stop
-                        - stopWordFiles = "stop1.txt, stop2.txt"
+                        - words = "stop1.txt, stop2.txt"
                         + stop1.txt (nt:file)
                         + stop2.txt (nt:file)
                     + PorterStem
