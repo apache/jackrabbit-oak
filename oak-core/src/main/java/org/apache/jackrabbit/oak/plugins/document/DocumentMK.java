@@ -499,11 +499,9 @@ public class DocumentMK {
          * Use the given MongoDB as backend storage for the DocumentNodeStore.
          *
          * @param db the MongoDB connection
-         * @param changesSizeMB the size in MB of the capped collection backing
-         *                      the MongoDiffCache.
          * @return this
          */
-        public Builder setMongoDB(DB db, int changesSizeMB, int blobCacheSizeMB) {
+        public Builder setMongoDB(DB db, int blobCacheSizeMB) {
             if (db != null) {
                 if (this.documentStore == null) {
                     this.documentStore = new MongoDocumentStore(db, this);
@@ -528,7 +526,7 @@ public class DocumentMK {
          * @return this
          */
         public Builder setMongoDB(DB db) {
-            return setMongoDB(db, 8, 16);
+            return setMongoDB(db, 16);
         }
 
         /**
