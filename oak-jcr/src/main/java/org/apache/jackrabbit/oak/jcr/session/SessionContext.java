@@ -111,6 +111,16 @@ public class SessionContext implements NamePathMapper {
     private final boolean fastQueryResultSize;
 
     public SessionContext(
+             @Nonnull Repository repository, @Nonnull StatisticManager statisticManager,
+             @Nonnull SecurityProvider securityProvider, @Nonnull Whiteboard whiteboard,
+             @Nonnull Map<String, Object> attributes, @Nonnull final SessionDelegate delegate,
+             int observationQueueLength, CommitRateLimiter commitRateLimiter) {
+        
+        this(repository, statisticManager, securityProvider, whiteboard, attributes, delegate,
+            observationQueueLength, commitRateLimiter, false);
+    }
+
+    public SessionContext(
             @Nonnull Repository repository, @Nonnull StatisticManager statisticManager,
             @Nonnull SecurityProvider securityProvider, @Nonnull Whiteboard whiteboard,
             @Nonnull Map<String, Object> attributes, @Nonnull final SessionDelegate delegate,
