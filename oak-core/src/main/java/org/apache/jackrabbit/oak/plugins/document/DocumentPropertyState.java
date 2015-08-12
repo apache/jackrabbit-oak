@@ -102,6 +102,17 @@ final class DocumentPropertyState implements PropertyState {
         return parsed().count();
     }
 
+    /**
+     * Returns the raw un-parsed value as passed to the constructor of this
+     * property state.
+     *
+     * @return the raw un-parsed value.
+     */
+    @Nonnull
+    String getValue() {
+        return value;
+    }
+
     //------------------------------------------------------------< Object >--
 
     @Override
