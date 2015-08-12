@@ -483,7 +483,6 @@ public class DocumentMK {
         private int cacheSegmentCount = DEFAULT_CACHE_SEGMENT_COUNT;
         private int cacheStackMoveDistance = DEFAULT_CACHE_STACK_MOVE_DISTANCE;
         private boolean useSimpleRevision;
-        private long splitDocumentAgeMillis = 5 * 60 * 1000;
         private long offHeapCacheSize = -1;
         private long maxReplicationLagMillis = TimeUnit.HOURS.toMillis(6);
         private boolean disableBranches;
@@ -767,15 +766,6 @@ public class DocumentMK {
 
         public boolean isUseSimpleRevision() {
             return useSimpleRevision;
-        }
-
-        public Builder setSplitDocumentAgeMillis(long splitDocumentAgeMillis) {
-            this.splitDocumentAgeMillis = splitDocumentAgeMillis;
-            return this;
-        }
-
-        public long getSplitDocumentAgeMillis() {
-            return splitDocumentAgeMillis;
         }
 
         public boolean useOffHeapCache() {
