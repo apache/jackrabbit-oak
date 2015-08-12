@@ -2516,10 +2516,10 @@ public final class DocumentNodeStore
             }
             return sdf.format(r.getTimestamp());
         }
-        
+
         @Override
         public long determineServerTimeDifferenceMillis() {
-        	return store.determineServerTimeDifferenceMillis();
+            return store.determineServerTimeDifferenceMillis();
         }
     }
 

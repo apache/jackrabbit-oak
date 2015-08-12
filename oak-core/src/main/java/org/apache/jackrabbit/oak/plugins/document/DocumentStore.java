@@ -308,7 +308,7 @@ public interface DocumentStore {
      * @return description of the underlying storage.
      */
     Map<String, String> getMetadata();
-    
+
     /**
      * @return the estimated time difference in milliseconds between
      * the local instance and the (typically common, shared) document server system.

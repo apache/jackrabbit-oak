@@ -34,7 +34,6 @@ import java.util.UUID;
 
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -589,14 +588,12 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
     @Test
     public void testServerTimeDiff() throws Exception {
-        if (super.ds instanceof RDBDocumentStore) {
-            UpdateOp up = new UpdateOp("0:/", true);
-            up.set("_id", "0:/");
-            super.ds.create(Collection.NODES, Collections.singletonList(up));
-            removeMe.add("0:/");
-            long td = ((RDBDocumentStore)super.ds).determineServerTimeDifferenceMillis();
-            LOG.info("Server time difference on " + super.dsname + ": " + td + "ms");
-        }
+        UpdateOp up = new UpdateOp("0:/", true);
+        up.set("_id", "0:/");
+        super.ds.create(Collection.NODES, Collections.singletonList(up));
+        removeMe.add("0:/");
+        long td = super.ds.determineServerTimeDifferenceMillis();
+        LOG.info("Server time difference on " + super.dsname + ": " + td + "ms");
     }
 
     @Test

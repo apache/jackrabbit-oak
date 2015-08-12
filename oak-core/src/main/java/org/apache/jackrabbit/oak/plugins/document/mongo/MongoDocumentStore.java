@@ -123,9 +123,9 @@ public class MongoDocumentStore implements DocumentStore {
     private final DBCollection settings;
     private final DBCollection journal;
 
-	private final DB db;
+    private final DB db;
 
-	private final Cache<CacheValue, NodeDocument> nodesCache;
+    private final Cache<CacheValue, NodeDocument> nodesCache;
     private final CacheStats cacheStats;
 
     /**
