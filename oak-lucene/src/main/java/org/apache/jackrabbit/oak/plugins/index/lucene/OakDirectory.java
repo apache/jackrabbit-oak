@@ -195,26 +195,64 @@ class OakDirectory extends Directory {
      */
     static final int DEFAULT_BLOB_SIZE = 32 * 1024;
 
+    /**
+     * A file, which might be split into multiple blobs.
+     */
     private static class OakIndexFile {
 
+        /**
+         * The file name.
+         */
         private final String name;
 
+        /**
+         * The node that contains the data for this file.
+         */
         private final NodeBuilder file;
 
+        /**
+         * The maximum size of each blob.
+         */
         private final int blobSize;
-
+        
+        /**
+         * The current position within the file (for positioned read and write
+         * operations).
+         */
         private long position = 0;
 
+        /**
+         * The length of the file.
+         */
         private long length;
 
+        /**
+         * The list of blobs (might be empty).
+         * The last blob has a size of 1 up to blobSize.
+         * All other blobs have a size of blobSize.
+         */
         private List<Blob> data;
 
+        /**
+         * Whether the data was modified since it was last flushed. If yes, on a
+         * flush, the metadata, and the list of blobs need to be stored.
+         */
         private boolean dataModified = false;
 
+        /**
+         * The index of the currently loaded blob.
+         */
         private int index = -1;
 
+        /**
+         * The data of the currently loaded blob.
+         */
         private byte[] blob;
 
+        /**
+         * Whether the currently loaded blob was modified since the blob was
+         * flushed.
+         */
         private boolean blobModified = false;
 
         public OakIndexFile(String name, NodeBuilder file) {
