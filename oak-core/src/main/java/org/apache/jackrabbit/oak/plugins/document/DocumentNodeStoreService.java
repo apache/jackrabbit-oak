@@ -455,7 +455,7 @@ public class DocumentNodeStoreService {
             final long timeDiff = ds.determineServerTimeDifferenceMillis();
             log.info("registerNodeStore: server time difference: {}ms (max allowed: {}ms)", timeDiff, maxDiff);
             if (Math.abs(timeDiff) > Math.abs(maxDiff)) {
-                throw new IllegalStateException("Server clock seems off (" + timeDiff + "ms) by more than configured amount ("
+                throw new AssertionError("Server clock seems off (" + timeDiff + "ms) by more than configured amount ("
                         + maxDiff + "ms)");
             }
         } catch (RuntimeException e) { // no checked exception
