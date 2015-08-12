@@ -152,7 +152,11 @@ public class NodeUtil {
      */
     @Nonnull
     public NodeUtil getOrAddTree(String relativePath, String primaryTypeName) throws AccessDeniedException {
-        if (relativePath.indexOf('/') == -1) {
+        if (PathUtils.denotesCurrent(relativePath)) {
+            return this;
+        } else if (PathUtils.denotesParent(relativePath)) {
+            return getParent();
+        } else if (relativePath.indexOf('/') == -1) {
             return getOrAddChild(relativePath, primaryTypeName);
         } else {
             Tree t = TreeUtil.getTree(tree, relativePath);
