@@ -69,7 +69,8 @@ import java.util.UUID;
  */
 public class CompactionMap {
 
-    private final int compressInterval;
+    private static final int COMPRESS_INTERVAL = Integer.getInteger("compress-interval", 100000);
+
     private final SegmentTracker tracker;
 
     private Map<RecordId, RecordId> recent = newHashMap();
@@ -87,8 +88,7 @@ public class CompactionMap {
 
     private CompactionMap prev;
 
-    CompactionMap(int compressInterval, SegmentTracker tracker) {
-        this.compressInterval = compressInterval;
+    CompactionMap(SegmentTracker tracker) {
         this.tracker = tracker;
     }
 
@@ -208,7 +208,7 @@ public class CompactionMap {
             throw new IllegalArgumentException();
         }
         recent.put(before, after);
-        if (recent.size() >= compressInterval) {
+        if (recent.size() >= COMPRESS_INTERVAL) {
             compress();
         }
     }
