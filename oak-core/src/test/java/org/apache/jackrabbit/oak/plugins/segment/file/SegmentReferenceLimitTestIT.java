@@ -19,10 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.segment.file;
 
-import static org.apache.commons.io.FileUtils.deleteDirectory;
-import static org.apache.jackrabbit.oak.plugins.segment.file.FileStore.newFileStore;
-import static org.junit.Assume.assumeTrue;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -31,6 +27,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -39,35 +36,20 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * <p>Tests verifying if the repository gets corrupted or not: {@code OAK-2294 Corrupt repository after concurrent version operations}</p>
- *
- * <p>These tests are disabled by default due to their long running time. On the
- * command line specify {@code -DSegmentReferenceLimitTestIT=true} to enable
- * them.</p>
- *
- *<p>If you only want to run this test:<br>
- * {@code mvn verify -Dsurefire.skip.ut=true -PintegrationTesting -Dit.test=SegmentReferenceLimitTestIT -DSegmentReferenceLimitTestIT=true}
- * </p>
- */
 public class SegmentReferenceLimitTestIT {
 
-    private static final Logger LOG = LoggerFactory
-            .getLogger(SegmentReferenceLimitTestIT.class);
-    private static final boolean ENABLED = Boolean
-            .getBoolean(SegmentReferenceLimitTestIT.class.getSimpleName());
+    private static final Logger LOG = LoggerFactory.getLogger(SegmentReferenceLimitTestIT.class);
 
     private File directory;
 
     @Before
     public void setUp() throws IOException {
-        assumeTrue(ENABLED);
-        directory = File.createTempFile(getClass().getSimpleName(), "dir",
-                new File("target"));
+        directory = File.createTempFile("SegmentReferenceLimitTestIT", "dir", new File("target"));
         directory.delete();
         directory.mkdir();
     }
@@ -75,18 +57,24 @@ public class SegmentReferenceLimitTestIT {
     @After
     public void cleanDir() {
         try {
-            if (directory != null) {
-                deleteDirectory(directory);
-            }
+            FileUtils.deleteDirectory(directory);
         } catch (IOException e) {
             LOG.error("Error cleaning directory", e);
         }
     }
 
+    /**
+     * OAK-2294 Corrupt repository after concurrent version operations
+     * 
+     * TODO Test is currently ignored because of how memory intensive it is
+     *
+     * @see <a
+     *      href="https://issues.apache.org/jira/browse/OAK-2294">OAK-2294</a>
+     */
     @Test
+    @Ignore
     public void corruption() throws IOException, CommitFailedException, ExecutionException, InterruptedException {
-        FileStore fileStore = newFileStore(directory).withMaxFileSize(1)
-                .withNoCache().withMemoryMapping(true).create();
+        FileStore fileStore = new FileStore(directory, 1, 0, false);
         SegmentNodeStore nodeStore = new SegmentNodeStore(fileStore);
 
         NodeBuilder root = nodeStore.getRoot().builder();

@@ -104,7 +104,7 @@ public class SegmentTracker {
         this.writer = new SegmentWriter(store, this, version);
         this.cacheSize = cacheSizeMB * MB;
         this.compactionMap = new AtomicReference<CompactionMap>(
-                new CompactionMap(this));
+                new CompactionMap(1, this));
     }
 
     public SegmentTracker(SegmentStore store, SegmentVersion version) {

@@ -40,7 +40,7 @@ public class CompactionMapTest {
         System.out.println((runtime.totalMemory() - runtime.freeMemory()) / (1024 * 1024));
 
         SegmentTracker factory = new MemoryStore().getTracker();
-        CompactionMap map = new CompactionMap(factory);
+        CompactionMap map = new CompactionMap(100000, factory);
         for (int i = 0; i < 1000000; i++) {
             if (i % 1000 == 0) {
                 System.gc();
@@ -59,13 +59,13 @@ public class CompactionMapTest {
 
     @Test
     public void testCompactionMap() {
-        int maxSegments = 100000;
+        int maxSegments = 1000;
         int maxEntriesPerSegment = 10;
         int seed = new Random().nextInt();
         Random r = new Random(seed);
 
         SegmentTracker factory = new MemoryStore().getTracker();
-        CompactionMap map = new CompactionMap(factory);
+        CompactionMap map = new CompactionMap(r.nextInt(maxSegments / 2), factory);
         Map<RecordId, RecordId> entries = newHashMap();
 
         int segments = r.nextInt(maxSegments);
