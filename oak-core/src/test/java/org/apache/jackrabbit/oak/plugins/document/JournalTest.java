@@ -398,28 +398,35 @@ public class JournalTest extends AbstractJournalTest {
             final CountDownLatch start = new CountDownLatch(1);
             final CountDownLatch end = new CountDownLatch(NUM_THREADS);
             final List<Exception> exceptions = synchronizedList(new ArrayList<Exception>());
-            for (int i = 0; i < NUM_THREADS; i++) {
-                Thread th = new Thread(new Runnable() {
-    
-                    @Override
-                    public void run() {
-                        try {
-                            ready.countDown();
-                            start.await();
-                            recovery.recover(Iterators.forArray(x1,z1), c2Id);
-                        } catch (Exception e) {
-                            exceptions.add(e);
-                        } finally {
-                            end.countDown();
+            // use memory map factory to speed up test with
+            // many concurrent threads
+            System.setProperty("oak.useMemoryMapFactory", "true");
+            try {
+                for (int i = 0; i < NUM_THREADS; i++) {
+                    Thread th = new Thread(new Runnable() {
+
+                        @Override
+                        public void run() {
+                            try {
+                                ready.countDown();
+                                start.await();
+                                recovery.recover(Iterators.forArray(x1,z1), c2Id);
+                            } catch (Exception e) {
+                                exceptions.add(e);
+                            } finally {
+                                end.countDown();
+                            }
                         }
-                    }
-                    
-                });
-                th.start();
+
+                    });
+                    th.start();
+                }
+                ready.await(5, TimeUnit.SECONDS);
+                start.countDown();
+                assertTrue(end.await(20, TimeUnit.SECONDS));
+            } finally {
+                System.clearProperty("oak.useMemoryMapFactory");
             }
-            ready.await(5, TimeUnit.SECONDS);
-            start.countDown();
-            assertTrue(end.await(20, TimeUnit.SECONDS));
             assertJournalEntries(ds1, "{}", change1); // unchanged
             assertJournalEntries(ds2, "{}", change2, change2b);
             for (Exception ex : exceptions) {
