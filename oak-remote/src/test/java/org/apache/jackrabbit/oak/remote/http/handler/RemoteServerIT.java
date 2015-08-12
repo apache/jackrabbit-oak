@@ -41,6 +41,7 @@ import org.junit.Test;
 
 import javax.jcr.SimpleCredentials;
 import java.io.ByteArrayInputStream;
+import java.io.Closeable;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.net.ServerSocket;
@@ -94,11 +95,7 @@ public class RemoteServerIT extends OakBaseTest {
     }
 
     private ContentRepository getContentRepository() {
-        Oak oak = new Oak(store);
-
-        new Jcr(oak);
-
-        return oak.createContentRepository();
+        return new Jcr(new Oak(store)).createContentRepository();
     }
 
     private ContentSession getContentSession(ContentRepository repository) throws Exception {
@@ -146,6 +143,9 @@ public class RemoteServerIT extends OakBaseTest {
     public void tearDown() throws Exception {
         remoteServer.stop();
         contentSession.close();
+        if (contentRepository instanceof Closeable) {
+            IOUtils.closeQuietly((Closeable) contentRepository);
+        }
     }
 
     @Test
