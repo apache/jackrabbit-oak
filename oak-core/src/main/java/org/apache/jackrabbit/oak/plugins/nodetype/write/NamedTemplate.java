@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.nodetype.write;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.oak.namepath.JcrNameParser;
@@ -34,11 +35,11 @@ abstract class NamedTemplate {
 
     private String oakName = null; // not defined by default
 
-    protected NamedTemplate(NameMapper mapper) {
+    protected NamedTemplate(@Nonnull NameMapper mapper) {
         this.mapper = mapper;
     }
 
-    protected NamedTemplate(NameMapper mapper, String jcrName)
+    protected NamedTemplate(@Nonnull NameMapper mapper, @Nullable String jcrName)
             throws ConstraintViolationException {
         this(mapper);
         if (jcrName != null) {
@@ -131,8 +132,8 @@ abstract class NamedTemplate {
      * @throws ConstraintViolationException if name is invalid or {@code null}
      */
     @Nonnull
-    protected String getOakNameOrThrowConstraintViolation(
-            @CheckForNull String jcrName) throws ConstraintViolationException {
+    protected String getOakNameOrThrowConstraintViolation(@CheckForNull String jcrName)
+            throws ConstraintViolationException {
         if (jcrName == null) {
             throw new ConstraintViolationException("Missing JCR name");
         }
@@ -154,8 +155,8 @@ abstract class NamedTemplate {
      * @throws ConstraintViolationException if the name is invalid
      */
     @CheckForNull
-    protected String getOakNameAllowNullOrThrowConstraintViolation(
-            @CheckForNull String jcrName) throws ConstraintViolationException {
+    protected String getOakNameAllowNullOrThrowConstraintViolation(@CheckForNull String jcrName)
+            throws ConstraintViolationException {
         if (jcrName == null) {
             return null;
         } else {
@@ -174,8 +175,8 @@ abstract class NamedTemplate {
      * @throws ConstraintViolationException if names are invalid or {@code null}
      */
     @Nonnull
-    protected String[] getOakNamesOrThrowConstraintViolation(
-            @CheckForNull String[] jcrNames) throws ConstraintViolationException {
+    protected String[] getOakNamesOrThrowConstraintViolation(@CheckForNull String[] jcrNames)
+            throws ConstraintViolationException {
         if (jcrNames != null) {
             String[] oakNames = new String[jcrNames.length];
             for (int i = 0; i < jcrNames.length; i++) {
