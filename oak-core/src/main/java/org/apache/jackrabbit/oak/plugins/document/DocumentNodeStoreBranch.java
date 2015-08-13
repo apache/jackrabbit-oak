@@ -21,9 +21,6 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.MERGE;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.STATE;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COLLISIONS;
 
 import java.util.Random;
@@ -40,7 +37,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -92,64 +88,6 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         this.maximumBackoff = Math.max((long) store.getMaxBackOffMillis(), MIN_BACKOFF);
         this.maxLockTryTimeMS = (long) (store.getMaxBackOffMillis() * MAX_LOCK_TRY_TIME_MULTIPLIER);
         this.mergeLock = mergeLock;
-    }
-
-    /**
-     * Moves a node in this private branch.
-     *
-     * @param source source path
-     * @param target target path
-     * @return  {@code true} iff the move succeeded
-     * @throws IllegalStateException if the branch is already merged
-     */
-    public boolean move(String source, String target) {
-        if (PathUtils.isAncestor(checkNotNull(source), checkNotNull(target))) {
-            return false;
-        } else if (source.equals(target)) {
-            return true;
-        }
-
-        if (!getNode(source).exists()) {
-            // source does not exist
-            return false;
-        }
-        NodeState destParent = getNode(getParentPath(target));
-        if (!destParent.exists()) {
-            // parent of destination does not exist
-            return false;
-        }
-        if (destParent.getChildNode(getName(target)).exists()) {
-            // destination exists already
-            return false;
-        }
-        branchState.persist().move(source, target);
-        return true;
-    }
-
-    /**
-     * Copies a node in this private branch.
-     *
-     * @param source source path
-     * @param target target path
-     * @return  {@code true} iff the copy succeeded
-     * @throws IllegalStateException if the branch is already merged
-     */
-    public boolean copy(String source, String target) {
-        if (!getNode(checkNotNull(source)).exists()) {
-            // source does not exist
-            return false;
-        }
-        NodeState destParent = getNode(getParentPath(checkNotNull(target)));
-        if (!destParent.exists()) {
-            // parent of destination does not exist
-            return false;
-        }
-        if (destParent.getChildNode(getName(target)).exists()) {
-            // destination exists already
-            return false;
-        }
-        branchState.persist().copy(source, target);
-        return true;
     }
 
     @Nonnull
@@ -342,14 +280,6 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             }
         }
         return store.getRoot(rev);
-    }
-
-    private NodeState getNode(String path) {
-        NodeState node = getHead();
-        for (String name : elements(path)) {
-            node = node.getChildNode(name);
-        }
-        return node;
     }
 
     private <T> T withCurrentBranch(Callable<T> callable) throws Exception {
@@ -598,28 +528,6 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
          */
         final DocumentNodeState createBranch(DocumentNodeState state) {
             return store.getRoot(state.getRevision().asBranchRevision());
-        }
-
-        void move(String source, final String target) {
-            final DocumentNodeState src = store.getNode(source, head.getRevision());
-            checkNotNull(src, "Source node %s@%s does not exist", source, head.getRevision());
-            head = DocumentNodeStoreBranch.this.persist(new Changes() {
-                @Override
-                public void with(Commit c) {
-                    store.moveNode(src, target, c);
-                }
-            }, head, null);
-        }
-
-        void copy(String source, final String target) {
-            final DocumentNodeState src = store.getNode(source, head.getRevision());
-            checkNotNull(src, "Source node %s@%s does not exist", source, head.getRevision());
-            head = DocumentNodeStoreBranch.this.persist(new Changes() {
-                @Override
-                public void with(Commit c) {
-                    store.copyNode(src, target, c);
-                }
-            }, head, null);
         }
 
         @Override
