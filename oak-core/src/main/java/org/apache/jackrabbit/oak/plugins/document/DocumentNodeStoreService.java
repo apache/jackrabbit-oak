@@ -443,11 +443,13 @@ public class DocumentNodeStoreService {
         // max time diff of 2000 millis (2sec)
         final long maxDiff = Long.parseLong(System.getProperty("oak.documentMK.maxServerTimeDiffMillis", "2000"));
         try {
-            final long timeDiff = ds.determineServerTimeDifferenceMillis();
-            log.info("registerNodeStore: server time difference: {}ms (max allowed: {}ms)", timeDiff, maxDiff);
-            if (Math.abs(timeDiff) > Math.abs(maxDiff)) {
-                throw new AssertionError("Server clock seems off (" + timeDiff + "ms) by more than configured amount ("
-                        + maxDiff + "ms)");
+            if (maxDiff>=0) {
+                final long timeDiff = ds.determineServerTimeDifferenceMillis();
+                log.info("registerNodeStore: server time difference: {}ms (max allowed: {}ms)", timeDiff, maxDiff);
+                if (Math.abs(timeDiff) > maxDiff) {
+                    throw new AssertionError("Server clock seems off (" + timeDiff + "ms) by more than configured amount ("
+                            + maxDiff + "ms)");
+                }
             }
         } catch (RuntimeException e) { // no checked exception
             // in case of a RuntimeException, just log but continue
