@@ -15,6 +15,14 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
+New configuration options in Oak 1.3.4
+--------------------------------------
+
+For DocumentNodeStore based deployments a new check has been introduced which compares 
+oak-local clocks with the one from the DocumentStore-server. If the clocks are off by more 
+than a certain amount, the DocumentNodeStore will refuse to start. Details see OAK-2682.
+The default of 2000ms can be changed via -Doak.documentMK.maxServerTimeDiffMillis
+
 Changes in Oak 1.3.4
 --------------------
 
