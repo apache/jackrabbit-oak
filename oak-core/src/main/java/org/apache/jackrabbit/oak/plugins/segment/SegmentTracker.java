@@ -125,6 +125,7 @@ public class SegmentTracker {
         }
         stringCache = c;
         segmentCache = CacheLIRS.<SegmentId, Segment>newBuilder()
+            .module("SegmentTracker")
             .maximumSize((int) Math.min(Integer.MAX_VALUE, cacheSizeMB * MB))
             .averageWeight(Segment.MAX_SEGMENT_SIZE/2)
             .evictionCallback(new EvictionCallback<SegmentId, Segment>() {
