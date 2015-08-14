@@ -107,6 +107,7 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
         this.encodeLengthInId = encodeLengthInId;
 
         this.cache = CacheLIRS.<String, byte[]>newBuilder()
+                .module("DataStoreBlobStore")
                 .maximumWeight(cacheSizeInMB * FileUtils.ONE_MB)
                 .weigher(new Weigher<String, byte[]>() {
                     @Override

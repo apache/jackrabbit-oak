@@ -868,7 +868,7 @@ public class DocumentMK {
                 DocumentNodeStore docNodeStore,
                 DocumentStore docStore
                 ) {
-            Cache<K, V> cache = buildCache(maxWeight);
+            Cache<K, V> cache = buildCache(cacheType.name(), maxWeight);
             PersistentCache p = getPersistentCache();
             if (p != null) {
                 if (docNodeStore != null) {
@@ -895,6 +895,7 @@ public class DocumentMK {
         }
         
         private <K extends CacheValue, V extends CacheValue> Cache<K, V> buildCache(
+                String module,
                 long maxWeight) {
             // by default, use the LIRS cache when using the persistent cache,
             // but don't use it otherwise
@@ -905,6 +906,7 @@ public class DocumentMK {
             }
             if (useLirs) {
                 return CacheLIRS.<K, V>newBuilder().
+                        module(module).
                         weigher(new Weigher<K, V>() {
                             @Override
                             public int weigh(K key, V value) {

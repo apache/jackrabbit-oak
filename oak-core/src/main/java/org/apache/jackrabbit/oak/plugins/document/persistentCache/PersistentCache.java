@@ -71,7 +71,7 @@ public class PersistentCache {
     private int exceptionCount;
 
     public PersistentCache(String url) {
-        LOG.info("start version 1");
+        LOG.info("start, url={}", url);
         String[] parts = url.split(",");
         String dir = parts[0];
         for (String p : parts) {
@@ -299,6 +299,9 @@ public class PersistentCache {
     
     public synchronized GarbageCollectableBlobStore wrapBlobStore(
             GarbageCollectableBlobStore base) {
+        if (maxBinaryEntry == 0) {
+            return base;
+        }
         BlobCache c = new BlobCache(this, base);
         initGenerationCache(c);
         return c;
