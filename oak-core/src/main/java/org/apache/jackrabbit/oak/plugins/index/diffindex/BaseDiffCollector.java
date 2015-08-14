@@ -29,11 +29,17 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
 public abstract class BaseDiffCollector implements DiffCollector {
 
+    protected boolean init;
+
     private final NodeState before;
     private final NodeState after;
 
     private Set<String> results;
-    protected boolean init = false;
+    
+    /**
+     * The filter that was used to generate the result.
+     */
+    private Filter resultFilter;
 
     /**
      * @param before initial state
@@ -45,6 +51,7 @@ public abstract class BaseDiffCollector implements DiffCollector {
         results = new HashSet<String>();
     }
 
+    @Override
     public Set<String> getResults(Filter filter) {
         if (!init) {
             collect(filter);
@@ -52,15 +59,15 @@ public abstract class BaseDiffCollector implements DiffCollector {
         return results;
     }
 
+    @Override
     public double getCost(Filter filter) {
-        if (!init) {
+        if (!init || filter != resultFilter) {
             collect(filter);
         }
         if (results.isEmpty()) {
             return Double.POSITIVE_INFINITY;
         }
-
-        // TODO probably the number of read nodes during the diff
+        // no read operations needed
         return 0;
     }
 
@@ -69,6 +76,7 @@ public abstract class BaseDiffCollector implements DiffCollector {
                 filter);
         after.compareAgainstBaseState(before, diff);
         this.results = new HashSet<String>(diff.getResults());
+        this.resultFilter = filter;
         this.init = true;
     }
 

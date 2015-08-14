@@ -46,7 +46,6 @@ public abstract class DiffIndex implements QueryIndex {
 
     @Override
     public String getPlan(Filter filter, NodeState rootState) {
-        // //TODO ?
-        return null;
+        return "diffIndex " + filter.toString();
     }
 }
