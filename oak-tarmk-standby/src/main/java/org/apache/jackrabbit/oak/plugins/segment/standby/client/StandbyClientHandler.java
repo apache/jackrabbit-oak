@@ -44,7 +44,6 @@ public class StandbyClientHandler extends SimpleChannelInboundHandler<RecordId>
             .getLogger(StandbyClientHandler.class);
 
     private final StandbyStore store;
-    private final EventExecutorGroup executor;
     private final CommunicationObserver observer;
     private final AtomicBoolean running;
     private final int readTimeoutMs;
@@ -54,10 +53,9 @@ public class StandbyClientHandler extends SimpleChannelInboundHandler<RecordId>
     private ChannelHandlerContext ctx;
 
     public StandbyClientHandler(final StandbyStore store,
-            EventExecutorGroup executor, CommunicationObserver observer,
-            AtomicBoolean running, int readTimeoutMs, boolean autoClean) {
+            CommunicationObserver observer, AtomicBoolean running,
+            int readTimeoutMs, boolean autoClean) {
         this.store = store;
-        this.executor = executor;
         this.observer = observer;
         this.running = running;
         this.readTimeoutMs = readTimeoutMs;
