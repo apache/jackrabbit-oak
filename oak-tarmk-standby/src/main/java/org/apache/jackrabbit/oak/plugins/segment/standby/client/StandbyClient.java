@@ -153,8 +153,8 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
             }
             state = STATUS_STARTING;
             executor = new DefaultEventExecutorGroup(4);
-            handler = new StandbyClientHandler(this.store, executor, observer,
-                    running, readTimeoutMs, autoClean);
+            handler = new StandbyClientHandler(this.store, observer, running,
+                    readTimeoutMs, autoClean);
             group = new NioEventLoopGroup();
 
             b = new Bootstrap();
