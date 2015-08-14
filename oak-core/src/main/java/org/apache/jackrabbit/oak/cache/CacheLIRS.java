@@ -75,6 +75,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
 
     private static final Logger LOG = LoggerFactory.getLogger(CacheLIRS.class);
     private static final AtomicInteger NEXT_CACHE_ID = new AtomicInteger();
+    private static final ThreadLocal<Integer> CURRENTLY_LOADING = new ThreadLocal<Integer>();
 
     /**
      * Listener for items that are evicted from the cache. The listener
@@ -940,6 +941,15 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
                 if (value != null) {
                     return value;
                 }
+                // if we are within a loader, and are currently loading
+                // an entry, then we need to avoid a possible deadlock
+                // (we ensure that while loading an entry, we only load
+                // entries with a higher hash code, so there is a clear order)
+                Integer outer = CURRENTLY_LOADING.get();
+                if (outer != null && hash <= outer) {
+                    // to prevent a deadlock, we also load the value ourselves
+                    return load(key, hash, valueLoader);
+                }
                 ConcurrentHashMap<K, Object> loading = cache.loadingInProgress;
                 // the object we have to wait for in case another thread loads
                 // this value
@@ -955,11 +965,13 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
                     if (alreadyLoading == null) {
                         // we are loading ourselves
                         try {
+                            CURRENTLY_LOADING.set(hash);
                             return load(key, hash, valueLoader);
                         } finally {
                             loading.remove(key);
                             // notify other threads
                             loadNow.notifyAll();
+                            CURRENTLY_LOADING.remove();
                         }
                     }
                 }
