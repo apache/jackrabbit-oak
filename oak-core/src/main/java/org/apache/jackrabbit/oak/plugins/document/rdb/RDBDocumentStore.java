@@ -320,7 +320,6 @@ public class RDBDocumentStore implements DocumentStore {
             }
 
             stmt = connection.prepareStatement(t);
-
             long start = System.currentTimeMillis();
             rs = stmt.executeQuery();
             if (rs.next()) {
@@ -330,6 +329,7 @@ public class RDBDocumentStore implements DocumentStore {
             } else {
                 throw new DocumentStoreException("failed to determine server timestamp");
             }
+            connection.commit();
             return result;
         } catch (Exception ex) {
             LOG.error("", ex);
