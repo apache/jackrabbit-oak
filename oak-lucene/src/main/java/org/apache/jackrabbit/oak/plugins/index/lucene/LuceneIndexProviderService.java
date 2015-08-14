@@ -125,7 +125,7 @@ public class LuceneIndexProviderService {
     )
     private static final String PROP_THREAD_POOL_SIZE = "threadPoolSize";
 
-    private static final boolean PROP_PREFETCH_INDEX_FILES_DEFAULT = false;
+    private static final boolean PROP_PREFETCH_INDEX_FILES_DEFAULT = true;
     @Property(
             boolValue = PROP_PREFETCH_INDEX_FILES_DEFAULT,
             label = "Prefetch Index Files",

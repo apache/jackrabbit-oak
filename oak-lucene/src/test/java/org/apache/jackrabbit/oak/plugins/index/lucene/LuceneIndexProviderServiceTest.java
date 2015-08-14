@@ -72,7 +72,7 @@ public class LuceneIndexProviderServiceTest {
 
         IndexCopier indexCopier = service.getIndexCopier();
         assertNotNull("IndexCopier should be initialized as CopyOnRead is enabled by default", indexCopier);
-        assertFalse(indexCopier.isPrefetchEnabled());
+        assertTrue(indexCopier.isPrefetchEnabled());
 
         assertNotNull("CopyOnRead should be enabled by default", context.getService(CopyOnReadStatsMBean.class));
 
