@@ -207,13 +207,13 @@ public class ClusterNodeInfo {
      * oak.documentMK.disableLeaseCheck
      */
     private final boolean leaseCheckDisabled;
-    
+
     /**
      * Tracks the fact whether the lease has *ever* been renewed by this instance
      * or has just be read from the document store at initialization time.
      */
     private boolean renewed;
-    
+
     /**
      * The revLock value of the cluster;
      */
@@ -387,7 +387,7 @@ public class ClusterNodeInfo {
     public void performLeaseCheck() {
         if (leaseCheckDisabled || !renewed) {
             // if leaseCheckDisabled is set we never do the check, so return fast
-            
+
             // the 'renewed' flag indicates if this instance *ever* renewed the lease after startup
             // until that is not set, we cannot do the lease check (otherwise startup wouldn't work)
             return;
@@ -397,14 +397,14 @@ public class ClusterNodeInfo {
             // then all is good
             return;
         }
-        
+
         // OAK-2739 : when the lease is not current, we must stop
         // the instance immediately to avoid any cluster inconsistency
         final String errorMsg = "performLeaseCheck: this instance failed to update the lease in time "
                 + "(leaseEndTime: "+leaseEndTime+", now: "+now+", leaseTime: "+leaseTime+") "
                 + "and is thus no longer eligible for taking part in the cluster. Shutting down NOW!";
         LOG.error(errorMsg);
-        
+
         // now here comes the thing: we should a) call System.exit in a separate thread
         // to avoid any deadlock when calling from eg within the shutdown hook
         // AND b) we should not call system.exit hundred times.
@@ -420,7 +420,6 @@ public class ClusterNodeInfo {
                 public void run() {
                     System.exit(-1);
                 }
-                
             };
             final Thread th = new Thread(r, "FailedLeaseCheckShutdown-Thread");
             th.setDaemon(true);

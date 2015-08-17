@@ -38,26 +38,25 @@ import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
  * @see https://issues.apache.org/jira/browse/OAK-2739 for more details
  */
 public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
-    
+
     private final DocumentStore delegate;
     private final ClusterNodeInfo clusterNodeInfo;
 
-    public LeaseCheckDocumentStoreWrapper(final DocumentStore delegate, 
-            final ClusterNodeInfo clusterNodeInfo) {
-        if (delegate==null) {
+    public LeaseCheckDocumentStoreWrapper(final DocumentStore delegate, final ClusterNodeInfo clusterNodeInfo) {
+        if (delegate == null) {
             throw new IllegalArgumentException("delegate must not be null");
         }
         this.delegate = delegate;
         // clusterNodeInfo is allowed to be null - eg for testing
         this.clusterNodeInfo = clusterNodeInfo;
     }
-    
+
     private final void performLeaseCheck() {
-        if (clusterNodeInfo!=null) {
+        if (clusterNodeInfo != null) {
             clusterNodeInfo.performLeaseCheck();
         }
     }
-    
+
     @Override
     public final <T extends Document> T find(Collection<T> collection, String key) {
         performLeaseCheck();
