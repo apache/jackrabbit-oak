@@ -49,10 +49,12 @@ public class ClusterInfoTest {
         DocumentNodeStore ns1 = new DocumentMK.Builder().
                 setDocumentStore(mem).
                 setAsyncDelay(0).
+                setLeaseCheck(false).
                 getNodeStore();
         DocumentNodeStore ns2 = new DocumentMK.Builder().
                 setDocumentStore(mem).
                 setAsyncDelay(0).
+                setLeaseCheck(false).
                 getNodeStore();
         // Bring the current time forward to after the leaseTime which would have been 
         // updated in the DocumentNodeStore initialization.
@@ -102,6 +104,7 @@ public class ClusterInfoTest {
         DocumentNodeStore ns = new DocumentMK.Builder().
                 setDocumentStore(mem).
                 setAsyncDelay(0).
+                setLeaseCheck(false).
                 getNodeStore();
 
         ClusterNodeInfo info = ns.getClusterInfo();
