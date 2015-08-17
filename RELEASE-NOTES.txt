@@ -28,16 +28,48 @@ Changes in Oak 1.3.4
 
 Sub-task
 
+    [OAK-2008] - authorization setup for closed user groups
+    [OAK-2760] - HttpServer in Oak creates multiple instance of
+    ContentRepository
+    [OAK-2828] - Jcr builder class does not allow overriding most of
+    its dependencies
     [OAK-3125] - Skip compaction estimation if threshold is 0
+    [OAK-3177] - Compaction slow on repository with continuous writes
+    [OAK-3179] - Deadlock between persisted compaction map and cleanup
+    [OAK-3192] - Provide a way to allow embedding application to be
+    notified about OSGi startup
+    [OAK-3194] - Provide a way for embedding application to control
+    which all bundles are started
+    [OAK-3195] - Allow finer control for timeout handling in case of
+    repository startup
+    [OAK-3198] - reduce RDBDocumentStore class size, avoid code
+    duplication with RDBBlobStore
+    [OAK-3206] - DocumentStorePerformanceTest executed together with
+    unit tests
+    [OAK-3214] - Enable registration of MBean via Aries JMX Whiteboard
+    support
+    [OAK-3217] - Integrate with Felix Script Console
+    [OAK-3237] - Configure default index definition for fulltext
+    search
 
 Bug
 
+    [OAK-2231] - Searching authorizables with ' and ] in authorizable
+    id and/or principal name
+    [OAK-2736] - Oak instance does not close the executors created
+    upon ContentRepository creation
+    [OAK-2810] - Cannot copy a node if parent is not accessible
     [OAK-2864] - XPath backwards compatibility issue with false() and
     true()
+    [OAK-2973] - [Blob GC] Report accurate deleted count
+    [OAK-3022] - DocumentNodeStoreService fails to handle empty
+    strings in the OSGi configuration
     [OAK-3103] - Stale document in MongoDocumentStore cache
     [OAK-3104] - Version garbage collector doesn't collect a rolled
     back document if it was never deleted
     [OAK-3109] - OOME in tarkmk standby tests
+    [OAK-3116] - SolrQueryIndexProviderService should not blindly
+    register a QueryIndexProvider
     [OAK-3123] - NPE in RecordIdMap
     [OAK-3130] - ReferenceEditor may not enforce referential integrity
     [OAK-3136] - High memory usage of SegmentDataStoreBlobGCTest
@@ -45,21 +77,52 @@ Bug
     NodeType queries
     [OAK-3138] - OOME in NodeStateCopierTest
     [OAK-3139] - SNFE in persisted comapation map when using CLEAN_OLD
+    [OAK-3143] - lucene command for oak-run console doesn't work
     [OAK-3155] - AsyncIndex stats do not capture execution for runs
     where no indexing is performed
+    [OAK-3157] - Lucene suggestions don't work if suggested phrases
+    don't return documents on :fulltext search
     [OAK-3164] - MemoryNodeStore issues duplicate checkpoint
     [OAK-3167] - [Blob GC] Wrong time units for blobGcMaxAge are
     passed from SegmentNodeStoreService
+    [OAK-3168] - SegmentCache flushes Segment on update
+    [OAK-3169] - rep:versionablePaths mixin not always set for
+    versionable nodes
+    [OAK-3171] - Conflict Exception logs path information only on
+    DEBUG
+    [OAK-3191] - Oak UserManager#getAuthorizable handles null and
+    empty string differently than Jackrabbit
+    [OAK-3196] - ConfigInstaller removing the configs on restart
+    [OAK-3197] - RepositoryImpl doesn't close the scheduler nicely
+    [OAK-3199] - DocumentNodeState ignores binary value for memory
+    calculation
+    [OAK-3200] - Build Failure due to LuceneSupportTest and
+    OakOSGiRepositoryFactoryTest
+    [OAK-3218] - UserProvider.getFolderPath may throw
+    StringIndexOutOfBoundsException
+    [OAK-3231] - Change default maxCachedBinarySize to match lucene
+    DEFAULT_BLOB_SIZE
+    [OAK-3234] - LIRS cache: possible deadlock while loading an entry
 
 Improvement
 
+    [OAK-1974] - Fail fast on branch conflict
     [OAK-2023] - Optimal index usage for XPath queries with "order by"
     combined with "or"
+    [OAK-2586] - Support including and excluding paths during upgrade
+    [OAK-2682] - Introduce time difference detection for
+    DocumentNodeStore
     [OAK-2768] - Fair mode for backgroundOperationLock
+    [OAK-2776] - Upgrade should allow to skip copying versions
+    [OAK-2785] - Add QueryEngine.executeQuery without limit and offset
     [OAK-2857] - Run background read and write operation concurrently
+    [OAK-2977] - Fast result size estimate: OSGi configuration
+    [OAK-3003] - Improve login performance with huge group membership
     [OAK-3048] - Enable lookup of OSGi configuration from framework
     first and component next
     [OAK-3085] - Add timestamp property to journal entries
+    [OAK-3120] - Contribute blog posts about FileStore to official
+    documentation
     [OAK-3135] - Solr index should not be used for path/pt
     restrictions only
     [OAK-3142] - All children path and primary type restrictions
@@ -71,12 +134,44 @@ Improvement
     and support for additional actions
     [OAK-3165] - Redundant test for duplicate membership in
     Group.addMember
+    [OAK-3174] - [Blob GC] Make actual deletion of blobs synchronous
+    [OAK-3175] - Lower log level for "Skipping closed tar file ..." to
+    debug
+    [OAK-3178] - Update jackrabbit version to 2.11.0
+    [OAK-3182] - Add documentation on how to work with Git
+    [OAK-3202] - Restrict the bundles pickedup by PojoSR while running
+    the testcase
+    [OAK-3203] - Make shutdown in PojoSR wait for framework shutdown
+    [OAK-3212] - Improve error message upon attempt to create
+    user/group outside configured root
+    [OAK-3224] - Remove unused DocumentMK.splitDocumentAgeMillis
+    [OAK-3226] - Remove unused code in DocumentNodeStore
+    [OAK-3227] - The DiffIndex relies on implementation details
+    [OAK-3229] - Log initialization of the cache and the persistent
+    cache
+
+New Feature
+
+    [OAK-3170] - Implement Group extensions as proposed in JCR-3880
 
 Task
 
     [OAK-2290] - Switch default IndexFormatVersion to V2
     [OAK-2575] - Improve documentation for
     DocumentStore.invalidateCache
+    [OAK-2739] - take appropriate action when lease cannot be renewed
+    (in time)
+    [OAK-3186] - Assign correct scope for various dependencies in
+    oak-pojosr module
+    [OAK-3188] - Make dependency on commons-dbcp as optional in
+    oak-core
+    [OAK-3216] - Specify version for findbug maven plugin
+    [OAK-3223] - Remove MongoDiffCache
+
+Test
+
+    [OAK-2545] - SegmentMk IT tests are too intensive
+    [OAK-3190] - Benchmark for adding group members
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.2.x release.
