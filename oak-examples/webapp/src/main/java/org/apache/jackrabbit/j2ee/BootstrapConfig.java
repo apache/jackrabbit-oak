@@ -50,6 +50,8 @@ public class BootstrapConfig extends AbstractConfig {
     //By default shutdown framework if there is a timeout
     private boolean shutdownOnTimeout = true;
 
+    private boolean repositoryCreateDefaultIndexes = true;
+
     private int startupTimeout = (int) TimeUnit.MINUTES.toSeconds(5); //Default 5 minute timeout
 
     private JNDIConfig jndiConfig = new JNDIConfig(this);
@@ -122,6 +124,14 @@ public class BootstrapConfig extends AbstractConfig {
 
     public void setStartupTimeout(int startupTimeout) {
         this.startupTimeout = startupTimeout;
+    }
+
+    public boolean isRepositoryCreateDefaultIndexes() {
+        return repositoryCreateDefaultIndexes;
+    }
+
+    public void setRepositoryCreateDefaultIndexes(boolean repositoryCreateDefaultIndexes) {
+        this.repositoryCreateDefaultIndexes = repositoryCreateDefaultIndexes;
     }
 
     public void validate() {
