@@ -465,7 +465,7 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
         config.put(OakOSGiRepositoryFactory.REPOSITORY_CONFIG_FILE, configJson.getAbsolutePath());
         config.put(OakOSGiRepositoryFactory.REPOSITORY_BUNDLE_FILTER, getBootstrapConfig().getBundleFilter());
         config.put(OakOSGiRepositoryFactory.REPOSITORY_SHUTDOWN_ON_TIMEOUT, getBootstrapConfig().isShutdownOnTimeout());
-        config.put(OakOSGiRepositoryFactory.REPOSITORY_STARTUP_TIMEOUT, getBootstrapConfig().getStartupTimeout());
+        config.put(OakOSGiRepositoryFactory.REPOSITORY_TIMEOUT_IN_SECS, getBootstrapConfig().getStartupTimeout());
         configureActivator(config);
         //TODO oak-jcr also provides a dummy RepositoryFactory. Hence this
         //cannot be used
