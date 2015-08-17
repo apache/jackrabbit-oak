@@ -70,6 +70,7 @@ import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStoreDB.FETCHFIRSTSYNTAX;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
+import org.apache.jackrabbit.oak.util.OakVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -538,9 +539,9 @@ public class RDBDocumentStore implements DocumentStore {
 
         String diag = db.getAdditionalDiagnostics(this.ch, this.tnNodes);
 
-        LOG.info("RDBDocumentStore instantiated for database " + dbDesc + ", using driver: " + driverDesc + ", connecting to: "
-                + dbUrl + (diag.isEmpty() ? "" : (", properties: " + diag)) + ", transaction isolation level: " + isolationDiags
-                + tableDiags);
+        LOG.info("RDBDocumentStore (" + OakVersion.getVersion() + ") instantiated for database " + dbDesc + ", using driver: "
+                + driverDesc + ", connecting to: " + dbUrl + (diag.isEmpty() ? "" : (", properties: " + diag))
+                + ", transaction isolation level: " + isolationDiags + tableDiags);
         if (!tablesPresent.isEmpty()) {
             LOG.info("Tables present upon startup: " + tablesPresent);
         }
