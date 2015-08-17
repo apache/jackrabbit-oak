@@ -177,7 +177,7 @@ public class ClusterNodeInfo {
     /**
      * The time (in milliseconds UTC) where the lease of this instance ends.
      */
-    private long leaseEndTime;
+    private volatile long leaseEndTime;
 
     /**
      * The read/write mode.
@@ -188,7 +188,19 @@ public class ClusterNodeInfo {
      * The state of the cluter node.
      */
     private ClusterNodeState state;
+    
+    /**
+     * Whether or not the OAK-2739/leaseCheck failed and thus a System.exit was already triggered
+     * (is used to avoid calling System.exit a hundred times when it then happens)
+     */
+    private volatile boolean systemExitTriggered;
 
+    /**
+     * Tracks the fact whether the lease has *ever* been renewed by this instance
+     * or has just be read from the document store at initialization time.
+     */
+    private boolean renewed;
+    
     /**
      * The revLock value of the cluster;
      */
@@ -212,6 +224,7 @@ public class ClusterNodeInfo {
         } else {
             this.leaseEndTime = leaseEnd;
         }
+        this.renewed = false; // will be updated once we renew it the first time
         this.store = store;
         this.machineId = machineId;
         this.instanceId = instanceId;
@@ -356,6 +369,49 @@ public class ClusterNodeInfo {
                 RecoverLockState.NONE, prevLeaseEnd, newEntry);
     }
 
+    public void performLeaseCheck() {
+        if (!renewed) {
+            // the 'renewed' flag indicates if this instance *ever* renewed the lease after startup
+            // until that is not set, we cannot do the lease check (otherwise startup wouldn't work)
+            return;
+        }
+        final long now = getCurrentTime();
+        if (now < leaseEndTime) {
+            // then all is good
+            return;
+        }
+        
+        // OAK-2739 : when the lease is not current, we must stop
+        // the instance immediately to avoid any cluster inconsistency
+        final String errorMsg = "performLeaseCheck: this instance failed to update the lease in time "
+                + "(leaseEndTime: "+leaseEndTime+", now: "+now+", leaseTime: "+leaseTime+") "
+                + "and is thus no longer eligible for taking part in the cluster. Shutting down NOW!";
+        LOG.error(errorMsg);
+        
+        // now here comes the thing: we should a) call System.exit in a separate thread
+        // to avoid any deadlock when calling from eg within the shutdown hook
+        // AND b) we should not call system.exit hundred times.
+        // so for b) we use 'systemExitTriggered' to avoid calling it over and over
+        // BUT it doesn't have to be 100% ensured that system.exit is called only once.
+        // it is fine if it gets called once, twice - but just not hundred times.
+        // which is a long way of saying: volatile is fine here - and the 'if' too
+        if (!systemExitTriggered) {
+            systemExitTriggered = true;
+            final Runnable r = new Runnable() {
+
+                @Override
+                public void run() {
+                    System.exit(-1);
+                }
+                
+            };
+            final Thread th = new Thread(r, "FailedLeaseCheckShutdown-Thread");
+            th.setDaemon(true);
+            th.start();
+        }
+        throw new AssertionError(errorMsg);
+    }
+
     /**
      * Renew the cluster id lease. This method needs to be called once in a while,
      * to ensure the same cluster id is not re-used by a different instance.
@@ -379,6 +435,7 @@ public class ClusterNodeInfo {
             readWriteMode = mode;
             store.setReadWriteMode(mode);
         }
+        renewed = true;
         return true;
     }
 

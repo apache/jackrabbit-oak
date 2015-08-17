@@ -96,6 +96,7 @@ import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.json.BlobSerializer;
 import org.apache.jackrabbit.oak.plugins.document.Branch.BranchCommit;
+import org.apache.jackrabbit.oak.plugins.document.util.LeaseCheckDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.LoggingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.plugins.document.util.TimingDocumentStoreWrapper;
@@ -411,14 +412,13 @@ public final class DocumentNodeStore
         if (builder.getLogging()) {
             s = new LoggingDocumentStoreWrapper(s);
         }
-        this.store = s;
         this.changes = Collection.JOURNAL.newDocument(s);
         this.executor = builder.getExecutor();
         this.clock = builder.getClock();
         int cid = builder.getClusterId();
         cid = Integer.getInteger("oak.documentMK.clusterId", cid);
         if (cid == 0) {
-            clusterNodeInfo = ClusterNodeInfo.getInstance(store);
+            clusterNodeInfo = ClusterNodeInfo.getInstance(s);
             // TODO we should ensure revisions generated from now on
             // are never "older" than revisions already in the repository for
             // this cluster id
@@ -426,6 +426,10 @@ public final class DocumentNodeStore
         } else {
             clusterNodeInfo = null;
         }
+        if (builder.getLeaseCheck()) {
+            s = new LeaseCheckDocumentStoreWrapper(s, clusterNodeInfo);
+        }
+        this.store = s;
         this.clusterId = cid;
         this.revisionComparator = new Revision.RevisionComparator(clusterId);
         this.branches = new UnmergedBranches(getRevisionComparator());
