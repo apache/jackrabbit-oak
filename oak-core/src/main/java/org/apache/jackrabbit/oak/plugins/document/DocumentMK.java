@@ -474,7 +474,7 @@ public class DocumentMK {
         private int asyncDelay = 1000;
         private boolean timing;
         private boolean logging;
-        private boolean leaseCheck;
+        private boolean leaseCheck = true; // OAK-2739 is enabled by default also for non-osgi
         private Weigher<CacheValue, CacheValue> weigher = new EmpiricalWeigher();
         private long memoryCacheSize = DEFAULT_MEMORY_CACHE_SIZE;
         private int nodeCachePercentage = DEFAULT_NODE_CACHE_PERCENTAGE;
