@@ -262,10 +262,7 @@
         <configuration>
           <filesets>
             <fileset>
-              <directory>${basedir}</directory>
-              <includes>
-                <include>oak</include>
-              </includes>
+              <directory>oak</directory>
             </fileset>
           </filesets>
         </configuration>
