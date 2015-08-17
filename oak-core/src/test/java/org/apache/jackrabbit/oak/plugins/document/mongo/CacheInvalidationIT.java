@@ -264,6 +264,7 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
                           .setClusterId(clusterId)
                           //Set delay to 0 so that effect of changes are immediately reflected
                           .setAsyncDelay(0) 
+                          .setLeaseCheck(false)
                           .getNodeStore();
     }
 

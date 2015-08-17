@@ -70,6 +70,7 @@ public class ReadPreferenceIT {
                 .setMaxReplicationLag(replicationLag, TimeUnit.MILLISECONDS)
                 .setMongoDB(mc.getDB())
                 .setClusterId(1)
+                .setLeaseCheck(false)
                 .getNodeStore();
         mongoDS = (MongoDocumentStore) documentNodeStore.getDocumentStore();
         nodeStore = documentNodeStore;
