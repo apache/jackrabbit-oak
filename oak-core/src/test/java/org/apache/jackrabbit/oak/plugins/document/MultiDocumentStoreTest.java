@@ -44,6 +44,7 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
         up.set("_id", id);
         up.set("_foo", 0l);
         assertTrue(super.ds1.create(Collection.NODES, Collections.singletonList(up)));
+        removeMe.add(id);
 
         long increments = 10;
 
@@ -58,7 +59,6 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
                 super.ds2.update(Collection.NODES, Collections.singletonList(id), up);
             }
         }
-        removeMe.add(id);
 
         // read uncached
         nd = super.ds1.find(Collection.NODES, id, 0);
@@ -79,6 +79,8 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
         up.set("_id", id);
         up.set("_modified", 1L);
         assertTrue(super.ds1.create(Collection.NODES, Collections.singletonList(up)));
+        removeMe.add(id);
+
         nd1 = super.ds1.find(Collection.NODES, id, 0);
         Number n = nd1.getModCount();
         if (n != null) {
@@ -155,6 +157,7 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
         up.set("_id", id);
         up.set("_foo", "bar");
         assertTrue(super.ds1.create(Collection.NODES, Collections.singletonList(up)));
+        removeMe.add(id);
 
         // fill both caches
         NodeDocument nd1 = super.ds1.find(Collection.NODES, id);
