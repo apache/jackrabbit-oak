@@ -29,6 +29,7 @@ import java.util.UUID;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.apache.jackrabbit.oak.util.OakVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,6 +49,11 @@ public class ClusterNodeInfo {
      * The machine id.
      */
     private static final String MACHINE_ID_KEY = "machine";
+
+    /**
+     * The Oak version.
+     */
+    private static final String OAK_VERSION_KEY = "oakVersion";
 
     /**
      * The unique instance id within this machine (the current working directory
@@ -299,6 +305,7 @@ public class ClusterNodeInfo {
             update.set(INFO_KEY, clusterNode.toString());
             update.set(STATE, clusterNode.state.name());
             update.set(REV_RECOVERY_LOCK, clusterNode.revRecoveryLock.name());
+            update.set(OAK_VERSION_KEY, OakVersion.getVersion());
 
             final boolean success;
             if (clusterNode.newEntry) {
