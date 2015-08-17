@@ -76,6 +76,7 @@ public class LastRevSingleNodeRecoveryTest {
         builder.setAsyncDelay(0)
                 .setClusterId(clusterId)
                 .clock(clock)
+                .setLeaseCheck(false)
                 .setDocumentStore(store);
         mk = builder.open();
         clock.waitUntil(Revision.getCurrentTimestamp());
