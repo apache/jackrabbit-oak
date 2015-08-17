@@ -751,11 +751,13 @@ public class SegmentWriter {
                     keyId = e.getKey();
                 }
             }
-            if (keyId == null) {
+            if (keyId == null && entry.getValue() != null) {
                 keyId = writeString(key);
             }
 
-            entries.add(new MapEntry(key, keyId, entry.getValue()));
+            if (keyId != null) {
+                entries.add(new MapEntry(key, keyId, entry.getValue()));
+            }
         }
 
         return writeMapBucket(base, entries, 0);

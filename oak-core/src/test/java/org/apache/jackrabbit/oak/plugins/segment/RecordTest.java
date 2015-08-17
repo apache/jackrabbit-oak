@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Maps.newHashMap;
 import static java.util.Collections.singletonList;
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.fail;
@@ -40,15 +41,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import com.google.common.base.Charsets;
+import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
-
-import com.google.common.base.Charsets;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 
 public class RecordTest {
 
@@ -199,7 +198,7 @@ public class RecordTest {
                 null, ImmutableMap.of("one", blockId));
         MapRecord two = writer.writeMap(
                 null, ImmutableMap.of("one", blockId, "two", blockId));
-        Map<String, RecordId> map = Maps.newHashMap();
+        Map<String, RecordId> map = newHashMap();
         for (int i = 0; i < 1000; i++) {
             map.put("key" + i, blockId);
         }
@@ -241,7 +240,7 @@ public class RecordTest {
         assertFalse(iterator.hasNext());
         assertNull(many.getEntry("foo"));
 
-        Map<String, RecordId> changes = Maps.newHashMap();
+        Map<String, RecordId> changes = newHashMap();
         changes.put("key0", null);
         changes.put("key1000", blockId);
         MapRecord modified = writer.writeMap(many, changes);
@@ -257,9 +256,19 @@ public class RecordTest {
     }
 
     @Test
+    public void testMapRemoveNonExisting() {
+        RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
+
+        Map<String, RecordId> changes = newHashMap();
+        changes.put("one", null);
+        MapRecord zero = writer.writeMap(null, changes);
+        assertEquals(0, zero.size());
+    }
+
+    @Test
     public void testWorstCaseMap() {
         RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
-        Map<String, RecordId> map = Maps.newHashMap();
+        Map<String, RecordId> map = newHashMap();
         char[] key = new char[2];
         for (int i = 0; i <= MapRecord.BUCKETS_PER_LEVEL; i++) {
             key[0] = (char) ('A' + i);
