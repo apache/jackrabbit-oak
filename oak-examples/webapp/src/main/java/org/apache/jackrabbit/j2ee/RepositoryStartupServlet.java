@@ -216,7 +216,6 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
      * another initialization error occurs.
      */
     public void init() throws ServletException {
-        super.init();
         // check if servlet is defined twice
         if (getServletContext().getAttribute(CTX_PARAM_THIS) !=  null) {
             throw new ServletException("Only one repository startup servlet allowed per web-app.");
@@ -253,6 +252,13 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
                 registerRMI();
                 registerJNDI();
             }
+
+            //Once repository is initialized get its instances bounded to ServletContext
+            //via super class init
+            if (repository != null){
+                super.init();
+            }
+
             log.info("RepositoryStartupServlet initialized.");
         } catch (ServletException e) {
             // shutdown repository
