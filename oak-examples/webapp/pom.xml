@@ -253,6 +253,8 @@
         <configuration>
           <excludes>
             <exclude>src/main/webapp/WEB-INF/log4j.dtd</exclude>
+            <exclude>src/main/webapp/WEB-INF/templates/repository-config.json</exclude>
+            <exclude>*.sh</exclude>
           </excludes>
         </configuration>
       </plugin>
