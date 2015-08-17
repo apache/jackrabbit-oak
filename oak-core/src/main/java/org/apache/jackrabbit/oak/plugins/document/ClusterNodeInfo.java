@@ -196,6 +196,13 @@ public class ClusterNodeInfo {
     private volatile boolean systemExitTriggered;
 
     /**
+     * OAK-2739: for development it would be useful to be able to disable the
+     * lease check - hence there's a system property that does that:
+     * oak.documentMK.disableLeaseCheck
+     */
+    private final boolean leaseCheckDisabled;
+    
+    /**
      * Tracks the fact whether the lease has *ever* been renewed by this instance
      * or has just be read from the document store at initialization time.
      */
@@ -231,6 +238,7 @@ public class ClusterNodeInfo {
         this.state = state;
         this.revRecoveryLock = revRecoveryLock;
         this.newEntry = newEntry;
+        this.leaseCheckDisabled = Boolean.valueOf(System.getProperty("oak.documentMK.disableLeaseCheck", "false"));
     }
 
     public int getId() {
@@ -370,7 +378,9 @@ public class ClusterNodeInfo {
     }
 
     public void performLeaseCheck() {
-        if (!renewed) {
+        if (leaseCheckDisabled || !renewed) {
+            // if leaseCheckDisabled is set we never do the check, so return fast
+            
             // the 'renewed' flag indicates if this instance *ever* renewed the lease after startup
             // until that is not set, we cannot do the lease check (otherwise startup wouldn't work)
             return;
