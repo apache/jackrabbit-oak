@@ -435,6 +435,9 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
 
             try {
                 repository = createRepository(configJson, repHome);
+                if (getBootstrapConfig().isRepositoryCreateDefaultIndexes()){
+                    new IndexInitializer(repository).initialize();
+                }
             } catch (RepositoryException e) {
                 throw new ServletExceptionWithCause("Error while creating repository", e);
             }
