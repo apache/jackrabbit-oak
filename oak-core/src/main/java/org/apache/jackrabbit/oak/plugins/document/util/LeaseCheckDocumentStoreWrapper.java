@@ -47,15 +47,15 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
         if (delegate==null) {
             throw new IllegalArgumentException("delegate must not be null");
         }
-        if (clusterNodeInfo==null) {
-            throw new IllegalArgumentException("clusterNodeInfo must not be null");
-        }
         this.delegate = delegate;
+        // clusterNodeInfo is allowed to be null - eg for testing
         this.clusterNodeInfo = clusterNodeInfo;
     }
     
     private final void performLeaseCheck() {
-        clusterNodeInfo.performLeaseCheck();
+        if (clusterNodeInfo!=null) {
+            clusterNodeInfo.performLeaseCheck();
+        }
     }
     
     @Override
