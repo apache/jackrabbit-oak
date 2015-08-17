@@ -88,7 +88,7 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
      * Max size of binary whose content would be cached. We keep it greater than
      * Lucene blob size OakDirectory#BLOB_SIZE such that Lucene index blobs are cached
      */
-    private int maxCachedBinarySize = 17 * 1024;
+    private int maxCachedBinarySize = 1024 * 1024;
 
 
     public DataStoreBlobStore(DataStore delegate) {
