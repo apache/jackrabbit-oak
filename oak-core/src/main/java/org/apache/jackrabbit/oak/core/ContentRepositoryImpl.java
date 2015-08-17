@@ -18,8 +18,7 @@ package org.apache.jackrabbit.oak.core;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.Credentials;
@@ -50,6 +49,7 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.util.GenericDescriptors;
+import org.apache.jackrabbit.oak.util.OakVersion;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static javax.jcr.Repository.IDENTIFIER_STABILITY;
@@ -118,7 +118,7 @@ public class ContentRepositoryImpl implements ContentRepository, Closeable {
     private final QueryEngineSettings queryEngineSettings;
 
     private GenericDescriptors descriptors;
-    
+
     /**
      * Creates an content repository instance based on the given, already
      * initialized components.
@@ -258,7 +258,7 @@ public class ContentRepositoryImpl implements ContentRepository, Closeable {
                 .put(QUERY_XPATH_DOC_ORDER, falseValue, true, true)
                 .put(QUERY_XPATH_POS_INDEX, falseValue, true, true)
                 .put(REP_NAME_DESC, valueFactory.createValue("Apache Jackrabbit Oak"), true, true)
-                .put(REP_VERSION_DESC, valueFactory.createValue(getVersion()), true, true)
+                .put(REP_VERSION_DESC, valueFactory.createValue(OakVersion.getVersion()), true, true)
                 .put(REP_VENDOR_DESC, valueFactory.createValue("The Apache Software Foundation"), true, true)
                 .put(REP_VENDOR_URL_DESC, valueFactory.createValue("http://www.apache.org/"), true, true)
                 .put(SPEC_NAME_DESC, valueFactory.createValue("Content Repository for Java Technology API"), true, true)
@@ -289,29 +289,5 @@ public class ContentRepositoryImpl implements ContentRepository, Closeable {
      */
     private boolean supportsSameNameNodeAndProperties() {
         return !(nodeStore instanceof KernelNodeStore);
-    }
-
-    /**
-     * Returns the version of this repository implementation.
-     * @return the version
-     */
-    @Nonnull
-    private static String getVersion() {
-        InputStream stream = ContentRepositoryImpl.class.getResourceAsStream(
-                "/META-INF/maven/org.apache.jackrabbit/oak-core/pom.properties");
-        if (stream != null) {
-            try {
-                try {
-                    Properties properties = new Properties();
-                    properties.load(stream);
-                    return properties.getProperty("version");
-                } finally {
-                    stream.close();
-                }
-            } catch (IOException e) {
-                // ignore
-            }
-        }
-        return "SNAPSHOT";
     }
 }

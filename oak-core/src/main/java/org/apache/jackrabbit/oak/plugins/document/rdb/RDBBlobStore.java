@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStore;
+import org.apache.jackrabbit.oak.util.OakVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -213,8 +214,8 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                 tablesToBeDropped.addAll(tablesCreated);
             }
 
-            LOG.info("RDBBlobStore instantiated for database " + dbDesc + ", using driver: " + driverDesc + ", connecting to: "
-                    + dbUrl + ", transaction isolation level: " + isolationDiags);
+            LOG.info("RDBBlobStore (" + OakVersion.getVersion() + ") instantiated for database " + dbDesc + ", using driver: "
+                    + driverDesc + ", connecting to: " + dbUrl + ", transaction isolation level: " + isolationDiags);
             if (!tablesPresent.isEmpty()) {
                 LOG.info("Tables present upon startup: " + tablesPresent);
             }
