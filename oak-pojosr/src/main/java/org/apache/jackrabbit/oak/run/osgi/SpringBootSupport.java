@@ -105,7 +105,9 @@ class SpringBootSupport {
                   actual invocation has to be done via reflection. URL returned here has proper
                   Handler configured to allow reverse access via URL connection
                  */
-                return (URL) getUrlMethod(jarEntry).invoke(jarEntry);
+                if (jarEntry != null) {
+                    return (URL) getUrlMethod(jarEntry).invoke(jarEntry);
+                }
             } catch (Exception e) {
                 log.warn("Error occurred while fetching jar entry {} from {}", entryName, jarFile, e);
             }
