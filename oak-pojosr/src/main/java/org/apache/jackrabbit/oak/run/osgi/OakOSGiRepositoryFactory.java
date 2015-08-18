@@ -129,6 +129,9 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
     public static final String REPOSITORY_SHUTDOWN_ON_TIMEOUT =
             "org.apache.jackrabbit.oak.repository.shutDownOnTimeout";
 
+    public static final String REPOSITORY_ENV_SPRING_BOOT =
+            "org.apache.jackrabbit.oak.repository.springBootMode";
+
     /**
      * Default timeout for repository creation
      */
@@ -211,7 +214,7 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
         registerMBeanServer(registry);
         startConfigTracker(registry, config);
         preProcessRegistry(registry);
-        startBundles(registry, (String)config.get(REPOSITORY_BUNDLE_FILTER));
+        startBundles(registry, (String)config.get(REPOSITORY_BUNDLE_FILTER), config);
         postProcessRegistry(registry);
 
         return registry;
@@ -325,10 +328,13 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
     }
 
 
-    private void startBundles(PojoServiceRegistry registry, String bundleFilter) {
+    private void startBundles(PojoServiceRegistry registry, String bundleFilter, Map config) {
         try {
             List<BundleDescriptor> descriptors = new ClasspathScanner().scanForBundles(bundleFilter);
             descriptors = Lists.newArrayList(descriptors);
+            if (PropertiesUtil.toBoolean(config.get(REPOSITORY_ENV_SPRING_BOOT), false)){
+                descriptors = SpringBootSupport.processDescriptors(descriptors);
+            }
             descriptors = processDescriptors(descriptors);
             registry.startBundles(descriptors);
         } catch (Exception e) {
