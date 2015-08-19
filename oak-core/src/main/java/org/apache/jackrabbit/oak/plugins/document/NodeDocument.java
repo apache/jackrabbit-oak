@@ -706,6 +706,11 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             newestRev = it.next();
         } else {
             // check full history (only needed in rare cases)
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("getNewestRevision() with changeRev {} on {}, " +
+                                "_revisions {}, _commitRoot {}",
+                        changeRev, getId(), getLocalRevisions(), getLocalCommitRoot());
+            }
             it = filter(Iterables.mergeSorted(
                     ImmutableList.of(getValueMap(REVISIONS).keySet(), getValueMap(COMMIT_ROOT).keySet()),
                     revisions.comparator()), predicate).iterator();
