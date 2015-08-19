@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.lucene.index.IndexReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -145,13 +146,17 @@ class IndexPlanner {
         //for property index
         if (indexingRule.propertyIndexEnabled) {
             for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
+                String name = pr.propertyName;
+                if (QueryConstants.RESTRICTION_LOCAL_NAME.equals(name)) {
+                    continue;
+                }                
                 PropertyDefinition pd = indexingRule.getConfig(pr.propertyName);
                 if (pd != null && pd.propertyIndexEnabled()) {
                     if (pr.isNullRestriction() && !pd.nullCheckEnabled){
                         continue;
                     }
-                    indexedProps.add(pr.propertyName);
-                    result.propDefns.put(pr.propertyName, pd);
+                    indexedProps.add(name);
+                    result.propDefns.put(name, pd);
                 }
             }
         }
@@ -433,10 +438,21 @@ class IndexPlanner {
     private boolean notSupportedFeature() {
         if(filter.getPathRestriction() == Filter.PathRestriction.NO_RESTRICTION
                 && filter.matchesAllTypes()
-                && filter.getPropertyRestrictions().isEmpty()){
+                && filter.getPropertyRestrictions().isEmpty()) { 
             //This mode includes name(), localname() queries
             //OrImpl [a/name] = 'Hello' or [b/name] = 'World'
             //Relative parent properties where [../foo1] is not null
+            return true;
+        }
+        int usablePropertRestrictionCount = 0;
+        for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
+            String name = pr.propertyName;
+            if (QueryConstants.RESTRICTION_LOCAL_NAME.equals(name)) {
+                continue;
+            }
+            usablePropertRestrictionCount++;
+        }
+        if (usablePropertRestrictionCount == 0) {
             return true;
         }
         return false;
