@@ -356,12 +356,12 @@ public class RepositoryUpgrade {
                     mapSecurityConfig(config.getSecurityConfig()));
 
             // init target repository first
-            logger.info("Initializing initial repository content", config.getHomeDir());
+            logger.info("Initializing initial repository content from {}", config.getHomeDir());
             new InitialContent().initialize(builder);
             if (initializer != null) {
                 initializer.initialize(builder);
             }
-            logger.debug("InitialContent completed", config.getHomeDir());
+            logger.debug("InitialContent completed from {}", config.getHomeDir());
 
             for (SecurityConfiguration sc : security.getConfigurations()) {
                 RepositoryInitializer ri = sc.getRepositoryInitializer();
