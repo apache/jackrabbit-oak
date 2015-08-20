@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.query;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,9 +30,11 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+
 import javax.jcr.PropertyType;
 
 import com.google.common.collect.Lists;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -116,13 +119,20 @@ public abstract class AbstractQueryTest {
     }
 
     protected void test(String file) throws Exception {
-        InputStream in = AbstractQueryTest.class.getResourceAsStream(file);
-        ContinueLineReader r = new ContinueLineReader(new LineNumberReader(new InputStreamReader(in)));
+
         String className = getClass().getName();
         String shortClassName = className.replaceAll("org.apache.jackrabbit.oak.plugins.index.", "oajopi.");
+
+        // OAK-3252 getting the input/output paths for better error reporting. Still using the
+        // stream for input as other projects uses dependencies on sql2.txt of oak-core and it fails
+        // resolving the whole path on disk
+        File input = new File(AbstractQueryTest.class.getResource(file).getPath());
+        File output = new File("target/" + shortClassName + "_" + file);
+        
+        InputStream in = AbstractQueryTest.class.getResourceAsStream(file);
+        ContinueLineReader r = new ContinueLineReader(new LineNumberReader(new InputStreamReader(in)));
         PrintWriter w = new PrintWriter(new OutputStreamWriter(
-                new FileOutputStream("target/" + shortClassName + "_"
-                        + file)));
+                new FileOutputStream(output)));
         HashSet<String> knownQueries = new HashSet<String>();
         boolean errors = false;
         try {
@@ -217,9 +227,9 @@ public abstract class AbstractQueryTest {
             r.close();
         }
         if (errors) {
-            throw new Exception("Results in target/" + file
+            throw new Exception("Results in " + output.getPath()
                     + " don't match expected "
-                    + "results in src/test/resources/" + file
+                    + "results in " + input.getPath()
                     + "; compare the files for details");
         }
     }
