@@ -115,7 +115,11 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         int last = 0;
 
         while (max - min >= 256) {
-            test = (max + min) / 2;
+            if (test == 0) {
+                test = max; // try largest first
+            } else {
+                test = (max + min) / 2;
+            }
             String id = this.getClass().getName() + ".testMaxProperty-" + test;
             String pval = generateString(test, true);
             UpdateOp up = new UpdateOp(id, true);
