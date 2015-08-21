@@ -307,9 +307,11 @@ public class AsyncIndexUpdate implements Runnable {
 
         // there are some recent changes, so let's create a new checkpoint
         String afterTime = now();
+        String oldThreadName = Thread.currentThread().getName();
+        boolean threadNameChanged = false;
         String afterCheckpoint = store.checkpoint(lifetime, ImmutableMap.of(
                 "creator", AsyncIndexUpdate.class.getSimpleName(),
-                "thread", Thread.currentThread().getName(),
+                "thread", oldThreadName,
                 "name", name));
         NodeState after = store.retrieve(afterCheckpoint);
         if (after == null) {
@@ -323,6 +325,11 @@ public class AsyncIndexUpdate implements Runnable {
         String checkpointToRelease = afterCheckpoint;
         boolean updatePostRunStatus = false;
         try {
+            String newThreadName = "aysnc-index-update-" + name;
+            log.trace("Switching thread name to {}", newThreadName);
+            threadNameChanged = true;
+            Thread.currentThread().setName(newThreadName);
+            
             updatePostRunStatus = updateIndex(before, beforeCheckpoint,
                     after, afterCheckpoint, afterTime);
 
@@ -351,6 +358,10 @@ public class AsyncIndexUpdate implements Runnable {
             }
 
         } finally {
+            if (threadNameChanged) {
+                log.trace("Switching thread name back to {}", oldThreadName);
+                Thread.currentThread().setName(oldThreadName);
+            }
             // null during initial indexing
             // and skip release if this cp was used in a split operation
             if (checkpointToRelease != null
