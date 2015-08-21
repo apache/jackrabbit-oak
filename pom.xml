@@ -51,7 +51,7 @@
     <module>oak-auth-ldap</module>
     <module>oak-tarmk-standby</module>
     <module>oak-run</module>
-    <module>oak-it</module>
+    <module>oak-it-osgi</module>
     <module>oak-pojosr</module>
     <module>oak-authorization-cug</module>
     <module>oak-remote</module>
