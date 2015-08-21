@@ -623,10 +623,13 @@ public class FileStore implements SegmentStore {
                     journalFile.writeBytes(after.toString10() + " root\n");
                     journalFile.getChannel().force(false);
                     persistedHead.set(after);
+                }
 
-                    if (cleanup) {
-                        cleanup();
-                    }
+                // Needs to happen outside the synchronization block above to
+                // prevent the flush from stopping concurrent reads and writes
+                // by the persisted compaction map. See OAK-3264
+                if (cleanup) {
+                    cleanup();
                 }
             }
             synchronized (this) {
