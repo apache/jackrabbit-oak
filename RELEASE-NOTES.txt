@@ -32,18 +32,50 @@ collection for MongoDB manually before Oak is upgraded to 1.0.19.
 See https://issues.apache.org/jira/browse/OAK-2829 for more details.
  
 
-Release Notes - Jackrabbit Oak - Version 1.0.19
-
-Bugs
-
-
-Improvements
-
-
-New Features
-
-
 Sub-task
+
+    [OAK-2850] - Flag states from revision of an external change
+    [OAK-3002] - Optimize docCache and docChildrenCache invalidation
+    by filtering using journal
+    [OAK-3198] - reduce RDBDocumentStore class size, avoid code
+    duplication with RDBBlobStore
+    [OAK-3206] - DocumentStorePerformanceTest executed together with
+    unit tests
+    [OAK-3222] - RDBDocumentStore: add missing RDBHelper support for
+    JOURNAL table
+
+Bug
+
+    [OAK-2880] - NPE in SegmentWriter.writeMap
+    [OAK-3169] - rep:versionablePaths mixin not always set for
+    versionable nodes
+    [OAK-3171] - Conflict Exception logs path information only on
+    DEBUG
+    [OAK-3199] - DocumentNodeState ignores binary value for memory
+    calculation
+    [OAK-3221] - JournalTest may fail on machine with slow I/O
+    [OAK-3231] - Change default maxCachedBinarySize to match lucene
+    DEFAULT_BLOB_SIZE
+    [OAK-3246] - MultiDocumentStoreTest might fail to clean up test
+    nodes
+
+Improvement
+
+    [OAK-2685] - Track root state revision when reading the tree
+    [OAK-2829] - Comparing node states for external changes is too
+    slow
+    [OAK-3073] - Make preftech of index files as default option
+    [OAK-3085] - Add timestamp property to journal entries
+    [OAK-3174] - [Blob GC] Make actual deletion of blobs synchronous
+    [OAK-3180] - Versioning: improve diagnostics when version history
+    state is broken
+    [OAK-3204] - oak-core version diagnostics
+    [OAK-3257] - speed up BasicDocumentStoreTest
+
+Task
+
+    [OAK-3189] - CLONE - MissingLastRevSeeker non MongoDS may fail
+    with OOM
 
     
 
