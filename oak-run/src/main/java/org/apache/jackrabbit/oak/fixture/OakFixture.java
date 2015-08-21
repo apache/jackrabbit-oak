@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.fixture;
 
 import java.io.File;
+import java.lang.management.ManagementFactory;
 
 import javax.sql.DataSource;
 
@@ -34,6 +35,7 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 public abstract class OakFixture {
 
@@ -88,7 +90,7 @@ public abstract class OakFixture {
             @Override
             public Oak getOak(int clusterId) throws Exception {
                 Oak oak;
-                oak = new Oak(new MemoryNodeStore());
+                oak = newOak(new MemoryNodeStore());
                 return oak;
             }
 
@@ -97,7 +99,7 @@ public abstract class OakFixture {
                 Oak[] cluster = new Oak[n];
                 for (int i = 0; i < cluster.length; i++) {
                     Oak oak;
-                    oak = new Oak(new MemoryNodeStore());
+                    oak = newOak(new MemoryNodeStore());
                     cluster[i] = oak;
                 }
                 return cluster;
@@ -162,7 +164,7 @@ public abstract class OakFixture {
                         setLogging(false);
                 setupBlobStore(mkBuilder);
                 DocumentMK dmk = mkBuilder.open();
-                return new Oak(dmk.getNodeStore());
+                return newOak(dmk.getNodeStore());
             }
 
             @Override
@@ -179,7 +181,7 @@ public abstract class OakFixture {
                             setLogging(false);
                     setupBlobStore(mkBuilder);
                     kernels[i] = mkBuilder.open();
-                    cluster[i] = new Oak(kernels[i].getNodeStore());
+                    cluster[i] = newOak(kernels[i].getNodeStore());
                 }
                 return cluster;
             }
@@ -258,7 +260,7 @@ public abstract class OakFixture {
                     mkBuilder.setBlobStore(blobStore);
                 }
                 DocumentMK dmk = mkBuilder.open();
-                return new Oak(dmk.getNodeStore());
+                return newOak(dmk.getNodeStore());
             }
 
             @Override
@@ -275,7 +277,7 @@ public abstract class OakFixture {
                         mkBuilder.setBlobStore(blobStore);
                     }
                     kernels[i] = mkBuilder.open();
-                    cluster[i] = new Oak(kernels[i].getNodeStore());
+                    cluster[i] = newOak(kernels[i].getNodeStore());
                 }
                 return cluster;
             }
@@ -330,7 +332,7 @@ public abstract class OakFixture {
         @Override
         public Oak getOak(int clusterId) throws Exception {
             FileStore fs = new FileStore(base, maxFileSizeMB, cacheSizeMB, memoryMapping);
-            return new Oak(new SegmentNodeStore(fs));
+            return newOak(new SegmentNodeStore(fs));
         }
 
         @Override
@@ -352,7 +354,7 @@ public abstract class OakFixture {
                         new File(base, unique),
                         EmptyNodeState.EMPTY_NODE,
                         maxFileSizeMB, cacheSizeMB, memoryMapping);
-                cluster[i] = new Oak(new SegmentNodeStore(stores[i]));
+                cluster[i] = newOak(new SegmentNodeStore(stores[i]));
             }
             return cluster;
         }
@@ -376,5 +378,9 @@ public abstract class OakFixture {
             return stores;
         }
     }
+    
+    private static Oak newOak(NodeStore nodeStore) {
+    	return new Oak(nodeStore).with(ManagementFactory.getPlatformMBeanServer());
+    }    
 
 }
