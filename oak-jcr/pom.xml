@@ -51,19 +51,19 @@
       org.apache.jackrabbit.test.api.WorkspaceMoveTest#testMoveNodesLocked                             <!-- OAK-118 -->
 
       <!-- Locking : not fully implemented -->
-      org.apache.jackrabbit.test.api.lock.LockTest#testNodeLocked
-      org.apache.jackrabbit.test.api.lock.LockTest#testParentChildDeepLock
-      org.apache.jackrabbit.test.api.lock.LockTest#testAddRemoveLockToken
+      org.apache.jackrabbit.test.api.lock.LockTest#testNodeLocked <!-- OAK-3260 -->
+      org.apache.jackrabbit.test.api.lock.LockTest#testParentChildDeepLock <!-- OAK-3261 -->
+      org.apache.jackrabbit.test.api.lock.LockTest#testAddRemoveLockToken <!-- OAK-2149 -->
 
-      org.apache.jackrabbit.test.api.lock.SetValueLockExceptionTest#testSetValueLockException
+      org.apache.jackrabbit.test.api.lock.SetValueLockExceptionTest#testSetValueLockException  <!-- OAK-2149 -->
 
-      org.apache.jackrabbit.test.api.lock.DeepLockTest#testParentChildDeepLock
-      org.apache.jackrabbit.test.api.lock.DeepLockTest#testDeepLockAboveLockedChild
-      org.apache.jackrabbit.test.api.lock.DeepLockTest#testRemoveLockedChild
+      org.apache.jackrabbit.test.api.lock.DeepLockTest#testParentChildDeepLock <!-- OAK-3261 -->
+      org.apache.jackrabbit.test.api.lock.DeepLockTest#testDeepLockAboveLockedChild <!-- OAK-3261 -->
+      org.apache.jackrabbit.test.api.lock.DeepLockTest#testRemoveLockedChild <!-- OAK-2149 -->
 
-      org.apache.jackrabbit.test.api.lock.LockManagerTest#testLockTransfer2
-      org.apache.jackrabbit.test.api.lock.LockManagerTest#testRemoveLockToken3
-      org.apache.jackrabbit.test.api.lock.LockManagerTest#testAddLockTokenToAnotherSession
+      org.apache.jackrabbit.test.api.lock.LockManagerTest#testLockTransfer2 <!-- OAK-3262 -->
+      org.apache.jackrabbit.test.api.lock.LockManagerTest#testRemoveLockToken3 <!-- OAK-2149 -->
+      org.apache.jackrabbit.test.api.lock.LockManagerTest#testAddLockTokenToAnotherSession <!-- OAK-3262 -->
 
       org.apache.jackrabbit.test.api.lock.SessionScopedLockTest#testImplicitUnlock
       org.apache.jackrabbit.test.api.lock.SessionScopedLockTest#testImplicitUnlock2
