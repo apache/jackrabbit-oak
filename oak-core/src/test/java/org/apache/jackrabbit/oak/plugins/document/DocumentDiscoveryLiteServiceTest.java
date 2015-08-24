@@ -55,6 +55,7 @@ import org.apache.jackrabbit.oak.api.Descriptors;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -1009,8 +1010,13 @@ public class DocumentDiscoveryLiteServiceTest {
         }
         mks.clear();
         if (MONGO_DB) {
-            DB db = MongoUtils.getConnection().getDB();
-            MongoUtils.dropCollections(db);
+            MongoConnection connection = MongoUtils.getConnection();
+            if (connection != null) {
+                DB db = connection.getDB();
+                if (db != null) {
+                    MongoUtils.dropCollections(db);
+                }
+            }
         }
     }
 
