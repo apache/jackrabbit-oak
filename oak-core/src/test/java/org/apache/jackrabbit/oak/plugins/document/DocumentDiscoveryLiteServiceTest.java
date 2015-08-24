@@ -63,6 +63,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
@@ -79,6 +80,7 @@ import com.mongodb.DB;
 /**
  * Tests for the DocumentDiscoveryLiteService
  */
+@Ignore("OAK-2844 : user.dir trick messes up with the other tests")
 public class DocumentDiscoveryLiteServiceTest {
 
     /**
