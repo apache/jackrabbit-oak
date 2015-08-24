@@ -108,6 +108,9 @@
       org.apache.jackrabbit.test.api.query.SQLJoinTest#testJoinNtBase                                <!-- OAK-474 -->
       org.apache.jackrabbit.test.api.query.SQLJoinTest#testJoinFilterPrimaryType                     <!-- OAK-474 -->
       org.apache.jackrabbit.test.api.query.SQLJoinTest#testJoinSNS                                   <!-- OAK-474 -->
+      org.apache.jackrabbit.test.api.query.qom.NodeLocalNameTest#testStringLiteralInvalidName        <!-- OAK-3265 -->
+      org.apache.jackrabbit.test.api.query.qom.NodeLocalNameTest#testURILiteral                      <!-- OAK-3265 -->
+      org.apache.jackrabbit.test.api.query.qom.NodeNameTest#testPathLiteral                          <!-- OAK-3265 -->
 
       org.apache.jackrabbit.core.query.ExcerptTest#testMoreTextDotsAtEnd                             <!-- OAK-318 -->
       org.apache.jackrabbit.core.query.ExcerptTest#testMoreTextDotsAtStart                           <!-- OAK-318 -->
