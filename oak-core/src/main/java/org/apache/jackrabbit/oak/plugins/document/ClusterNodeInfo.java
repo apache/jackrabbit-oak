@@ -67,6 +67,14 @@ public class ClusterNodeInfo {
     public static final String LEASE_END_KEY = "leaseEnd";
 
     /**
+     * The key for the root-revision of the last background write (of unsaved
+     * modifications) - that is: the last root-revision written by the instance
+     * in case of a clear shutdown or via recovery of another instance in case
+     * of a crash
+     */
+    public static final String LAST_WRITTEN_ROOT_REV_KEY = "lastWrittenRootRev";
+
+    /**
      * The state of the cluster. On proper shutdown the state should be cleared.
      *
      * @see org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.ClusterNodeState

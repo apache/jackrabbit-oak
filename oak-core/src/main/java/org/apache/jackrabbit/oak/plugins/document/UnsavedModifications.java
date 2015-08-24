@@ -214,6 +214,17 @@ class UnsavedModifications {
                 lastRev = null;
             }
         }
+        Revision writtenRootRev = pending.get("/");
+        if (writtenRootRev != null) {
+            int cid = writtenRootRev.getClusterId();
+            if (store.getDocumentStore().find(org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES, String.valueOf(cid)) != null) {
+                UpdateOp update = new UpdateOp(String.valueOf(cid), false);
+                update.equals(Document.ID, null, String.valueOf(cid));
+                update.set(ClusterNodeInfo.LAST_WRITTEN_ROOT_REV_KEY, writtenRootRev.toString());
+                store.getDocumentStore().findAndUpdate(org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES, update);
+            }
+        }
+
         stats.write = clock.getTime() - time;
         return stats;
     }

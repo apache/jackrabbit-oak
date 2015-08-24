@@ -77,4 +77,11 @@ public class ClusterNodeInfoDocument extends Document {
     private RecoverLockState getRecoveryState(){
         return RecoverLockState.fromString((String) get(ClusterNodeInfo.REV_RECOVERY_LOCK));
     }
+
+    /**
+     * the root-revision of the last background write (of unsaved modifications)
+     **/
+    public String getLastWrittenRootRev() {
+        return (String) get(ClusterNodeInfo.LAST_WRITTEN_ROOT_REV_KEY);
+    }
 }

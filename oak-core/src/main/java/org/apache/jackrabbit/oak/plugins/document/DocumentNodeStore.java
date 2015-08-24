@@ -348,6 +348,16 @@ public final class DocumentNodeStore
     private final BlobStore blobStore;
 
     /**
+     * The clusterStateChangeListener is invoked on any noticed change in the
+     * clusterNodes collection.
+     * <p>
+     * Note that there is no synchronization between setting this one and using
+     * it, but arguably that is not necessary since it will be set at startup
+     * time and then never be changed.
+     */
+    private ClusterStateChangeListener clusterStateChangeListener;
+
+    /**
      * The BlobSerializer.
      */
     private final BlobSerializer blobSerializer = new BlobSerializer() {
@@ -1637,7 +1647,8 @@ public final class DocumentNodeStore
         runBackgroundReadOperations();
     }
 
-    private void runBackgroundUpdateOperations() {
+    /** Note: made package-protected for testing purpose, would otherwise be private **/
+    void runBackgroundUpdateOperations() {
         if (isDisposed.get()) {
             return;
         }
@@ -1680,7 +1691,8 @@ public final class DocumentNodeStore
 
     //----------------------< background read operations >----------------------
 
-    private void runBackgroundReadOperations() {
+    /** Note: made package-protected for testing purpose, would otherwise be private **/
+    void runBackgroundReadOperations() {
         if (isDisposed.get()) {
             return;
         }
@@ -1724,8 +1736,11 @@ public final class DocumentNodeStore
     /**
      * Updates the state about cluster nodes in {@link #activeClusterNodes}
      * and {@link #inactiveClusterNodes}.
+     * @return true if the cluster state has changed, false if the cluster state
+     * remained unchanged
      */
-    void updateClusterState() {
+    boolean updateClusterState() {
+        boolean hasChanged = false;
         long now = clock.getTime();
         Set<Integer> inactive = Sets.newHashSet();
         for (ClusterNodeInfoDocument doc : ClusterNodeInfoDocument.all(store)) {
@@ -1733,14 +1748,15 @@ public final class DocumentNodeStore
             if (cId != this.clusterId && !doc.isActive()) {
                 inactive.add(cId);
             } else {
-                activeClusterNodes.put(cId, doc.getLeaseEndTime());
+                hasChanged |= activeClusterNodes.put(cId, doc.getLeaseEndTime())==null;
             }
         }
-        activeClusterNodes.keySet().removeAll(inactive);
-        inactiveClusterNodes.keySet().retainAll(inactive);
+        hasChanged |= activeClusterNodes.keySet().removeAll(inactive);
+        hasChanged |= inactiveClusterNodes.keySet().retainAll(inactive);
         for (Integer clusterId : inactive) {
-            inactiveClusterNodes.putIfAbsent(clusterId, now);
+            hasChanged |= inactiveClusterNodes.putIfAbsent(clusterId, now)==null;
         }
+        return hasChanged;
     }
 
     /**
@@ -2436,6 +2452,16 @@ public final class DocumentNodeStore
         return blobGC;
     }
 
+    void setClusterStateChangeListener(ClusterStateChangeListener clusterStateChangeListener) {
+        this.clusterStateChangeListener = clusterStateChangeListener;
+    }
+
+    void signalClusterStateChange() {
+        if (clusterStateChangeListener != null) {
+            clusterStateChangeListener.handleClusterStateChange();
+        }
+    }
+
     //-----------------------------< DocumentNodeStoreMBean >---------------------------------
 
     public DocumentNodeStoreMBean getMBean() {
@@ -2607,8 +2633,14 @@ public final class DocumentNodeStore
 
         @Override
         protected void execute(@Nonnull DocumentNodeStore nodeStore) {
-            if (nodeStore.renewClusterIdLease()) {
-                nodeStore.updateClusterState();
+            // first renew the clusterId lease
+            nodeStore.renewClusterIdLease();
+
+            // then, independently if the lease had to be updated or not, check
+            // the status:
+            if (nodeStore.updateClusterState()) {
+                // then inform the discovery lite listener - if it is registered
+                nodeStore.signalClusterStateChange();
             }
         }
     }
