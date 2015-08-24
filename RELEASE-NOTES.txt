@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.2.3
+Release Notes -- Apache Jackrabbit Oak -- Version 1.2.4
 
 Introduction
 ------------
@@ -7,242 +7,64 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.2.3 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.2.4 is a patch release that contains fixes and
 improvements over Oak 1.2. Jackrabbit Oak 1.2.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.2.3
+Changes in Oak 1.2.4
 --------------------
 
-Sub-task
 
-    [OAK-2410] - [sonar]Some statements not being closed in
-    RDBDocumentStore
-    [OAK-2747] - Admin cannot create versions on a locked page by
-    itself
-    [OAK-2826] - Refactor ListeneableFutureTask to commons
-    [OAK-2850] - Flag states from revision of an external change
-    [OAK-2856] - improve RDB diagnostics
-    [OAK-2901] - RDBBlobStoreTest should be able to run against
-    multiple DB types
-    [OAK-2915] - add (experimental) support for Apache Derby
-    [OAK-2916] - RDBDocumentStore: use of "GREATEST" in SQL apparently
-    doesn't have test coverage in unit tests
-    [OAK-2918] - RDBConnectionHandler: handle failure on setReadOnly()
-    gracefully
-    [OAK-2923] - RDB/DB2: change minimal supported version from 10.5
-    to 10.1, also log decimal version numbers as well
-    [OAK-2930] - RDBBlob/DocumentStore throws NPE when used after
-    being closed
-    [OAK-2931] - RDBDocumentStore: mitigate effects of large query
-    result sets
-    [OAK-2938] - Estimation of required memory for compaction is off
-    [OAK-2940] - RDBDocumentStore: "set" operation on _modified
-    appears to be implemented as "max"
-    [OAK-2949] - RDBDocumentStore: no custom SQL needed for GREATEST
-    [OAK-2950] - RDBDocumentStore: conditional fetch logic is reversed
-    [OAK-2952] - RDBConnectionHandler: log failures on setReadOnly()
-    only once
-    [OAK-2953] - Implement text extractor as part of oak-run
-    [OAK-2966] - JDBC config for document store tests should be
-    overridable
-    [OAK-2982] - BasicDocumentStoreTest: separate actual unit tests
-    from performance tests
-    [OAK-2985] - RDBDocumentStore: more diagnostics for long-running
-    queries
-    [OAK-2987] - RDBDocumentStore: try PreparedStatement batching
-    [OAK-2995] - RDB*Store: check transaction isolation level
-    [OAK-3002] - Optimize docCache and docChildrenCache invalidation
-    by filtering using journal
-    [OAK-3009] - RDBDocumentStore: add support for optional additional
-    index
-    [OAK-3010] - RDBDocumentStore: remove hardwired "id-is-binary"
-    flag
-    [OAK-3096] - RDBDocumentStore: improve diagnostics for failed
-    batch inserts
-    [OAK-3108] - RDBDocumentStore: improve diagnostics for failed
-    inserts/updates caused by long data
-    [OAK-3114] - RDBDocumentStore: add BDATA DDL information to
-    startup diagnostics
+Release Notes - Jackrabbit Oak - Version 1.2.4
 
-Bug
+Bugs
 
-    [OAK-2401] - SegmentNodeStoreService prone to deadlocks
-    [OAK-2663] - Unique property index can trigger OOM during upgrade
-    of large repository
-    [OAK-2778] - DocumentNodeState is null for revision rx-x-x
-    [OAK-2799] - OakIndexInput cloned instances are not closed
-    [OAK-2817] - TARMK Cold Standby cleanup removes too many binary
-    segments
-    [OAK-2832] - Test failure: DefaultAnalyzersConfigurationTest
-    [OAK-2838] - Test failure: OSGiIT
-    [OAK-2845] - Memory leak in ObserverTracker#removedService
-    [OAK-2855] - CopyOnReadDirectory mode might delete a valid local
-    file upon close
-    [OAK-2860] - RDBBlobStore: seen insert failures due to duplicate
-    keys
-    [OAK-2863] - No matching result found with use of relative
-    property names in fulltext search in some cases
-    [OAK-2867] - CommitQueue.done() may fail to remove commit
-    [OAK-2873] - Performance problems with many "or" conditions
-    [OAK-2874] - [ldap] enable listUsers to work for more than 1000
-    external users
-    [OAK-2890] - SegmentBlob does not return blobId for
-    contentIdentity
-    [OAK-2903] - Test failures: ldap tests fail on Jenkins
-    [OAK-2904] - test failures for oak-auth-ldap on Windows
-    [OAK-2913] - TokenLoginModule should clear state in case of a
-    login exception
-    [OAK-2933] - AccessDenied when modifying transiently moved item
-    with too many ACEs
-    [OAK-2934] - Certain searches cause lucene index to hit
-    OutOfMemoryError
-    [OAK-2951] - Regression: SSL errors with latest ldap client
-    [OAK-2960] - SegmentNodeStoreService doesn't fully implement a
-    @Modified method
-    [OAK-2961] - Async index fails with OakState0001: Unresolved
-    conflicts in /:async
-    [OAK-2963] - [Blob GC]: Undeleted blobs also being logged in
-    deleted count
-    [OAK-2970] - DocumentNodeStoreService doesn't fully implement a
-    @Modified method
-    [OAK-2972] - DocumentNodeStore gets initialized multiple time with
-    RDB persistence
-    [OAK-2999] - Index updation fails on updating multivalued property
-    [OAK-3000] - SimpleExcerptProvider causes OOM for some wildcard
-    expressions
-    [OAK-3013] - SQL2 query with union, limit and offset can return
-    invalid results
-    [OAK-3019] - VersionablePathHook must not process hidden nodes
-    [OAK-3020] - Async Update fails after IllegalArgumentException
-    [OAK-3021] - UserValidator and AccessControlValidator must not
-    process hidden nodes
-    [OAK-3023] - Long running MongoDB query may block other threads
-    [OAK-3026] - test failures for oak-auth-ldap on Windows
-    [OAK-3028] - Hierarchy conflict detection broken
-    [OAK-3029] - EmbeddedSolrServerProvider should check if core is /
-    can be loaded
-    [OAK-3035] - ReferenceEditor reindex detection broken
-    [OAK-3053] - Locking issues seen with CopyOnWrite mode enabled
-    [OAK-3061] - oak-authorization-cug uses wrong parent pom
-    [OAK-3062] - VersionGC failing on Mongo with
-    CursorNotFoundException
-    [OAK-3067] - Lucene IndexCopier should increase
-    readerRemoteReadCount for new files
-    [OAK-3081] - SplitOperations may undo committed changes
-    [OAK-3084] - Commit.applyToDocumentStore(Revision) may rollback
-    committed changes
-    [OAK-3089] - LIRS cache: zero size cache causes
-    IllegalArgumentException
-    [OAK-3091] - Remove duplicate logback-classic dependency entry
-    from oak-lucene pom
-    [OAK-3098] - CopyOnWrite might block Async indexer thread
-    indefinitely
-    [OAK-3099] - Revision GC fails when split documents with very long
-    paths are present
-    [OAK-3101] - wrong use of jcr:score in Solr when sorting
-    [OAK-3103] - Stale document in MongoDocumentStore cache
-    [OAK-3105] - SegmentWriter doesn't properly check the length of
-    external blob IDs
-    [OAK-3106] - DocumentStorePerformanceTest collects duplicate ids
-    to remove
-    [OAK-3110] - AsyncIndexer fails due to FileNotFoundException
-    thrown by CopyOnWrite logic
+    [OAK-2827] - [oak-blob-cloud] Test Failures: Add joda-time dependency explicitly with definite version range
+    [OAK-2880] - NPE in SegmentWriter.writeMap
+    [OAK-2973] - [Blob GC] Report accurate deleted count
+    [OAK-3116] - SolrQueryIndexProviderService should not blindly register a QueryIndexProvider
+    [OAK-3130] - ReferenceEditor may not enforce referential integrity
+    [OAK-3143] - lucene command for oak-run console doesn't work
+    [OAK-3155] - AsyncIndex stats do not capture execution for runs where no indexing is performed
+    [OAK-3157] - Lucene suggestions don't work if suggested phrases don't return documents on :fulltext search
+    [OAK-3164] - MemoryNodeStore issues duplicate checkpoint
+    [OAK-3167] - [Blob GC] Wrong time units for blobGcMaxAge are passed from SegmentNodeStoreService
+    [OAK-3169] - rep:versionablePaths mixin not always set for versionable nodes
+    [OAK-3171] - Conflict Exception logs path information only on DEBUG
+    [OAK-3199] - DocumentNodeState ignores binary value for memory calculation
+    [OAK-3231] - Change default maxCachedBinarySize to match lucene DEFAULT_BLOB_SIZE 
+    [OAK-3246] - MultiDocumentStoreTest might fail to clean up test nodes
 
-Improvement
+Improvements
 
-    [OAK-1970] - Optimize the diff logic for large number of children
-    case
-    [OAK-2016] - Make blob gc max age configurable in
-    SegmentNodeStoreService
-    [OAK-2620] - Release merge lock before branch is reset
-    [OAK-2627] - Optimize equals in AbstractBlob
-    [OAK-2657] - Repository Upgrade could shut down the source
-    repository early
-    [OAK-2685] - Track root state revision when reading the tree
-    [OAK-2763] - Remove ChangeDispatcher in DocumentNodeStoreBranch
-    [OAK-2783] - Make LDAP connection pool 'testOnBorrow' configurable
-    [OAK-2804] - Conditional remove on DocumentStore
-    [OAK-2809] - Save Lucene directory listing as array property
-    [OAK-2814] - Refactor the optimize logic regarding path include
-    and exclude to avoid duplication
-    [OAK-2822] - Release merge lock in retry loop
-    [OAK-2823] - Change default for oak.maxLockTryTimeMultiplier
-    [OAK-2829] - Comparing node states for external changes is too
-    slow
-    [OAK-2830] - LIRS cache: avoid concurrent loading of the same
-    entry if loading is slow
-    [OAK-2837] - Persistent cache: avoid repeated log message after
-    closing
-    [OAK-2841] - Log NodePropBundle id for which no bundle is found
-    [OAK-2861] - TARMK Cold Standby better binary decoding
-    [OAK-2865] - Log stats around time spent in extracting text from
-    binaries
-    [OAK-2868] - Bypass CommitQueue for branch commits
-    [OAK-2885] - Enable saveDirListing by default
-    [OAK-2886] - Exclude image/tiff from text extraction
-    [OAK-2889] - Ignore "order by jcr:score desc" in the query engine
-    (for "union" queries)
-    [OAK-2893] - RepositoryUpgrade.copy() should optionally continue
-    on errors.
-    [OAK-2895] - Avoid accessing binary content if the mimeType is
-    excluded from indexing
-    [OAK-2897] - Regression - lookupOnValidate does not work
-    [OAK-2898] - DataStoreBlobStore should expose a buffer input
-    stream for getInputStream call
-    [OAK-2912] - Clear the modified and deleted map in PermissionHook
-    after processing is complete
-    [OAK-2927] - ReferenceEditor newIds consuming lots of memory
-    during migration
-    [OAK-2957] - LIRS cache: config options for segment count and
-    stack move distance
-    [OAK-2971] - DocumentNodeStore thread names should carry the
-    clusterNodeId
-    [OAK-3011] - Add name of lucene-property index to cost debug log
-    [OAK-3017] - Log message when a branch is created
-    [OAK-3024] - NodeStoreFixture: add "getName()" for diagnostics,
-    allow config of RDB JDBC connection
-    [OAK-3025] - add test case simulating batched import of nodes
-    [OAK-3043] - Provide item path with InvalidItemStateException
-    [OAK-3057] - Simplify debugging conflict related errors
-    [OAK-3069] - Provide option to eagerly copy the new index files in
-    CopyOnRead
-    [OAK-3076] - Compaction should trace log the current processed
-    path
-    [OAK-3085] - Add timestamp property to journal entries
-    [OAK-3088] - IndexUpdate reports at debug level quite verbose
-    [OAK-3107] - SegmentWriter should be able to store blob IDs longer
-    than 4096 bytes
+    [OAK-3129] - SolrQueryIndex making too many Solr requests per jCR query
+    [OAK-3135] - Solr index should not be used for path/pt restrictions only
+    [OAK-3142] - All children path and primary type restrictions should be converted to filter queries
+    [OAK-3147] - Make it possible to collapse results under jcr:content nodes
+    [OAK-3174] - [Blob GC] Make actual deletion of blobs synchronous
+    [OAK-3204] - oak-core version diagnostics
+    [OAK-3257] - speed up BasicDocumentStoreTest
 
-New Feature
+New Features
 
-    [OAK-2247] - CopyOnWriteDirectory implementation for Lucene for
-    use in indexing
-    [OAK-2599] - Allow excluding certain paths from getting indexed
-    for particular index
-    [OAK-2882] - Support migration without access to DataStore
-    [OAK-2892] - Speed up lucene indexing post migration by pre
-    extracting the text content from binaries
-    [OAK-2926] - Fast result size estimate
-    [OAK-2980] - Fast result size estimate in Solr index
+    [OAK-2619] - Repeated upgrades
 
-Task
+Sub-tasks
 
-    [OAK-2846] - Merge missing fixes to 1.2 branch which were made to
-    1.0 branch
-    [OAK-2936] - PojoSR should use Felix Connect API instead of pojosr
-    [OAK-2967] - Merge OAK-2800, OAK-2801, OAK-2692, OAK-2713
-    [OAK-3041] - Baseline plugin suggests version increase for
-    unmodified class
-    [OAK-3044] - Backport OAK-2945 to 1.2 branch
-    [OAK-3058] - Backport OAK-2872 to 1.0 and 1.2 branches
+    [OAK-3198] - reduce RDBDocumentStore class size, avoid code duplication with RDBBlobStore
+    [OAK-3206] - DocumentStorePerformanceTest executed together with unit tests
+    [OAK-3222] - RDBDocumentStore: add missing RDBHelper support for JOURNAL table
+
+Tests
+
+    [OAK-2545] - SegmentMk IT tests are too intensive
 
 
 In addition to the above-mentioned changes, this release contains
-all changes included up to the Apache Jackrabbit Oak 1.2.1 release.
+all changes included up to the Apache Jackrabbit Oak 1.2.3 release.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
