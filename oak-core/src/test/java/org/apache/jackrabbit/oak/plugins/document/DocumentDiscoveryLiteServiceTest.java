@@ -80,7 +80,6 @@ import com.mongodb.DB;
 /**
  * Tests for the DocumentDiscoveryLiteService
  */
-@Ignore("OAK-2844 : user.dir trick messes up with the other tests")
 public class DocumentDiscoveryLiteServiceTest {
 
     /**
@@ -589,7 +588,6 @@ public class DocumentDiscoveryLiteServiceTest {
     // start
     private DocumentNodeStore createNodeStore(String workingDir) throws SecurityException, Exception {
         // ensure that we always get a fresh cluster[node]id
-        System.setProperty("user.dir", workingDir);
         setFinalStatic(ClusterNodeInfo.class.getDeclaredField("WORKING_DIR"), workingDir);
 
         // then create the DocumentNodeStore
