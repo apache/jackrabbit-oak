@@ -19,10 +19,13 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Random;
 import java.util.Set;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -161,6 +164,49 @@ public class NodeDocumentTest {
         // numChanges + one revision when node was created
         assertEquals(numChanges + 1, Iterables.size(root.getAllChanges()));
         ns.dispose();
+    }
+
+    @Test
+    public void getAllChangesCluster() throws Exception {
+        final int NUM_CLUSTER_NODES = 3;
+        final int NUM_CHANGES = 500;
+        DocumentStore store = new MemoryDocumentStore();
+        List<DocumentNodeStore> docStores = Lists.newArrayList();
+        for (int i = 0; i < NUM_CLUSTER_NODES; i++) {
+            DocumentNodeStore ns = new DocumentMK.Builder()
+                    .setDocumentStore(store)
+                    .setAsyncDelay(0).getNodeStore();
+            docStores.add(ns);
+        }
+        Random r = new Random(42);
+        for (int i = 0; i < NUM_CHANGES; i++) {
+            // randomly pick a clusterNode
+            int clusterIdx = r.nextInt(NUM_CLUSTER_NODES);
+            DocumentNodeStore ns = docStores.get(clusterIdx);
+            NodeBuilder builder = ns.getRoot().builder();
+            builder.setProperty("p-" + clusterIdx, i);
+            merge(ns, builder);
+            if (r.nextFloat() < 0.2) {
+                Revision head = ns.getHeadRevision();
+                for (UpdateOp op : SplitOperations.forDocument(
+                        getRootDocument(store), ns, head, 2)) {
+                    store.createOrUpdate(NODES, op);
+                }
+            }
+        }
+        DocumentNodeStore ns = docStores.get(0);
+        NodeDocument root = getRootDocument(ns.getDocumentStore());
+        Revision previous = ns.newRevision();
+        for (Revision rev : root.getAllChanges()) {
+            assertTrue(previous.compareRevisionTimeThenClusterId(rev) > 0);
+            previous = rev;
+        }
+        // numChanges + one revision when node was created
+        assertEquals(NUM_CHANGES + 1, Iterables.size(root.getAllChanges()));
+
+        for (DocumentNodeStore dns : docStores) {
+            dns.dispose();
+        }
     }
 
     @Test
