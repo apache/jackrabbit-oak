@@ -18,14 +18,12 @@ package org.apache.jackrabbit.oak.namepath;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 import java.util.Map;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 
 /**
@@ -61,12 +59,11 @@ public class LocalNameMapper extends GlobalNameMapper {
             int colon = oakName.indexOf(':');
             if (colon > 0) {
                 String oakPrefix = oakName.substring(0, colon);
-                PropertyState mapping = namespaces.getProperty(oakPrefix);
-                if (mapping == null || mapping.getType() != STRING) {
+                String uri = getNamespacesProperty(oakPrefix);
+                if (uri == null) {
                     throw new IllegalStateException(
                             "No namespace mapping found for " + oakName);
                 }
-                String uri = mapping.getValue(STRING);
 
                 for (Map.Entry<String, String> entry : local.entrySet()) {
                     if (uri.equals(entry.getValue())) {
@@ -123,10 +120,9 @@ public class LocalNameMapper extends GlobalNameMapper {
                 }
 
                 // Check that a global mapping is present and not remapped
-                PropertyState mapping = namespaces.getProperty(jcrPrefix);
+                String mapping = getNamespacesProperty(jcrPrefix);
                 if (mapping != null
-                        && mapping.getType() == STRING
-                        && local.values().contains(mapping.getValue(STRING))) {
+                        && local.values().contains(mapping)) {
                     return null;
                 }
             }

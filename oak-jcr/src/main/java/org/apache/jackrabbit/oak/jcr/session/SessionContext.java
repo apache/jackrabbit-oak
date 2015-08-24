@@ -88,7 +88,6 @@ public class SessionContext implements NamePathMapper {
     private final int observationQueueLength;
     private final CommitRateLimiter commitRateLimiter;
 
-    private final SessionNamespaces namespaces;
     private final NamePathMapper namePathMapper;
     private final ValueFactory valueFactory;
 
@@ -137,9 +136,8 @@ public class SessionContext implements NamePathMapper {
         SessionStats sessionStats = delegate.getSessionStats();
         sessionStats.setAttributes(attributes);
 
-        this.namespaces = new SessionNamespaces(delegate.getRoot());
         this.namePathMapper = new NamePathMapperImpl(
-                namespaces, delegate.getIdManager());
+                delegate.getNamespaces(), delegate.getIdManager());
         this.valueFactory = new ValueFactoryImpl(
                 delegate.getRoot(), namePathMapper);
         this.fastQueryResultSize = fastQueryResultSize;
@@ -206,13 +204,13 @@ public class SessionContext implements NamePathMapper {
     }
 
     SessionNamespaces getNamespaces() {
-        return namespaces;
+        return delegate.getNamespaces();
     }
 
     @Override
     @Nonnull
     public Map<String, String> getSessionLocalMappings() {
-        return namespaces.getSessionLocalMappings();
+        return getNamespaces().getSessionLocalMappings();
     }
 
     public ValueFactory getValueFactory() {
@@ -392,7 +390,7 @@ public class SessionContext implements NamePathMapper {
         if (observationManager != null) {
             observationManager.dispose();
         }
-        namespaces.clear();
+        getNamespaces().clear();
     }
 
     /**

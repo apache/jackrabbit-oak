@@ -43,6 +43,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
 import com.google.common.collect.ImmutableMap;
+
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -52,6 +53,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.observation.EventFactory;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
+import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy.Composite;
+import org.apache.jackrabbit.oak.jcr.session.SessionNamespaces;
 import org.apache.jackrabbit.oak.jcr.session.SessionStats;
 import org.apache.jackrabbit.oak.jcr.session.SessionStats.Counters;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
@@ -112,6 +115,8 @@ public class SessionDelegate {
      */
     private final WarningLock lock = new WarningLock(new ReentrantLock());
 
+    private final SessionNamespaces namespaces;
+
     /**
      * Create a new session delegate for a {@code ContentSession}. The refresh behaviour of the
      * session is governed by the value of the {@code refreshInterval} argument: if the session
@@ -134,10 +139,12 @@ public class SessionDelegate {
             @Nonnull Clock clock) {
         this.contentSession = checkNotNull(contentSession);
         this.securityProvider = checkNotNull(securityProvider);
-        this.saveCountRefresh = new SaveCountRefresh(checkNotNull(threadSaveCount));
-        this.refreshStrategy = RefreshStrategy.Composite.create(
-                checkNotNull(refreshStrategy), refreshAtNextAccess, saveCountRefresh);
         this.root = contentSession.getLatestRoot();
+        this.namespaces = new SessionNamespaces(this.root);
+        this.saveCountRefresh = new SaveCountRefresh(checkNotNull(threadSaveCount));
+        this.refreshStrategy = Composite.create(checkNotNull(refreshStrategy),
+                refreshAtNextAccess, saveCountRefresh, new RefreshNamespaces(
+                        namespaces));
         this.idManager = new IdentifierManager(root);
         this.clock = checkNotNull(clock);
         this.sessionStats = new SessionStats(contentSession.toString(),
@@ -884,6 +891,33 @@ public class SessionDelegate {
         public String toString() {
             return "Refresh after a save on the same thread from a different session";
         }
+    }
+
+    /**
+     * Read-only RefreshStrategy responsible for notifying the SessionNamespaces
+     * instance that a refresh was called
+     */
+    private static class RefreshNamespaces implements RefreshStrategy {
+
+        private final SessionNamespaces namespaces;
+
+        public RefreshNamespaces(SessionNamespaces namespaces) {
+            this.namespaces = namespaces;
+        }
+
+        @Override
+        public boolean needsRefresh(long secondsSinceLastAccess) {
+            return false;
+        }
+
+        @Override
+        public void refreshed() {
+            this.namespaces.onSessionRefresh();
+        }
+    }
+
+    public SessionNamespaces getNamespaces() {
+        return namespaces;
     }
 
 }
