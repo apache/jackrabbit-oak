@@ -543,8 +543,8 @@ public class DocumentDiscoveryLiteServiceTest {
 
     }
 
-    private static final boolean MONGO_DB = true;
-    // private static final boolean MONGO_DB = true;
+//    private static final boolean MONGO_DB = true;
+     private static final boolean MONGO_DB = true;
 
     private List<DocumentMK> mks = Lists.newArrayList();
     private MemoryDocumentStore ds;
