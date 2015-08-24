@@ -460,7 +460,10 @@ public class DocumentNodeStoreService {
         Dictionary<String, Object> props = new Hashtable<String, Object>();
         props.put(Constants.SERVICE_PID, DocumentNodeStore.class.getName());
         props.put(DESCRIPTION, getMetadata(ds));
-        reg = context.getBundleContext().registerService(NodeStore.class.getName(), store, props);
+        // OAK-2844: in order to allow DocumentDiscoveryLiteService to directly
+        // require a service DocumentNodeStore (instead of having to do an 'instanceof')
+        // the registration is now done for both NodeStore and DocumentNodeStore here.
+        reg = context.getBundleContext().registerService(new String[]{NodeStore.class.getName(), DocumentNodeStore.class.getName()}, store, props);
     }
 
     @Deactivate

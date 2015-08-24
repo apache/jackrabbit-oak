@@ -278,8 +278,17 @@ public class LastRevRecoveryAgent {
             return recover(suspects.iterator(), clusterId);
         } finally {
             Utils.closeIfCloseable(suspects);
-            // Relinquish the lock on the recovery for the cluster on the clusterInfo
+
+            // Relinquish the lock on the recovery for the cluster on the
+            // clusterInfo
+            // TODO: in case recover throws a RuntimeException (or Error..) then
+            // the recovery might have failed, yet the instance is marked
+            // as 'recovered' (by setting the state to NONE).
+            // is this really fine here? or should we not retry - or at least
+            // log the throwable?
             missingLastRevUtil.releaseRecoveryLock(clusterId);
+
+            nodeStore.signalClusterStateChange();
         }
     }
 
