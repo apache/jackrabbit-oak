@@ -24,6 +24,7 @@ import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Queue;
 import java.util.SortedMap;
+import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -51,11 +52,13 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator.REVERSE;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isRevisionNewer;
@@ -711,9 +714,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                                 "_revisions {}, _commitRoot {}",
                         changeRev, getId(), getLocalRevisions(), getLocalCommitRoot());
             }
-            it = filter(Iterables.mergeSorted(
-                    ImmutableList.of(getValueMap(REVISIONS).keySet(), getValueMap(COMMIT_ROOT).keySet()),
-                    revisions.comparator()), predicate).iterator();
+            it = filter(getAllChanges(), predicate).iterator();
             if (it.hasNext()) {
                 newestRev = it.next();
             }
@@ -1059,7 +1060,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     @Nonnull
     public Iterable<UpdateOp> split(@Nonnull RevisionContext context,
                                     @Nonnull Revision head) {
-        return SplitOperations.forDocument(this, context, head);
+        return SplitOperations.forDocument(this, context, head, NUM_REVS_THRESHOLD);
     }
 
     /**
@@ -1113,8 +1114,8 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             if (!includeStale) {
                 stale = getLocalMap(STALE_PREV);
             }
-            NavigableMap<Revision, Range> transformed = new TreeMap<Revision, Range>(
-                    StableRevisionComparator.REVERSE);
+            NavigableMap<Revision, Range> transformed =
+                    new TreeMap<Revision, Range>(REVERSE);
             for (Map.Entry<Revision, String> entry : map.entrySet()) {
                 Range r = Range.fromEntry(entry.getKey(), entry.getValue());
                 if (String.valueOf(r.height).equals(stale.get(r.high))) {
@@ -1186,6 +1187,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     NodeDocument getPreviousDocument(String prevId){
         //Use the maxAge variant such that in case of Mongo call for
         //previous doc are directed towards replicas first
+        LOG.trace("get previous document {}", prevId);
         return store.find(Collection.NODES, prevId, Integer.MAX_VALUE);
     }
 
@@ -1215,6 +1217,53 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
         };
     }
 
+    /**
+     * Returns previous leaf documents. Those are the previous documents with
+     * a type {@code !=} {@link SplitDocType#INTERMEDIATE}. The documents are
+     * returned in descending order based on the most recent change recorded
+     * in the previous document. A change is defined as an entry in either the
+     * {@link #REVISIONS} or {@link #COMMIT_ROOT} map.
+     *
+     * @return the leaf documents in descending order.
+     */
+    @Nonnull
+    Iterator<NodeDocument> getPreviousDocLeaves() {
+        if (getPreviousRanges().isEmpty()) {
+            return Iterators.emptyIterator();
+        }
+        // create a mutable copy
+        final NavigableMap<Revision, Range> ranges = Maps.newTreeMap(getPreviousRanges());
+        return new AbstractIterator<NodeDocument>() {
+            @Override
+            protected NodeDocument computeNext() {
+                NodeDocument next;
+                for (;;) {
+                    Map.Entry<Revision, Range> topEntry = ranges.pollFirstEntry();
+                    if (topEntry == null) {
+                        // no more ranges
+                        next = endOfData();
+                        break;
+                    }
+                    NodeDocument prev = getPreviousDoc(topEntry.getKey(), topEntry.getValue());
+                    if (prev == null) {
+                        // move on to next range
+                        continue;
+                    }
+                    if (topEntry.getValue().getHeight() == 0) {
+                        // this is a leaf
+                        next = prev;
+                        break;
+                    } else {
+                        // replace intermediate entry with its previous ranges
+                        ranges.putAll(prev.getPreviousRanges());
+                    }
+                }
+                return next;
+            }
+        };
+    }
+
+    @CheckForNull
     private NodeDocument getPreviousDoc(Revision rev, Range range){
         int h = range.height;
         String prevId = Utils.getPreviousIdFor(getMainPath(), rev, h);
@@ -1259,6 +1308,96 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             }
         }
         return null;
+    }
+
+    /**
+     * Returns an {@link Iterable} of {@link Revision} of all changes performed
+     * on this document. This covers all entries for {@link #REVISIONS} and
+     * {@link #COMMIT_ROOT} including previous documents. The revisions are
+     * returned in descending stable revision order using
+     * {@link StableRevisionComparator#REVERSE}.
+     *
+     * @return revisions of all changes performed on this document.
+     */
+    Iterable<Revision> getAllChanges() {
+        final SortedSet<Revision> stack = Sets.newTreeSet(REVERSE);
+        // initialize with local revisions and commitRoot entries
+        stack.addAll(getLocalCommitRoot().keySet());
+        stack.addAll(getLocalRevisions().keySet());
+        if (getPreviousRanges().isEmpty()) {
+            return stack;
+        }
+        return new Iterable<Revision>() {
+            @Override
+            public Iterator<Revision> iterator() {
+                final Iterator<NodeDocument> previousDocs = getPreviousDocLeaves();
+                return new AbstractIterator<Revision>() {
+                    private NodeDocument nextDoc;
+                    private Revision nextRevision;
+                    @Override
+                    protected Revision computeNext() {
+                        if (stack.isEmpty()) {
+                            return endOfData();
+                        }
+                        Revision next = stack.first();
+                        stack.remove(next);
+                        fillStackIfNeeded();
+                        return next;
+                    }
+
+                    private void fillStackIfNeeded() {
+                        for (;;) {
+                            fetchNextDoc();
+
+                            // no more changes to compare with
+                            if (nextDoc == null) {
+                                return;
+                            }
+
+                            // check if current top revision is still newer than
+                            // most recent revision of next document
+                            if (!stack.isEmpty()) {
+                                Revision top = stack.first();
+                                if (top.compareRevisionTimeThenClusterId(nextRevision) > 0) {
+                                    return;
+                                }
+                            }
+
+                            // if we get here, we need to pull in changes
+                            // from nextDoc
+                            Iterables.addAll(stack, nextDoc.getAllChanges());
+                            nextDoc = null;
+                            nextRevision = null;
+                        }
+                    }
+
+                    /**
+                     * Fetch the next document if {@code nextDoc} is
+                     * {@code null} and there are more documents.
+                     */
+                    private void fetchNextDoc() {
+                        for (;;) {
+                            if (nextDoc != null) {
+                                break;
+                            }
+                            if (!previousDocs.hasNext()) {
+                                // no more previous docs
+                                break;
+                            }
+                            nextDoc = previousDocs.next();
+                            Iterator<Revision> changes = nextDoc.getAllChanges().iterator();
+                            if (changes.hasNext()) {
+                                nextRevision = changes.next();
+                                break;
+                            } else {
+                                // empty document, try next
+                                nextDoc = null;
+                            }
+                        }
+                    }
+                };
+            }
+        };
     }
 
     /**
@@ -1762,7 +1901,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
         case JsopReader.STRING:
             return json.getToken();
         case '{':
-            TreeMap<Revision, Object> map = new TreeMap<Revision, Object>(StableRevisionComparator.REVERSE);
+            TreeMap<Revision, Object> map = new TreeMap<Revision, Object>(REVERSE);
             while (true) {
                 if (json.matches('}')) {
                     break;
