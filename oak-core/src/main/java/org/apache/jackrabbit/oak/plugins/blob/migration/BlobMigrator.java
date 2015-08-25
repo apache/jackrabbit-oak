@@ -23,25 +23,28 @@ public class BlobMigrator {
 
     private final NodeStore nodeStore;
 
-    private volatile boolean isRunning = false;
+    private final DfsNodeIterator nodeIterator;
 
-    private boolean stopMigration = false;
+    private volatile boolean isRunning;
+
+    private boolean stopMigration;
 
     private volatile String lastPath;
 
     public BlobMigrator(SplitBlobStore blobStore, NodeStore nodeStore) {
         this.blobStore = blobStore;
         this.nodeStore = nodeStore;
+        this.nodeIterator = new DfsNodeIterator(nodeStore.getRoot());
     }
 
     public void migrate() throws IOException, CommitFailedException {
-        resume("/");
+        nodeIterator.reset();
+        resume();
     }
 
-    public void resume(String path) throws IOException, CommitFailedException {
+    public void resume() throws IOException, CommitFailedException {
         isRunning = true;
 
-        final DfsNodeIterator nodeIterator = new DfsNodeIterator(nodeStore.getRoot(), path);
         while (nodeIterator.hasNext()) {
             lastPath = nodeIterator.getPath();
             synchronized (this) {
@@ -65,13 +68,12 @@ public class BlobMigrator {
         }
     }
 
-    public synchronized String stop() throws InterruptedException {
+    public synchronized void stop() throws InterruptedException {
         if (!isRunning) {
             throw new IllegalStateException("Migration is not running");
         }
         stopMigration = true;
         wait();
-        return lastPath;
     }
 
     public String getState() {

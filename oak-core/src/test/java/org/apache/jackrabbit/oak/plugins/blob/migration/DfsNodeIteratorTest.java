@@ -75,17 +75,4 @@ public class DfsNodeIteratorTest {
         }
         assertTrue(nameToPath.isEmpty());
     }
-
-    @Test
-    public void testFastForward() {
-        DfsNodeIterator iterator = new DfsNodeIterator(store.getRoot(), "/countries/uk");
-        assertTrue(iterator.hasNext());
-        assertEquals("cities", iterator.next().getName());
-        assertTrue(iterator.hasNext());
-        assertEquals("london", iterator.next().getName());
-
-        iterator = new DfsNodeIterator(store.getRoot(), "/");
-        assertTrue(iterator.hasNext());
-        assertEquals("countries", iterator.next().getName());
-    }
 }
