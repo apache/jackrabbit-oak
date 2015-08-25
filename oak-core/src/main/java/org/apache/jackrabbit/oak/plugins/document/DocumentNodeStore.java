@@ -1598,7 +1598,13 @@ public final class DocumentNodeStore
     @CheckForNull
     @Override
     public NodeState retrieve(@Nonnull String checkpoint) {
-        Revision r = Revision.fromString(checkpoint);
+        Revision r;
+        try {
+            r = Revision.fromString(checkpoint);
+        } catch (IllegalArgumentException e) {
+            LOG.warn("Malformed checkpoint reference: {}", checkpoint);
+            return null;
+        }
         SortedMap<Revision, Info> checkpoints = this.checkpoints.getCheckpoints();
         if (checkpoints != null && checkpoints.containsKey(r)) {
             return getRoot(r);
