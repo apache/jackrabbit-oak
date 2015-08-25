@@ -3,6 +3,7 @@ package org.apache.jackrabbit.oak.plugins.blob.migration;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -25,9 +26,7 @@ public class BlobMigrator {
 
     private final DfsNodeIterator nodeIterator;
 
-    private volatile boolean isRunning;
-
-    private boolean stopMigration;
+    private final AtomicBoolean stopMigration = new AtomicBoolean(false);
 
     private volatile String lastPath;
 
@@ -39,44 +38,20 @@ public class BlobMigrator {
 
     public void migrate() throws IOException, CommitFailedException {
         nodeIterator.reset();
-        resume();
-    }
-
-    public void resume() throws IOException, CommitFailedException {
-        isRunning = true;
-
         while (nodeIterator.hasNext()) {
             lastPath = nodeIterator.getPath();
-            synchronized (this) {
-                if (stopMigration) {
-                    isRunning = false;
-                    stopMigration = false;
-                    notify();
-                    return;
-                }
+            if (stopMigration.getAndSet(false)) {
+                break;
             }
             migrateNode(nodeIterator);
         }
-
-        // we've migrated all nodes
-        synchronized (this) {
-            isRunning = false;
-            if (stopMigration) {
-                stopMigration = false;
-                notify();
-            }
-        }
     }
 
-    public synchronized void stop() throws InterruptedException {
-        if (!isRunning) {
-            throw new IllegalStateException("Migration is not running");
-        }
-        stopMigration = true;
-        wait();
+    public void stop() throws InterruptedException {
+        stopMigration.set(true);
     }
 
-    public String getState() {
+    public String getLastMigratedPath() {
         return lastPath;
     }
 
@@ -95,7 +70,7 @@ public class BlobMigrator {
             if (newProperty != null) {
                 final NodeBuilder rootBuilder = nodeStore.getRoot().builder();
                 final NodeBuilder builder = iterator.getBuilder(rootBuilder);
-                builder.getChildNode(node.getName()).setProperty(newProperty);
+                builder.setProperty(newProperty);
                 nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
             }
         }
@@ -118,7 +93,7 @@ public class BlobMigrator {
     private PropertyState migrateMultiProperty(PropertyState propertyState) throws IOException {
         final Iterable<Blob> oldBlobs = propertyState.getValue(Type.BINARIES);
         final List<Blob> newBlobs = new ArrayList<Blob>();
-        final PropertyBuilder<Iterable<Blob>> builder = new PropertyBuilder<Iterable<Blob>>(Type.BINARIES);
+        final PropertyBuilder<Blob> builder = new PropertyBuilder<Blob>(Type.BINARY);
         builder.assignFrom(propertyState);
         boolean blobUpdated = false;
         for (final Blob oldBlob : oldBlobs) {
@@ -136,5 +111,4 @@ public class BlobMigrator {
             return null;
         }
     }
-
 }
