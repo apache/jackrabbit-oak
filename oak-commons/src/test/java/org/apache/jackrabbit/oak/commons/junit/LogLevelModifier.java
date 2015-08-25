@@ -35,6 +35,7 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.filter.ThresholdFilter;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Appender;
+import ch.qos.logback.core.ConsoleAppender;
 import ch.qos.logback.core.filter.Filter;
 
 /**
@@ -136,7 +137,18 @@ public class LogLevelModifier extends TestWatcher {
     }
     
     private final List<AppenderFilter> appenderFilters = new LinkedList<AppenderFilter>();
+    @SuppressWarnings("rawtypes")
+    private final List<Appender> newAppenders = new LinkedList<Appender>();
     private final List<LoggerLevel> loggerLevels = new LinkedList<LoggerLevel>();
+    
+    public LogLevelModifier newConsoleAppender(String name) {
+        ConsoleAppender<ILoggingEvent> c = new ConsoleAppender<ILoggingEvent>();
+        c.setName(name);
+        c.setContext(getContext());
+        rootLogger().addAppender(c);
+        newAppenders.add(c);
+        return this;
+    }
     
     /** 
      * Adds a ThresholdFilter with the given level to an existing appender during the test.
@@ -169,6 +181,7 @@ public class LogLevelModifier extends TestWatcher {
         }
     }
 
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     protected void finished(Description description) {
         for (Iterator<AppenderFilter> it = appenderFilters.iterator(); it.hasNext();) {
@@ -178,6 +191,10 @@ public class LogLevelModifier extends TestWatcher {
         for (Iterator<LoggerLevel> it = loggerLevels.iterator(); it.hasNext();) {
             LoggerLevel loggerLevel = (LoggerLevel) it.next();
             loggerLevel.finished();
+        }
+        for (Iterator<Appender> it = newAppenders.iterator(); it.hasNext();) {
+            Appender appender = it.next();
+            rootLogger().detachAppender(appender);
         }
     }
 
