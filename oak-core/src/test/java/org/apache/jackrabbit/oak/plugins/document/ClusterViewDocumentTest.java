@@ -144,7 +144,7 @@ public class ClusterViewDocumentTest {
         assertTrue(id != null && id.length() > 0);
         String createdAt = doc.getCreatedAt();
         assertTrue(createdAt != null && createdAt.length() > 0);
-        int createdBy = doc.getCreatedBy();
+        long createdBy = doc.getCreatedBy();
         assertEquals(localClusterId, createdBy);
         assertEquals(1, doc.getViewSeqNum());
         assertEquals(1, doc.getActiveIds().size());
