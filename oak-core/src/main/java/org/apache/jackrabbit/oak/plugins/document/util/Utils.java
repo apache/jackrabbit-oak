@@ -41,6 +41,7 @@ import com.mongodb.BasicDBObject;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -137,11 +138,11 @@ public class Utils {
             if (e.getKey() instanceof Revision) {
                 size += 32;
             } else {
-                size += estimateMemoryUsage(e.getKey().toString());
+                size += StringUtils.estimateMemoryUsage(e.getKey().toString());
             }
             Object o = e.getValue();
             if (o instanceof String) {
-                size += estimateMemoryUsage((String) o);
+                size += StringUtils.estimateMemoryUsage((String) o);
             } else if (o instanceof Long) {
                 size += 16;
             } else if (o instanceof Boolean) {
@@ -169,16 +170,6 @@ public class Utils {
             size += map.size() * 64;
         }
         return size;
-    }
-
-    /**
-     * Estimates the memory usage of the given string.
-     *
-     * @param s the string to estimate.
-     * @return the estimated memory usage.
-     */
-    public static int estimateMemoryUsage(String s) {
-        return 48 + s.length() * 2;
     }
 
     /**

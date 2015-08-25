@@ -56,7 +56,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.estimateMemoryUsage;
+import static org.apache.jackrabbit.oak.commons.StringUtils.estimateMemoryUsage;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
