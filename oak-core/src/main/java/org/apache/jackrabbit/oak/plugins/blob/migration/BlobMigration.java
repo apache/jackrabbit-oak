@@ -31,7 +31,7 @@ public class BlobMigration implements BlobMigrationMBean {
 
     @Nonnull
     @Override
-    public CompositeData startBlobGC() {
+    public CompositeData startBlobMigration() {
         if (migrationOp.isDone()) {
             migrationOp = newManagementOperation(OP_NAME, new Callable<String>() {
                 @Override
@@ -43,12 +43,12 @@ public class BlobMigration implements BlobMigrationMBean {
             });
             executor.execute(migrationOp);
         }
-        return getBlobGCStatus();
+        return getBlobMigrationStatus();
     }
 
     @Nonnull
     @Override
-    public CompositeData getBlobGCStatus() {
+    public CompositeData getBlobMigrationStatus() {
         return migrationOp.getStatus().toCompositeData();
     }
 }

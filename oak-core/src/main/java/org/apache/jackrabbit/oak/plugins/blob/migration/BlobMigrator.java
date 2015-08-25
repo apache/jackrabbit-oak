@@ -23,20 +23,63 @@ public class BlobMigrator {
 
     private final NodeStore nodeStore;
 
+    private volatile boolean isRunning = false;
+
+    private boolean stopMigration = false;
+
+    private volatile String lastPath;
+
     public BlobMigrator(SplitBlobStore blobStore, NodeStore nodeStore) {
         this.blobStore = blobStore;
         this.nodeStore = nodeStore;
     }
 
     public void migrate() throws IOException, CommitFailedException {
-        final DfsNodeIterator nodeIterator = new DfsNodeIterator(nodeStore.getRoot());
+        resume("/");
+    }
+
+    public void resume(String path) throws IOException, CommitFailedException {
+        isRunning = true;
+
+        final DfsNodeIterator nodeIterator = new DfsNodeIterator(nodeStore.getRoot(), path);
         while (nodeIterator.hasNext()) {
-            migrateNode(nodeIterator.next(), nodeIterator.getPath());
+            lastPath = nodeIterator.getPath();
+            synchronized (this) {
+                if (stopMigration) {
+                    isRunning = false;
+                    stopMigration = false;
+                    notify();
+                    return;
+                }
+            }
+            migrateNode(nodeIterator);
+        }
+
+        // we've migrated all nodes
+        synchronized (this) {
+            isRunning = false;
+            if (stopMigration) {
+                stopMigration = false;
+                notify();
+            }
         }
     }
 
-    public void migrateNode(ChildNodeEntry node, Iterable<String> parentPath)
-            throws IOException, CommitFailedException {
+    public synchronized String stop() throws InterruptedException {
+        if (!isRunning) {
+            throw new IllegalStateException("Migration is not running");
+        }
+        stopMigration = true;
+        wait();
+        return lastPath;
+    }
+
+    public String getState() {
+        return lastPath;
+    }
+
+    private void migrateNode(DfsNodeIterator iterator) throws IOException, CommitFailedException {
+        final ChildNodeEntry node = iterator.next();
         final NodeState state = node.getNodeState();
         for (PropertyState property : state.getProperties()) {
             final PropertyState newProperty;
@@ -49,19 +92,11 @@ public class BlobMigrator {
             }
             if (newProperty != null) {
                 final NodeBuilder rootBuilder = nodeStore.getRoot().builder();
-                final NodeBuilder builder = getBuilder(rootBuilder, parentPath);
+                final NodeBuilder builder = iterator.getBuilder(rootBuilder);
                 builder.getChildNode(node.getName()).setProperty(newProperty);
                 nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
             }
         }
-    }
-
-    private NodeBuilder getBuilder(NodeBuilder rootBuilder, Iterable<String> path) {
-        NodeBuilder builder = rootBuilder;
-        for (String name : path) {
-            builder = builder.getChildNode(name);
-        }
-        return builder;
     }
 
     private PropertyState migrateProperty(PropertyState propertyState) throws IOException {
