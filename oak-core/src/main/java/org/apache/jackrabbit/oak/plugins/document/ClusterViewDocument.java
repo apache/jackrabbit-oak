@@ -162,7 +162,7 @@ class ClusterViewDocument {
     private final String createdAt;
 
     /** the id of the instance that created this view, for debugging only **/
-    private final Integer createdBy;
+    private final Long createdBy;
 
     /**
      * Main method by which the ClusterViewDocument is updated in the settings
@@ -199,7 +199,7 @@ class ClusterViewDocument {
         updateOp.set(RECOVERING_KEY, setToCsv(recoveringIds));
         updateOp.set(INACTIVE_KEY, setToCsv(inactiveIds));
         updateOp.set(CREATED_KEY, standardDateFormat.format(now));
-        updateOp.set(CREATOR_KEY, localClusterId);
+        updateOp.set(CREATOR_KEY, (long)localClusterId);
         Map<Object, String> historyMap = new HashMap<Object, String>();
         if (previousView != null) {
             Map<Object, String> previousHistory = previousView.getHistory();
@@ -447,7 +447,7 @@ class ClusterViewDocument {
         this.clusterViewId = (String) doc.get(CLUSTER_VIEW_ID_KEY);
         this.viewSeqNum = (Long) doc.get(VIEW_SEQ_NUM_KEY);
         this.createdAt = (String) doc.get(CREATED_KEY);
-        this.createdBy = (Integer) doc.get(CREATOR_KEY);
+        this.createdBy = (Long) doc.get(CREATOR_KEY);
 
         Object obj = doc.get(ACTIVE_KEY);
         if (obj == null || !(obj instanceof String)) {
@@ -525,7 +525,7 @@ class ClusterViewDocument {
      * Returns the id of the instance that created this view, for debugging
      * purpose only
      **/
-    int getCreatedBy() {
+    long getCreatedBy() {
         return createdBy;
     }
 
