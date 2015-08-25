@@ -21,8 +21,8 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static org.apache.commons.io.FileUtils.deleteDirectory;
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
-import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.MEMORY_THRESHOLD_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType.CLEAN_OLD;
+import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.MEMORY_THRESHOLD_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.segment.file.FileStore.newFileStore;
 import static org.junit.Assume.assumeTrue;
 
@@ -34,6 +34,7 @@ import java.util.concurrent.Callable;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
@@ -49,25 +50,25 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
-
 /**
  * <p>Tests verifying if the repository gets corrupted or not: {@code OAK-2662 SegmentOverflowException in HeavyWriteIT on Jenkins}</p>
  *
- * <p><b>This test will never terminate unless it fails</b>, thus it is disabled by default. On the
- * command line specify {@code -DSegmentOverflowExceptionIT=true} to enable
- * them.</p>
+ * <p><b>This test will run for one hour unless it fails</b>, thus it is disabled by default. On the
+ * command line specify {@code -DSegmentOverflowExceptionIT=true} to enable it. To specify a different
+ * time out {@code t} value use {@code -Dtimeout=t}
+ * </p>
  *
  *<p>If you only want to run this test:<br>
  * {@code mvn verify -Dsurefire.skip.ut=true -PintegrationTesting -Dit.test=SegmentOverflowExceptionIT -DSegmentOverflowExceptionIT=true}
  * </p>
  */
 public class SegmentOverflowExceptionIT {
-
     private static final Logger LOG = LoggerFactory
             .getLogger(SegmentOverflowExceptionIT.class);
     private static final boolean ENABLED = Boolean
             .getBoolean(SegmentOverflowExceptionIT.class.getSimpleName());
+    private static final long TIMEOUT = Long
+            .getLong("timeout", 60*60*1000);
 
     private final Random rnd = new Random();
 
@@ -118,7 +119,8 @@ public class SegmentOverflowExceptionIT {
                 }
             });
 
-            while (true) {
+            long start = System.currentTimeMillis();
+            while (System.currentTimeMillis() - start < TIMEOUT) {
                 NodeBuilder root = nodeStore.getRoot().builder();
                 while (rnd.nextInt(100) != 0) {
                     modify(nodeStore, root);
