@@ -54,6 +54,8 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Descriptors;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.commons.junit.LogDumper;
+import org.apache.jackrabbit.oak.commons.junit.LogLevelModifier;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -63,8 +65,9 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -554,6 +557,16 @@ public class DocumentDiscoveryLiteServiceTest {
     final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     private List<SimplifiedInstance> allInstances = new LinkedList<SimplifiedInstance>();
+
+    @Rule
+    public TestRule logDumper = new LogDumper();
+
+    @Rule
+    public TestRule logLevelModifier = new LogLevelModifier()
+                                            .newConsoleAppender("console")
+                                            .addAppenderFilter("console", "warn")
+                                            .addAppenderFilter("file", "warn")
+                                            .setLoggerLevel("org.apache.jackrabbit.oak", "trace");
 
     @Test
     public void testActivateDeactivate() throws Exception {
