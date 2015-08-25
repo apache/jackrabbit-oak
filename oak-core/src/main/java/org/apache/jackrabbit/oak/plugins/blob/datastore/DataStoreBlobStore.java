@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
@@ -49,6 +50,7 @@ import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.MultiDataStoreAware;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
+import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.slf4j.Logger;
@@ -107,8 +109,8 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
                 .maximumWeight(cacheSizeInMB * FileUtils.ONE_MB)
                 .weigher(new Weigher<String, byte[]>() {
                     @Override
-                    public int weigh(String key, byte[] value) {
-                        return value.length;
+                    public int weigh(@Nonnull String key, @Nonnull byte[] value) {
+                        return StringUtils.estimateMemoryUsage(key) + value.length;
                     }
                 })
                 .build();
