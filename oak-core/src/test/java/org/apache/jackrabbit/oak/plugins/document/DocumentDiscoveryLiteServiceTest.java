@@ -994,7 +994,7 @@ public class DocumentDiscoveryLiteServiceTest {
             final ViewExpectation e = new ViewExpectation(anInstance);
             e.setActiveIds(activeIds.toArray(new Integer[activeIds.size()]));
             e.setInactiveIds(inactiveIds.toArray(new Integer[inactiveIds.size()]));
-            waitFor(e, 20000, "checkFiestaState failed for " + anInstance + ", with instances: " + instances + ", and inactiveIds: "
+            waitFor(e, 60000, "checkFiestaState failed for " + anInstance + ", with instances: " + instances + ", and inactiveIds: "
                     + inactiveIds);
         }
     }
