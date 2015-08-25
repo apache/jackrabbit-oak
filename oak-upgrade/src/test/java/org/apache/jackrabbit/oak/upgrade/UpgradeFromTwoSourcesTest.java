@@ -28,7 +28,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import java.io.File;
@@ -77,11 +76,16 @@ public class UpgradeFromTwoSourcesTest extends AbstractRepositoryUpgradeTest {
 
             final RepositoryImpl source1 = createSourceRepository(sourceDir1);
             final RepositoryImpl source2 = createSourceRepository(sourceDir2);
-
+            final Session session1 = source1.login(CREDENTIALS);
+            final Session session2 = source2.login(CREDENTIALS);
             try {
-                createSourceContent(source1);
-                createSourceContent2(source2);
+                createSourceContent(session1);
+                createSourceContent2(session2);
             } finally {
+                session1.save();
+                session2.save();
+                session1.logout();
+                session2.logout();
                 source1.shutdown();
                 source2.shutdown();
             }
@@ -107,42 +111,24 @@ public class UpgradeFromTwoSourcesTest extends AbstractRepositoryUpgradeTest {
     }
 
     @Override
-    protected void createSourceContent(Repository repository) throws RepositoryException {
-        Session session = null;
-        try {
-            session = repository.login(CREDENTIALS);
+    protected void createSourceContent(Session session) throws RepositoryException {
+        JcrUtils.getOrCreateByPath("/left/child1/grandchild1", "nt:unstructured", session);
+        JcrUtils.getOrCreateByPath("/left/child1/grandchild2", "nt:unstructured", session);
+        JcrUtils.getOrCreateByPath("/left/child1/grandchild3", "nt:unstructured", session);
+        JcrUtils.getOrCreateByPath("/left/child2/grandchild1", "nt:unstructured", session);
+        JcrUtils.getOrCreateByPath("/left/child2/grandchild2", "nt:unstructured", session);
 
-            JcrUtils.getOrCreateByPath("/left/child1/grandchild1", "nt:unstructured", session);
-            JcrUtils.getOrCreateByPath("/left/child1/grandchild2", "nt:unstructured", session);
-            JcrUtils.getOrCreateByPath("/left/child1/grandchild3", "nt:unstructured", session);
-            JcrUtils.getOrCreateByPath("/left/child2/grandchild1", "nt:unstructured", session);
-            JcrUtils.getOrCreateByPath("/left/child2/grandchild2", "nt:unstructured", session);
-
-            session.save();
-        } finally {
-            if (session != null && session.isLive()) {
-                session.logout();
-            }
-        }
+        session.save();
     }
 
-    protected void createSourceContent2(Repository repository) throws RepositoryException {
-        Session session = null;
-        try {
-            session = repository.login(CREDENTIALS);
+    protected void createSourceContent2(Session session) throws RepositoryException {
+        JcrUtils.getOrCreateByPath("/left/child2/grandchild3", "nt:unstructured", session);
+        JcrUtils.getOrCreateByPath("/left/child2/grandchild2", "nt:unstructured", session);
+        JcrUtils.getOrCreateByPath("/left/child3", "nt:unstructured", session);
+        JcrUtils.getOrCreateByPath("/right/child1/grandchild1", "nt:unstructured", session);
+        JcrUtils.getOrCreateByPath("/right/child1/grandchild2", "nt:unstructured", session);
 
-            JcrUtils.getOrCreateByPath("/left/child2/grandchild3", "nt:unstructured", session);
-            JcrUtils.getOrCreateByPath("/left/child2/grandchild2", "nt:unstructured", session);
-            JcrUtils.getOrCreateByPath("/left/child3", "nt:unstructured", session);
-            JcrUtils.getOrCreateByPath("/right/child1/grandchild1", "nt:unstructured", session);
-            JcrUtils.getOrCreateByPath("/right/child1/grandchild2", "nt:unstructured", session);
-
-            session.save();
-        } finally {
-            if (session != null && session.isLive()) {
-                session.logout();
-            }
-        }
+        session.save();
     }
 
     @Test

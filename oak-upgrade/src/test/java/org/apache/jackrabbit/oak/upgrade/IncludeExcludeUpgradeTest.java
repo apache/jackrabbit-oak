@@ -26,12 +26,12 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import java.io.File;
+import java.io.IOException;
 
 public class IncludeExcludeUpgradeTest extends AbstractRepositoryUpgradeTest {
 
     @Override
-    protected void createSourceContent(Repository repository) throws Exception {
-        final Session session = repository.login(CREDENTIALS);
+    protected void createSourceContent(Session session) throws Exception {
         JcrUtils.getOrCreateByPath("/content/foo/de", "nt:folder", session);
         JcrUtils.getOrCreateByPath("/content/foo/en", "nt:folder", session);
         JcrUtils.getOrCreateByPath("/content/foo/fr", "nt:folder", session);
@@ -51,7 +51,7 @@ public class IncludeExcludeUpgradeTest extends AbstractRepositoryUpgradeTest {
     }
 
     @Override
-    protected void doUpgradeRepository(File source, NodeStore target) throws RepositoryException {
+    protected void doUpgradeRepository(File source, NodeStore target) throws RepositoryException, IOException {
         final RepositoryConfig config = RepositoryConfig.create(source);
         final RepositoryContext context = RepositoryContext.create(config);
         try {

@@ -49,7 +49,7 @@ public abstract class AbstractRepositoryUpgradeTest {
 
     public static final Credentials CREDENTIALS = new SimpleCredentials("admin", "admin".toCharArray());
 
-    private static NodeStore targetNodeStore;
+    protected static NodeStore targetNodeStore;
 
     private static File testDirectory;
 
@@ -77,9 +77,12 @@ public abstract class AbstractRepositoryUpgradeTest {
             File source = new File(directory, "source");
             source.mkdirs();
             RepositoryImpl repository = createSourceRepository(source);
+            Session session = repository.login(CREDENTIALS);
             try {
-                createSourceContent(repository);
+                createSourceContent(session);
             } finally {
+                session.save();
+                session.logout();
                 repository.shutdown();
             }
             final NodeStore target = getTargetNodeStore();
@@ -115,7 +118,7 @@ public abstract class AbstractRepositoryUpgradeTest {
     }
 
 
-    protected void doUpgradeRepository(File source, NodeStore target)throws RepositoryException{
+    protected void doUpgradeRepository(File source, NodeStore target)throws RepositoryException, IOException{
         RepositoryUpgrade.copy(source, target);
     }
 
@@ -131,7 +134,7 @@ public abstract class AbstractRepositoryUpgradeTest {
         return(JackrabbitSession)getTargetRepository().login(CREDENTIALS);
     }
 
-    protected abstract void createSourceContent(Repository repository) throws Exception;
+    protected abstract void createSourceContent(Session session) throws Exception;
 
     protected void assertExisting(final String... paths) throws RepositoryException {
         final Session session = createAdminSession();

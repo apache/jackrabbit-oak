@@ -16,16 +16,10 @@
  */
 package org.apache.jackrabbit.oak.upgrade.util;
 
-import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.MIX_REP_VERSIONABLE_PATHS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.jcr.Node;
-import javax.jcr.Property;
-import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.version.Version;
@@ -34,7 +28,7 @@ import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
-import org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade;
+import org.apache.jackrabbit.oak.upgrade.version.VersionCopyConfiguration;
 
 public class VersionCopyTestUtils {
 
@@ -67,7 +61,7 @@ public class VersionCopyTestUtils {
         return session.getNode(path).isNodeType(JcrConstants.MIX_VERSIONABLE);
     }
 
-    public interface RepositoryUpgradeSetup {
-        void setup(RepositoryUpgrade upgrade);
+    public interface VersionCopySetup {
+        void setup(VersionCopyConfiguration config);
     }
 }
