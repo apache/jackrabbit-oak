@@ -670,7 +670,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         doc.put(NodeDocument.ID, Utils.getIdFromPath("/test"));
         doc.put(NodeDocument.SD_TYPE, NodeDocument.SplitDocType.DEFAULT.type);
         Revision head = mk.getNodeStore().getHeadRevision();
-        SplitOperations.forDocument(doc, DummyRevisionContext.INSTANCE, head);
+        SplitOperations.forDocument(doc, DummyRevisionContext.INSTANCE, head, NUM_REVS_THRESHOLD);
     }
 
     @Test
@@ -779,7 +779,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
             for (String id : ns.getSplitCandidates()) {
                 Revision head = ns.getHeadRevision();
                 NodeDocument doc = store.find(NODES, id);
-                List<UpdateOp> ops = SplitOperations.forDocument(doc, rc, head);
+                List<UpdateOp> ops = SplitOperations.forDocument(doc, rc, head, NUM_REVS_THRESHOLD);
                 Set<Revision> removed = Sets.newHashSet();
                 Set<Revision> added = Sets.newHashSet();
                 for (UpdateOp op : ops) {
