@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.api.jmx.SessionMBean;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.plugins.backup.FileStoreBackupRestoreMBean;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGCMBean;
+import org.apache.jackrabbit.oak.plugins.blob.migration.BlobMigrationMBean;
 import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncReindexMBean;
 import org.apache.jackrabbit.oak.spi.state.RevisionGCMBean;
 import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
@@ -49,8 +50,8 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
  * Default implementation of the {@link RepositoryManagementMBean} based
  * on a {@link Whiteboard} instance, which is used to look up individual
  * service providers for backup ({@link FileStoreBackupRestoreMBean}), data store
- * garbage collections ({@link BlobGCMBean}) and revision store garbage
- * collections ({@link RevisionGCMBean}).
+ * garbage collections ({@link BlobGCMBean}), revision store garbage
+ * collections ({@link RevisionGCMBean}) and blob migration ({@link BlobMigrationMBean}).
  */
 public class RepositoryManager extends AnnotatedStandardMBean implements RepositoryManagementMBean {
     private final Whiteboard whiteboard;
@@ -181,6 +182,28 @@ public class RepositoryManager extends AnnotatedStandardMBean implements Reposit
             @Override
             public Status apply(RevisionGCMBean revisionGCService) {
                 return fromCompositeData(revisionGCService.getRevisionGCStatus());
+            }
+        }).toCompositeData();
+    }
+
+    @Override
+    public CompositeData startBlobMigration() {
+        return execute(BlobMigrationMBean.class, new Function<BlobMigrationMBean, Status>() {
+            @Nonnull
+            @Override
+            public Status apply(BlobMigrationMBean blobMigrationMBean) {
+                return fromCompositeData(blobMigrationMBean.startBlobMigration());
+            }
+        }).toCompositeData();
+    }
+
+    @Override
+    public CompositeData getBlobMigrationStatus() {
+        return execute(BlobMigrationMBean.class, new Function<BlobMigrationMBean, Status>() {
+            @Nonnull
+            @Override
+            public Status apply(BlobMigrationMBean blobMigrationMBean) {
+                return fromCompositeData(blobMigrationMBean.getBlobMigrationStatus());
             }
         }).toCompositeData();
     }

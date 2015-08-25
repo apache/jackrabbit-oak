@@ -171,6 +171,22 @@ public interface RepositoryManagementMBean {
     CompositeData getRevisionGCStatus();
 
     /**
+     * Initiate a blob migration operation
+     *
+     * @return  the status of the operation right after it was initiated
+     */
+    @Nonnull
+    CompositeData startBlobMigration();
+
+    /**
+     * Blob migration operation status
+     *
+     * @return  the status of the ongoing operation or if none the terminal
+     * status of the last operation or <em>Status not available</em> if none.
+     */
+    CompositeData getBlobMigrationStatus();
+
+    /**
      * Creates a new checkpoint of the latest root of the tree. The checkpoint
      * remains valid for at least as long as requested and allows that state
      * of the repository to be retrieved using the returned opaque string
@@ -212,5 +228,4 @@ public interface RepositoryManagementMBean {
      */
     @Nonnull
     TabularData refreshAllSessions();
-
 }

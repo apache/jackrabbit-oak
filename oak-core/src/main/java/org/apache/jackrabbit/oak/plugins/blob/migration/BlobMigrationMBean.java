@@ -6,6 +6,7 @@ import javax.management.openmbean.CompositeData;
 public interface BlobMigrationMBean {
     String TYPE = "BlobMigration";
 
+    @Nonnull
     CompositeData startBlobMigration();
 
     @Nonnull
