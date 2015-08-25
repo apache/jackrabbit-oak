@@ -80,4 +80,13 @@ public class StringUtils {
         }
     }
 
+    /**
+     * Estimates the memory usage of the given string.
+     *
+     * @param s the string to estimate.
+     * @return the estimated memory usage.
+     */
+    public static int estimateMemoryUsage(String s) {
+        return 48 + s.length() * 2;
+    }
 }
