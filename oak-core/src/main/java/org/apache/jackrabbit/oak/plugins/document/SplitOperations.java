@@ -44,7 +44,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COMMIT_ROOT;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.DOC_SIZE_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.IGNORE_ON_SPLIT;
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT_FACTOR;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.REVISIONS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SPLIT_RATIO;
@@ -72,6 +71,7 @@ class SplitOperations {
     private final String id;
     private final Revision headRevision;
     private final RevisionContext context;
+    private final int numRevsThreshold;
     private Revision high;
     private Revision low;
     private int numValues;
@@ -86,12 +86,14 @@ class SplitOperations {
 
     private SplitOperations(@Nonnull NodeDocument doc,
                             @Nonnull RevisionContext context,
-                            @Nonnull Revision headRevision) {
+                            @Nonnull Revision headRevision,
+                            int numRevsThreshold) {
         this.doc = checkNotNull(doc);
         this.context = checkNotNull(context);
         this.path = doc.getPath();
         this.id = doc.getId();
         this.headRevision = checkNotNull(headRevision);
+        this.numRevsThreshold = numRevsThreshold;
     }
 
     /**
@@ -106,6 +108,7 @@ class SplitOperations {
      * @param context the revision context.
      * @param headRevision the head revision before the document was retrieved
      *                     from the document store.
+     * @param numRevsThreshold only split off at least this number of revisions.
      * @return list of update operations. An empty list indicates the document
      *          does not require a split.
      * @throws IllegalArgumentException if the given document is a split
@@ -114,12 +117,13 @@ class SplitOperations {
     @Nonnull
     static List<UpdateOp> forDocument(@Nonnull NodeDocument doc,
                                       @Nonnull RevisionContext context,
-                                      @Nonnull Revision headRevision) {
+                                      @Nonnull Revision headRevision,
+                                      int numRevsThreshold) {
         if (doc.isSplitDocument()) {
             throw new IllegalArgumentException(
                     "Not a main document: " + doc.getId());
         }
-        return new SplitOperations(doc, context, headRevision).create();
+        return new SplitOperations(doc, context, headRevision, numRevsThreshold).create();
 
     }
 
@@ -168,7 +172,7 @@ class SplitOperations {
         SortedMap<Revision, Range> previous = doc.getPreviousRanges();
         // only consider if there are enough commits,
         // unless document is really big
-        return doc.getLocalRevisions().size() + doc.getLocalCommitRoot().size() > NUM_REVS_THRESHOLD
+        return doc.getLocalRevisions().size() + doc.getLocalCommitRoot().size() > numRevsThreshold
                 || doc.getMemory() >= DOC_SIZE_THRESHOLD
                 || previous.size() >= PREV_SPLIT_FACTOR
                 || !doc.getStalePrev().isEmpty();
@@ -302,7 +306,7 @@ class SplitOperations {
         UpdateOp main = null;
         // check if we have enough data to split off
         if (high != null && low != null
-                && (numValues >= NUM_REVS_THRESHOLD
+                && (numValues >= numRevsThreshold
                 || doc.getMemory() > DOC_SIZE_THRESHOLD)) {
             // enough changes to split off
             // move to another document
@@ -336,7 +340,7 @@ class SplitOperations {
             setSplitDocProps(doc, oldDoc, old, high);
             // only split if enough of the data can be moved to old document
             if (oldDoc.getMemory() > doc.getMemory() * SPLIT_RATIO
-                    || numValues >= NUM_REVS_THRESHOLD) {
+                    || numValues >= numRevsThreshold) {
                 splitOps.add(old);
             } else {
                 main = null;
