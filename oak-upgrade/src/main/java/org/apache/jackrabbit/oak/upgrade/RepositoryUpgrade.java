@@ -462,12 +462,30 @@ public class RepositoryUpgrade {
                 createIndexEditorProvider()
             )));
 
-            target.merge(builder, new LoggingCompositeHook(hooks, source, earlyShutdown), CommitInfo.EMPTY);
+            target.merge(builder, new LoggingCompositeHook(hooks, source, overrideEarlyShutdown()), CommitInfo.EMPTY);
             logger.info("Processing commit hooks completed in {}s ({})", watch.elapsed(TimeUnit.SECONDS), watch);
             logger.debug("Repository upgrade completed.");
         } catch (Exception e) {
             throw new RepositoryException("Failed to copy content", e);
         }
+    }
+
+    private boolean overrideEarlyShutdown() {
+        if (earlyShutdown == false) {
+            return false;
+        }
+
+        final VersionCopyConfiguration c = this.versionCopyConfiguration;
+        if (c.isCopyVersions() && c.skipOrphanedVersionsCopy()) {
+            logger.info("Overriding early shutdown to false because of the copy versions settings");
+            return false;
+        }
+        if (c.isCopyVersions() && !c.skipOrphanedVersionsCopy()
+                && c.getOrphanedMinDate().after(c.getVersionsMinDate())) {
+            logger.info("Overriding early shutdown to false because of the copy versions settings");
+            return false;
+        }
+        return true;
     }
 
     private static EditorProvider createTypeEditorProvider() {

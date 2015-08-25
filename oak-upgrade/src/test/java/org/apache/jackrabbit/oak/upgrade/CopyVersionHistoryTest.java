@@ -225,6 +225,7 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
         try {
             final RepositoryUpgrade upgrade = new RepositoryUpgrade(sourceContext, targetNodeStore);
             setup.setup(upgrade.versionCopyConfiguration);
+            upgrade.setEarlyShutdown(true);
             upgrade.copy(null);
         } finally {
             sourceContext.getRepository().shutdown();
