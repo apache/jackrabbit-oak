@@ -603,6 +603,7 @@ class JackrabbitNodeState extends AbstractNodeState {
                     return 0;
                 }
             }
+
             @Nonnull
             @Override
             public InputStream getNewStream() {
@@ -613,6 +614,7 @@ class JackrabbitNodeState extends AbstractNodeState {
                     return new ByteArrayInputStream(new byte[0]);
                 }
             }
+
             @Override
             public String getReference() {
                 if (!useBinaryReferences) {
@@ -633,6 +635,22 @@ class JackrabbitNodeState extends AbstractNodeState {
                     warn("Unable to get blob reference", e);
                     return null;
                 }
+            }
+
+            @Override
+            public String getContentIdentity() {
+                final String reference = getReference();
+                if (reference != null) {
+                    final int pos = reference.indexOf(":");
+                    final String blobHash;
+                    if (pos > -1) {
+                        blobHash = reference.substring(0, pos);
+                    } else {
+                        blobHash = reference;
+                    }
+                    return blobHash + "#" + length();
+                }
+                return super.getContentIdentity();
             }
         };
     }
