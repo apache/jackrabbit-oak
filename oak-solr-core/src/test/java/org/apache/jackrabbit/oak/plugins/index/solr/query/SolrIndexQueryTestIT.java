@@ -93,7 +93,7 @@ import org.junit.rules.TestName;
     }
     
     @Test
-    @Ignore("OAK-3281")  // FIXME See OAK-3281
+    // FIXME See OAK-3281
     public void sql2FullText() throws Exception {
         test("sql2-fulltext.txt");
     }

@@ -59,6 +59,7 @@
             org.apache.jackrabbit.core.query.ExcerptTest#testPunctuationStartsFragment                     <!-- OAK-318 -->
             org.apache.jackrabbit.core.query.ExcerptTest#testPunctuationStartsFragmentEndsWithDots         <!-- OAK-318 -->
             org.apache.jackrabbit.core.query.ExcerptTest#testPreferPhrase                                  <!-- OAK-318 -->
+            org.apache.jackrabbit.oak.plugins.index.solr.query.SolrIndexQueryTestIT#sql2FullText           <!-- OAK-3281 -->
         </known.issues>
     </properties>
 
