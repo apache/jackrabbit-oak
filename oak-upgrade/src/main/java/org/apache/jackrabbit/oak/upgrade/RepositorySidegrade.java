@@ -16,29 +16,41 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.List;
+import java.util.Set;
+
+import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
-import com.google.common.base.Charsets;
+import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeBuilder;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.LoggingCompositeHook;
+import org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier;
+import org.apache.jackrabbit.oak.upgrade.version.VersionCopyConfiguration;
+import org.apache.jackrabbit.oak.upgrade.version.VersionableEditor;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.ImmutableSet.copyOf;
+import static com.google.common.collect.ImmutableSet.of;
+import static com.google.common.collect.Sets.union;
+import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_EXCLUDE_PATHS;
+import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_INCLUDE_PATHS;
+import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_MERGE_PATHS;
+import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.calculateEffectiveIncludePaths;
+import static org.apache.jackrabbit.oak.upgrade.version.VersionCopier.copyVersionStorage;
 
 public class RepositorySidegrade {
-
-    /**
-     * Logger instance
-     */
-    private static final Logger logger =
-        LoggerFactory.getLogger(RepositorySidegrade.class);
 
     /**
      * Target node store.
@@ -47,7 +59,59 @@ public class RepositorySidegrade {
 
     private final NodeStore source;
 
-    private boolean copyBinariesByReference = false;
+    /**
+     * Paths to include during the copy process. Defaults to the root path "/".
+     */
+    private Set<String> includePaths = DEFAULT_INCLUDE_PATHS;
+
+    /**
+     * Paths to exclude during the copy process. Empty by default.
+     */
+    private Set<String> excludePaths = DEFAULT_EXCLUDE_PATHS;
+
+    /**
+     * Paths to merge during the copy process. Empty by default.
+     */
+    private Set<String> mergePaths = DEFAULT_MERGE_PATHS;
+
+    private List<CommitHook> customCommitHooks = null;
+
+    VersionCopyConfiguration versionCopyConfiguration = new VersionCopyConfiguration();
+
+    /**
+     * Configures the version storage copy. Be default all versions are copied.
+     * One may disable it completely by setting {@code null} here or limit it to
+     * a selected date range: {@code <minDate, now()>}.
+     * 
+     * @param minDate
+     *            minimum date of the versions to copy or {@code null} to
+     *            disable the storage version copying completely. Default value:
+     *            {@code 1970-01-01 00:00:00}.
+     */
+    public void setCopyVersions(Calendar minDate) {
+        versionCopyConfiguration.setCopyVersions(minDate);
+    }
+
+    /**
+     * Configures copying of the orphaned version histories (eg. ones that are
+     * not referenced by the existing nodes). By default all orphaned version
+     * histories are copied. One may disable it completely by setting
+     * {@code null} here or limit it to a selected date range:
+     * {@code <minDate, now()>}. <br/>
+     * <br/>
+     * Please notice, that this option is overriden by the
+     * {@link #setCopyVersions(Calendar)}. You can't copy orphaned versions
+     * older than set in {@link #setCopyVersions(Calendar)} and if you set
+     * {@code null} there, this option will be ignored.
+     * 
+     * @param minDate
+     *            minimum date of the orphaned versions to copy or {@code null}
+     *            to not copy them at all. Default value:
+     *            {@code 1970-01-01 00:00:00}.
+     */
+    public void setCopyOrphanedVersions(Calendar minDate) {
+        versionCopyConfiguration.setCopyOrphanedVersions(minDate);
+    }
 
     /**
      * Creates a tool for copying the full contents of the source repository
@@ -62,12 +126,62 @@ public class RepositorySidegrade {
         this.target = target;
     }
 
-    public boolean isCopyBinariesByReference() {
-        return copyBinariesByReference;
+    /**
+     * Returns the list of custom CommitHooks to be applied before the final
+     * type validation, reference and indexing hooks.
+     *
+     * @return the list of custom CommitHooks
+     */
+    public List<CommitHook> getCustomCommitHooks() {
+        return customCommitHooks;
     }
 
-    public void setCopyBinariesByReference(boolean copyBinariesByReference) {
-        this.copyBinariesByReference = copyBinariesByReference;
+    /**
+     * Sets the list of custom CommitHooks to be applied before the final
+     * type validation, reference and indexing hooks.
+     *
+     * @param customCommitHooks the list of custom CommitHooks
+     */
+    public void setCustomCommitHooks(List<CommitHook> customCommitHooks) {
+        this.customCommitHooks = customCommitHooks;
+    }
+
+    /**
+     * Sets the paths that should be included when the source repository
+     * is copied to the target repository.
+     *
+     * @param includes Paths to be included in the copy.
+     */
+    public void setIncludes(@Nonnull String... includes) {
+        this.includePaths = copyOf(checkNotNull(includes));
+    }
+
+    /**
+     * Sets the paths that should be excluded when the source repository
+     * is copied to the target repository.
+     *
+     * @param excludes Paths to be excluded from the copy.
+     */
+    public void setExcludes(@Nonnull String... excludes) {
+        this.excludePaths = copyOf(checkNotNull(excludes));
+    }
+
+
+    /**
+     * Sets the paths that should be merged when the source repository
+     * is copied to the target repository.
+     *
+     * @param merges Paths to be merged during copy.
+     */
+    public void setMerges(@Nonnull String... merges) {
+        this.mergePaths = copyOf(checkNotNull(merges));
+    }
+
+    /**
+     * Same as {@link #copy(RepositoryInitializer)}, but with no custom initializer. 
+     */
+    public void copy() throws RepositoryException {
+        copy(null);
     }
 
     /**
@@ -79,60 +193,60 @@ public class RepositorySidegrade {
      * Note that both the source and the target repository must be closed
      * during the copy operation as this method requires exclusive access
      * to the repositories.
+     * 
+     * @param initializer optional extra repository initializer to use
      *
      * @throws RepositoryException if the copy operation fails
      */
-    public void copy() throws RepositoryException {
+    public void copy(RepositoryInitializer initializer) throws RepositoryException {
         try {
             NodeState root = source.getRoot();
             NodeBuilder builder = target.getRoot().builder();
 
             new InitialContent().initialize(builder);
-
+            if (initializer != null) {
+                initializer.initialize(builder);
+            }
             copyState(builder, root);
 
-            // removing references to the checkpoints, 
-            // which don't exist in the new repository
-            builder.setChildNode(":async");
-
-            target.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            cleanCheckpoints(builder);
         } catch (Exception e) {
             throw new RepositoryException("Failed to copy content", e);
         }
     }
 
-    private void copyState(NodeBuilder parent, NodeState state) throws CommitFailedException {
-        boolean isSegmentNodeBuilder = parent instanceof SegmentNodeBuilder;
-        for (PropertyState property : state.getProperties()) {
-            parent.setProperty(property);
-        }
-        for (ChildNodeEntry entry : state.getChildNodeEntries()) {
-            if (isSegmentNodeBuilder) {
-                parent.setChildNode(entry.getName(), entry.getNodeState());
-            } else {
-                setChildNode(parent, entry.getName(), entry.getNodeState());
-            }
-        }
-        target.merge(parent, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    private void cleanCheckpoints(NodeBuilder builder) throws CommitFailedException {
+        // removing references to the checkpoints, 
+        // which don't exist in the new repository
+        builder.setChildNode(":async");
+        target.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
-    /**
-     * NodeState are copied by value by recursing down the complete tree
-     * This is a temporary approach for OAK-1760 for 1.0 branch.
-     */
-    private void setChildNode(NodeBuilder parent, String name, NodeState state) {
-        // OAK-1589: maximum supported length of name for DocumentNodeStore
-        // is 150 bytes. Skip the sub tree if the the name is too long
-        if (name.length() > 37 && name.getBytes(Charsets.UTF_8).length > 150) {
-            logger.warn("Node name too long. Skipping {}", state);
-            return;
+    private void copyState(NodeBuilder parent, NodeState state) throws CommitFailedException {
+        copyWorkspace(state, parent);
+        if (!versionCopyConfiguration.skipOrphanedVersionsCopy()) {
+            copyVersionStorage(state, parent, versionCopyConfiguration);
         }
-        NodeBuilder builder = parent.setChildNode(name);
-        for (PropertyState property : state.getProperties()) {
-            builder.setProperty(property);
+
+        final List<CommitHook> hooks = new ArrayList<CommitHook>();
+        hooks.add(new EditorHook(
+                new VersionableEditor.Provider(state, Oak.DEFAULT_WORKSPACE_NAME, versionCopyConfiguration)));
+
+        if (customCommitHooks != null) {
+            hooks.addAll(customCommitHooks);
         }
-        for (ChildNodeEntry child : state.getChildNodeEntries()) {
-            setChildNode(builder, child.getName(), child.getNodeState());
-        }
+        target.merge(parent, new LoggingCompositeHook(hooks, null, false), CommitInfo.EMPTY);
+    }
+
+    private void copyWorkspace(NodeState state, NodeBuilder parent) {
+        final Set<String> includes = calculateEffectiveIncludePaths(includePaths, state);
+        final Set<String> excludes = union(copyOf(this.excludePaths), of("/jcr:system/jcr:versionStorage"));
+        final Set<String> merges = union(copyOf(this.mergePaths), of("/jcr:system"));
+
+        NodeStateCopier.builder()
+            .include(includes)
+            .exclude(excludes)
+            .merge(merges)
+            .copy(state, parent);
     }
 }

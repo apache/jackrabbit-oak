@@ -17,15 +17,19 @@
 package org.apache.jackrabbit.oak.upgrade.version;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONSTORAGE;
 import static org.apache.jackrabbit.JcrConstants.NT_VERSION;
 
 import java.util.Calendar;
+import java.util.Iterator;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.upgrade.DescendantsIterator;
 import org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier;
 import org.apache.jackrabbit.util.ISO8601;
 
@@ -50,6 +54,19 @@ public class VersionCopier {
         this.isVersion = new TypePredicate(rootBuilder.getNodeState(), NT_VERSION);
         this.sourceRoot = sourceRoot;
         this.rootBuilder = rootBuilder;
+    }
+
+    public static void copyVersionStorage(NodeState sourceState, NodeBuilder builder, VersionCopyConfiguration config) {
+        final NodeState versionStorage = sourceState.getChildNode(JCR_SYSTEM).getChildNode(JCR_VERSIONSTORAGE);
+        final Iterator<NodeState> versionStorageIterator = new DescendantsIterator(versionStorage, 3);
+        final VersionCopier versionCopier = new VersionCopier(sourceState, builder);
+
+        while (versionStorageIterator.hasNext()) {
+            final NodeState versionHistoryBucket = versionStorageIterator.next();
+            for (String versionHistory : versionHistoryBucket.getChildNodeNames()) {
+                versionCopier.copyVersionHistory(versionHistory, config.getOrphanedMinDate());
+            }
+        }
     }
 
     /**

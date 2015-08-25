@@ -26,7 +26,6 @@ import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.union;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONSTORAGE;
 import static org.apache.jackrabbit.oak.plugins.name.Namespaces.addCustomMapping;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_ALL;
@@ -112,7 +111,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier;
 import org.apache.jackrabbit.oak.upgrade.security.GroupEditorProvider;
 import org.apache.jackrabbit.oak.upgrade.security.RestrictionEditorProvider;
-import org.apache.jackrabbit.oak.upgrade.version.VersionCopier;
 import org.apache.jackrabbit.oak.upgrade.version.VersionCopyConfiguration;
 import org.apache.jackrabbit.oak.upgrade.version.VersionableEditor;
 import org.apache.jackrabbit.spi.Name;
@@ -126,6 +124,8 @@ import org.apache.jackrabbit.spi.commons.conversion.NamePathResolver;
 import org.apache.jackrabbit.spi.commons.value.ValueFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.jackrabbit.oak.upgrade.version.VersionCopier.copyVersionStorage;
 
 public class RepositoryUpgrade {
 
@@ -173,7 +173,7 @@ public class RepositoryUpgrade {
 
     private List<CommitHook> customCommitHooks = null;
 
-    private VersionCopyConfiguration versionCopyConfiguration = new VersionCopyConfiguration();
+    VersionCopyConfiguration versionCopyConfiguration = new VersionCopyConfiguration();
 
     /**
      * Copies the contents of the repository in the given source directory
@@ -421,7 +421,7 @@ public class RepositoryUpgrade {
             if (!versionCopyConfiguration.skipOrphanedVersionsCopy()) {
                 logger.info("Copying version storage");
                 watch.reset().start();
-                copyVersionStorage(sourceState, builder);
+                copyVersionStorage(sourceState, builder, versionCopyConfiguration);
                 builder.getNodeState(); // on TarMK this does call triggers the actual copy
                 logger.info("Version storage copied in {}s ({})", watch.elapsed(TimeUnit.SECONDS), watch);
             } else {
@@ -818,7 +818,7 @@ public class RepositoryUpgrade {
 
     private String copyWorkspace(NodeState sourceState, NodeBuilder builder, String workspaceName)
             throws RepositoryException {
-        final Set<String> includes = calculateEffectiveIncludePaths(sourceState);
+        final Set<String> includes = calculateEffectiveIncludePaths(includePaths, sourceState);
         final Set<String> excludes = union(copyOf(this.excludePaths), of("/jcr:system/jcr:versionStorage"));
         final Set<String> merges = union(copyOf(this.mergePaths), of("/jcr:system"));
 
@@ -833,23 +833,9 @@ public class RepositoryUpgrade {
         return workspaceName;
     }
 
-    private void copyVersionStorage(NodeState sourceState, NodeBuilder builder)
-            throws RepositoryException {
-        final NodeState versionStorage = sourceState.getChildNode(JCR_SYSTEM).getChildNode(JCR_VERSIONSTORAGE);
-        final Iterator<NodeState> versionStorageIterator = new DescendantsIterator(versionStorage, 3);
-        final VersionCopier versionCopier = new VersionCopier(sourceState, builder);
-
-        while (versionStorageIterator.hasNext()) {
-            final NodeState versionHistoryBucket = versionStorageIterator.next();
-            for (String versionHistory : versionHistoryBucket.getChildNodeNames()) {
-                versionCopier.copyVersionHistory(versionHistory, versionCopyConfiguration.getOrphanedMinDate());
-            }
-        }
-    }
-
-    private Set<String> calculateEffectiveIncludePaths(NodeState state) {
-        if (!this.includePaths.contains("/")) {
-            return copyOf(this.includePaths);
+    static Set<String> calculateEffectiveIncludePaths(Set<String> includePaths, NodeState state) {
+        if (!includePaths.contains("/")) {
+            return copyOf(includePaths);
         }
 
         // include child nodes from source individually to avoid deleting other initialized content
@@ -860,11 +846,15 @@ public class RepositoryUpgrade {
         return includes;
     }
 
-    private static class LoggingCompositeHook implements CommitHook {
+    static class LoggingCompositeHook implements CommitHook {
         private final Collection<CommitHook> hooks;
         private boolean started = false;
         private final boolean earlyShutdown;
         private final RepositoryContext source;
+
+        public LoggingCompositeHook(Collection<CommitHook> hooks) {
+          this(hooks, null, false);
+      }
 
         public LoggingCompositeHook(Collection<CommitHook> hooks,
                   RepositoryContext source, boolean earlyShutdown) {
@@ -878,7 +868,7 @@ public class RepositoryUpgrade {
         public NodeState processCommit(NodeState before, NodeState after, CommitInfo info) throws CommitFailedException {
             NodeState newState = after;
             Stopwatch watch = Stopwatch.createStarted();
-            if (earlyShutdown && !started) {
+            if (earlyShutdown && source != null && !started) {
                 logger.info("Shutting down source repository.");
                 source.getRepository().shutdown();
                 started = true;

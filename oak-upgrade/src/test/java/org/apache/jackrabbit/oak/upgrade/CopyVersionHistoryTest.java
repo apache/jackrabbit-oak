@@ -20,21 +20,24 @@ import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
+import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.upgrade.util.VersionCopyTestUtils.RepositoryUpgradeSetup;
+import org.apache.jackrabbit.oak.upgrade.util.VersionCopyTestUtils.VersionCopySetup;
+import org.apache.jackrabbit.oak.upgrade.version.VersionCopyConfiguration;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Test;
 
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.PropertyType;
-import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.version.VersionManager;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Calendar;
 
 import static org.junit.Assert.assertEquals;
@@ -54,6 +57,8 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
 
     private static final String VERSIONABLES_YOUNG_ORPHANED = "/versionables/youngOrphaned";
 
+    protected RepositoryImpl repository;
+
     private static Calendar betweenHistories;
 
     /**
@@ -67,9 +72,7 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
     private static String youngHistory;
 
     @Override
-    protected void createSourceContent(Repository repository) throws Exception {
-        final Session session = repository.login(CREDENTIALS);
-
+    protected void createSourceContent(Session session) throws Exception {
         oldHistory = createVersionableNode(session, VERSIONABLES_OLD);
         oldOrphanedHistory = createVersionableNode(session, VERSIONABLES_OLD_ORPHANED);
         Thread.sleep(10);
@@ -95,12 +98,10 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
     }
 
     @Test
-    public void copyAllVersions() throws RepositoryException {
-        assert source != null;
-
-        Session session = performCopy(source, new RepositoryUpgradeSetup() {
+    public void copyAllVersions() throws RepositoryException, IOException {
+        Session session = performCopy(new VersionCopySetup() {
             @Override
-            public void setup(RepositoryUpgrade upgrade) {
+            public void setup(VersionCopyConfiguration config) {
                 // copying all versions is enabled by default
             }
         });
@@ -111,13 +112,11 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
     }
 
     @Test
-    public void referencedSinceDate() throws RepositoryException {
-        assert source != null;
-
-        Session session = performCopy(source, new RepositoryUpgradeSetup() {
+    public void referencedSinceDate() throws RepositoryException, IOException {
+        Session session = performCopy(new VersionCopySetup() {
             @Override
-            public void setup(RepositoryUpgrade upgrade) {
-                upgrade.setCopyVersions(betweenHistories);
+            public void setup(VersionCopyConfiguration config) {
+                config.setCopyVersions(betweenHistories);
             }
         });
 
@@ -129,13 +128,11 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
     }
 
     @Test
-    public void referencedOlderThanOrphaned() throws RepositoryException {
-        assert source != null;
-
-        Session session = performCopy(source, new RepositoryUpgradeSetup() {
+    public void referencedOlderThanOrphaned() throws RepositoryException, IOException {
+        Session session = performCopy(new VersionCopySetup() {
             @Override
-            public void setup(RepositoryUpgrade upgrade) {
-                upgrade.setCopyOrphanedVersions(betweenHistories);
+            public void setup(VersionCopyConfiguration config) {
+                config.setCopyOrphanedVersions(betweenHistories);
             }
         });
 
@@ -147,13 +144,11 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
     }
 
     @Test
-    public void onlyReferenced() throws RepositoryException {
-        assert source != null;
-
-        Session session = performCopy(source, new RepositoryUpgradeSetup() {
+    public void onlyReferenced() throws RepositoryException, IOException {
+        Session session = performCopy(new VersionCopySetup() {
             @Override
-            public void setup(RepositoryUpgrade upgrade) {
-                upgrade.setCopyOrphanedVersions(null);
+            public void setup(VersionCopyConfiguration config) {
+                config.setCopyOrphanedVersions(null);
             }
         });
         assertTrue(isVersionable(session, VERSIONABLES_OLD));
@@ -164,14 +159,12 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
     }
 
     @Test
-    public void onlyReferencedAfterDate() throws RepositoryException {
-        assert source != null;
-
-        Session session = performCopy(source, new RepositoryUpgradeSetup() {
+    public void onlyReferencedAfterDate() throws RepositoryException, IOException {
+        Session session = performCopy(new VersionCopySetup() {
             @Override
-            public void setup(RepositoryUpgrade upgrade) {
-                upgrade.setCopyVersions(betweenHistories);
-                upgrade.setCopyOrphanedVersions(null);
+            public void setup(VersionCopyConfiguration config) {
+                config.setCopyVersions(betweenHistories);
+                config.setCopyOrphanedVersions(null);
             }
         });
         assertFalse(isVersionable(session, VERSIONABLES_OLD));
@@ -182,13 +175,11 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
     }
 
     @Test
-    public void onlyOrphaned() throws RepositoryException {
-        assert source != null;
-
-        Session session = performCopy(source, new RepositoryUpgradeSetup() {
+    public void onlyOrphaned() throws RepositoryException, IOException {
+        Session session = performCopy(new VersionCopySetup() {
             @Override
-            public void setup(RepositoryUpgrade upgrade) {
-                upgrade.setCopyVersions(null);
+            public void setup(VersionCopyConfiguration config) {
+                config.setCopyVersions(null);
             }
         });
 
@@ -198,14 +189,12 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
     }
 
     @Test
-    public void onlyOrphanedAfterDate() throws RepositoryException {
-        assert source != null;
-
-        Session session = performCopy(source, new RepositoryUpgradeSetup() {
+    public void onlyOrphanedAfterDate() throws RepositoryException, IOException {
+        Session session = performCopy(new VersionCopySetup() {
             @Override
-            public void setup(RepositoryUpgrade upgrade) {
-                upgrade.setCopyVersions(null);
-                upgrade.setCopyOrphanedVersions(betweenHistories);
+            public void setup(VersionCopyConfiguration config) {
+                config.setCopyVersions(null);
+                config.setCopyOrphanedVersions(betweenHistories);
             }
         });
 
@@ -215,14 +204,12 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
     }
 
     @Test
-    public void dontCopyVersionHistory() throws RepositoryException {
-        assert source != null;
-
-        Session session = performCopy(source, new RepositoryUpgradeSetup() {
+    public void dontCopyVersionHistory() throws RepositoryException, IOException {
+        Session session = performCopy(new VersionCopySetup() {
             @Override
-            public void setup(RepositoryUpgrade upgrade) {
-                upgrade.setCopyVersions(null);
-                upgrade.setCopyOrphanedVersions(null);
+            public void setup(VersionCopyConfiguration config) {
+                config.setCopyVersions(null);
+                config.setCopyOrphanedVersions(null);
             }
         });
 
@@ -231,20 +218,25 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
         assertMissing(session, oldHistory, youngHistory, oldOrphanedHistory, youngOrphanedHistory);
     }
 
-    public Session performCopy(File source, RepositoryUpgradeSetup setup) throws RepositoryException {
+    protected Session performCopy(VersionCopySetup setup) throws RepositoryException, IOException {
         final RepositoryConfig sourceConfig = RepositoryConfig.create(source);
         final RepositoryContext sourceContext = RepositoryContext.create(sourceConfig);
         final NodeStore targetNodeStore = new MemoryNodeStore();
         try {
             final RepositoryUpgrade upgrade = new RepositoryUpgrade(sourceContext, targetNodeStore);
-            setup.setup(upgrade);
+            setup.setup(upgrade.versionCopyConfiguration);
             upgrade.copy(null);
         } finally {
             sourceContext.getRepository().shutdown();
         }
 
-        final Repository repository = new Jcr(new Oak(targetNodeStore)).createRepository();
+        repository = (RepositoryImpl) new Jcr(new Oak(targetNodeStore)).createRepository();
         return repository.login(AbstractRepositoryUpgradeTest.CREDENTIALS);
+    }
+
+    @After
+    public void closeRepository() {
+        repository.shutdown();
     }
 
     private static void assertExisting(final Session session, final String... paths) throws RepositoryException {
