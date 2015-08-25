@@ -43,6 +43,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -1372,6 +1373,18 @@ public class DocumentNodeStoreTest {
         } finally {
             store.dispose();
         }
+    }
+
+    @Test
+    public void retrieve() throws Exception {
+        DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
+        String ref = store.checkpoint(60000);
+        assertNotNull(store.retrieve(ref));
+        ref = Revision.newRevision(1).toString();
+        assertNull(store.retrieve(ref));
+        ref = UUID.randomUUID().toString();
+        assertNull(store.retrieve(ref));
+        store.dispose();
     }
 
     /**
