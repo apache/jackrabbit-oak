@@ -113,8 +113,8 @@ public class ClusterInfoTest {
         // current lease end
         long leaseEnd = getLeaseEndTime(ns);
 
-        // wait a bit, but not more than half of the lease time
-        clock.waitUntil(clock.getTime() + (ns.getClusterInfo().getLeaseTime() / 2) - 1000);
+        // wait a bit, but not more than a third of the lease time
+        clock.waitUntil(clock.getTime() + (ns.getClusterInfo().getLeaseTime() / 3) - 1000);
 
         // must not renew lease right now
         ns.renewClusterIdLease();
