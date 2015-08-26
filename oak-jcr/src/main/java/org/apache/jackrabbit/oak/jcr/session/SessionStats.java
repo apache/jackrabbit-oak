@@ -32,14 +32,27 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.jcr.RepositoryException;
 
+import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.jmx.SessionMBean;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.apache.jackrabbit.oak.stats.StatisticManager;
 
 public class SessionStats implements SessionMBean {
-    private final Exception initStackTrace = new Exception("The session was opened here:");
+
+    /**
+     * The threshold of active sessions from where on it should record the stack trace for new sessions. The reason why
+     * this is not enabled by default is because recording stack traces is rather expensive and can significantly
+     * slow down the code if sessions are created and thrown away in a loop.
+     *
+     * Once this threshold is exceeded, we assume that there is a session leak which should be fixed and start recording
+     * the stack traces to make it easier to find the cause of it.
+     */
+    static final int INIT_STACK_TRACE_THRESHOLD = Integer.getInteger("oak.sessionStats.initStackTraceThreshold", 1000);
+
+    private final Exception initStackTrace;
 
     private final AtomicReference<RepositoryException> lastFailedSave =
             new AtomicReference<RepositoryException>();
@@ -55,13 +68,17 @@ public class SessionStats implements SessionMBean {
     private Map<String, Object> attributes = Collections.emptyMap();
 
     public SessionStats(String sessionId, AuthInfo authInfo, Clock clock,
-            RefreshStrategy refreshStrategy, SessionDelegate sessionDelegate) {
+            RefreshStrategy refreshStrategy, SessionDelegate sessionDelegate, StatisticManager statisticManager) {
         this.counters = new Counters(clock);
         this.sessionId = sessionId;
         this.authInfo = authInfo;
         this.clock = clock;
         this.refreshStrategy = refreshStrategy;
         this.sessionDelegate = sessionDelegate;
+
+        long activeSessionCount = statisticManager.getCounter(Type.SESSION_COUNT).get();
+        initStackTrace = (activeSessionCount > INIT_STACK_TRACE_THRESHOLD) ?
+                new Exception("The session was opened here:") : null;
     }
 
     public void close() {
