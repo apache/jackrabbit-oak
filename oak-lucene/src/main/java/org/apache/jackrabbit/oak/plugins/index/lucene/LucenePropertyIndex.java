@@ -1245,6 +1245,11 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             return new IndexRow() {
 
                 @Override
+                public boolean isVirtualRow() {
+                    return getPath() == null;
+                }
+
+                @Override
                 public String getPath() {
                     String sub = pathRow.getPath();
                     if (PathUtils.isAbsolute(sub)) {
