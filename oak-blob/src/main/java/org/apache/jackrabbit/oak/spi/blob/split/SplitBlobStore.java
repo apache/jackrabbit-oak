@@ -86,4 +86,9 @@ public class SplitBlobStore implements BlobStore {
             return oldBlobStore;
         }
     }
+
+    @Override
+    public String toString() {
+        return String.format("SplitBlobStore[old={}, new={}]", oldBlobStore, newBlobStore);
+    }
 }
