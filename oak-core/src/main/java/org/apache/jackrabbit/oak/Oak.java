@@ -225,8 +225,6 @@ public class Oak {
 
     private MBeanServer mbeanServer;
 
-    private SplitBlobStore splitBlobStore;
-
     private String defaultWorkspaceName = DEFAULT_WORKSPACE_NAME;
 
     @SuppressWarnings("unchecked")
@@ -548,12 +546,6 @@ public class Oak {
     }
 
     @Nonnull
-    public Oak with(@Nonnull SplitBlobStore splitBlobStore) {
-        this.splitBlobStore = splitBlobStore;
-        return this;
-    }
-
-    @Nonnull
     public Whiteboard getWhiteboard() {
         return this.whiteboard;
     }
@@ -609,12 +601,6 @@ public class Oak {
 
         regs.add(registerMBean(whiteboard, QueryEngineSettingsMBean.class,
                 queryEngineSettings, QueryEngineSettingsMBean.TYPE, "settings"));
-
-        if (splitBlobStore != null) {
-            final BlobMigrator migrator = new BlobMigrator(splitBlobStore, store);
-            regs.add(registerMBean(whiteboard, BlobMigrationMBean.class,
-                    new BlobMigration(migrator, getExecutor()), BlobMigrationMBean.TYPE, "blobMigration"));
-        }
 
         // FIXME: OAK-810 move to proper workspace initialization
         // initialize default workspace
