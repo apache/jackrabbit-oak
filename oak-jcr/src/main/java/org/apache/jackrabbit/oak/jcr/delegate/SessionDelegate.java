@@ -147,10 +147,10 @@ public class SessionDelegate {
                         namespaces));
         this.idManager = new IdentifierManager(root);
         this.clock = checkNotNull(clock);
-        this.sessionStats = new SessionStats(contentSession.toString(),
-                contentSession.getAuthInfo(), clock, refreshStrategy, this);
-        this.sessionCounters = sessionStats.getCounters();
         checkNotNull(statisticManager);
+        this.sessionStats = new SessionStats(contentSession.toString(),
+                contentSession.getAuthInfo(), clock, refreshStrategy, this, statisticManager);
+        this.sessionCounters = sessionStats.getCounters();
         readCounter = statisticManager.getCounter(SESSION_READ_COUNTER);
         readDuration = statisticManager.getCounter(SESSION_READ_DURATION);
         writeCounter = statisticManager.getCounter(SESSION_WRITE_COUNTER);
