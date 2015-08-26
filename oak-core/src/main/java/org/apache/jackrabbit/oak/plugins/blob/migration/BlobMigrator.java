@@ -9,6 +9,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.spi.blob.split.SplitBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -17,8 +18,12 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BlobMigrator {
+
+    private static final Logger log = LoggerFactory.getLogger(BlobMigrator.class);
 
     private final SplitBlobStore blobStore;
 
@@ -72,6 +77,7 @@ public class BlobMigrator {
                 final NodeBuilder builder = iterator.getBuilder(rootBuilder);
                 builder.setProperty(newProperty);
                 nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+                log.info("Migrated property {}/{}", lastPath, property.getName());
             }
         }
     }
@@ -83,7 +89,8 @@ public class BlobMigrator {
             return null;
         }
 
-        final Blob newBlob = nodeStore.createBlob(oldBlob.getNewStream());
+        final String newBlobId = blobStore.writeBlob(oldBlob.getNewStream());
+        final Blob newBlob = new BlobStoreBlob(blobStore, newBlobId);
         final PropertyBuilder<Blob> builder = new PropertyBuilder<Blob>(Type.BINARY);
         builder.assignFrom(propertyState);
         builder.setValue(newBlob);
@@ -99,13 +106,16 @@ public class BlobMigrator {
         for (final Blob oldBlob : oldBlobs) {
             final String blobId = oldBlob.getContentIdentity();
             if (blobStore.isMigrated(blobId)) {
-                newBlobs.add(oldBlob);
+                newBlobs.add(new BlobStoreBlob(blobStore, blobId));
             } else {
-                newBlobs.add(nodeStore.createBlob(oldBlob.getNewStream()));
+                final String newBlobId = blobStore.writeBlob(oldBlob.getNewStream());
+                final Blob newBlob = new BlobStoreBlob(blobStore, newBlobId);
+                newBlobs.add(newBlob);
                 blobUpdated = true;
             }
         }
         if (blobUpdated) {
+            builder.setValues(newBlobs);
             return builder.getPropertyState();
         } else {
             return null;
