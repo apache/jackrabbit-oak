@@ -19,6 +19,10 @@
 
 package org.apache.jackrabbit.oak.spi.blob.osgi;
 
+import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.PROP_SPLIT_BLOBSTORE;
+
+import java.util.Dictionary;
+import java.util.Hashtable;
 import java.util.Map;
 
 import org.apache.felix.scr.annotations.Activate;
@@ -66,7 +70,9 @@ public class SplitBlobStoreService {
             return;
         }
         final BlobStore blobStore = new SplitBlobStore(homeDir, oldBlobStore, newBlobStore);
-        reg = context.getBundleContext().registerService(new String[] { BlobStore.class.getName() }, blobStore, null);
+        Dictionary<String, Object> props = new Hashtable<String, Object>();
+        props.put("service.pid", "org.apache.jackrabbit.oak.spi.blob.split.SplitBlobStore");
+        reg = context.getBundleContext().registerService(new String[] { BlobStore.class.getName() }, blobStore, props);
     }
 
     @Deactivate

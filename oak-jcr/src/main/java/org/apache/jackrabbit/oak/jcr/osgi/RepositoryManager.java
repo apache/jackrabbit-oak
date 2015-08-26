@@ -29,12 +29,15 @@ import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.split.SplitBlobStore;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -87,6 +90,9 @@ public class RepositoryManager {
 
     @Reference
     private NodeStore store;
+
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY, target = "(pid=org.apache.jackrabbit.oak.spi.blob.split.SplitBlobStore)")
+    private BlobStore splitBlobStore;
 
     @Property(
         intValue = DEFAULT_OBSERVATION_QUEUE_LENGTH,
@@ -173,6 +179,10 @@ public class RepositoryManager {
 
         if (commitRateLimiter != null) {
             oak.with(commitRateLimiter);
+        }
+
+        if (splitBlobStore != null) {
+            oak.with((SplitBlobStore) splitBlobStore);
         }
 
         return bundleContext.registerService(
