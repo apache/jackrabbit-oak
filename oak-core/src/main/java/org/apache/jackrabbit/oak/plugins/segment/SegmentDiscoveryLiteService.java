@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
  * the provided clusterView is a hard-coded one consisting only of the
  * local instance. But it is nevertheless useful for upper layer discovery.oak.
  * <p>
- * @see DocumentDiscoveryLiteService for a more in-depth description of the descriptor
+ * @see DocumentDiscoveryLiteService for a more in-depth description of the discovery-lite descriptor
  */
 @Component(immediate = true)
 @Service(value = { SegmentDiscoveryLiteService.class })
