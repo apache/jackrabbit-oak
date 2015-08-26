@@ -1,14 +1,17 @@
 package org.apache.jackrabbit.oak.plugins.blob.migration;
 
-import java.io.ByteArrayInputStream;
+import static junit.framework.Assert.assertEquals;
+
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
+import java.io.InputStream;
 import java.util.Random;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
@@ -19,6 +22,7 @@ import org.apache.jackrabbit.oak.spi.blob.split.SplitBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
@@ -28,9 +32,11 @@ import com.google.common.io.Files;
 
 public class BlobMigratorTest {
 
-    private static final int LENGTH = 1024;
+    private static final int LENGTH = 1024 * 16;
 
     private static final Random RANDOM = new Random();
+
+    private File segmentDir;
 
     private SegmentStore segmentStore;
 
@@ -43,7 +49,7 @@ public class BlobMigratorTest {
     @Before
     public void setup() throws CommitFailedException, IllegalArgumentException, IOException {
         final File repository = Files.createTempDir();
-        final File segmentDir = new File(repository, "segmentstore");
+        segmentDir = new File(repository, "segmentstore");
         final BlobStore oldBlobStore = new FileBlobStore(repository.getPath() + "/old");
         createContent(oldBlobStore, segmentDir);
 
@@ -60,9 +66,51 @@ public class BlobMigratorTest {
     }
 
     @Test
-    public void testMigrate() throws IOException, CommitFailedException {
+    public void blobsExistsOnTheNewBlobStore() throws IOException, CommitFailedException {
         migrator.migrate();
+        final NodeState root = nodeStore.getRoot();
+        for (int i = 1; i <= 3; i++) {
+            assertPropertyOnTheNewStore(root.getChildNode("node" + i).getProperty("prop"));
+        }
+    }
 
+    @Test
+    public void blobsCanBeReadAfterSwitchingBlobStore() throws IOException, CommitFailedException {
+        migrator.migrate();
+        segmentStore.close();
+
+        segmentStore = FileStore.newFileStore(segmentDir).withBlobStore(newBlobStore).create();
+        nodeStore = SegmentNodeStore.newSegmentNodeStore(segmentStore).create();
+
+        final NodeState root = nodeStore.getRoot();
+        for (int i = 1; i <= 3; i++) {
+            assertPropertyExists(root.getChildNode("node" + i).getProperty("prop"));
+        }
+    }
+
+    private void assertPropertyExists(PropertyState property) {
+        if (property.isArray()) {
+            for (Blob blob : property.getValue(Type.BINARIES)) {
+                assertEquals(LENGTH, blob.length());
+            }
+        } else {
+            assertEquals(LENGTH, property.getValue(Type.BINARY).length());
+        }
+    }
+
+    private void assertPropertyOnTheNewStore(PropertyState property) throws IOException {
+        if (property.isArray()) {
+            for (Blob blob : property.getValue(Type.BINARIES)) {
+                assertPropertyOnTheNewStore(blob);
+            }
+        } else {
+            assertPropertyOnTheNewStore(property.getValue(Type.BINARY));
+        }
+    }
+
+    private void assertPropertyOnTheNewStore(Blob blob) throws IOException {
+        final String blobId = blob.getContentIdentity();
+        assertStreamEquals(blob.getNewStream(), newBlobStore.getInputStream(blobId));
     }
 
     private static void createContent(BlobStore blobStore, File segmentDir) throws IOException, CommitFailedException {
@@ -83,6 +131,17 @@ public class BlobMigratorTest {
     private static Blob createBlob(NodeStore nodeStore) throws IOException {
         byte[] buffer = new byte[LENGTH];
         RANDOM.nextBytes(buffer);
-        return nodeStore.createBlob(new ByteArrayInputStream(buffer));
+        return new ArrayBasedBlob(buffer);
+    }
+
+    private static void assertStreamEquals(InputStream expected, InputStream actual) throws IOException {
+        while (true) {
+            final int expectedByte = expected.read();
+            final int actualByte = actual.read();
+            assertEquals(expectedByte, actualByte);
+            if (expectedByte == -1) {
+                break;
+            }
+        }
     }
 }
