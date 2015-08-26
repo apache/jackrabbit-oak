@@ -401,7 +401,7 @@ public class ClusterNodeInfo {
             return;
         }
         final long now = getCurrentTime();
-        if (now < leaseEndTime) {
+        if (now < (leaseEndTime - leaseTime / 3)) { // OAK-3238 : put the barrier 1/3 before lease end
             // then all is good
             return;
         }
@@ -439,14 +439,14 @@ public class ClusterNodeInfo {
     /**
      * Renew the cluster id lease. This method needs to be called once in a while,
      * to ensure the same cluster id is not re-used by a different instance.
-     * The lease is only renewed when half of the lease time passed. That is,
-     * with a lease time of 60 seconds, the lease is renewed every 30 seconds.
+     * The lease is only renewed when a third of the lease time passed. That is,
+     * with a lease time of 60 seconds, the lease is renewed every 20 seconds.
      *
      * @return {@code true} if the lease was renewed; {@code false} otherwise.
      */
     public boolean renewLease() {
         long now = getCurrentTime();
-        if (now + leaseTime / 2 < leaseEndTime) {
+        if (now + 2 * leaseTime / 3 < leaseEndTime) {
             return false;
         }
         UpdateOp update = new UpdateOp("" + id, true);

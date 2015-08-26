@@ -313,7 +313,7 @@ public class DocumentDiscoveryLiteServiceTest {
          */
         private boolean setLeaseTime(final int leaseTime) throws NoSuchFieldException {
             ns.getClusterInfo().setLeaseTime(leaseTime);
-            PrivateAccessor.setField(ns.getClusterInfo(), "leaseEndTime", System.currentTimeMillis() + (leaseTime / 2));
+            PrivateAccessor.setField(ns.getClusterInfo(), "leaseEndTime", System.currentTimeMillis() + (leaseTime / 3) - 10 /* 10ms safety margin */);
             boolean renewed = ns.renewClusterIdLease();
             return renewed;
         }
