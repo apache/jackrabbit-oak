@@ -559,14 +559,14 @@ public class DocumentDiscoveryLiteServiceTest {
     private List<SimplifiedInstance> allInstances = new LinkedList<SimplifiedInstance>();
 
     @Rule
-    public TestRule logDumper = new LogDumper(10000);
+    public TestRule logDumper = new LogDumper(50000);
 
     @Rule
     public TestRule logLevelModifier = new LogLevelModifier()
                                             .newConsoleAppender("console")
                                             .addAppenderFilter("console", "info")
                                             .addAppenderFilter("file", "info")
-                                            .setLoggerLevel("org.apache.jackrabbit.oak", "trace");
+                                            .setLoggerLevel("org.apache.jackrabbit.oak", "debug");
 
     @Test
     public void testActivateDeactivate() throws Exception {
