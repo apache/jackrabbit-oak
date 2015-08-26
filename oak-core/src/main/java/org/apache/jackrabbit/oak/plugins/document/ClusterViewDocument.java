@@ -452,6 +452,8 @@ class ClusterViewDocument {
             this.createdBy = (Long) creatorId;
         } else if (creatorId instanceof Integer) {
             this.createdBy = (long)((Integer) creatorId);
+        } else if (creatorId == null) {
+            this.createdBy = -1L;
         } else {
             throw new IllegalStateException("Unsupported type of creator: "+creatorId);
         }
