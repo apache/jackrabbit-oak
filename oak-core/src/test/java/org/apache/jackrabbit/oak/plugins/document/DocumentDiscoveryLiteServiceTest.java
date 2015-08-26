@@ -559,13 +559,13 @@ public class DocumentDiscoveryLiteServiceTest {
     private List<SimplifiedInstance> allInstances = new LinkedList<SimplifiedInstance>();
 
     @Rule
-    public TestRule logDumper = new LogDumper();
+    public TestRule logDumper = new LogDumper(10000);
 
     @Rule
     public TestRule logLevelModifier = new LogLevelModifier()
                                             .newConsoleAppender("console")
-                                            .addAppenderFilter("console", "warn")
-                                            .addAppenderFilter("file", "warn")
+                                            .addAppenderFilter("console", "info")
+                                            .addAppenderFilter("file", "info")
                                             .setLoggerLevel("org.apache.jackrabbit.oak", "trace");
 
     @Test
@@ -888,6 +888,7 @@ public class DocumentDiscoveryLiteServiceTest {
      */
     @Test
     public void testLargeStartStopFiesta() throws Throwable {
+        logger.info("testLargeStartStopFiesta: start");
         final List<SimplifiedInstance> instances = new LinkedList<SimplifiedInstance>();
         final Map<Integer, String> inactiveIds = new HashMap<Integer, String>();
         final Random random = new Random();
@@ -1001,6 +1002,7 @@ public class DocumentDiscoveryLiteServiceTest {
             SimplifiedInstance anInstance = it.next();
             activeIds.add(anInstance.ns.getClusterId());
         }
+        logger.info("checkFiestaState: checking state. expected active: "+activeIds+", inactive: "+inactiveIds);
         for (Iterator<SimplifiedInstance> it = instances.iterator(); it.hasNext();) {
             SimplifiedInstance anInstance = it.next();
 
