@@ -37,7 +37,6 @@ import static org.apache.commons.io.FileUtils.deleteDirectory;
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
 import static org.apache.jackrabbit.oak.plugins.segment.CompactionMap.sum;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType.CLEAN_OLD;
-import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.MEMORY_THRESHOLD_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.segment.file.FileStore.newFileStore;
 import static org.junit.Assume.assumeTrue;
 import static org.slf4j.helpers.MessageFormatter.arrayFormat;
@@ -58,7 +57,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
-import javax.annotation.Nonnull;
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanRegistrationException;
 import javax.management.MBeanServer;
@@ -96,14 +94,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This is a longeivity test for SegmentMK compaction. The test schedules a number
- * of readers, writers, a compactor and holds some references for a certain time.
+ * <p>This is a longevity test for SegmentMK compaction for {@code OAK-2849 Improve revision gc on SegmentMK}</p>
+ *
+ * <p>The test schedules a number of readers, writers, a compactor and holds some references for a certain time.
  * All of which can be interactively modified through the accompanying
  * {@link SegmentCompactionITMBean}, the
  * {@link org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategyMBean} and the
- * {@link org.apache.jackrabbit.oak.plugins.segment.file.GCMonitorMBean}.
+ * {@link org.apache.jackrabbit.oak.plugins.segment.file.GCMonitorMBean}.</p>
  *
- * TODO Leverage longeivity test support from OAK-2771 once we have it.
+ *<p>The test is <b>disabled</b> by default, to run it you need to set the {@code SegmentCompactionIT} system property:<br>
+ * {@code mvn test -Dtest=SegmentCompactionIT -Dtest.opts.memory=-Xmx4G}
+ * </p>
+ *
+ * <p>TODO Leverage longevity test support from OAK-2771 once we have it.</p>
  */
 public class SegmentCompactionIT {
     private static final boolean PERSIST_COMPACTION_MAP = !getBoolean("in-memory-compaction-map");
@@ -111,6 +114,7 @@ public class SegmentCompactionIT {
     /** Only run if explicitly asked to via -Dtest=SegmentCompactionIT */
     private static final boolean ENABLED =
             SegmentCompactionIT.class.getSimpleName().equals(getProperty("test"));
+
     private static final Logger LOG = LoggerFactory.getLogger(SegmentCompactionIT.class);
 
     private final MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
@@ -124,17 +128,11 @@ public class SegmentCompactionIT {
     private final Set<ListenableScheduledFuture<?>> readers = newConcurrentHashSet();
     private final Set<ListenableScheduledFuture<?>> references = newConcurrentHashSet();
     private final SegmentCompactionITMBean segmentCompactionMBean = new SegmentCompactionITMBean();
-    private final CompactionStrategy compactionStrategy = new CompactionStrategy(
-            false, false, CLEAN_OLD, 60000, MEMORY_THRESHOLD_DEFAULT) {
-        @Override
-        public boolean compacted(@Nonnull Callable<Boolean> setHead) throws Exception {
-            return nodeStore.locked(setHead, lockWaitTime, SECONDS);
-        }
-    };
 
     private File directory;
     private FileStore fileStore;
     private SegmentNodeStore nodeStore;
+    private CompactionStrategy compactionStrategy;
     private Registration mBeanRegistration;
 
     private volatile ListenableFuture<?> compactor = immediateCancelledFuture();
@@ -230,8 +228,19 @@ public class SegmentCompactionIT {
                 .withMemoryMapping(true)
                 .withGCMonitor(gcMonitor)
                 .create();
-        nodeStore = new SegmentNodeStore(fileStore);
-        compactionStrategy.setPersistCompactionMap(PERSIST_COMPACTION_MAP);
+        SegmentNodeStoreBuilder nodeStoreBuilder = SegmentNodeStore
+                .newSegmentNodeStore(fileStore);
+        nodeStoreBuilder.withCompactionStrategy(false, false,
+                CLEAN_OLD.toString(), CompactionStrategy.TIMESTAMP_DEFAULT,
+                CompactionStrategy.MEMORY_THRESHOLD_DEFAULT, lockWaitTime,
+                CompactionStrategy.RETRY_COUNT_DEFAULT,
+                CompactionStrategy.FORCE_AFTER_FAIL_DEFAULT,
+                PERSIST_COMPACTION_MAP,
+                CompactionStrategy.GAIN_THRESHOLD_DEFAULT);
+        nodeStore = nodeStoreBuilder.create();
+
+        compactionStrategy = nodeStoreBuilder
+                .getCompactionStrategy();
         fileStore.setCompactionStrategy(compactionStrategy);
 
         CacheStats segmentCacheStats = fileStore.getTracker().getSegmentCacheStats();
