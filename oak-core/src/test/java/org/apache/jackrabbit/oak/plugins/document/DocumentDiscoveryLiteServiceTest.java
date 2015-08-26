@@ -947,6 +947,9 @@ public class DocumentDiscoveryLiteServiceTest {
                         newInstance.startSimulatingWrites(500);
                         logger.info("Case 1: created instance: " + newInstance.ns.getClusterId());
                         instances.add(newInstance);
+                        // OAK-3292 : in case a previously crashed or shut-down instance is created again here
+                        //            make sure to remove it from inactive (if it in the inactive list at all)
+                        inactiveIds.remove(newInstance.ns.getClusterId());
                     }
                     break;
                 }
