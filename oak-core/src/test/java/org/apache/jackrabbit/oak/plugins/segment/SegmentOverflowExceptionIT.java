@@ -120,16 +120,25 @@ public class SegmentOverflowExceptionIT {
             });
 
             long start = System.currentTimeMillis();
+            int snfeCount = 0;
             while (System.currentTimeMillis() - start < TIMEOUT) {
-                NodeBuilder root = nodeStore.getRoot().builder();
-                while (rnd.nextInt(100) != 0) {
-                    modify(nodeStore, root);
-                }
-                nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+                try {
+                    NodeBuilder root = nodeStore.getRoot().builder();
+                    while (rnd.nextInt(100) != 0) {
+                        modify(nodeStore, root);
+                    }
+                    nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-                if (compact) {
-                    compact = false;
-                    fileStore.maybeCompact(true);
+                    if (compact) {
+                        compact = false;
+                        fileStore.maybeCompact(true);
+                    }
+                } catch (SegmentNotFoundException snfe) {
+                    // Usually this can be ignored as SNFEs are somewhat expected here
+                    // due the small retention value for segments.
+                    if (snfeCount++ > 100) {
+                        throw snfe;
+                    }
                 }
             }
         } finally {
