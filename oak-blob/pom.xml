@@ -45,7 +45,8 @@
               *
             </Import-Package>
             <Export-Package>
-              org.apache.jackrabbit.oak.spi.blob
+              org.apache.jackrabbit.oak.spi.blob,
+              org.apache.jackrabbit.oak.spi.blob.split
             </Export-Package>
           </instructions>
         </configuration>
