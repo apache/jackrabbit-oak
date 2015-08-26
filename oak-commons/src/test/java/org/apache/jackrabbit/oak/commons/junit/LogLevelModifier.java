@@ -145,6 +145,7 @@ public class LogLevelModifier extends TestWatcher {
         ConsoleAppender<ILoggingEvent> c = new ConsoleAppender<ILoggingEvent>();
         c.setName(name);
         c.setContext(getContext());
+        c.start();
         rootLogger().addAppender(c);
         newAppenders.add(c);
         return this;
