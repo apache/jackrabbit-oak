@@ -447,7 +447,14 @@ class ClusterViewDocument {
         this.clusterViewId = (String) doc.get(CLUSTER_VIEW_ID_KEY);
         this.viewSeqNum = (Long) doc.get(VIEW_SEQ_NUM_KEY);
         this.createdAt = (String) doc.get(CREATED_KEY);
-        this.createdBy = (Long) doc.get(CREATOR_KEY);
+        Object creatorId = doc.get(CREATOR_KEY);
+        if (creatorId instanceof Long) {
+            this.createdBy = (Long) creatorId;
+        } else if (creatorId instanceof Integer) {
+            this.createdBy = (long)((Integer) creatorId);
+        } else {
+            throw new IllegalStateException("Unsupported type of creator: "+creatorId);
+        }
 
         Object obj = doc.get(ACTIVE_KEY);
         if (obj == null || !(obj instanceof String)) {
