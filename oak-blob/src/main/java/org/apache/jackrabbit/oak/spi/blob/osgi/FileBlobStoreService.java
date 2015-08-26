@@ -39,7 +39,7 @@ import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Component(policy = ConfigurationPolicy.REQUIRE, name = FileBlobStoreService.NAME)
+@Component(policy = ConfigurationPolicy.REQUIRE)
 public class FileBlobStoreService {
     public static final String NAME = "org.apache.jackrabbit.oak.spi.blob.FileBlobStore";
 
