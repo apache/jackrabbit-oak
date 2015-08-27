@@ -25,42 +25,112 @@ public class BlobMigrator {
 
     private static final Logger log = LoggerFactory.getLogger(BlobMigrator.class);
 
+    private static final int MERGE_LIMIT = 100;
+
+    private static final int MERGE_TIMEOUT = 30;
+
     private final SplitBlobStore blobStore;
 
     private final NodeStore nodeStore;
 
-    private final DfsNodeIterator nodeIterator;
-
     private final AtomicBoolean stopMigration = new AtomicBoolean(false);
 
+    private DfsNodeIterator nodeIterator;
+
+    private NodeBuilder rootBuilder;
+
+    private long lastCommit;
+
+    private int migratedNodes;
+
     private volatile String lastPath;
+
+    private volatile int totalMigratedNodes;
 
     public BlobMigrator(SplitBlobStore blobStore, NodeStore nodeStore) {
         this.blobStore = blobStore;
         this.nodeStore = nodeStore;
-        this.nodeIterator = new DfsNodeIterator(nodeStore.getRoot());
+        refreshAndReset();
     }
 
-    public void migrate() throws IOException, CommitFailedException {
-        nodeIterator.reset();
-        while (nodeIterator.hasNext()) {
-            lastPath = nodeIterator.getPath();
-            if (stopMigration.getAndSet(false)) {
-                break;
+    public boolean start() throws IOException {
+        totalMigratedNodes = 0;
+        refreshAndReset();
+        return migrate();
+    }
+
+    public boolean migrate() throws IOException {
+        do {
+            while (nodeIterator.hasNext()) {
+                lastPath = nodeIterator.getPath();
+                if (stopMigration.getAndSet(false)) {
+                    if (migratedNodes > 0) {
+                        commit();
+                    }
+                    return false;
+                }
+                migrateNode(rootBuilder, nodeIterator);
+                if (timeToCommit()) {
+                    commit();
+                }
             }
-            migrateNode(nodeIterator);
+            // at this point we iterated over the whole repository
+            // the last thing to do is to check if we don't have
+            // any nodes waiting to be migrated. if the operation
+            // fails we have to start from the beginning
+        } while (migratedNodes > 0 && !commit());
+        return true;
+    }
+
+    private boolean commit() {
+        try {
+            nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            totalMigratedNodes += migratedNodes;
+            log.info("{} nodes merged succesfully. Nodes migrated in this session: {}", migratedNodes, totalMigratedNodes);
+            lastCommit = System.currentTimeMillis();
+            migratedNodes = 0;
+            return true;
+        } catch (CommitFailedException e) {
+            log.error("Can't commit. Resetting the migrator", e);
+            refreshAndReset();
+            return false;
         }
     }
 
-    public void stop() throws InterruptedException {
+    private boolean timeToCommit() {
+        final long changesMerged = (System.currentTimeMillis() - lastCommit) / 1000;
+        if (migratedNodes >= MERGE_LIMIT) {
+            log.info("Migrated nodes count: {}. Merging changes.", migratedNodes);
+            return true;
+        } else if (migratedNodes > 0 && changesMerged >= MERGE_TIMEOUT) {
+            log.info("Changes have been merged {}s ago. Merging {} nodes.", changesMerged, migratedNodes);
+            return true;
+        }
+        return false;
+    }
+
+    public void stop() {
         stopMigration.set(true);
     }
 
-    public String getLastMigratedPath() {
+    public String getLastProcessedPath() {
         return lastPath;
     }
 
-    private void migrateNode(DfsNodeIterator iterator) throws IOException, CommitFailedException {
+    public int getTotalMigratedNodes() {
+        return totalMigratedNodes;
+    }
+
+    private void refreshAndReset() {
+        final NodeState rootState = nodeStore.getRoot();
+        rootBuilder = rootState.builder();
+        nodeIterator = new DfsNodeIterator(rootState);
+        lastPath = null;
+        lastCommit = System.currentTimeMillis();
+        migratedNodes = 0;
+    }
+
+    private void migrateNode(NodeBuilder rootBuilder, DfsNodeIterator iterator) throws IOException {
         final ChildNodeEntry node = iterator.next();
         final NodeState state = node.getNodeState();
         for (PropertyState property : state.getProperties()) {
@@ -73,11 +143,14 @@ public class BlobMigrator {
                 newProperty = null;
             }
             if (newProperty != null) {
-                final NodeBuilder rootBuilder = nodeStore.getRoot().builder();
                 final NodeBuilder builder = iterator.getBuilder(rootBuilder);
-                builder.setProperty(newProperty);
-                nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-                log.info("Migrated property {}/{}", lastPath, property.getName());
+                if (builder.exists()) {
+                    builder.setProperty(newProperty);
+                    migratedNodes++;
+                    log.info("Migrated property {}/{}", lastPath, property.getName());
+                } else {
+                    log.warn("Can't migrate blobs for a non-existing node: {}", lastPath);
+                }
             }
         }
     }
