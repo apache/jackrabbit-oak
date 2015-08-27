@@ -24,6 +24,7 @@ import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.escape.Escapers.builder;
 
 import java.awt.GridLayout;
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
@@ -67,9 +68,11 @@ import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-public class NodeStoreTree extends JPanel implements TreeSelectionListener {
+public class NodeStoreTree extends JPanel implements TreeSelectionListener,
+        Closeable {
 
-    private final ReadOnlyStore store;
+    private final String path;
+    private ReadOnlyStore store;
 
     private DefaultTreeModel treeModel;
     private final JTree tree;
@@ -81,30 +84,29 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
     // TODO make this configurable
     private final boolean cacheNodeState = false;
 
-    public NodeStoreTree(ReadOnlyStore store, JTextArea log, boolean skipSizeCheck) {
+    public NodeStoreTree(String path, JTextArea log, boolean skipSizeCheck)
+            throws IOException {
         super(new GridLayout(1, 0));
-        this.store = store;
+        this.path = path;
         this.log = log;
-
-        this.index = store.getTarReaderIndex();
-        this.sizeCache = new HashMap<RecordIdKey, Long[]>();
         this.skipSizeCheck = skipSizeCheck;
 
-        DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode(
-                new NamePathModel("/", "/", store.getHead(), sizeCache,
-                        skipSizeCheck, store, cacheNodeState), true);
-        treeModel = new DefaultTreeModel(rootNode);
-        addChildren(rootNode);
-
-        tree = new JTree(treeModel);
+        tree = new JTree();
         tree.getSelectionModel().setSelectionMode(
                 TreeSelectionModel.SINGLE_TREE_SELECTION);
         tree.setShowsRootHandles(true);
         tree.addTreeSelectionListener(this);
         tree.setExpandsSelectedPaths(true);
 
+        refreshStore();
+        refreshModel();
+
         JScrollPane scrollPane = new JScrollPane(tree);
         add(scrollPane);
+    }
+
+    private void refreshStore() throws IOException {
+        this.store = new ReadOnlyStore(new File(path));
     }
 
     private void refreshModel() {
@@ -115,6 +117,13 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
                         skipSizeCheck, store, cacheNodeState), true);
         treeModel = new DefaultTreeModel(rootNode);
         addChildren(rootNode);
+        tree.setModel(treeModel);
+    }
+
+    public void reopen() throws IOException {
+        close();
+        refreshStore();
+        refreshModel();
     }
 
     @Override
@@ -800,6 +809,11 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
             return ((int) lsb) ^ offset;
         }
 
+    }
+
+    @Override
+    public void close() throws IOException {
+        store.close();
     }
 
 }
