@@ -114,6 +114,31 @@ public class ClusterViewDocumentTest {
         assertTrue(doc.getInactiveIds().contains(8));
 
     }
+    
+    @Test
+    public void testHistory() throws Exception {
+        final int localClusterId = 1;
+        final DocumentNodeStore ns = createMK(localClusterId).nodeStore;
+
+        // initial setting of the view
+        final Set<Integer> activeIds = new HashSet<Integer>();
+        activeIds.add(localClusterId);
+        ClusterViewDocument.readOrUpdate(ns, activeIds, null, null);
+
+        final int LOOP_CNT = 100;
+        for (int i = 0; i < LOOP_CNT; i++) {
+            // create a new instance
+            activeIds.add(i + 2);
+            ClusterViewDocument result = ClusterViewDocument.readOrUpdate(ns, activeIds, null, null);
+            assertNotNull(result);
+            assertEquals(i+2, result.getActiveIds().size());
+            if (i<10) {
+                assertEquals(i+1, result.getHistory().size());
+            } else {
+                assertTrue(result.getHistory().size()<=ClusterViewDocument.HISTORY_LIMIT);
+            }
+        }
+    }
 
     @Test
     public void testReadUpdate() throws Exception {

@@ -133,7 +133,7 @@ class ClusterViewDocument {
     private static final DateFormat standardDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
 
     /** number of elements kept in the CLUSTERVIEW_HISTORY_KEY field **/
-    private static final int HISTORY_LIMIT = 10;
+    static final int HISTORY_LIMIT = 10;
 
     /** the monotonically incrementing sequence number of this cluster view **/
     private final long viewSeqNum;
@@ -204,13 +204,13 @@ class ClusterViewDocument {
             Map<Object, String> previousHistory = previousView.getHistory();
             if (previousHistory!=null) {
                 Map<Object, String> mapClone = new HashMap<Object, String>(previousHistory);
-                while(mapClone.size()>HISTORY_LIMIT) {
+                while(mapClone.size()>=HISTORY_LIMIT) {
                     Revision oldestRevision = oldestRevision(mapClone);
                     if (oldestRevision==null) {
                         break;
                     }
-                    updateOp.unsetMapEntry(CLUSTER_VIEW_HISTORY_KEY, oldestRevision);
-                    if (mapClone.remove(oldestRevision.toString())==null) {
+                    updateOp.removeMapEntry(CLUSTER_VIEW_HISTORY_KEY, oldestRevision);
+                    if (mapClone.remove(oldestRevision)==null) {
                         // prevent an endless loop
                         break;
                     }
@@ -509,7 +509,7 @@ class ClusterViewDocument {
     }
 
     /** Returns the history map **/
-    private Map<Object, String> getHistory() {
+    Map<Object, String> getHistory() {
         return viewHistory;
     }
 
