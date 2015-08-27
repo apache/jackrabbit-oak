@@ -6,16 +6,26 @@ import static org.apache.jackrabbit.oak.management.ManagementOperation.newManage
 import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.formatTime;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
+import javax.management.openmbean.CompositeDataSupport;
+import javax.management.openmbean.CompositeType;
+import javax.management.openmbean.OpenDataException;
+import javax.management.openmbean.OpenType;
+import javax.management.openmbean.SimpleType;
 
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
+import org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean.StatusCode;
+import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.management.ManagementOperation;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -24,36 +34,55 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.osgi.framework.BundleContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Component
-public class BlobMigration implements BlobMigrationMBean {
+public class BlobMigration extends AnnotatedStandardMBean implements BlobMigrationMBean {
 
     public static final String OP_NAME = "Blob migration";
 
+    private static final Logger log = LoggerFactory.getLogger(BlobMigrator.class);
+
     private ManagementOperation<String> migrationOp = done(OP_NAME, "");
 
-    @Reference(target="(service.pid=org.apache.jackrabbit.oak.spi.blob.split.SplitBlobStore)")
+    private static final CompositeType TYPE;
+
+    static {
+        CompositeType type;
+        try {
+            type = new CompositeType("BlobMigrationStatus", "Status of the blob migraiton",
+                    new String[] { "isRunning", "migratedNodes", "lastProcessedPath", "operationStatus" },
+                    new String[] { "Migration in progress", "Total number of migrated nodes", "Last processed path", "Status of the operation" },
+                    new OpenType[] { SimpleType.BOOLEAN, SimpleType.INTEGER, SimpleType.STRING, ManagementOperation.Status.ITEM_TYPES });
+        } catch (OpenDataException e) {
+            type = null;
+            log.error("Can't create a CompositeType", e);
+        }
+        TYPE = type;
+    }
+
+    @Reference(target = "(service.pid=org.apache.jackrabbit.oak.spi.blob.split.SplitBlobStore)")
     private BlobStore splitBlobStore;
 
     @Reference
     private NodeStore nodeStore;
 
-    @Reference
-    private Executor executor;
+    private Executor executor = Executors.newSingleThreadExecutor();
 
     private BlobMigrator migrator;
 
     private Registration mbeanReg;
 
+    public BlobMigration() {
+        super(BlobMigrationMBean.class);
+    }
+
     @Activate
     private void activate(BundleContext ctx) {
         final Whiteboard wb = new OsgiWhiteboard(ctx);
         migrator = new BlobMigrator((SplitBlobStore) splitBlobStore, nodeStore);
-        mbeanReg = registerMBean(wb,
-                BlobMigrationMBean.class,
-                this,
-                BlobMigrationMBean.TYPE,
-                OP_NAME);
+        mbeanReg = registerMBean(wb, BlobMigrationMBean.class, this, BlobMigrationMBean.TYPE, OP_NAME);
     }
 
     @Deactivate
@@ -70,24 +99,48 @@ public class BlobMigration implements BlobMigrationMBean {
 
     @Nonnull
     @Override
-    public CompositeData startBlobMigration() {
+    public String startBlobMigration(final boolean resume) {
         if (migrationOp.isDone()) {
             migrationOp = newManagementOperation(OP_NAME, new Callable<String>() {
                 @Override
                 public String call() throws Exception {
-                    long t0 = nanoTime();
-                    migrator.migrate();
-                    return "All blobs migrated in " + formatTime(nanoTime() - t0);
+                    final long t0 = nanoTime();
+                    final boolean finished;
+                    if (resume) {
+                        finished = migrator.migrate();
+                    } else {
+                        finished = migrator.start();
+                    }
+                    final String duration = formatTime(nanoTime() - t0);
+                    if (finished) {
+                        return "All blobs migrated in " + duration;
+                    } else {
+                        return "Migration stopped manually after " + duration;
+                    }
                 }
             });
             executor.execute(migrationOp);
+            return "Migration started";
+        } else {
+            return "Migration is already in progress";
         }
-        return getBlobMigrationStatus();
     }
 
     @Nonnull
     @Override
-    public CompositeData getBlobMigrationStatus() {
-        return migrationOp.getStatus().toCompositeData();
+    public String stopBlobMigration() {
+        migrator.stop();
+        return "Migration will be stopped";
+    }
+
+    @Nonnull
+    @Override
+    public CompositeData getBlobMigrationStatus() throws OpenDataException {
+        final Map<String, Object> status = new HashMap<String, Object>();
+        status.put("isRunning", migrationOp.getStatus().getCode() == StatusCode.RUNNING);
+        status.put("migratedNodes", migrator.getTotalMigratedNodes());
+        status.put("lastProcessedPath", migrator.getLastProcessedPath());
+        status.put("operationStatus", migrationOp.getStatus().toCompositeData());
+        return new CompositeDataSupport(TYPE, status);
     }
 }
