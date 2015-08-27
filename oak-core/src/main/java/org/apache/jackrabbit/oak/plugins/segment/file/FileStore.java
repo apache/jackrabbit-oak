@@ -32,6 +32,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.apache.jackrabbit.oak.plugins.segment.CompactionMap.sum;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.NO_COMPACTION;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -55,10 +56,11 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Maps;
+
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
-import org.apache.jackrabbit.oak.plugins.segment.Compactor;
 import org.apache.jackrabbit.oak.plugins.segment.CompactionMap;
+import org.apache.jackrabbit.oak.plugins.segment.Compactor;
 import org.apache.jackrabbit.oak.plugins.segment.PersistedCompactionMap;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
@@ -292,14 +294,14 @@ public class FileStore implements SegmentStore {
         @Nonnull
         public FileStore create() throws IOException {
             return new FileStore(
-                    blobStore, directory, root, maxFileSize, cacheSize, memoryMapping, gcMonitor);
+                    blobStore, directory, root, maxFileSize, cacheSize, memoryMapping, gcMonitor, false);
         }
     }
 
     @Deprecated
     public FileStore(BlobStore blobStore, File directory, int maxFileSizeMB, boolean memoryMapping)
             throws IOException {
-        this(blobStore, directory, EMPTY_NODE, maxFileSizeMB, 0, memoryMapping, GCMonitor.EMPTY);
+        this(blobStore, directory, EMPTY_NODE, maxFileSizeMB, 0, memoryMapping, GCMonitor.EMPTY, false);
     }
 
     @Deprecated
@@ -317,26 +319,33 @@ public class FileStore implements SegmentStore {
     @Deprecated
     public FileStore(File directory, int maxFileSizeMB, int cacheSizeMB,
             boolean memoryMapping) throws IOException {
-        this(null, directory, EMPTY_NODE, maxFileSizeMB, cacheSizeMB, memoryMapping, GCMonitor.EMPTY);
+        this(null, directory, EMPTY_NODE, maxFileSizeMB, cacheSizeMB, memoryMapping, GCMonitor.EMPTY, false);
     }
 
     @Deprecated
     FileStore(File directory, NodeState initial, int maxFileSize) throws IOException {
-        this(null, directory, initial, maxFileSize, -1, MEMORY_MAPPING_DEFAULT, GCMonitor.EMPTY);
+        this(null, directory, initial, maxFileSize, -1, MEMORY_MAPPING_DEFAULT, GCMonitor.EMPTY, false);
     }
 
     @Deprecated
     public FileStore(
             BlobStore blobStore, final File directory, NodeState initial, int maxFileSizeMB,
             int cacheSizeMB, boolean memoryMapping) throws IOException {
-        this(blobStore, directory, initial, maxFileSizeMB, cacheSizeMB, memoryMapping, GCMonitor.EMPTY);
+        this(blobStore, directory, initial, maxFileSizeMB, cacheSizeMB, memoryMapping, GCMonitor.EMPTY, false);
     }
 
     private FileStore(
             BlobStore blobStore, final File directory, NodeState initial, int maxFileSizeMB,
-            int cacheSizeMB, boolean memoryMapping, GCMonitor gcMonitor)
+            int cacheSizeMB, boolean memoryMapping, GCMonitor gcMonitor, boolean readonly)
             throws IOException {
-        checkNotNull(directory).mkdirs();
+
+        if (readonly) {
+            checkNotNull(directory);
+            checkState(directory.exists() && directory.isDirectory());
+        } else {
+            checkNotNull(directory).mkdirs();
+        }
+
         if (cacheSizeMB < 0) {
             this.tracker = new SegmentTracker(this, 0, getVersion());
         } else if (cacheSizeMB > 0) {
@@ -350,26 +359,40 @@ public class FileStore implements SegmentStore {
         this.memoryMapping = memoryMapping;
         this.gcMonitor = gcMonitor;
 
-        journalFile = new RandomAccessFile(new File(directory, JOURNAL_FILE_NAME), "rw");
-        lockFile = new RandomAccessFile(new File(directory, LOCK_FILE_NAME), "rw");
+        if (readonly) {
+            journalFile = new RandomAccessFile(new File(directory,
+                    JOURNAL_FILE_NAME), "r");
+        } else {
+            journalFile = new RandomAccessFile(new File(directory,
+                    JOURNAL_FILE_NAME), "rw");
+        }
 
         Map<Integer, Map<Character, File>> map = collectFiles(directory);
         this.readers = newArrayListWithCapacity(map.size());
         Integer[] indices = map.keySet().toArray(new Integer[map.size()]);
         Arrays.sort(indices);
         for (int i = indices.length - 1; i >= 0; i--) {
-            readers.add(TarReader.open(map.get(indices[i]), memoryMapping));
+            if (!readonly) {
+                readers.add(TarReader.open(map.get(indices[i]), memoryMapping));
+            } else {
+                // only try to read-only recover the latest file as that might
+                // be the *only* one still being accessed by a writer
+                boolean recover = i == indices.length - 1;
+                readers.add(TarReader.openRO(map.get(indices[i]),
+                        memoryMapping, recover));
+            }
         }
 
-        if (indices.length > 0) {
-            this.writeNumber = indices[indices.length - 1] + 1;
-        } else {
-            this.writeNumber = 0;
+        if (!readonly) {
+            if (indices.length > 0) {
+                this.writeNumber = indices[indices.length - 1] + 1;
+            } else {
+                this.writeNumber = 0;
+            }
+            this.writeFile = new File(directory, String.format(
+                    FILE_NAME_FORMAT, writeNumber, "a"));
+            this.writer = new TarWriter(writeFile);
         }
-        this.writeFile = new File(
-                directory,
-                String.format(FILE_NAME_FORMAT, writeNumber, "a"));
-        this.writer = new TarWriter(writeFile);
 
         RecordId id = null;
         JournalReader journalReader = new JournalReader(new File(directory, JOURNAL_FILE_NAME));
@@ -391,7 +414,15 @@ public class FileStore implements SegmentStore {
         }
 
         journalFile.seek(journalFile.length());
-        lock = lockFile.getChannel().lock();
+
+        if (!readonly) {
+            lockFile = new RandomAccessFile(
+                    new File(directory, LOCK_FILE_NAME), "rw");
+            lock = lockFile.getChannel().lock();
+        } else {
+            lockFile = null;
+            lock = null;
+        }
 
         if (id != null) {
             head = new AtomicReference<RecordId>(id);
@@ -404,29 +435,39 @@ public class FileStore implements SegmentStore {
             persistedHead = new AtomicReference<RecordId>(null);
         }
 
-        this.flushThread = new BackgroundThread(
-                "TarMK flush thread [" + directory + "]", 5000, // 5s interval
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            flush();
-                        } catch (IOException e) {
-                            log.warn("Failed to flush the TarMK at" +
-                                    directory, e);
+        if (!readonly) {
+            this.flushThread = new BackgroundThread(
+                    "TarMK flush thread [" + directory + "]", 5000, // 5s interval
+                    new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                flush();
+                            } catch (IOException e) {
+                                log.warn("Failed to flush the TarMK at" +
+                                        directory, e);
+                            }
                         }
-                    }
-                });
-        this.compactionThread = new BackgroundThread(
-                "TarMK compaction thread [" + directory + "]", -1,
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        maybeCompact(true);
-                    }
-                });
+                    });
+            this.compactionThread = new BackgroundThread(
+                    "TarMK compaction thread [" + directory + "]", -1,
+                    new Runnable() {
+                        @Override
+                        public void run() {
+                            maybeCompact(true);
+                        }
+                    });
+        } else {
+            this.flushThread = null;
+            this.compactionThread = null;
+        }
 
-        log.info("TarMK opened: {} (mmap={})", directory, memoryMapping);
+        if (readonly) {
+            log.info("TarMK ReadOnly opened: {} (mmap={})", directory,
+                    memoryMapping);
+        } else {
+            log.info("TarMK opened: {} (mmap={})", directory, memoryMapping);
+        }
     }
 
     public boolean maybeCompact(boolean cleanup) {
@@ -586,7 +627,10 @@ public class FileStore implements SegmentStore {
      * @return number of segments
      */
     private synchronized int count() {
-        int count = writer.count();
+        int count = 0;
+        if (writer != null) {
+            count += writer.count();
+        }
         for (TarReader reader : readers) {
             count += reader.count();
         }
@@ -690,7 +734,8 @@ public class FileStore implements SegmentStore {
                     if (cleaned != null) {
                         list.add(cleaned);
                     }
-                    File file = reader.close();
+                    closeAndLogOnFail(reader);
+                    File file = reader.getFile();
                     gcMonitor.info("TarMK revision cleanup reclaiming {}", file.getName());
                     toBeRemoved.addLast(file);
                 }
@@ -786,10 +831,12 @@ public class FileStore implements SegmentStore {
 
     public synchronized Iterable<SegmentId> getSegmentIds() {
         List<SegmentId> ids = newArrayList();
-        for (UUID uuid : writer.getUUIDs()) {
-            ids.add(tracker.getSegmentId(
-                    uuid.getMostSignificantBits(),
-                    uuid.getLeastSignificantBits()));
+        if (writer != null) {
+            for (UUID uuid : writer.getUUIDs()) {
+                ids.add(tracker.getSegmentId(
+                        uuid.getMostSignificantBits(),
+                        uuid.getLeastSignificantBits()));
+            }
         }
         for (TarReader reader : readers) {
             for (UUID uuid : reader.getUUIDs()) {
@@ -822,25 +869,26 @@ public class FileStore implements SegmentStore {
     public void close() {
         // avoid deadlocks by closing (and joining) the background
         // threads before acquiring the synchronization lock
-        compactionThread.close();
-        flushThread.close();
-
+        closeAndLogOnFail(compactionThread);
+        closeAndLogOnFail(flushThread);
         synchronized (this) {
             try {
                 flush();
 
-                writer.close();
+                closeAndLogOnFail(writer);
                 tracker.getWriter().dropCache();
 
                 List<TarReader> list = readers;
                 readers = newArrayList();
                 for (TarReader reader : list) {
-                    reader.close();
+                    closeAndLogOnFail(reader);
                 }
 
-                lock.release();
-                lockFile.close();
-                journalFile.close();
+                if (lock != null) {
+                    lock.release();
+                }
+                closeAndLogOnFail(lockFile);
+                closeAndLogOnFail(lockFile);
             } catch (IOException e) {
                 throw new RuntimeException(
                         "Failed to close the TarMK at " + directory, e);
@@ -870,9 +918,11 @@ public class FileStore implements SegmentStore {
             }
         }
 
-        synchronized (this) {
-            if (writer.containsEntry(msb, lsb)) {
-                return true;
+        if (writer != null) {
+            synchronized (this) {
+                if (writer.containsEntry(msb, lsb)) {
+                    return true;
+                }
             }
         }
 
@@ -910,14 +960,16 @@ public class FileStore implements SegmentStore {
             }
         }
 
-        synchronized (this) {
-            try {
-                ByteBuffer buffer = writer.readEntry(msb, lsb);
-                if (buffer != null) {
-                    return new Segment(tracker, id, buffer);
+        if (writer != null) {
+            synchronized (this) {
+                try {
+                    ByteBuffer buffer = writer.readEntry(msb, lsb);
+                    if (buffer != null) {
+                        return new Segment(tracker, id, buffer);
+                    }
+                } catch (IOException e) {
+                    log.warn("Failed to read from tar file " + writer, e);
                 }
-            } catch (IOException e) {
-                log.warn("Failed to read from tar file " + writer, e);
             }
         }
 
@@ -1045,9 +1097,8 @@ public class FileStore implements SegmentStore {
      */
     public static class ReadOnlyStore extends FileStore {
         public ReadOnlyStore(File directory) throws IOException {
-            super(directory, 266);
-            super.flushThread.close();
-            super.compactionThread.close();
+            super(null, directory, EMPTY_NODE, -1, 0, MEMORY_MAPPING_DEFAULT,
+                    GCMonitor.EMPTY, true);
         }
 
         /**
@@ -1059,20 +1110,15 @@ public class FileStore implements SegmentStore {
             super.setRevision(revision);
         }
 
-        /**
-         * @return false
-         */
         @Override
         public boolean setHead(SegmentNodeState base, SegmentNodeState head) {
-            return false;
+            throw new UnsupportedOperationException("Read Only Store");
         }
 
-        /**
-         * no-op
-         */
         @Override
-        public synchronized void writeSegment(SegmentId id, byte[] data, int offset, int length) {
-            // nop
+        public synchronized void writeSegment(SegmentId id, byte[] data,
+                int offset, int length) {
+            throw new UnsupportedOperationException("Read Only Store");
         }
 
         /**
@@ -1081,17 +1127,25 @@ public class FileStore implements SegmentStore {
         @Override
         public void flush() { /* nop */ }
 
-        /**
-         * no-op
-         */
         @Override
-        public synchronized void cleanup() { /* nop */ }
+        public synchronized void cleanup() {
+            throw new UnsupportedOperationException("Read Only Store");
+        }
 
-        /**
-         * no-op
-         */
         @Override
-        public void gc() { /* nop */ }
+        public void gc() {
+            throw new UnsupportedOperationException("Read Only Store");
+        }
+
+        @Override
+        public void compact() {
+            throw new UnsupportedOperationException("Read Only Store");
+        }
+
+        @Override
+        public boolean maybeCompact(boolean cleanup) {
+            throw new UnsupportedOperationException("Read Only Store");
+        }
 
     }
 
@@ -1132,6 +1186,17 @@ public class FileStore implements SegmentStore {
 
     public SegmentVersion getVersion() {
         return version;
+    }
+
+    private static void closeAndLogOnFail(Closeable closeable) {
+        if (closeable != null) {
+            try {
+                closeable.close();
+            } catch (IOException ioe) {
+                // ignore and log
+                log.error(ioe.getMessage(), ioe);
+            }
+        }
     }
 
     private static class LoggingGCMonitor implements GCMonitor {
