@@ -41,6 +41,7 @@ import javax.swing.JTextArea;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.JournalReader;
 
@@ -67,14 +68,17 @@ public class Explorer {
         }
 
         final String path = args[0];
-        final ReadOnlyStore store = new ReadOnlyStore(new File(path));
         final boolean skipSizeCheck = args.length == 2
                 && skip.equalsIgnoreCase(args[1]);
 
         javax.swing.SwingUtilities.invokeLater(new Runnable() {
             public void run() {
                 initLF();
-                createAndShowGUI(path, store, skipSizeCheck);
+                try {
+                    createAndShowGUI(path, skipSizeCheck);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             }
         });
     }
@@ -93,24 +97,26 @@ public class Explorer {
         }
     }
 
-    private void createAndShowGUI(final String path, final ReadOnlyStore store, boolean skipSizeCheck) {
-        final JFrame frame = new JFrame("Explore " + path + " @head");
-        frame.addWindowListener(new java.awt.event.WindowAdapter() {
-            @Override
-            public void windowClosing(java.awt.event.WindowEvent windowEvent) {
-                store.close();
-                System.exit(0);
-            }
-        });
-
-        JPanel content = new JPanel(new GridBagLayout());
+    private void createAndShowGUI(final String path, boolean skipSizeCheck)
+            throws IOException {
 
         JTextArea log = new JTextArea(5, 20);
         log.setMargin(new Insets(5, 5, 5, 5));
         log.setLineWrap(true);
         log.setEditable(false);
 
-        final NodeStoreTree treePanel = new NodeStoreTree(store, log, skipSizeCheck);
+        final NodeStoreTree treePanel = new NodeStoreTree(path, log, skipSizeCheck);
+
+        final JFrame frame = new JFrame("Explore " + path + " @head");
+        frame.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+                IOUtils.closeQuietly(treePanel);
+                System.exit(0);
+            }
+        });
+
+        JPanel content = new JPanel(new GridBagLayout());
 
         GridBagConstraints c = new GridBagConstraints();
         c.fill = GridBagConstraints.BOTH;
@@ -125,6 +131,19 @@ public class Explorer {
 
         JMenuBar menuBar = new JMenuBar();
         menuBar.setMargin(new Insets(2, 2, 2, 2));
+
+        JMenuItem menuReopen = new JMenuItem("Reopen");
+        menuReopen.setMnemonic(KeyEvent.VK_R);
+        menuReopen.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent ev) {
+                try {
+                    treePanel.reopen();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
 
         JMenuItem menuCompaction = new JMenuItem("Time Machine");
         menuCompaction.setMnemonic(KeyEvent.VK_T);
@@ -221,6 +240,8 @@ public class Explorer {
             }
         });
 
+        menuBar.add(menuReopen);
+        menuBar.add(new JSeparator(JSeparator.VERTICAL));
         menuBar.add(menuCompaction);
         menuBar.add(new JSeparator(JSeparator.VERTICAL));
         menuBar.add(menuRefs);
