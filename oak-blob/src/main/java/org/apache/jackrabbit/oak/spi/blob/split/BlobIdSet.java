@@ -48,7 +48,7 @@ class BlobIdSet {
 
     BlobIdSet(String repositoryDir, String filename) {
         store = new File(new File(repositoryDir), filename);
-        bloomFilter = BloomFilter.create(Funnels.stringFunnel(Charsets.UTF_8), 50000);
+        bloomFilter = BloomFilter.create(Funnels.stringFunnel(Charsets.UTF_8), 50000); // about 45kB
         cache = CacheBuilder.newBuilder().maximumSize(1000).build();
         fillBloomFilter();
     }
