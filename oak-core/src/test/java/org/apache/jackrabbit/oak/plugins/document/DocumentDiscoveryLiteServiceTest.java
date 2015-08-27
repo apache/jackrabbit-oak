@@ -550,6 +550,9 @@ public class DocumentDiscoveryLiteServiceTest {
 //    private static final boolean MONGO_DB = true;
      private static final boolean MONGO_DB = false;
 
+    private static final int SEED = Integer.getInteger(DocumentDiscoveryLiteServiceTest.class.getSimpleName() + "-seed",
+            new Random().nextInt());
+
     private List<DocumentMK> mks = Lists.newArrayList();
     private MemoryDocumentStore ds;
     private MemoryBlobStore bs;
@@ -888,10 +891,10 @@ public class DocumentDiscoveryLiteServiceTest {
      */
     @Test
     public void testLargeStartStopFiesta() throws Throwable {
-        logger.info("testLargeStartStopFiesta: start");
+        logger.info("testLargeStartStopFiesta: start, seed="+SEED);
         final List<SimplifiedInstance> instances = new LinkedList<SimplifiedInstance>();
         final Map<Integer, String> inactiveIds = new HashMap<Integer, String>();
-        final Random random = new Random();
+        final Random random = new Random(SEED);
         final int LOOP_CNT = 50; // with too many loops have also seen mongo
                                  // connections becoming starved thus test
                                  // failed
@@ -1020,6 +1023,7 @@ public class DocumentDiscoveryLiteServiceTest {
     @Before
     @After
     public void clear() {
+        logger.info("clear: seed="+SEED);
         for (SimplifiedInstance i : allInstances) {
             i.dispose();
         }
