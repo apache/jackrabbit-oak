@@ -19,12 +19,10 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static com.google.common.collect.ImmutableList.of;
-import static com.google.common.collect.Iterables.filter;
-import static com.google.common.collect.Iterables.mergeSorted;
+import static com.google.common.collect.Maps.filterKeys;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
-import static org.apache.jackrabbit.oak.plugins.document.UnsavedModifications.Snapshot.IGNORE;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.PROPERTY_OR_DELETED;
 
 import java.util.Iterator;
 import java.util.List;
@@ -35,6 +33,7 @@ import javax.annotation.CheckForNull;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
@@ -152,13 +151,17 @@ public class LastRevRecoveryAgent {
             }
 
             Revision currentLastRev = doc.getLastRev().get(clusterId);
-            if (currentLastRev != null) {
-                knownLastRevs.put(doc.getPath(), currentLastRev);
-            }
+
             // 1. determine last committed modification on document
             Revision lastModifiedRev = determineLastModification(doc, clusterId);
 
             Revision lastRevForParents = Utils.max(lastModifiedRev, currentLastRev);
+            // remember the higher of the two revisions. this is the
+            // most recent revision currently obtained from either a
+            // _lastRev entry or an explicit modification on the document
+            if (lastRevForParents != null) {
+                knownLastRevs.put(doc.getPath(), lastRevForParents);
+            }
 
             //If both currentLastRev and lostLastRev are null it means
             //that no change is done by suspect cluster on this document
@@ -306,21 +309,17 @@ public class LastRevRecoveryAgent {
     private Revision determineLastModification(NodeDocument doc, int clusterId) {
         ClusterPredicate cp = new ClusterPredicate(clusterId);
 
-        // Merge sort the revs for which changes have been made
-        // to this doc
-
-        // localMap always keeps the most recent valid commit entry
-        // per cluster node so looking into that should be sufficient
-        Iterable<Revision> revs = mergeSorted(of(
-                filter(doc.getLocalCommitRoot().keySet(), cp),
-                filter(doc.getLocalRevisions().keySet(), cp)),
-                StableRevisionComparator.REVERSE
-                );
-
         Revision lastModified = null;
-        // Look for latest valid revision
-        for (Revision rev : revs) {
-            lastModified = Utils.max(lastModified, doc.getCommitRevision(rev));
+        for (String property : Sets.filter(doc.keySet(), PROPERTY_OR_DELETED)) {
+            Map<Revision, String> valueMap = doc.getLocalMap(property);
+            // collect committed changes of this cluster node
+            for (Map.Entry<Revision, String> entry : filterKeys(valueMap, cp).entrySet()) {
+                Revision rev = entry.getKey();
+                if (doc.isCommitted(rev)) {
+                    lastModified = Utils.max(lastModified, doc.getCommitRevision(rev));
+                    break;
+                }
+            }
         }
         return lastModified;
     }
