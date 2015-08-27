@@ -43,6 +43,7 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
+import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -252,6 +253,28 @@ public class FileStoreTest {
 
             // Don't close the store in a finally clause as if a failure happens
             // this will also fail an cover up the earlier exception
+            store.close();
+        }
+    }
+
+    @Test
+    public void nonBlockingROStore() throws IOException {
+        FileStore store = new FileStore(directory, 1, false);
+        store.flush(); // first 1kB
+        SegmentNodeState base = store.getHead();
+        SegmentNodeBuilder builder = base.builder();
+        builder.setProperty("step", "a");
+        store.setHead(base, builder.getNodeState());
+        store.flush(); // second 1kB
+
+        ReadOnlyStore ro = null;
+        try {
+            ro = new ReadOnlyStore(directory);
+            assertEquals(store.getHead(), ro.getHead());
+        } finally {
+            if (ro != null) {
+                ro.close();
+            }
             store.close();
         }
     }

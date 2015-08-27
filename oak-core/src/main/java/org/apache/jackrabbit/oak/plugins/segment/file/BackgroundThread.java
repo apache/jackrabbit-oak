@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.segment.file;
 
 import static java.lang.System.currentTimeMillis;
 
+import java.io.Closeable;
 import java.util.Date;
 
 import org.slf4j.Logger;
@@ -30,7 +31,7 @@ import org.slf4j.LoggerFactory;
  * This class also measures and logs the time taken by the Runnable.run()
  * method.
  */
-class BackgroundThread extends Thread {
+class BackgroundThread extends Thread implements Closeable {
 
     /** Logger instance */
     private static final Logger log =
@@ -89,7 +90,8 @@ class BackgroundThread extends Thread {
         trigger(false);
     }
 
-    void close() {
+    @Override
+    public void close() {
         try {
             trigger(true);
             join();

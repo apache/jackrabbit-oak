@@ -29,6 +29,7 @@ import static org.apache.jackrabbit.oak.plugins.segment.Segment.REF_COUNT_OFFSET
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentId.isDataSegmentId;
 import static org.apache.jackrabbit.oak.plugins.segment.file.TarWriter.GRAPH_MAGIC;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -50,7 +51,7 @@ import org.apache.jackrabbit.oak.plugins.segment.CompactionMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class TarReader {
+class TarReader implements Closeable {
 
     /** Logger instance */
     private static final Logger log = LoggerFactory.getLogger(TarReader.class);
@@ -117,23 +118,90 @@ class TarReader {
         log.warn("Could not find a valid tar index in {}, recovering...", list);
         LinkedHashMap<UUID, byte[]> entries = newLinkedHashMap();
         for (File file : sorted.values()) {
-            log.info("Recovering segments from tar file {}", file);
-            try {
-                RandomAccessFile access = new RandomAccessFile(file, "r");
-                try {
-                    recoverEntries(file, access, entries);
-                } finally {
-                    access.close();
-                }
-            } catch (IOException e) {
-                log.warn("Could not read tar file " + file + ", skipping...", e);
-            }
-
-            backupSafely(file);
+            collectFileEntries(file, entries, true);
         }
 
         // regenerate the first generation based on the recovered data
         File file = sorted.values().iterator().next();
+        generateTarFile(entries, file);
+
+        reader = openFirstFileWithValidIndex(singletonList(file), memoryMapping);
+        if (reader != null) {
+            return reader;
+        } else {
+            throw new IOException("Failed to open recovered tar file " + file);
+        }
+    }
+
+    static TarReader openRO(Map<Character, File> files, boolean memoryMapping,
+            boolean recover) throws IOException {
+        // for readonly store only try the latest generation of a given
+        // tar file to prevent any rollback or rewrite
+        File file = files.get(Collections.max(files.keySet()));
+
+        TarReader reader = openFirstFileWithValidIndex(singletonList(file),
+                memoryMapping);
+        if (reader != null) {
+            return reader;
+        }
+        if (recover) {
+            log.warn(
+                    "Could not find a valid tar index in {}, recovering read-only",
+                    file);
+            // collecting the entries (without touching the original file) and
+            // writing them into an artificial tar file '.ro.bak'
+            LinkedHashMap<UUID, byte[]> entries = newLinkedHashMap();
+            collectFileEntries(file, entries, false);
+            file = findAvailGen(file, ".ro.bak");
+            generateTarFile(entries, file);
+            reader = openFirstFileWithValidIndex(singletonList(file),
+                    memoryMapping);
+            if (reader != null) {
+                return reader;
+            }
+        }
+
+        throw new IOException("Failed to open tar file " + file);
+    }
+
+    /**
+     * Collects all entries from the given file and optionally backs-up the
+     * file, by renaming it to a ".bak" extension
+     * 
+     * @param file
+     * @param entries
+     * @param backup
+     * @throws IOException
+     */
+    private static void collectFileEntries(File file,
+            LinkedHashMap<UUID, byte[]> entries, boolean backup)
+            throws IOException {
+        log.info("Recovering segments from tar file {}", file);
+        try {
+            RandomAccessFile access = new RandomAccessFile(file, "r");
+            try {
+                recoverEntries(file, access, entries);
+            } finally {
+                access.close();
+            }
+        } catch (IOException e) {
+            log.warn("Could not read tar file " + file + ", skipping...", e);
+        }
+
+        if (backup) {
+            backupSafely(file);
+        }
+    }
+
+    /**
+     * Regenerates a tar file from a list of entries.
+     * 
+     * @param entries
+     * @param file
+     * @throws IOException
+     */
+    private static void generateTarFile(LinkedHashMap<UUID, byte[]> entries,
+            File file) throws IOException {
         log.info("Regenerating tar file " + file);
         TarWriter writer = new TarWriter(file);
         for (Map.Entry<UUID, byte[]> entry : entries.entrySet()) {
@@ -145,13 +213,6 @@ class TarReader {
                     data, 0, data.length);
         }
         writer.close();
-
-        reader = openFirstFileWithValidIndex(singletonList(file), memoryMapping);
-        if (reader != null) {
-            return reader;
-        } else {
-            throw new IOException("Failed to open recovered tar file " + file);
-        }
     }
 
     /**
@@ -163,14 +224,7 @@ class TarReader {
      * @throws IOException
      */
     private static void backupSafely(File file) throws IOException {
-        File parent = file.getParentFile();
-        String name = file.getName();
-
-        File backup = new File(parent, name + ".bak");
-        for (int i = 2; backup.exists(); i++) {
-            backup = new File(parent, name + "." + i + ".bak");
-        }
-
+        File backup = findAvailGen(file, ".bak");
         log.info("Backing up " + file + " to " + backup.getName());
         if (!file.renameTo(backup)) {
             log.warn("Renaming failed, so using copy to backup {}", file);
@@ -180,6 +234,23 @@ class TarReader {
                         "Could not remove broken tar file " + file);
             }
         }
+    }
+
+    /**
+     * Fine next available generation number so that a generated file doesn't
+     * overwrite another existing file.
+     * 
+     * @param file
+     * @throws IOException
+     */
+    private static File findAvailGen(File file, String ext) {
+        File parent = file.getParentFile();
+        String name = file.getName();
+        File backup = new File(parent, name + ext);
+        for (int i = 2; backup.exists(); i++) {
+            backup = new File(parent, name + "." + i + ext);
+        }
+        return backup;
     }
 
     private static TarReader openFirstFileWithValidIndex(List<File> files, boolean memoryMapping) {
@@ -705,10 +776,10 @@ class TarReader {
         return closed;
     }
 
-    File close() throws IOException {
+    @Override
+    public void close() throws IOException {
         closed = true;
         access.close();
-        return file;
     }
 
     //-----------------------------------------------------------< private >--
