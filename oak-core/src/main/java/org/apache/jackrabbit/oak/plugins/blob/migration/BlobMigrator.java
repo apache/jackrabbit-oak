@@ -54,7 +54,7 @@ public class BlobMigrator {
 
     private final AtomicBoolean stopMigration = new AtomicBoolean(false);
 
-    private DfsNodeIterator nodeIterator;
+    private DepthFirstNodeIterator nodeIterator;
 
     private NodeBuilder rootBuilder;
 
@@ -84,24 +84,24 @@ public class BlobMigrator {
                 lastPath = nodeIterator.getPath();
                 if (stopMigration.getAndSet(false)) {
                     if (migratedNodes > 0) {
-                        commit();
+                        tryCommit();
                     }
                     return false;
                 }
                 migrateNode(rootBuilder, nodeIterator);
                 if (timeToCommit()) {
-                    commit();
+                    tryCommit();
                 }
             }
             // at this point we iterated over the whole repository
             // the last thing to do is to check if we don't have
             // any nodes waiting to be migrated. if the operation
             // fails we have to start from the beginning
-        } while (migratedNodes > 0 && !commit());
+        } while (migratedNodes > 0 && !tryCommit());
         return true;
     }
 
-    private boolean commit() {
+    private boolean tryCommit() {
         try {
             nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
             totalMigratedNodes += migratedNodes;
@@ -143,13 +143,13 @@ public class BlobMigrator {
     private void refreshAndReset() {
         final NodeState rootState = nodeStore.getRoot();
         rootBuilder = rootState.builder();
-        nodeIterator = new DfsNodeIterator(rootState);
+        nodeIterator = new DepthFirstNodeIterator(rootState);
         lastPath = null;
         lastCommit = System.currentTimeMillis();
         migratedNodes = 0;
     }
 
-    private void migrateNode(NodeBuilder rootBuilder, DfsNodeIterator iterator) throws IOException {
+    private void migrateNode(NodeBuilder rootBuilder, DepthFirstNodeIterator iterator) throws IOException {
         final ChildNodeEntry node = iterator.next();
         final NodeState state = node.getNodeState();
         for (PropertyState property : state.getProperties()) {

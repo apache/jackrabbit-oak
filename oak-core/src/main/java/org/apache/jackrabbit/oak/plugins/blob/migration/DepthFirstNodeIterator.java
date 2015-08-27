@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import com.google.common.base.Joiner;
 import com.google.common.collect.AbstractIterator;
 
-public class DfsNodeIterator extends AbstractIterator<ChildNodeEntry> {
+public class DepthFirstNodeIterator extends AbstractIterator<ChildNodeEntry> {
 
     private final Deque<Iterator<? extends ChildNodeEntry>> itQueue = new ArrayDeque<Iterator<? extends ChildNodeEntry>>();
 
@@ -38,7 +38,7 @@ public class DfsNodeIterator extends AbstractIterator<ChildNodeEntry> {
 
     private final NodeState root;
 
-    public DfsNodeIterator(NodeState root) {
+    public DepthFirstNodeIterator(NodeState root) {
         this.root = root;
         reset();
     }

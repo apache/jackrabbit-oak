@@ -36,7 +36,7 @@ import static junit.framework.Assert.assertTrue;
 import java.util.HashMap;
 import java.util.Map;
 
-public class DfsNodeIteratorTest {
+public class DepthFirstNodeIteratorTest {
 
     private NodeStore store;
 
@@ -60,7 +60,7 @@ public class DfsNodeIteratorTest {
         subtrees.put("germany", new String[] {});
         subtrees.put("france", new String[] { "cities", "paris" });
 
-        final DfsNodeIterator iterator = new DfsNodeIterator(store.getRoot());
+        final DepthFirstNodeIterator iterator = new DepthFirstNodeIterator(store.getRoot());
         assertTrue(iterator.hasNext());
         assertEquals("countries", iterator.next().getName());
 
@@ -84,7 +84,7 @@ public class DfsNodeIteratorTest {
         nameToPath.put("frognal", "/countries/uk/cities/london/districts/frognal");
         nameToPath.put("paris", "/countries/france/cities/paris");
 
-        final DfsNodeIterator iterator = new DfsNodeIterator(store.getRoot());
+        final DepthFirstNodeIterator iterator = new DepthFirstNodeIterator(store.getRoot());
         while (iterator.hasNext()) {
             final String expectedPath = nameToPath.remove(iterator.next().getName());
             if (expectedPath == null) {
