@@ -222,6 +222,32 @@ public class MemoryDocumentStore implements DocumentStore {
     }
 
     /**
+     * @return a copy of this document store.
+     */
+    @Nonnull
+    public MemoryDocumentStore copy() {
+        MemoryDocumentStore copy = new MemoryDocumentStore();
+        copyDocuments(Collection.NODES, copy);
+        copyDocuments(Collection.CLUSTER_NODES, copy);
+        copyDocuments(Collection.SETTINGS, copy);
+        copyDocuments(Collection.JOURNAL, copy);
+        return copy;
+    }
+
+    private <T extends Document> void copyDocuments(Collection<T> collection,
+                                                    MemoryDocumentStore target) {
+        ConcurrentSkipListMap<String, T> from = getMap(collection);
+        ConcurrentSkipListMap<String, T> to = target.getMap(collection);
+
+        for (Map.Entry<String, T> entry : from.entrySet()) {
+            T doc = collection.newDocument(target);
+            entry.getValue().deepCopy(doc);
+            doc.seal();
+            to.put(entry.getKey(), doc);
+        }
+    }
+
+    /**
      * Get the in-memory map for this collection.
      *
      * @param collection the collection
