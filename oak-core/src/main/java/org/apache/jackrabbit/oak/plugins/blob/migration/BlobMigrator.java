@@ -147,7 +147,7 @@ public class BlobMigrator {
                 if (builder.exists()) {
                     builder.setProperty(newProperty);
                     migratedNodes++;
-                    log.info("Migrated property {}/{}", lastPath, property.getName());
+                    log.debug("Migrated property {}/{}", lastPath, property.getName());
                 } else {
                     log.warn("Can't migrate blobs for a non-existing node: {}", lastPath);
                 }
