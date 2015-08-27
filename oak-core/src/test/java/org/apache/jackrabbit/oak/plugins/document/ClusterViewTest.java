@@ -228,7 +228,7 @@ public class ClusterViewTest {
 
     private JsonObject asJsonObject(final ClusterView view) {
         final String json = view.asDescriptorValue();
-        System.out.println(json);
+//        System.out.println(json);
         JsopTokenizer t = new JsopTokenizer(json);
         t.read('{');
         JsonObject o = JsonObject.create(t);
