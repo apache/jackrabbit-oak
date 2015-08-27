@@ -200,17 +200,24 @@ class ClusterViewDocument {
         updateOp.set(INACTIVE_KEY, setToCsv(inactiveIds));
         updateOp.set(CREATED_KEY, standardDateFormat.format(now));
         updateOp.set(CREATOR_KEY, (long)localClusterId);
-        Map<Object, String> historyMap = new HashMap<Object, String>();
         if (previousView != null) {
             Map<Object, String> previousHistory = previousView.getHistory();
-            if (previousHistory != null) {
-                historyMap.putAll(previousHistory);
+            if (previousHistory!=null) {
+                Map<Object, String> mapClone = new HashMap<Object, String>(previousHistory);
+                while(mapClone.size()>HISTORY_LIMIT) {
+                    Revision oldestRevision = oldestRevision(mapClone);
+                    if (oldestRevision==null) {
+                        break;
+                    }
+                    updateOp.unsetMapEntry(CLUSTER_VIEW_HISTORY_KEY, oldestRevision);
+                    if (mapClone.remove(oldestRevision.toString())==null) {
+                        // prevent an endless loop
+                        break;
+                    }
+                }
             }
-
-            historyMap.put(Revision.newRevision(localClusterId).toString(), asHistoryEntry(previousView, localClusterId, now));
+            updateOp.setMapEntry(CLUSTER_VIEW_HISTORY_KEY, Revision.newRevision(localClusterId), asHistoryEntry(previousView, localClusterId, now));
         }
-        applyHistoryLimit(historyMap);
-        updateOp.set(CLUSTER_VIEW_HISTORY_KEY, historyMap);
 
         final Long newViewSeqNum;
         if (previousView == null) {
@@ -274,42 +281,37 @@ class ClusterViewDocument {
     }
 
     /**
-     * Pruning method that makes sure the history never gets larger than
-     * HISTORY_LIMIT
+     * Determine the oldest history entry (to be removed to keep history
+     * limited to HISTORY_LIMIT)
      * 
      * @param historyMap
-     *            the pruning is done directly on this map
      */
-    private static void applyHistoryLimit(Map<Object, String> historyMap) {
-        while (historyMap.size() > HISTORY_LIMIT) {
-            // remove the oldest
-            String oldestRevision = null;
-            for (Iterator<Object> it = historyMap.keySet().iterator(); it.hasNext();) {
-                Object obj = it.next();
-                // obj can be a String or a Revision
-                // in case of it being a Revision the toString() will
-                // be appropriate, hence:
-                String r = obj.toString();
-                if (oldestRevision == null) {
-                    oldestRevision = r;
-                } else if (Revision.getTimestampDifference(Revision.fromString(r), Revision.fromString(oldestRevision)) < 0) {
-                    oldestRevision = r;
-                }
-            }
+    private static Revision oldestRevision(Map<Object, String> historyMap) {
+        String oldestRevision = null;
+        for (Iterator<Object> it = historyMap.keySet().iterator(); it.hasNext();) {
+            Object obj = it.next();
+            // obj can be a String or a Revision
+            // in case of it being a Revision the toString() will
+            // be appropriate, hence:
+            String r = obj.toString();
             if (oldestRevision == null) {
-                break;
-            } else {
-                if (historyMap.remove(oldestRevision) == null) {
-                    if (historyMap.remove(Revision.fromString(oldestRevision)) == null) {
-                        break;
-                    }
-                }
+                oldestRevision = r;
+            } else if (Revision.getTimestampDifference(Revision.fromString(r), Revision.fromString(oldestRevision)) < 0) {
+                oldestRevision = r;
             }
+        }
+        if (oldestRevision==null) {
+            return null;
+        } else {
+            return Revision.fromString(oldestRevision);
         }
     }
 
     /** Converts a previous clusterView document into a history 'string' **/
     private static String asHistoryEntry(final ClusterViewDocument previousView, int retiringClusterNodeId, Date retireTime) {
+        if (previousView==null) {
+            throw new IllegalArgumentException("previousView must not be null");
+        }
         String h;
         JsopBuilder b = new JsopBuilder();
         b.object();
