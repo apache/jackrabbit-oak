@@ -888,7 +888,7 @@ public class FileStore implements SegmentStore {
                     lock.release();
                 }
                 closeAndLogOnFail(lockFile);
-                closeAndLogOnFail(lockFile);
+                closeAndLogOnFail(journalFile);
             } catch (IOException e) {
                 throw new RuntimeException(
                         "Failed to close the TarMK at " + directory, e);
