@@ -31,6 +31,7 @@ import javax.jcr.SimpleCredentials;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.core.RepositoryImpl;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
@@ -39,6 +40,7 @@ import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
@@ -52,6 +54,8 @@ public abstract class AbstractRepositoryUpgradeTest {
     protected static NodeStore targetNodeStore;
 
     private static File testDirectory;
+
+    private JackrabbitRepository targetRepository;
 
     @BeforeClass
     public static void init() throws InterruptedException {
@@ -91,6 +95,14 @@ public abstract class AbstractRepositoryUpgradeTest {
         }
     }
 
+    @After
+    public synchronized void shutdownTargetRepository() {
+        if (targetRepository != null) {
+            targetRepository.shutdown();
+            targetRepository = null;
+        }
+    }
+
     protected synchronized NodeStore getTargetNodeStore() {
         if (targetNodeStore == null) {
             targetNodeStore = createTargetNodeStore();
@@ -126,8 +138,12 @@ public abstract class AbstractRepositoryUpgradeTest {
         return null;
     }
 
-    public Repository getTargetRepository(){
-        return new Jcr(new Oak(targetNodeStore)).createRepository();
+    public Repository getTargetRepository() {
+        if (targetRepository == null) {
+            targetRepository = (JackrabbitRepository) new Jcr(new Oak(
+                    targetNodeStore)).createRepository();
+        }
+        return targetRepository;
     }
 
     public JackrabbitSession createAdminSession()throws RepositoryException{
