@@ -1,0 +1,240 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.jackrabbit.oak.upgrade.cli.parser;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import org.apache.jackrabbit.oak.plugins.segment.SegmentVersion;
+import org.apache.jackrabbit.oak.upgrade.cli.blob.BlobStoreFactory;
+import org.apache.jackrabbit.oak.upgrade.cli.blob.DummyBlobStoreFactory;
+import org.apache.jackrabbit.oak.upgrade.cli.blob.FileBlobStoreFactory;
+import org.apache.jackrabbit.oak.upgrade.cli.blob.FileDataStoreFactory;
+import org.apache.jackrabbit.oak.upgrade.cli.blob.S3DataStoreFactory;
+import org.apache.jackrabbit.oak.upgrade.cli.node.StoreFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static org.apache.jackrabbit.oak.upgrade.cli.parser.ArgumentParser.SRC_FBS;
+import static org.apache.jackrabbit.oak.upgrade.cli.parser.ArgumentParser.SRC_FDS;
+import static org.apache.jackrabbit.oak.upgrade.cli.parser.ArgumentParser.DST_FBS;
+import static org.apache.jackrabbit.oak.upgrade.cli.parser.ArgumentParser.DST_S3;
+import static org.apache.jackrabbit.oak.upgrade.cli.parser.ArgumentParser.DST_S3_CONFIG;
+
+import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.CRX2_DIR;
+import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.CRX2_DIR_XML;
+import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.CRX2_XML;
+import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.SEGMENT;
+import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.getMatchingType;
+
+public class StoreArguments {
+
+    private static final String DEFAULT_CRX2_REPO = "crx-quickstart/repository";
+
+    private static final String REPOSITORY_XML = "repository.xml";
+
+    private static final Logger log = LoggerFactory.getLogger(StoreArguments.class);
+
+    private final ArgumentParser parser;
+
+    private final StoreDescriptor src;
+
+    private final StoreDescriptor dst;
+
+    public StoreArguments(ArgumentParser parser) throws CliArgumentException, IOException {
+        this.parser = parser;
+
+        final List<StoreDescriptor> descriptors = createStoreDescriptors(parser.getArguments());
+
+        src = descriptors.get(0);
+        dst = descriptors.get(1);
+
+        log.info("Source: {}", src);
+        log.info("Destination: {}", dst);
+
+        if (dst.getType() == SEGMENT) {
+            logSegmentVersion();
+        }
+    }
+
+    public StoreFactory getSrcStore() {
+        return src.getFactory(MigrationDirection.SRC, parser);
+    }
+
+    public StoreFactory getDstStore() {
+        return dst.getFactory(MigrationDirection.DST, parser);
+    }
+
+    public BlobStoreFactory getSrcBlobStore() throws IOException {
+        final BlobStoreFactory factory;
+        if (parser.hasOption(SRC_FBS)) {
+            factory = new FileBlobStoreFactory(parser.getOption(SRC_FBS));
+        } else if (parser.hasOption(SRC_FDS)) {
+            factory = new FileDataStoreFactory(parser.getOption(SRC_FDS));
+        } else {
+            factory = new DummyBlobStoreFactory();
+        }
+        return factory;
+    }
+
+    public BlobStoreFactory getDstBlobStore() throws IOException {
+        final BlobStoreFactory factory;
+        if (parser.hasOption(DST_FBS)) {
+            factory = new FileBlobStoreFactory(parser.getOption(DST_FBS));
+        } else if (parser.hasOption(DST_S3_CONFIG) && parser.hasOption(DST_S3)) {
+            factory = new S3DataStoreFactory(parser.getOption(DST_S3_CONFIG), parser.getOption(DST_S3));
+        } else {
+            factory = new DummyBlobStoreFactory();
+        }
+        return factory;
+    }
+
+    public boolean isInPlaceUpgrade() {
+        if (src.getType() == CRX2_DIR_XML && dst.getType() == SEGMENT) {
+            return src.getPath().equals(dst.getPath());
+        }
+        return false;
+    }
+
+    public String getSrcPath() {
+        return src.getPath();
+    }
+
+    private static List<StoreDescriptor> createStoreDescriptors(final List<String> arguments)
+            throws CliArgumentException {
+        final List<StoreDescriptor> descriptors = mapToStoreDescriptors(arguments);
+        mergeCrx2Descriptors(descriptors);
+        addDefaultCrx2Descriptor(descriptors);
+        addSegmentAsDestination(descriptors);
+        validateDescriptors(descriptors);
+        return descriptors;
+    }
+
+    private static List<StoreDescriptor> mapToStoreDescriptors(List<String> arguments) {
+        final List<StoreDescriptor> descriptors = new ArrayList<StoreDescriptor>();
+        for (String argument : arguments) {
+            descriptors.add(new StoreDescriptor(getMatchingType(argument), argument));
+        }
+        return descriptors;
+    }
+
+    private static void mergeCrx2Descriptors(List<StoreDescriptor> descriptors) {
+        int crx2DirIndex = -1;
+        int crx2XmlIndex = -1;
+        for (int i = 0; i < descriptors.size(); i++) {
+            final StoreType type = descriptors.get(i).getType();
+            if (type == CRX2_DIR) {
+                crx2DirIndex = i;
+            } else if (type == CRX2_XML) {
+                crx2XmlIndex = i;
+            }
+        }
+
+        if (crx2DirIndex > -1 || crx2XmlIndex > -1) {
+            final String repoDir;
+            if (crx2DirIndex > -1) {
+                repoDir = descriptors.remove(crx2DirIndex).getPath();
+            } else {
+                repoDir = DEFAULT_CRX2_REPO;
+            }
+            final String repoXml;
+            if (crx2XmlIndex > -1) {
+                repoXml = descriptors.remove(crx2XmlIndex).getPath();
+            } else {
+                repoXml = repoDir + "/" + REPOSITORY_XML;
+            }
+            descriptors.add(0, new StoreDescriptor(CRX2_DIR_XML, repoDir, repoXml));
+        }
+    }
+
+    private static void addDefaultCrx2Descriptor(final List<StoreDescriptor> descriptors) {
+        if (descriptors.isEmpty()) {
+            descriptors.add(
+                    new StoreDescriptor(CRX2_DIR_XML, DEFAULT_CRX2_REPO, DEFAULT_CRX2_REPO + "/" + REPOSITORY_XML));
+        }
+    }
+
+    private static void addSegmentAsDestination(final List<StoreDescriptor> descriptors) {
+        if (descriptors.size() == 1 && descriptors.get(0).getType() == CRX2_DIR_XML) {
+            final String crx2Dir = descriptors.get(0).getPath();
+            descriptors.add(new StoreDescriptor(SEGMENT, crx2Dir));
+        }
+    }
+
+    private static void validateDescriptors(List<StoreDescriptor> descriptors) throws CliArgumentException {
+        if (descriptors.size() < 2) {
+            throw new CliArgumentException("Not enough node store arguments: " + descriptors.toString(), 1);
+        } else if (descriptors.size() > 2) {
+            throw new CliArgumentException("Too much node store arguments: " + descriptors.toString(), 1);
+        } else if (descriptors.get(1).getType() == CRX2_DIR_XML) {
+            throw new CliArgumentException("Can't use CRX2 as a destination", 1);
+        }
+    }
+
+    private void logSegmentVersion() {
+        final SegmentVersion[] versions = SegmentVersion.values();
+        final SegmentVersion lastVersion = versions[versions.length - 1];
+        log.info("Using Oak segment format {} - please make sure your version of AEM supports that format",
+                lastVersion);
+        if (lastVersion == SegmentVersion.V_11) {
+            log.info("Requires Oak 1.0.12, 1.1.7 or later");
+        }
+    }
+
+    enum MigrationDirection {
+        SRC, DST
+    }
+
+    private static class StoreDescriptor {
+
+        private final String[] paths;
+
+        private final StoreType type;
+
+        public StoreDescriptor(StoreType type, String... paths) {
+            this.type = type;
+            this.paths = paths;
+        }
+
+        public String[] getPaths() {
+            return paths;
+        }
+
+        public String getPath() {
+            return paths[0];
+        }
+
+        public StoreType getType() {
+            return type;
+        }
+
+        public StoreFactory getFactory(MigrationDirection direction, ArgumentParser arguments) {
+            return type.createFactory(paths, direction, arguments);
+        }
+
+        @Override
+        public String toString() {
+            if (paths.length == 1) {
+                return String.format("%s[%s]", type, getPath());
+            } else {
+                return String.format("%s%s", type, Arrays.toString(getPaths()));
+            }
+        }
+    }
+}
