@@ -57,6 +57,14 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
         externalGroups.put(group.getId().toLowerCase(), (TestGroup) group);
     }
 
+    public void setUserProperty(String userId, String name, String value) throws ExternalIdentityException {
+        TestIdentity user = (TestIdentity) getUser(userId);
+        if (user == null) {
+            throw new IllegalArgumentException("Could not find user with id " + userId);
+        }
+        user.withProperty(name, value);
+    }
+
     @Nonnull
     @Override
     public String getName() {

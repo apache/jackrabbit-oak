@@ -56,7 +56,7 @@ public abstract class ExternalLoginModuleTestBase extends AbstractSecurityTest {
 
     protected Whiteboard whiteboard;
 
-    protected ExternalIdentityProvider idp;
+    protected TestIdentityProvider idp;
 
     protected DefaultSyncConfig syncConfig;
 
@@ -129,7 +129,7 @@ public abstract class ExternalLoginModuleTestBase extends AbstractSecurityTest {
         return oak;
     }
 
-    protected abstract ExternalIdentityProvider createIDP();
+    protected abstract TestIdentityProvider createIDP();
 
     protected abstract void destroyIDP(ExternalIdentityProvider idp);
 
