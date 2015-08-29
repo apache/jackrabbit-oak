@@ -119,21 +119,6 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
     public static final String PARAM_USER_PATH_PREFIX = "user.pathPrefix";
 
     /**
-     * @see DefaultSyncConfigImpl.User#getMembershipExpirationTime()
-     */
-    public static final String PARAM_USER_MEMBERSHIP_EXPIRATION_TIME_DEFAULT = "1h";
-
-    /**
-     * @see DefaultSyncConfigImpl.User#getMembershipExpirationTime()
-     */
-    @Property(
-            label = "User Membership Expiration",
-            description = "Time after which membership expires (eg. '1h 30m' or '1d').",
-            value = PARAM_USER_MEMBERSHIP_EXPIRATION_TIME_DEFAULT
-    )
-    public static final String PARAM_USER_MEMBERSHIP_EXPIRATION_TIME = "user.membershipExpTime";
-
-    /**
      * @see User#getMembershipNestingDepth()
      */
     public static final int PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT = 0;
@@ -227,7 +212,6 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
                 .setName(params.getConfigValue(PARAM_NAME, PARAM_NAME_DEFAULT));
 
         cfg.user()
-                .setMembershipExpirationTime(getMilliSeconds(params, PARAM_USER_MEMBERSHIP_EXPIRATION_TIME, PARAM_USER_MEMBERSHIP_EXPIRATION_TIME_DEFAULT, ONE_HOUR))
                 .setMembershipNestingDepth(params.getConfigValue(PARAM_USER_MEMBERSHIP_NESTING_DEPTH, PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT))
                 .setExpirationTime(getMilliSeconds(params, PARAM_USER_EXPIRATION_TIME, PARAM_USER_EXPIRATION_TIME_DEFAULT, ONE_HOUR))
                 .setPathPrefix(params.getConfigValue(PARAM_USER_PATH_PREFIX, PARAM_USER_PATH_PREFIX_DEFAULT))

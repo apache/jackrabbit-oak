@@ -430,10 +430,8 @@ public class DefaultSyncContext implements SyncContext {
         // synchronize auto-group membership
         applyMembership(user, config.user().getAutoMembership());
 
-        if (isExpired(user, config.user().getMembershipExpirationTime(), "Membership")) {
-            // synchronize external memberships
-            syncMembership(external, user, config.user().getMembershipNestingDepth());
-        }
+        // synchronize external memberships
+        syncMembership(external, user, config.user().getMembershipNestingDepth());
 
         // finally "touch" the sync property
         user.setProperty(REP_LAST_SYNCED, nowValue);
