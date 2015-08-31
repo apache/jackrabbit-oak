@@ -97,6 +97,12 @@ public interface PartialCompactionMap {
     long getRecordCount();
 
     /**
+     * Determine whether this map contains keys at all.
+     * @return  {@code true} iff this map is empty
+     */
+    boolean isEmpty();
+
+    /**
      * The weight of the compaction map is its heap memory consumption in bytes.
      * @return  Estimated weight of the compaction map
      */

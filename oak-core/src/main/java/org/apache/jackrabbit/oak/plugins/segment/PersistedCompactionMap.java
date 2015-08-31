@@ -66,7 +66,6 @@ public class PersistedCompactionMap implements PartialCompactionMap {
 
     private final FileStore store;
 
-    private int recentCount;
     private long recordCount;
     private MapRecord entries;
 
@@ -144,8 +143,7 @@ public class PersistedCompactionMap implements PartialCompactionMap {
         }
         entry.put(encode(before.getOffset()), after);
 
-        if (++recentCount > COMPRESS_INTERVAL) {
-            recentCount = 0;
+        if (recent.size() > COMPRESS_INTERVAL) {
             compress();
         }
     }
@@ -168,6 +166,11 @@ public class PersistedCompactionMap implements PartialCompactionMap {
     @Override
     public long getRecordCount() {
         return recordCount;
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return recent.size() + recordCount == 0;
     }
 
     private void compress(@Nonnull Set<UUID> removed) {

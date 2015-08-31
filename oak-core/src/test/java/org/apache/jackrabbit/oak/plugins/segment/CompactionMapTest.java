@@ -173,7 +173,10 @@ public class CompactionMapTest {
                 removedUUIDs.add(key.asUUID());
             }
             compactionMap.remove(removedUUIDs);
-            assertEquals(--expectedDepth, compactionMap.getDepth());
+            expectedDepth--;
+            // Effect of removed generation is only seen after subsequent cons. See OAK-3317
+            CompactionMap consed = compactionMap.cons(compactionMap1);
+            assertEquals(expectedDepth + 1, consed.getDepth());
             expectedSize -= removedUUIDs.size();
             assertEquals(expectedSize, sum(compactionMap.getSegmentCounts()));
         }
