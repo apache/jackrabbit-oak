@@ -71,6 +71,7 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.identifier.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobStoreWrapper;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.RevisionGC;
@@ -372,8 +373,10 @@ public class DocumentNodeStoreService {
             mkBuilder.setPersistentCache(persistentCache);
         }
 
+        boolean wrappingCustomBlobStore = customBlobStore && blobStore instanceof BlobStoreWrapper;
+
         //Set blobstore before setting the DB
-        if (customBlobStore) {
+        if (customBlobStore && !wrappingCustomBlobStore) {
             checkNotNull(blobStore, "Use of custom BlobStore enabled via  [%s] but blobStore reference not " +
                     "initialized", CUSTOM_BLOB_STORE);
             mkBuilder.setBlobStore(blobStore);
@@ -412,6 +415,11 @@ public class DocumentNodeStoreService {
             mkBuilder.setMongoDB(mongoDB, blobCacheSize);
 
             log.info("Connected to database {}", mongoDB);
+        }
+
+        //Set wrapping blob store after setting the DB
+        if (wrappingCustomBlobStore) {
+            ((BlobStoreWrapper) blobStore).setBlobStore(mkBuilder.getBlobStore());
         }
 
         mkBuilder.setExecutor(executor);

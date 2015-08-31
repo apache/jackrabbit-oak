@@ -99,7 +99,7 @@ public class SplitBlobStore implements BlobStore {
     }
 
     private BlobStore chooseBlobStoreByBlobId(String blobId) throws IOException {
-        if (isMigrated(blobId)) {
+        if (isMigrated(blobId) || oldBlobStore == null) {
             return newBlobStore;
         } else {
             return oldBlobStore;

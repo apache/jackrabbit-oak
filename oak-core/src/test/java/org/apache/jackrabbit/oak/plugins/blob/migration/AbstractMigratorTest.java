@@ -26,17 +26,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Random;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.split.SplitBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -49,39 +46,46 @@ import org.junit.Test;
 
 import com.google.common.io.Files;
 
-public class BlobMigratorTest {
+public abstract class AbstractMigratorTest {
 
     private static final int LENGTH = 1024 * 16;
 
     private static final Random RANDOM = new Random();
 
-    private File segmentDir;
-
-    private SegmentStore segmentStore;
+    private File repository;
 
     private NodeStore nodeStore;
 
-    private BlobMigrator migrator;
-
     private BlobStore newBlobStore;
+
+    private BlobMigrator migrator;
 
     @Before
     public void setup() throws CommitFailedException, IllegalArgumentException, IOException {
-        File repository = Files.createTempDir();
-        segmentDir = new File(repository, "segmentstore");
-        BlobStore oldBlobStore = new FileBlobStore(repository.getPath() + "/old");
-        createContent(oldBlobStore, segmentDir);
+        repository = Files.createTempDir();
+        BlobStore oldBlobStore = createOldBlobStore(repository);
+        NodeStore originalNodeStore = createNodeStore(oldBlobStore, repository);
+        createContent(originalNodeStore);
+        closeNodeStore();
 
-        newBlobStore = new FileBlobStore(repository.getPath() + "/new");
+        newBlobStore = createNewBlobStore(repository);
         SplitBlobStore splitBlobStore = new SplitBlobStore(repository.getPath(), oldBlobStore, newBlobStore);
-        segmentStore = FileStore.newFileStore(segmentDir).withBlobStore(splitBlobStore).create();
-        nodeStore = SegmentNodeStore.newSegmentNodeStore(segmentStore).create();
+        nodeStore = createNodeStore(splitBlobStore, repository);
         migrator = new BlobMigrator(splitBlobStore, nodeStore);
     }
 
+    protected abstract NodeStore createNodeStore(BlobStore blobStore, File repository) throws IOException;
+
+    protected abstract void closeNodeStore();
+
+    protected abstract BlobStore createOldBlobStore(File repository);
+
+    protected abstract BlobStore createNewBlobStore(File repository);
+
     @After
-    public void teardown() {
-        segmentStore.close();
+    public void teardown() throws IOException {
+        closeNodeStore();
+        FileUtils.deleteDirectory(repository);
     }
 
     @Test
@@ -96,11 +100,9 @@ public class BlobMigratorTest {
     @Test
     public void blobsCanBeReadAfterSwitchingBlobStore() throws IOException, CommitFailedException {
         migrator.migrate();
-        segmentStore.close();
+        closeNodeStore();
 
-        segmentStore = FileStore.newFileStore(segmentDir).withBlobStore(newBlobStore).create();
-        nodeStore = SegmentNodeStore.newSegmentNodeStore(segmentStore).create();
-
+        nodeStore = createNodeStore(newBlobStore, repository);
         NodeState root = nodeStore.getRoot();
         for (int i = 1; i <= 3; i++) {
             assertPropertyExists(root.getChildNode("node" + i).getProperty("prop"));
@@ -132,9 +134,7 @@ public class BlobMigratorTest {
         assertStreamEquals(blob.getNewStream(), newBlobStore.getInputStream(blobId));
     }
 
-    private static void createContent(BlobStore blobStore, File segmentDir) throws IOException, CommitFailedException {
-        SegmentStore segmentStore = FileStore.newFileStore(segmentDir).withBlobStore(blobStore).create();
-        NodeStore nodeStore = SegmentNodeStore.newSegmentNodeStore(segmentStore).create();
+    private static void createContent(NodeStore nodeStore) throws IOException, CommitFailedException {
         NodeBuilder rootBuilder = nodeStore.getRoot().builder();
         rootBuilder.child("node1").setProperty("prop", createBlob(nodeStore));
         rootBuilder.child("node2").setProperty("prop", createBlob(nodeStore));
@@ -144,7 +144,6 @@ public class BlobMigratorTest {
         builder.addValue(createBlob(nodeStore));
         rootBuilder.child("node3").setProperty(builder.getPropertyState());
         nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        segmentStore.close();
     }
 
     private static Blob createBlob(NodeStore nodeStore) throws IOException {

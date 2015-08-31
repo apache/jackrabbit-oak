@@ -27,11 +27,14 @@ import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Deactivate;
+import org.apache.felix.scr.annotations.Property;
+import org.apache.felix.scr.annotations.PropertyOption;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.split.SplitBlobStore;
+import org.apache.jackrabbit.oak.spi.blob.split.WrappingSplitBlobStore;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceRegistration;
@@ -39,11 +42,19 @@ import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.BlobStoreType.*;
+
 @Component(policy = ConfigurationPolicy.REQUIRE)
 public class SplitBlobStoreService {
     private static final Logger log = LoggerFactory.getLogger(SplitBlobStoreService.class);
 
+    @Property
     private static final String PROP_HOME = "repository.home";
+
+    @Property(options = { @PropertyOption(name = "External", value = "EXTERNAL"),
+            @PropertyOption(name = "Internal - Segment", value = "INTERNAL_SEGMENT"),
+            @PropertyOption(name = "Internal - Document", value = "INTERNAL_DOCUMENT") })
+    private static final String PROP_OLD_BLOB_STORE_TYPE = "split.old.blobstore.type";
 
     public static final String PROP_SPLIT_BLOBSTORE = "split.blobstore";
 
@@ -61,8 +72,16 @@ public class SplitBlobStoreService {
 
     private String homeDir;
 
+    private BlobStoreType oldBlobStoreType;
+
     @Activate
     protected void activate(ComponentContext context, Map<String, Object> config) throws InvalidSyntaxException {
+        String oldTypeName = lookup(context, PROP_OLD_BLOB_STORE_TYPE);
+        if (oldTypeName == null) {
+            oldBlobStoreType = BlobStoreType.EXTERNAL;
+        } else {
+            oldBlobStoreType = BlobStoreType.valueOf(oldTypeName);
+        }
         homeDir = lookup(context, PROP_HOME);
         if (homeDir != null) {
             log.info("Initializing the SplitBlobStore with home [{}]", homeDir);
@@ -81,7 +100,7 @@ public class SplitBlobStoreService {
     }
 
     private void registerSplitBlobStore() {
-        if (oldBlobStore == null) {
+        if (oldBlobStore == null && oldBlobStoreType == BlobStoreType.EXTERNAL) {
             log.info("No BlobStore with ({}=old)", PROP_SPLIT_BLOBSTORE);
             return;
         }
@@ -97,8 +116,16 @@ public class SplitBlobStoreService {
             log.info("Component not activated yet");
             return;
         }
-        log.info("Registering SplitBlobStore with old={} and new={}", oldBlobStore, newBlobStore);
-        BlobStore blobStore = new SplitBlobStore(homeDir, oldBlobStore, newBlobStore);
+        log.info("Registering SplitBlobStore with old={} ({}) and new={}", oldBlobStore, oldBlobStoreType,
+                newBlobStore);
+        BlobStore blobStore;
+        if (oldBlobStoreType == EXTERNAL || oldBlobStoreType == INTERNAL_SEGMENT) {
+            blobStore = new SplitBlobStore(homeDir, oldBlobStore, newBlobStore);
+        } else if (oldBlobStoreType == INTERNAL_DOCUMENT) {
+            blobStore = new WrappingSplitBlobStore(homeDir, newBlobStore);
+        } else {
+            throw new IllegalStateException("Illegal blob store type value: " + oldBlobStoreType);
+        }
         Dictionary<String, Object> props = new Hashtable<String, Object>();
         props.put("service.pid", "org.apache.jackrabbit.oak.spi.blob.split.SplitBlobStore");
         reg = ctx.registerService(new String[] { BlobStore.class.getName() }, blobStore, props);
@@ -141,5 +168,9 @@ public class SplitBlobStoreService {
     protected void unbindNewBlobStore(BlobStore blobStore) {
         this.newBlobStore = null;
         unregisterSplitBlobStore();
+    }
+
+    enum BlobStoreType {
+        EXTERNAL, INTERNAL_DOCUMENT, INTERNAL_SEGMENT
     }
 }
