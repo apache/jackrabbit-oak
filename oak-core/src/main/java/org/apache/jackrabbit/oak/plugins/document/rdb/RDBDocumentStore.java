@@ -977,7 +977,6 @@ public class RDBDocumentStore implements DocumentStore {
             String indexedProperty, long startValue, int limit) {
         Connection connection = null;
         String tableName = getTable(collection);
-        List<T> result = Collections.emptyList();
         if (indexedProperty != null && (!INDEXEDPROPERTIES.contains(indexedProperty))) {
             String message = "indexed property " + indexedProperty + " not supported, query was '>= '" + startValue
                     + "'; supported properties are " + INDEXEDPROPERTIES;
@@ -991,19 +990,19 @@ public class RDBDocumentStore implements DocumentStore {
             connection.commit();
 
             int size = dbresult.size();
-            result = new ArrayList<T>(size);
+            List<T> result = new ArrayList<T>(size);
             for (int i = 0; i < size; i++) {
                 RDBRow row = dbresult.set(i, null); // free RDBRow ASAP
                 T doc = runThroughCache(collection, row, now);
                 result.add(doc);
             }
+            return result;
         } catch (Exception ex) {
             LOG.error("SQL exception on query", ex);
             throw new DocumentStoreException(ex);
         } finally {
             this.ch.closeConnection(connection);
         }
-        return result;
     }
 
     private <T extends Document> String getTable(Collection<T> collection) {
