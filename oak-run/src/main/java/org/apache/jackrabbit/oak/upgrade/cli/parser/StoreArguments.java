@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.upgrade.cli.parser;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.plugins.segment.SegmentVersion;
@@ -51,13 +52,13 @@ public class StoreArguments {
 
     private static final Logger log = LoggerFactory.getLogger(StoreArguments.class);
 
-    private final ArgumentParser parser;
+    private final MigrationCliArguments parser;
 
     private final StoreDescriptor src;
 
     private final StoreDescriptor dst;
 
-    public StoreArguments(ArgumentParser parser) throws CliArgumentException, IOException {
+    public StoreArguments(MigrationCliArguments parser) throws CliArgumentException, IOException {
         this.parser = parser;
 
         List<StoreDescriptor> descriptors = createStoreDescriptors(parser.getArguments());
@@ -149,17 +150,26 @@ public class StoreArguments {
         if (crx2DirIndex > -1 || crx2XmlIndex > -1) {
             String repoDir;
             if (crx2DirIndex > -1) {
-                repoDir = descriptors.remove(crx2DirIndex).getPath();
+                repoDir = descriptors.get(crx2DirIndex).getPath();
+                descriptors.set(crx2DirIndex, null);
             } else {
                 repoDir = DEFAULT_CRX2_REPO;
             }
             String repoXml;
             if (crx2XmlIndex > -1) {
-                repoXml = descriptors.remove(crx2XmlIndex).getPath();
+                repoXml = descriptors.get(crx2XmlIndex).getPath();
+                descriptors.set(crx2XmlIndex, null);
             } else {
                 repoXml = repoDir + "/" + REPOSITORY_XML;
             }
             descriptors.add(0, new StoreDescriptor(JCR2_DIR_XML, repoDir, repoXml));
+
+            Iterator<StoreDescriptor> it = descriptors.iterator();
+            while (it.hasNext()) {
+                if (it.next() == null) {
+                    it.remove();
+                }
+            }
         }
     }
 
@@ -224,7 +234,7 @@ public class StoreArguments {
             return type;
         }
 
-        public StoreFactory getFactory(MigrationDirection direction, ArgumentParser arguments) {
+        public StoreFactory getFactory(MigrationDirection direction, MigrationCliArguments arguments) {
             return type.createFactory(paths, direction, arguments);
         }
 

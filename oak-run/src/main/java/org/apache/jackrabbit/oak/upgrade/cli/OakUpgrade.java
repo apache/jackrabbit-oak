@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.io.Closer;
 
 import joptsimple.OptionParser;
+import joptsimple.OptionSet;
 
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.config.ConfigurationException;
@@ -41,7 +42,7 @@ import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.RepositorySidegrade;
 import org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade;
-import org.apache.jackrabbit.oak.upgrade.cli.parser.ArgumentParser;
+import org.apache.jackrabbit.oak.upgrade.cli.parser.MigrationCliArguments;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.CliArgumentException;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.MigrationOptions;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory;
@@ -58,14 +59,14 @@ public class OakUpgrade {
     private static final Logger log = LoggerFactory.getLogger(OakUpgrade.class);
 
     public static void main(String... args) throws IOException {
-        ArgumentParser argumentParser = parse(OptionParserFactory.create(), args);
+        MigrationCliArguments argumentParser = parse(OptionParserFactory.create(), args);
         if (argumentParser == null) {
             return;
         }
         migrate(argumentParser);
     }
 
-    protected static void migrate(ArgumentParser argumentParser) throws IOException {
+    public static void migrate(MigrationCliArguments argumentParser) throws IOException {
         MigrationOptions options = argumentParser.getOptions();
         StoreArguments stores = argumentParser.getStoreArguments();
         Closer closer = Closer.create();
@@ -89,16 +90,21 @@ public class OakUpgrade {
         }
     }
 
-    protected static ArgumentParser parse(OptionParser op, String... args) {
+    public static MigrationCliArguments parse(OptionParser op, String... args) {
         try {
-            return ArgumentParser.parse(args, op);
+            OptionSet options = op.parse(args);
+            if (options.has(OptionParserFactory.HELP)) {
+                displayUsage(op);
+                return null;
+            }
+            return new MigrationCliArguments(options);
         } catch (Exception e) {
             System.exit(getReturnCode(e));
             return null;
         }
     }
-    
-    protected static void handleSigInt(final Closer closer) {
+
+    public static void handleSigInt(final Closer closer) {
         SignalHandler handler = new SignalHandler() {
             @Override
             public void handle(Signal signal) {
@@ -113,7 +119,7 @@ public class OakUpgrade {
         Signal.handle(new Signal("INT"), handler);
     }
 
-    protected static void sidegrade(StoreArguments stores, MigrationOptions options, Closer closer)
+    private static void sidegrade(StoreArguments stores, MigrationOptions options, Closer closer)
             throws IOException, RepositoryException {
         BlobStore srcBlobStore = stores.getSrcBlobStore().create(closer);
         NodeStore srcStore = stores.getSrcStore().create(srcBlobStore, closer);
@@ -152,10 +158,10 @@ public class OakUpgrade {
         }
         NodeStore dstStore = stores.getDstStore().create(dstBlobStore, closer);
         RepositoryUpgrade upgrade = createRepositoryUpgrade(src, dstStore, options);
-        upgrade.copy(createCompositeInitializer(options));
+        upgrade.copy(createCompositeInitializer());
     }
 
-    protected static void moveToCrx2Dir(String repositoryDirPath) {
+    public static void moveToCrx2Dir(String repositoryDirPath) {
         // backup old crx2 files when doing an in-place upgrade
         File repositoryDir = new File(repositoryDirPath);
         File crx2 = new File(repositoryDir, "crx2");
@@ -170,7 +176,7 @@ public class OakUpgrade {
         }
     }
 
-    protected static RepositoryUpgrade createRepositoryUpgrade(RepositoryContext source, NodeStore store,
+    public static RepositoryUpgrade createRepositoryUpgrade(RepositoryContext source, NodeStore store,
             MigrationOptions options) {
         RepositoryUpgrade upgrade = new RepositoryUpgrade(source, store);
         if (source.getDataStore() != null && options.isCopyBinariesByReference()) {
@@ -193,21 +199,29 @@ public class OakUpgrade {
         return upgrade;
     }
 
-    protected static RepositoryInitializer createCompositeInitializer(MigrationOptions options) {
+    private static RepositoryInitializer createCompositeInitializer() {
         ServiceLoader<RepositoryInitializer> loader = ServiceLoader.load(RepositoryInitializer.class);
         List<RepositoryInitializer> initializers = ImmutableList.<RepositoryInitializer> builder()
                 .addAll(loader.iterator()).build();
         return new CompositeInitializer(initializers);
     }
 
-    private static int getReturnCode(Exception e) {
+    public static int getReturnCode(Exception e) {
         if (e.getMessage() != null) {
             System.err.println(e.getMessage());
         }
         if (e instanceof CliArgumentException) {
             return ((CliArgumentException) e).getExitCode();
         } else {
+            e.printStackTrace(System.err);
             return 1;
         }
+    }
+
+    public static void displayUsage(OptionParser op) throws IOException {
+        System.out.println("Usage:");
+        System.out.println(
+                "[/path/to/oak/repository|/path/to/crx2/repository|mongodb://host:port|<Jdbc URI>] [/path/to/repository.xml] [/path/to/oak/repository|mongodb://host:port|<Jdbc URI>]");
+        op.printHelpOn(System.out);
     }
 }

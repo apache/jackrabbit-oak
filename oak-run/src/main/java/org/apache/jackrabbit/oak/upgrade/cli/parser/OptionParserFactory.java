@@ -34,8 +34,6 @@ public class OptionParserFactory {
 
     public static final String HELP = "help";
 
-    public static final String VERSION = "version";
-
     public static final String DST_USER = "user";
 
     public static final String DST_PASSWORD = "password";
@@ -73,15 +71,14 @@ public class OptionParserFactory {
         addVersioningOptions(op);
         addMiscOptions(op);
 
-        op.nonOptions(
-                "[/path/to/oak/repository|/path/to/crx2/repository|mongodb://host:port|<Jdbc URI>] [/path/to/repository.xml] {/path/to/oak/repository|mongodb://host:port|<Jdbc URI>}");
+//        op.nonOptions(
+//                "[/path/to/oak/repository|/path/to/crx2/repository|mongodb://host:port|<Jdbc URI>] [/path/to/repository.xml] {/path/to/oak/repository|mongodb://host:port|<Jdbc URI>}");
 
         return op;
     }
 
     private static void addUsageOptions(OptionParser op) {
         op.acceptsAll(asList("h", "?", HELP), "show help").forHelp();
-        op.accepts(VERSION, "Print the version of this tool");
     }
 
     private static void addBlobOptions(OptionParser op) {

@@ -17,16 +17,12 @@
 package org.apache.jackrabbit.oak.upgrade.cli.parser;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
 
-import javax.annotation.Nonnull;
-
-import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 
-public final class ArgumentParser {
+public final class MigrationCliArguments {
 
     private final OptionSet options;
 
@@ -36,11 +32,19 @@ public final class ArgumentParser {
 
     private final StoreArguments storeArguments;
 
-    private ArgumentParser(String[] args, OptionParser op) throws CliArgumentException, IOException {
-        options = op.parse(args);
-        arguments = op.nonOptions().values(options);
+    public MigrationCliArguments(OptionSet options) throws CliArgumentException, IOException {
+        this.options = options;
+        arguments = getNonOptionArguments();
         migrationOptions = new MigrationOptions(this);
         storeArguments = new StoreArguments(this);
+    }
+
+    private List<String> getNonOptionArguments() {
+        List<String> args = new ArrayList<String>();
+        for (Object o : options.nonOptionArguments()) {
+            args.add(o.toString());
+        }
+        return args;
     }
 
     public boolean hasOption(String optionName) {
@@ -54,9 +58,14 @@ public final class ArgumentParser {
     public int getIntOption(String optionName) {
         return (Integer) options.valueOf(optionName);
     }
-    
+
     public String[] getOptionList(String optionName) {
-        return getOption(optionName).split(",");
+        String option = getOption(optionName);
+        if (option == null) {
+            return null;
+        } else {
+            return option.split(",");
+        }
     }
 
     public MigrationOptions getOptions() {
@@ -67,45 +76,7 @@ public final class ArgumentParser {
         return storeArguments;
     }
 
-    public static ArgumentParser parse(String args[], OptionParser op) throws IOException, CliArgumentException {
-        final ArgumentParser argParser = new ArgumentParser(args, op);
-        if (argParser.hasOption(OptionParserFactory.HELP)) {
-            op.printHelpOn(System.out);
-            return null;
-        }
-        if (argParser.hasOption(OptionParserFactory.VERSION)) {
-            System.out.println("Crx2Oak version " + getVersion());
-            return null;
-        }
-        return argParser;
-    }
-
     List<String> getArguments() {
         return arguments;
-    }
-
-    /**
-     * Returns the version of crx2oak bundle
-     * 
-     * @return the version
-     */
-    @Nonnull
-    private static String getVersion() {
-        InputStream stream = ArgumentParser.class
-                .getResourceAsStream("/META-INF/maven/org.apache.jackrabbit/oak-run/pom.properties");
-        if (stream != null) {
-            try {
-                try {
-                    Properties properties = new Properties();
-                    properties.load(stream);
-                    return properties.getProperty("version");
-                } finally {
-                    stream.close();
-                }
-            } catch (IOException e) {
-                // ignore
-            }
-        }
-        return "unknown version";
     }
 }

@@ -50,7 +50,7 @@ public class MigrationOptions {
 
     private final boolean earlyShutdown;
 
-    public MigrationOptions(ArgumentParser args) {
+    public MigrationOptions(MigrationCliArguments args) {
         this.copyBinariesByReference = !args.hasOption(OptionParserFactory.COPY_BINARIES);
         this.mmap = args.hasOption(OptionParserFactory.MMAP);
         if (args.hasOption(OptionParserFactory.CACHE_SIZE)) {
