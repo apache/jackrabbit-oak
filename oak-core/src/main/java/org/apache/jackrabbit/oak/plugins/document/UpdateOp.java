@@ -171,14 +171,33 @@ public final class UpdateOp {
     }
 
     /**
-     * Set the property to the given value.
+     * Set the property to the given long value.
      *
      * @param property the property name
      * @param value the value
      */
-    public void set(String property, Object value) {
-        Operation op = new Operation(Operation.Type.SET, value);
-        changes.put(new Key(property, null), op);
+    public void set(String property, long value) {
+        internalSet(property, value);
+    }
+
+    /**
+     * Set the property to the given boolean value.
+     *
+     * @param property the property name
+     * @param value the value
+     */
+    public void set(String property, boolean value) {
+        internalSet(property, value);
+    }
+
+    /**
+     * Set the property to the given String value.
+     *
+     * @param property the property name
+     * @param value the value
+     */
+    public void set(String property, String value) {
+        internalSet(property, value);
     }
 
     /**
@@ -279,6 +298,11 @@ public final class UpdateOp {
             conditions = Maps.newHashMap();
         }
         return conditions;
+    }
+
+    private void internalSet(String property, Object value) {
+        Operation op = new Operation(Operation.Type.SET, value);
+        changes.put(new Key(property, null), op);
     }
 
     /**
