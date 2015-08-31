@@ -31,15 +31,15 @@ import org.apache.jackrabbit.oak.upgrade.cli.node.StoreFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.ArgumentParser.SRC_FBS;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.ArgumentParser.SRC_FDS;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.ArgumentParser.DST_FBS;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.ArgumentParser.DST_S3;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.ArgumentParser.DST_S3_CONFIG;
+import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.SRC_FBS;
+import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.SRC_FDS;
+import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.DST_FBS;
+import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.DST_S3;
+import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.DST_S3_CONFIG;
 
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.CRX2_DIR;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.CRX2_DIR_XML;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.CRX2_XML;
+import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JCR2_DIR;
+import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JCR2_DIR_XML;
+import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.JCR2_XML;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.SEGMENT;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreType.getMatchingType;
 
@@ -106,14 +106,14 @@ public class StoreArguments {
     }
 
     public boolean isInPlaceUpgrade() {
-        if (src.getType() == CRX2_DIR_XML && dst.getType() == SEGMENT) {
+        if (src.getType() == JCR2_DIR_XML && dst.getType() == SEGMENT) {
             return src.getPath().equals(dst.getPath());
         }
         return false;
     }
 
-    public String getSrcPath() {
-        return src.getPath();
+    public String[] getSrcPaths() {
+        return src.getPaths();
     }
 
     private static List<StoreDescriptor> createStoreDescriptors(final List<String> arguments)
@@ -139,9 +139,9 @@ public class StoreArguments {
         int crx2XmlIndex = -1;
         for (int i = 0; i < descriptors.size(); i++) {
             final StoreType type = descriptors.get(i).getType();
-            if (type == CRX2_DIR) {
+            if (type == JCR2_DIR) {
                 crx2DirIndex = i;
-            } else if (type == CRX2_XML) {
+            } else if (type == JCR2_XML) {
                 crx2XmlIndex = i;
             }
         }
@@ -159,19 +159,19 @@ public class StoreArguments {
             } else {
                 repoXml = repoDir + "/" + REPOSITORY_XML;
             }
-            descriptors.add(0, new StoreDescriptor(CRX2_DIR_XML, repoDir, repoXml));
+            descriptors.add(0, new StoreDescriptor(JCR2_DIR_XML, repoDir, repoXml));
         }
     }
 
     private static void addDefaultCrx2Descriptor(final List<StoreDescriptor> descriptors) {
         if (descriptors.isEmpty()) {
             descriptors.add(
-                    new StoreDescriptor(CRX2_DIR_XML, DEFAULT_CRX2_REPO, DEFAULT_CRX2_REPO + "/" + REPOSITORY_XML));
+                    new StoreDescriptor(JCR2_DIR_XML, DEFAULT_CRX2_REPO, DEFAULT_CRX2_REPO + "/" + REPOSITORY_XML));
         }
     }
 
     private static void addSegmentAsDestination(final List<StoreDescriptor> descriptors) {
-        if (descriptors.size() == 1 && descriptors.get(0).getType() == CRX2_DIR_XML) {
+        if (descriptors.size() == 1 && descriptors.get(0).getType() == JCR2_DIR_XML) {
             final String crx2Dir = descriptors.get(0).getPath();
             descriptors.add(new StoreDescriptor(SEGMENT, crx2Dir));
         }
@@ -182,7 +182,7 @@ public class StoreArguments {
             throw new CliArgumentException("Not enough node store arguments: " + descriptors.toString(), 1);
         } else if (descriptors.size() > 2) {
             throw new CliArgumentException("Too much node store arguments: " + descriptors.toString(), 1);
-        } else if (descriptors.get(1).getType() == CRX2_DIR_XML) {
+        } else if (descriptors.get(1).getType() == JCR2_DIR_XML) {
             throw new CliArgumentException("Can't use CRX2 as a destination", 1);
         }
     }

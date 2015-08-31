@@ -28,6 +28,8 @@ import javax.jcr.RepositoryException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Closer;
 
+import joptsimple.OptionParser;
+
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.config.ConfigurationException;
 import org.apache.jackrabbit.core.fs.FileSystemException;
@@ -42,6 +44,7 @@ import org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.ArgumentParser;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.CliArgumentException;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.MigrationOptions;
+import org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,42 +58,47 @@ public class OakUpgrade {
     private static final Logger log = LoggerFactory.getLogger(OakUpgrade.class);
 
     public static void main(String... args) throws IOException {
-        final MigrationOptions options;
-        final StoreArguments stores;
-        try {
-            final ArgumentParser arguments = ArgumentParser.parse(args);
-            if (arguments == null) {
-                return;
-            }
-            stores = arguments.getStoreArguments();
-            options = arguments.getOptions();
-        } catch (Exception e) {
-            System.exit(getReturnCode(e));
+        ArgumentParser argumentParser = parse(OptionParserFactory.create(), args);
+        if (argumentParser == null) {
             return;
         }
+        migrate(argumentParser);
+    }
 
+    protected static void migrate(ArgumentParser argumentParser) throws IOException {
+        MigrationOptions options = argumentParser.getOptions();
+        StoreArguments stores = argumentParser.getStoreArguments();
         final Closer closer = Closer.create();
         handleSigInt(closer);
         try {
-            if (stores.getSrcStore().isCrx2()) {
+            if (stores.getSrcStore().isJcr2()) {
                 upgrade(stores, options, closer);
             } else {
                 sidegrade(stores, options, closer);
             }
         } catch (Throwable t) {
             if (t instanceof RepositoryException && t.getCause() != null) {
-                log.error("CRX2Oak failed", t.getCause());
+                log.error("OakUpgrade failed", t.getCause());
             }
             throw closer.rethrow(t);
         } finally {
             closer.close();
         }
         if (stores.isInPlaceUpgrade()) {
-            moveToCrx2Dir(stores.getSrcPath());
+            moveToCrx2Dir(stores.getSrcPaths()[0]);
         }
     }
 
-    private static void handleSigInt(final Closer closer) {
+    protected static ArgumentParser parse(OptionParser op, String... args) {
+        try {
+            return ArgumentParser.parse(args, op);
+        } catch (Exception e) {
+            System.exit(getReturnCode(e));
+            return null;
+        }
+    }
+    
+    protected static void handleSigInt(final Closer closer) {
         final SignalHandler handler = new SignalHandler() {
             @Override
             public void handle(Signal signal) {
@@ -105,7 +113,7 @@ public class OakUpgrade {
         Signal.handle(new Signal("INT"), handler);
     }
 
-    private static void sidegrade(StoreArguments stores, MigrationOptions options, Closer closer)
+    protected static void sidegrade(StoreArguments stores, MigrationOptions options, Closer closer)
             throws IOException, RepositoryException {
         final BlobStore srcBlobStore = stores.getSrcBlobStore().create(closer);
         final NodeStore srcStore = stores.getSrcStore().create(srcBlobStore, closer);
@@ -147,7 +155,7 @@ public class OakUpgrade {
         upgrade.copy(createCompositeInitializer(options));
     }
 
-    public static void moveToCrx2Dir(String repositoryDirPath) {
+    protected static void moveToCrx2Dir(String repositoryDirPath) {
         // backup old crx2 files when doing an in-place upgrade
         final File repositoryDir = new File(repositoryDirPath);
         final File crx2 = new File(repositoryDir, "crx2");
@@ -162,7 +170,7 @@ public class OakUpgrade {
         }
     }
 
-    private static RepositoryUpgrade createRepositoryUpgrade(RepositoryContext source, NodeStore store,
+    protected static RepositoryUpgrade createRepositoryUpgrade(RepositoryContext source, NodeStore store,
             MigrationOptions options) {
         RepositoryUpgrade upgrade = new RepositoryUpgrade(source, store);
         if (source.getDataStore() != null && options.isCopyBinariesByReference()) {
@@ -185,7 +193,7 @@ public class OakUpgrade {
         return upgrade;
     }
 
-    private static RepositoryInitializer createCompositeInitializer(MigrationOptions options) {
+    protected static RepositoryInitializer createCompositeInitializer(MigrationOptions options) {
         ServiceLoader<RepositoryInitializer> loader = ServiceLoader.load(RepositoryInitializer.class);
         List<RepositoryInitializer> initializers = ImmutableList.<RepositoryInitializer> builder()
                 .addAll(loader.iterator()).build();

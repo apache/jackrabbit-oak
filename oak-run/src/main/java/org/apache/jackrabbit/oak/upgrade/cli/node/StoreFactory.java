@@ -29,25 +29,25 @@ import com.google.common.io.Closer;
 
 public class StoreFactory {
 
-    private final Crx2Factory crx2Factory;
+    private final Jackrabbit2Factory jcr2Factory;
 
     private final NodeStoreFactory nodeStoreFactory;
 
-    public StoreFactory(Crx2Factory crx2Factory) {
-        this.crx2Factory = crx2Factory;
+    public StoreFactory(Jackrabbit2Factory crx2Factory) {
+        this.jcr2Factory = crx2Factory;
         this.nodeStoreFactory = null;
     }
 
     public StoreFactory(NodeStoreFactory nodeStoreFactory) {
-        this.crx2Factory = null;
+        this.jcr2Factory = null;
         this.nodeStoreFactory = nodeStoreFactory;
     }
 
     public RepositoryContext create(Closer closer) throws IOException, FileSystemException, RepositoryException {
-        if (crx2Factory == null) {
+        if (jcr2Factory == null) {
             throw new UnsupportedOperationException();
         }
-        return crx2Factory.create(closer);
+        return jcr2Factory.create(closer);
     }
 
     public NodeStore create(BlobStore blobStore, Closer closer) throws IOException {
@@ -57,7 +57,7 @@ public class StoreFactory {
         return nodeStoreFactory.create(blobStore, closer);
     }
 
-    public boolean isCrx2() {
-        return crx2Factory != null;
+    public boolean isJcr2() {
+        return jcr2Factory != null;
     }
 }

@@ -36,8 +36,6 @@ public class MigrationOptions {
 
     private final int cacheSizeInMB;
 
-    private final boolean ldap;
-
     private final Calendar copyVersions;
 
     private final Calendar copyOrphanedVersions;
@@ -52,36 +50,32 @@ public class MigrationOptions {
 
     private final boolean earlyShutdown;
 
-    private final String[] disabledIndexes;
-
     public MigrationOptions(ArgumentParser args) {
-        this.copyBinariesByReference = !args.hasOption(ArgumentParser.COPY_BINARIES);
-        this.mmap = args.hasOption(ArgumentParser.MMAP);
-        if (args.hasOption(ArgumentParser.CACHE_SIZE)) {
-            this.cacheSizeInMB = args.getIntOption(ArgumentParser.CACHE_SIZE);
+        this.copyBinariesByReference = !args.hasOption(OptionParserFactory.COPY_BINARIES);
+        this.mmap = args.hasOption(OptionParserFactory.MMAP);
+        if (args.hasOption(OptionParserFactory.CACHE_SIZE)) {
+            this.cacheSizeInMB = args.getIntOption(OptionParserFactory.CACHE_SIZE);
         } else {
             this.cacheSizeInMB = 256;
         }
-        this.ldap = args.hasOption(ArgumentParser.LDAP);
 
         final Calendar epoch = Calendar.getInstance();
         epoch.setTimeInMillis(0);
-        if (args.hasOption(ArgumentParser.COPY_VERSIONS)) {
-            this.copyVersions = parseVersionCopyArgument(args.getOption(ArgumentParser.COPY_VERSIONS));
+        if (args.hasOption(OptionParserFactory.COPY_VERSIONS)) {
+            this.copyVersions = parseVersionCopyArgument(args.getOption(OptionParserFactory.COPY_VERSIONS));
         } else {
             this.copyVersions = epoch;
         }
-        if (args.hasOption(ArgumentParser.COPY_ORPHANED_VERSIONS)) {
-            this.copyOrphanedVersions = parseVersionCopyArgument(args.getOption(ArgumentParser.COPY_ORPHANED_VERSIONS));
+        if (args.hasOption(OptionParserFactory.COPY_ORPHANED_VERSIONS)) {
+            this.copyOrphanedVersions = parseVersionCopyArgument(args.getOption(OptionParserFactory.COPY_ORPHANED_VERSIONS));
         } else {
             this.copyOrphanedVersions = epoch;
         }
-        this.includePaths = split(args.getOption(ArgumentParser.INCLUDE_PATHS));
-        this.excludePaths = split(args.getOption(ArgumentParser.EXCLUDE_PATHS));
-        this.mergePaths = split(args.getOption(ArgumentParser.MERGE_PATHS));
-        this.failOnError = args.hasOption(ArgumentParser.FAIL_ON_ERROR);
-        this.earlyShutdown = args.hasOption(ArgumentParser.EARLY_SHUTDOWN);
-        this.disabledIndexes = split(args.getOption(ArgumentParser.DISABLE_INDEXES));
+        this.includePaths = split(args.getOption(OptionParserFactory.INCLUDE_PATHS));
+        this.excludePaths = split(args.getOption(OptionParserFactory.EXCLUDE_PATHS));
+        this.mergePaths = split(args.getOption(OptionParserFactory.MERGE_PATHS));
+        this.failOnError = args.hasOption(OptionParserFactory.FAIL_ON_ERROR);
+        this.earlyShutdown = args.hasOption(OptionParserFactory.EARLY_SHUTDOWN);
         logOptions();
     }
 
@@ -95,10 +89,6 @@ public class MigrationOptions {
 
     public int getCacheSizeInMB() {
         return cacheSizeInMB;
-    }
-
-    public boolean isLdap() {
-        return ldap;
     }
 
     public Calendar getCopyVersions() {
@@ -129,10 +119,6 @@ public class MigrationOptions {
         return earlyShutdown;
     }
 
-    public String[] getDisabledIndexes() {
-        return disabledIndexes;
-    }
-
     private void logOptions() {
         if (copyBinariesByReference) {
             log.info("DataStore needs to be shared with new repository");
@@ -142,10 +128,6 @@ public class MigrationOptions {
 
         if (mmap) {
             log.info("Enabling memory mapped file access for Segment Store");
-        }
-
-        if (ldap) {
-            log.info("rep:externalId properties will be created for LDAP principals");
         }
 
         if (copyVersions == null) {
@@ -166,10 +148,6 @@ public class MigrationOptions {
 
         if (excludePaths != null) {
             log.info("paths to exclude: {}", (Object) excludePaths);
-        }
-
-        if (disabledIndexes != null) {
-            log.info("Migration will disable following indexes {}.", (Object) disabledIndexes);
         }
 
         if (failOnError) {

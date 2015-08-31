@@ -32,19 +32,19 @@ import org.apache.jackrabbit.core.config.RepositoryConfig;
 
 import com.google.common.io.Closer;
 
-public class Crx2Factory {
+public class Jackrabbit2Factory {
 
     private final File repositoryDir;
 
     private final File repositoryFile;
 
-    public Crx2Factory(String repositoryDir, String repositoryFile) {
-        if (!isCrx2Repository(repositoryDir)) {
+    public Jackrabbit2Factory(String repositoryDir, String repositoryFile) {
+        if (!isJcr2Repository(repositoryDir)) {
             throw new IllegalArgumentException("Repository directory not found: " + repositoryDir);
         }
         this.repositoryDir = new File(repositoryDir);
         this.repositoryFile = new File(repositoryFile);
-        if (!this.repositoryFile.isFile()) {
+        if (!isRepositoryXml(repositoryFile)) {
             throw new IllegalArgumentException("Repository configuration not found: " + repositoryFile);
         }
     }
@@ -91,7 +91,7 @@ public class Crx2Factory {
         return false;
     }
 
-    public static boolean isCrx2Repository(String directory) {
+    public static boolean isJcr2Repository(String directory) {
         final File dir = new File(directory);
         if (!dir.isDirectory()) {
             return false;
@@ -102,6 +102,6 @@ public class Crx2Factory {
 
     @Override
     public String toString() {
-        return String.format("CRX2[%s, %s]", repositoryDir, repositoryFile);
+        return String.format("JCR2[%s, %s]", repositoryDir, repositoryFile);
     }
 }

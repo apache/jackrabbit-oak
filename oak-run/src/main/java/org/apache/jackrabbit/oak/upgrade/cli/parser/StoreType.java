@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.parser;
 
-import static org.apache.jackrabbit.oak.upgrade.cli.node.Crx2Factory.isCrx2Repository;
-import static org.apache.jackrabbit.oak.upgrade.cli.node.Crx2Factory.isRepositoryXml;
+import static org.apache.jackrabbit.oak.upgrade.cli.node.Jackrabbit2Factory.isJcr2Repository;
+import static org.apache.jackrabbit.oak.upgrade.cli.node.Jackrabbit2Factory.isRepositoryXml;
 
-import org.apache.jackrabbit.oak.upgrade.cli.node.Crx2Factory;
+import org.apache.jackrabbit.oak.upgrade.cli.node.Jackrabbit2Factory;
 import org.apache.jackrabbit.oak.upgrade.cli.node.JdbcFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.node.MongoFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.node.SegmentFactory;
@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.upgrade.cli.node.StoreFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments.MigrationDirection;
 
 enum StoreType {
-    CRX2_XML {
+    JCR2_XML {
         @Override
         public boolean matches(String argument) {
             return isRepositoryXml(argument);
@@ -38,10 +38,10 @@ enum StoreType {
             throw new UnsupportedOperationException();
         }
     },
-    CRX2_DIR {
+    JCR2_DIR {
         @Override
         public boolean matches(String argument) {
-            return isCrx2Repository(argument);
+            return isJcr2Repository(argument);
         }
 
         @Override
@@ -49,7 +49,7 @@ enum StoreType {
             throw new UnsupportedOperationException();
         }
     },
-    CRX2_DIR_XML {
+    JCR2_DIR_XML {
         @Override
         public boolean matches(String argument) {
             return false;
@@ -57,7 +57,7 @@ enum StoreType {
 
         @Override
         public StoreFactory createFactory(String[] paths, MigrationDirection direction, ArgumentParser arguments) {
-            return new StoreFactory(new Crx2Factory(paths[0], paths[1]));
+            return new StoreFactory(new Jackrabbit2Factory(paths[0], paths[1]));
         }
     },
     JDBC {
@@ -70,11 +70,11 @@ enum StoreType {
         public StoreFactory createFactory(String[] paths, MigrationDirection direction, ArgumentParser arguments) {
             final String username, password;
             if (direction == MigrationDirection.SRC) {
-                username = arguments.getOption(ArgumentParser.SRC_USER);
-                password = arguments.getOption(ArgumentParser.SRC_PASSWORD);
+                username = arguments.getOption(OptionParserFactory.SRC_USER);
+                password = arguments.getOption(OptionParserFactory.SRC_PASSWORD);
             } else {
-                username = arguments.getOption(ArgumentParser.DST_USER);
-                password = arguments.getOption(ArgumentParser.DST_PASSWORD);
+                username = arguments.getOption(OptionParserFactory.DST_USER);
+                password = arguments.getOption(OptionParserFactory.DST_PASSWORD);
             }
             return new StoreFactory(
                     new JdbcFactory(paths[0], arguments.getOptions().getCacheSizeInMB(), username, password));
