@@ -98,7 +98,7 @@ public class SplitBlobStoreService {
             return;
         }
         log.info("Registering SplitBlobStore with old={} and new={}", oldBlobStore, newBlobStore);
-        final BlobStore blobStore = new SplitBlobStore(homeDir, oldBlobStore, newBlobStore);
+        BlobStore blobStore = new SplitBlobStore(homeDir, oldBlobStore, newBlobStore);
         Dictionary<String, Object> props = new Hashtable<String, Object>();
         props.put("service.pid", "org.apache.jackrabbit.oak.spi.blob.split.SplitBlobStore");
         reg = ctx.registerService(new String[] { BlobStore.class.getName() }, blobStore, props);

@@ -67,13 +67,13 @@ public class BlobMigratorTest {
 
     @Before
     public void setup() throws CommitFailedException, IllegalArgumentException, IOException {
-        final File repository = Files.createTempDir();
+        File repository = Files.createTempDir();
         segmentDir = new File(repository, "segmentstore");
-        final BlobStore oldBlobStore = new FileBlobStore(repository.getPath() + "/old");
+        BlobStore oldBlobStore = new FileBlobStore(repository.getPath() + "/old");
         createContent(oldBlobStore, segmentDir);
 
         newBlobStore = new FileBlobStore(repository.getPath() + "/new");
-        final SplitBlobStore splitBlobStore = new SplitBlobStore(repository.getPath(), oldBlobStore, newBlobStore);
+        SplitBlobStore splitBlobStore = new SplitBlobStore(repository.getPath(), oldBlobStore, newBlobStore);
         segmentStore = FileStore.newFileStore(segmentDir).withBlobStore(splitBlobStore).create();
         nodeStore = SegmentNodeStore.newSegmentNodeStore(segmentStore).create();
         migrator = new BlobMigrator(splitBlobStore, nodeStore);
@@ -87,7 +87,7 @@ public class BlobMigratorTest {
     @Test
     public void blobsExistsOnTheNewBlobStore() throws IOException, CommitFailedException {
         migrator.migrate();
-        final NodeState root = nodeStore.getRoot();
+        NodeState root = nodeStore.getRoot();
         for (int i = 1; i <= 3; i++) {
             assertPropertyOnTheNewStore(root.getChildNode("node" + i).getProperty("prop"));
         }
@@ -101,7 +101,7 @@ public class BlobMigratorTest {
         segmentStore = FileStore.newFileStore(segmentDir).withBlobStore(newBlobStore).create();
         nodeStore = SegmentNodeStore.newSegmentNodeStore(segmentStore).create();
 
-        final NodeState root = nodeStore.getRoot();
+        NodeState root = nodeStore.getRoot();
         for (int i = 1; i <= 3; i++) {
             assertPropertyExists(root.getChildNode("node" + i).getProperty("prop"));
         }
@@ -128,17 +128,17 @@ public class BlobMigratorTest {
     }
 
     private void assertPropertyOnTheNewStore(Blob blob) throws IOException {
-        final String blobId = blob.getContentIdentity();
+        String blobId = blob.getContentIdentity();
         assertStreamEquals(blob.getNewStream(), newBlobStore.getInputStream(blobId));
     }
 
     private static void createContent(BlobStore blobStore, File segmentDir) throws IOException, CommitFailedException {
         SegmentStore segmentStore = FileStore.newFileStore(segmentDir).withBlobStore(blobStore).create();
         NodeStore nodeStore = SegmentNodeStore.newSegmentNodeStore(segmentStore).create();
-        final NodeBuilder rootBuilder = nodeStore.getRoot().builder();
+        NodeBuilder rootBuilder = nodeStore.getRoot().builder();
         rootBuilder.child("node1").setProperty("prop", createBlob(nodeStore));
         rootBuilder.child("node2").setProperty("prop", createBlob(nodeStore));
-        final PropertyBuilder<Blob> builder = PropertyBuilder.array(Type.BINARY, "prop");
+        PropertyBuilder<Blob> builder = PropertyBuilder.array(Type.BINARY, "prop");
         builder.addValue(createBlob(nodeStore));
         builder.addValue(createBlob(nodeStore));
         builder.addValue(createBlob(nodeStore));
@@ -155,8 +155,8 @@ public class BlobMigratorTest {
 
     private static void assertStreamEquals(InputStream expected, InputStream actual) throws IOException {
         while (true) {
-            final int expectedByte = expected.read();
-            final int actualByte = actual.read();
+            int expectedByte = expected.read();
+            int actualByte = actual.read();
             assertEquals(expectedByte, actualByte);
             if (expectedByte == -1) {
                 break;

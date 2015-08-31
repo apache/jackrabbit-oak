@@ -99,7 +99,7 @@ public class BlobMigration extends AnnotatedStandardMBean implements BlobMigrati
 
     @Activate
     private void activate(BundleContext ctx) {
-        final Whiteboard wb = new OsgiWhiteboard(ctx);
+        Whiteboard wb = new OsgiWhiteboard(ctx);
         migrator = new BlobMigrator((SplitBlobStore) splitBlobStore, nodeStore);
         mbeanReg = registerMBean(wb, BlobMigrationMBean.class, this, BlobMigrationMBean.TYPE, OP_NAME);
     }
@@ -123,14 +123,14 @@ public class BlobMigration extends AnnotatedStandardMBean implements BlobMigrati
             migrationOp = newManagementOperation(OP_NAME, new Callable<String>() {
                 @Override
                 public String call() throws Exception {
-                    final long t0 = nanoTime();
-                    final boolean finished;
+                    long t0 = nanoTime();
+                    boolean finished;
                     if (resume) {
                         finished = migrator.migrate();
                     } else {
                         finished = migrator.start();
                     }
-                    final String duration = formatTime(nanoTime() - t0);
+                    String duration = formatTime(nanoTime() - t0);
                     if (finished) {
                         return "All blobs migrated in " + duration;
                     } else {
@@ -155,7 +155,7 @@ public class BlobMigration extends AnnotatedStandardMBean implements BlobMigrati
     @Nonnull
     @Override
     public CompositeData getBlobMigrationStatus() throws OpenDataException {
-        final Map<String, Object> status = new HashMap<String, Object>();
+        Map<String, Object> status = new HashMap<String, Object>();
         status.put("isRunning", migrationOp.getStatus().getCode() == StatusCode.RUNNING);
         status.put("migratedNodes", migrator.getTotalMigratedNodes());
         status.put("lastProcessedPath", migrator.getLastProcessedPath());

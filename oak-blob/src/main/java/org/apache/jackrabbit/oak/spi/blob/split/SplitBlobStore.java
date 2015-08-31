@@ -52,7 +52,7 @@ public class SplitBlobStore implements BlobStore {
 
     @Override
     public String writeBlob(InputStream in) throws IOException {
-        final String blobId = newBlobStore.writeBlob(in);
+        String blobId = newBlobStore.writeBlob(in);
         migratedBlobs.add(blobId);
         return blobId;
     }

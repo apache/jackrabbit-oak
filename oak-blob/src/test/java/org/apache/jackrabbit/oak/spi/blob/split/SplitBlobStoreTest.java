@@ -76,10 +76,10 @@ public class SplitBlobStoreTest {
 
     @Test
     public void testLength() throws IOException {
-        for (final String id : oldBlobIds) {
+        for (String id : oldBlobIds) {
             assertEquals(LENGTH, splitBlobStore.getBlobLength(id));
         }
-        for (final String id : newBlobIds) {
+        for (String id : newBlobIds) {
             assertEquals(LENGTH, newBlobStore.getBlobLength(id));
             assertEquals(LENGTH, splitBlobStore.getBlobLength(id));
         }
@@ -87,34 +87,34 @@ public class SplitBlobStoreTest {
 
     @Test
     public void testIsMigrated() throws IOException {
-        for (final String id : oldBlobIds) {
+        for (String id : oldBlobIds) {
             assertFalse(splitBlobStore.isMigrated(id));
         }
-        for (final String id : newBlobIds) {
+        for (String id : newBlobIds) {
             assertTrue(splitBlobStore.isMigrated(id));
         }
     }
 
     @Test
     public void testGetInputStream() throws IOException {
-        for (final String id : oldBlobIds) {
+        for (String id : oldBlobIds) {
             assertStreamEquals(oldBlobStore.getInputStream(id), splitBlobStore.getInputStream(id));
         }
-        for (final String id : newBlobIds) {
+        for (String id : newBlobIds) {
             assertStreamEquals(newBlobStore.getInputStream(id), splitBlobStore.getInputStream(id));
         }
     }
 
     @Test
     public void testReadByte() throws IOException {
-        final byte[] expected = new byte[LENGTH];
-        final byte[] actual = new byte[LENGTH];
-        for (final String id : oldBlobIds) {
+        byte[] expected = new byte[LENGTH];
+        byte[] actual = new byte[LENGTH];
+        for (String id : oldBlobIds) {
             oldBlobStore.readBlob(id, 0, expected, 0, LENGTH);
             splitBlobStore.readBlob(id, 0, actual, 0, LENGTH);
             assertArrayEquals(expected, actual);
         }
-        for (final String id : newBlobIds) {
+        for (String id : newBlobIds) {
             newBlobStore.readBlob(id, 0, expected, 0, LENGTH);
             splitBlobStore.readBlob(id, 0, actual, 0, LENGTH);
             assertArrayEquals(expected, actual);
@@ -123,22 +123,22 @@ public class SplitBlobStoreTest {
 
     @Test
     public void testReferences() throws IOException {
-        for (final String id : oldBlobIds) {
-            final String reference = splitBlobStore.getReference(id);
+        for (String id : oldBlobIds) {
+            String reference = splitBlobStore.getReference(id);
             assertEquals(id, splitBlobStore.getBlobId(reference));
         }
-        for (final String id : newBlobIds) {
-            final String reference = splitBlobStore.getReference(id);
+        for (String id : newBlobIds) {
+            String reference = splitBlobStore.getReference(id);
             assertEquals(id, splitBlobStore.getBlobId(reference));
         }
     }
 
     private List<String> addBlobs(BlobStore blobStore) throws IOException {
-        final List<String> ids = new ArrayList<String>();
+        List<String> ids = new ArrayList<String>();
         for (int i = 0; i < 5; i++) {
-            final byte[] buffer = new byte[LENGTH];
+            byte[] buffer = new byte[LENGTH];
             random.nextBytes(buffer);
-            final InputStream bis = new ByteArrayInputStream(buffer);
+            InputStream bis = new ByteArrayInputStream(buffer);
             ids.add(blobStore.writeBlob(bis));
         }
         return ids;
@@ -146,8 +146,8 @@ public class SplitBlobStoreTest {
 
     private static void assertStreamEquals(InputStream expected, InputStream actual) throws IOException {
         while (true) {
-            final int expectedByte = expected.read();
-            final int actualByte = actual.read();
+            int expectedByte = expected.read();
+            int actualByte = actual.read();
             assertEquals(expectedByte, actualByte);
             if (expectedByte == -1) {
                 break;

@@ -55,7 +55,7 @@ public class DepthFirstNodeIterator extends AbstractIterator<ChildNodeEntry> {
             return endOfData();
         }
         if (itQueue.peekLast().hasNext()) {
-            final ChildNodeEntry next = itQueue.peekLast().next();
+            ChildNodeEntry next = itQueue.peekLast().next();
             itQueue.add(next.getNodeState().getChildNodeEntries().iterator());
             nameQueue.add(next.getName());
             return next;
@@ -77,7 +77,7 @@ public class DepthFirstNodeIterator extends AbstractIterator<ChildNodeEntry> {
     }
 
     public String getPath() {
-        final StringBuilder path = new StringBuilder("/");
+        StringBuilder path = new StringBuilder("/");
         return Joiner.on('/').appendTo(path, nameQueue).toString();
     }
 

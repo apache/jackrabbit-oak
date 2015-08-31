@@ -57,7 +57,7 @@ class BlobIdSet {
         if (!bloomFilter.apply(blobId)) {
             return false;
         }
-        final Boolean cached = cache.getIfPresent(blobId);
+        Boolean cached = cache.getIfPresent(blobId);
         if (cached != null) {
             return cached;
         }
@@ -82,7 +82,7 @@ class BlobIdSet {
         if (!store.exists()) {
             return false;
         }
-        final BufferedReader reader = new BufferedReader(new FileReader(store));
+        BufferedReader reader = new BufferedReader(new FileReader(store));
         try {
             String line;
             while ((line = reader.readLine()) != null) {
@@ -97,7 +97,7 @@ class BlobIdSet {
     }
 
     private void addToStore(String blobId) throws IOException {
-        final FileWriter writer = new FileWriter(store.getPath(), true);
+        FileWriter writer = new FileWriter(store.getPath(), true);
         try {
             writer.append(blobId).append('\n');
         } finally {

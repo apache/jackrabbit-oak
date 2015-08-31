@@ -43,8 +43,8 @@ public class DepthFirstNodeIteratorTest {
     @Before
     public void setup() throws CommitFailedException {
         store = SegmentNodeStore.newSegmentNodeStore(new MemoryStore()).create();
-        final NodeBuilder rootBuilder = store.getRoot().builder();
-        final NodeBuilder countries = rootBuilder.child("countries");
+        NodeBuilder rootBuilder = store.getRoot().builder();
+        NodeBuilder countries = rootBuilder.child("countries");
         countries.child("uk").child("cities").child("london").child("districts").child("frognal");
         countries.child("germany");
         countries.child("france").child("cities").child("paris");
@@ -55,18 +55,18 @@ public class DepthFirstNodeIteratorTest {
     // create 3 subtrees.
     @Test
     public void testIterate() {
-        final Map<String, String[]> subtrees = new HashMap<String, String[]>();
+        Map<String, String[]> subtrees = new HashMap<String, String[]>();
         subtrees.put("uk", new String[] { "cities", "london", "districts", "frognal" });
         subtrees.put("germany", new String[] {});
         subtrees.put("france", new String[] { "cities", "paris" });
 
-        final DepthFirstNodeIterator iterator = new DepthFirstNodeIterator(store.getRoot());
+        DepthFirstNodeIterator iterator = new DepthFirstNodeIterator(store.getRoot());
         assertTrue(iterator.hasNext());
         assertEquals("countries", iterator.next().getName());
 
         for (int i = 0; i < 3; i++) {
             assertTrue(iterator.hasNext());
-            final String country = iterator.next().getName();
+            String country = iterator.next().getName();
             for (String node : subtrees.remove(country)) {
                 assertTrue(iterator.hasNext());
                 assertEquals(node, iterator.next().getName());
@@ -78,15 +78,15 @@ public class DepthFirstNodeIteratorTest {
 
     @Test
     public void testGetPath() {
-        final Map<String, String> nameToPath = new HashMap<String, String>();
+        Map<String, String> nameToPath = new HashMap<String, String>();
         nameToPath.put("countries", "/countries");
         nameToPath.put("uk", "/countries/uk");
         nameToPath.put("frognal", "/countries/uk/cities/london/districts/frognal");
         nameToPath.put("paris", "/countries/france/cities/paris");
 
-        final DepthFirstNodeIterator iterator = new DepthFirstNodeIterator(store.getRoot());
+        DepthFirstNodeIterator iterator = new DepthFirstNodeIterator(store.getRoot());
         while (iterator.hasNext()) {
-            final String expectedPath = nameToPath.remove(iterator.next().getName());
+            String expectedPath = nameToPath.remove(iterator.next().getName());
             if (expectedPath == null) {
                 continue;
             }

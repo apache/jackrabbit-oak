@@ -117,7 +117,7 @@ public class BlobMigrator {
     }
 
     private boolean timeToCommit() {
-        final long changesMerged = (System.currentTimeMillis() - lastCommit) / 1000;
+        long changesMerged = (System.currentTimeMillis() - lastCommit) / 1000;
         if (migratedNodes >= MERGE_LIMIT) {
             log.info("Migrated nodes count: {}. Merging changes.", migratedNodes);
             return true;
@@ -141,7 +141,7 @@ public class BlobMigrator {
     }
 
     private void refreshAndReset() {
-        final NodeState rootState = nodeStore.getRoot();
+        NodeState rootState = nodeStore.getRoot();
         rootBuilder = rootState.builder();
         nodeIterator = new DepthFirstNodeIterator(rootState);
         lastPath = null;
@@ -150,10 +150,10 @@ public class BlobMigrator {
     }
 
     private void migrateNode(NodeBuilder rootBuilder, DepthFirstNodeIterator iterator) throws IOException {
-        final ChildNodeEntry node = iterator.next();
-        final NodeState state = node.getNodeState();
+        ChildNodeEntry node = iterator.next();
+        NodeState state = node.getNodeState();
         for (PropertyState property : state.getProperties()) {
-            final PropertyState newProperty;
+            PropertyState newProperty;
             if (property.getType() == Type.BINARY) {
                 newProperty = migrateProperty(property);
             } else if (property.getType() == Type.BINARIES) {
@@ -162,7 +162,7 @@ public class BlobMigrator {
                 newProperty = null;
             }
             if (newProperty != null) {
-                final NodeBuilder builder = iterator.getBuilder(rootBuilder);
+                NodeBuilder builder = iterator.getBuilder(rootBuilder);
                 if (builder.exists()) {
                     builder.setProperty(newProperty);
                     migratedNodes++;
@@ -175,33 +175,33 @@ public class BlobMigrator {
     }
 
     private PropertyState migrateProperty(PropertyState propertyState) throws IOException {
-        final Blob oldBlob = propertyState.getValue(Type.BINARY);
-        final String blobId = oldBlob.getContentIdentity();
+        Blob oldBlob = propertyState.getValue(Type.BINARY);
+        String blobId = oldBlob.getContentIdentity();
         if (blobStore.isMigrated(blobId)) {
             return null;
         }
 
-        final String newBlobId = blobStore.writeBlob(oldBlob.getNewStream());
-        final Blob newBlob = new BlobStoreBlob(blobStore, newBlobId);
-        final PropertyBuilder<Blob> builder = new PropertyBuilder<Blob>(Type.BINARY);
+        String newBlobId = blobStore.writeBlob(oldBlob.getNewStream());
+        Blob newBlob = new BlobStoreBlob(blobStore, newBlobId);
+        PropertyBuilder<Blob> builder = new PropertyBuilder<Blob>(Type.BINARY);
         builder.assignFrom(propertyState);
         builder.setValue(newBlob);
         return builder.getPropertyState();
     }
 
     private PropertyState migrateMultiProperty(PropertyState propertyState) throws IOException {
-        final Iterable<Blob> oldBlobs = propertyState.getValue(Type.BINARIES);
-        final List<Blob> newBlobs = new ArrayList<Blob>();
-        final PropertyBuilder<Blob> builder = new PropertyBuilder<Blob>(Type.BINARY);
+        Iterable<Blob> oldBlobs = propertyState.getValue(Type.BINARIES);
+        List<Blob> newBlobs = new ArrayList<Blob>();
+        PropertyBuilder<Blob> builder = new PropertyBuilder<Blob>(Type.BINARY);
         builder.assignFrom(propertyState);
         boolean blobUpdated = false;
-        for (final Blob oldBlob : oldBlobs) {
-            final String blobId = oldBlob.getContentIdentity();
+        for (Blob oldBlob : oldBlobs) {
+            String blobId = oldBlob.getContentIdentity();
             if (blobStore.isMigrated(blobId)) {
                 newBlobs.add(new BlobStoreBlob(blobStore, blobId));
             } else {
-                final String newBlobId = blobStore.writeBlob(oldBlob.getNewStream());
-                final Blob newBlob = new BlobStoreBlob(blobStore, newBlobId);
+                String newBlobId = blobStore.writeBlob(oldBlob.getNewStream());
+                Blob newBlob = new BlobStoreBlob(blobStore, newBlobId);
                 newBlobs.add(newBlob);
                 blobUpdated = true;
             }
