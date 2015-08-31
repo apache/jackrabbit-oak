@@ -36,7 +36,7 @@ public final class Util {
     }
 
     public static void unzip(InputStream is, File targetDir) throws IOException {
-        final long start = System.currentTimeMillis();
+        long start = System.currentTimeMillis();
         log.info("Unzipping to {}", targetDir.getAbsolutePath());
         final ZipInputStream zis = new ZipInputStream(is);
         try {

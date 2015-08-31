@@ -60,7 +60,7 @@ public class StoreArguments {
     public StoreArguments(ArgumentParser parser) throws CliArgumentException, IOException {
         this.parser = parser;
 
-        final List<StoreDescriptor> descriptors = createStoreDescriptors(parser.getArguments());
+        List<StoreDescriptor> descriptors = createStoreDescriptors(parser.getArguments());
 
         src = descriptors.get(0);
         dst = descriptors.get(1);
@@ -82,7 +82,7 @@ public class StoreArguments {
     }
 
     public BlobStoreFactory getSrcBlobStore() throws IOException {
-        final BlobStoreFactory factory;
+        BlobStoreFactory factory;
         if (parser.hasOption(SRC_FBS)) {
             factory = new FileBlobStoreFactory(parser.getOption(SRC_FBS));
         } else if (parser.hasOption(SRC_FDS)) {
@@ -94,7 +94,7 @@ public class StoreArguments {
     }
 
     public BlobStoreFactory getDstBlobStore() throws IOException {
-        final BlobStoreFactory factory;
+        BlobStoreFactory factory;
         if (parser.hasOption(DST_FBS)) {
             factory = new FileBlobStoreFactory(parser.getOption(DST_FBS));
         } else if (parser.hasOption(DST_S3_CONFIG) && parser.hasOption(DST_S3)) {
@@ -116,9 +116,9 @@ public class StoreArguments {
         return src.getPaths();
     }
 
-    private static List<StoreDescriptor> createStoreDescriptors(final List<String> arguments)
+    private static List<StoreDescriptor> createStoreDescriptors(List<String> arguments)
             throws CliArgumentException {
-        final List<StoreDescriptor> descriptors = mapToStoreDescriptors(arguments);
+        List<StoreDescriptor> descriptors = mapToStoreDescriptors(arguments);
         mergeCrx2Descriptors(descriptors);
         addDefaultCrx2Descriptor(descriptors);
         addSegmentAsDestination(descriptors);
@@ -127,7 +127,7 @@ public class StoreArguments {
     }
 
     private static List<StoreDescriptor> mapToStoreDescriptors(List<String> arguments) {
-        final List<StoreDescriptor> descriptors = new ArrayList<StoreDescriptor>();
+        List<StoreDescriptor> descriptors = new ArrayList<StoreDescriptor>();
         for (String argument : arguments) {
             descriptors.add(new StoreDescriptor(getMatchingType(argument), argument));
         }
@@ -138,7 +138,7 @@ public class StoreArguments {
         int crx2DirIndex = -1;
         int crx2XmlIndex = -1;
         for (int i = 0; i < descriptors.size(); i++) {
-            final StoreType type = descriptors.get(i).getType();
+            StoreType type = descriptors.get(i).getType();
             if (type == JCR2_DIR) {
                 crx2DirIndex = i;
             } else if (type == JCR2_XML) {
@@ -147,13 +147,13 @@ public class StoreArguments {
         }
 
         if (crx2DirIndex > -1 || crx2XmlIndex > -1) {
-            final String repoDir;
+            String repoDir;
             if (crx2DirIndex > -1) {
                 repoDir = descriptors.remove(crx2DirIndex).getPath();
             } else {
                 repoDir = DEFAULT_CRX2_REPO;
             }
-            final String repoXml;
+            String repoXml;
             if (crx2XmlIndex > -1) {
                 repoXml = descriptors.remove(crx2XmlIndex).getPath();
             } else {
@@ -163,16 +163,16 @@ public class StoreArguments {
         }
     }
 
-    private static void addDefaultCrx2Descriptor(final List<StoreDescriptor> descriptors) {
+    private static void addDefaultCrx2Descriptor(List<StoreDescriptor> descriptors) {
         if (descriptors.isEmpty()) {
             descriptors.add(
                     new StoreDescriptor(JCR2_DIR_XML, DEFAULT_CRX2_REPO, DEFAULT_CRX2_REPO + "/" + REPOSITORY_XML));
         }
     }
 
-    private static void addSegmentAsDestination(final List<StoreDescriptor> descriptors) {
+    private static void addSegmentAsDestination(List<StoreDescriptor> descriptors) {
         if (descriptors.size() == 1 && descriptors.get(0).getType() == JCR2_DIR_XML) {
-            final String crx2Dir = descriptors.get(0).getPath();
+            String crx2Dir = descriptors.get(0).getPath();
             descriptors.add(new StoreDescriptor(SEGMENT, crx2Dir));
         }
     }
@@ -188,8 +188,8 @@ public class StoreArguments {
     }
 
     private void logSegmentVersion() {
-        final SegmentVersion[] versions = SegmentVersion.values();
-        final SegmentVersion lastVersion = versions[versions.length - 1];
+        SegmentVersion[] versions = SegmentVersion.values();
+        SegmentVersion lastVersion = versions[versions.length - 1];
         log.info("Using Oak segment format {} - please make sure your version of AEM supports that format",
                 lastVersion);
         if (lastVersion == SegmentVersion.V_11) {

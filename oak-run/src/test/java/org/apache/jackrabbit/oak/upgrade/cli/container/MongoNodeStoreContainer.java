@@ -62,7 +62,7 @@ public class MongoNodeStoreContainer implements NodeStoreContainer {
     private static boolean isMongoAvailable() {
         Mongo mongo = null;
         try {
-            final MongoClientURI uri = new MongoClientURI(MONGO_URI);
+            MongoClientURI uri = new MongoClientURI(MONGO_URI);
             mongo = new MongoClient(uri);
             mongo.getDatabaseNames();
             return true;
@@ -92,8 +92,8 @@ public class MongoNodeStoreContainer implements NodeStoreContainer {
 
     @Override
     public void clean() throws IOException {
-        final MongoClientURI uri = new MongoClientURI(mongoUri);
-        final MongoClient client = new MongoClient(uri);
+        MongoClientURI uri = new MongoClientURI(mongoUri);
+        MongoClient client = new MongoClient(uri);
         client.dropDatabase(uri.getDatabase());
         blob.clean();
     }

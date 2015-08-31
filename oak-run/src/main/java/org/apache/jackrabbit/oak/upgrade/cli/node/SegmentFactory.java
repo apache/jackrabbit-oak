@@ -44,12 +44,12 @@ public class SegmentFactory implements NodeStoreFactory {
 
     @Override
     public NodeStore create(BlobStore blobStore, Closer closer) throws IOException {
-        final Builder builder = FileStore.newFileStore(new File(dir, "segmentstore"));
+        Builder builder = FileStore.newFileStore(new File(dir, "segmentstore"));
         if (blobStore != null) {
             builder.withBlobStore(blobStore);
         }
         builder.withMaxFileSize(256).withMemoryMapping(mmap);
-        final FileStore fs = builder.create();
+        FileStore fs = builder.create();
         closer.register(asCloseable(fs));
         return SegmentNodeStore.newSegmentNodeStore(fs).create();
     }

@@ -52,7 +52,7 @@ public class S3DataStoreContainer implements BlobStoreContainer {
     @Override
     public BlobStore open() throws IOException {
         Properties props = new Properties();
-        final FileReader reader = new FileReader(new File(configFile));
+        FileReader reader = new FileReader(new File(configFile));
         try {
             props.load(reader);
         } finally {
@@ -60,7 +60,7 @@ public class S3DataStoreContainer implements BlobStoreContainer {
         }
         props.setProperty("path", new File(homeDir, "repository/datastore").getPath());
 
-        final S3DataStore delegate = new S3DataStore();
+        S3DataStore delegate = new S3DataStore();
         delegate.setProperties(props);
         try {
             delegate.init(homeDir.getPath());

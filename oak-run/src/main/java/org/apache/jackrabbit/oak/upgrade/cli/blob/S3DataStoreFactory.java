@@ -45,7 +45,7 @@ public class S3DataStoreFactory implements BlobStoreFactory {
 
     public S3DataStoreFactory(String configuration, String directory) throws IOException {
         this.props = new Properties();
-        final FileReader reader = new FileReader(new File(configuration));
+        FileReader reader = new FileReader(new File(configuration));
         try {
             props.load(reader);
         } finally {
@@ -56,7 +56,7 @@ public class S3DataStoreFactory implements BlobStoreFactory {
 
     @Override
     public BlobStore create(Closer closer) throws IOException {
-        final S3DataStore delegate = new S3DataStore();
+        S3DataStore delegate = new S3DataStore();
         delegate.setProperties(props);
         delegate.setPath(props.getProperty("path"));
         try {

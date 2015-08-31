@@ -69,7 +69,7 @@ public class Jackrabbit2Factory {
     }
 
     public static boolean isRepositoryXml(String path) {
-        final File file = new File(path);
+        File file = new File(path);
         if (file.isFile()) {
             BufferedReader reader = null;
             try {
@@ -92,11 +92,11 @@ public class Jackrabbit2Factory {
     }
 
     public static boolean isJcr2Repository(String directory) {
-        final File dir = new File(directory);
+        File dir = new File(directory);
         if (!dir.isDirectory()) {
             return false;
         }
-        final File systemId = new File(dir, "system.id");
+        File systemId = new File(dir, "system.id");
         return systemId.exists();
     }
 

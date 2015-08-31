@@ -68,7 +68,7 @@ public class OakUpgrade {
     protected static void migrate(ArgumentParser argumentParser) throws IOException {
         MigrationOptions options = argumentParser.getOptions();
         StoreArguments stores = argumentParser.getStoreArguments();
-        final Closer closer = Closer.create();
+        Closer closer = Closer.create();
         handleSigInt(closer);
         try {
             if (stores.getSrcStore().isJcr2()) {
@@ -99,7 +99,7 @@ public class OakUpgrade {
     }
     
     protected static void handleSigInt(final Closer closer) {
-        final SignalHandler handler = new SignalHandler() {
+        SignalHandler handler = new SignalHandler() {
             @Override
             public void handle(Signal signal) {
                 try {
@@ -115,17 +115,17 @@ public class OakUpgrade {
 
     protected static void sidegrade(StoreArguments stores, MigrationOptions options, Closer closer)
             throws IOException, RepositoryException {
-        final BlobStore srcBlobStore = stores.getSrcBlobStore().create(closer);
-        final NodeStore srcStore = stores.getSrcStore().create(srcBlobStore, closer);
-        final BlobStore dstBlobStore;
+        BlobStore srcBlobStore = stores.getSrcBlobStore().create(closer);
+        NodeStore srcStore = stores.getSrcStore().create(srcBlobStore, closer);
+        BlobStore dstBlobStore;
         if (options.isCopyBinariesByReference()) {
             dstBlobStore = srcBlobStore;
         } else {
             dstBlobStore = stores.getDstBlobStore().create(closer);
         }
-        final NodeStore dstStore = stores.getDstStore().create(dstBlobStore, closer);
+        NodeStore dstStore = stores.getDstStore().create(dstBlobStore, closer);
 
-        final RepositorySidegrade sidegrade = new RepositorySidegrade(srcStore, dstStore);
+        RepositorySidegrade sidegrade = new RepositorySidegrade(srcStore, dstStore);
         sidegrade.setCopyVersions(options.getCopyVersions());
         sidegrade.setCopyOrphanedVersions(options.getCopyOrphanedVersions());
         if (options.getIncludePaths() != null) {
@@ -142,28 +142,28 @@ public class OakUpgrade {
 
     private static void upgrade(StoreArguments stores, MigrationOptions options, Closer closer)
             throws ConfigurationException, IOException, FileSystemException, RepositoryException {
-        final RepositoryContext src = stores.getSrcStore().create(closer);
-        final BlobStore srcBlobStore = new DataStoreBlobStore(src.getDataStore());
-        final BlobStore dstBlobStore;
+        RepositoryContext src = stores.getSrcStore().create(closer);
+        BlobStore srcBlobStore = new DataStoreBlobStore(src.getDataStore());
+        BlobStore dstBlobStore;
         if (options.isCopyBinariesByReference()) {
             dstBlobStore = srcBlobStore;
         } else {
             dstBlobStore = stores.getDstBlobStore().create(closer);
         }
-        final NodeStore dstStore = stores.getDstStore().create(dstBlobStore, closer);
+        NodeStore dstStore = stores.getDstStore().create(dstBlobStore, closer);
         RepositoryUpgrade upgrade = createRepositoryUpgrade(src, dstStore, options);
         upgrade.copy(createCompositeInitializer(options));
     }
 
     protected static void moveToCrx2Dir(String repositoryDirPath) {
         // backup old crx2 files when doing an in-place upgrade
-        final File repositoryDir = new File(repositoryDirPath);
-        final File crx2 = new File(repositoryDir, "crx2");
+        File repositoryDir = new File(repositoryDirPath);
+        File crx2 = new File(repositoryDir, "crx2");
         log.info("Moving existing repository under {}", crx2.getAbsolutePath());
         crx2.mkdir();
-        final Pattern pattern = Pattern.compile("crx2|segmentstore");
+        Pattern pattern = Pattern.compile("crx2|segmentstore");
         for (File file : repositoryDir.listFiles()) {
-            final String name = file.getName();
+            String name = file.getName();
             if (!pattern.matcher(name).matches()) {
                 file.renameTo(new File(crx2, name));
             }

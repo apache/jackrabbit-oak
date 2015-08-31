@@ -66,7 +66,7 @@ public abstract class AbstractOak2OakTest {
 
     @BeforeClass
     public static void unpackSegmentRepo() throws IOException {
-        final File tempDir = new File("target", "test-segment-store");
+        File tempDir = new File("target", "test-segment-store");
         if (!tempDir.isDirectory()) {
             Util.unzip(AbstractOak2OakTest.class.getResourceAsStream("/segmentstore.zip"), tempDir);
         }
@@ -75,14 +75,14 @@ public abstract class AbstractOak2OakTest {
 
     @Before
     public void prepare() throws Exception {
-        final NodeStore source = getSourceContainer().open();
+        NodeStore source = getSourceContainer().open();
         try {
             initContent(source);
         } finally {
             getSourceContainer().close();
         }
 
-        final String[] args = getArgs();
+        String[] args = getArgs();
         log.info("oak2oak {}", Joiner.on(' ').join(args));
         OakUpgrade.main(args);
 
@@ -100,9 +100,9 @@ public abstract class AbstractOak2OakTest {
     }
 
     private void initContent(NodeStore target) throws IOException, RepositoryException {
-        final NodeStore initialContent = testContent.open();
+        NodeStore initialContent = testContent.open();
         try {
-            final RepositorySidegrade sidegrade = new RepositorySidegrade(initialContent, target);
+            RepositorySidegrade sidegrade = new RepositorySidegrade(initialContent, target);
             sidegrade.copy();
         } finally {
             testContent.close();
@@ -112,9 +112,9 @@ public abstract class AbstractOak2OakTest {
     @Test
     public void validateDestinationTest() throws RepositoryException, IOException {
         verifyContent(session);
-        final Property p = session.getProperty("/sling-logo.png/jcr:content/jcr:data");
-        final InputStream is = p.getValue().getBinary().getStream();
-        final String expectedMD5 = "35504d8c59455ab12a31f3d06f139a05";
+        Property p = session.getProperty("/sling-logo.png/jcr:content/jcr:data");
+        InputStream is = p.getValue().getBinary().getStream();
+        String expectedMD5 = "35504d8c59455ab12a31f3d06f139a05";
         try {
             assertEquals(expectedMD5, DigestUtils.md5Hex(is));
         } finally {

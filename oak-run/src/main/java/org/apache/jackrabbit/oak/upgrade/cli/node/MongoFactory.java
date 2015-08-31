@@ -44,14 +44,14 @@ public class MongoFactory implements NodeStoreFactory {
 
     @Override
     public NodeStore create(BlobStore blobStore, Closer closer) throws UnknownHostException {
-        final String db;
+        String db;
         if (uri.getDatabase() == null) {
             db = "aem-author"; // assume an author instance
         } else {
             db = uri.getDatabase();
         }
-        final DocumentMK.Builder builder = getBuilder(cacheSize);
-        final MongoClient client = new MongoClient(uri);
+        DocumentMK.Builder builder = getBuilder(cacheSize);
+        MongoClient client = new MongoClient(uri);
         closer.register(asCloseable(client));
         builder.setMongoDB(client.getDB(db));
         if (blobStore != null) {
@@ -81,8 +81,8 @@ public class MongoFactory implements NodeStoreFactory {
     }
 
     static DocumentMK.Builder getBuilder(int cacheSize) {
-        final boolean fastMigration = !Boolean.getBoolean("mongomk.disableFastMigration");
-        final DocumentMK.Builder builder = new DocumentMK.Builder();
+        boolean fastMigration = !Boolean.getBoolean("mongomk.disableFastMigration");
+        DocumentMK.Builder builder = new DocumentMK.Builder();
         builder.memoryCacheSize(cacheSize * MB);
         if (fastMigration) {
             builder.disableBranches();

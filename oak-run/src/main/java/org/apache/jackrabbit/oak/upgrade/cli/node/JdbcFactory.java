@@ -52,15 +52,15 @@ public class JdbcFactory implements NodeStoreFactory {
 
     @Override
     public NodeStore create(BlobStore blobStore, Closer closer) {
-        final DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcUri, user, password);
-        final DocumentMK.Builder builder = MongoFactory.getBuilder(cacheSize);
+        DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcUri, user, password);
+        DocumentMK.Builder builder = MongoFactory.getBuilder(cacheSize);
         if (blobStore != null) {
             builder.setBlobStore(blobStore);
         }
         builder.setRDBConnection(ds);
         log.info("Initialized DocumentNodeStore on RDB with Cache size : {} MB, Fast migration : {}", cacheSize,
                 builder.isDisableBranches());
-        final DocumentNodeStore documentNodeStore = builder.getNodeStore();
+        DocumentNodeStore documentNodeStore = builder.getNodeStore();
         closer.register(MongoFactory.asCloseable(documentNodeStore));
         return documentNodeStore;
     }

@@ -68,7 +68,7 @@ enum StoreType {
 
         @Override
         public StoreFactory createFactory(String[] paths, MigrationDirection direction, ArgumentParser arguments) {
-            final String username, password;
+            String username, password;
             if (direction == MigrationDirection.SRC) {
                 username = arguments.getOption(OptionParserFactory.SRC_USER);
                 password = arguments.getOption(OptionParserFactory.SRC_PASSWORD);

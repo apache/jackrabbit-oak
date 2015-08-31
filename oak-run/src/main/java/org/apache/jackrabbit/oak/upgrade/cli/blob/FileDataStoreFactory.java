@@ -36,7 +36,7 @@ public class FileDataStoreFactory implements BlobStoreFactory {
 
     @Override
     public BlobStore create(Closer closer) {
-        final OakFileDataStore delegate = new OakFileDataStore();
+        OakFileDataStore delegate = new OakFileDataStore();
         delegate.setPath(directory);
         delegate.init(null);
         closer.register(asCloseable(delegate));
