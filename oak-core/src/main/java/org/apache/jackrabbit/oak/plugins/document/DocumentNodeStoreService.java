@@ -420,6 +420,7 @@ public class DocumentNodeStoreService {
         //Set wrapping blob store after setting the DB
         if (wrappingCustomBlobStore) {
             ((BlobStoreWrapper) blobStore).setBlobStore(mkBuilder.getBlobStore());
+            mkBuilder.setBlobStore(blobStore);
         }
 
         mkBuilder.setExecutor(executor);

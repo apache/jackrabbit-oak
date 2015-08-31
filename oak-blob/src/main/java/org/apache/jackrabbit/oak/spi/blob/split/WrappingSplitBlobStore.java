@@ -27,11 +27,11 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStoreWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class WrappingSplitBlobStore implements BlobStoreWrapper {
+public class WrappingSplitBlobStore implements BlobStoreWrapper, SplitBlobStore {
 
     private static final Logger log = LoggerFactory.getLogger(WrappingSplitBlobStore.class);
 
-    private SplitBlobStore splitBlobStore;
+    private DefaultSplitBlobStore splitBlobStore;
 
     private final String repositoryDir;
 
@@ -45,12 +45,12 @@ public class WrappingSplitBlobStore implements BlobStoreWrapper {
     @Override
     public void setBlobStore(BlobStore blobStore) {
         log.info("Internal blob store set: {}", blobStore);
-        splitBlobStore = new SplitBlobStore(repositoryDir, blobStore, newBlobStore);
+        splitBlobStore = new DefaultSplitBlobStore(repositoryDir, blobStore, newBlobStore);
     }
 
-    private BlobStore getSplitBlobStore() {
+    private SplitBlobStore getSplitBlobStore() {
         if (splitBlobStore == null) {
-            throw new UnsupportedOperationException("The old blob store hasn't been set yet.");
+            throw new IllegalStateException("The old blob store hasn't been set yet.");
         }
         return splitBlobStore;
     }
@@ -83,6 +83,11 @@ public class WrappingSplitBlobStore implements BlobStoreWrapper {
     @Override
     public String getReference(String blobId) {
         return getSplitBlobStore().getReference(blobId);
+    }
+
+    @Override
+    public boolean isMigrated(String blobId) throws IOException {
+        return getSplitBlobStore().isMigrated(blobId);
     }
 
 }

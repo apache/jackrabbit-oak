@@ -33,7 +33,7 @@ import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.blob.split.SplitBlobStore;
+import org.apache.jackrabbit.oak.spi.blob.split.DefaultSplitBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.split.WrappingSplitBlobStore;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.InvalidSyntaxException;
@@ -52,8 +52,8 @@ public class SplitBlobStoreService {
     private static final String PROP_HOME = "repository.home";
 
     @Property(options = { @PropertyOption(name = "External", value = "EXTERNAL"),
-            @PropertyOption(name = "Internal - Segment", value = "INTERNAL_SEGMENT"),
-            @PropertyOption(name = "Internal - Document", value = "INTERNAL_DOCUMENT") })
+            @PropertyOption(name = "Internal - Segment", value = "SEGMENT"),
+            @PropertyOption(name = "Internal - Document", value = "DOCUMENT") })
     private static final String PROP_OLD_BLOB_STORE_TYPE = "split.old.blobstore.type";
 
     public static final String PROP_SPLIT_BLOBSTORE = "split.blobstore";
@@ -119,9 +119,9 @@ public class SplitBlobStoreService {
         log.info("Registering SplitBlobStore with old={} ({}) and new={}", oldBlobStore, oldBlobStoreType,
                 newBlobStore);
         BlobStore blobStore;
-        if (oldBlobStoreType == EXTERNAL || oldBlobStoreType == INTERNAL_SEGMENT) {
-            blobStore = new SplitBlobStore(homeDir, oldBlobStore, newBlobStore);
-        } else if (oldBlobStoreType == INTERNAL_DOCUMENT) {
+        if (oldBlobStoreType == EXTERNAL || oldBlobStoreType == SEGMENT) {
+            blobStore = new DefaultSplitBlobStore(homeDir, oldBlobStore, newBlobStore);
+        } else if (oldBlobStoreType == DOCUMENT) {
             blobStore = new WrappingSplitBlobStore(homeDir, newBlobStore);
         } else {
             throw new IllegalStateException("Illegal blob store type value: " + oldBlobStoreType);
@@ -171,6 +171,6 @@ public class SplitBlobStoreService {
     }
 
     enum BlobStoreType {
-        EXTERNAL, INTERNAL_DOCUMENT, INTERNAL_SEGMENT
+        EXTERNAL, DOCUMENT, SEGMENT
     }
 }

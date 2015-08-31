@@ -34,7 +34,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.blob.split.SplitBlobStore;
+import org.apache.jackrabbit.oak.spi.blob.split.DefaultSplitBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -69,7 +69,7 @@ public abstract class AbstractMigratorTest {
         closeNodeStore();
 
         newBlobStore = createNewBlobStore(repository);
-        SplitBlobStore splitBlobStore = new SplitBlobStore(repository.getPath(), oldBlobStore, newBlobStore);
+        DefaultSplitBlobStore splitBlobStore = new DefaultSplitBlobStore(repository.getPath(), oldBlobStore, newBlobStore);
         nodeStore = createNodeStore(splitBlobStore, repository);
         migrator = new BlobMigrator(splitBlobStore, nodeStore);
     }

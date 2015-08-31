@@ -30,7 +30,7 @@ import java.util.Random;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
-import org.apache.jackrabbit.oak.spi.blob.split.SplitBlobStore;
+import org.apache.jackrabbit.oak.spi.blob.split.DefaultSplitBlobStore;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -53,7 +53,7 @@ public class SplitBlobStoreTest {
 
     private BlobStore newBlobStore;
 
-    private SplitBlobStore splitBlobStore;
+    private DefaultSplitBlobStore splitBlobStore;
 
     private List<String> oldBlobIds;
 
@@ -64,7 +64,7 @@ public class SplitBlobStoreTest {
         repository = Files.createTempDir();
         oldBlobStore = new FileBlobStore(repository.getPath() + "/old");
         newBlobStore = new FileBlobStore(repository.getPath() + "/new");
-        splitBlobStore = new SplitBlobStore(repository.getPath(), oldBlobStore, newBlobStore);
+        splitBlobStore = new DefaultSplitBlobStore(repository.getPath(), oldBlobStore, newBlobStore);
         oldBlobIds = addBlobs(oldBlobStore);
         newBlobIds = addBlobs(splitBlobStore);
     }
