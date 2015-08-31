@@ -179,7 +179,13 @@ public class LastRevRecoveryTest {
                     op.setMapEntry(key, entry.getKey(), entry.getValue());
                 }
             } else {
-                op.set(key, obj);
+                if (obj instanceof Boolean) {
+                    op.set(key, ((Boolean) obj).booleanValue());
+                } else if (obj instanceof Number) {
+                    op.set(key, ((Number) obj).longValue());
+                } else {
+                    op.set(key, obj.toString());
+                }
             }
         }
         return op;
