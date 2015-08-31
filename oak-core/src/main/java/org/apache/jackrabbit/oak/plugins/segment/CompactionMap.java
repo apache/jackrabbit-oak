@@ -103,26 +103,25 @@ public class CompactionMap {
      * @param uuids  uuids of the keys to remove
      */
     public void remove(@Nonnull Set<UUID> uuids) {
-        List<PartialCompactionMap> remove = newArrayList();
         for (PartialCompactionMap map : maps) {
             map.remove(uuids);
-            if (map.getSegmentCount() == 0) {
-                remove.add(map);
-            }
         }
-        maps.removeAll(remove);
     }
 
     /**
      * Create a new {@code CompactionMap} containing all maps
-     * of this instances and additional the passed {@code map}.
-     * @param map
+     * of this instances and additional the passed map {@code head}.
+     * @param head
      * @return a new {@code CompactionMap} instance
      */
     @Nonnull
-    public CompactionMap cons(@Nonnull PartialCompactionMap map) {
-        List<PartialCompactionMap> maps = newArrayList(map);
-        maps.addAll(this.maps);
+    public CompactionMap cons(@Nonnull PartialCompactionMap head) {
+        List<PartialCompactionMap> maps = newArrayList(head);
+        for (PartialCompactionMap map : this.maps) {
+            if (!map.isEmpty()) {
+                maps.add(map);
+            }
+        }
         return new CompactionMap(maps);
     }
 
