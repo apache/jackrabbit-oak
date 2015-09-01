@@ -21,7 +21,6 @@ import java.io.IOException;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.core.RepositoryContext;
-import org.apache.jackrabbit.core.fs.FileSystemException;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
@@ -43,7 +42,7 @@ public class StoreFactory {
         this.nodeStoreFactory = nodeStoreFactory;
     }
 
-    public RepositoryContext create(Closer closer) throws IOException, FileSystemException, RepositoryException {
+    public RepositoryContext create(Closer closer) throws IOException, RepositoryException {
         if (jcr2Factory == null) {
             throw new UnsupportedOperationException();
         }
