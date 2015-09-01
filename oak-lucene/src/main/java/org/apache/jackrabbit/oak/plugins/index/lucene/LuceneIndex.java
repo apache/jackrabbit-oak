@@ -69,6 +69,7 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -662,6 +663,9 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                 continue;
             }
             if (JCR_PRIMARYTYPE.equals(name)) {
+                continue;
+            }
+            if (QueryConstants.RESTRICTION_LOCAL_NAME.equals(name)) {
                 continue;
             }
 
