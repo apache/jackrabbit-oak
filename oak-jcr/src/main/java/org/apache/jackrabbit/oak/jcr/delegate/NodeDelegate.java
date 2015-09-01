@@ -757,6 +757,21 @@ public class NodeDelegate extends ItemDelegate {
                 && (!deep || property.getValue(BOOLEAN));
     }
 
+    @CheckForNull
+    private Tree findDescendantLock(@Nonnull Tree tree) {
+        for (Tree child : tree.getChildren()) {
+            if (holdsLock(child, false)) {
+                return child;
+            } else {
+                Tree desc = findDescendantLock(child);
+                if (desc != null) {
+                    return desc;
+                }
+            }
+        }
+        return null;
+    }
+
     /**
      * Checks whether this node holds a lock.
      *
@@ -791,6 +806,20 @@ public class NodeDelegate extends ItemDelegate {
             throw new LockException("Node " + path + " is not lockable");
         } else if (tree.hasProperty(JCR_LOCKISDEEP)) {
             throw new LockException("Node " + path + " is already locked");
+        }
+
+        // look for locked ancestor
+        Tree inheritedLock = findLock(tree, true);
+        if (inheritedLock != null) {
+            throw new LockException("Node already indirectly locked by " + inheritedLock.getPath());
+        }
+
+        // scan for locked descendant
+        if (isDeep) {
+            Tree descendantLock = findDescendantLock(tree);
+            if (descendantLock != null) {
+                throw new LockException("Lock conflicts with lock hold by " + descendantLock.getPath());
+            }
         }
 
         try {
