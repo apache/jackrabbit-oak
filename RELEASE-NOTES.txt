@@ -48,7 +48,8 @@ Bug
 Improvement
 
     [OAK-2805] - oak-run: register JMX beans 
-    [OAK-3050] - Move oak-it-osgi to top level 
+    [OAK-3050] - Move oak-it-osgi to top level
+    [OAK-3146] - ExternalLoginModuleFactory should inject SyncManager and ExternalIdentityProviderManager    
     [OAK-3153] - Make it possible to disable recording of stack trace in SessionStats
     [OAK-3163] - Improve binary comparison during repeated upgrades
     [OAK-3238] - fine tune clock-sync check vs lease-check settings
