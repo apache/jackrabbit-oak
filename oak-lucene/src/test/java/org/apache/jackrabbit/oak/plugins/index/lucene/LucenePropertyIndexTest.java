@@ -374,6 +374,33 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
+    public void nodeName() throws Exception{
+        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree rules = idx.addChild(LuceneIndexConstants.INDEX_RULES);
+        rules.setOrderableChildren(true);
+        Tree rule = rules.addChild("nt:base");
+        rule.setProperty(LuceneIndexConstants.INDEX_NODE_NAME, true);
+        root.commit();
+
+        Tree test = root.getTree("/");
+        test.addChild("foo");
+        test.addChild("camelCase");
+        test.addChild("test").addChild("bar");
+        root.commit();
+
+        String propabQuery = "select [jcr:path] from [nt:base] where LOCALNAME() = 'foo'";
+        assertThat(explain(propabQuery), containsString("lucene:test1(/oak:index/test1) :nodeName:foo"));
+        assertQuery(propabQuery, asList("/foo"));
+        assertQuery("select [jcr:path] from [nt:base] where LOCALNAME() = 'bar'", asList("/test/bar"));
+        assertQuery("select [jcr:path] from [nt:base] where LOCALNAME() LIKE 'foo'", asList("/foo"));
+        assertQuery("select [jcr:path] from [nt:base] where LOCALNAME() LIKE 'camel%'", asList("/camelCase"));
+
+        assertQuery("select [jcr:path] from [nt:base] where NAME() = 'bar'", asList("/test/bar"));
+        assertQuery("select [jcr:path] from [nt:base] where NAME() LIKE 'foo'", asList("/foo"));
+        assertQuery("select [jcr:path] from [nt:base] where NAME() LIKE 'camel%'", asList("/camelCase"));
+    }
+
+    @Test
     public void emptyIndex() throws Exception{
         Tree idx = createIndex("test1", of("propa", "propb"));
         idx.addChild(PROP_NODE).addChild("propa");

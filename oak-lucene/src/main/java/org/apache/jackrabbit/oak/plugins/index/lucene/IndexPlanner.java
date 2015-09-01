@@ -164,6 +164,7 @@ class IndexPlanner {
         boolean evalNodeTypeRestrictions = canEvalNodeTypeRestrictions(indexingRule);
         boolean evalPathRestrictions = canEvalPathRestrictions(indexingRule);
         boolean canEvalAlFullText = canEvalAllFullText(indexingRule, ft);
+        boolean canEvalNodeNameRestriction = canEvalNodeNameRestriction(indexingRule);
 
         if (ft != null && !canEvalAlFullText){
             return null;
@@ -173,7 +174,8 @@ class IndexPlanner {
 
         List<OrderEntry> sortOrder = createSortOrder(indexingRule);
         boolean canSort = canSortByProperty(sortOrder);
-        if (!indexedProps.isEmpty() || canSort || ft != null || evalPathRestrictions || evalNodeTypeRestrictions) {
+        if (!indexedProps.isEmpty() || canSort || ft != null
+                || evalPathRestrictions || evalNodeTypeRestrictions || canEvalNodeNameRestriction) {
             //TODO Need a way to have better cost estimate to indicate that
             //this index can evaluate more propertyRestrictions natively (if more props are indexed)
             //For now we reduce cost per entry
@@ -197,6 +199,10 @@ class IndexPlanner {
 
             if (evalNodeTypeRestrictions){
                 result.enableNodeTypeEvaluation();
+            }
+
+            if (canEvalNodeNameRestriction){
+                result.enableNodeNameRestriction();
             }
 
             return plan.setCostPerEntry(definition.getCostPerEntry() / costPerEntryFactor);
@@ -229,6 +235,14 @@ class IndexPlanner {
         }
 
         return false;
+    }
+
+    private boolean canEvalNodeNameRestriction(IndexingRule indexingRule) {
+        PropertyRestriction pr = filter.getPropertyRestriction(QueryConstants.RESTRICTION_LOCAL_NAME);
+        if (pr == null){
+            return false;
+        }
+        return indexingRule.isNodeNameIndexed();
     }
 
     private static boolean canSortByProperty(List<OrderEntry> sortOrder) {
@@ -444,17 +458,6 @@ class IndexPlanner {
             //Relative parent properties where [../foo1] is not null
             return true;
         }
-        int usablePropertRestrictionCount = 0;
-        for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
-            String name = pr.propertyName;
-            if (QueryConstants.RESTRICTION_LOCAL_NAME.equals(name)) {
-                continue;
-            }
-            usablePropertRestrictionCount++;
-        }
-        if (usablePropertRestrictionCount == 0) {
-            return true;
-        }
         return false;
     }
 
@@ -472,6 +475,7 @@ class IndexPlanner {
         private String parentPathSegment;
         private boolean relativize;
         private boolean nodeTypeRestrictions;
+        private boolean nodeNameRestriction;
 
         public PlanResult(String indexPath, IndexDefinition defn, IndexingRule indexingRule) {
             this.indexPath = indexPath;
@@ -521,6 +525,8 @@ class IndexPlanner {
             return nodeTypeRestrictions;
         }
 
+        public boolean evaluateNodeNameRestriction() {return nodeNameRestriction;}
+
         private void setParentPath(String relativePath){
             parentPathSegment = "/" + relativePath;
             if (relativePath.isEmpty()){
@@ -539,6 +545,10 @@ class IndexPlanner {
 
         private void enableNodeTypeEvaluation() {
             nodeTypeRestrictions = true;
+        }
+
+        private void enableNodeNameRestriction(){
+            nodeNameRestriction = true;
         }
     }
 }
