@@ -90,8 +90,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DocumentNodeStoreTest {
+
+    private static final Logger LOG = LoggerFactory.getLogger(DocumentNodeStoreTest.class);
 
     @After
     public void tearDown() {
@@ -1597,7 +1601,7 @@ public class DocumentNodeStoreTest {
             }
         }
 
-        System.out.println("Starting the final merge "+ new Date());
+        LOG.info("Starting the final merge {}", new Date());
         merge(ns, builder);
 
         ns.dispose();

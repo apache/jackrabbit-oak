@@ -42,10 +42,15 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.junit.Assert.assertFalse;
 
 public class NodeStoreDiffTest {
+
+    private static final Logger LOG = LoggerFactory.getLogger(NodeStoreDiffTest.class);
+
     private NodeStore ns;
     private final TestDocumentStore tds = new TestDocumentStore();
 
@@ -174,7 +179,7 @@ public class NodeStoreDiffTest {
     private void prRev(NodeState ns){
         if(ns instanceof DocumentNodeState){
             DocumentNodeState dns = ((DocumentNodeState) ns);
-            System.out.printf("Root at %s (%s) %n", dns.getRevision(), dns.getLastRevision());
+            LOG.info("Root at {} ({})", dns.getRevision(), dns.getLastRevision());
         }
     }
 

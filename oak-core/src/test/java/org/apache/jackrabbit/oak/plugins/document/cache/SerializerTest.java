@@ -33,11 +33,16 @@ import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class SerializerTest {
+
+    private static final Logger LOG = LoggerFactory.getLogger(SerializerTest.class);
+
     private DocumentStore store = new MemoryDocumentStore();
 
     @Test
@@ -85,7 +90,7 @@ public class SerializerTest {
         Input input = new Input(o.getBuffer(), 0, o.position());
         Object result = k.readObject(input,data.getClass());
         input.close();
-        System.out.printf("Size %d %s %n",o.position(), data);
+        LOG.info("Size {} {}", o.position(), data);
         return result;
     }
 
