@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.PathFilter;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.UniqueEntryStoreStrategy;
@@ -110,6 +111,10 @@ class PropertyIndexEditor implements IndexEditor {
 
     private final IndexUpdateCallback updateCallback;
 
+    private final PathFilter pathFilter;
+
+    private final PathFilter.Result pathFilterResult;
+
     public PropertyIndexEditor(NodeBuilder definition, NodeState root,
             IndexUpdateCallback updateCallback) {
         this.parent = null;
@@ -117,6 +122,8 @@ class PropertyIndexEditor implements IndexEditor {
         this.path = "/";
         this.definition = definition;
         this.root = root;
+        pathFilter = PathFilter.from(definition);
+        pathFilterResult = getPathFilterResult();
 
         //initPropertyNames(definition);
 
@@ -147,7 +154,7 @@ class PropertyIndexEditor implements IndexEditor {
         this.updateCallback = updateCallback;
     }
     
-    PropertyIndexEditor(PropertyIndexEditor parent, String name) {
+    PropertyIndexEditor(PropertyIndexEditor parent, String name, PathFilter.Result pathFilterResult) {
         this.parent = parent;
         this.name = name;
         this.path = null;
@@ -157,6 +164,8 @@ class PropertyIndexEditor implements IndexEditor {
         this.typePredicate = parent.typePredicate;
         this.keysToCheckForUniqueness = parent.keysToCheckForUniqueness;
         this.updateCallback = parent.updateCallback;
+        this.pathFilter = parent.pathFilter;
+        this.pathFilterResult = pathFilterResult;
     }
     
     /**
@@ -228,6 +237,16 @@ class PropertyIndexEditor implements IndexEditor {
     @Override
     public void leave(NodeState before, NodeState after)
             throws CommitFailedException {
+
+        if (pathFilterResult == PathFilter.Result.INCLUDE) {
+            applyTypeRestrictions(before, after);
+            updateIndex(before, after);
+        }
+        checkUniquenessConstraints();
+        
+    }
+    
+    private void applyTypeRestrictions(NodeState before, NodeState after) {
         // apply the type restrictions
         if (typePredicate != null) {
             if (typeChanged) {
@@ -245,7 +264,9 @@ class PropertyIndexEditor implements IndexEditor {
                 afterKeys = null;
             }
         }
-
+    }
+    
+    private void updateIndex(NodeState before, NodeState after) throws CommitFailedException {
         // if any changes were detected, update the index accordingly
         if (beforeKeys != null || afterKeys != null) {
             // first make sure that both the before and after sets are non-null
@@ -276,13 +297,17 @@ class PropertyIndexEditor implements IndexEditor {
             }
         }
 
+        checkUniquenessConstraints();
+    }
+
+    private void checkUniquenessConstraints() throws CommitFailedException {
         if (parent == null) {
             // make sure that the index node exist, even with no content
             definition.child(INDEX_CONTENT_NODE_NAME);
 
             boolean uniqueIndex = keysToCheckForUniqueness != null;
             // check uniqueness constraints when leaving the root
-            if (uniqueIndex && 
+            if (uniqueIndex &&
                     !keysToCheckForUniqueness.isEmpty()) {
                 NodeState indexMeta = definition.getNodeState();
                 String failed = getFirstDuplicate(
@@ -292,12 +317,12 @@ class PropertyIndexEditor implements IndexEditor {
                             "Uniqueness constraint violated at path [%s] for one of the "
                                     + "property in %s having value %s",
                             getPath(), propertyNames, failed);
-                    throw new CommitFailedException(CONSTRAINT, 30, msg);                
+                    throw new CommitFailedException(CONSTRAINT, 30, msg);
                 }
             }
         }
     }
-    
+
     /**
      * From a set of keys, get those that already exist in the index.
      * 
@@ -378,24 +403,43 @@ class PropertyIndexEditor implements IndexEditor {
      * @param name the name of the child node
      * @return an instance of the PropertyIndexEditor
      */
-    PropertyIndexEditor getChildIndexEditor(@Nonnull PropertyIndexEditor parent, @Nonnull String name) {
-       return new PropertyIndexEditor(parent, name);
+    PropertyIndexEditor getChildIndexEditor(@Nonnull PropertyIndexEditor parent, @Nonnull String name, PathFilter.Result filterResult) {
+       return new PropertyIndexEditor(parent, name, filterResult);
     }
     
     @Override
     public Editor childNodeAdded(String name, NodeState after) {
-        return getChildIndexEditor(this, name);
+        PathFilter.Result filterResult = getPathFilterResult(name);
+        if (filterResult == PathFilter.Result.EXCLUDE) {
+            return null;
+        }
+        return getChildIndexEditor(this, name, filterResult);
     }
 
     @Override
     public Editor childNodeChanged(
             String name, NodeState before, NodeState after) {
-        return getChildIndexEditor(this, name);
+        PathFilter.Result filterResult = getPathFilterResult(name);
+        if (filterResult == PathFilter.Result.EXCLUDE) {
+            return null;
+        }
+        return getChildIndexEditor(this, name, filterResult);
     }
 
     @Override
     public Editor childNodeDeleted(String name, NodeState before) {
-        return getChildIndexEditor(this, name);
+        PathFilter.Result filterResult = getPathFilterResult(name);
+        if (filterResult == PathFilter.Result.EXCLUDE) {
+            return null;
+        }
+        return getChildIndexEditor(this, name, filterResult);
     }
 
+    private PathFilter.Result getPathFilterResult() {
+        return pathFilter.filter(getPath());
+    }
+
+    private PathFilter.Result getPathFilterResult(String childNodeName) {
+        return pathFilter.filter(concat(getPath(), childNodeName));
+    }
 }

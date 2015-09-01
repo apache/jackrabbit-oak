@@ -49,6 +49,7 @@ import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
+import org.apache.jackrabbit.oak.plugins.index.PathFilter;
 import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.OrderDirection;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.OrderedContentMirrorStoreStrategy;
@@ -169,8 +170,8 @@ public class Oak2077QueriesTest extends BasicOrderedPropertyIndexQueryTest {
             this.rnd = rnd;
         }
 
-        public SeededPropertyIndexEditor(SeededPropertyIndexEditor parent, String name) {
-            super(parent, name);
+        public SeededPropertyIndexEditor(SeededPropertyIndexEditor parent, String name, PathFilter.Result pathFilterResult) {
+            super(parent, name, pathFilterResult);
             this.rnd = parent.rnd;
         }
 
@@ -185,8 +186,8 @@ public class Oak2077QueriesTest extends BasicOrderedPropertyIndexQueryTest {
         }
 
         @Override
-        PropertyIndexEditor getChildIndexEditor(PropertyIndexEditor parent, String name) {
-            return new SeededPropertyIndexEditor(this, name);
+        PropertyIndexEditor getChildIndexEditor(PropertyIndexEditor parent, String name, PathFilter.Result pathFilterResult) {
+            return new SeededPropertyIndexEditor(this, name, pathFilterResult);
         }
     }
     
@@ -314,7 +315,7 @@ public class Oak2077QueriesTest extends BasicOrderedPropertyIndexQueryTest {
     /**
      * truncate the {@link AbstractQueryTest#TEST_INDEX_NAME} index at the 4th element of the
      * provided lane returning the previous value
-     * 
+     *
      * @param lane the desired lane. Must be 0 <= {@code lane} < {@link OrderedIndex#LANES}
      * @param inexistent the derired value to be injected
      * @return the value before the change

@@ -54,14 +54,17 @@ public class PathFilter {
     public static final String PROP_EXCLUDED_PATHS = "excludedPaths";
 
     public enum Result {
+
         /**
          * Include the path for processing
          */
         INCLUDE,
+
         /**
          * Exclude the path and subtree for processing
          */
         EXCLUDE,
+
         /**
          * Do not process the path but just perform traversal to
          * child nodes. For IndexEditor it means that such nodes
@@ -72,7 +75,7 @@ public class PathFilter {
 
     private static final PathFilter ALL = new PathFilter(INCLUDE_ROOT, Collections.<String>emptyList()) {
         @Override
-        public Result doFiler(@Nonnull String path) {
+        public Result filter(@Nonnull String path) {
             return Result.INCLUDE;
         }
     };
@@ -81,21 +84,23 @@ public class PathFilter {
     private final String[] excludedPaths;
 
     /**
-     * Constructs the predicate based on given definition state. It looks
-     * for multi value property with names {@link PathFilter#PROP_INCLUDED_PATHS}
-     * and {@link PathFilter#PROP_EXCLUDED_PATHS}. Both the properties
-     * are optional.
-     *
-     * @param defn nodestate representing the configuration. Generally it would be the nodestate
-     *             representing the index definition
+     * Constructs the predicate based on given definition state. It looks for
+     * multi value property with names {@link PathFilter#PROP_INCLUDED_PATHS}
+     * and {@link PathFilter#PROP_EXCLUDED_PATHS}. Both the properties are
+     * optional.
+     * 
+     * @param defn nodestate representing the configuration. Generally it would
+     *            be the nodestate representing the index definition
      * @return predicate based on the passed definition state
      */
-    public static PathFilter from(@Nonnull NodeBuilder defn){
-        if (!defn.hasProperty(PROP_EXCLUDED_PATHS) && !defn.hasProperty(PROP_INCLUDED_PATHS)){
+    public static PathFilter from(@Nonnull NodeBuilder defn) {
+        if (!defn.hasProperty(PROP_EXCLUDED_PATHS) &&
+                !defn.hasProperty(PROP_INCLUDED_PATHS)) {
             return ALL;
         }
-        return new PathFilter(getStrings(defn, PROP_INCLUDED_PATHS, INCLUDE_ROOT),
-                getStrings(defn, PROP_EXCLUDED_PATHS, Collections.<String>emptyList()));
+        return new PathFilter(getStrings(defn, PROP_INCLUDED_PATHS,
+                INCLUDE_ROOT), getStrings(defn, PROP_EXCLUDED_PATHS,
+                Collections.<String> emptyList()));
     }
 
     /**
@@ -123,21 +128,21 @@ public class PathFilter {
      * @param path path to check
      * @return result indicating if the path needs to be included, excluded or just traversed
      */
-    public Result doFiler(@Nonnull String path) {
-        for (String excludedPath : excludedPaths){
-            if (excludedPath.equals(path) || isAncestor(excludedPath, path)){
+    public Result filter(@Nonnull String path) {
+        for (String excludedPath : excludedPaths) {
+            if (excludedPath.equals(path) || isAncestor(excludedPath, path)) {
                 return Result.EXCLUDE;
             }
         }
 
-        for (String includedPath : includedPaths){
-            if (includedPath.equals(path) || isAncestor(includedPath, path)){
+        for (String includedPath : includedPaths) {
+            if (includedPath.equals(path) || isAncestor(includedPath, path)) {
                 return Result.INCLUDE;
             }
         }
 
-        for (String includedPath : includedPaths){
-            if (includedPath.startsWith(path)){
+        for (String includedPath : includedPaths) {
+            if (isAncestor(path, includedPath)) {
                 return Result.TRAVERSE;
             }
         }
@@ -153,12 +158,35 @@ public class PathFilter {
                 '}';
     }
 
-    private static Iterable<String> getStrings(NodeBuilder builder, String name, Collection<String> defaultVal) {
-        PropertyState property = builder.getProperty(name);
+    private static Iterable<String> getStrings(NodeBuilder builder, String propertyName, 
+            Collection<String> defaultVal) {
+        PropertyState property = builder.getProperty(propertyName);
         if (property != null && property.getType() == Type.STRINGS) {
             return property.getValue(Type.STRINGS);
         } else {
             return defaultVal;
         }
     }
+
+    /**
+     * Check whether this node and all descendants are included in this filter.
+     * 
+     * @param path the path
+     * @return true if this and all descendants of this path are included in the filter
+     */
+    public boolean areAllDescendantsIncluded(String path) {
+        for (String excludedPath : excludedPaths) {
+            if (excludedPath.equals(path) || isAncestor(excludedPath, path) || 
+                    isAncestor(path, excludedPath)) {
+                return false;
+            }
+        }
+        for (String includedPath : includedPaths) {
+            if (includedPath.equals(path) || isAncestor(includedPath, path)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
 }
