@@ -74,12 +74,15 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
+import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
+import org.apache.jackrabbit.oak.plugins.commit.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.DefaultCompactionStrategyMBean;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStoreGCMonitor;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -432,7 +435,14 @@ public class SegmentCompactionIT {
                 modify(nodeStore, root);
             }
             if (!cancelled) {
-                nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+                try {
+                    CommitHook commitHook = rnd.nextBoolean()
+                        ? new CompositeHook(new ConflictHook(DefaultConflictHandler.OURS))
+                        : new CompositeHook(new ConflictHook(DefaultConflictHandler.THEIRS));
+                    nodeStore.merge(root, commitHook, CommitInfo.EMPTY);
+                } catch (CommitFailedException e) {
+                    LOG.warn("Commit failed: {}", e.getMessage());
+                }
             }
             return null;
         }
