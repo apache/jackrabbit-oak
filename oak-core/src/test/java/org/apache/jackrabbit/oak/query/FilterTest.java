@@ -46,6 +46,23 @@ public class FilterTest {
         QueryImpl q = (QueryImpl) p.parse(sql);
         return q.createFilter(true);
     }
+    
+    private Filter createFilterSQL(String sql) throws ParseException {
+        QueryImpl q = (QueryImpl) p.parse(sql);
+        return q.createFilter(true);
+    }
+    
+    @Test
+    public void localName() throws Exception {
+        Filter f = createFilterSQL("select * from [nt:base] where localname() = 'resource'");
+        assertEquals("[resource]", f.getPropertyRestrictions(":localname").toString());
+    }
+    
+    @Test
+    public void name() throws Exception {
+        Filter f = createFilter("//*[fn:name() = 'nt:resource']");
+        assertEquals("[resource]", f.getPropertyRestrictions(":localname").toString());
+    }
 
     @Test
     public void mvp() throws Exception {
@@ -60,7 +77,7 @@ public class FilterTest {
         Filter f = createFilter("//*[not(@c)]");
         assertEquals("[is null]", f.getPropertyRestrictions("c").toString());
     }
-     
+
     @Test
     public void isNotNull() throws Exception {
         // this can refer to a multi-valued property
