@@ -64,7 +64,8 @@ Improvement
     [OAK-3294] - Read-only live FileStore implementation
     [OAK-3296] - Oak Explorer support for live read-only store
     [OAK-3298] - Allow to specify LogDumper's log buffer size
-    [OAK-3299] - SNFE in SegmentOverflowExceptionIT 
+    [OAK-3299] - SNFE in SegmentOverflowExceptionIT
+    [OAK-3322] - Change activation policy of RemoteServletRegistration
 
 New Feature
 
