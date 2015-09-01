@@ -57,6 +57,7 @@ Improvement
     [OAK-3254] - Log expensive NodeDocument.getNewestRevision() call
     [OAK-3258] - Async index should change thread name to improve log readability
     [OAK-3259] - Optimize NodeDocument.getNewestRevision()
+    [OAK-3263] - Support including and excluding paths for PropertyIndex    
     [OAK-3273] - ColdStandby make sync start and end timestamp updates atomic
     [OAK-3288] - clarify DocumentStore contract with respect to number formats
     [OAK-3293] - SegmentOverflowExceptionIT runs forever unless it fails
