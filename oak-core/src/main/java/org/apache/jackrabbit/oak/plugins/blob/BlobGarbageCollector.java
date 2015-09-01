@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
+import java.util.List;
+
 /**
  * Interface for blob garbage collector
  */
@@ -29,4 +31,12 @@ public interface BlobGarbageCollector {
      * @throws Exception the exception
      */
     void collectGarbage(boolean markOnly) throws Exception;
+    
+    /**
+     * Retuns the list of stats
+     * 
+     * @return stats
+     * @throws Exception
+     */
+    List<GarbageCollectionRepoStats> getStats() throws Exception;
 }

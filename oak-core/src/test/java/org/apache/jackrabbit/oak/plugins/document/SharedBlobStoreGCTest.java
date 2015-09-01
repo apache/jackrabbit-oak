@@ -41,6 +41,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGarbageCollector;
+import org.apache.jackrabbit.oak.plugins.blob.GarbageCollectionRepoStats;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
@@ -134,6 +135,33 @@ public class SharedBlobStoreGCTest {
     }
 
     @Test
+    public void testGCStats() throws Exception {
+        log.debug("Running testGCStats()");
+        // Only run the mark phase on both the clusters to get the stats
+        cluster1.gc.collectGarbage(true);
+        cluster2.gc.collectGarbage(true);
+    
+        Set<String> actualRepoIds = Sets.newHashSet();
+        actualRepoIds.add(cluster1.repoId);
+        actualRepoIds.add(cluster2.repoId);
+    
+        Set<Integer> actualNumBlobs = Sets.newHashSet();
+        actualNumBlobs.add(cluster1.initBlobs.size());
+        actualNumBlobs.add(cluster2.initBlobs.size());
+    
+        List<GarbageCollectionRepoStats> statsList = cluster1.gc.getStats();
+        Set<Integer> observedNumBlobs = Sets.newHashSet();
+        Set<String> observedRepoIds = Sets.newHashSet();
+        for (GarbageCollectionRepoStats stat : statsList) {
+            observedNumBlobs.add(stat.getNumLines());
+            observedRepoIds.add(stat.getRepositoryId());
+        }
+    
+        Assert.assertTrue(Sets.difference(actualNumBlobs, observedNumBlobs).isEmpty());
+        Assert.assertTrue(Sets.difference(actualRepoIds, observedRepoIds).isEmpty());
+    }
+
+    @Test
     // GC should fail
     public void testOnly1ClusterMark() throws Exception {
         log.debug("Running testOnly1ClusterMark()");
@@ -180,7 +208,7 @@ public class SharedBlobStoreGCTest {
         private int seed;
         private BlobGarbageCollector gc;
         private Date startDate;
-
+        private String repoId;
         private Set<String> initBlobs = new HashSet<String>();
 
         protected Set<String> getInitBlobs() {
@@ -190,19 +218,14 @@ public class SharedBlobStoreGCTest {
         public Cluster(final DocumentNodeStore ds, final String repoId, int seed)
                 throws IOException {
             this.ds = ds;
-            this.gc = new BlobGarbageCollector() {
-                @Override
-                public void collectGarbage(boolean markOnly) throws Exception {
-                    MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector(
+            this.gc = new MarkSweepGarbageCollector(
                             new DocumentBlobReferenceRetriever(ds),
                             (GarbageCollectableBlobStore) ds.getBlobStore(),
                             MoreExecutors.sameThreadExecutor(),
                             "./target", 5, 0, repoId);
-                    gc.collectGarbage(markOnly);
-                }
-            };
             this.startDate = new Date();
             this.seed = seed;
+            this.repoId = repoId;
         }
 
         /**

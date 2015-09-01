@@ -21,16 +21,28 @@ package org.apache.jackrabbit.oak.plugins.blob;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.System.nanoTime;
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.formatTime;
 import static org.apache.jackrabbit.oak.management.ManagementOperation.done;
 import static org.apache.jackrabbit.oak.management.ManagementOperation.newManagementOperation;
 
+import java.util.Date;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 
 import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
+import javax.management.openmbean.CompositeDataSupport;
+import javax.management.openmbean.CompositeType;
+import javax.management.openmbean.OpenDataException;
+import javax.management.openmbean.OpenType;
+import javax.management.openmbean.SimpleType;
+import javax.management.openmbean.TabularData;
+import javax.management.openmbean.TabularDataSupport;
+import javax.management.openmbean.TabularType;
 
+import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.management.ManagementOperation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +50,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Default implementation of {@link BlobGCMBean} based on a {@link BlobGarbageCollector}.
  */
-public class BlobGC implements BlobGCMBean {
+public class  BlobGC extends AnnotatedStandardMBean implements BlobGCMBean {
     private static final Logger log = LoggerFactory.getLogger(BlobGC.class);
 
     public static final String OP_NAME = "Blob garbage collection";
@@ -55,6 +67,7 @@ public class BlobGC implements BlobGCMBean {
     public BlobGC(
             @Nonnull BlobGarbageCollector blobGarbageCollector,
             @Nonnull Executor executor) {
+        super(BlobGCMBean.class);
         this.blobGarbageCollector = checkNotNull(blobGarbageCollector);
         this.executor = checkNotNull(executor);
     }
@@ -81,4 +94,73 @@ public class BlobGC implements BlobGCMBean {
     public CompositeData getBlobGCStatus() {
         return gcOp.getStatus().toCompositeData();
     }
+    
+    @Override 
+    public TabularData getGlobalMarkStats() {
+        TabularDataSupport tds;
+        try {
+            TabularType tt = new TabularType(BlobGC.class.getName(),
+                                                "Garbage collection global mark phase Stats", 
+                                                TYPE,
+                                                new String[] {"repositoryId"});
+            tds = new TabularDataSupport(tt);           
+            List<GarbageCollectionRepoStats> stats = blobGarbageCollector.getStats();
+            for (GarbageCollectionRepoStats stat : stats) {
+                tds.put(toCompositeData(stat));
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+        return tds;
+    }
+    
+    private CompositeDataSupport toCompositeData(GarbageCollectionRepoStats statObj) throws OpenDataException {
+        Object[] values = new Object[] {
+                statObj.getRepositoryId(),
+                (statObj.getLastModified() == 0 ? "" : (new Date(statObj.getLastModified()))).toString(),
+                statObj.getLength(),
+                humanReadableByteCount(statObj.getLength()),
+                statObj.getNumLines()
+        };
+        return new CompositeDataSupport(TYPE, FIELD_NAMES, values);
+    }
+    
+    private static final String[] FIELD_NAMES = new String[] {
+            "repositoryId",
+            "referencesLastModifiedTime",
+            "referenceFileSizeBytes",
+            "referencesFileSize",
+            "numReferences",
+    };
+    
+    private static final String[] FIELD_DESCRIPTIONS = new String[] {
+           "Repository ID",
+           "Last modified time of references",
+           "References file size in bytes",
+           "References file size in human readable format",
+           "Number of references" 
+    };
+    
+    private static final OpenType[] FIELD_TYPES = new OpenType[] {
+            SimpleType.STRING,
+            SimpleType.STRING,
+            SimpleType.LONG,
+            SimpleType.STRING,
+            SimpleType.INTEGER
+    };
+    
+    private static final CompositeType TYPE = createCompositeType();
+    
+    private static CompositeType createCompositeType() {
+        try {
+            return new CompositeType(
+                    GarbageCollectionRepoStats.class.getName(),
+                    "Composite data type for datastore GC statistics",
+                    FIELD_NAMES,
+                    FIELD_DESCRIPTIONS,
+                    FIELD_TYPES);
+        } catch (OpenDataException e) {
+            throw new IllegalStateException(e);
+        }
+    }    
 }
