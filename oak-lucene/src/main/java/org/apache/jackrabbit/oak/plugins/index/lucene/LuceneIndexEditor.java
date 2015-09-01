@@ -136,7 +136,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         this.root = root;
         this.isDeleted = false;
         this.matcherState = MatcherState.NONE;
-        this.pathFilterResult = context.getDefinition().getPathFilter().doFiler(getPath());
+        this.pathFilterResult = context.getDefinition().getPathFilter().filter(getPath());
     }
 
     private LuceneIndexEditor(LuceneIndexEditor parent, String name,
@@ -834,7 +834,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
     }
 
     private PathFilter.Result getPathFilterResult(String childNodeName) {
-        return context.getDefinition().getPathFilter().doFiler(concat(getPath(), childNodeName));
+        return context.getDefinition().getPathFilter().filter(concat(getPath(), childNodeName));
     }
 
     private boolean isSupportedMediaType(String type) {
