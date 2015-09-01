@@ -35,7 +35,7 @@ import static org.apache.felix.scr.annotations.ConfigurationPolicy.REQUIRE;
 
 @Component(
         metatype = true,
-        policy = REQUIRE,
+        immediate = true,
         label = "Apache Jackrabbit Oak Remote HTTP API",
         description = "The HTTP binding of the Remote API for a Jackrabbit Oak repository"
 )
