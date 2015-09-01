@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
+import static com.google.common.collect.ImmutableSet.of;
+import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
@@ -23,14 +25,19 @@ import static org.apache.jackrabbit.JcrConstants.NT_FILE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
+import static org.apache.jackrabbit.oak.plugins.index.PathFilter.PROP_EXCLUDED_PATHS;
+import static org.apache.jackrabbit.oak.plugins.index.PathFilter.PROP_INCLUDED_PATHS;
 import static org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditor.COUNT_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.matchers.JUnitMatchers.containsString;
 
 import java.util.Arrays;
 import java.util.Set;
@@ -43,11 +50,13 @@ import ch.qos.logback.core.read.ListAppender;
 import ch.qos.logback.core.spi.FilterReply;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.query.index.TraversingIndex;
@@ -563,6 +572,165 @@ public class PropertyIndexTest {
         assertTrue("Warning should not be logged for traversing " + testDataSize,
                 appender.list.isEmpty());
         deregisterAppender(appender);
+    }
+
+    @Test
+    public void testPathInclude() throws Exception {
+        NodeState root = INITIAL_CONTENT;
+
+        // Add index definition
+        NodeBuilder builder = root.builder();
+        NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                true, false, ImmutableSet.of("foo"), null);
+        index.setProperty(createProperty(PROP_INCLUDED_PATHS, of("/test/a"), Type.STRINGS));
+        NodeState before = builder.getNodeState();
+
+        // Add some content and process it through the property index hook
+        builder.child("test").child("a").setProperty("foo", "abc");
+        builder.child("test").child("b").setProperty("foo", "abc");
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        FilterImpl f = createFilter(indexed, NT_BASE);
+
+        // Query the index
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        assertEquals(ImmutableSet.of("test/a"), find(lookup, "foo", "abc", f));
+    }
+
+    @Test
+    public void testPathExclude() throws Exception {
+        NodeState root = INITIAL_CONTENT;
+
+        // Add index definition
+        NodeBuilder builder = root.builder();
+        NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                true, false, ImmutableSet.of("foo"), null);
+        index.setProperty(createProperty(PROP_EXCLUDED_PATHS, of("/test/a"), Type.STRINGS));
+        NodeState before = builder.getNodeState();
+
+        // Add some content and process it through the property index hook
+        builder.child("test").child("a").setProperty("foo", "abc");
+        builder.child("test").child("b").setProperty("foo", "abc");
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        FilterImpl f = createFilter(indexed, NT_BASE);
+        f.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("abc"));
+
+        // Query the index
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        assertEquals(ImmutableSet.of("test/b"), find(lookup, "foo", "abc", f));
+
+        //no path restriction, opt out
+        PropertyIndexPlan plan = new PropertyIndexPlan("plan", root, index.getNodeState(), f);
+        assertTrue(Double.POSITIVE_INFINITY == plan.getCost());
+
+        //path restriction is not an ancestor of excluded path, index may be used
+        f.setPath("/test2");
+        plan = new PropertyIndexPlan("plan", root, index.getNodeState(), f);
+        assertTrue(Double.POSITIVE_INFINITY != plan.getCost());
+
+        //path restriction is an ancestor of excluded path, opt out
+        f.setPath("/test");
+        plan = new PropertyIndexPlan("plan", root, index.getNodeState(), f);
+        assertTrue(Double.POSITIVE_INFINITY == plan.getCost());
+    }
+
+    @Test
+    public void testPathIncludeExclude() throws Exception {
+        NodeState root = INITIAL_CONTENT;
+
+        // Add index definition
+        NodeBuilder builder = root.builder();
+        NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                true, false, ImmutableSet.of("foo"), null);
+        index.setProperty(createProperty(PROP_INCLUDED_PATHS, of("/test/a"), Type.STRINGS));
+        index.setProperty(createProperty(PROP_EXCLUDED_PATHS, of("/test/a/b"), Type.STRINGS));
+        NodeState before = builder.getNodeState();
+
+        // Add some content and process it through the property index hook
+        builder.child("test").child("a").setProperty("foo", "abc");
+        builder.child("test").child("a").child("b").setProperty("foo", "abc");
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        FilterImpl f = createFilter(indexed, NT_BASE);
+        f.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("abc"));
+
+        // Query the index
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        assertEquals(ImmutableSet.of("test/a"), find(lookup, "foo", "abc", f));
+
+        //no path restriction, opt out
+        PropertyIndexPlan plan = new PropertyIndexPlan("plan", root, index.getNodeState(), f);
+        assertTrue(Double.POSITIVE_INFINITY == plan.getCost());
+
+        //path restriction is not an ancestor of excluded path, index may be used
+        f.setPath("/test/a/x");
+        plan = new PropertyIndexPlan("plan", root, index.getNodeState(), f);
+        assertTrue(Double.POSITIVE_INFINITY != plan.getCost());
+
+        //path restriction is an ancestor of excluded path but no included path, opt out
+        f.setPath("/test/a/b");
+        plan = new PropertyIndexPlan("plan", root, index.getNodeState(), f);
+        assertTrue(Double.POSITIVE_INFINITY == plan.getCost());
+
+        //path restriction is an ancestor of excluded path, opt out
+        f.setPath("/test/a");
+        plan = new PropertyIndexPlan("plan", root, index.getNodeState(), f);
+        assertTrue(Double.POSITIVE_INFINITY == plan.getCost());
+}
+
+    @Test
+    public void testPathExcludeInclude() throws Exception{
+        NodeState root = INITIAL_CONTENT;
+
+        // Add index definition
+        NodeBuilder builder = root.builder();
+        NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                true, false, ImmutableSet.of("foo"), null);
+        index.setProperty(createProperty(PROP_INCLUDED_PATHS, of("/test/a/b"), Type.STRINGS));
+        index.setProperty(createProperty(PROP_EXCLUDED_PATHS, of("/test/a"), Type.STRINGS));
+        NodeState before = builder.getNodeState();
+
+        // Add some content and process it through the property index hook
+        builder.child("test").child("a").setProperty("foo", "abc");
+        builder.child("test").child("a").child("b").setProperty("foo", "abc");
+        NodeState after = builder.getNodeState();
+
+        try {
+            HOOK.processCommit(before, after, CommitInfo.EMPTY);
+            assertTrue(false);
+        } catch (IllegalStateException expected) {}
+    }
+
+    @Test
+    public void testPathMismatch() throws Exception {
+        NodeState root = INITIAL_CONTENT;
+
+        // Add index definition
+        NodeBuilder builder = root.builder();
+        NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                true, false, ImmutableSet.of("foo"), null);
+        index.setProperty(createProperty(PROP_INCLUDED_PATHS, of("/test/a"), Type.STRINGS));
+        index.setProperty(createProperty(PROP_EXCLUDED_PATHS, of("/test/a/b"), Type.STRINGS));
+        NodeState before = builder.getNodeState();
+
+        // Add some content and process it through the property index hook
+        builder.child("test").child("a").setProperty("foo", "abc");
+        builder.child("test").child("a").child("b").setProperty("foo", "abc");
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        FilterImpl f = createFilter(indexed, NT_BASE);
+        f.restrictPath("/test2", Filter.PathRestriction.ALL_CHILDREN);
+        PropertyIndexPlan plan = new PropertyIndexPlan("plan", root, index.getNodeState(), f);
+        assertTrue(Double.POSITIVE_INFINITY == plan.getCost());
     }
 
     private int getResultSize(NodeState indexed, String name, String value){
