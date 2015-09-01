@@ -52,13 +52,10 @@
 
       <!-- Locking : not fully implemented -->
       org.apache.jackrabbit.test.api.lock.LockTest#testNodeLocked <!-- OAK-3260 -->
-      org.apache.jackrabbit.test.api.lock.LockTest#testParentChildDeepLock <!-- OAK-3261 -->
       org.apache.jackrabbit.test.api.lock.LockTest#testAddRemoveLockToken <!-- OAK-2149 -->
 
       org.apache.jackrabbit.test.api.lock.SetValueLockExceptionTest#testSetValueLockException  <!-- OAK-2149 -->
 
-      org.apache.jackrabbit.test.api.lock.DeepLockTest#testParentChildDeepLock <!-- OAK-3261 -->
-      org.apache.jackrabbit.test.api.lock.DeepLockTest#testDeepLockAboveLockedChild <!-- OAK-3261 -->
       org.apache.jackrabbit.test.api.lock.DeepLockTest#testRemoveLockedChild <!-- OAK-2149 -->
 
       org.apache.jackrabbit.test.api.lock.LockManagerTest#testLockTransfer2 <!-- OAK-3262 -->
