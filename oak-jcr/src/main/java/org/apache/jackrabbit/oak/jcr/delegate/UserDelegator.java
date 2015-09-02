@@ -64,6 +64,7 @@ final class UserDelegator extends AuthorizableDelegator implements User {
     @Override
     public boolean isAdmin() {
         return sessionDelegate.safePerform(new SessionOperation<Boolean>("isAdmin") {
+            @Nonnull
             @Override
             public Boolean perform() {
                 return getDelegate().isAdmin();
@@ -74,6 +75,7 @@ final class UserDelegator extends AuthorizableDelegator implements User {
     @Override
     public boolean isSystemUser() {
         return sessionDelegate.safePerform(new SessionOperation<Boolean>("isSystemUser") {
+            @Nonnull
             @Override
             public Boolean perform() {
                 return getDelegate().isSystemUser();
@@ -84,6 +86,7 @@ final class UserDelegator extends AuthorizableDelegator implements User {
     @Override
     public Credentials getCredentials() {
         return sessionDelegate.safePerform(new SessionOperation<Credentials>("getCredentials") {
+            @Nonnull
             @Override
             public Credentials perform() throws RepositoryException {
                 return getDelegate().getCredentials();
@@ -94,6 +97,7 @@ final class UserDelegator extends AuthorizableDelegator implements User {
     @Override
     public Impersonation getImpersonation() {
         return sessionDelegate.safePerform(new SessionOperation<Impersonation>("getImpersonation") {
+            @Nonnull
             @Override
             public Impersonation perform() throws RepositoryException {
                 Impersonation impersonation = getDelegate().getImpersonation();
@@ -104,33 +108,30 @@ final class UserDelegator extends AuthorizableDelegator implements User {
 
     @Override
     public void changePassword(final String password) throws RepositoryException {
-        sessionDelegate.perform(new SessionOperation<Void>("changePassword") {
+        sessionDelegate.performVoid(new SessionOperation("changePassword") {
             @Override
-            public Void perform() throws RepositoryException {
+            public void performVoid() throws RepositoryException {
                 getDelegate().changePassword(password);
-                return null;
             }
         });
     }
 
     @Override
     public void changePassword(final String password, final String oldPassword) throws RepositoryException {
-        sessionDelegate.perform(new SessionOperation<Void>("changePassword") {
+        sessionDelegate.performVoid(new SessionOperation("changePassword") {
             @Override
-            public Void perform() throws RepositoryException {
+            public void performVoid() throws RepositoryException {
                 getDelegate().changePassword(password, oldPassword);
-                return null;
             }
         });
     }
 
     @Override
     public void disable(final String reason) throws RepositoryException {
-        sessionDelegate.perform(new SessionOperation<Void>("disable") {
+        sessionDelegate.performVoid(new SessionOperation("disable") {
             @Override
-            public Void perform() throws RepositoryException {
+            public void performVoid() throws RepositoryException {
                 getDelegate().disable(reason);
-                return null;
             }
         });
     }
@@ -138,6 +139,7 @@ final class UserDelegator extends AuthorizableDelegator implements User {
     @Override
     public boolean isDisabled() throws RepositoryException {
         return sessionDelegate.perform(new SessionOperation<Boolean>("isDisabled") {
+            @Nonnull
             @Override
             public Boolean perform() throws RepositoryException {
                 return getDelegate().isDisabled();
@@ -147,9 +149,9 @@ final class UserDelegator extends AuthorizableDelegator implements User {
 
     @Override
     public String getDisabledReason() throws RepositoryException {
-        return sessionDelegate.perform(new SessionOperation<String>("getDisabledReason") {
+        return sessionDelegate.performNullable(new SessionOperation<String>("getDisabledReason") {
             @Override
-            public String perform() throws RepositoryException {
+            public String performNullable() throws RepositoryException {
                 return getDelegate().getDisabledReason();
             }
         });

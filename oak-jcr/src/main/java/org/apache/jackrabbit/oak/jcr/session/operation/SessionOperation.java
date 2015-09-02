@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.session.operation;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
 /**
@@ -28,12 +30,12 @@ public abstract class SessionOperation<T> {
     private final String name;
     private final boolean update;
 
-    protected SessionOperation(String name, boolean update) {
+    protected SessionOperation(@Nonnull String name, boolean update) {
         this.name = name;
         this.update = update;
     }
 
-    protected SessionOperation(String name) {
+    protected SessionOperation(@Nonnull String name) {
         this(name, false);
     }
 
@@ -62,7 +64,19 @@ public abstract class SessionOperation<T> {
     public void checkPreconditions() throws RepositoryException {
     }
 
-    public abstract T perform() throws RepositoryException;
+    @Nonnull
+    public T perform() throws RepositoryException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Nullable
+    public T performNullable() throws RepositoryException {
+        throw new UnsupportedOperationException();
+    }
+
+    public void performVoid() throws RepositoryException {
+        throw new UnsupportedOperationException();
+    }
 
     /**
      * Provide details about the operation being performed.
