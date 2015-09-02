@@ -195,6 +195,7 @@
         <configuration>
           <systemPropertyVariables>
             <jetty.http.port>${jetty.http.port}</jetty.http.port>
+            <s3.properties>${s3.properties}</s3.properties>
           </systemPropertyVariables>
           <excludes>
             <exclude>${exclude.tests}</exclude>
@@ -418,7 +419,7 @@
       <id>jr2</id>
       <properties>
         <lucene.core.version>3.6.0</lucene.core.version>
-        <exclude.tests></exclude.tests>
+        <exclude.tests>nothing-to-exclude</exclude.tests>
       </properties>
     </profile>
     <profile>
