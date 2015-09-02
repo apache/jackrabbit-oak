@@ -50,7 +50,7 @@ public class Jcr2ToSegmentTest {
             Util.unzip(AbstractOak2OakTest.class.getResourceAsStream("/jcr2.zip"), tempDir);
         }
 
-        OakUpgrade.main(tempDir.getPath(), destinationContainer.getDescription());
+        OakUpgrade.main("--copy-binaries", tempDir.getPath(), destinationContainer.getDescription());
 
         destination = destinationContainer.open();
         repository = (RepositoryImpl) new Jcr(destination).with(new ReferenceIndexProvider()).createRepository();
