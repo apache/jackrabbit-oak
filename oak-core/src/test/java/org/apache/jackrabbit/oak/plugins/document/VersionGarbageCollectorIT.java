@@ -114,6 +114,7 @@ public class VersionGarbageCollectorIT {
         clock = new Clock.Virtual();
         store = new DocumentMK.Builder()
                 .clock(clock)
+                .setLeaseCheck(false)
                 .setDocumentStore(fixture.createDocumentStore())
                 .setAsyncDelay(0)
                 .getNodeStore();
