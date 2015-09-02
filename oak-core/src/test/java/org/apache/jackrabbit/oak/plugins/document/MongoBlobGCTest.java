@@ -33,7 +33,6 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import junit.framework.Assert;
@@ -56,9 +55,7 @@ import org.junit.Test;
 public class MongoBlobGCTest extends AbstractMongoConnectionTest {
     private Clock clock;
 
-    public HashSet<String> setUp(boolean deleteDirect) throws Exception {
-        HashSet<String> set = new HashSet<String>();
-
+    public DataStoreState setUp(boolean deleteDirect) throws Exception {
         DocumentNodeStore s = mk.getNodeStore();
         NodeBuilder a = s.getRoot().builder();
 
@@ -73,14 +70,18 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
                 processed.add(n);
             }
         }
+    
+        DataStoreState state = new DataStoreState();
         for (int i = 0; i < number; i++) {
             Blob b = s.createBlob(randomStream(i, 16516));
-            if (!processed.contains(i)) {
-                Iterator<String> idIter =
-                        ((GarbageCollectableBlobStore) s.getBlobStore())
-                                .resolveChunks(b.toString());
-                while (idIter.hasNext()) {
-                    set.add(idIter.next());
+            Iterator<String> idIter =
+                    ((GarbageCollectableBlobStore) s.getBlobStore())
+                            .resolveChunks(b.toString());
+            while (idIter.hasNext()) {
+                String chunk = idIter.next();
+                state.blobsAdded.add(chunk);
+                if (!processed.contains(i)) {
+                    state.blobsPresent.add(chunk);
                 }
             }
             a.child("c" + i).setProperty("x", b);
@@ -106,9 +107,14 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
             Assert.assertEquals(processed.size(), stats.deletedDocGCCount);
         }
 
-        return set;
+        return state;
     }
-
+    
+    private class DataStoreState {
+        Set<String> blobsAdded = Sets.newHashSet();
+        Set<String> blobsPresent = Sets.newHashSet();
+    }
+    
     public HashSet<String> addInlined() throws Exception {
         HashSet<String> set = new HashSet<String>();
         DocumentNodeStore s = mk.getNodeStore();
@@ -130,29 +136,41 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
 
     @Test
     public void gcDirectMongoDelete() throws Exception {
-        HashSet<String> set = setUp(true);
-        gc(set);
+        DataStoreState state = setUp(true);
+        Set<String> existingAfterGC = gc(0);
+        assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
     }
+    
+    @Test
+    public void noGc() throws Exception {
+        DataStoreState state = setUp(true);
+        Set<String> existingAfterGC = gc(86400);
+        assertTrue(Sets.symmetricDifference(state.blobsAdded, existingAfterGC).isEmpty());
+    }    
 
     @Test
     public void gcVersionDelete() throws Exception {
-        HashSet<String> set = setUp(false);
-        gc(set);
+        DataStoreState state = setUp(false);
+        Set<String> existingAfterGC = gc(0);
+        assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
     }
 
     @Test
     public void gcDirectMongoDeleteWithInlined() throws Exception {
-        HashSet<String> set = setUp(true);
+        DataStoreState state = setUp(true);
         addInlined();
-        gc(set);
+        Set<String> existingAfterGC = gc(0);
+        assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
     }
     @Test
     public void gcVersionDeleteWithInlined() throws Exception {
-        HashSet<String> set = setUp(false);
+        DataStoreState state = setUp(false);
         addInlined();
-        gc(set);
+        Set<String> existingAfterGC = gc(0);
+        assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
     }
-    private void gc(HashSet<String> remaining) throws Exception {
+
+    private Set<String> gc(int blobGcMaxAgeInSecs) throws Exception {
         DocumentNodeStore store = mk.getNodeStore();
         String repoId = null;
         if (SharedDataStoreUtils.isShared(store.getBlobStore())) {
@@ -164,14 +182,12 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
         MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector(
                 new DocumentBlobReferenceRetriever(store),
-                (GarbageCollectableBlobStore) store.getBlobStore(), executor, "./target", 5, 0, repoId);
+                (GarbageCollectableBlobStore) store.getBlobStore(), executor, "./target", 5, blobGcMaxAgeInSecs, repoId);
         Thread.sleep(4000);
         gc.collectGarbage(false);
         
         assertEquals(0, executor.getTaskCount());
-        Set<String> existingAfterGC = iterate();
-        boolean empty = Sets.symmetricDifference(remaining, existingAfterGC).isEmpty();
-        assertTrue(empty);
+        return iterate();
     }
 
     protected Set<String> iterate() throws Exception {
