@@ -58,25 +58,6 @@ point, see also http://en.wikipedia.org/wiki/SHA-2 "Federal agencies ...
 must use the SHA-2 family of hash functions for these applications
 after 2010". This might affect some potential users.
 
-### Blob Garbage Collection
-
-Oak implements a Mark and Sweep based Garbage Collection logic. 
- 
-1. Mark Phase - In this phase the binary references are marked in both
-   BlobStore and NodeStore
-    1. Mark BlobStore - GC logic would make a record of all the blob
-       references present in the BlobStore. In doing so it would only
-       consider those blobs which are older than a specified time 
-       interval. So only those blob references are fetched which are 
-       last modified say 24 hrs (default) ago. 
-    2. Mark NodeStore - GC logic would make a record of all the blob
-       references which are referred by any node present in NodeStore.
-       Note that any blob references from old revisions of node would also be 
-       considered as a valid references. 
-2. Sweep Phase - In this phase all blob references form Mark BlobStore phase 
-    which were not found in Mark NodeStore part would considered as GC candidates
-    and would be deleted.
-
 ### Support for Jackrabbit 2 DataStore
 
 Jackrabbit 2 used [DataStore][2] to store blobs. Oak supports usage of such 
@@ -128,6 +109,72 @@ one of the following can be used
   would also be used when a JR2 repository is migrated to Oak
 * S3DataStore - This should be used when binaries are stored in Amazon S3. Typically used when running
   in Amazon AWS
+
+### Blob Garbage Collection
+
+Blob Garbage Collection(GC) is applicable for the following blob stores:
+
+* DocumentNodeStore 
+    * MongoBlobStore/RDBBlobStore (Default blob stores for RDB & Mongo)
+    * FileDataStore
+    * S3DataStore
+    * SharedS3DataStore (since Oak 1.2.0)
+    
+* SegmentNodeStore 
+    * FileDataStore
+    * S3DataStore
+    * SharedS3DataStore (since Oak 1.2.0)
+
+Oak implements a Mark and Sweep based Garbage Collection logic. 
+ 
+1. Mark Phase - In this phase the binary references are marked in both
+   BlobStore and NodeStore
+    1. Mark BlobStore - GC logic would make a record of all the blobs
+       present in the BlobStore. 
+    2. Mark NodeStore - GC logic would make a record of all the blob
+       references which are referred by any node present in NodeStore.
+       Note that any blob references from old revisions of node would also be 
+       considered as a valid references. 
+2. Sweep Phase - In this phase all blob references form Mark BlobStore phase 
+    which were not found in Mark NodeStore part would considered as GC candidates.
+    It would only delete blobs which are older than a specified time interval 
+    (last modified say 24 hrs (default) ago).
+
+The garbage collection can be triggered by calling:
+
+* `MarkSweepGarbageCollector#collectGarbage()` (Oak 1.0.x)
+* `MarkSweepGarbageCollector#collectGarbage(false)` (Oak 1.2.x)
+ 
+#### Shared DataStore Blob Garbage Collection (Since 1.2.0)
+
+On start of a repository configured with a shared DataStore, a unique repository id is registered. 
+In the DataStore this repository id is registered as an empty file with the format `repository-[repository-id]` 
+(e.g. repository-988373a0-3efb-451e-ab4c-f7e794189273).
+The high-level process for garbage collection is still the same as described above. 
+But to support blob garbage collection in a shared DataStore the Mark and Sweep phase can be
+run independently.
+
+The details of the process are as follows:
+
+* The Mark NodeStore phase has to be executed for each of the repositories sharing the DataStore.
+    * This can be executed by running `MarkSweepGarbageCollector#collectGarbage(true)`, where true indicates mark only.
+    * All the references are collected in the DataStore in a file with the format `references-[repository-id]` 
+    (e.g. references-988373a0-3efb-451e-ab4c-f7e794189273).
+* One completion of the above process on all repositories, the sweep phase needs to be triggered.
+    * This can be executed by running `MarkSweepGarbageCollector#collectGarbage(false)` on one of the repositories, 
+    where false indicates to run sweep also. 
+    * The sweep process checks for availability of the references file from all registered repositories and aborts otherwise.
+    * All the references available are collected.
+    * All the blobs available in the DataStore are collected and deletion candidates identified by calculating all the 
+    blobs available not appearing in the blobs referenced. Only blobs older than a specified time interval from the 
+    earliest available references file are deleted. (last modified say 24 hrs (default)).
+    
+The shared DataStore garbage collection is applicable for the following DataStore(s):
+
+* FileDataStore
+* SharedS3DataStore - Extends the S3DataStore to enable sharing of the data store with
+                        multiple repositories                        
+ 
 
 [1]: http://serverfault.com/questions/52861/how-does-dropbox-version-upload-large-files
 [2]: http://wiki.apache.org/jackrabbit/DataStore
