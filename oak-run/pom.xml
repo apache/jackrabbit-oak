@@ -34,6 +34,7 @@
     <jetty.version>8.1.2.v20120308</jetty.version>
     <groovy.version>2.3.1</groovy.version>
     <lucene.core.version>${lucene.version}</lucene.core.version>
+    <exclude.tests>**/Jcr2ToSegmentTest.java</exclude.tests>
   </properties>
 
   <build>
@@ -195,6 +196,9 @@
           <systemPropertyVariables>
             <jetty.http.port>${jetty.http.port}</jetty.http.port>
           </systemPropertyVariables>
+          <excludes>
+            <exclude>${exclude.tests}</exclude>
+          </excludes>
         </configuration>
       </plugin>
       <plugin>
@@ -414,6 +418,7 @@
       <id>jr2</id>
       <properties>
         <lucene.core.version>3.6.0</lucene.core.version>
+        <exclude.tests></exclude.tests>
       </properties>
     </profile>
     <profile>
