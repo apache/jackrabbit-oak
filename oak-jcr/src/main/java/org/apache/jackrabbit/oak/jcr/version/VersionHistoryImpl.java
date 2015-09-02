@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
+import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.NodeIterator;
 import javax.jcr.ReferentialIntegrityException;
@@ -61,6 +62,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
     @Override
     public String getVersionableIdentifier() throws RepositoryException {
         return perform(new SessionOperation<String>("getVersionableIdentifier") {
+            @Nonnull
             @Override
             public String perform() throws RepositoryException {
                 return dlg.getVersionableIdentifier();
@@ -71,6 +73,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
     @Override
     public Version getRootVersion() throws RepositoryException {
         return perform(new SessionOperation<Version>("getRootVersion") {
+            @Nonnull
             @Override
             public Version perform() throws RepositoryException {
                 return new VersionImpl(dlg.getRootVersion(), sessionContext);
@@ -81,6 +84,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
     @Override
     public VersionIterator getAllLinearVersions() throws RepositoryException {
         return perform(new SessionOperation<VersionIterator>("getAllLinearVersions") {
+            @Nonnull
             @Override
             public VersionIterator perform() throws RepositoryException {
                 Iterator<Version> versions = transform(dlg.getAllLinearVersions(),
@@ -98,6 +102,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
     @Override
     public VersionIterator getAllVersions() throws RepositoryException {
         return perform(new SessionOperation<VersionIterator>("getAllVersions") {
+            @Nonnull
             @Override
             public VersionIterator perform() throws RepositoryException {
                 Iterator<Version> versions = transform(dlg.getAllVersions(),
@@ -126,6 +131,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
     public Version getVersion(final String versionName)
             throws VersionException, RepositoryException {
         return perform(new SessionOperation<Version>("getVersion") {
+            @Nonnull
             @Override
             public Version perform() throws RepositoryException {
                 return new VersionImpl(dlg.getVersion(versionName), sessionContext);
@@ -137,6 +143,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
     public Version getVersionByLabel(final String label)
             throws VersionException, RepositoryException {
         return perform(new SessionOperation<Version>("getVersionByLabel") {
+            @Nonnull
             @Override
             public Version perform() throws RepositoryException {
                 String oakLabel = sessionContext.getOakName(label);
@@ -151,14 +158,13 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
                                 final boolean moveLabel)
             throws LabelExistsVersionException, VersionException,
             RepositoryException {
-        perform(new SessionOperation<Void>("addVersionLabel", true) {
+        sessionDelegate.performVoid(new SessionOperation("addVersionLabel", true) {
             @Override
-            public Void perform() throws RepositoryException {
+            public void performVoid() throws RepositoryException {
                 String oakLabel = sessionContext.getOakName(label);
                 // will throw VersionException if version does not exist
                 VersionDelegate version = dlg.getVersion(versionName);
                 dlg.addVersionLabel(version, oakLabel, moveLabel);
-                return null;
             }
         });
     }
@@ -166,12 +172,11 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
     @Override
     public void removeVersionLabel(final String label)
             throws VersionException, RepositoryException {
-        perform(new SessionOperation<Void>("removeVersionLabel", true) {
+        sessionDelegate.performVoid(new SessionOperation("removeVersionLabel", true) {
             @Override
-            public Void perform() throws RepositoryException {
+            public void performVoid() throws RepositoryException {
                 String oakLabel = sessionContext.getOakName(label);
                 dlg.removeVersionLabel(oakLabel);
-                return null;
             }
         });
     }
@@ -190,6 +195,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
     @Override
     public String[] getVersionLabels() throws RepositoryException {
         return perform(new SessionOperation<String[]>("getVersionLabels") {
+            @Nonnull
             @Override
             public String[] perform() throws RepositoryException {
                 List<String> labels = new ArrayList<String>();
@@ -209,6 +215,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
                     "VersionHistory");
         }
         return perform(new SessionOperation<String[]>("getVersionLabels") {
+            @Nonnull
             @Override
             public String[] perform() throws RepositoryException {
                 List<String> labels = new ArrayList<String>();
@@ -226,12 +233,11 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
             UnsupportedRepositoryOperationException, VersionException,
             RepositoryException {
 
-        perform(new SessionOperation<Void>("removeVersion", true) {
+        sessionDelegate.performVoid(new SessionOperation("removeVersion", true) {
             @Override
-            public Void perform() throws RepositoryException {
+            public void performVoid() throws RepositoryException {
                 String oakName = sessionContext.getOakName(versionName);
                 dlg.removeVersion(oakName);
-                return null;
             }
         });
     }
