@@ -183,7 +183,6 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector(
                 new DocumentBlobReferenceRetriever(store),
                 (GarbageCollectableBlobStore) store.getBlobStore(), executor, "./target", 5, blobGcMaxAgeInSecs, repoId);
-        Thread.sleep(4000);
         gc.collectGarbage(false);
         
         assertEquals(0, executor.getTaskCount());
