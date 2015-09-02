@@ -45,6 +45,7 @@ import org.apache.jackrabbit.oak.spi.query.Cursors;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.FulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -127,9 +128,12 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
         }
 
         // property restriction OR native language property restriction defined AND property restriction handled
-        if (filter.getPropertyRestrictions() != null && filter.getPropertyRestrictions().size() > 0
-                && (filter.getPropertyRestriction(NATIVE_SOLR_QUERY) != null || filter.getPropertyRestriction(NATIVE_LUCENE_QUERY) != null
-                || configuration.useForPropertyRestrictions()) && !hasIgnoredProperties(filter.getPropertyRestrictions(), configuration)) {
+        if (filter.getPropertyRestrictions() != null 
+                && filter.getPropertyRestrictions().size() > 0
+                && (filter.getPropertyRestriction(NATIVE_SOLR_QUERY) != null 
+                || filter.getPropertyRestriction(NATIVE_LUCENE_QUERY) != null
+                || configuration.useForPropertyRestrictions()) 
+                && !hasIgnoredProperties(filter.getPropertyRestrictions(), configuration)) {
             match++;
         }
 
@@ -429,6 +433,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                         || (configuration.getUsedProperties().size() > 0 && !configuration.getUsedProperties().contains(propertyName)) // not explicitly contained in the used properties
                         || propertyName.contains("/") // no child-level property restrictions
                         || "rep:excerpt".equals(propertyName) // rep:excerpt is handled by the query engine
+                        || QueryConstants.RESTRICTION_LOCAL_NAME.equals(propertyName)
                         || configuration.getIgnoredProperties().contains(propertyName));
     }
 
