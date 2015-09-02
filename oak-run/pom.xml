@@ -33,6 +33,7 @@
   <properties>
     <jetty.version>8.1.2.v20120308</jetty.version>
     <groovy.version>2.3.1</groovy.version>
+    <lucene.core.version>${lucene.version}</lucene.core.version>
   </properties>
 
   <build>
@@ -231,6 +232,11 @@
 
   <dependencies>
     <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-core</artifactId>
+      <version>${lucene.core.version}</version>
+    </dependency>
+    <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-blob-cloud</artifactId>
       <version>${project.version}</version>
@@ -406,13 +412,9 @@
   <profiles>
     <profile>
       <id>jr2</id>
-      <dependencies>
-        <dependency>
-          <groupId>org.apache.lucene</groupId>
-          <artifactId>lucene-core</artifactId>
-          <version>3.6.0</version>
-        </dependency>
-      </dependencies>
+      <properties>
+        <lucene.core.version>3.6.0</lucene.core.version>
+      </properties>
     </profile>
     <profile>
       <!--
@@ -425,11 +427,6 @@
         <activeByDefault>true</activeByDefault>
       </activation>
       <dependencies>
-        <dependency>
-          <groupId>org.apache.lucene</groupId>
-          <artifactId>lucene-core</artifactId>
-          <version>${lucene.version}</version>
-        </dependency>
         <dependency>
           <groupId>org.apache.lucene</groupId>
           <artifactId>lucene-analyzers-common</artifactId>
