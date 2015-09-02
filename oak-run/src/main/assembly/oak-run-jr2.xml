@@ -37,8 +37,9 @@
       <outputDirectory>/</outputDirectory>
       <excludes>
         <exclude>org.apache.jackrabbit:oak-lucene</exclude>
+        <exclude>org.apache.jackrabbit:oak-solr-osgi</exclude>
         <exclude>org.apache.lucene</exclude>
-        <exclude>org.apache.tika</exclude>
+        <exclude>org.apache.tika:tika-parsers</exclude>
       </excludes>
       <useStrictFiltering>true</useStrictFiltering>
       <useProjectArtifact>true</useProjectArtifact>
