@@ -55,7 +55,7 @@ public class CliUtils {
     }
 
     public static void displayUsage() throws IOException {
-        System.out.println(getUsage().replace("${command}", "java -jar oak-run.jar upgrade"));
+        System.out.println(getUsage().replace("${command}", "java -jar oak-run-*-jr2.jar upgrade"));
     }
 
     public static String getUsage() throws IOException {
