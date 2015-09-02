@@ -20,7 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import static org.apache.commons.io.FileUtils.deleteDirectory;
-import static org.apache.jackrabbit.oak.commons.CIHelper.travisIntegrationTesting;
+import static org.apache.jackrabbit.oak.commons.CIHelper.travis;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_MK;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType.CLEAN_OLD;
 import static org.junit.Assume.assumeTrue;
@@ -56,7 +56,7 @@ public class HeavyWriteIT {
 
     @BeforeClass
     public static void checkFixtures() {
-        assumeTrue(!travisIntegrationTesting());  // FIXME OAK-2375. Often fails on Travis
+        assumeTrue(!travis());  // FIXME OAK-2375. Often fails on Travis
         assumeTrue(FIXTURES.contains(SEGMENT_MK));
     }
     
