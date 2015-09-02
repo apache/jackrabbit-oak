@@ -740,6 +740,40 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         assertTrue(doc.getLocalCommitRoot().size() < NUM_REVS_THRESHOLD);
     }
 
+    // OAK-3333
+    @Test
+    public void purgeAllButMostRecentCommitRoot() throws Exception {
+        DocumentStore store = mk.getDocumentStore();
+        DocumentNodeStore ns1 = mk.getNodeStore();
+        NodeBuilder builder1 = ns1.getRoot().builder();
+        builder1.child("test");
+        merge(ns1, builder1);
+        ns1.runBackgroundOperations();
+
+        DocumentNodeStore ns2 = new DocumentMK.Builder().setDocumentStore(store)
+                .setAsyncDelay(0).getNodeStore();
+        // prevent merge retries
+        ns2.setMaxBackOffMillis(0);
+        assertTrue(ns2.getRoot().hasChildNode("test"));
+        NodeBuilder builder2 = ns2.getRoot().builder();
+        builder2.child("test").remove();
+
+        for (int i = 0; i < NUM_REVS_THRESHOLD * 2; i++) {
+            builder1 = ns1.getRoot().builder();
+            builder1.child("test").child("child-" + i);
+            merge(ns1, builder1);
+        }
+        ns1.runBackgroundOperations();
+
+        try {
+            merge(ns2, builder2);
+            fail("merge must fail with CommitFailedException");
+        } catch (CommitFailedException e) {
+            // expected
+        }
+        ns2.dispose();
+    }
+
     // OAK-3081
     @Test
     public void removeGarbage() throws Exception {
