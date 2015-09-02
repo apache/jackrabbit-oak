@@ -503,6 +503,10 @@ public final class DocumentNodeStore
                 backgroundWrite();
             }
         }
+        checkLastRevRecovery();
+        // Renew the lease because it may have been stale
+        renewClusterIdLease();
+
         getRevisionComparator().add(headRevision, Revision.newRevision(0));
 
         dispatcher = new ChangeDispatcher(getRoot());
@@ -522,9 +526,6 @@ public final class DocumentNodeStore
                 new BackgroundOperation(this, isDisposed),
                 "DocumentNodeStore background update thread " + threadNamePostfix);
         backgroundUpdateThread.setDaemon(true);
-        checkLastRevRecovery();
-        // Renew the lease because it may have been stale
-        renewClusterIdLease();
 
         backgroundReadThread.start();
         backgroundUpdateThread.start();

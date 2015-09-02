@@ -169,7 +169,7 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
         return reset();
     }
 
-    private void purge() {
+    void purge() {
         branch.setRoot(super.getNodeState());
         super.reset(branch.getHead());
         updates = 0;
