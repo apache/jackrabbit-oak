@@ -129,8 +129,13 @@ public class NodeNameImpl extends DynamicOperandImpl {
         name = ISO9075.decode(name);
         // normalize paths (./name > name)
         name = PropertyValues.getOakPath(name, query.getNamePathMapper());
-
-        if (name.startsWith("[") && !name.endsWith("]")) {
+        if (PathUtils.isAbsolute(name)) {
+            throw new IllegalArgumentException("Not a valid JCR name: "
+                    + name + " (absolute paths are not names)");
+        } else if (PathUtils.getDepth(name) > 1) {
+            throw new IllegalArgumentException("Not a valid JCR name: "
+                    + name + " (relative path with depth > 1 are not names)");
+        } else if (name.startsWith("[") && !name.endsWith("]")) {
             return null;
         } else if (!JcrNameParser.validate(name)) {
             return null;
