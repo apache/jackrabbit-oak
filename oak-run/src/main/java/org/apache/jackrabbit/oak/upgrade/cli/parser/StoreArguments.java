@@ -117,25 +117,38 @@ public class StoreArguments {
         return src.getPaths();
     }
 
-    private static List<StoreDescriptor> createStoreDescriptors(List<String> arguments)
-            throws CliArgumentException {
+    private static List<StoreDescriptor> createStoreDescriptors(List<String> arguments) throws CliArgumentException {
         List<StoreDescriptor> descriptors = mapToStoreDescriptors(arguments);
         mergeCrx2Descriptors(descriptors);
-        addDefaultCrx2Descriptor(descriptors);
         addSegmentAsDestination(descriptors);
         validateDescriptors(descriptors);
         return descriptors;
     }
 
-    private static List<StoreDescriptor> mapToStoreDescriptors(List<String> arguments) {
+    private static List<StoreDescriptor> mapToStoreDescriptors(List<String> arguments) throws CliArgumentException {
         List<StoreDescriptor> descriptors = new ArrayList<StoreDescriptor>();
+        boolean jcr2Dir = false;
+        boolean jcr2Xml = false;
         for (String argument : arguments) {
-            descriptors.add(new StoreDescriptor(getMatchingType(argument), argument));
+            StoreType type = getMatchingType(argument);
+            if (type == JCR2_DIR) {
+                if (jcr2Dir) {
+                    type = SEGMENT;
+                }
+                jcr2Dir = true;
+            }
+            if (type == JCR2_DIR_XML) {
+                if (jcr2Xml) {
+                    throw new CliArgumentException("Too many repository.xml files passed as arguments", 1);
+                }
+                jcr2Xml = true;
+            }
+            descriptors.add(new StoreDescriptor(type, argument));
         }
         return descriptors;
     }
 
-    private static void mergeCrx2Descriptors(List<StoreDescriptor> descriptors) {
+    private static void mergeCrx2Descriptors(List<StoreDescriptor> descriptors) throws CliArgumentException {
         int crx2DirIndex = -1;
         int crx2XmlIndex = -1;
         for (int i = 0; i < descriptors.size(); i++) {
@@ -173,17 +186,14 @@ public class StoreArguments {
         }
     }
 
-    private static void addDefaultCrx2Descriptor(List<StoreDescriptor> descriptors) {
-        if (descriptors.isEmpty()) {
-            descriptors.add(
-                    new StoreDescriptor(JCR2_DIR_XML, DEFAULT_CRX2_REPO, DEFAULT_CRX2_REPO + "/" + REPOSITORY_XML));
-        }
-    }
-
     private static void addSegmentAsDestination(List<StoreDescriptor> descriptors) {
-        if (descriptors.size() == 1 && descriptors.get(0).getType() == JCR2_DIR_XML) {
-            String crx2Dir = descriptors.get(0).getPath();
-            descriptors.add(new StoreDescriptor(SEGMENT, crx2Dir));
+        if (descriptors.size() == 1) {
+            StoreType type = descriptors.get(0).getType();
+            if (type == JCR2_DIR_XML) {
+                String crx2Dir = descriptors.get(0).getPath();
+                descriptors.add(new StoreDescriptor(SEGMENT, crx2Dir));
+                log.info("In place migration between JCR2 and SegmentNodeStore in {}", crx2Dir);
+            }
         }
     }
 
