@@ -18,8 +18,10 @@ package org.apache.jackrabbit.oak.upgrade.cli;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.regex.Pattern;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.CliArgumentException;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.MigrationCliArguments;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory;
@@ -41,8 +43,8 @@ public class CliUtils {
     public static MigrationCliArguments parseOrExit(OptionParser op, String... args) {
         try {
             OptionSet options = op.parse(args);
-            if (options.has(OptionParserFactory.HELP)) {
-                displayUsage(op);
+            if (options.has(OptionParserFactory.HELP) || options.nonOptionArguments().isEmpty()) {
+                displayUsage();
                 return null;
             }
             return new MigrationCliArguments(options);
@@ -52,11 +54,17 @@ public class CliUtils {
         }
     }
 
-    public static void displayUsage(OptionParser op) throws IOException {
-        System.out.println("Usage:");
-        System.out.println(
-                "[/path/to/oak/repository|/path/to/crx2/repository|mongodb://host:port|<Jdbc URI>] [/path/to/repository.xml] [/path/to/oak/repository|mongodb://host:port|<Jdbc URI>]");
-        op.printHelpOn(System.out);
+    public static void displayUsage() throws IOException {
+        System.out.println(getUsage().replace("${command}", "java -jar oak-run.jar upgrade"));
+    }
+
+    public static String getUsage() throws IOException {
+        InputStream is = CliUtils.class.getClassLoader().getResourceAsStream("upgrade_usage.txt");
+        try {
+            return IOUtils.toString(is);
+        } finally {
+            IOUtils.closeQuietly(is);
+        }
     }
 
     public static int getReturnCode(Exception e) {
