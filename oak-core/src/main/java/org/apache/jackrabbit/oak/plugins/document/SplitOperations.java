@@ -233,6 +233,7 @@ class SplitOperations {
         committedChanges.put(REVISIONS, revisions);
         NavigableMap<Revision, String> commitRoot =
                 new TreeMap<Revision, String>(context.getRevisionComparator());
+        boolean mostRecent = true;
         for (Map.Entry<Revision, String> entry : doc.getLocalCommitRoot().entrySet()) {
             Revision r = entry.getKey();
             if (splitRevs.contains(r)) {
@@ -240,9 +241,13 @@ class SplitOperations {
                 numValues++;
             } else if (r.getClusterId() == context.getClusterId() 
                     && !changes.contains(r)) {
-                // OAK-2528: _commitRoot entry without associated
-                // change -> consider as garbage
-                addGarbage(r, COMMIT_ROOT);
+                // OAK-2528: _commitRoot entry without associated change
+                // consider all but most recent as garbage (OAK-3333)
+                if (mostRecent) {
+                    mostRecent = false;
+                } else {
+                    addGarbage(r, COMMIT_ROOT);
+                }
             }
         }
         committedChanges.put(COMMIT_ROOT, commitRoot);
