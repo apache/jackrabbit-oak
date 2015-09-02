@@ -110,22 +110,15 @@ public abstract class AbstractOak2OakTest {
     }
 
     @Test
-    public void validateDestinationTest() throws RepositoryException, IOException {
+    public void validateMigration() throws RepositoryException, IOException {
         verifyContent(session);
-        Property p = session.getProperty("/sling-logo.png/jcr:content/jcr:data");
-        InputStream is = p.getValue().getBinary().getStream();
-        String expectedMD5 = "35504d8c59455ab12a31f3d06f139a05";
-        try {
-            assertEquals(expectedMD5, DigestUtils.md5Hex(is));
-        } finally {
-            is.close();
-        }
+        verifyBlob(session);
     }
 
-    private static void verifyContent(Session session) throws RepositoryException {
-        Node allow = session.getNode("/rep:policy/allow");
-        assertEquals("rep:GrantACE", allow.getProperty("jcr:primaryType").getString());
-        assertEquals("everyone", allow.getProperty("rep:principalName").getString());
+    static void verifyContent(Session session) throws RepositoryException {
+        Node allow = session.getNode("/apps");
+        assertEquals("sling:Folder", allow.getProperty("jcr:primaryType").getString());
+        assertEquals("admin", allow.getProperty("jcr:createdBy").getString());
 
         Node admin = session.getNode("/home/users/a/admin");
         assertEquals("rep:User", admin.getProperty("jcr:primaryType").getString());
@@ -134,6 +127,17 @@ public abstract class AbstractOak2OakTest {
         assertEquals("rep:NodeType", nodeType.getProperty("jcr:primaryType").getString());
         assertEquals("jcr:mixinTypes", nodeType.getProperty("rep:protectedProperties").getValues()[0].getString());
         assertEquals("false", nodeType.getProperty("jcr:isAbstract").getString());
+    }
+
+    static void verifyBlob(Session session) throws IOException, RepositoryException {
+        Property p = session.getProperty("/sling-logo.png/jcr:content/jcr:data");
+        InputStream is = p.getValue().getBinary().getStream();
+        String expectedMD5 = "35504d8c59455ab12a31f3d06f139a05";
+        try {
+            assertEquals(expectedMD5, DigestUtils.md5Hex(is));
+        } finally {
+            is.close();
+        }
     }
 
 }

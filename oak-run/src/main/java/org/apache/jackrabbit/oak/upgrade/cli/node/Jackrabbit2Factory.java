@@ -96,8 +96,8 @@ public class Jackrabbit2Factory {
         if (!dir.isDirectory()) {
             return false;
         }
-        File systemId = new File(dir, "system.id");
-        return systemId.exists();
+        File workspaces = new File(dir, "workspaces");
+        return workspaces.isDirectory();
     }
 
     @Override
