@@ -49,14 +49,14 @@ import org.apache.jackrabbit.core.query.XPathAxisTest;
 import org.apache.jackrabbit.oak.jcr.tck.TCKBase;
 import org.apache.jackrabbit.test.ConcurrentTestSuite;
 
-public class QueryJcrTest extends TCKBase {
+public class QueryJcrTestIT extends TCKBase {
 
-    public QueryJcrTest() {
+    public QueryJcrTestIT() {
         super("Jackrabbit query tests");
     }
 
     public static Test suite() {
-        return new QueryJcrTest();
+        return new QueryJcrTestIT();
     }
 
     @Override
