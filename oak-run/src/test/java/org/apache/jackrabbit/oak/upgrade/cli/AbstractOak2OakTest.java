@@ -120,9 +120,6 @@ public abstract class AbstractOak2OakTest {
         assertEquals("sling:Folder", allow.getProperty("jcr:primaryType").getString());
         assertEquals("admin", allow.getProperty("jcr:createdBy").getString());
 
-        Node admin = session.getNode("/home/users/a/admin");
-        assertEquals("rep:User", admin.getProperty("jcr:primaryType").getString());
-
         Node nodeType = session.getNode("/jcr:system/jcr:nodeTypes/sling:OrderedFolder");
         assertEquals("rep:NodeType", nodeType.getProperty("jcr:primaryType").getString());
         assertEquals("jcr:mixinTypes", nodeType.getProperty("rep:protectedProperties").getValues()[0].getString());
