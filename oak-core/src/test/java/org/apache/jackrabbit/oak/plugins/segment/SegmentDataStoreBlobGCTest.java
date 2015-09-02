@@ -40,8 +40,6 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-
-import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
@@ -96,17 +94,15 @@ public class SegmentDataStoreBlobGCTest {
         return new File("target", "DataStoreBlobGCTest");
     }
 
-    public HashSet<String> setUp() throws Exception {
+    public DataStoreState setUp() throws Exception {
         blobStore = DataStoreUtils.getBlobStore();
         nodeStore = getNodeStore(blobStore);
         startDate = new Date();
-
-        HashSet<String> set = new HashSet<String>();
-
+        
         NodeBuilder a = nodeStore.getRoot().builder();
 
         /* Create garbage by creating in-lined blobs (size < 16KB) */
-        int number = 10000;
+        int number = 4000;
         NodeBuilder content = a.child("content");
         for (int i = 0; i < number; i++) {
             NodeBuilder c = content.child("x" + i);
@@ -131,32 +127,32 @@ public class SegmentDataStoreBlobGCTest {
 
         /* Create and delete nodes with blobs stored in DS*/
         int maxDeleted  = 5;
-        number = 10;
-        // track the number of the assets to be deleted
+        int numBlobs = 10;
         List<Integer> processed = Lists.newArrayList();
         Random rand = new Random();
         for (int i = 0; i < maxDeleted; i++) {
-            int n = rand.nextInt(number);
+            int n = rand.nextInt(numBlobs);
             if (!processed.contains(n)) {
                 processed.add(n);
             }
         }
-
-        List<String> createdBlobs = Lists.newArrayList();
-        for (int i = 0; i < number; i++) {
+    
+        DataStoreState state = new DataStoreState();
+        for (int i = 0; i < numBlobs; i++) {
             SegmentBlob b = (SegmentBlob) nodeStore.createBlob(randomStream(i, 16516));
-            createdBlobs.add(b.getBlobId());
-            if (!processed.contains(i)) {
-                Iterator<String> idIter = blobStore
-                        .resolveChunks(b.getBlobId());
-                while (idIter.hasNext()) {
-                    set.add(idIter.next());
+            Iterator<String> idIter = blobStore.resolveChunks(b.getBlobId());
+            while (idIter.hasNext()) {
+                String chunk = idIter.next();
+                state.blobsAdded.add(chunk);
+                if (!processed.contains(i)) {
+                    state.blobsPresent.add(chunk);
                 }
             }
             a.child("c" + i).setProperty("x", b);
         }
+        
         nodeStore.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        log.info("Created blobs : {}", createdBlobs.size());
+        log.info("Created blobs : {}", state.blobsAdded.size());
 
         for (int id : processed) {
             delete("c" + id);
@@ -168,19 +164,40 @@ public class SegmentDataStoreBlobGCTest {
         store.maybeCompact(false);
         store.cleanup();
 
-        return set;
+        return state;
     }
-
+    
+    private class DataStoreState {
+        Set<String> blobsAdded = Sets.newHashSet();
+        Set<String> blobsPresent = Sets.newHashSet();
+    }
+    
     private void delete(String nodeId) throws CommitFailedException {
         NodeBuilder builder = nodeStore.getRoot().builder();
         builder.child(nodeId).remove();
 
         nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
-
+    
     @Test
     public void gc() throws Exception {
-        HashSet<String> remaining = setUp();
+        DataStoreState state = setUp();
+        log.info("{} blobs that should remain after gc : {}", state.blobsPresent.size(), state.blobsPresent);
+        log.info("{} blobs for nodes which are deleted : {}", state.blobsPresent.size(), state.blobsPresent);
+        Set<String> existingAfterGC = gcInternal(0);
+        assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
+    }
+    
+    @Test
+    public void noGc() throws Exception {
+        DataStoreState state = setUp();
+        log.info("{} blobs that should remain after gc : {}", state.blobsAdded.size(), state.blobsAdded);
+        log.info("{} blobs for nodes which are deleted : {}", state.blobsPresent.size(), state.blobsPresent);
+        Set<String> existingAfterGC = gcInternal(86400);
+        assertTrue(Sets.symmetricDifference(state.blobsAdded, existingAfterGC).isEmpty());
+    }
+    
+    private Set<String> gcInternal(long maxBlobGcInSecs) throws Exception {
         String repoId = null;
         if (SharedDataStoreUtils.isShared(store.getBlobStore())) {
             repoId = ClusterRepositoryInfo.createId(nodeStore);
@@ -192,16 +209,14 @@ public class SegmentDataStoreBlobGCTest {
         ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
         MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector(
                 new SegmentBlobReferenceRetriever(store.getTracker()),
-                    (GarbageCollectableBlobStore) store.getBlobStore(), executor,
-                    "./target", 2048, 0, repoId);
+                    (GarbageCollectableBlobStore) store.getBlobStore(), executor, "./target", 2048, maxBlobGcInSecs, 
+                                                                        repoId);
         gc.collectGarbage(false);
 
         assertEquals(0, executor.getTaskCount());
         Set<String> existingAfterGC = iterate();
-        log.info("{} blobs that should have remained after gc : {}", remaining.size(), remaining);
         log.info("{} blobs existing after gc : {}", existingAfterGC.size(), existingAfterGC);
-
-        assertTrue(Sets.symmetricDifference(remaining, existingAfterGC).isEmpty());
+        return existingAfterGC;
     }
 
     protected Set<String> iterate() throws Exception {
