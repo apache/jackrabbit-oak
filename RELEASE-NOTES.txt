@@ -14,6 +14,14 @@ stable and targeted for production use.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
+New configuration options in Oak 1.2.5
+--------------------------------------
+
+Node name index support (OAK-1752) - With this queries involving
+node name constraint can make use of index and perform better. Refer to
+http://jackrabbit.apache.org/oak/docs/query/lucene.html#index-node-name
+for usage details.
+
 Changes in Oak 1.2.4
 --------------------
 
