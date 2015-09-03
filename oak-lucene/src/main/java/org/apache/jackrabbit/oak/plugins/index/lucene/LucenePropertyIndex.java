@@ -724,7 +724,14 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             if ("rep:excerpt".equals(name)) {
                 continue;
             }
+
             if (QueryConstants.RESTRICTION_LOCAL_NAME.equals(name)) {
+                if (planResult.evaluateNodeNameRestriction()) {
+                    Query q = createNodeNameQuery(pr);
+                    if (q != null) {
+                        qs.add(q);
+                    }
+                }
                 continue;
             }
 
@@ -953,6 +960,21 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             return ((DirectoryReader) reader).getVersion();
         }
         return -1;
+    }
+
+    private static Query createNodeNameQuery(PropertyRestriction pr) {
+        String first = pr.first != null ? pr.first.getValue(STRING) : null;
+        if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding
+                && pr.lastIncluding) {
+            // [property]=[value]
+            return new TermQuery(new Term(FieldNames.NODE_NAME, first));
+        }
+
+        if (pr.isLike) {
+            return createLikeQuery(FieldNames.NODE_NAME, first);
+        }
+
+        throw new IllegalStateException("For nodeName queries only EQUALS and LIKE are supported "+pr);
     }
 
     private static void addReferenceConstraint(String uuid, List<Query> qs,
