@@ -102,7 +102,7 @@ class Collision {
                                           @Nonnull Revision revision,
                                           @Nonnull DocumentStore store) {
         String p = document.getPath();
-        String commitRootPath = null;
+        String commitRootPath;
         // first check if we can mark the commit with the given revision
         if (document.containsRevision(revision)) {
             if (document.isCommitted(revision)) {
@@ -132,14 +132,25 @@ class Collision {
             return true;
         }
         NodeDocument.addCollision(op, revision);
-        commitRoot = store.createOrUpdate(Collection.NODES, op);
-        // check again on old document right before our update was applied
-        if (commitRoot.isCommitted(revision)) {
+        String commitValue = commitRoot.getLocalRevisions().get(revision);
+        if (commitValue == null) {
+            // no revision entry yet
+            // apply collision marker only if entry is still not there
+            op.containsMapEntry(NodeDocument.REVISIONS, revision, false);
+        } else {
+            // not yet merged branch commit
+            // apply collision marker only if branch commit is still not merged
+            op.equals(NodeDocument.REVISIONS, revision, commitValue);
+        }
+        commitRoot = store.findAndUpdate(Collection.NODES, op);
+        if (commitRoot == null) {
+            // commit state changed meanwhile
+            // -> assume revision is now committed
             return false;
         }
         // otherwise collision marker was set successfully
         LOG.debug("Marked collision on: {} for {} ({})",
-                new Object[]{commitRootPath, p, revision});
+                commitRootPath, p, revision);
         return true;
     }
 
