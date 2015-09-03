@@ -191,6 +191,7 @@ definition structure
 
     ruleName (nt:unstructured)
       - inherited (boolean) = true
+      - indexNodeName (boolean) = false
       - includePropertyTypes (string) multiple
       + properties (nt:unstructured)
 
@@ -207,6 +208,19 @@ includePropertyTypes
 : For full text index defaults to include all types
 : String array of property types which should be indexed. The values can be one
   specified in [PropertyType Names][1]
+  
+<a name="index-node-name"></a>  
+indexNodeName
+: `@since Oak 1.0.20, 1.2.5`
+: Default to false. If set to true then index would also be created for node name.
+  This would enable faster evaluation of queries involving constraints on Node 
+  name. For example
+    * _select [jcr:path] from [nt:base] where NAME() = 'kite'_
+    * _select [jcr:path] from [nt:base] where NAME() LIKE 'kite%'_
+    * //kite
+    * //*[jcr:like(fn:name(), 'kite%')]
+    * //element(*, app:Asset)[fn:name() = 'kite'] 
+    * //element(kite, app:Asset)
 
 ##### Cost Overrides
 
