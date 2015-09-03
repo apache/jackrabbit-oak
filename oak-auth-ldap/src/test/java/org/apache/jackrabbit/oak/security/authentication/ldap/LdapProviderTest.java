@@ -22,10 +22,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.directory.server.constants.ServerDNConstants;
 import org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapIdentityProvider;
 import org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderConfig;
@@ -34,6 +36,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalId
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.apache.jackrabbit.util.Text;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -45,6 +48,8 @@ import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertNull;
 import static junit.framework.Assert.assertTrue;
 import static junit.framework.Assert.fail;
+
+import static org.junit.Assert.assertThat;
 
 public class LdapProviderTest {
 
@@ -163,6 +168,23 @@ public class LdapProviderTest {
         ExternalUser user = idp.getUser(TEST_USER1_UID);
         assertNotNull("User 1 must exist", user);
         assertEquals("User Ref", TEST_USER1_DN, user.getExternalId().getId());
+    }
+
+    @Test
+    public void testGetUserProperties() throws Exception {
+        ExternalUser user = idp.getUser(TEST_USER1_UID);
+        assertNotNull("User 1 must exist", user);
+        List<String> multiValuePropValue = Arrays.asList(new String[] { "top", "person", "organizationalPerson", "inetOrgPerson"});
+        Map<String, Object> properties = new ImmutableMap.Builder<String, Object>()
+                .put("uid", "hhornblo")
+                .put("mail", "hhornblo@royalnavy.mod.uk")
+                .put("givenname", "Horatio")
+                .put("description", "Capt. Horatio Hornblower, R.N")
+                .put("sn", "Hornblower")
+                .put("cn", "Horatio Hornblower")
+                .put("objectclass", multiValuePropValue)
+                .build();
+        assertThat((Map<String, Object>) user.getProperties(), Matchers.<Map<String, Object>>equalTo(properties));
     }
 
     @Test
