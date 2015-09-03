@@ -30,6 +30,11 @@ for the DocumentStore implementation does not have the require privilege.
 In this case it is required to create the table for the RDB backend or 
 collection for MongoDB manually before Oak is upgraded to 1.0.20.
 See https://issues.apache.org/jira/browse/OAK-2829 for more details.
+
+Node name index support (OAK-1752) - With this queries involving
+node name constraint can make use of index and perform better. Refer to
+http://jackrabbit.apache.org/oak/docs/query/lucene.html#index-node-name
+for usage details.
  
 
 Sub-task
