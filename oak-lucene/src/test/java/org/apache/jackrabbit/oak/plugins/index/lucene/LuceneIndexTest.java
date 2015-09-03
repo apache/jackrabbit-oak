@@ -41,6 +41,7 @@ import static junit.framework.Assert.assertTrue;
 import static junit.framework.Assert.fail;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
+import static org.apache.jackrabbit.JcrConstants.NT_FILE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ANALYZERS;
@@ -89,6 +90,7 @@ import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -499,6 +501,38 @@ public class LuceneIndexTest {
         filter = createTestFilter();
         filter.restrictPath("/a", Filter.PathRestriction.ALL_CHILDREN);
         assertFilter(filter, queryIndex, indexed, ImmutableList.of("/a/b", "/a/b/c"));
+    }
+
+    @Test
+    public void nodeNameIndex() throws Exception{
+        NodeBuilder index = newLucenePropertyIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "lucene", ImmutableSet.of("foo"), null);
+        NodeBuilder rules = index.child(INDEX_RULES);
+        NodeBuilder ruleNode = rules.child(NT_FILE);
+        ruleNode.setProperty(LuceneIndexConstants.INDEX_NODE_NAME, true);
+
+        NodeState before = builder.getNodeState();
+        createNodeWithType(builder, "foo", NT_FILE);
+        createNodeWithType(builder, "camelCase", NT_FILE);
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
+
+        IndexTracker tracker = new IndexTracker();
+        tracker.update(indexed);
+        AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker);
+
+        FilterImpl filter = createFilter(NT_FILE);
+        filter.restrictProperty(QueryConstants.RESTRICTION_LOCAL_NAME, Operator.EQUAL, PropertyValues.newString("foo"));
+        assertFilter(filter, queryIndex, indexed, ImmutableList.of("/foo"));
+
+        filter = createFilter(NT_FILE);
+        filter.restrictProperty(QueryConstants.RESTRICTION_LOCAL_NAME, Operator.LIKE, PropertyValues.newString("camelCase"));
+        assertFilter(filter, queryIndex, indexed, ImmutableList.of("/camelCase"));
+
+        filter = createFilter(NT_FILE);
+        filter.restrictProperty(QueryConstants.RESTRICTION_LOCAL_NAME, Operator.LIKE, PropertyValues.newString("camel%"));
+        assertFilter(filter, queryIndex, indexed, ImmutableList.of("/camelCase"));
     }
 
     private FilterImpl createTestFilter(){

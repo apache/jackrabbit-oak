@@ -625,6 +625,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         private final List<PropertyDefinition> nullCheckEnabledProperties;
         private final List<PropertyDefinition> notNullCheckEnabledProperties;
         private final boolean indexesAllNodesOfMatchingType;
+        private final boolean nodeNameIndexed;
 
         final float boost;
         final boolean inherited;
@@ -657,6 +658,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
             this.fulltextEnabled = aggregate.hasNodeAggregates() || hasAnyFullTextEnabledProperty();
             this.propertyIndexEnabled = hasAnyPropertyIndexConfigured();
             this.indexesAllNodesOfMatchingType = allMatchingNodeByTypeIndexed();
+            this.nodeNameIndexed = getOptionalValue(config, LuceneIndexConstants.INDEX_NODE_NAME, false);
             validateRuleDefinition();
         }
 
@@ -682,6 +684,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
             this.aggregate = combine(propAggregate, nodeTypeName);
             this.fulltextEnabled = aggregate.hasNodeAggregates() || original.fulltextEnabled;
             this.indexesAllNodesOfMatchingType = allMatchingNodeByTypeIndexed();
+            this.nodeNameIndexed = original.nodeNameIndexed;
         }
 
         /**
@@ -753,6 +756,10 @@ class IndexDefinition implements Aggregate.AggregateMapper{
             //return condition == null || condition.evaluate(state);
             return true;
 
+        }
+
+        public boolean isNodeNameIndexed() {
+            return nodeNameIndexed;
         }
 
         public boolean isFulltextEnabled() {

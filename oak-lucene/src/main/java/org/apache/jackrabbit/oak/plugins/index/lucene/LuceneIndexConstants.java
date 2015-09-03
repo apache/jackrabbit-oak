@@ -257,6 +257,12 @@ public interface LuceneIndexConstants {
     String PROP_NOT_NULL_CHECK_ENABLED = "notNullCheckEnabled";
 
     /**
+     * IndexRule level config to indicate that Node name should also be index
+     * to support fn:name() queries
+     */
+    String INDEX_NODE_NAME = "indexNodeName";
+
+    /**
      * Boolean property indicating that Lucene directory content
      * should be saved as part of NodeState itself as a multi value property
      * to allow faster reads (OAK-2809)
