@@ -33,8 +33,6 @@
   <properties>
     <jetty.version>8.1.2.v20120308</jetty.version>
     <groovy.version>2.3.1</groovy.version>
-    <lucene.core.version>${lucene.version}</lucene.core.version>
-    <exclude.tests>**/Jcr2ToSegmentTest.java</exclude.tests>
   </properties>
 
   <build>
@@ -195,11 +193,7 @@
         <configuration>
           <systemPropertyVariables>
             <jetty.http.port>${jetty.http.port}</jetty.http.port>
-            <s3.properties>${s3.properties}</s3.properties>
           </systemPropertyVariables>
-          <excludes>
-            <exclude>${exclude.tests}</exclude>
-          </excludes>
         </configuration>
       </plugin>
       <plugin>
@@ -236,16 +230,6 @@
   </build>
 
   <dependencies>
-    <dependency>
-      <groupId>org.apache.lucene</groupId>
-      <artifactId>lucene-core</artifactId>
-      <version>${lucene.core.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-blob-cloud</artifactId>
-      <version>${project.version}</version>
-    </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-jcr</artifactId>
@@ -417,10 +401,13 @@
   <profiles>
     <profile>
       <id>jr2</id>
-      <properties>
-        <lucene.core.version>3.6.0</lucene.core.version>
-        <exclude.tests>nothing-to-exclude</exclude.tests>
-      </properties>
+      <dependencies>
+        <dependency>
+          <groupId>org.apache.lucene</groupId>
+          <artifactId>lucene-core</artifactId>
+          <version>3.6.0</version>
+        </dependency>
+      </dependencies>
     </profile>
     <profile>
       <!--
@@ -433,6 +420,11 @@
         <activeByDefault>true</activeByDefault>
       </activation>
       <dependencies>
+        <dependency>
+          <groupId>org.apache.lucene</groupId>
+          <artifactId>lucene-core</artifactId>
+          <version>${lucene.version}</version>
+        </dependency>
         <dependency>
           <groupId>org.apache.lucene</groupId>
           <artifactId>lucene-analyzers-common</artifactId>

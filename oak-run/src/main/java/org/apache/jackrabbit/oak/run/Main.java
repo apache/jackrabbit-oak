@@ -104,7 +104,6 @@ import org.apache.jackrabbit.oak.plugins.tika.TextExtractorMain;
 import org.apache.jackrabbit.oak.scalability.ScalabilityRunner;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.upgrade.cli.OakUpgrade;
 import org.apache.jackrabbit.server.remoting.davex.JcrRemotingServlet;
 import org.apache.jackrabbit.webdav.jcr.JCRWebdavServerServlet;
 import org.apache.jackrabbit.webdav.server.AbstractWebdavServlet;
@@ -166,7 +165,7 @@ public final class Main {
                 server(URI, args);
                 break;
             case UPGRADE:
-                OakUpgrade.main(args);
+                System.out.println("This command was moved to the oak-migrator module");
                 break;
             case SCALABILITY:
                 ScalabilityRunner.main(args);
