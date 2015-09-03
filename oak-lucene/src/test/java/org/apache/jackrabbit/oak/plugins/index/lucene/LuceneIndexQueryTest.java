@@ -56,6 +56,7 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         indexDefn.setProperty(LuceneIndexConstants.EVALUATE_PATH_RESTRICTION, true);
 
         Tree props = TestUtil.newRulePropTree(indexDefn, "nt:base");
+        props.getParent().setProperty(LuceneIndexConstants.INDEX_NODE_NAME, true);
         TestUtil.enablePropertyIndex(props, "c1/p", false);
         TestUtil.enableForFullText(props, LuceneIndexConstants.REGEX_ALL_PROPS, true);
 

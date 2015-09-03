@@ -215,6 +215,12 @@ public interface LuceneIndexConstants {
     String SUGGEST_UPDATE_FREQUENCY_MINUTES = "suggestUpdateFrequencyMinutes";
 
     /**
+     * IndexRule level config to indicate that Node name should also be index
+     * to support fn:name() queries
+     */
+    String INDEX_NODE_NAME = "indexNodeName";
+
+    /**
      * Boolean property indicating that Lucene directory content
      * should be saved as part of NodeState itself as a multi value property
      * to allow faster reads (OAK-2809)
