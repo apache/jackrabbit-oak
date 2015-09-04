@@ -673,6 +673,10 @@ public class FileStore implements SegmentStore {
                 // prevent the flush from stopping concurrent reads and writes
                 // by the persisted compaction map. See OAK-3264
                 if (cleanup) {
+                    // Explicitly give up reference to the previous root state
+                    // otherwise they would block cleanup. See OAK-3347
+                    before = null;
+                    after = null;
                     cleanup();
                 }
             }
