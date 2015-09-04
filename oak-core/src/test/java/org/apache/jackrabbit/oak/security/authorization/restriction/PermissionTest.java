@@ -23,17 +23,15 @@ import java.util.Map;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlManager;
 
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.value.StringValue;
@@ -42,11 +40,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableList;
-
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -121,12 +115,15 @@ public class PermissionTest extends AbstractSecurityTest {
         ContentSession testSession = createTestSession();
         try {
             Root testRoot = testSession.getLatestRoot();
-            AccessControlManager acMgr = getAccessControlManager(testRoot);
 
+            PermissionProvider pp = getSecurityProvider()
+                    .getConfiguration(AuthorizationConfiguration.class)
+                    .getPermissionProvider(root, testSession.getWorkspaceName(), testSession.getAuthInfo().getPrincipals());
+
+            assertTrue("user should not have remove node on /a/b",
+                    pp.isGranted(testRoot.getTree(TEST_B_PATH), null, Permissions.REMOVE_NODE));
             assertFalse("user should not have remove node on /a/b/c",
-                    acMgr.hasPrivileges(TEST_C_PATH, AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.JCR_REMOVE_NODE)));
-            assertTrue("user should have remove node on /a/b",
-                    acMgr.hasPrivileges(TEST_B_PATH, AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.JCR_REMOVE_NODE)));
+                    pp.isGranted(testRoot.getTree(TEST_C_PATH), null, Permissions.REMOVE_NODE));
 
             try {
                 testRoot.getTree(TEST_C_PATH).remove();
@@ -140,6 +137,14 @@ public class PermissionTest extends AbstractSecurityTest {
         }
     }
 
+    /**
+     * Tests if the restrictions are properly inherited.
+     * the restriction enable/disable the ACE where it is defined.
+     * since the 'allow' on /a/b is after the 'deny' on a/b/c, the allow wins.
+     *
+     * The test currently fails on evaluation of /a/b/c/d. Probably because the evaluation
+     * of /a/b/c yields a deny, which terminates the iteration.
+     */
     @Test
     @Ignore("OAK-3324")
     public void testHasPermissionWithRestrictions() throws Exception {
@@ -147,36 +152,90 @@ public class PermissionTest extends AbstractSecurityTest {
         // allow rep:write      /testroot
         // deny  jcr:removeNode /testroot/a  glob=*/c
         // allow jcr:removeNode /testroot/a  glob=*/b
-        // allow jcr:removeNode /testroot/a  glob=*/c/*
 
         addEntry(TEST_ROOT_PATH, true, "", PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE);
         addEntry(TEST_A_PATH, false, "*/c", PrivilegeConstants.JCR_REMOVE_NODE);
         addEntry(TEST_A_PATH, true, "*/b", PrivilegeConstants.JCR_REMOVE_NODE);
-        addEntry(TEST_A_PATH, true, "*/c/*", PrivilegeConstants.JCR_REMOVE_NODE);
 
         ContentSession testSession = createTestSession();
         try {
             Root testRoot = testSession.getLatestRoot();
-            AccessControlManager acMgr = getAccessControlManager(testRoot);
 
-            assertFalse("user should not have remove node on /a/b/c",
-                    acMgr.hasPrivileges(TEST_C_PATH, AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.JCR_REMOVE_NODE)));
-            assertTrue("user should have remove node on /a/b",
-                    acMgr.hasPrivileges(TEST_B_PATH, AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.JCR_REMOVE_NODE)));
+            PermissionProvider pp = getSecurityProvider()
+                    .getConfiguration(AuthorizationConfiguration.class)
+                    .getPermissionProvider(root, testSession.getWorkspaceName(), testSession.getAuthInfo().getPrincipals());
+
+            assertTrue("user should not have remove node on /a/b",
+                    pp.isGranted(testRoot.getTree(TEST_B_PATH), null, Permissions.REMOVE_NODE));
+            assertTrue("user should have remove node on /a/b/c",
+                    pp.isGranted(testRoot.getTree(TEST_C_PATH), null, Permissions.REMOVE_NODE));
             assertTrue("user should have remove node on /a/b/c/d",
-                    acMgr.hasPrivileges(TEST_D_PATH, AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.JCR_REMOVE_NODE)));
+                    pp.isGranted(testRoot.getTree(TEST_D_PATH), null, Permissions.REMOVE_NODE));
 
             // should be able to remove /a/b/c/d
             testRoot.getTree(TEST_D_PATH).remove();
             testRoot.commit();
 
+            // should be able to remove /a/b/c
+            testRoot.getTree(TEST_C_PATH).remove();
+            testRoot.commit();
+
+        } finally {
+            testSession.close();
+        }
+    }
+
+    /**
+     * Tests if the restrictions are properly inherited.
+     * the restriction enable/disable the ACE where it is defined.
+     * since the 'deny' on /a/b is after the 'allow' on a/b/c, the deny wins.
+     */
+    @Test
+    public void testHasPermissionWithRestrictions2() throws Exception {
+        // create permissions
+        // allow rep:write      /testroot
+        // allow jcr:removeNode /testroot/a  glob=*/b
+        // deny  jcr:removeNode /testroot/a  glob=*/c
+
+        addEntry(TEST_ROOT_PATH, true, "", PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE);
+        addEntry(TEST_A_PATH, true, "*/b", PrivilegeConstants.JCR_REMOVE_NODE);
+        addEntry(TEST_A_PATH, false, "*/c", PrivilegeConstants.JCR_REMOVE_NODE);
+
+        ContentSession testSession = createTestSession();
+        try {
+            Root testRoot = testSession.getLatestRoot();
+
+            PermissionProvider pp = getSecurityProvider()
+                    .getConfiguration(AuthorizationConfiguration.class)
+                    .getPermissionProvider(root, testSession.getWorkspaceName(), testSession.getAuthInfo().getPrincipals());
+
+            assertTrue("user should not have remove node on /a/b",
+                    pp.isGranted(testRoot.getTree(TEST_B_PATH), null, Permissions.REMOVE_NODE));
+            assertFalse("user should not have remove node on /a/b/c",
+                    pp.isGranted(testRoot.getTree(TEST_C_PATH), null, Permissions.REMOVE_NODE));
+            assertFalse("user should not have remove node on /a/b/c/d",
+                    pp.isGranted(testRoot.getTree(TEST_D_PATH), null, Permissions.REMOVE_NODE));
+
             try {
+                // should not be able to remove /a/b/c/d
+                testRoot.getTree(TEST_D_PATH).remove();
+                testRoot.commit();
+                fail("should not be able to delete " + TEST_D_PATH);
+            } catch (CommitFailedException e) {
+                // ok
+                testRoot.refresh();
+            }
+
+            try {
+                // should not be able to remove /a/b/c
                 testRoot.getTree(TEST_C_PATH).remove();
                 testRoot.commit();
-                fail("removing node on /a/b/c should fail");
+                fail("should not be able to delete " + TEST_C_PATH);
             } catch (CommitFailedException e) {
-                // all ok
+                // ok
+                testRoot.refresh();
             }
+
         } finally {
             testSession.close();
         }
