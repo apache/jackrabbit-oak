@@ -154,6 +154,9 @@ public class SegmentNodeStore implements NodeStore, Observable {
             try {
                 return c.call();
             } finally {
+                // Explicitly give up reference to the previous root state
+                // otherwise they would block cleanup. See OAK-3347
+                refreshHead();
                 commitSemaphore.release();
             }
         }
