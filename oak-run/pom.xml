@@ -247,11 +247,6 @@
       </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-upgrade</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-lucene</artifactId>
       <version>${project.version}</version>
     </dependency>

@@ -165,7 +165,7 @@ public final class Main {
                 server(URI, args);
                 break;
             case UPGRADE:
-                System.out.println("This command was moved to the oak-migrator module");
+                System.out.println("This command was moved to the oak-upgrade module");
                 break;
             case SCALABILITY:
                 ScalabilityRunner.main(args);
