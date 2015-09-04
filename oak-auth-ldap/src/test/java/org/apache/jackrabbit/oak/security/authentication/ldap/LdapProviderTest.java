@@ -42,6 +42,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.Ignore;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
@@ -171,6 +172,7 @@ public class LdapProviderTest {
     }
 
     @Test
+    @Ignore("OAK-3144")
     public void testGetUserProperties() throws Exception {
         ExternalUser user = idp.getUser(TEST_USER1_UID);
         assertNotNull("User 1 must exist", user);
