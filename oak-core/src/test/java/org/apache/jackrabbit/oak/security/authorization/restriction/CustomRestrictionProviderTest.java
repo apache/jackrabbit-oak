@@ -54,6 +54,7 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.value.StringValue;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -70,6 +71,7 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
     private static final String TEST_B_PATH = "/testRoot/a/b";
     private static final String TEST_C_PATH = "/testRoot/a/b/c";
     private static final String TEST_D_PATH = "/testRoot/a/b/c/d";
+    private static final String TEST_E_PATH = "/testRoot/a/b/c/d/e";
     private static final String PROP_NAME_PROTECT_ME = "protect-me";
 
     private NodeUtil testRootNode;
@@ -93,7 +95,8 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
         NodeUtil b = a.addChild("b", NT_UNSTRUCTURED);
         NodeUtil c = b.addChild("c", NT_UNSTRUCTURED);
         c.setBoolean(PROP_NAME_PROTECT_ME, true);
-        c.addChild("d", NT_UNSTRUCTURED);
+        NodeUtil d = c.addChild("d", NT_UNSTRUCTURED);
+        d.addChild("e", NT_UNSTRUCTURED);
         root.commit();
 
         testPrincipal = getTestUser().getPrincipal();
@@ -133,6 +136,7 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
      * @throws Exception
      */
     @Test
+    @Ignore("OAK-3324")
     public void testProtectByRestriction() throws Exception {
         // create permissions
         // allow rep:write      /testroot
@@ -151,8 +155,10 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
                     pp.isGranted(testRoot.getTree(TEST_B_PATH), null, Permissions.REMOVE_NODE));
             assertFalse("user should not have remove node on /a/b/c",
                     pp.isGranted(testRoot.getTree(TEST_C_PATH), null, Permissions.REMOVE_NODE));
-            assertFalse("user should not have remove node on /a/b/c/d",
+            assertTrue("user should not have remove node on /a/b/c/d",
                     pp.isGranted(testRoot.getTree(TEST_D_PATH), null, Permissions.REMOVE_NODE));
+            assertTrue("user should not have remove node on /a/b/c/d/e",
+                    pp.isGranted(testRoot.getTree(TEST_E_PATH), null, Permissions.REMOVE_NODE));
 
             try {
                 // should be not able to remove /a/b/c/d
@@ -171,6 +177,39 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
             } catch (CommitFailedException e) {
                 // all ok
             }
+        } finally {
+            testSession.close();
+        }
+    }
+
+    /**
+     * Tests the custom restriction provider that checks on the existence of a property.
+     * @throws Exception
+     */
+    @Test
+    public void testProtectPropertiesByRestriction() throws Exception {
+        // create permissions
+        // allow rep:write          /testroot
+        // deny  jcr:modifyProperties /testroot/a  hasProperty = protect-me
+
+        addEntry(TEST_ROOT_PATH, true, "", PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE);
+        addEntry(TEST_A_PATH, false, PROP_NAME_PROTECT_ME, PrivilegeConstants.JCR_MODIFY_PROPERTIES);
+
+        ContentSession testSession = createTestSession();
+        try {
+            Root testRoot = testSession.getLatestRoot();
+            PermissionProvider pp = getSecurityProvider()
+                    .getConfiguration(AuthorizationConfiguration.class)
+                    .getPermissionProvider(root, testSession.getWorkspaceName(), testSession.getAuthInfo().getPrincipals());
+            assertTrue("user should have remove node on /a/b",
+                    pp.isGranted(testRoot.getTree(TEST_B_PATH), null, Permissions.MODIFY_PROPERTY));
+            assertFalse("user should not have remove node on /a/b/c",
+                    pp.isGranted(testRoot.getTree(TEST_C_PATH), null, Permissions.MODIFY_PROPERTY));
+            assertTrue("user should not have remove node on /a/b/c/d",
+                    pp.isGranted(testRoot.getTree(TEST_D_PATH), null, Permissions.MODIFY_PROPERTY));
+            assertTrue("user should not have remove node on /a/b/c/d/e",
+                    pp.isGranted(testRoot.getTree(TEST_E_PATH), null, Permissions.MODIFY_PROPERTY));
+
         } finally {
             testSession.close();
         }
