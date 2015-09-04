@@ -19,7 +19,7 @@ Oak API
 --------------------------------------------------------------------------------
 
 
-- Javadocs (latest release)
+- [Javadocs](../apidocs/) (latest release)
 - Javadoc of previous releases are available from [javadoc.io](http://www.javadoc.io/): 
     - [oak-jcr](http://www.javadoc.io/doc/org.apache.jackrabbit/oak-jcr/)
     - [oak-core](http://www.javadoc.io/doc/org.apache.jackrabbit/oak-core/)
