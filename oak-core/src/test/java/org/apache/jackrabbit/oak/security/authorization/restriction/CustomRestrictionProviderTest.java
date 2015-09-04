@@ -54,7 +54,6 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.value.StringValue;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -63,6 +62,10 @@ import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+/**
+ * Test suite for a custom restriction provider. The restriction is enabled based on the (non) existence of a property.
+ * The test creates nodes along '/testRoot/a/b/c/d/e' and sets the 'protect-me' property on '/testRoot/a/b/c'.
+ */
 public class CustomRestrictionProviderTest extends AbstractSecurityTest {
 
     private static final String TEST_ROOT_PATH = "/testRoot";
@@ -145,12 +148,9 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
      * @throws Exception
      */
     @Test
-    @Ignore("OAK-3324")
     public void testProtectByRestriction() throws Exception {
-        // create permissions
         // allow rep:write      /testroot
-        // deny  jcr:removeNode /testroot/a  hasProperty = protect-me
-
+        // deny  jcr:removeNode /testroot/a  hasProperty=protect-me
         addEntry(TEST_ROOT_PATH, true, "", PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE);
         addEntry(TEST_A_PATH, false, PROP_NAME_PROTECT_ME, PrivilegeConstants.JCR_REMOVE_NODE);
 
@@ -158,11 +158,11 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
         try {
             Root testRoot = testSession.getLatestRoot();
             PermissionProvider pp = getPermissionProvider(testSession);
-            assertIsGranted(pp, testRoot, true, TEST_A_PATH, Permissions.REMOVE_NODE);
-            assertIsGranted(pp, testRoot, true, TEST_B_PATH, Permissions.REMOVE_NODE);
+            assertIsGranted(pp, testRoot, true , TEST_A_PATH, Permissions.REMOVE_NODE);
+            assertIsGranted(pp, testRoot, true , TEST_B_PATH, Permissions.REMOVE_NODE);
             assertIsGranted(pp, testRoot, false, TEST_C_PATH, Permissions.REMOVE_NODE);
             assertIsGranted(pp, testRoot, true , TEST_D_PATH, Permissions.REMOVE_NODE);
-            assertIsGranted(pp, testRoot, true, TEST_E_PATH, Permissions.REMOVE_NODE);
+            assertIsGranted(pp, testRoot, true , TEST_E_PATH, Permissions.REMOVE_NODE);
 
             // should be able to remove /a/b/c/d
             testRoot.getTree(TEST_D_PATH).remove();
@@ -186,10 +186,8 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
      */
     @Test
     public void testProtectPropertiesByRestriction() throws Exception {
-        // create permissions
-        // allow rep:write          /testroot
-        // deny  jcr:modifyProperties /testroot/a  hasProperty = protect-me
-
+        // allow rep:write            /testroot
+        // deny  jcr:modifyProperties /testroot/a  hasProperty=protect-me
         addEntry(TEST_ROOT_PATH, true, "", PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE);
         addEntry(TEST_A_PATH, false, PROP_NAME_PROTECT_ME, PrivilegeConstants.JCR_MODIFY_PROPERTIES);
 
@@ -199,10 +197,10 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
 
             PermissionProvider pp = getPermissionProvider(testSession);
             assertIsGranted(pp, testRoot, true , TEST_A_PATH, Permissions.MODIFY_PROPERTY);
-            assertIsGranted(pp, testRoot, true, TEST_B_PATH, Permissions.MODIFY_PROPERTY);
+            assertIsGranted(pp, testRoot, true , TEST_B_PATH, Permissions.MODIFY_PROPERTY);
             assertIsGranted(pp, testRoot, false, TEST_C_PATH, Permissions.MODIFY_PROPERTY);
-            assertIsGranted(pp, testRoot, true, TEST_D_PATH, Permissions.MODIFY_PROPERTY);
-            assertIsGranted(pp, testRoot, true, TEST_E_PATH, Permissions.MODIFY_PROPERTY);
+            assertIsGranted(pp, testRoot, true , TEST_D_PATH, Permissions.MODIFY_PROPERTY);
+            assertIsGranted(pp, testRoot, true , TEST_E_PATH, Permissions.MODIFY_PROPERTY);
 
         } finally {
             testSession.close();
@@ -210,17 +208,14 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
     }
 
     /**
-     * Tests the custom restriction provider that checks on the existence of a property.
+     * Tests the custom restriction provider that checks on the absence of a property.
      * @throws Exception
      */
     @Test
-    @Ignore("OAK-3324")
     public void testUnProtectByRestriction() throws Exception {
-        // create permissions
         // allow rep:write      /testroot
         // deny  jcr:removeNode /testroot
-        // allow jcr:removeNode /testroot/a  hasProperty = !protect-me
-
+        // allow jcr:removeNode /testroot/a  hasProperty=!protect-me
         addEntry(TEST_ROOT_PATH, true, "", PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE);
         addEntry(TEST_ROOT_PATH, false, "", PrivilegeConstants.JCR_REMOVE_NODE);
         addEntry(TEST_A_PATH, true, "!" + PROP_NAME_PROTECT_ME, PrivilegeConstants.JCR_REMOVE_NODE);
@@ -229,17 +224,20 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
         try {
             Root testRoot = testSession.getLatestRoot();
             PermissionProvider pp = getPermissionProvider(testSession);
-            assertIsGranted(pp, testRoot, true, TEST_A_PATH, Permissions.REMOVE_NODE);
-            assertIsGranted(pp, testRoot, true, TEST_B_PATH, Permissions.REMOVE_NODE);
+            assertIsGranted(pp, testRoot, true , TEST_A_PATH, Permissions.REMOVE_NODE);
+            assertIsGranted(pp, testRoot, true , TEST_B_PATH, Permissions.REMOVE_NODE);
             assertIsGranted(pp, testRoot, false, TEST_C_PATH, Permissions.REMOVE_NODE);
-            assertIsGranted(pp, testRoot, true, TEST_D_PATH, Permissions.REMOVE_NODE);
-            assertIsGranted(pp, testRoot, true, TEST_E_PATH, Permissions.REMOVE_NODE);
+            assertIsGranted(pp, testRoot, true , TEST_D_PATH, Permissions.REMOVE_NODE);
+            assertIsGranted(pp, testRoot, true , TEST_E_PATH, Permissions.REMOVE_NODE);
 
         } finally {
             testSession.close();
         }
     }
 
+    /**
+     * Customs restriction provider that matches restrictions based on the existence of a property.
+     */
     public static class PropertyRestrictionProvider extends AbstractRestrictionProvider {
 
         public static final String RESTRICTION_NAME = "hasProperty";
