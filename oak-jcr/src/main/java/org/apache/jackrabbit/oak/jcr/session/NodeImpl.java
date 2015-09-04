@@ -1397,6 +1397,14 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             throws RepositoryException {
         final String oakName = getOakName(checkNotNull(jcrName));
         return perform(new ItemWriteOperation<Property>("internalRemoveProperty") {
+            @Override
+            public void checkPreconditions() throws RepositoryException {
+                super.checkPreconditions();
+                if (!isCheckedOut()) {
+                    throw new VersionException(
+                            "Cannot remove property. Node is checked in.");
+                }
+            }
             @Nonnull
             @Override
             public Property perform() throws RepositoryException {
