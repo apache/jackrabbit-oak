@@ -17,8 +17,16 @@
 
 package org.apache.jackrabbit.oak.security.authentication.ldap;
 
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertNotNull;
+import static junit.framework.Assert.assertNull;
+import static junit.framework.Assert.assertTrue;
+import static junit.framework.Assert.fail;
+import static org.junit.Assert.assertThat;
+
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -43,14 +51,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
-
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertNull;
-import static junit.framework.Assert.assertTrue;
-import static junit.framework.Assert.fail;
-
-import static org.junit.Assert.assertThat;
 
 public class LdapProviderTest {
 
@@ -175,17 +175,14 @@ public class LdapProviderTest {
     public void testGetUserProperties() throws Exception {
         ExternalUser user = idp.getUser(TEST_USER1_UID);
         assertNotNull("User 1 must exist", user);
-        List<String> multiValuePropValue = Arrays.asList(new String[] { "top", "person", "organizationalPerson", "inetOrgPerson"});
-        Map<String, Object> properties = new ImmutableMap.Builder<String, Object>()
-                .put("uid", "hhornblo")
-                .put("mail", "hhornblo@royalnavy.mod.uk")
-                .put("givenname", "Horatio")
-                .put("description", "Capt. Horatio Hornblower, R.N")
-                .put("sn", "Hornblower")
-                .put("cn", "Horatio Hornblower")
-                .put("objectclass", multiValuePropValue)
-                .build();
-        assertThat((Map<String, Object>)user.getProperties(), Matchers.<Map<String, Object>>equalTo(properties));
+        
+        assertThat((Map<String, Collection<String>>)user.getProperties(), Matchers.<String, Collection<String>>hasEntry(Matchers.equalTo("objectclass"), Matchers.containsInAnyOrder( "inetOrgPerson", "top", "person", "organizationalPerson")));
+        assertThat(user.getProperties(), Matchers.<String, Object>hasEntry("uid", "hhornblo"));
+        assertThat(user.getProperties(), Matchers.<String, Object>hasEntry("mail", "hhornblo@royalnavy.mod.uk"));
+        assertThat(user.getProperties(), Matchers.<String, Object>hasEntry("givenname", "Horatio"));
+        assertThat(user.getProperties(), Matchers.<String, Object>hasEntry("description", "Capt. Horatio Hornblower, R.N"));
+        assertThat(user.getProperties(), Matchers.<String, Object>hasEntry("sn", "Hornblower"));
+        assertThat(user.getProperties(), Matchers.<String, Object>hasEntry("cn", "Horatio Hornblower"));
     }
 
     @Test
