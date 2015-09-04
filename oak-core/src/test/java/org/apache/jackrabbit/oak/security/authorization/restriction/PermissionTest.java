@@ -51,6 +51,7 @@ public class PermissionTest extends AbstractSecurityTest {
     private static final String TEST_B_PATH = "/testRoot/a/b";
     private static final String TEST_C_PATH = "/testRoot/a/b/c";
     private static final String TEST_D_PATH = "/testRoot/a/b/c/d";
+    private static final String TEST_E_PATH = "/testRoot/a/b/c/d/e";
 
     private Principal testPrincipal;
 
@@ -64,7 +65,8 @@ public class PermissionTest extends AbstractSecurityTest {
         NodeUtil a = testRootNode.addChild("a", NT_UNSTRUCTURED);
         NodeUtil b = a.addChild("b", NT_UNSTRUCTURED);
         NodeUtil c = b.addChild("c", NT_UNSTRUCTURED);
-        c.addChild("d", NT_UNSTRUCTURED);
+        NodeUtil d = c.addChild("d", NT_UNSTRUCTURED);
+        d.addChild("e", NT_UNSTRUCTURED);
         root.commit();
 
         testPrincipal = getTestUser().getPrincipal();
@@ -152,7 +154,6 @@ public class PermissionTest extends AbstractSecurityTest {
      * of /a/b/c yields a deny, which terminates the iteration.
      */
     @Test
-    @Ignore("OAK-3324")
     public void testHasPermissionWithRestrictions() throws Exception {
         // create permissions
         // allow rep:write      /testroot
@@ -172,6 +173,7 @@ public class PermissionTest extends AbstractSecurityTest {
             assertIsGranted(pp, testRoot, true, TEST_B_PATH, Permissions.REMOVE_NODE);
             assertIsGranted(pp, testRoot, false, TEST_C_PATH, Permissions.REMOVE_NODE);
             assertIsGranted(pp, testRoot, true, TEST_D_PATH, Permissions.REMOVE_NODE);
+            assertIsGranted(pp, testRoot, true, TEST_E_PATH, Permissions.REMOVE_NODE);
 
             // should be able to remove /a/b/c/d
             testRoot.getTree(TEST_D_PATH).remove();
@@ -197,7 +199,6 @@ public class PermissionTest extends AbstractSecurityTest {
      * since the 'deny' on /a/b is after the 'allow' on a/b/c, the deny wins.
      */
     @Test
-    @Ignore("OAK-3324")
     public void testHasPermissionWithRestrictions2() throws Exception {
         // create permissions
         // allow rep:write      /testroot
@@ -236,4 +237,35 @@ public class PermissionTest extends AbstractSecurityTest {
             testSession.close();
         }
     }
+
+    /**
+     * Tests the custom restriction provider that checks on the existence of a property.
+     * @throws Exception
+     */
+    @Test
+    public void testProtectPropertiesByRestriction() throws Exception {
+        // create permissions
+        // allow rep:write          /testroot
+        // deny  jcr:modifyProperties /testroot/a  glob = */c
+
+        addEntry(TEST_ROOT_PATH, true, "", PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE);
+        addEntry(TEST_A_PATH, false, "*/c", PrivilegeConstants.JCR_MODIFY_PROPERTIES);
+
+        ContentSession testSession = createTestSession();
+        try {
+            Root testRoot = testSession.getLatestRoot();
+
+            PermissionProvider pp = getPermissionProvider(testSession);
+            assertIsGranted(pp, testRoot, true , TEST_A_PATH, Permissions.MODIFY_PROPERTY);
+            assertIsGranted(pp, testRoot, true, TEST_B_PATH, Permissions.MODIFY_PROPERTY);
+            assertIsGranted(pp, testRoot, false, TEST_C_PATH, Permissions.MODIFY_PROPERTY);
+            assertIsGranted(pp, testRoot, true, TEST_D_PATH, Permissions.MODIFY_PROPERTY);
+            assertIsGranted(pp, testRoot, true, TEST_E_PATH, Permissions.MODIFY_PROPERTY);
+
+        } finally {
+            testSession.close();
+        }
+    }
+
+
 }
