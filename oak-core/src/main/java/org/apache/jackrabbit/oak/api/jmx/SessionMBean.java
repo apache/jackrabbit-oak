@@ -78,6 +78,16 @@ public interface SessionMBean {
     String getLastRefresh();
 
     /**
+     * @return description of the refresh strategy
+     */
+    String getRefreshStrategy();
+
+    /**
+     * @return {@code true} iff the session will be refreshed on next access.
+     */
+    boolean getRefreshPending();
+
+    /**
      * @return number of refresh operations
      */
     long getRefreshCount();

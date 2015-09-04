@@ -45,13 +45,17 @@ public class SessionStats implements SessionMBean {
     private final Counters counters;
     private final String sessionId;
     private final AuthInfo authInfo;
+    private final Clock clock;
+    private final RefreshStrategy refreshStrategy;
 
     private Map<String, Object> attributes = Collections.emptyMap();
 
-    public SessionStats(String sessionId, AuthInfo authInfo, Clock clock) {
+    public SessionStats(String sessionId, AuthInfo authInfo, Clock clock, RefreshStrategy refreshStrategy) {
         this.counters = new Counters(clock);
         this.sessionId = sessionId;
         this.authInfo = authInfo;
+        this.clock = clock;
+        this.refreshStrategy = refreshStrategy;
     }
 
     public static class Counters {
@@ -190,6 +194,17 @@ public class SessionStats implements SessionMBean {
     @Override
     public String getLastRefresh() {
         return formatDate(counters.getRefreshTime());
+    }
+
+    @Override
+    public String getRefreshStrategy() {
+        return refreshStrategy.toString();
+    }
+
+    @Override
+    public boolean getRefreshPending() {
+        return refreshStrategy.needsRefresh(
+                SECONDS.convert(clock.getTime() - counters.accessTime, MILLISECONDS));
     }
 
     @Override

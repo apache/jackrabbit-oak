@@ -18,8 +18,12 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
+import static com.google.common.collect.Lists.newArrayList;
+import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
+
+import java.util.ArrayList;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,20 +53,34 @@ public interface RefreshStrategy {
      */
     boolean needsRefresh(long secondsSinceLastAccess);
 
+    void refreshed();
+
     /**
      * Composite of zero or more {@code RefreshStrategy} instances,
      * each of which covers a certain strategy.
      */
-    public static class Composite implements RefreshStrategy {
+    class Composite implements RefreshStrategy {
 
         private final RefreshStrategy[] refreshStrategies;
+
+        public static RefreshStrategy create(RefreshStrategy... refreshStrategies) {
+            ArrayList<RefreshStrategy> strategies = newArrayList();
+            for (RefreshStrategy strategy : refreshStrategies) {
+                if (strategy instanceof Composite) {
+                    strategies.addAll(asList(((Composite) strategy).refreshStrategies));
+                } else {
+                    strategies.add(strategy);
+                }
+            }
+            return new Composite(strategies.toArray(new RefreshStrategy[strategies.size()]));
+        }
 
         /**
          * Create a new instance consisting of the composite of the
          * passed {@code RefreshStrategy} instances.
          * @param refreshStrategies  individual refresh strategies
          */
-        public Composite(RefreshStrategy... refreshStrategies) {
+        private Composite(RefreshStrategy... refreshStrategies) {
             this.refreshStrategies = refreshStrategies;
         }
 
@@ -77,6 +95,7 @@ public interface RefreshStrategy {
          * @param secondsSinceLastAccess seconds since last access
          * @return  {@code true} if and only if the session needs to refresh.
          */
+        @Override
         public boolean needsRefresh(long secondsSinceLastAccess) {
             for (RefreshStrategy r : refreshStrategies) {
                 if (r.needsRefresh(secondsSinceLastAccess)) {
@@ -86,14 +105,31 @@ public interface RefreshStrategy {
             return false;
         }
 
+        @Override
+        public void refreshed() {
+            for (RefreshStrategy refreshStrategy : refreshStrategies) {
+                refreshStrategy.refreshed();
+            }
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            String sep = "";
+            for (RefreshStrategy strategy : refreshStrategies) {
+                sb.append(sep).append(strategy.toString());
+                sep = ", ";
+            }
+            return sb.toString();
+        }
     }
 
     /**
      * This refresh strategy refreshes after a given timeout of inactivity.
      */
-    public static class Timed implements RefreshStrategy {
+    class Timed implements RefreshStrategy {
 
-        private final long interval;
+        protected final long interval;
 
         /**
          * @param interval  Interval in seconds after which a session should refresh if there was no
@@ -108,6 +144,15 @@ public interface RefreshStrategy {
             return secondsSinceLastAccess > interval;
         }
 
+        @Override
+        public void refreshed() {
+            // empty
+        }
+
+        @Override
+        public String toString() {
+            return "Refresh every " + interval + " seconds";
+        }
     }
 
     /**
@@ -116,7 +161,7 @@ public interface RefreshStrategy {
      *
      * TODO replace logging with JMX monitoring. See OAK-941
      */
-    public static class LogOnce extends Timed {
+    class LogOnce extends Timed {
 
         private static final Logger log =
                 LoggerFactory.getLogger(RefreshStrategy.class);
@@ -147,11 +192,19 @@ public interface RefreshStrategy {
                         + " minutes and might be out of date. " +
                         "Consider using a fresh session or explicitly refresh the session.",
                         initStackTrace);
-                warnIfIdle = false;
             }
             return false;
         }
 
+        @Override
+        public void refreshed() {
+            warnIfIdle = false;
+        }
+
+        @Override
+        public String toString() {
+            return "Never refresh but log warning after more than " + interval + " seconds of inactivity";
+        }
     }
 
 }
