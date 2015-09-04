@@ -24,6 +24,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionManager;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
@@ -48,10 +49,38 @@ public class VersionableTest extends AbstractJCRTest {
         node.addMixin(mixVersionable);
         superuser.save();
         VersionManager vMgr = superuser.getWorkspace().getVersionManager();
+        if (!node.isCheckedOut()) {
+            vMgr.checkout(node.getPath());
+        }
+        superuser.refresh(false);
+        node.setProperty(propertyName1, "foo");
+        superuser.save();
         vMgr.checkin(node.getPath());
         try {
-            node.setProperty(propertyName1, "value");
+            node.setProperty(propertyName1, "bar");
             fail("setProperty() must fail on a checked-in node");
+        } catch (VersionException e) {
+            // expected
+        }
+        try {
+            node.setProperty(propertyName1, (String)null);
+            fail("setProperty(..., null) must fail on a checked-in node");
+        } catch (VersionException e) {
+            // expected
+        }
+        try {
+            Property prop = node.getProperty(propertyName1);
+            assertNotNull(prop);
+            prop.setValue("bar");
+            fail("Property.setValue() must fail on a checked-in node");
+        } catch (VersionException e) {
+            // expected
+        }
+        try {
+            Property prop = node.getProperty(propertyName1);
+            assertNotNull(prop);
+            prop.remove();
+            fail("Property.remove() must fail on a checked-in node");
         } catch (VersionException e) {
             // expected
         }
