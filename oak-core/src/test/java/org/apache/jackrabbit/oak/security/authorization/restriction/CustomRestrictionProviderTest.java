@@ -60,8 +60,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableMap;
 
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 public class CustomRestrictionProviderTest extends AbstractSecurityTest {
@@ -74,7 +73,6 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
     private static final String TEST_E_PATH = "/testRoot/a/b/c/d/e";
     private static final String PROP_NAME_PROTECT_ME = "protect-me";
 
-    private NodeUtil testRootNode;
     private Principal testPrincipal;
 
     @Override
@@ -90,7 +88,7 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
         super.before();
 
         NodeUtil rootNode = new NodeUtil(root.getTree("/"));
-        testRootNode = rootNode.addChild("testRoot", NT_UNSTRUCTURED);
+        NodeUtil testRootNode = rootNode.addChild("testRoot", NT_UNSTRUCTURED);
         NodeUtil a = testRootNode.addChild("a", NT_UNSTRUCTURED);
         NodeUtil b = a.addChild("b", NT_UNSTRUCTURED);
         NodeUtil c = b.addChild("c", NT_UNSTRUCTURED);
@@ -131,6 +129,17 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
         root.commit();
     }
 
+    private void assertIsGranted(PermissionProvider pp, Root root, boolean allow, String path, long permissions) {
+        assertEquals("user should " + (allow ? "" : "not ") + "have " + permissions + " on " + path,
+                allow, pp.isGranted(root.getTree(path), null, permissions));
+    }
+
+    private PermissionProvider getPermissionProvider(ContentSession session) {
+        return getSecurityProvider()
+                .getConfiguration(AuthorizationConfiguration.class)
+                .getPermissionProvider(root, session.getWorkspaceName(), session.getAuthInfo().getPrincipals());
+    }
+
     /**
      * Tests the custom restriction provider that checks on the existence of a property.
      * @throws Exception
@@ -148,27 +157,16 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
         ContentSession testSession = createTestSession();
         try {
             Root testRoot = testSession.getLatestRoot();
-            PermissionProvider pp = getSecurityProvider()
-                    .getConfiguration(AuthorizationConfiguration.class)
-                    .getPermissionProvider(root, testSession.getWorkspaceName(), testSession.getAuthInfo().getPrincipals());
-            assertTrue("user should have remove node on /a/b",
-                    pp.isGranted(testRoot.getTree(TEST_B_PATH), null, Permissions.REMOVE_NODE));
-            assertFalse("user should not have remove node on /a/b/c",
-                    pp.isGranted(testRoot.getTree(TEST_C_PATH), null, Permissions.REMOVE_NODE));
-            assertTrue("user should not have remove node on /a/b/c/d",
-                    pp.isGranted(testRoot.getTree(TEST_D_PATH), null, Permissions.REMOVE_NODE));
-            assertTrue("user should not have remove node on /a/b/c/d/e",
-                    pp.isGranted(testRoot.getTree(TEST_E_PATH), null, Permissions.REMOVE_NODE));
+            PermissionProvider pp = getPermissionProvider(testSession);
+            assertIsGranted(pp, testRoot, true, TEST_A_PATH, Permissions.REMOVE_NODE);
+            assertIsGranted(pp, testRoot, true, TEST_B_PATH, Permissions.REMOVE_NODE);
+            assertIsGranted(pp, testRoot, false, TEST_C_PATH, Permissions.REMOVE_NODE);
+            assertIsGranted(pp, testRoot, true , TEST_D_PATH, Permissions.REMOVE_NODE);
+            assertIsGranted(pp, testRoot, true, TEST_E_PATH, Permissions.REMOVE_NODE);
 
-            try {
-                // should be not able to remove /a/b/c/d
-                testRoot.getTree(TEST_D_PATH).remove();
-                testRoot.commit();
-                fail("should not be able to delete " + TEST_D_PATH);
-            } catch (CommitFailedException e) {
-                // all ok
-                testRoot.refresh();
-            }
+            // should be able to remove /a/b/c/d
+            testRoot.getTree(TEST_D_PATH).remove();
+            testRoot.commit();
 
             try {
                 testRoot.getTree(TEST_C_PATH).remove();
@@ -198,17 +196,13 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
         ContentSession testSession = createTestSession();
         try {
             Root testRoot = testSession.getLatestRoot();
-            PermissionProvider pp = getSecurityProvider()
-                    .getConfiguration(AuthorizationConfiguration.class)
-                    .getPermissionProvider(root, testSession.getWorkspaceName(), testSession.getAuthInfo().getPrincipals());
-            assertTrue("user should have remove node on /a/b",
-                    pp.isGranted(testRoot.getTree(TEST_B_PATH), null, Permissions.MODIFY_PROPERTY));
-            assertFalse("user should not have remove node on /a/b/c",
-                    pp.isGranted(testRoot.getTree(TEST_C_PATH), null, Permissions.MODIFY_PROPERTY));
-            assertTrue("user should not have remove node on /a/b/c/d",
-                    pp.isGranted(testRoot.getTree(TEST_D_PATH), null, Permissions.MODIFY_PROPERTY));
-            assertTrue("user should not have remove node on /a/b/c/d/e",
-                    pp.isGranted(testRoot.getTree(TEST_E_PATH), null, Permissions.MODIFY_PROPERTY));
+
+            PermissionProvider pp = getPermissionProvider(testSession);
+            assertIsGranted(pp, testRoot, true , TEST_A_PATH, Permissions.MODIFY_PROPERTY);
+            assertIsGranted(pp, testRoot, true, TEST_B_PATH, Permissions.MODIFY_PROPERTY);
+            assertIsGranted(pp, testRoot, false, TEST_C_PATH, Permissions.MODIFY_PROPERTY);
+            assertIsGranted(pp, testRoot, true, TEST_D_PATH, Permissions.MODIFY_PROPERTY);
+            assertIsGranted(pp, testRoot, true, TEST_E_PATH, Permissions.MODIFY_PROPERTY);
 
         } finally {
             testSession.close();
@@ -220,6 +214,7 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
      * @throws Exception
      */
     @Test
+    @Ignore("OAK-3324")
     public void testUnProtectByRestriction() throws Exception {
         // create permissions
         // allow rep:write      /testroot
@@ -233,23 +228,12 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
         ContentSession testSession = createTestSession();
         try {
             Root testRoot = testSession.getLatestRoot();
-            PermissionProvider pp = getSecurityProvider()
-                    .getConfiguration(AuthorizationConfiguration.class)
-                    .getPermissionProvider(root, testSession.getWorkspaceName(), testSession.getAuthInfo().getPrincipals());
-            assertTrue("user should have remove node on /a/b",
-                    pp.isGranted(testRoot.getTree(TEST_B_PATH), null, Permissions.REMOVE_NODE));
-            assertTrue("user should have remove node on /a/b/c",
-                    pp.isGranted(testRoot.getTree(TEST_C_PATH), null, Permissions.REMOVE_NODE));
-            assertTrue("user should have remove node on /a/b/c/d",
-                    pp.isGranted(testRoot.getTree(TEST_D_PATH), null, Permissions.REMOVE_NODE));
-
-            // should be able to remove d
-            testRoot.getTree(TEST_D_PATH).remove();
-            testRoot.commit();
-
-            // should be able to remove c
-            testRoot.getTree(TEST_C_PATH).remove();
-            testRoot.commit();
+            PermissionProvider pp = getPermissionProvider(testSession);
+            assertIsGranted(pp, testRoot, true, TEST_A_PATH, Permissions.REMOVE_NODE);
+            assertIsGranted(pp, testRoot, true, TEST_B_PATH, Permissions.REMOVE_NODE);
+            assertIsGranted(pp, testRoot, false, TEST_C_PATH, Permissions.REMOVE_NODE);
+            assertIsGranted(pp, testRoot, true, TEST_D_PATH, Permissions.REMOVE_NODE);
+            assertIsGranted(pp, testRoot, true, TEST_E_PATH, Permissions.REMOVE_NODE);
 
         } finally {
             testSession.close();
