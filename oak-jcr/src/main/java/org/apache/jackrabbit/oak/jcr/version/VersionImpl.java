@@ -33,6 +33,7 @@ import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
 
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.session.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
@@ -52,6 +53,7 @@ public class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
     @Override
     public VersionHistory getContainingHistory() throws RepositoryException {
         return perform(new SessionOperation<VersionHistory>("getContainingHistory") {
+            @Nonnull
             @Override
             public VersionHistory perform() throws RepositoryException {
                 return new VersionHistoryImpl(
@@ -64,6 +66,7 @@ public class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
     @Override
     public Calendar getCreated() throws RepositoryException {
         return sessionDelegate.perform(new SessionOperation<Calendar>("getCreated") {
+            @Nonnull
             @Override
             public Calendar perform() throws RepositoryException {
                 PropertyDelegate dlg = getPropertyOrThrow(JcrConstants.JCR_CREATED);
@@ -74,9 +77,9 @@ public class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
 
     @Override
     public Version getLinearPredecessor() throws RepositoryException {
-        return perform(new SessionOperation<Version>("getLinearPredecessor") {
+        return sessionDelegate.performNullable(new SessionOperation<Version>("getLinearPredecessor") {
             @Override
-            public Version perform() throws RepositoryException {
+            public Version performNullable() throws RepositoryException {
                 VersionDelegate predecessor = dlg.getLinearPredecessor();
                 if (predecessor == null) {
                     return null;
@@ -89,9 +92,9 @@ public class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
 
     @Override
     public Version getLinearSuccessor() throws RepositoryException {
-        return perform(new SessionOperation<Version>("getLinearSuccessor") {
+        return sessionDelegate.performNullable(new SessionOperation<Version>("getLinearSuccessor") {
             @Override
-            public Version perform() throws RepositoryException {
+            public Version performNullable() throws RepositoryException {
                 VersionHistoryDelegate vHistory = getVersionManagerDelegate()
                         .createVersionHistory(dlg.getParent());
                 Iterator<VersionDelegate> it = vHistory.getAllLinearVersions();
@@ -117,6 +120,7 @@ public class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
     @Override
     public Version[] getPredecessors() throws RepositoryException {
         return perform(new SessionOperation<Version[]>("getPredecessors") {
+            @Nonnull
             @Override
             public Version[] perform() throws RepositoryException {
                 List<Version> predecessors = new ArrayList<Version>();
@@ -131,6 +135,7 @@ public class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
     @Override
     public Version[] getSuccessors() throws RepositoryException {
         return perform(new SessionOperation<Version[]>("getSuccessors") {
+            @Nonnull
             @Override
             public Version[] perform() throws RepositoryException {
                 PropertyDelegate p = getPropertyOrThrow(VersionConstants.JCR_SUCCESSORS);
@@ -148,10 +153,15 @@ public class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
     @Override
     public Node getFrozenNode() throws RepositoryException {
         return perform(new SessionOperation<Node>("getFrozenNode") {
+            @Nonnull
             @Override
             public Node perform() throws RepositoryException {
-                return NodeImpl.createNodeOrNull(
-                        dlg.getChild(VersionConstants.JCR_FROZENNODE),
+                NodeDelegate frozenNode = dlg.getChild(VersionConstants.JCR_FROZENNODE);
+                if (frozenNode == null) {
+                    throw new IllegalStateException("Version without frozen node.");
+                }
+                return NodeImpl.createNode(
+                        frozenNode,
                         sessionContext);
             }
         });

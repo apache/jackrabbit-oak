@@ -18,13 +18,14 @@ package org.apache.jackrabbit.oak.jcr.lock;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.lock.Lock;
 import javax.jcr.lock.LockException;
 
+import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.session.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
@@ -37,8 +38,7 @@ public final class LockImpl implements Lock {
 
     private final NodeDelegate delegate;
 
-    public LockImpl(
-            @Nonnull SessionContext context, @Nonnull NodeDelegate delegate) {
+    public LockImpl(@Nonnull SessionContext context, @Nonnull NodeDelegate delegate) {
         this.context = checkNotNull(context);
         this.delegate = checkNotNull(delegate);
     }
@@ -54,9 +54,9 @@ public final class LockImpl implements Lock {
 
     @Override
     public String getLockOwner() {
-        return safePerform(new NodeOperation<String>(delegate, "getLockOwner") {
+        return savePerformNullable(new NodeOperation<String>(delegate, "getLockOwner") {
             @Override
-            public String perform() {
+            public String performNullable() {
                 return node.getLockOwner();
             }
         });
@@ -64,7 +64,8 @@ public final class LockImpl implements Lock {
 
     @Override
     public boolean isDeep() {
-        return safePerform(new NodeOperation<Boolean>(delegate, "isDeep") {
+        return getSessionDelegate().safePerform(new NodeOperation<Boolean>(delegate, "isDeep") {
+            @Nonnull
             @Override
             public Boolean perform() {
                 return node.holdsLock(true);
@@ -74,8 +75,9 @@ public final class LockImpl implements Lock {
 
     @Override
     public boolean isLive() {
-        return context.getSession().isLive() && safePerform(
+        return context.getSession().isLive() && getSessionDelegate().safePerform(
                 new NodeOperation<Boolean>(delegate, "isLive") {
+                    @Nonnull
                     @Override
                     public Boolean perform() {
                         return node.holdsLock(false);
@@ -86,9 +88,9 @@ public final class LockImpl implements Lock {
 
     @Override
     public String getLockToken() {
-        return safePerform(new NodeOperation<String>(delegate, "getLockToken") {
+        return savePerformNullable(new NodeOperation<String>(delegate, "getLockToken") {
             @Override
-            public String perform() {
+            public String performNullable() {
                 String token = node.getPath();
                 if (context.getOpenScopedLocks().contains(token)) {
                     return token;
@@ -123,7 +125,8 @@ public final class LockImpl implements Lock {
 
     @Override
     public boolean isSessionScoped() {
-        return safePerform(new NodeOperation<Boolean>(delegate, "isSessionScoped") {
+        return getSessionDelegate().safePerform(new NodeOperation<Boolean>(delegate, "isSessionScoped") {
+            @Nonnull
             @Override
             public Boolean perform() {
                 String path = node.getPath();
@@ -134,7 +137,8 @@ public final class LockImpl implements Lock {
 
     @Override
     public boolean isLockOwningSession() {
-        return safePerform(new NodeOperation<Boolean>(delegate, "isLockOwningSessions") {
+        return getSessionDelegate().safePerform(new NodeOperation<Boolean>(delegate, "isLockOwningSessions") {
+            @Nonnull
             @Override
             public Boolean perform() {
                 String path = node.getPath();
@@ -153,18 +157,16 @@ public final class LockImpl implements Lock {
 
     //-----------------------------------------------------------< private >--
 
-    /**
-     * Perform the passed {@link SessionOperation} assuming it does not
-     * throw a {@code RepositoryException}. If it does, wrap it into and
-     * throw it as a {@code RuntimeException}.
-     *
-     * @param op operation to perform
-     * @param <U> return type of the operation
-     * @return the result of {@code op.perform()}
-     */
-    @CheckForNull
-    private final <U> U safePerform(@Nonnull SessionOperation<U> op) {
-        return context.getSessionDelegate().safePerform(op);
+    private SessionDelegate getSessionDelegate() {
+        return context.getSessionDelegate();
     }
 
+    @Nullable
+    private <U> U savePerformNullable(@Nonnull SessionOperation<U> op) {
+        try {
+            return context.getSessionDelegate().performNullable(op);
+        } catch (RepositoryException e) {
+            throw new RuntimeException("Unexpected exception thrown by operation " + op, e);
+        }
+    }
 }

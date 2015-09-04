@@ -42,6 +42,7 @@ public class AccessManager {
 
     public boolean hasPermissions(@Nonnull final String oakPath, @Nonnull final String actions) {
         return delegate.safePerform(new SessionOperation<Boolean>("hasPermissions") {
+            @Nonnull
             @Override
             public Boolean perform() {
                 return permissionProvider.isGranted(oakPath, actions);
@@ -51,6 +52,7 @@ public class AccessManager {
 
     public boolean hasPermissions(@Nonnull final Tree tree, @Nullable final PropertyState property, final long permissions) throws RepositoryException {
         return delegate.safePerform(new SessionOperation<Boolean>("hasPermissions") {
+            @Nonnull
             @Override
             public Boolean perform() {
                 return permissionProvider.isGranted(tree, property, permissions);
