@@ -19,9 +19,12 @@
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
+import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
+import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_MK;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -43,6 +46,7 @@ import javax.annotation.Nonnull;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
@@ -59,6 +63,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.After;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -69,8 +74,8 @@ import org.slf4j.LoggerFactory;
  * Tests for SegmentNodeStore DataStore GC
  */
 @RunWith(Parameterized.class)
-public class SegmentDataStoreBlobGCTest {
-    private static final Logger log = LoggerFactory.getLogger(SegmentDataStoreBlobGCTest.class);
+public class SegmentDataStoreBlobGCIT {
+    private static final Logger log = LoggerFactory.getLogger(SegmentDataStoreBlobGCIT.class);
 
     private final boolean usePersistedMap;
 
@@ -79,12 +84,17 @@ public class SegmentDataStoreBlobGCTest {
     DataStoreBlobStore blobStore;
     Date startDate;
 
+    @BeforeClass
+    public static void assumptions() {
+        assumeTrue(getFixtures().contains(SEGMENT_MK));
+    }
+    
     @Parameterized.Parameters
     public static List<Boolean[]> fixtures() {
         return ImmutableList.of(new Boolean[] {true}, new Boolean[] {false});
     }
 
-    public SegmentDataStoreBlobGCTest(boolean usePersistedMap) {
+    public SegmentDataStoreBlobGCIT(boolean usePersistedMap) {
         this.usePersistedMap = usePersistedMap;
     }
 
