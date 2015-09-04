@@ -60,6 +60,9 @@ relying on one session seeing the other session's changes. Oak requires explicit
 > details regarding session backwards compatibility and
 > [OAK-960](https://issues.apache.org/jira/browse/OAK-960) regarding in thread session
 > synchronisation.
+>
+> The `SessionMBean` provides further information on when a session is refreshed and wheter
+> a refresh will happen on the next access. 
 
 On Oak `Item.refresh()` is deprecated and will always cause an `Session.refresh()`. The former call
 will result in a warning written to the log in order to facilitate locating trouble spots.
