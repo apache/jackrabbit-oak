@@ -724,6 +724,7 @@ public class NodeDelegate extends ItemDelegate {
         return getLock() != null;
     }
 
+    @CheckForNull
     public NodeDelegate getLock() {
         Tree lock = findLock(tree, false);
         if (lock != null) {
@@ -739,7 +740,8 @@ public class NodeDelegate extends ItemDelegate {
         return null;
     }
 
-    private Tree findLock(Tree tree, boolean deep) {
+    @CheckForNull
+    private Tree findLock(@Nonnull Tree tree, boolean deep) {
         if (holdsLock(tree, deep)) {
             return tree;
         } else if (tree.isRoot()) {

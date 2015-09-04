@@ -23,6 +23,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.security.Principal;
 
+import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.security.auth.Subject;
 
@@ -57,6 +58,7 @@ final class ImpersonationDelegator implements Impersonation {
     @Override
     public PrincipalIterator getImpersonators() throws RepositoryException {
         return sessionDelegate.perform(new SessionOperation<PrincipalIterator>("getImpersonators") {
+            @Nonnull
             @Override
             public PrincipalIterator perform() throws RepositoryException {
                 return impersonationDelegate.getImpersonators();
@@ -67,6 +69,7 @@ final class ImpersonationDelegator implements Impersonation {
     @Override
     public boolean grantImpersonation(final Principal principal) throws RepositoryException {
         return sessionDelegate.perform(new SessionOperation<Boolean>("grantImpersonation") {
+            @Nonnull
             @Override
             public Boolean perform() throws RepositoryException {
                 return impersonationDelegate.grantImpersonation(principal);
@@ -77,6 +80,7 @@ final class ImpersonationDelegator implements Impersonation {
     @Override
     public boolean revokeImpersonation(final Principal principal) throws RepositoryException {
         return sessionDelegate.perform(new SessionOperation<Boolean>("revokeImpersonation") {
+            @Nonnull
             @Override
             public Boolean perform() throws RepositoryException {
                 return impersonationDelegate.revokeImpersonation(principal);
@@ -87,6 +91,7 @@ final class ImpersonationDelegator implements Impersonation {
     @Override
     public boolean allows(final Subject subject) throws RepositoryException {
         return sessionDelegate.perform(new SessionOperation<Boolean>("allows") {
+            @Nonnull
             @Override
             public Boolean perform() throws RepositoryException {
                 return impersonationDelegate.allows(subject);

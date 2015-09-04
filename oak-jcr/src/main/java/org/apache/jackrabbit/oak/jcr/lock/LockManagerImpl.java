@@ -54,10 +54,12 @@ public class LockManagerImpl implements LockManager {
         this.delegate = sessionContext.getSessionDelegate();
     }
 
-    @Override @Nonnull
+    @Nonnull
+    @Override
     public String[] getLockTokens() throws RepositoryException {
-        return perform(new SessionOperation<String[]>("getLockTokens") {
-            @Override @Nonnull
+        return delegate.perform(new SessionOperation<String[]>("getLockTokens") {
+            @Nonnull
+            @Override
             public String[] perform() {
                 Set<String> tokens = sessionContext.getOpenScopedLocks();
                 return tokens.toArray(new String[tokens.size()]);
@@ -69,17 +71,14 @@ public class LockManagerImpl implements LockManager {
     public void addLockToken(final String lockToken)
             throws RepositoryException {
         try {
-            perform(new LockOperation<String>(sessionContext, lockToken, "addLockToken") {
+            delegate.performVoid(new LockOperation(sessionContext, lockToken, "addLockToken") {
                 @Override
-                protected String perform(NodeDelegate node)
-                        throws LockException {
+                protected void performVoid(@Nonnull NodeDelegate node) throws LockException {
                     if (node.holdsLock(false)) { // TODO: check ownership?
                         String token = node.getPath();
                         sessionContext.getOpenScopedLocks().add(token);
-                        return null;
                     } else {
-                        throw new LockException(
-                                "Invalid lock token: " + lockToken);
+                        throw new LockException("Invalid lock token: " + lockToken);
                     }
                 }
             });
@@ -89,25 +88,25 @@ public class LockManagerImpl implements LockManager {
     }
 
     @Override
-    public void removeLockToken(final String lockToken)
-            throws RepositoryException {
-        if (!perform(new SessionOperation<Boolean>("removeLockToken") {
-            @Override @Nonnull
+    public void removeLockToken(final String lockToken) throws RepositoryException {
+        if (!delegate.perform(new SessionOperation<Boolean>("removeLockToken") {
+            @Nonnull
+            @Override
             public Boolean perform() {
                 // TODO: name mapping?
                 return sessionContext.getOpenScopedLocks().remove(lockToken);
             }
         })) {
-            throw new LockException(
-                    "Lock token " + lockToken + " is not held by this session");
+            throw new LockException("Lock token " + lockToken + " is not held by this session");
         }
     }
 
     @Override
     public boolean isLocked(String absPath) throws RepositoryException {
-        return perform(new LockOperation<Boolean>(sessionContext, absPath, "isLocked") {
+        return delegate.perform(new LockOperation<Boolean>(sessionContext, absPath, "isLocked") {
+            @Nonnull
             @Override
-            protected Boolean perform(NodeDelegate node) {
+            protected Boolean perform(@Nonnull NodeDelegate node) {
                 return node.isLocked();
             }
         });
@@ -115,76 +114,90 @@ public class LockManagerImpl implements LockManager {
 
     @Override
     public boolean holdsLock(String absPath) throws RepositoryException {
-        return perform(new LockOperation<Boolean>(sessionContext, absPath, "holdsLock") {
+        return delegate.perform(new LockOperation<Boolean>(sessionContext, absPath, "holdsLock") {
+            @Nonnull
             @Override
-            protected Boolean perform(NodeDelegate node) {
+            protected Boolean perform(@Nonnull NodeDelegate node) {
                 return node.holdsLock(false);
             }
         });
     }
 
-    @Override @Nonnull
-    public Lock getLock(String absPath) throws RepositoryException {
-        NodeDelegate lock = perform(
-                new LockOperation<NodeDelegate>(sessionContext, absPath, "getLock") {
-                    @Override
-                    protected NodeDelegate perform(NodeDelegate node) {
-                        return node.getLock();
-                    }
-                });
-        if (lock != null) {
-            return new LockImpl(sessionContext, lock);
-        } else {
-            throw new LockException("Node " + absPath + " is not locked");
-        }
+    @Nonnull
+    @Override
+    public Lock getLock(final String absPath) throws RepositoryException {
+        NodeDelegate lock = delegate.perform(new LockOperation<NodeDelegate>(sessionContext, absPath, "getLock") {
+            @Nonnull
+            @Override
+            protected NodeDelegate perform(@Nonnull NodeDelegate node) throws LockException {
+                NodeDelegate lock = node.getLock();
+                if (lock == null) {
+                    throw new LockException("Node " + absPath + " is not locked");
+                } else {
+                    return lock;
+                }
+            }
+        });
+
+        return new LockImpl(sessionContext, lock);
     }
 
-    @Override @Nonnull
-    public Lock lock(
-            String absPath, final boolean isDeep, final boolean isSessionScoped,
-            long timeoutHint, String ownerInfo) throws RepositoryException {
-        return new LockImpl(sessionContext, perform(
-                new LockOperation<NodeDelegate>(sessionContext, absPath, "lock") {
-                    @Override
-                    protected NodeDelegate perform(NodeDelegate node)
-                            throws RepositoryException {
-                        if (node.getStatus() != Status.UNCHANGED) {
-                            throw new InvalidItemStateException(
-                                    "Unable to lock a node with pending changes");
-                        }
-                        node.lock(isDeep);
-                        String path = node.getPath();
-                        if (isSessionScoped) {
-                            sessionContext.getSessionScopedLocks().add(path);
-                        } else {
-                            sessionContext.getOpenScopedLocks().add(path);
-                        }
-                        session.refresh(true);
-                        return node;
-                    }
-                }));
+    @Nonnull
+    @Override
+    public Lock lock(String absPath, final boolean isDeep, final boolean isSessionScoped,
+                     long timeoutHint, String ownerInfo) throws RepositoryException {
+        return new LockImpl(sessionContext, delegate.perform(new LockOperation<NodeDelegate>(sessionContext, absPath, "lock") {
+            @Nonnull
+            @Override
+            protected NodeDelegate perform(@Nonnull NodeDelegate node) throws RepositoryException {
+                if (node.getStatus() != Status.UNCHANGED) {
+                    throw new InvalidItemStateException(
+                            "Unable to lock a node with pending changes");
+                }
+                node.lock(isDeep);
+                String path = node.getPath();
+                if (isSessionScoped) {
+                    sessionContext.getSessionScopedLocks().add(path);
+                } else {
+                    sessionContext.getOpenScopedLocks().add(path);
+                }
+                session.refresh(true);
+                return node;
+            }
+        }));
     }
 
     @Override
     public void unlock(String absPath) throws RepositoryException {
-        perform(new LockOperation<Void>(sessionContext, absPath, "unlock") {
+        delegate.performVoid(new LockOperation(sessionContext, absPath, "unlock") {
             @Override
-            protected Void perform(NodeDelegate node)
+            protected void performVoid(@Nonnull NodeDelegate node)
                     throws RepositoryException {
                 String path = node.getPath();
-                if (canUnlock(node)) {
+                if (canUnlock(path, node)) {
                     node.unlock();
                     sessionContext.getSessionScopedLocks().remove(path);
                     sessionContext.getOpenScopedLocks().remove(path);
                     session.refresh(true);
-                    return null;
                 } else {
                     throw new LockException("Not an owner of the lock " + path);
                 }
             }
+
+            private boolean canUnlock(String path, NodeDelegate node) {
+                if (sessionContext.getSessionScopedLocks().contains(path)
+                        || sessionContext.getOpenScopedLocks().contains(path)) {
+                    return true;
+                } else if (sessionContext.getAttributes().get(RELAXED_LOCKING) == TRUE) {
+                    String user = sessionContext.getSessionDelegate().getAuthInfo().getUserID();
+                    return node.isLockOwner(user) || isAdmin(sessionContext, user);
+                } else {
+                    return false;
+                }
+            }
         });
     }
-    
+
     /**
      * Verifies if the current <tt>sessionContext</tt> can unlock the specified <tt>node</tt>
      * 
@@ -217,10 +230,4 @@ public class LockManagerImpl implements LockManager {
         }
         return false;
     }
-
-    private <T> T perform(SessionOperation<T> operation)
-            throws RepositoryException {
-        return delegate.perform(operation);
-    }
-
 }
