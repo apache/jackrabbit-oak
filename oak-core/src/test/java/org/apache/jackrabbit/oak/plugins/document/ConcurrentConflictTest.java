@@ -81,7 +81,6 @@ public class ConcurrentConflictTest extends BaseDocumentMKTest {
         return new DocumentMK.Builder().setAsyncDelay(10).setDocumentStore(store).open();
     }
 
-    @Ignore
     @Test
     public void concurrentUpdatesWithBranch() throws Exception {
         concurrentUpdates(true);
