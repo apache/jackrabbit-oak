@@ -20,7 +20,7 @@
  *
  * See <a href="README.md">README.md</a> for more details.
  */
-@Version("2.0.0")
+@Version("1.0.1")
 @Export(optional = "provide:=true")
 package org.apache.jackrabbit.oak.security;
 
