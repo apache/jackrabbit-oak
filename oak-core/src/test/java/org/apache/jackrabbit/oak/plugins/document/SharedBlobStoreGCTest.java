@@ -173,6 +173,8 @@ public class SharedBlobStoreGCTest {
         DataStoreUtils.cleanup(cluster1.getDataStore(), cluster1.getDate());
         FileUtils.cleanDirectory((new File(DataStoreUtils.getHomeDir())).getParentFile());
         DataStoreUtils.time = -1;
+        cluster1.getDocumentNodeStore().dispose();
+        cluster2.getDocumentNodeStore().dispose();
     }
 
     class Cluster {
@@ -272,6 +274,10 @@ public class SharedBlobStoreGCTest {
 
         public Date getDate() {
             return startDate;
+        }
+        
+        public DocumentNodeStore getDocumentNodeStore() {
+            return ds;
         }
     }
 }

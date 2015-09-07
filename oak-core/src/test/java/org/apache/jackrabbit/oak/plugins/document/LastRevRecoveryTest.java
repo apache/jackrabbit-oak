@@ -26,12 +26,16 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 public class LastRevRecoveryTest {
+    @Rule
+    public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
+
     private DocumentNodeStore ds1;
     private DocumentNodeStore ds2;
     private int c1Id;
@@ -41,13 +45,13 @@ public class LastRevRecoveryTest {
     @Before
     public void setUp(){
         sharedStore = new MemoryDocumentStore();
-        ds1 = new DocumentMK.Builder()
+        ds1 = builderProvider.newBuilder()
                 .setAsyncDelay(0)
                 .setDocumentStore(sharedStore)
                 .getNodeStore();
         c1Id = ds1.getClusterId();
 
-        ds2 = new DocumentMK.Builder()
+        ds2 = builderProvider.newBuilder()
                 .setAsyncDelay(0)
                 .setDocumentStore(sharedStore)
                 .getNodeStore();
