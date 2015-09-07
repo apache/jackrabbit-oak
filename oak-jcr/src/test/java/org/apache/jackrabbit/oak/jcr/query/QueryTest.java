@@ -727,6 +727,7 @@ public class QueryTest extends AbstractRepositoryTest {
         NodeIterator ni = qr.getNodes();
         Node n = ni.nextNode();
         assertEquals("/etc/p2/r", n.getPath());
+        session.logout();
     }
 
     @Test
@@ -746,6 +747,7 @@ public class QueryTest extends AbstractRepositoryTest {
         Node n = ni.nextNode();
         assertEquals("/etc/p1", n.getPath());
         assertFalse(ni.hasNext());
+        session.logout();
     }
 
     @Test
@@ -773,6 +775,7 @@ public class QueryTest extends AbstractRepositoryTest {
         Node n = ni.nextNode();
         assertEquals("/one", n.getPath());
         assertFalse(ni.hasNext());
+        session.logout();
     }
 
 }
