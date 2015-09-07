@@ -29,9 +29,6 @@ import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
-import org.apache.felix.scr.annotations.ReferencePolicyOption;
-import org.apache.felix.scr.annotations.ReferenceStrategy;
-import org.apache.felix.scr.annotations.References;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.security.authentication.AuthenticationConfigurationImpl;
@@ -49,15 +46,11 @@ import org.apache.jackrabbit.oak.spi.security.authentication.token.CompositeToke
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
-import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.CompositePrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
-import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
-import org.apache.jackrabbit.oak.spi.security.user.UserAuthenticationFactory;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAuthorizableActionProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAuthorizableNodeName;
@@ -70,40 +63,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 @Component
 @Service(value = {SecurityProvider.class})
-@References({
-        @Reference(
-                name = "authorizableNodeName",
-                referenceInterface = AuthorizableNodeName.class,
-                policy = ReferencePolicy.STATIC,
-                policyOption = ReferencePolicyOption.GREEDY,
-                cardinality = ReferenceCardinality.OPTIONAL_UNARY,
-                strategy = ReferenceStrategy.LOOKUP
-        ),
-        @Reference(
-                name = "authorizableActionProvider",
-                referenceInterface = AuthorizableActionProvider.class,
-                policy = ReferencePolicy.STATIC,
-                policyOption = ReferencePolicyOption.GREEDY,
-                cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE,
-                strategy = ReferenceStrategy.LOOKUP
-        ),
-        @Reference(
-                name = "restrictionProvider",
-                referenceInterface = RestrictionProvider.class,
-                policy = ReferencePolicy.STATIC,
-                policyOption = ReferencePolicyOption.GREEDY,
-                cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE,
-                strategy = ReferenceStrategy.LOOKUP
-        ),
-        @Reference(
-                name = "userAuthenticationFactory",
-                referenceInterface = UserAuthenticationFactory.class,
-                policy = ReferencePolicy.STATIC,
-                policyOption = ReferencePolicyOption.GREEDY,
-                cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE,
-                strategy = ReferenceStrategy.LOOKUP
-        )
-})
 public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
 
     @Reference
