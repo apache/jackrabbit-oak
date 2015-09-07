@@ -238,6 +238,9 @@ public class ConcurrentAddNodesClusterIT {
         for (Map.Entry<String, Exception> entry : exceptions.entrySet()) {
             throw entry.getValue();
         }
+
+        s1.logout();
+        s2.logout();
     }
 
     @Test
@@ -313,6 +316,10 @@ public class ConcurrentAddNodesClusterIT {
         runBackgroundOps(mk1);
 
         s1.save();
+
+        s1.logout();
+        s2.logout();
+        s3.logout();
     }
 
     @Test
@@ -355,6 +362,9 @@ public class ConcurrentAddNodesClusterIT {
 
         s1.refresh(true);
         assertTrue(s1.getRootNode().hasNode("session-2/nodes"));
+
+        s1.logout();
+        s2.logout();
     }
 
     private void syncMKs(int delay) {
