@@ -46,6 +46,8 @@ public class LastRevSingleNodeRecoveryTest {
 
     private DocumentMK mk;
 
+    private DocumentMK mk2;
+
     public LastRevSingleNodeRecoveryTest(DocumentStoreFixture fixture) {
         this.fixture = fixture;
     }
@@ -111,13 +113,14 @@ public class LastRevSingleNodeRecoveryTest {
         // so that the current time is more than the current lease end
         clock.waitUntil(clock.getTime() + mk.getClusterInfo().getLeaseTime() + 1000);
         // Recreate mk instance, to simulate fail condition and recovery on start
-        mk = openMK(0, mk.getNodeStore().getDocumentStore());
+        // Make sure to use a different variable for cleanup ; mk should not be disposed here
+        mk2 = openMK(0, mk.getNodeStore().getDocumentStore());
 
-        int pendingCount = mk.getPendingWriteCount();
+        int pendingCount = mk2.getPendingWriteCount();
         // Immediately check again, now should not have done any changes.
-        LastRevRecoveryAgent recoveryAgent = mk.getNodeStore().getLastRevRecoveryAgent();
+        LastRevRecoveryAgent recoveryAgent = mk2.getNodeStore().getLastRevRecoveryAgent();
         /** Now there should have been pendingCount updates **/
-        assertEquals(pendingCount, recoveryAgent.recover(mk.getClusterInfo().getId()));
+        assertEquals(pendingCount, recoveryAgent.recover(mk2.getClusterInfo().getId()));
     }
 
     @Test
@@ -222,6 +225,9 @@ public class LastRevSingleNodeRecoveryTest {
         Revision.resetClockToDefault();
         ClusterNodeInfo.resetClockToDefault();
         mk.dispose();
+        if ( mk2 != null ) {
+            mk2.dispose();
+        }
         fixture.dispose();
     }
 }

@@ -49,6 +49,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -87,9 +88,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class DocumentNodeStoreTest {
+
+    @Rule
+    public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
     @After
     public void tearDown() {
@@ -110,9 +115,9 @@ public class DocumentNodeStoreTest {
                 return null;
             }
         };
-        final DocumentNodeStore store1 = new DocumentMK.Builder().setAsyncDelay(0)
+        final DocumentNodeStore store1 = builderProvider.newBuilder().setAsyncDelay(0)
                 .setDocumentStore(testStore).setClusterId(1).getNodeStore();
-        DocumentNodeStore store2 = new DocumentMK.Builder().setAsyncDelay(0)
+        DocumentNodeStore store2 = builderProvider.newBuilder().setAsyncDelay(0)
                 .setDocumentStore(docStore).setClusterId(2).getNodeStore();
 
         NodeBuilder builder = store2.getRoot().builder();
@@ -154,14 +159,11 @@ public class DocumentNodeStoreTest {
         root = store1.getRoot();
         // now node2 is visible
         assertTrue(root.hasChildNode("node2"));
-
-        store1.dispose();
-        store2.dispose();
     }
 
     @Test
     public void childNodeCache() throws Exception {
-        DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
+        DocumentNodeStore store = builderProvider.newBuilder().getNodeStore();
         NodeBuilder builder = store.getRoot().builder();
         int max = (int) (KernelNodeState.MAX_CHILD_NAMES * 1.5);
         SortedSet<String> children = new TreeSet<String>();
@@ -178,7 +180,6 @@ public class DocumentNodeStoreTest {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         int numEntries = Iterables.size(store.getRoot().getChildNodeEntries());
         assertEquals(max - 1, numEntries);
-        store.dispose();
     }
 
     @Test
@@ -195,7 +196,7 @@ public class DocumentNodeStoreTest {
                 return super.query(collection, fromKey, toKey, limit);
             }
         };
-        DocumentNodeStore store = new DocumentMK.Builder()
+        DocumentNodeStore store = builderProvider.newBuilder()
                 .setDocumentStore(docStore).getNodeStore();
         NodeBuilder root = store.getRoot().builder();
         for (int i = 0; i < 10; i++) {
@@ -215,8 +216,6 @@ public class DocumentNodeStoreTest {
             e.getNodeState();
         }
         assertEquals(0, counter.get());
-
-        store.dispose();
     }
 
     @Test
@@ -238,7 +237,7 @@ public class DocumentNodeStoreTest {
             }
         };
         final List<Exception> exceptions = new ArrayList<Exception>();
-        final DocumentMK mk = new DocumentMK.Builder()
+        final DocumentMK mk = builderProvider.newBuilder()
                 .setDocumentStore(docStore).setAsyncDelay(0).open();
         final DocumentNodeStore store = mk.getNodeStore();
         final String head = mk.commit("/", "+\"foo\":{}+\"bar\":{}", null, null);
@@ -281,20 +280,18 @@ public class DocumentNodeStoreTest {
         doc = docStore.find(NODES, id);
         assertNotNull("document with id " + id + " does not exist", doc);
         assertTrue(!doc.getLastRev().isEmpty());
-
-        mk.dispose();
     }
 
     // OAK-1662
     @Test
     public void getNewestRevision() throws Exception {
         DocumentStore docStore = new MemoryDocumentStore();
-        DocumentNodeStore ns1 = new DocumentMK.Builder()
+        DocumentNodeStore ns1 = builderProvider.newBuilder()
                 .setDocumentStore(docStore).setAsyncDelay(0)
                 .setClusterId(1).getNodeStore();
         ns1.getRoot();
         ns1.runBackgroundOperations();
-        DocumentNodeStore ns2 = new DocumentMK.Builder()
+        DocumentNodeStore ns2 = builderProvider.newBuilder()
                 .setDocumentStore(docStore).setAsyncDelay(0)
                 .setClusterId(2).getNodeStore();
         ns2.getRoot();
@@ -309,16 +306,13 @@ public class DocumentNodeStoreTest {
         NodeBuilder b2 = ns2.getRoot().builder();
         b2.setProperty("q", "value");
         ns2.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-        ns1.dispose();
-        ns2.dispose();
     }
 
     @Test
     public void commitHookChangesOnBranch() throws Exception {
         final int NUM_NODES = DocumentRootBuilder.UPDATE_LIMIT / 2;
         final int NUM_PROPS = 10;
-        DocumentNodeStore ns = new DocumentMK.Builder().getNodeStore();
+        DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
         NodeBuilder builder = ns.getRoot().builder();
         for (int i = 0; i < NUM_NODES; i++) {
             NodeBuilder c = builder.child("n" + i);
@@ -368,8 +362,6 @@ public class DocumentNodeStoreTest {
                 assertEquals("test", p.getValue(Type.STRING));
             }
         }
-
-        ns.dispose();
     }
 
     // OAK-1814
@@ -379,14 +371,14 @@ public class DocumentNodeStoreTest {
         clock.waitUntil(System.currentTimeMillis());
         Revision.setClock(clock);
         MemoryDocumentStore docStore = new MemoryDocumentStore();
-        DocumentNodeStore nodeStore1 = new DocumentMK.Builder()
+        DocumentNodeStore nodeStore1 = builderProvider.newBuilder()
                 .setDocumentStore(docStore).setClusterId(1)
                 .setAsyncDelay(0).clock(clock).getNodeStore();
         nodeStore1.runBackgroundOperations();
-        DocumentNodeStore nodeStore2 = new DocumentMK.Builder()
+        DocumentNodeStore nodeStore2 = builderProvider.newBuilder()
                 .setDocumentStore(docStore).setClusterId(2)
                 .setAsyncDelay(0).clock(clock).getNodeStore();
-        DocumentNodeStore nodeStore3 = new DocumentMK.Builder()
+        DocumentNodeStore nodeStore3 = builderProvider.newBuilder()
                 .setDocumentStore(docStore).setClusterId(3)
                 .setAsyncDelay(0).clock(clock).getNodeStore();
 
@@ -412,10 +404,6 @@ public class DocumentNodeStoreTest {
         NodeState state = doc.getNodeAtRevision(nodeStore3,
                 nodeStore3.getHeadRevision(), null);
         assertNotNull(state);
-
-        nodeStore1.dispose();
-        nodeStore2.dispose();
-        nodeStore3.dispose();
     }
 
     @Test
@@ -424,7 +412,7 @@ public class DocumentNodeStoreTest {
         clock.waitUntil(System.currentTimeMillis());
         Revision.setClock(clock);
         MemoryDocumentStore docStore = new MemoryDocumentStore();
-        DocumentNodeStore ns1 = new DocumentMK.Builder()
+        DocumentNodeStore ns1 = builderProvider.newBuilder()
                 .setDocumentStore(docStore).setClusterId(1)
                 .setAsyncDelay(0).clock(clock).getNodeStore();
         NodeBuilder builder1 = ns1.getRoot().builder();
@@ -432,7 +420,7 @@ public class DocumentNodeStoreTest {
         ns1.merge(builder1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         ns1.runBackgroundOperations();
 
-        DocumentNodeStore ns2 = new DocumentMK.Builder()
+        DocumentNodeStore ns2 = builderProvider.newBuilder()
                 .setDocumentStore(docStore).setClusterId(2)
                 .setAsyncDelay(0).clock(clock).getNodeStore();
 
@@ -462,9 +450,6 @@ public class DocumentNodeStoreTest {
         doc = docStore.find(NODES, Utils.getIdFromPath("/node"));
         Long mod2 = (Long) doc.get(MODIFIED_IN_SECS);
         assertTrue("" + mod2 + " < " + mod1, mod2 >= mod1);
-
-        ns1.dispose();
-        ns2.dispose();
     }
 
     // OAK-1861
@@ -484,7 +469,7 @@ public class DocumentNodeStoreTest {
                 return super.query(collection, fromKey, toKey, limit);
             }
         };
-        DocumentNodeStore ns = new DocumentMK.Builder()
+        DocumentNodeStore ns = builderProvider.newBuilder()
                 .setDocumentStore(docStore)
                 .setAsyncDelay(0).getNodeStore();
         NodeBuilder builder = ns.getRoot().builder();
@@ -512,14 +497,14 @@ public class DocumentNodeStoreTest {
     @Test
     public void readFromPreviousDoc() throws CommitFailedException {
         DocumentStore docStore = new MemoryDocumentStore();
-        DocumentNodeStore ns = new DocumentMK.Builder()
+        DocumentNodeStore ns = builderProvider.newBuilder()
                 .setDocumentStore(docStore).getNodeStore();
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("test").setProperty("prop", "initial");
         ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         ns.dispose();
 
-        ns = new DocumentMK.Builder().setClusterId(2).setAsyncDelay(0)
+        ns = builderProvider.newBuilder().setClusterId(2).setAsyncDelay(0)
                 .setDocumentStore(docStore).getNodeStore();
         builder = ns.getRoot().builder();
         builder.child("test").setProperty("prop", "value");
@@ -558,10 +543,10 @@ public class DocumentNodeStoreTest {
         Revision.setClock(clock);
 
         DocumentStore docStore = new MemoryDocumentStore();
-        DocumentNodeStore ns1 = new DocumentMK.Builder().setAsyncDelay(0)
+        DocumentNodeStore ns1 = builderProvider.newBuilder().setAsyncDelay(0)
                 .clock(clock).setDocumentStore(docStore).setClusterId(1)
                 .getNodeStore();
-        DocumentNodeStore ns2 = new DocumentMK.Builder().setAsyncDelay(0)
+        DocumentNodeStore ns2 = builderProvider.newBuilder().setAsyncDelay(0)
                 .clock(clock).setDocumentStore(docStore).setClusterId(2)
                 .getNodeStore();
 
@@ -614,17 +599,14 @@ public class DocumentNodeStoreTest {
         assertTrue(diff.modified.contains("/test"));
         assertEquals(1, diff.added.size());
         assertTrue(diff.added.contains("/test/foo"));
-
-        ns1.dispose();
-        ns2.dispose();
     }
 
     @Test
     public void updateClusterState() {
         DocumentStore docStore = new MemoryDocumentStore();
-        DocumentNodeStore ns1 = new DocumentMK.Builder().setAsyncDelay(0)
+        DocumentNodeStore ns1 = builderProvider.newBuilder().setAsyncDelay(0)
                 .setDocumentStore(docStore).getNodeStore();
-        DocumentNodeStore ns2 = new DocumentMK.Builder().setAsyncDelay(0)
+        DocumentNodeStore ns2 = builderProvider.newBuilder().setAsyncDelay(0)
                 .setDocumentStore(docStore).getNodeStore();
 
         assertEquals(0, ns1.getInactiveClusterNodes().size());
@@ -637,14 +619,12 @@ public class DocumentNodeStoreTest {
         Map<Integer, Long> inactive = ns2.getInactiveClusterNodes();
         assertEquals(1, inactive.size());
         assertEquals(1, (int) inactive.keySet().iterator().next());
-
-        ns2.dispose();
     }
 
     // OAK-2288
     @Test
     public void mergedBranchVisibility() throws Exception {
-        final DocumentNodeStore store = new DocumentMK.Builder()
+        final DocumentNodeStore store = builderProvider.newBuilder()
                 .setAsyncDelay(0).getNodeStore();
         DocumentStore docStore = store.getDocumentStore();
 
@@ -672,8 +652,6 @@ public class DocumentNodeStoreTest {
 
         // must be visible at the revision of the merged branch
         assertTrue(store.getRoot().getChildNode("test").getChildNode("node").exists());
-
-        store.dispose();
     }
 
     // OAK-2308
@@ -684,7 +662,7 @@ public class DocumentNodeStoreTest {
 
         MemoryDocumentStore docStore = new MemoryDocumentStore();
 
-        DocumentNodeStore store1 = new DocumentMK.Builder()
+        DocumentNodeStore store1 = builderProvider.newBuilder()
                 .setDocumentStore(docStore)
                 .setAsyncDelay(0).clock(clock).getNodeStore();
 
@@ -712,14 +690,11 @@ public class DocumentNodeStoreTest {
         agent.recover(store1.getClusterId());
 
         // start a second store
-        DocumentNodeStore store2 = new DocumentMK.Builder()
+        DocumentNodeStore store2 = builderProvider.newBuilder()
                 .setDocumentStore(docStore)
                 .setAsyncDelay(0).clock(clock).getNodeStore();
         // must see /test/node
         assertTrue(store2.getRoot().getChildNode("test").getChildNode("node").exists());
-
-        store2.dispose();
-        store1.dispose();
     }
 
     // OAK-2336
@@ -734,7 +709,7 @@ public class DocumentNodeStoreTest {
                 return super.find(collection, key);
             }
         };
-        DocumentNodeStore ns = new DocumentMK.Builder()
+        DocumentNodeStore ns = builderProvider.newBuilder()
                 .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
         NodeBuilder builder = ns.getRoot().builder();
         String testId = Utils.getIdFromPath("/test");
@@ -770,8 +745,6 @@ public class DocumentNodeStoreTest {
                 fail("must not access previous document: " + id);
             }
         }
-
-        ns.dispose();
     }
 
     // OAK-2345
@@ -781,7 +754,7 @@ public class DocumentNodeStoreTest {
         clock.waitUntil(System.currentTimeMillis());
         Revision.setClock(clock);
         MemoryDocumentStore docStore = new MemoryDocumentStore();
-        DocumentNodeStore ns1 = new DocumentMK.Builder()
+        DocumentNodeStore ns1 = builderProvider.newBuilder()
                 .setDocumentStore(docStore).setClusterId(1)
                 .setAsyncDelay(0).clock(clock).getNodeStore();
         NodeBuilder builder = ns1.getRoot().builder();
@@ -791,7 +764,7 @@ public class DocumentNodeStoreTest {
         ns1.dispose();
 
         // start other cluster node
-        DocumentNodeStore ns2 = new DocumentMK.Builder()
+        DocumentNodeStore ns2 = builderProvider.newBuilder()
                 .setDocumentStore(docStore).setClusterId(2)
                 .setAsyncDelay(0).clock(clock).getNodeStore();
         assertNotNull(ns2.getRevisionComparator().getRevisionSeen(r));
@@ -802,12 +775,11 @@ public class DocumentNodeStoreTest {
                 + REMEMBER_REVISION_ORDER_MILLIS + 1000);
 
         // start cluster 2 again
-        ns2 = new DocumentMK.Builder()
+        ns2 = builderProvider.newBuilder()
                 .setDocumentStore(docStore).setClusterId(2)
                 .setAsyncDelay(0).clock(clock).getNodeStore();
         // now r is considered old and revisionSeen is null
         assertNull(ns2.getRevisionComparator().getRevisionSeen(r));
-        ns2.dispose();
     }
 
     // OAK-1782
@@ -827,7 +799,7 @@ public class DocumentNodeStoreTest {
                 return super.query(collection, fromKey, toKey, indexedProperty, startValue, limit);
             }
         };
-        final DocumentNodeStore ns = new DocumentMK.Builder()
+        final DocumentNodeStore ns = builderProvider.newBuilder()
                 .setDocumentStore(store).getNodeStore();
         NodeBuilder builder = ns.getRoot().builder();
         // make sure we have enough children to trigger diffManyChildren
@@ -872,8 +844,6 @@ public class DocumentNodeStoreTest {
         // 1) query the first 50 children to find out there are many
         // 2) query for the changed children between the two revisions
         assertTrue(numQueries.get() <= 2);
-
-        store.dispose();
     }
 
     // OAK-2359
@@ -888,7 +858,7 @@ public class DocumentNodeStoreTest {
                 return super.find(collection, key);
             }
         };
-        DocumentNodeStore store = new DocumentMK.Builder()
+        DocumentNodeStore store = builderProvider.newBuilder()
                 .setClusterId(1).setAsyncDelay(0)
                 .setDocumentStore(docStore).getNodeStore();
 
@@ -921,8 +891,6 @@ public class DocumentNodeStoreTest {
         reads.clear();
         doc.getValueMap("foo").get(removedAt);
         assertNoPreviousDocs(reads);
-
-        store.dispose();
     }
 
     @Test
@@ -992,7 +960,7 @@ public class DocumentNodeStoreTest {
                 return super.find(collection, key);
             }
         };
-        DocumentNodeStore store = new DocumentMK.Builder()
+        DocumentNodeStore store = builderProvider.newBuilder()
                 .setClusterId(1).setAsyncDelay(0)
                 .setDocumentStore(docStore).getNodeStore();
 
@@ -1030,8 +998,6 @@ public class DocumentNodeStoreTest {
         assertEquals("Should not go to DocStore::find when doc child cache is filled by reading",
                 0, reads.size());
         assertFalse("Non existing children should be reported as such", nonExistingChild.exists());
-
-        store.dispose();
     }
 
     @Test
@@ -1045,7 +1011,7 @@ public class DocumentNodeStoreTest {
                 return super.find(collection, key);
             }
         };
-        DocumentNodeStore store = new DocumentMK.Builder()
+        DocumentNodeStore store = builderProvider.newBuilder()
                 .setUseSimpleRevision(true)
                 .setClusterId(1).setAsyncDelay(0)
                 .setDocumentStore(docStore).getNodeStore();
@@ -1071,7 +1037,6 @@ public class DocumentNodeStoreTest {
         assertTrue("DocStore should be queried when no doc child cache entry has all children",
                 reads.size() > 0);
         assertFalse("Non existing children should be reported as such", nonExistingChild.exists());
-        store.dispose();
     }
 
     @Test
@@ -1108,7 +1073,7 @@ public class DocumentNodeStoreTest {
             }
 
         };
-        DocumentNodeStore store = new DocumentMK.Builder()
+        DocumentNodeStore store = builderProvider.newBuilder()
                 .setUseSimpleRevision(true)
                 .setClusterId(1).setAsyncDelay(0)
                 .setDocumentStore(docStore).getNodeStore();
@@ -1141,257 +1106,218 @@ public class DocumentNodeStoreTest {
         NodeState existingChild = parentNodeState.getChildNode("child25");
         assertTrue("Fully cached entry in doc child cache should be able to find existing children" + " even if doc store sort order is incompatible to that of Java", reads.size() > 0);
         assertTrue("Existing children should be reported as such", existingChild.exists());
-
-        store.dispose();
     }
 
     @Test
     public void mergeInternalDocAcrossCluster() throws Exception {
         MemoryDocumentStore docStore = new MemoryDocumentStore();
-        final DocumentNodeStore store1 = new DocumentMK.Builder()
+        final DocumentNodeStore store1 = builderProvider.newBuilder()
                 .setDocumentStore(docStore).setAsyncDelay(0)
                 .setClusterId(1)
                 .getNodeStore();
         store1.setEnableConcurrentAddRemove(true);
-        final DocumentNodeStore store2 = new DocumentMK.Builder()
+        final DocumentNodeStore store2 = builderProvider.newBuilder()
                 .setDocumentStore(docStore).setAsyncDelay(0)
                 .setClusterId(2)
                 .getNodeStore();
         store2.setEnableConcurrentAddRemove(true);
+
+        NodeState root;
+        NodeBuilder builder;
+
+        //Prepare repo
+        root = store1.getRoot();
+        builder = root.builder();
+        builder.child(":hidden").child("deleteDeleted");
+        builder.child(":hidden").child("deleteChanged");
+        builder.child(":hidden").child("changeDeleted");
+        merge(store1, builder);
+        store1.runBackgroundOperations();
+        store2.runBackgroundOperations();
+
+        //Changes in store1
+        root = store1.getRoot();
+        builder = root.builder();
+        builder.child("visible");
+        builder.child(":hidden").child("b");
+        builder.child(":hidden").child("deleteDeleted").remove();
+        builder.child(":hidden").child("changeDeleted").remove();
+        builder.child(":hidden").child("deleteChanged").setProperty("foo", "bar");
+        builder.child(":dynHidden").child("c");
+        builder.child(":dynHidden").child("childWithProp").setProperty("foo", "bar");
+        merge(store1, builder);
+
+        //Changes in store2
+
+        //root would hold reference to store2 root state after initial repo initialization
+        root = store2.getRoot();
+
+        //The hidden node itself should be creatable across cluster concurrently
+        builder = root.builder();
+        builder.child(":dynHidden");
+        merge(store2, builder);
+
+        //Children of hidden node should be creatable across cluster concurrently
+        builder = root.builder();
+        builder.child(":hidden").child("b");
+        builder.child(":dynHidden").child("c");
+        merge(store2, builder);
+
+        //Deleted deleted conflict of internal node should work across cluster concurrently
+        builder = root.builder();
+        builder.child(":hidden").child("deleteDeleted").remove();
+        merge(store2, builder);
+
+        //Avoid repeated merge tries ... fail early
+        store2.setMaxBackOffMillis(0);
+
+        boolean commitFailed = false;
         try {
-
-            NodeState root;
-            NodeBuilder builder;
-
-            //Prepare repo
-            root = store1.getRoot();
-            builder = root.builder();
-            builder.child(":hidden").child("deleteDeleted");
-            builder.child(":hidden").child("deleteChanged");
-            builder.child(":hidden").child("changeDeleted");
-            merge(store1, builder);
-            store1.runBackgroundOperations();
-            store2.runBackgroundOperations();
-
-            //Changes in store1
-            root = store1.getRoot();
             builder = root.builder();
             builder.child("visible");
-            builder.child(":hidden").child("b");
-            builder.child(":hidden").child("deleteDeleted").remove();
-            builder.child(":hidden").child("changeDeleted").remove();
-            builder.child(":hidden").child("deleteChanged").setProperty("foo", "bar");
-            builder.child(":dynHidden").child("c");
-            builder.child(":dynHidden").child("childWithProp").setProperty("foo", "bar");
-            merge(store1, builder);
-
-            //Changes in store2
-
-            //root would hold reference to store2 root state after initial repo initialization
-            root = store2.getRoot();
-
-            //The hidden node itself should be creatable across cluster concurrently
-            builder = root.builder();
-            builder.child(":dynHidden");
             merge(store2, builder);
-
-            //Children of hidden node should be creatable across cluster concurrently
-            builder = root.builder();
-            builder.child(":hidden").child("b");
-            builder.child(":dynHidden").child("c");
-            merge(store2, builder);
-
-            //Deleted deleted conflict of internal node should work across cluster concurrently
-            builder = root.builder();
-            builder.child(":hidden").child("deleteDeleted").remove();
-            merge(store2, builder);
-
-            //Avoid repeated merge tries ... fail early
-            store2.setMaxBackOffMillis(0);
-
-            boolean commitFailed = false;
-            try {
-                builder = root.builder();
-                builder.child("visible");
-                merge(store2, builder);
-            } catch (CommitFailedException cfe) {
-                commitFailed = true;
-            }
-            assertTrue("Concurrent creation of visible node across cluster must fail", commitFailed);
-
-            commitFailed = false;
-            try {
-                builder = root.builder();
-                builder.child(":dynHidden").child("childWithProp").setProperty("foo", "bar");
-                merge(store2, builder);
-            } catch (CommitFailedException cfe) {
-                commitFailed = true;
-            }
-            assertTrue("Concurrent creation of hidden node with properties across cluster must fail", commitFailed);
-
-            commitFailed = false;
-            try {
-                builder = root.builder();
-                builder.child(":hidden").child("deleteChanged").remove();
-                merge(store2, builder);
-            } catch (CommitFailedException cfe) {
-                commitFailed = true;
-            }
-            assertTrue("Delete changed merge across cluster must fail even under hidden tree", commitFailed);
-
-            commitFailed = false;
-            try {
-                builder = root.builder();
-                builder.child(":hidden").child("changeDeleted").setProperty("foo", "bar");
-                merge(store2, builder);
-            } catch (CommitFailedException cfe) {
-                commitFailed = true;
-            }
-            assertTrue("Change deleted merge across cluster must fail even under hidden tree", commitFailed);
-        } finally {
-            store2.dispose();
-            store1.dispose();
+        } catch (CommitFailedException cfe) {
+            commitFailed = true;
         }
+        assertTrue("Concurrent creation of visible node across cluster must fail", commitFailed);
+
+        commitFailed = false;
+        try {
+            builder = root.builder();
+            builder.child(":dynHidden").child("childWithProp").setProperty("foo", "bar");
+            merge(store2, builder);
+        } catch (CommitFailedException cfe) {
+            commitFailed = true;
+        }
+        assertTrue("Concurrent creation of hidden node with properties across cluster must fail", commitFailed);
+
+        commitFailed = false;
+        try {
+            builder = root.builder();
+            builder.child(":hidden").child("deleteChanged").remove();
+            merge(store2, builder);
+        } catch (CommitFailedException cfe) {
+            commitFailed = true;
+        }
+        assertTrue("Delete changed merge across cluster must fail even under hidden tree", commitFailed);
+
+        commitFailed = false;
+        try {
+            builder = root.builder();
+            builder.child(":hidden").child("changeDeleted").setProperty("foo", "bar");
+            merge(store2, builder);
+        } catch (CommitFailedException cfe) {
+            commitFailed = true;
+        }
+        assertTrue("Change deleted merge across cluster must fail even under hidden tree", commitFailed);
     }
 
     @Test
     public void mergeDeleteDeleteEmptyInternalDoc() throws Exception {
-        final DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
+        final DocumentNodeStore store = builderProvider.newBuilder().getNodeStore();
         store.setEnableConcurrentAddRemove(true);
-        try {
-            NodeBuilder builder = store.getRoot().builder();
-            builder.child(":a");
-            builder.child(":b");
-            merge(store, builder);
-            SingleInstanceConflictUtility.generateConflict(store,
-                    new String[]{":1"}, new String[]{":a"},
-                    new String[]{":2"}, new String[]{":b"},
-                    new String[]{":3"}, new String[]{":a", ":b"},
-                    true, "Delete-delete merge conflicts for internal docs should be resolved");
-        } finally {
-            store.dispose();
-        }
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child(":a");
+        builder.child(":b");
+        merge(store, builder);
+        SingleInstanceConflictUtility.generateConflict(store,
+                new String[]{":1"}, new String[]{":a"},
+                new String[]{":2"}, new String[]{":b"},
+                new String[]{":3"}, new String[]{":a", ":b"},
+                true, "Delete-delete merge conflicts for internal docs should be resolved");
     }
 
     @Test
     public void mergeDeleteDeleteNonEmptyInternalDocShouldFail() throws Exception {
-        final DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
+        final DocumentNodeStore store = builderProvider.newBuilder().getNodeStore();
         store.setEnableConcurrentAddRemove(true);
-        try {
-            NodeBuilder builder = store.getRoot().builder();
-            builder.child(":a").setProperty("foo", "bar");
-            builder.child(":b");
-            merge(store, builder);
-            SingleInstanceConflictUtility.generateConflict(store,
-                    new String[]{":1"}, new String[]{":a"},
-                    new String[]{":2"}, new String[]{":b"},
-                    new String[]{":3"}, new String[]{":a", ":b"},
-                    false, "Delete-delete merge conflicts for non-empty internal docs should fail");
-        } finally {
-            store.dispose();
-        }
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child(":a").setProperty("foo", "bar");
+        builder.child(":b");
+        merge(store, builder);
+        SingleInstanceConflictUtility.generateConflict(store,
+                new String[]{":1"}, new String[]{":a"},
+                new String[]{":2"}, new String[]{":b"},
+                new String[]{":3"}, new String[]{":a", ":b"},
+                false, "Delete-delete merge conflicts for non-empty internal docs should fail");
     }
 
     @Test
     public void mergeDeleteDeleteNormalDocShouldFail() throws Exception {
-        final DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
+        final DocumentNodeStore store = builderProvider.newBuilder().getNodeStore();
         store.setEnableConcurrentAddRemove(true);
-        try {
-            NodeBuilder builder = store.getRoot().builder();
-            builder.child("a");
-            builder.child("b");
-            merge(store, builder);
-            SingleInstanceConflictUtility.generateConflict(store,
-                    new String[]{":1"}, new String[]{"a"},
-                    new String[]{":2"}, new String[]{"b"},
-                    new String[]{":3"}, new String[]{"a", "b"},
-                    false, "Delete-delete merge conflicts for normal docs should fail");
-        } finally {
-            store.dispose();
-        }
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("a");
+        builder.child("b");
+        merge(store, builder);
+        SingleInstanceConflictUtility.generateConflict(store,
+                new String[]{":1"}, new String[]{"a"},
+                new String[]{":2"}, new String[]{"b"},
+                new String[]{":3"}, new String[]{"a", "b"},
+                false, "Delete-delete merge conflicts for normal docs should fail");
     }
 
     @Test
     public void mergeAddAddEmptyInternalDoc() throws Exception {
-        final DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
+        final DocumentNodeStore store = builderProvider.newBuilder().getNodeStore();
         store.setEnableConcurrentAddRemove(true);
-        try {
-            SingleInstanceConflictUtility.generateConflict(store,
-                    new String[]{":1", ":a"}, new String[]{},
-                    new String[]{":2", ":b"}, new String[]{},
-                    new String[]{":3", ":a", ":b"}, new String[]{},
-                    true, "Add-add merge conflicts for internal docs should be resolvable");
-        } finally {
-            store.dispose();
-        }
+        SingleInstanceConflictUtility.generateConflict(store,
+                new String[]{":1", ":a"}, new String[]{},
+                new String[]{":2", ":b"}, new String[]{},
+                new String[]{":3", ":a", ":b"}, new String[]{},
+                true, "Add-add merge conflicts for internal docs should be resolvable");
     }
 
     @Test
     public void mergeAddAddNonEmptyInternalDocShouldFail() throws Exception {
-        final DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
+        final DocumentNodeStore store = builderProvider.newBuilder().getNodeStore();
         store.setEnableConcurrentAddRemove(true);
-        try {
-            SingleInstanceConflictUtility.generateConflict(store,
-                    new String[]{":1", ":a"}, new String[]{}, true,
-                    new String[]{":2", ":b"}, new String[]{}, true,
-                    new String[]{":3", ":a", ":b"}, new String[]{}, false,
-                    false, "Add-add merge conflicts for non empty internal docs should fail");
-        } finally {
-            store.dispose();
-        }
+        SingleInstanceConflictUtility.generateConflict(store,
+                new String[]{":1", ":a"}, new String[]{}, true,
+                new String[]{":2", ":b"}, new String[]{}, true,
+                new String[]{":3", ":a", ":b"}, new String[]{}, false,
+                false, "Add-add merge conflicts for non empty internal docs should fail");
     }
 
     @Test
     public void mergeAddAddNormalDocShouldFail() throws Exception {
-        final DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
+        final DocumentNodeStore store = builderProvider.newBuilder().getNodeStore();
         store.setEnableConcurrentAddRemove(true);
-        try {
-            SingleInstanceConflictUtility.generateConflict(store,
-                    new String[]{":1", "a"}, new String[]{},
-                    new String[]{":2", "b"}, new String[]{},
-                    new String[]{":3", "a", "b"}, new String[]{},
-                    false, "Add-add merge conflicts for normal docs should fail");
-        } finally {
-            store.dispose();
-        }
+        SingleInstanceConflictUtility.generateConflict(store,
+                new String[]{":1", "a"}, new String[]{},
+                new String[]{":2", "b"}, new String[]{},
+                new String[]{":3", "a", "b"}, new String[]{},
+                false, "Add-add merge conflicts for normal docs should fail");
     }
 
     @Test
     public void mergeDeleteChangedInternalDocShouldFail() throws Exception {
-        final DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
+        final DocumentNodeStore store = builderProvider.newBuilder().getNodeStore();
         store.setEnableConcurrentAddRemove(true);
-        try {
-            NodeBuilder builder = store.getRoot().builder();
-            builder.child(":a");
-            builder.child(":b");
-            merge(store, builder);
-            SingleInstanceConflictUtility.generateConflict(store,
-                    new String[]{":1", ":a"}, new String[]{}, true,
-                    new String[]{":2", ":b"}, new String[]{}, true,
-                    new String[]{":3"}, new String[]{":a", ":b"}, false,
-                    false, "Delete changed merge conflicts for internal docs should fail");
-        } finally {
-            store.dispose();
-        }
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child(":a");
+        builder.child(":b");
+        merge(store, builder);
+        SingleInstanceConflictUtility.generateConflict(store,
+                new String[]{":1", ":a"}, new String[]{}, true,
+                new String[]{":2", ":b"}, new String[]{}, true,
+                new String[]{":3"}, new String[]{":a", ":b"}, false,
+                false, "Delete changed merge conflicts for internal docs should fail");
     }
 
     @Test
     public void mergeChangeDeletedInternalDocShouldFail() throws Exception {
-        final DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
+        final DocumentNodeStore store = builderProvider.newBuilder().getNodeStore();
         store.setEnableConcurrentAddRemove(true);
-        try {
-            NodeBuilder builder = store.getRoot().builder();
-            builder.child(":a");
-            builder.child(":b");
-            merge(store, builder);
-            SingleInstanceConflictUtility.generateConflict(store,
-                    new String[]{":1"}, new String[]{":a"}, false,
-                    new String[]{":2"}, new String[]{":b"}, false,
-                    new String[]{":3", ":a", ":b"}, new String[]{}, true,
-                    false, "Change deleted merge conflicts for internal docs should fail");
-        } finally {
-            store.dispose();
-        }
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child(":a");
+        builder.child(":b");
+        merge(store, builder);
+        SingleInstanceConflictUtility.generateConflict(store,
+                new String[]{":1"}, new String[]{":a"}, false,
+                new String[]{":2"}, new String[]{":b"}, false,
+                new String[]{":3", ":a", ":b"}, new String[]{}, true,
+                false, "Change deleted merge conflicts for internal docs should fail");
     }
 
     /**
@@ -1573,22 +1499,30 @@ public class DocumentNodeStoreTest {
     @Test
     public void dispose() throws CommitFailedException, InterruptedException {
         final BlockingQueue<String> updates = new ArrayBlockingQueue<String>(1);
+        // when disposing of the DocumentNodeStore instances the updates queue
+        // becomes full due to the pending operations being flushed.
+        // This flag ensures that after the main test is completed all
+        // updates are processed without being blocked
+        final AtomicBoolean throttleUpdates = new AtomicBoolean(true);
         MemoryDocumentStore docStore = new MemoryDocumentStore() {
             @Override
             public <T extends Document> void update(Collection<T> collection,
                                                     List<String> keys,
                                                     UpdateOp updateOp) {
-                for (String k : keys) {
-                    try {
-                        updates.put(k);
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
+                
+                if ( throttleUpdates.get() ) {
+                    for (String k : keys) {
+                        try {
+                            updates.put(k);
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
                     }
                 }
                 super.update(collection, keys, updateOp);
             }
         };
-        final DocumentNodeStore store = new DocumentMK.Builder()
+        final DocumentNodeStore store = builderProvider.newBuilder()
                 .setClusterId(1).setAsyncDelay(0)
                 .setDocumentStore(docStore).getNodeStore();
         updates.clear();
@@ -1636,7 +1570,7 @@ public class DocumentNodeStoreTest {
         }
 
         // start new store with clusterId 2
-        DocumentNodeStore store2 = new DocumentMK.Builder()
+        DocumentNodeStore store2 = builderProvider.newBuilder()
                 .setClusterId(2).setAsyncDelay(0)
                 .setDocumentStore(docStore).getNodeStore();
 
@@ -1655,12 +1589,13 @@ public class DocumentNodeStoreTest {
             node.child("child-2");
             merge(store2, builder);
         }
+        throttleUpdates.set(false);
     }
 
     // OAK-2695
     @Test
     public void dispatch() throws Exception {
-        DocumentNodeStore ns = new DocumentMK.Builder().getNodeStore();
+        DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
 
         Revision from = ns.getHeadRevision();
         NodeBuilder builder = ns.getRoot().builder();
@@ -1679,13 +1614,11 @@ public class DocumentNodeStoreTest {
                 return true;
             }
         });
-
-        ns.dispose();
     }
 
     @Test
     public void rootRevision() throws Exception {
-        DocumentNodeStore ns = new DocumentMK.Builder().getNodeStore();
+        DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
 
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("foo").child("child");
@@ -1701,8 +1634,6 @@ public class DocumentNodeStoreTest {
         assertTrue(child instanceof DocumentNodeState);
         DocumentNodeState state = (DocumentNodeState) child;
         assertEquals(head, state.getRootRevision());
-
-        ns.dispose();
     }
 
     @Test
@@ -1719,7 +1650,7 @@ public class DocumentNodeStoreTest {
                 return super.query(collection, fromKey, toKey, limit);
             }
         };
-        DocumentNodeStore ns = new DocumentMK.Builder()
+        DocumentNodeStore ns = builderProvider.newBuilder()
                 .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
 
         NodeBuilder builder = ns.getRoot().builder();
@@ -1755,9 +1686,6 @@ public class DocumentNodeStoreTest {
         assertEquals(1, added.size());
         assertEquals("node", added.get(0));
         assertEquals("must not run queries", 0, numQueries.get());
-
-        ns.dispose();
-
     }
 
     // OAK-1970
@@ -1782,7 +1710,7 @@ public class DocumentNodeStoreTest {
                 return super.query(collection, fromKey, toKey, indexedProperty, startValue, limit);
             }
         };
-        DocumentNodeStore ns = new DocumentMK.Builder().clock(clock)
+        DocumentNodeStore ns = builderProvider.newBuilder().clock(clock)
                 .setDocumentStore(ds).setAsyncDelay(0).getNodeStore();
 
         NodeBuilder builder = ns.getRoot().builder();
@@ -1821,8 +1749,6 @@ public class DocumentNodeStoreTest {
         // startValue must be based on the revision of the before state
         // and not when '/test' was last modified
         assertEquals(beforeModified, (long) startValues.get(0));
-
-        ns.dispose();
     }
 
     // OAK-2620
@@ -1848,7 +1774,7 @@ public class DocumentNodeStoreTest {
                 return super.findAndUpdate(collection, update);
             }
         };
-        DocumentNodeStore ds = new DocumentMK.Builder()
+        DocumentNodeStore ds = builderProvider.newBuilder()
                 .setDocumentStore(store)
                 .setAsyncDelay(0).getNodeStore();
         ds.setMaxBackOffMillis(0); // do not retry merges
@@ -1886,8 +1812,6 @@ public class DocumentNodeStoreTest {
         } catch (CommitFailedException e) {
             // expected
         }
-
-        ds.dispose();
 
         for (String s : failure) {
             fail(s);
