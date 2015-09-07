@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +44,9 @@ import static org.junit.Assert.assertFalse;
  */
 public class CommitQueueTest {
 
+    @Rule
+    public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
+
     private static final Logger LOG = LoggerFactory.getLogger(CommitQueueTest.class);
 
     private static final int NUM_WRITERS = 10;
@@ -53,7 +57,7 @@ public class CommitQueueTest {
 
     @Test
     public void concurrentCommits() throws Exception {
-        final DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
+        final DocumentNodeStore store = builderProvider.newBuilder().getNodeStore();
         AtomicBoolean running = new AtomicBoolean(true);
 
         Closeable observer = store.addObserver(new Observer() {
@@ -178,7 +182,7 @@ public class CommitQueueTest {
     // OAK-2868
     @Test
     public void branchCommitMustNotBlockTrunkCommit() throws Exception {
-        final DocumentNodeStore ds = new DocumentMK.Builder().getNodeStore();
+        final DocumentNodeStore ds = builderProvider.newBuilder().getNodeStore();
 
         // simulate start of a branch commit
         Commit c = ds.newCommit(ds.getHeadRevision().asBranchRevision(), null);
@@ -201,7 +205,6 @@ public class CommitQueueTest {
         assertFalse("Commit did not succeed within 3 seconds", t.isAlive());
 
         ds.canceled(c);
-        ds.dispose();
         assertNoExceptions();
     }
 
