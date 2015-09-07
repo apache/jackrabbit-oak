@@ -16,9 +16,11 @@
  */
 package org.apache.jackrabbit.oak.stats;
 
+import java.io.Closeable;
 import java.util.Date;
 import java.util.Random;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -275,12 +277,14 @@ public abstract class Clock {
      * instantaneously thanks to a background task that takes care of the
      * actual time-keeping work.
      */
-    public static class Fast extends Clock {
+    public static class Fast extends Clock implements Closeable {
 
         private volatile long time = ACCURATE.getTime();
 
+        private final ScheduledFuture<?> future;
+
         public Fast(ScheduledExecutorService executor) {
-            executor.scheduleAtFixedRate(new Runnable() {
+            future = executor.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
                     time = ACCURATE.getTime();
@@ -298,6 +302,9 @@ public abstract class Clock {
             return "Clock.Fast";
         }
 
+        public void close() {
+            future.cancel(false);
+        }
     }
 
     /**
