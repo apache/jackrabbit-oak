@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,12 +52,15 @@ public class NodeStoreDiffTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(NodeStoreDiffTest.class);
 
+    @Rule
+    public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
+
     private NodeStore ns;
     private final TestDocumentStore tds = new TestDocumentStore();
 
     @Before
     public void setUp() throws IOException {
-        ns = new DocumentMK.Builder()
+        ns = builderProvider.newBuilder()
                 .setDocumentStore(tds)
                 .setUseSimpleRevision(true) //To simplify debugging
                 .setAsyncDelay(0)
