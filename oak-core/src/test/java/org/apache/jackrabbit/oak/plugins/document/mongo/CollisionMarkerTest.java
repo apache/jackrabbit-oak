@@ -93,9 +93,7 @@ public class CollisionMarkerTest extends AbstractMongoConnectionTest {
     }
 
     private static DocumentMK newDocumentMK(MongoConnection c) {
-        // set async delay to a high value to make sure
-        // the commit root is outdated when ns2 commits
-        DocumentMK mk = new DocumentMK.Builder().setAsyncDelay(60000)
+        DocumentMK mk = new DocumentMK.Builder().setAsyncDelay(0)
                 .setLeaseCheck(false)
                 .setMongoDB(c.getDB()).open();
         // do not retry on conflicts
