@@ -88,23 +88,31 @@ public class LastRevRecoveryAgentTest {
         ClusterNodeInfo.setClock(clock);
         Revision.setClock(clock);
         sharedStore = fixture.createDocumentStore();
+        DocumentStoreWrapper store = new DocumentStoreWrapper(sharedStore) {
+            @Override
+            public void dispose() {
+                // do not dispose when called by DocumentNodeStore
+            }
+        };
         ds1 = new DocumentMK.Builder()
                 .setAsyncDelay(0)
                 .clock(clock)
-                .setDocumentStore(sharedStore)
+                .setDocumentStore(store)
                 .getNodeStore();
         c1Id = ds1.getClusterId();
 
         ds2 = new DocumentMK.Builder()
                 .setAsyncDelay(0)
                 .clock(clock)
-                .setDocumentStore(sharedStore)
+                .setDocumentStore(store)
                 .getNodeStore();
         c2Id = ds2.getClusterId();
     }
 
     @After
     public void tearDown(){
+        ds1.dispose();
+        ds2.dispose();
         sharedStore.dispose();
         ClusterNodeInfo.resetClockToDefault();
         Revision.resetClockToDefault();

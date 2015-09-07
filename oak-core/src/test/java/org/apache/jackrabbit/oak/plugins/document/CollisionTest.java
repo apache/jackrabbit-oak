@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.junit.Rule;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -28,16 +28,19 @@ import static org.junit.Assert.assertEquals;
 
 public class CollisionTest {
 
+    @Rule
+    public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
+    
     private static final AtomicInteger COUNTER = new AtomicInteger();
 
     // OAK-2342
     @Test
     public void purge() throws Exception {
-        DocumentMK mk1 = new DocumentMK.Builder().setClusterId(1).open();
+        DocumentMK mk1 = builderProvider.newBuilder().setClusterId(1).open();
         DocumentNodeStore ns1 = mk1.getNodeStore();
         DocumentStore store = ns1.getDocumentStore();
 
-        DocumentMK mk2 = new DocumentMK.Builder().setClusterId(2)
+        DocumentMK mk2 = builderProvider.newBuilder().setClusterId(2)
                 .setDocumentStore(store).open();
         DocumentNodeStore ns2 = mk2.getNodeStore();
 
@@ -49,7 +52,7 @@ public class CollisionTest {
 
         // restart node store
         ns1.dispose();
-        mk1 = new DocumentMK.Builder().setClusterId(1)
+        mk1 = builderProvider.newBuilder().setClusterId(1)
                 .setDocumentStore(store).open();
         ns1 = mk1.getNodeStore();
 
@@ -59,7 +62,7 @@ public class CollisionTest {
 
         // restart other node store
         ns2.dispose();
-        mk2 = new DocumentMK.Builder().setClusterId(2)
+        mk2 = builderProvider.newBuilder().setClusterId(2)
                 .setDocumentStore(store).open();
         ns2 = mk2.getNodeStore();
 
