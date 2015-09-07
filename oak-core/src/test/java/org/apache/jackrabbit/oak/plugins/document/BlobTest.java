@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.kernel.BlobSerializer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
+import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +41,9 @@ import com.mongodb.DB;
  */
 public class BlobTest {
 
+    @Rule
+    public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
+    
     private static final Logger LOG = LoggerFactory.getLogger(RandomizedClusterTest.class);
 
 //     private static final boolean MONGO_DB = true;
@@ -62,7 +66,7 @@ public class BlobTest {
 
     @Test
     public void addBlobs() throws Exception {
-        DocumentMK mk = new DocumentMK.Builder().
+        DocumentMK mk = builderProvider.newBuilder().
                 setMongoDB(openMongoConnection()).open();
         long blobSize = TOTAL_SIZE / DOCUMENT_COUNT;
         ArrayList<String> blobIds = new ArrayList<String>();
@@ -76,13 +80,12 @@ public class BlobTest {
         for (String id : blobIds) {
             assertEquals(blobSize, mk.getLength(id));
         }
-        mk.dispose();
     }
 
     @Test
     public void testBlobSerialization() throws Exception{
         TestBlobStore blobStore = new TestBlobStore();
-        DocumentMK mk = new DocumentMK.Builder().setBlobStore(blobStore).open();
+        DocumentMK mk = builderProvider.newBuilder().setBlobStore(blobStore).open();
         BlobSerializer blobSerializer = mk.getNodeStore().getBlobSerializer();
 
         Blob blob = new BlobStoreBlob(blobStore, "foo");

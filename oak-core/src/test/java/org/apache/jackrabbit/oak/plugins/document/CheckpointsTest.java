@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Before;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -34,6 +35,9 @@ import static org.junit.Assert.assertNull;
 
 public class CheckpointsTest {
 
+    @Rule
+    public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
+    
     private Clock clock;
 
     private DocumentNodeStore store;
@@ -41,7 +45,7 @@ public class CheckpointsTest {
     @Before
     public void setUp() throws InterruptedException {
         clock = new Clock.Virtual();
-        store = new DocumentMK.Builder().clock(clock).getNodeStore();
+        store = builderProvider.newBuilder().clock(clock).getNodeStore();
     }
 
     @Test
