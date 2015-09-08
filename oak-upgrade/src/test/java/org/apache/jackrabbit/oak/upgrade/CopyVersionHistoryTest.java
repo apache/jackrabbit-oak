@@ -39,6 +39,9 @@ import javax.jcr.version.VersionManager;
 import java.io.File;
 import java.io.IOException;
 import java.util.Calendar;
+import java.util.List;
+
+import com.google.common.collect.Lists;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -58,6 +61,8 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
     private static final String VERSIONABLES_YOUNG_ORPHANED = "/versionables/youngOrphaned";
 
     protected RepositoryImpl repository;
+
+    protected List<Session> sessions = Lists.newArrayList();
 
     private static Calendar betweenHistories;
 
@@ -232,11 +237,17 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
         }
 
         repository = (RepositoryImpl) new Jcr(new Oak(targetNodeStore)).createRepository();
-        return repository.login(AbstractRepositoryUpgradeTest.CREDENTIALS);
+        Session s = repository.login(AbstractRepositoryUpgradeTest.CREDENTIALS);
+        sessions.add(s);
+        return s;
     }
 
     @After
     public void closeRepository() {
+        for (Session s : sessions) {
+            s.logout();
+        }
+        sessions.clear();
         repository.shutdown();
     }
 
