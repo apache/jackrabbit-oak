@@ -865,7 +865,6 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
                     //Include props with name, boosted and nodeScopeIndex
                     if (pd.nodeScopeIndex
-                            && pd.boost != PropertyDefinition.DEFAULT_BOOST
                             && pd.analyzed
                             && !pd.isRegexp){
                         boostedProps.add(pd);
