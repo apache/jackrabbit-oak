@@ -293,6 +293,7 @@ isRegexp
 boost
 : If the property is included in `nodeScopeIndex` then it defines the boost
   done for the index value against the given property name.
+  **Boost currently does not work as expected due to [OAK-3367][OAK-3367]**
 
 index
 : Determines if this property should be indexed. Mostly useful for fulltext
@@ -1342,6 +1343,7 @@ such fields
 [OAK-2247]: https://issues.apache.org/jira/browse/OAK-2247
 [OAK-2853]: https://issues.apache.org/jira/browse/OAK-2853
 [OAK-2892]: https://issues.apache.org/jira/browse/OAK-2892
+[OAK-3367]: https://issues.apache.org/jira/browse/OAK-3367
 [luke]: https://code.google.com/p/luke/
 [tika]: http://tika.apache.org/
 [oak-console]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run#console
