@@ -39,11 +39,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COLLISIONS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.revisionAreAmbiguous;
 import static org.apache.jackrabbit.oak.plugins.document.Revision.RevisionComparator;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getRootDocument;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -61,7 +63,7 @@ public class NodeDocumentTest {
         for (int i = 0; i < NodeDocument.NUM_REVS_THRESHOLD + 1; i++) {
             Revision r = Revision.newRevision(1);
             NodeDocument.setRevision(op, r, "c");
-            NodeDocument.addCollision(op, r);
+            NodeDocument.addCollision(op, r, Revision.newRevision(1));
         }
         UpdateUtils.applyChanges(doc, op, StableRevisionComparator.INSTANCE);
         Revision head = DummyRevisionContext.INSTANCE.getHeadRevision();
@@ -103,6 +105,53 @@ public class NodeDocumentTest {
         assertFalse(revisionAreAmbiguous(context, r2, r2));
         assertTrue(revisionAreAmbiguous(context, r1, r2));
         assertTrue(revisionAreAmbiguous(context, r2, r1));
+    }
+
+    @Test
+    public void getMostRecentConflictFor() {
+        RevisionContext context = DummyRevisionContext.INSTANCE;
+        MemoryDocumentStore docStore = new MemoryDocumentStore();
+        String id = Utils.getPathFromId("/");
+        NodeDocument doc = new NodeDocument(docStore);
+        doc.put(Document.ID, id);
+
+        Iterable<Revision> branchCommits = Collections.emptyList();
+        Revision conflict = doc.getMostRecentConflictFor(branchCommits, context);
+        assertNull(conflict);
+
+        // add some collisions
+        UpdateOp op = new UpdateOp(id, false);
+        Revision r0 = Revision.newRevision(1);
+        Revision r1 = Revision.newRevision(1);
+        Revision c1 = Revision.newRevision(1);
+        Revision r2 = Revision.newRevision(1);
+        Revision c2 = Revision.newRevision(1);
+        // backward compatibility test
+        op.setMapEntry(COLLISIONS, r0, String.valueOf(true));
+        // regular collision entries
+        NodeDocument.addCollision(op, r1, c1);
+        NodeDocument.addCollision(op, r2, c2);
+        UpdateUtils.applyChanges(doc, op, StableRevisionComparator.INSTANCE);
+
+        branchCommits = Collections.singleton(r0);
+        conflict = doc.getMostRecentConflictFor(branchCommits, context);
+        assertNull(conflict);
+
+        branchCommits = Collections.singleton(r1.asBranchRevision());
+        conflict = doc.getMostRecentConflictFor(branchCommits, context);
+        assertEquals(c1, conflict);
+
+        branchCommits = Collections.singleton(r2.asBranchRevision());
+        conflict = doc.getMostRecentConflictFor(branchCommits, context);
+        assertEquals(c2, conflict);
+
+        branchCommits = Lists.newArrayList(r1.asBranchRevision(), r2.asBranchRevision());
+        conflict = doc.getMostRecentConflictFor(branchCommits, context);
+        assertEquals(c2, conflict);
+
+        branchCommits = Lists.newArrayList(r2.asBranchRevision(), r1.asBranchRevision());
+        conflict = doc.getMostRecentConflictFor(branchCommits, context);
+        assertEquals(c2, conflict);
     }
 
     @Test

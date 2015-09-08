@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -393,7 +394,16 @@ public class Commit {
                     if (before == null) {
                         String msg = "Conflicting concurrent change. " +
                                 "Update operation failed: " + commitRoot;
-                        throw new DocumentStoreException(msg);
+                        NodeDocument commitRootDoc = store.find(NODES, commitRoot.getId());
+                        DocumentStoreException dse;
+                        if (commitRootDoc == null) {
+                            dse = new DocumentStoreException(msg);
+                        } else {
+                            dse = new ConflictException(msg,
+                                    commitRootDoc.getMostRecentConflictFor(
+                                        Collections.singleton(revision), nodeStore));
+                        }
+                        throw dse;
                     } else {
                         success = true;
                         // if we get here the commit was successful and
@@ -490,9 +500,12 @@ public class Commit {
      * @param op the update operation.
      * @param before how the document looked before the update was applied or
      *               {@code null} if it didn't exist before.
+     * @throws ConflictException if there was a conflict introduced by the
+     *          given update operation.
      */
     private void checkConflicts(@Nonnull UpdateOp op,
-                                @Nullable NodeDocument before) {
+                                @Nullable NodeDocument before)
+            throws ConflictException {
         DocumentStore store = nodeStore.getDocumentStore();
         collisions.clear();
         if (baseRevision != null) {
@@ -507,10 +520,14 @@ public class Commit {
                         });
             }
             String conflictMessage = null;
+            Revision conflictRevision = newestRev;
             if (newestRev == null) {
                 if ((op.isDelete() || !op.isNew()) && isConflicting(before, op)) {
                     conflictMessage = "The node " +
                             op.getId() + " does not exist or is already deleted";
+                    if (before != null && !before.getLocalDeleted().isEmpty()) {
+                        conflictRevision = before.getLocalDeleted().firstKey();
+                    }
                 }
             } else {
                 if (op.isNew() && isConflicting(before, op)) {
@@ -545,6 +562,7 @@ public class Commit {
                                         op.getId() + " was changed in revision\n" + r +
                                         ", which was applied after the base revision\n" +
                                         baseRevision;
+                                conflictRevision = r;
                             }
                         }
                     }
@@ -558,7 +576,7 @@ public class Commit {
                             ",\nrevision order:\n" +
                             nodeStore.getRevisionComparator());
                 }
-                throw new DocumentStoreException(conflictMessage);
+                throw new ConflictException(conflictMessage, conflictRevision);
             }
         }
     }

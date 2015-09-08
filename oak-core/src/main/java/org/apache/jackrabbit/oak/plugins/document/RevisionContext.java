@@ -51,4 +51,10 @@ public interface RevisionContext {
      */
     @Nonnull
     Revision getHeadRevision();
+
+    /**
+     * @return a new revision for the local document node store instance.
+     */
+    @Nonnull
+    Revision newRevision();
 }
