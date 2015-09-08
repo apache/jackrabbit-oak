@@ -1785,6 +1785,8 @@ public class DocumentNodeStoreTest {
         while (t.isAlive()) {
             updates.poll(10, TimeUnit.MILLISECONDS);
         }
+        updates.clear();
+        throttleUpdates.set(false);
 
         // start new store with clusterId 2
         DocumentNodeStore store2 = builderProvider.newBuilder()
@@ -1806,7 +1808,6 @@ public class DocumentNodeStoreTest {
             node.child("child-2");
             merge(store2, builder);
         }
-        throttleUpdates.set(false);
     }
 
     // OAK-2695
