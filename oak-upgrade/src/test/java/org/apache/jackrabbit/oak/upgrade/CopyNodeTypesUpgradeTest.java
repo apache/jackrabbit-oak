@@ -49,5 +49,6 @@ public class CopyNodeTypesUpgradeTest extends AbstractRepositoryUpgradeTest {
         assertEquals("More than one child node definition", 1, cnd.length);
         assertEquals("Incorrect default primary type", "test:Folder", cnd[0].getDefaultPrimaryTypeName());
         assertEquals("More than two property definitions", 4, pd.length);
+        adminSession.logout();
     }
 }

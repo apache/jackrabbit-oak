@@ -43,6 +43,7 @@ public class CopyVersionHistorySidegradeTest extends CopyVersionHistoryTest {
             try {
                 createSourceContent(session);
             } finally {
+                session.logout();
                 repository.shutdown();
             }
         }
@@ -56,6 +57,8 @@ public class CopyVersionHistorySidegradeTest extends CopyVersionHistoryTest {
         sidegrade.copy(null);
 
         repository = (RepositoryImpl) new Jcr(new Oak(targetNodeStore)).createRepository();
-        return repository.login(AbstractRepositoryUpgradeTest.CREDENTIALS);
+        Session s = repository.login(AbstractRepositoryUpgradeTest.CREDENTIALS);
+        sessions.add(s);
+        return s;
     }
 }
