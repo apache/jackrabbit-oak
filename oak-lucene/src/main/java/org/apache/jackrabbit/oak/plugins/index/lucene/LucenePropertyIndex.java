@@ -1074,7 +1074,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
 
             private boolean visitTerm(String propertyName, String text, String boost, boolean not) {
                 String p = getLuceneFieldName(propertyName, pr);
-                Query q = tokenToQuery(text, p, analyzer);
+                Query q = tokenToQuery(text, p, pr.indexingRule,  analyzer);
                 if (q == null) {
                     return false;
                 }
@@ -1118,6 +1118,25 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             p = FieldNames.FULLTEXT;
         }
         return p;
+    }
+
+    private static Query tokenToQuery(String text, String fieldName, IndexingRule indexingRule, Analyzer analyzer) {
+        //Expand the query on fulltext field
+        if (FieldNames.FULLTEXT.equals(fieldName) &&
+                !indexingRule.getBoostedProps().isEmpty()) {
+            BooleanQuery in = new BooleanQuery();
+            for (PropertyDefinition pd : indexingRule.getBoostedProps()) {
+                Query q = tokenToQuery(text, FieldNames.createAnalyzedFieldName(pd.name), analyzer);
+                q.setBoost(pd.boost);
+                in.add(q, BooleanClause.Occur.SHOULD);
+            }
+
+            //Add the query for actual fulltext field also. That query would
+            //not be boosted
+            in.add(tokenToQuery(text, fieldName, analyzer), BooleanClause.Occur.SHOULD);
+            return in;
+        }
+        return tokenToQuery(text, fieldName, analyzer);
     }
 
     static Query tokenToQuery(String text, String fieldName, Analyzer analyzer) {

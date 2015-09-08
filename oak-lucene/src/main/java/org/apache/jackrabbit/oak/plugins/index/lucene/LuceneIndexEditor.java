@@ -434,7 +434,6 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
                     if (pd.nodeScopeIndex) {
                         Field field = newFulltextField(value);
-                        field.setBoost(pd.boost);
                         fields.add(field);
                     }
                     dirty = true;
