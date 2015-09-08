@@ -16,49 +16,33 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.util.Comparator;
-
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+
 /**
- * A revision context for tests.
+ * A {@link CommitFailedException} with a conflict revision.
  */
-public class DummyRevisionContext implements RevisionContext {
+class FailedWithConflictException extends CommitFailedException {
 
-    static final RevisionContext INSTANCE = new DummyRevisionContext();
+    private static final long serialVersionUID = 2716279884065949789L;
 
-    private final Comparator<Revision> comparator
-            = StableRevisionComparator.INSTANCE;
+    private final Revision conflictRevision;
 
-    @Override
-    public UnmergedBranches getBranches() {
-        return new UnmergedBranches(comparator);
+    FailedWithConflictException(@Nonnull Revision conflictRevision,
+                                @Nonnull String message,
+                                @Nonnull Throwable cause) {
+        super(OAK, MERGE, 4, checkNotNull(message), checkNotNull(cause));
+        this.conflictRevision = checkNotNull(conflictRevision);
     }
 
-    @Override
-    public UnsavedModifications getPendingModifications() {
-        return new UnsavedModifications();
-    }
-
-    @Override
-    public Comparator<Revision> getRevisionComparator() {
-        return comparator;
-    }
-
-    @Override
-    public int getClusterId() {
-        return 1;
-    }
-
+    /**
+     * @return the revision of another commit which caused a conflict.
+     */
     @Nonnull
-    @Override
-    public Revision getHeadRevision() {
-        return Revision.newRevision(1);
-    }
-
-    @Nonnull
-    @Override
-    public Revision newRevision() {
-        return Revision.newRevision(1);
+    Revision getConflictRevision() {
+        return conflictRevision;
     }
 }

@@ -113,6 +113,12 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             throws CommitFailedException {
         try {
             return merge0(hook, info, false);
+        } catch (FailedWithConflictException e) {
+            // suspend until conflicting revision is visible
+            LOG.debug("Suspending until {} is visible. Current head {}.",
+                    e.getConflictRevision(), store.getHeadRevision());
+            store.suspendUntil(e.getConflictRevision());
+            LOG.debug("Resumed. Current head {}.", store.getHeadRevision());
         } catch (CommitFailedException e) {
             if (!e.isOfType(MERGE)) {
                 throw e;
@@ -166,6 +172,9 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             try {
                 return branchState.merge(checkNotNull(hook),
                         checkNotNull(info), exclusive);
+            } catch (FailedWithConflictException e) {
+                // let caller decide what to do with conflicting revision
+                throw e;
             } catch (CommitFailedException e) {
                 LOG.trace("Merge Error", e);
                 ex = e;
@@ -481,6 +490,8 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                     NodeState newHead = DocumentNodeStoreBranch.this.persist(toCommit, base, info);
                     branchState = new Merged(base);
                     return newHead;
+                } catch (ConflictException e) {
+                    throw e.asCommitFailedException();
                 } catch(DocumentStoreException e) {
                     throw new CommitFailedException(MERGE, 1,
                             "Failed to merge changes to the underlying store", e);

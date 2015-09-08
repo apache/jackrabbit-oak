@@ -886,6 +886,12 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
             }
             return rc.getHeadRevision();
         }
+
+        @Nonnull
+        @Override
+        public Revision newRevision() {
+            return rc.newRevision();
+        }
     }
 
     private static NodeState merge(NodeStore store, NodeBuilder root)

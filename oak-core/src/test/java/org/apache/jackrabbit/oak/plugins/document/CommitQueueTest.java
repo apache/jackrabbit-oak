@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -37,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.Collections.synchronizedList;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 /**
@@ -120,12 +122,7 @@ public class CommitQueueTest {
 
     @Test
     public void concurrentCommits2() throws Exception {
-        final CommitQueue queue = new CommitQueue() {
-            @Override
-            protected Revision newRevision() {
-                return Revision.newRevision(1);
-            }
-        };
+        final CommitQueue queue = new CommitQueue(DummyRevisionContext.INSTANCE);
 
         final CommitQueue.Callback c = new CommitQueue.Callback() {
             private Revision before = Revision.newRevision(1);
@@ -206,6 +203,47 @@ public class CommitQueueTest {
 
         ds.canceled(c);
         assertNoExceptions();
+    }
+
+    @Test
+    public void suspendUntil() throws Exception {
+        final AtomicReference<Revision> headRevision = new AtomicReference<Revision>();
+        RevisionContext context = new DummyRevisionContext() {
+            @Nonnull
+            @Override
+            public Revision getHeadRevision() {
+                return headRevision.get();
+            }
+        };
+        headRevision.set(context.newRevision());
+        final CommitQueue queue = new CommitQueue(context);
+
+        final Revision r = context.newRevision();
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                queue.suspendUntil(r);
+            }
+        });
+        t.start();
+
+        // wait until t is suspended
+        for (int i = 0; i < 100; i++) {
+            if (queue.numSuspendedThreads() > 0) {
+                break;
+            }
+            Thread.sleep(10);
+        }
+        assertEquals(1, queue.numSuspendedThreads());
+
+        queue.headRevisionChanged();
+        // must still be suspended
+        assertEquals(1, queue.numSuspendedThreads());
+
+        headRevision.set(r);
+        queue.headRevisionChanged();
+        // must not be suspended anymore
+        assertEquals(0, queue.numSuspendedThreads());
     }
 
     private void assertNoExceptions() throws Exception {

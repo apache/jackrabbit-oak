@@ -72,14 +72,14 @@ class Collision {
     @Nonnull
     Revision mark(DocumentStore store) throws DocumentStoreException {
         // first try to mark their revision
-        if (markCommitRoot(document, theirRev, store)) {
+        if (markCommitRoot(document, theirRev, ourRev, store)) {
             return theirRev;
         }
         // their commit wins, we have to mark ourRev
         NodeDocument newDoc = Collection.NODES.newDocument(store);
         document.deepCopy(newDoc);
         UpdateUtils.applyChanges(newDoc, ourOp, context.getRevisionComparator());
-        if (!markCommitRoot(newDoc, ourRev, store)) {
+        if (!markCommitRoot(newDoc, ourRev, theirRev, store)) {
             throw new IllegalStateException("Unable to annotate our revision "
                     + "with collision marker. Our revision: " + ourRev
                     + ", document:\n" + newDoc.format());
@@ -94,12 +94,14 @@ class Collision {
      * @param document the document.
      * @param revision the revision of the commit to annotated with a collision
      *            marker.
+     * @param other the revision which detected the collision.
      * @param store the document store.
      * @return <code>true</code> if the commit for the given revision was marked
      *         successfully; <code>false</code> otherwise.
      */
     private static boolean markCommitRoot(@Nonnull NodeDocument document,
                                           @Nonnull Revision revision,
+                                          @Nonnull Revision other,
                                           @Nonnull DocumentStore store) {
         String p = document.getPath();
         String commitRootPath;
@@ -131,7 +133,7 @@ class Collision {
             // already marked
             return true;
         }
-        NodeDocument.addCollision(op, revision);
+        NodeDocument.addCollision(op, revision, other);
         String commitValue = commitRoot.getLocalRevisions().get(revision);
         if (commitValue == null) {
             // no revision entry yet
