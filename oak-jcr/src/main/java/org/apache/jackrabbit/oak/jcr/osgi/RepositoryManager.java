@@ -29,10 +29,12 @@ import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.ReferenceStrategy;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
@@ -53,6 +55,10 @@ import org.osgi.framework.ServiceRegistration;
  * to be configured in a custom way
  */
 @Component(policy = ConfigurationPolicy.REQUIRE)
+@Reference(referenceInterface = IndexEditorProvider.class,
+        target = "(type=property)",
+        strategy = ReferenceStrategy.LOOKUP
+)
 public class RepositoryManager {
     private static final int DEFAULT_OBSERVATION_QUEUE_LENGTH = 1000;
     private static final boolean DEFAULT_COMMIT_RATE_LIMIT = false;

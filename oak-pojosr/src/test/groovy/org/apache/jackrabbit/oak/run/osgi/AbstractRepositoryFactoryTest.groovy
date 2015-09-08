@@ -26,6 +26,7 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
+import org.osgi.framework.BundleContext
 import org.osgi.framework.ServiceReference
 import org.osgi.service.cm.ConfigurationAdmin
 import org.osgi.util.tracker.ServiceTracker
@@ -82,7 +83,11 @@ abstract class AbstractRepositoryFactoryTest{
     }
 
     protected <T> T getServiceWithWait(Class<T> clazz) {
-        ServiceTracker st = new ServiceTracker(getRegistry().bundleContext, clazz.name, null)
+        return getServiceWithWait(clazz, getRegistry().bundleContext)
+    }
+
+    protected static <T> T getServiceWithWait(Class<T> clazz, BundleContext bundleContext) {
+        ServiceTracker st = new ServiceTracker(bundleContext, clazz.name, null)
         st.open()
         T sr = (T) st.waitForService(TimeUnit.SECONDS.toMillis(SVC_WAIT_TIME))
         assert sr , "No service found for ${clazz.name}"
