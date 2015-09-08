@@ -87,14 +87,15 @@ public class VersionGarbageCollector {
         final long oldestRevTimeStamp = nodeStore.getClock().getTime() - maxRevisionAgeInMillis;
         final Revision headRevision = nodeStore.getHeadRevision();
 
-        log.info("Starting revision garbage collection. Revisions older than [{}] would be " +
+        log.info("Starting revision garbage collection. Revisions older than [{}] will be " +
                 "removed", Utils.timestampToString(oldestRevTimeStamp));
 
         //Check for any registered checkpoint which prevent the GC from running
         Revision checkpoint = nodeStore.getCheckpoints().getOldestRevisionToKeep();
         if (checkpoint != null && checkpoint.getTimestamp() < oldestRevTimeStamp) {
-            log.info("Ignoring version gc as valid checkpoint [{}] found while " +
-                            "need to collect versions older than [{}]", checkpoint.toReadableString(),
+            log.info("Ignoring revision garbage collection because a valid " +
+                            "checkpoint [{}] was found, which is older than [{}].",
+                    checkpoint.toReadableString(),
                     Utils.timestampToString(oldestRevTimeStamp)
             );
             stats.ignoredGCDueToCheckPoint = true;
@@ -105,7 +106,7 @@ public class VersionGarbageCollector {
         collectSplitDocuments(stats, oldestRevTimeStamp);
 
         sw.stop();
-        log.info("Version garbage collected in {}. {}", sw, stats);
+        log.info("Revision garbage collection finished in {}. {}", sw, stats);
         return stats;
     }
 
