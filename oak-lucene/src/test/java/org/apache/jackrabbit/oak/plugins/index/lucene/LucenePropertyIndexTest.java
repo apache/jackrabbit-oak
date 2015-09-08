@@ -1145,7 +1145,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertOrderedQuery(queryString, asList("/test/c", "/test/a", "/test/b"), XPATH, true);
     }
 
-    @Ignore("OAK-3367")
     @Test
     public void boostTitleOverDescription() throws Exception{
         NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
@@ -1187,6 +1186,13 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         String queryString = "//element(*,oak:TestNode)[jcr:contains(., 'batman')]";
+        String explain = explainXpath(queryString);
+
+        //Assert that Lucene query generated has entries for all included boosted fields
+        assertThat(explain, containsString("full:jcr:content/jcr:title:batman^4.0"));
+        assertThat(explain, containsString("full:jcr:content/jcr:description:batman^2.0"));
+        assertThat(explain, containsString(":fulltext:batman"));
+
         assertOrderedQuery(queryString, asList("/test/a", "/test/b", "/test/c"), XPATH, true);
     }
 

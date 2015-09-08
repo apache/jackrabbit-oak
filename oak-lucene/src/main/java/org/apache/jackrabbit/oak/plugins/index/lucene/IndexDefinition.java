@@ -624,6 +624,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         private final List<NamePattern> namePatterns;
         private final List<PropertyDefinition> nullCheckEnabledProperties;
         private final List<PropertyDefinition> notNullCheckEnabledProperties;
+        private final List<PropertyDefinition> boostedProps;
         private final boolean indexesAllNodesOfMatchingType;
         private final boolean nodeNameIndexed;
 
@@ -647,12 +648,15 @@ class IndexDefinition implements Aggregate.AggregateMapper{
             List<NamePattern> namePatterns = newArrayList();
             List<PropertyDefinition> nonExistentProperties = newArrayList();
             List<PropertyDefinition> existentProperties = newArrayList();
+            List<PropertyDefinition> boostedProps = newArrayList();
             List<Aggregate.Include> propIncludes = newArrayList();
-            this.propConfigs = collectPropConfigs(config, namePatterns, propIncludes, nonExistentProperties, existentProperties);
+            this.propConfigs = collectPropConfigs(config, namePatterns, propIncludes, nonExistentProperties,
+                    existentProperties, boostedProps);
             this.propAggregate = new Aggregate(nodeTypeName, propIncludes);
             this.aggregate = combine(propAggregate, nodeTypeName);
 
             this.namePatterns = ImmutableList.copyOf(namePatterns);
+            this.boostedProps = ImmutableList.copyOf(boostedProps);
             this.nullCheckEnabledProperties = ImmutableList.copyOf(nonExistentProperties);
             this.notNullCheckEnabledProperties = ImmutableList.copyOf(existentProperties);
             this.fulltextEnabled = aggregate.hasNodeAggregates() || hasAnyFullTextEnabledProperty();
@@ -681,6 +685,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
             this.propAggregate = original.propAggregate;
             this.nullCheckEnabledProperties = original.nullCheckEnabledProperties;
             this.notNullCheckEnabledProperties = original.notNullCheckEnabledProperties;
+            this.boostedProps = original.boostedProps;
             this.aggregate = combine(propAggregate, nodeTypeName);
             this.fulltextEnabled = aggregate.hasNodeAggregates() || original.fulltextEnabled;
             this.indexesAllNodesOfMatchingType = allMatchingNodeByTypeIndexed();
@@ -715,6 +720,10 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
         public List<PropertyDefinition> getNotNullCheckEnabledProperties() {
             return notNullCheckEnabledProperties;
+        }
+
+        public List<PropertyDefinition> getBoostedProps() {
+            return boostedProps;
         }
 
         @Override
@@ -815,7 +824,8 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         private Map<String, PropertyDefinition> collectPropConfigs(NodeState config, List<NamePattern> patterns,
                                                                    List<Aggregate.Include> propAggregate,
                                                                    List<PropertyDefinition> nonExistentProperties,
-                                                                   List<PropertyDefinition> existentProperties) {
+                                                                   List<PropertyDefinition> existentProperties,
+                                                                   List<PropertyDefinition> boostedProps) {
             Map<String, PropertyDefinition> propDefns = newHashMap();
             NodeState propNode = config.getChildNode(LuceneIndexConstants.PROP_NODE);
 
@@ -851,6 +861,14 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
                     if (pd.notNullCheckEnabled){
                         existentProperties.add(pd);
+                    }
+
+                    //Include props with name, boosted and nodeScopeIndex
+                    if (pd.nodeScopeIndex
+                            && pd.boost != PropertyDefinition.DEFAULT_BOOST
+                            && pd.analyzed
+                            && !pd.isRegexp){
+                        boostedProps.add(pd);
                     }
                 }
             }
