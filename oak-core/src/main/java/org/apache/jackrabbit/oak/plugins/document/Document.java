@@ -44,8 +44,9 @@ public class Document implements CacheValue {
     public static final String ID = "_id";
 
     /**
-     * The modification count on the document. This is an long value
-     * incremented on every modification.
+     * The modification count on the document. This field is optional and a
+     * {@link DocumentStore} implementation may use it to keep track of how many
+     * times a document is modified. See also {@link #getModCount()}.
      */
     public static final String MOD_COUNT = "_modCount";
 
