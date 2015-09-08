@@ -19,21 +19,21 @@
 
 package org.apache.jackrabbit.oak.run.osgi
 
+import org.apache.felix.connect.launch.PojoServiceRegistry
 import org.apache.felix.scr.Component
 import org.apache.felix.scr.ScrService
 import org.apache.jackrabbit.JcrConstants
 import org.apache.jackrabbit.commons.JcrUtils
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 
 import javax.jcr.Node
+import javax.jcr.Repository
 import javax.jcr.Session
 
 import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_CONFIG_FILE
 
-@Ignore("OAK-3366")
 class PropertyIndexReindexingTest extends AbstractRepositoryFactoryTest{
 
     @Before
@@ -44,6 +44,7 @@ class PropertyIndexReindexingTest extends AbstractRepositoryFactoryTest{
     @Test
     public void propertyIndexState() throws Exception{
         repository = repositoryFactory.getRepository(config)
+        PojoServiceRegistry registry = getRegistry()
 
         //1. Save a node with 'foo' property
         Session s = createAdminSession()
@@ -60,7 +61,7 @@ class PropertyIndexReindexingTest extends AbstractRepositoryFactoryTest{
 
         //3. By the last save reindex flag should be false
         s = createAdminSession()
-        assert false == s.getProperty("/oak:index/foo/reindex").boolean
+        assert !s.getProperty("/oak:index/foo/reindex").boolean
         s.logout()
 
         //4. Disable the PropertyIndexEditor
@@ -70,15 +71,16 @@ class PropertyIndexReindexingTest extends AbstractRepositoryFactoryTest{
 
         c[0].disable()
 
-        //5. Save another node with 'foo' property
-        s = createAdminSession()
-        s.getRootNode().addNode("a2").setProperty("foo", "bar")
-        s.save();  s.logout();
+       assert registry.getServiceReference(Repository.class.name) == null : "Repository should be unregistered " +
+               "if no property index editor found"
 
-        //Either last save should not have succeeded or at least reindex flag is not set to
-        //true
+        //5. Re-enable the editor and wait untill repository gets re-registered
+        c[0].enable()
+        getServiceWithWait(Repository.class, registry.bundleContext)
+
+        //6. Reindex flag should be stable
         s = createAdminSession()
-        assert false == s.getProperty("/oak:index/foo/reindex").boolean
+        assert !s.getProperty("/oak:index/foo/reindex").boolean
         s.logout()
     }
 }
