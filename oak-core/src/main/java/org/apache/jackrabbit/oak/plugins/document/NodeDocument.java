@@ -251,7 +251,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      * into multiple types depending on the content i.e. weather it contains
      * REVISIONS, COMMIT_ROOT, property history etc
      */
-    public static enum SplitDocType {
+    public enum SplitDocType {
         /**
          * Not a split document
          */
@@ -297,7 +297,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
 
         final int type;
 
-        private SplitDocType(int type){
+        SplitDocType(int type){
             this.type = type;
         }
 
@@ -482,10 +482,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
 
     public boolean hasBinary() {
         Number flag = (Number) get(HAS_BINARY_FLAG);
-        if(flag == null){
-            return false;
-        }
-        return flag.intValue() == HAS_BINARY_VAL;
+        return flag != null && flag.intValue() == HAS_BINARY_VAL;
     }
 
     /**
@@ -1843,8 +1840,8 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     }
     
     @SuppressWarnings("unchecked")
-    private static void toJson(JsopWriter json, Map<? extends Object, Object> map) {
-        for (Entry<? extends Object, Object>e : map.entrySet()) {
+    private static void toJson(JsopWriter json, Map<?, Object> map) {
+        for (Entry<?, Object>e : map.entrySet()) {
             json.key(e.getKey().toString());
             Object value = e.getValue();
             if (value == null) {
