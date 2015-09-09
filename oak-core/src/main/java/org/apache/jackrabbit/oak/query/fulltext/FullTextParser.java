@@ -163,7 +163,14 @@ public class FullTextParser {
                 } else if (c == '^') {
                     boost = "";
                     break;
-                } else if (c == ' ') {
+                } else if (c <= ' ') {
+                    while (parseIndex < text.length()) {
+                        c = text.charAt(parseIndex);
+                        if (c > ' ') {
+                            break;
+                        }
+                        parseIndex++;
+                    }
                     break;
                 } else {
                     buff.append(c);

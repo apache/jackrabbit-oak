@@ -46,6 +46,9 @@ public class FullTextTest {
     @Test
     public void and() throws ParseException {
         assertEquals("\"hello\" \"world\"", convertPattern("hello world"));
+        assertEquals("\"hello\" \"world\"", convertPattern("hello  world"));
+        assertEquals("\"hello\" \"world\"", convertPattern("hello   world"));
+        assertEquals("\"hello\" \"world\"", convertPattern("hello \t  world"));
         assertEquals("\"hello\" \"or\" \"world\"", convertPattern("hello or world"));
         assertFalse(test("hello world", "hello"));
         assertFalse(test("hello world", "world"));
