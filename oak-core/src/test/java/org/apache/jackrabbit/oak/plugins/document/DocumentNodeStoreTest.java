@@ -41,6 +41,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -60,6 +61,7 @@ import javax.annotation.Nonnull;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -1108,6 +1110,182 @@ public class DocumentNodeStoreTest {
         assertTrue("Existing children should be reported as such", existingChild.exists());
     }
 
+    // OAK-2929
+    @Test
+    public void conflictDetectionWithClockDifference() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        long now = System.currentTimeMillis();
+        Clock c1 = new Clock.Virtual();
+        c1.waitUntil(now);
+        Revision.setClock(c1);
+        DocumentNodeStore ns1 = builderProvider.newBuilder().clock(c1)
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+        NodeBuilder b1 = ns1.getRoot().builder();
+        b1.child("node");
+        merge(ns1, b1);
+        // make /node visible
+        ns1.runBackgroundOperations();
+
+        Revision.resetClockToDefault();
+        Clock c2 = new Clock.Virtual();
+        // c2 is five seconds ahead
+        c2.waitUntil(now + 5000);
+        Revision.setClock(c2);
+
+        DocumentNodeStore ns2 = builderProvider.newBuilder().clock(c2)
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+        // ns2 sees /node
+        assertTrue(ns2.getRoot().hasChildNode("node"));
+
+        // add a child /node/foo
+        NodeBuilder b2 = ns2.getRoot().builder();
+        b2.child("node").child("foo");
+        merge(ns2, b2);
+        // make /node/foo visible
+        ns2.runBackgroundOperations();
+
+        Revision.resetClockToDefault();
+        Revision.setClock(c1);
+        ns1.runBackgroundOperations();
+        b1 = ns1.getRoot().builder();
+        // ns1 sees /node/foo as well
+        assertTrue(b1.getChildNode("node").hasChildNode("foo"));
+        // remove both /node and /node/foo
+        b1.child("node").remove();
+        merge(ns1, b1);
+
+        Revision.resetClockToDefault();
+        Revision.setClock(c2);
+        b2 = ns2.getRoot().builder();
+        b2.child("node").child("bar");
+        try {
+            merge(ns2, b2);
+            // must not be able to add another child node
+            fail("must fail with CommitFailedException");
+        } catch (CommitFailedException e) {
+            // expected
+        }
+    }
+
+    // OAK-2929
+    @Test
+    public void parentWithUnseenChildrenMustNotBeDeleted() throws Exception {
+        final MemoryDocumentStore docStore = new MemoryDocumentStore();
+        final DocumentNodeStore store1 = builderProvider.newBuilder()
+                .setDocumentStore(docStore).setAsyncDelay(0)
+                .setClusterId(1)
+                .getNodeStore();
+        store1.setEnableConcurrentAddRemove(true);
+        final DocumentNodeStore store2 = builderProvider.newBuilder()
+                .setDocumentStore(docStore).setAsyncDelay(0)
+                .setClusterId(2)
+                .getNodeStore();
+        store2.setEnableConcurrentAddRemove(true);
+
+        NodeBuilder builder = store1.getRoot().builder();
+        builder.child(":hidden");
+        merge(store1, builder);
+
+        store1.runBackgroundOperations();
+        store2.runBackgroundOperations();
+
+        builder = store1.getRoot().builder();
+        builder.child(":hidden").child("parent").child("node1");
+        merge(store1, builder);
+
+        builder = store2.getRoot().builder();
+        builder.child(":hidden").child("parent").child("node2");
+        merge(store2, builder);
+
+        //Test 1 - parent shouldn't be removable if order of operation is:
+        //# N1 and N2 know about /:hidden
+        //# N1->create(/:hidden/parent/node1)
+        //# N2->create(/:hidden/parent/node2)
+        //# N1->remove(/:hidden/parent)
+        builder = store1.getRoot().builder();
+        builder.child(":hidden").child("parent").remove();
+        try {
+            merge(store1, builder);
+            fail("parent node of unseen children must not get deleted");
+        } catch (CommitFailedException cfe) {
+            //this merge should fail -- but our real check is done by asserting that parent remains intact
+        }
+
+        String parentPath = "/:hidden/parent";
+        NodeDocument parentDoc = docStore.find(Collection.NODES, Utils.getIdFromPath(parentPath));
+        assertFalse("parent node of unseen children must not get deleted",
+                isDocDeleted(parentDoc, store1.getRevisionComparator()));
+
+        //Test 2 - parent shouldn't be removable if order of operation is:
+        //# N1 and N2 know about /:hidden
+        //# N1->create(/:hidden/parent/node1)
+        //# N2->create(/:hidden/parent/node2)
+        //# N2->remove(/:hidden/parent)
+        builder = store2.getRoot().builder();
+        builder.child(":hidden").child("parent").remove();
+        try {
+            merge(store2, builder);
+            fail("parent node of unseen children must not get deleted");
+        } catch (CommitFailedException cfe) {
+            //this merge should fail -- but our real check is done by asserting that parent remains intact
+        }
+
+        parentDoc = docStore.find(Collection.NODES, Utils.getIdFromPath(parentPath));
+        assertFalse("parent node of unseen children must not get deleted",
+                isDocDeleted(parentDoc, store2.getRevisionComparator()));
+
+        store1.runBackgroundOperations();
+        store2.runBackgroundOperations();
+        builder = store1.getRoot().builder();
+        builder.child(":hidden").child("parent").remove();
+        builder.child(":hidden").child("parent1");
+        store1.runBackgroundOperations();
+        store2.runBackgroundOperations();
+
+        builder = store1.getRoot().builder();
+        builder.child(":hidden").child("parent1").child("node1");
+        merge(store1, builder);
+
+        builder = store2.getRoot().builder();
+        builder.child(":hidden").child("parent1").child("node2");
+        merge(store2, builder);
+
+        //Test 3 - parent shouldn't be removable if order of operation is:
+        //# N1 and N2 know about /:hidden/parent1
+        //# N1->create(/:hidden/parent1/node1)
+        //# N2->create(/:hidden/parent1/node2)
+        //# N1->remove(/:hidden/parent1)
+        builder = store1.getRoot().builder();
+        builder.child(":hidden").child("parent1").remove();
+        try {
+            merge(store1, builder);
+        } catch (CommitFailedException cfe) {
+            //this merge should fail -- but our real check is done by asserting that parent remains intact
+        }
+
+        parentPath = "/:hidden/parent1";
+        parentDoc = docStore.find(Collection.NODES, Utils.getIdFromPath(parentPath));
+        assertFalse("parent node of unseen children must not get deleted",
+                isDocDeleted(parentDoc, store1.getRevisionComparator()));
+
+        //Test 4 - parent shouldn't be removable if order of operation is:
+        //# N1 and N2 know about /:hidden/parent1
+        //# N1->create(/:hidden/parent1/node1)
+        //# N2->create(/:hidden/parent1/node2)
+        //# N2->remove(/:hidden/parent1)
+        builder = store2.getRoot().builder();
+        builder.child(":hidden").child("parent1").remove();
+        try {
+            merge(store2, builder);
+        } catch (CommitFailedException cfe) {
+            //this merge should fail -- but our real check is done by asserting that parent remains intact
+        }
+
+        parentDoc = docStore.find(Collection.NODES, Utils.getIdFromPath(parentPath));
+        assertFalse("parent node of unseen children must not get deleted",
+                isDocDeleted(parentDoc, store2.getRevisionComparator()));
+    }
+
     @Test
     public void mergeInternalDocAcrossCluster() throws Exception {
         MemoryDocumentStore docStore = new MemoryDocumentStore();
@@ -1152,12 +1330,7 @@ public class DocumentNodeStoreTest {
         //root would hold reference to store2 root state after initial repo initialization
         root = store2.getRoot();
 
-        //The hidden node itself should be creatable across cluster concurrently
-        builder = root.builder();
-        builder.child(":dynHidden");
-        merge(store2, builder);
-
-        //Children of hidden node should be creatable across cluster concurrently
+        //The hidden node and children should be creatable across cluster concurrently
         builder = root.builder();
         builder.child(":hidden").child("b");
         builder.child(":dynHidden").child("c");
@@ -1890,5 +2063,25 @@ public class DocumentNodeStoreTest {
                 builder.setProperty(after.getName(), "test");
             }
         }
+    }
+
+    /**
+     * @param doc the document to be tested
+     * @return latest committed value of _deleted map
+     */
+    private boolean isDocDeleted(NodeDocument doc,
+                                 Comparator<Revision> comparator) {
+        boolean latestDeleted = false;
+        SortedMap<Revision, String> localDeleted = Maps.newTreeMap(
+                Collections.reverseOrder(comparator));
+        localDeleted.putAll(doc.getLocalDeleted());
+
+        for (Map.Entry<Revision, String> entry : localDeleted.entrySet()) {
+            if (doc.isCommitted(entry.getKey())) {
+                latestDeleted = Boolean.parseBoolean(entry.getValue());
+                break;
+            }
+        }
+        return latestDeleted;
     }
 }
