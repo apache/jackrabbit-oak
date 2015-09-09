@@ -624,7 +624,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         private final List<NamePattern> namePatterns;
         private final List<PropertyDefinition> nullCheckEnabledProperties;
         private final List<PropertyDefinition> notNullCheckEnabledProperties;
-        private final List<PropertyDefinition> boostedProps;
+        private final List<PropertyDefinition> nodeScopeAnalyzedProps;
         private final boolean indexesAllNodesOfMatchingType;
         private final boolean nodeNameIndexed;
 
@@ -648,15 +648,15 @@ class IndexDefinition implements Aggregate.AggregateMapper{
             List<NamePattern> namePatterns = newArrayList();
             List<PropertyDefinition> nonExistentProperties = newArrayList();
             List<PropertyDefinition> existentProperties = newArrayList();
-            List<PropertyDefinition> boostedProps = newArrayList();
+            List<PropertyDefinition> nodeScopeAnalyzedProps = newArrayList();
             List<Aggregate.Include> propIncludes = newArrayList();
             this.propConfigs = collectPropConfigs(config, namePatterns, propIncludes, nonExistentProperties,
-                    existentProperties, boostedProps);
+                    existentProperties, nodeScopeAnalyzedProps);
             this.propAggregate = new Aggregate(nodeTypeName, propIncludes);
             this.aggregate = combine(propAggregate, nodeTypeName);
 
             this.namePatterns = ImmutableList.copyOf(namePatterns);
-            this.boostedProps = ImmutableList.copyOf(boostedProps);
+            this.nodeScopeAnalyzedProps = ImmutableList.copyOf(nodeScopeAnalyzedProps);
             this.nullCheckEnabledProperties = ImmutableList.copyOf(nonExistentProperties);
             this.notNullCheckEnabledProperties = ImmutableList.copyOf(existentProperties);
             this.fulltextEnabled = aggregate.hasNodeAggregates() || hasAnyFullTextEnabledProperty();
@@ -685,7 +685,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
             this.propAggregate = original.propAggregate;
             this.nullCheckEnabledProperties = original.nullCheckEnabledProperties;
             this.notNullCheckEnabledProperties = original.notNullCheckEnabledProperties;
-            this.boostedProps = original.boostedProps;
+            this.nodeScopeAnalyzedProps = original.nodeScopeAnalyzedProps;
             this.aggregate = combine(propAggregate, nodeTypeName);
             this.fulltextEnabled = aggregate.hasNodeAggregates() || original.fulltextEnabled;
             this.indexesAllNodesOfMatchingType = allMatchingNodeByTypeIndexed();
@@ -722,8 +722,8 @@ class IndexDefinition implements Aggregate.AggregateMapper{
             return notNullCheckEnabledProperties;
         }
 
-        public List<PropertyDefinition> getBoostedProps() {
-            return boostedProps;
+        public List<PropertyDefinition> getNodeScopeAnalyzedProps() {
+            return nodeScopeAnalyzedProps;
         }
 
         @Override
@@ -825,7 +825,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
                                                                    List<Aggregate.Include> propAggregate,
                                                                    List<PropertyDefinition> nonExistentProperties,
                                                                    List<PropertyDefinition> existentProperties,
-                                                                   List<PropertyDefinition> boostedProps) {
+                                                                   List<PropertyDefinition> nodeScopeAnalyzedProps) {
             Map<String, PropertyDefinition> propDefns = newHashMap();
             NodeState propNode = config.getChildNode(LuceneIndexConstants.PROP_NODE);
 
@@ -867,7 +867,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
                     if (pd.nodeScopeIndex
                             && pd.analyzed
                             && !pd.isRegexp){
-                        boostedProps.add(pd);
+                        nodeScopeAnalyzedProps.add(pd);
                     }
                 }
             }

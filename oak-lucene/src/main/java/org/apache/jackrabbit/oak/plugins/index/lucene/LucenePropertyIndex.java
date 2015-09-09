@@ -1123,9 +1123,9 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
     private static Query tokenToQuery(String text, String fieldName, IndexingRule indexingRule, Analyzer analyzer) {
         //Expand the query on fulltext field
         if (FieldNames.FULLTEXT.equals(fieldName) &&
-                !indexingRule.getBoostedProps().isEmpty()) {
+                !indexingRule.getNodeScopeAnalyzedProps().isEmpty()) {
             BooleanQuery in = new BooleanQuery();
-            for (PropertyDefinition pd : indexingRule.getBoostedProps()) {
+            for (PropertyDefinition pd : indexingRule.getNodeScopeAnalyzedProps()) {
                 Query q = tokenToQuery(text, FieldNames.createAnalyzedFieldName(pd.name), analyzer);
                 q.setBoost(pd.boost);
                 in.add(q, BooleanClause.Occur.SHOULD);
