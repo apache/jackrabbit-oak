@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -67,6 +68,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.util.ISO8601;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -75,6 +77,7 @@ import static com.google.common.collect.ImmutableSet.of;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
+import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
@@ -433,8 +436,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         System.out.println(explain);
         String luceneQuery = explain.substring(0, explain.indexOf('\n'));
         assertEquals("[nt:unstructured] as [content] /* lucene:test1(/oak:index/test1) " +
-                "+(tags:Products:A tags:Products:A/B) " +
-                "+(tags:DocTypes:A tags:DocTypes:B tags:DocTypes:C tags:ProblemType:A)",
+                        "+(tags:Products:A tags:Products:A/B) " +
+                        "+(tags:DocTypes:A tags:DocTypes:B tags:DocTypes:C tags:ProblemType:A)",
                 luceneQuery);
     }
 
@@ -954,10 +957,10 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]", Lists
-            .newArrayList(Iterables.concat(Lists.newArrayList("/test/a"), getSortedPaths(tuples, OrderDirection.ASC))));
+                .newArrayList(Iterables.concat(Lists.newArrayList("/test/a"), getSortedPaths(tuples, OrderDirection.ASC))));
         assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", Lists
-            .newArrayList(Iterables.concat(getSortedPaths(tuples, OrderDirection.DESC), Lists.newArrayList("/test/a")
-            )));
+                .newArrayList(Iterables.concat(getSortedPaths(tuples, OrderDirection.DESC), Lists.newArrayList("/test/a")
+                )));
     }
 
     void assertSortedString() throws CommitFailedException {
@@ -1046,7 +1049,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         // Add the path of property added as timestamp string in the sorted list
         assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]",
             Lists.newArrayList(Iterables.concat(Lists.newArrayList("/test/n0"),
-                getSortedPaths(tuples, OrderDirection.ASC))));
+                    getSortedPaths(tuples, OrderDirection.ASC))));
         // Append the path of property added as timestamp string to the sorted list
         assertOrderedQuery(
                 "select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", Lists
@@ -1084,6 +1087,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     public void indexTimeFieldBoost() throws Exception {
         // Index Definition
         Tree idx = createIndex("test1", of("propa", "propb", "propc"));
+        TestUtil.useV2(idx);
         idx.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, true);
 
         Tree propNode = idx.addChild(PROP_NODE);
@@ -1111,9 +1115,62 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         String queryString = "//* [jcr:contains(., 'foo' )]";
+        String explain = explainXpath(queryString);
+        System.out.println(explain);
         // verify results ordering
         // which should be /test/c (boost = 4.0), /test/a(boost = 2.0), /test/b (1.0)
         assertOrderedQuery(queryString, asList("/test/c", "/test/a", "/test/b"), XPATH, true);
+    }
+
+    @Test
+    public void boostTitleOverDescription() throws Exception{
+        NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
+
+        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree props = TestUtil.newRulePropTree(idx, TestUtil.NT_TEST);
+
+        Tree title = props.addChild("title");
+        title.setProperty(LuceneIndexConstants.PROP_NAME, "jcr:content/jcr:title");
+        title.setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
+        title.setProperty(LuceneIndexConstants.FIELD_BOOST, 4.0);
+
+        Tree desc = props.addChild("desc");
+        desc.setProperty(LuceneIndexConstants.PROP_NAME, "jcr:content/jcr:description");
+        desc.setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
+        desc.setProperty(LuceneIndexConstants.FIELD_BOOST, 2.0);
+
+        Tree text = props.addChild("text");
+        text.setProperty(LuceneIndexConstants.PROP_NAME, "jcr:content/text");
+        text.setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
+
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        Tree a = createNodeWithType(test, "a", "oak:TestNode").addChild("jcr:content");
+        a.setProperty("jcr:title", "Batman");
+        a.setProperty("jcr:description", "Silent angel of Gotham");
+        a.setProperty("text", "once upon a time a long text phrase so as to add penalty to /test/a and nullifying boost");
+
+        Tree b = createNodeWithType(test, "b", "oak:TestNode").addChild("jcr:content");
+        b.setProperty("jcr:title", "Superman");
+        b.setProperty("jcr:description", "Tale of two heroes Superman and Batman");
+        b.setProperty("text", "some stuff");
+
+        Tree c = createNodeWithType(test, "c", "oak:TestNode").addChild("jcr:content");
+        c.setProperty("jcr:title", "Ironman");
+        c.setProperty("jcr:description", "New kid in the town");
+        c.setProperty("text", "Friend of batman?");
+        root.commit();
+
+        String queryString = "//element(*,oak:TestNode)[jcr:contains(., 'batman')]";
+        String explain = explainXpath(queryString);
+
+        //Assert that Lucene query generated has entries for all included boosted fields
+        assertThat(explain, containsString("full:jcr:content/jcr:title:batman^4.0"));
+        assertThat(explain, containsString("full:jcr:content/jcr:description:batman^2.0"));
+        assertThat(explain, containsString(":fulltext:batman"));
+
+        assertOrderedQuery(queryString, asList("/test/a", "/test/b", "/test/c"), XPATH, true);
     }
 
     @Test
@@ -1501,6 +1558,13 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     private String explain(String query){
         String explain = "explain " + query;
         return executeQuery(explain, "JCR-SQL2").get(0);
+    }
+
+    private String explainXpath(String query) throws ParseException {
+        String explain = "explain " + query;
+        Result result = executeQuery(explain, "xpath", NO_BINDINGS);
+        ResultRow row = Iterables.getOnlyElement(result.getRows());
+        return row.getValue("plan").getValue(Type.STRING);
     }
 
     private Tree createIndex(String name, Set<String> propNames) throws CommitFailedException {
