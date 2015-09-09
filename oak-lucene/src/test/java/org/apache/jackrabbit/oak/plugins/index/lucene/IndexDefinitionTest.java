@@ -25,12 +25,12 @@ import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
 import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.codecs.Codec;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
 import org.junit.Test;
 
 import static com.google.common.collect.ImmutableSet.of;
@@ -623,6 +623,30 @@ public class IndexDefinitionTest {
         root = registerTestNodeType(builder).getNodeState();
         IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState());
         assertFalse(idxDefn.isSuggestEnabled());
+    }
+
+    @Test
+    public void analyzedEnabledForBoostedField() throws Exception {
+        NodeBuilder rules = builder.child(INDEX_RULES);
+        rules.child("nt:folder");
+        TestUtil.child(rules, "nt:folder/properties/prop1")
+                .setProperty(LuceneIndexConstants.FIELD_BOOST, 3.0)
+                .setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
+        TestUtil.child(rules, "nt:folder/properties/prop2")
+                .setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true)
+                .setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
+
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+
+        IndexingRule rule1 = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
+        assertNotNull(rule1);
+
+        PropertyDefinition pd = rule1.getConfig("prop1");
+        assertEquals(3.0f, pd.boost, 0);
+        assertTrue("Analyzed should be assumed to be true for boosted fields", pd.analyzed);
+        assertFalse(rule1.getConfig("prop2").analyzed);
+
+        assertEquals(1, rule1.getBoostedProps().size());
     }
 
     //TODO indexesAllNodesOfMatchingType - with nullCheckEnabled
