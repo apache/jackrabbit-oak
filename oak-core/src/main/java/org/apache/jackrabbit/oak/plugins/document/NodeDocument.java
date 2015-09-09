@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -37,7 +38,6 @@ import javax.annotation.Nullable;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Queues;
@@ -59,6 +59,7 @@ import com.google.common.collect.Sets;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.transform;
+import static java.util.Collections.reverseOrder;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator.REVERSE;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
@@ -710,11 +711,11 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
 
         Revision newestRev = null;
         // check local commits first
-        SortedMap<Revision, String> revisions = getLocalRevisions();
-        SortedMap<Revision, String> commitRoots = getLocalCommitRoot();
-        Iterator<Revision> it = filter(Iterables.mergeSorted(
-                ImmutableList.of(revisions.keySet(), commitRoots.keySet()),
-                revisions.comparator()), predicate).iterator();
+        Comparator<Revision> comp = reverseOrder(context.getRevisionComparator());
+        SortedSet<Revision> revisions = Sets.newTreeSet(comp);
+        revisions.addAll(getLocalRevisions().keySet());
+        revisions.addAll(getLocalCommitRoot().keySet());
+        Iterator<Revision> it = filter(revisions, predicate).iterator();
         if (it.hasNext()) {
             newestRev = it.next();
         } else {
