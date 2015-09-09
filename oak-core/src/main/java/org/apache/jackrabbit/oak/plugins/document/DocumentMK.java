@@ -484,7 +484,6 @@ public class DocumentMK {
         private int cacheSegmentCount = DEFAULT_CACHE_SEGMENT_COUNT;
         private int cacheStackMoveDistance = DEFAULT_CACHE_STACK_MOVE_DISTANCE;
         private boolean useSimpleRevision;
-        private long offHeapCacheSize = -1;
         private long maxReplicationLagMillis = TimeUnit.HOURS.toMillis(6);
         private boolean disableBranches;
         private Clock clock = Clock.SIMPLE;
@@ -776,19 +775,6 @@ public class DocumentMK {
 
         public boolean isUseSimpleRevision() {
             return useSimpleRevision;
-        }
-
-        public boolean useOffHeapCache() {
-            return this.offHeapCacheSize > 0;
-        }
-
-        public long getOffHeapCacheSize() {
-            return offHeapCacheSize;
-        }
-
-        public Builder offHeapCacheSize(long offHeapCacheSize) {
-            this.offHeapCacheSize = offHeapCacheSize;
-            return this;
         }
 
         public Executor getExecutor() {
