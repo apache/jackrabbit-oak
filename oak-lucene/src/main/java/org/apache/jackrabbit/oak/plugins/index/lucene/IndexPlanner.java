@@ -209,7 +209,6 @@ class IndexPlanner {
         }
 
         //TODO Support for property existence queries
-        //TODO support for nodeName queries
 
         return null;
     }
