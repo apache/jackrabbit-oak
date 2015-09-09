@@ -649,7 +649,7 @@ public class IndexDefinitionTest {
         assertTrue("Analyzed should be assumed to be true for boosted fields", pd.analyzed);
         assertFalse(rule1.getConfig("prop3").analyzed);
 
-        assertEquals(2, rule1.getBoostedProps().size());
+        assertEquals(2, rule1.getNodeScopeAnalyzedProps().size());
     }
 
     //TODO indexesAllNodesOfMatchingType - with nullCheckEnabled
