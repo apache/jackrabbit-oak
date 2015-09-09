@@ -87,6 +87,10 @@ public class CompactionMap {
 
     private CompactionMap prev;
 
+    CompactionMap(SegmentTracker tracker) {
+        this(Integer.getInteger("compress-interval", 100000), tracker);
+    }
+
     CompactionMap(int compressInterval, SegmentTracker tracker) {
         this.compressInterval = compressInterval;
         this.tracker = tracker;
