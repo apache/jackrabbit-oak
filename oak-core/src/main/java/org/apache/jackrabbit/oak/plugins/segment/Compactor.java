@@ -83,7 +83,7 @@ public class Compactor {
 
     public Compactor(SegmentWriter writer, boolean cloneBinaries) {
         this.writer = writer;
-        this.map = new CompactionMap(100000, writer.getTracker());
+        this.map = new CompactionMap(writer.getTracker());
         this.cloneBinaries = cloneBinaries;
     }
 
