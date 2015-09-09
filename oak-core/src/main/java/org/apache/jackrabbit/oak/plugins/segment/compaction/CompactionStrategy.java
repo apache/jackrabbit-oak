@@ -129,6 +129,12 @@ public abstract class CompactionStrategy {
      */
     private byte gainThreshold = GAIN_THRESHOLD_DEFAULT;
 
+    /**
+     * Flag that allows turning on an optimized version of the compaction
+     * process in the case of offline compaction
+     */
+    private boolean offlineCompaction = false;
+
     protected CompactionStrategy(boolean paused,
             boolean cloneBinaries, @Nonnull CleanupType cleanupType, long olderThan, byte memoryThreshold) {
         checkArgument(olderThan >= 0);
@@ -197,6 +203,7 @@ public abstract class CompactionStrategy {
                 ", retryCount=" + retryCount +
                 ", forceAfterFail=" + forceAfterFail +
                 ", compactionStart=" + compactionStart +
+                ", offlineCompaction=" + offlineCompaction +
                 '}';
     }
 
@@ -277,5 +284,13 @@ public abstract class CompactionStrategy {
     }
 
     public abstract boolean compacted(@Nonnull Callable<Boolean> setHead) throws Exception;
+
+    public boolean isOfflineCompaction() {
+        return offlineCompaction;
+    }
+
+    public void setOfflineCompaction(boolean offlineCompaction) {
+        this.offlineCompaction = offlineCompaction;
+    }
 
 }
