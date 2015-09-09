@@ -633,6 +633,9 @@ public class IndexDefinitionTest {
                 .setProperty(LuceneIndexConstants.FIELD_BOOST, 3.0)
                 .setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
         TestUtil.child(rules, "nt:folder/properties/prop2")
+                .setProperty(LuceneIndexConstants.PROP_ANALYZED, true)
+                .setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
+        TestUtil.child(rules, "nt:folder/properties/prop3")
                 .setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true)
                 .setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
 
@@ -644,9 +647,9 @@ public class IndexDefinitionTest {
         PropertyDefinition pd = rule1.getConfig("prop1");
         assertEquals(3.0f, pd.boost, 0);
         assertTrue("Analyzed should be assumed to be true for boosted fields", pd.analyzed);
-        assertFalse(rule1.getConfig("prop2").analyzed);
+        assertFalse(rule1.getConfig("prop3").analyzed);
 
-        assertEquals(1, rule1.getBoostedProps().size());
+        assertEquals(2, rule1.getNodeScopeAnalyzedProps().size());
     }
 
     //TODO indexesAllNodesOfMatchingType - with nullCheckEnabled
