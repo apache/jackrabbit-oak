@@ -113,6 +113,8 @@ public class RepositoryManager {
             description = "Whether the query result size should return an estimation (or -1 if disabled) for large queries")
     private static final String FAST_QUERY_RESULT_SIZE = "oak.query.fastResultSize";
 
+    private OsgiRepository repository;
+
     @Activate
     public void activate(BundleContext bundleContext, Map<String, ?> config) throws Exception {
         observationQueueLength = PropertiesUtil.toInteger(prop(
@@ -154,6 +156,12 @@ public class RepositoryManager {
     public void deactivate() {
         if (registration != null) {
             registration.unregister();
+            registration = null;
+        }
+
+        if (repository != null) {
+            repository.shutdown();
+            repository = null;
         }
 
         initializers.stop();
@@ -181,10 +189,15 @@ public class RepositoryManager {
             oak.with(commitRateLimiter);
         }
 
-        return bundleContext.registerService(
-                Repository.class.getName(),
-                new OsgiRepository(oak.createContentRepository(), whiteboard, securityProvider,
-                        observationQueueLength, commitRateLimiter, fastQueryResultSize),
-                new Properties());
+        repository = new OsgiRepository(
+                oak.createContentRepository(),
+                whiteboard,
+                securityProvider,
+                observationQueueLength,
+                commitRateLimiter,
+                fastQueryResultSize
+        );
+
+        return bundleContext.registerService(Repository.class.getName(), repository, new Properties());
     }
 }
