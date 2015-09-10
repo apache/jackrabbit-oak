@@ -109,7 +109,7 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
 
         this.cache = CacheLIRS.<String, byte[]>newBuilder()
                 .module("DataStoreBlobStore")
-                .maximumWeight(cacheSizeInMB * FileUtils.ONE_MB)
+                .maximumWeight((long) cacheSizeInMB * FileUtils.ONE_MB)
                 .weigher(new Weigher<String, byte[]>() {
                     @Override
                     public int weigh(@Nonnull String key, @Nonnull byte[] value) {

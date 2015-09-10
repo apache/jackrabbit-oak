@@ -120,13 +120,12 @@ public class SegmentTracker {
         if (DISABLE_STRING_CACHE) {
             c = null;
         } else {
-            int stringCacheSize = (int) Math.min(Integer.MAX_VALUE, cacheSizeMB * MB);
-            c = new StringCache(stringCacheSize);
+            c = new StringCache((long) cacheSizeMB * MB);
         }
         stringCache = c;
         segmentCache = CacheLIRS.<SegmentId, Segment>newBuilder()
             .module("SegmentTracker")
-            .maximumSize((int) Math.min(Integer.MAX_VALUE, cacheSizeMB * MB))
+            .maximumWeight((long) cacheSizeMB * MB)
             .averageWeight(Segment.MAX_SEGMENT_SIZE/2)
             .evictionCallback(new EvictionCallback<SegmentId, Segment>() {
                 @Override

@@ -48,10 +48,10 @@ public class StringCache {
      *
      * @param maxSize the maximum memory in bytes.
      */
-    StringCache(int maxSize) {
+    StringCache(long maxSize) {
         cache = CacheLIRS.<StringCacheEntry, String>newBuilder()
                 .module("StringCache")
-                .maximumSize(maxSize)
+                .maximumWeight(maxSize)
                 .averageWeight(100)
                 .build();
     }
