@@ -99,7 +99,6 @@ import org.slf4j.LoggerFactory;
 public class DocumentNodeStoreService {
     private static final String DEFAULT_URI = "mongodb://localhost:27017/oak";
     private static final int DEFAULT_CACHE = 256;
-    private static final int DEFAULT_OFF_HEAP_CACHE = 0;
     private static final int DEFAULT_BLOB_CACHE_SIZE = 16;
     private static final String DEFAULT_DB = "oak";
     private static final String DEFAULT_PERSISTENT_CACHE = "";
@@ -180,8 +179,6 @@ public class DocumentNodeStoreService {
                     "but slightly lower cache hit rate)"
     )
     private static final String PROP_CACHE_STACK_MOVE_DISTANCE = "cacheStackMoveDistance";
-
-    private static final String PROP_OFF_HEAP_CACHE = "offHeapCache";
 
     @Property(intValue =  DEFAULT_BLOB_CACHE_SIZE,
             label = "Blob Cache Size (in MB)",
@@ -343,7 +340,6 @@ public class DocumentNodeStoreService {
         String uri = PropertiesUtil.toString(prop(PROP_URI, FWK_PROP_URI), DEFAULT_URI);
         String db = PropertiesUtil.toString(prop(PROP_DB, FWK_PROP_DB), DEFAULT_DB);
 
-        int offHeapCache = toInteger(prop(PROP_OFF_HEAP_CACHE), DEFAULT_OFF_HEAP_CACHE);
         int cacheSize = toInteger(prop(PROP_CACHE), DEFAULT_CACHE);
         int nodeCachePercentage = toInteger(prop(PROP_NODE_CACHE_PERCENTAGE), DEFAULT_NODE_CACHE_PERCENTAGE);
         int childrenCachePercentage = toInteger(prop(PROP_CHILDREN_CACHE_PERCENTAGE), DEFAULT_CHILDREN_CACHE_PERCENTAGE);
@@ -364,7 +360,6 @@ public class DocumentNodeStoreService {
                         diffCachePercentage).
                 setCacheSegmentCount(cacheSegmentCount).
                 setCacheStackMoveDistance(cacheStackMoveDistance).
-                offHeapCacheSize(offHeapCache * MB).
                 setLeaseCheck(true /* OAK-2739: enabled by default */);
 
         if (persistentCache != null && persistentCache.length() > 0) {
@@ -591,14 +586,8 @@ public class DocumentNodeStoreService {
         final long blobGcMaxAgeInSecs = toLong(prop(PROP_BLOB_GC_MAX_AGE), DEFAULT_BLOB_GC_MAX_AGE);
 
         if (store.getBlobStore() instanceof GarbageCollectableBlobStore) {
-            BlobGarbageCollector gc = new BlobGarbageCollector() {
-                @Override
-                public void collectGarbage(boolean sweep) throws Exception {
-                    store.createBlobGarbageCollector(blobGcMaxAgeInSecs,
-                            ClusterRepositoryInfo.getId(mk.getNodeStore()))
-                            .collectGarbage(sweep);
-                }
-            };
+            BlobGarbageCollector gc = store.createBlobGarbageCollector(blobGcMaxAgeInSecs, 
+                                                        ClusterRepositoryInfo.getId(mk.getNodeStore()));
             registrations.add(registerMBean(whiteboard, BlobGCMBean.class, new BlobGC(gc, executor),
                     BlobGCMBean.TYPE, "Document node store blob garbage collection"));
         }

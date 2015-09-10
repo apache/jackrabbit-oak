@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import static com.google.common.collect.Lists.newArrayList;
@@ -43,6 +44,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class LastRevRecoveryTest {
+    @Rule
+    public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
+
     private Clock clock;
     private DocumentNodeStore ds1;
     private DocumentNodeStore ds2;
@@ -58,7 +62,7 @@ public class LastRevRecoveryTest {
         // disable lease check because we fiddle with the virtual clock
         final boolean leaseCheck = false;
         sharedStore = new MemoryDocumentStore();
-        ds1 = new DocumentMK.Builder()
+        ds1 = builderProvider.newBuilder()
                 .clock(clock)
                 .setLeaseCheck(leaseCheck)
                 .setAsyncDelay(0)
@@ -66,7 +70,7 @@ public class LastRevRecoveryTest {
                 .getNodeStore();
         c1Id = ds1.getClusterId();
 
-        ds2 = new DocumentMK.Builder()
+        ds2 = builderProvider.newBuilder()
                 .clock(clock)
                 .setLeaseCheck(leaseCheck)
                 .setAsyncDelay(0)
@@ -179,7 +183,13 @@ public class LastRevRecoveryTest {
                     op.setMapEntry(key, entry.getKey(), entry.getValue());
                 }
             } else {
-                op.set(key, obj);
+                if (obj instanceof Boolean) {
+                    op.set(key, ((Boolean) obj).booleanValue());
+                } else if (obj instanceof Number) {
+                    op.set(key, ((Number) obj).longValue());
+                } else {
+                    op.set(key, obj.toString());
+                }
             }
         }
         return op;

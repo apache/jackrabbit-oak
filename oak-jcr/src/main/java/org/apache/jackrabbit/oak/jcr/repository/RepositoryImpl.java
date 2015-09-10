@@ -100,7 +100,7 @@ public class RepositoryImpl implements JackrabbitRepository {
     private final SecurityProvider securityProvider;
     private final int observationQueueLength;
     private final CommitRateLimiter commitRateLimiter;
-    private final Clock clock;
+    private final Clock.Fast clock;
     private final DelegatingGCMonitor gcMonitor = new DelegatingGCMonitor();
     private final Registration gcMonitorRegistration;
 
@@ -318,6 +318,7 @@ public class RepositoryImpl implements JackrabbitRepository {
     public void shutdown() {
         statisticManager.dispose();
         gcMonitorRegistration.unregister();
+        clock.close();
         closeExecutor();
         if (contentRepository instanceof Closeable) {
             IOUtils.closeQuietly((Closeable) contentRepository);

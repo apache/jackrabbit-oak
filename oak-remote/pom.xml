@@ -189,6 +189,14 @@
                 <configuration>
                     <instructions>
                         <Export-Package />
+                        <Embed-Dependency>
+                            jackson-core,
+                            jackson-databind,
+                            jackson-annotations
+                        </Embed-Dependency>
+                        <Embed-Transitive>
+                            true
+                        </Embed-Transitive>
                     </instructions>
                 </configuration>
             </plugin>
@@ -197,36 +205,36 @@
                 <artifactId>maven-scr-plugin</artifactId>
             </plugin>
             <plugin>
-              <groupId>org.apache.rat</groupId>
-              <artifactId>apache-rat-plugin</artifactId>
-              <configuration>
-                <excludes>
-                  <exclude>**/addNodeBinaryProperty.json</exclude>
-                  <exclude>**/addNodeBooleanProperty.json</exclude>
-                  <exclude>**/addNodeDateProperty.json</exclude>
-                  <exclude>**/addNodeDecimalProperty.json</exclude>
-                  <exclude>**/addNodeDoubleProperty.json</exclude>
-                  <exclude>**/addNodeLongProperty.json</exclude>
-                  <exclude>**/addNodeMultiBinaryProperty.json</exclude>
-                  <exclude>**/addNodeMultiBooleanProperty.json</exclude>
-                  <exclude>**/addNodeMultiDateProperty.json</exclude>
-                  <exclude>**/addNodeMultiDecimalProperty.json</exclude>
-                  <exclude>**/addNodeMultiDoubleProperty.json</exclude>
-                  <exclude>**/addNodeMultiLongProperty.json</exclude>
-                  <exclude>**/addNodeMultiNameProperty.json</exclude>
-                  <exclude>**/addNodeMultiPathProperty.json</exclude>
-                  <exclude>**/addNodeMultiReferenceProperty.json</exclude>
-                  <exclude>**/addNodeMultiStringProperty.json</exclude>
-                  <exclude>**/addNodeMultiUriProperty.json</exclude>
-                  <exclude>**/addNodeMultiWeakReferenceProperty.json</exclude>
-                  <exclude>**/addNodeNameProperty.json</exclude>
-                  <exclude>**/addNodePathProperty.json</exclude>
-                  <exclude>**/addNodeReferenceProperty.json</exclude>
-                  <exclude>**/addNodeStringProperty.json</exclude>
-                  <exclude>**/addNodeUriProperty.json</exclude>
-                  <exclude>**/addNodeWeakReferenceProperty.json</exclude>
-                </excludes>
-              </configuration>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>**/addNodeBinaryProperty.json</exclude>
+                        <exclude>**/addNodeBooleanProperty.json</exclude>
+                        <exclude>**/addNodeDateProperty.json</exclude>
+                        <exclude>**/addNodeDecimalProperty.json</exclude>
+                        <exclude>**/addNodeDoubleProperty.json</exclude>
+                        <exclude>**/addNodeLongProperty.json</exclude>
+                        <exclude>**/addNodeMultiBinaryProperty.json</exclude>
+                        <exclude>**/addNodeMultiBooleanProperty.json</exclude>
+                        <exclude>**/addNodeMultiDateProperty.json</exclude>
+                        <exclude>**/addNodeMultiDecimalProperty.json</exclude>
+                        <exclude>**/addNodeMultiDoubleProperty.json</exclude>
+                        <exclude>**/addNodeMultiLongProperty.json</exclude>
+                        <exclude>**/addNodeMultiNameProperty.json</exclude>
+                        <exclude>**/addNodeMultiPathProperty.json</exclude>
+                        <exclude>**/addNodeMultiReferenceProperty.json</exclude>
+                        <exclude>**/addNodeMultiStringProperty.json</exclude>
+                        <exclude>**/addNodeMultiUriProperty.json</exclude>
+                        <exclude>**/addNodeMultiWeakReferenceProperty.json</exclude>
+                        <exclude>**/addNodeNameProperty.json</exclude>
+                        <exclude>**/addNodePathProperty.json</exclude>
+                        <exclude>**/addNodeReferenceProperty.json</exclude>
+                        <exclude>**/addNodeStringProperty.json</exclude>
+                        <exclude>**/addNodeUriProperty.json</exclude>
+                        <exclude>**/addNodeWeakReferenceProperty.json</exclude>
+                    </excludes>
+                </configuration>
             </plugin>
         </plugins>
     </build>

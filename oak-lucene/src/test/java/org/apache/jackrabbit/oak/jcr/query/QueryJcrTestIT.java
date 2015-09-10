@@ -50,7 +50,7 @@ import org.apache.jackrabbit.core.query.VersionStoreQueryTest;
 import org.apache.jackrabbit.core.query.XPathAxisTest;
 import org.apache.jackrabbit.test.ConcurrentTestSuite;
 
-public class QueryJcrTest extends TestCase {
+public class QueryJcrTestIT extends TestCase {
 
     public static Test suite() {
         TestSuite suite = new ConcurrentTestSuite(

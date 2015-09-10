@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static com.google.common.collect.Maps.filterKeys;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.PROPERTY_OR_DELETED;
 
 import java.util.Iterator;
@@ -138,7 +139,7 @@ public class LastRevRecoveryAgent {
         UnsavedModifications unsavedParents = new UnsavedModifications();
 
         //Map of known last rev of checked paths
-        Map<String, Revision> knownLastRevs = MapFactory.getInstance().create();
+        Map<String, Revision> knownLastRevOrModification = MapFactory.getInstance().create();
         final DocumentStore docStore = nodeStore.getDocumentStore();
         final JournalEntry changes = JOURNAL.newDocument(docStore);
 
@@ -160,7 +161,7 @@ public class LastRevRecoveryAgent {
             // most recent revision currently obtained from either a
             // _lastRev entry or an explicit modification on the document
             if (lastRevForParents != null) {
-                knownLastRevs.put(doc.getPath(), lastRevForParents);
+                knownLastRevOrModification.put(doc.getPath(), lastRevForParents);
             }
 
             //If both currentLastRev and lostLastRev are null it means
@@ -186,7 +187,21 @@ public class LastRevRecoveryAgent {
 
         for (String parentPath : unsavedParents.getPaths()) {
             Revision calcLastRev = unsavedParents.get(parentPath);
-            Revision knownLastRev = knownLastRevs.get(parentPath);
+            Revision knownLastRev = knownLastRevOrModification.get(parentPath);
+            if (knownLastRev == null) {
+                // we don't know when the document was last modified with
+                // the given clusterId. need to read from store
+                String id = Utils.getIdFromPath(parentPath);
+                NodeDocument doc = docStore.find(NODES, id);
+                if (doc != null) {
+                    Revision lastRev = doc.getLastRev().get(clusterId);
+                    Revision lastMod = determineLastModification(doc, clusterId);
+                    knownLastRev = Utils.max(lastRev, lastMod);
+                } else {
+                    log.warn("Unable to find document: {}", id);
+                    continue;
+                }
+            }
 
             //Copy the calcLastRev of parent only if they have changed
             //In many case it might happen that parent have consistent lastRev

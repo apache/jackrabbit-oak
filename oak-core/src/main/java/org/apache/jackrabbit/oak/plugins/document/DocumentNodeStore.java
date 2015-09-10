@@ -22,7 +22,6 @@ import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.toArray;
 import static com.google.common.collect.Iterables.transform;
 import static java.util.Collections.singletonList;
-import static org.apache.jackrabbit.oak.api.CommitFailedException.MERGE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -503,15 +502,14 @@ public final class DocumentNodeStore
                 backgroundWrite();
             }
         }
+        checkLastRevRecovery();
+        // Renew the lease because it may have been stale
+        renewClusterIdLease();
+
         getRevisionComparator().add(headRevision, Revision.newRevision(0));
 
         dispatcher = new ChangeDispatcher(getRoot());
-        commitQueue = new CommitQueue() {
-            @Override
-            protected Revision newRevision() {
-                return DocumentNodeStore.this.newRevision();
-            }
-        };
+        commitQueue = new CommitQueue(this);
         String threadNamePostfix = "(" + clusterId + ")";
         batchCommitQueue = new BatchCommitQueue(store, revisionComparator);
         backgroundReadThread = new Thread(
@@ -522,9 +520,6 @@ public final class DocumentNodeStore
                 new BackgroundOperation(this, isDisposed),
                 "DocumentNodeStore background update thread " + threadNamePostfix);
         backgroundUpdateThread.setDaemon(true);
-        checkLastRevRecovery();
-        // Renew the lease because it may have been stale
-        renewClusterIdLease();
 
         backgroundReadThread.start();
         backgroundUpdateThread.start();
@@ -616,19 +611,6 @@ public final class DocumentNodeStore
     }
 
     /**
-     * Create a new revision.
-     *
-     * @return the revision
-     */
-    @Nonnull
-    Revision newRevision() {
-        if (simpleRevisionCounter != null) {
-            return new Revision(simpleRevisionCounter.getAndIncrement(), 0, clusterId);
-        }
-        return Revision.newRevision(clusterId);
-    }
-
-    /**
      * Creates a new commit. The caller must acknowledge the commit either with
      * {@link #done(Commit, boolean, CommitInfo)} or {@link #canceled(Commit)},
      * depending on the result of the commit.
@@ -699,6 +681,7 @@ public final class DocumentNodeStore
                         changes.modified(c.getModifiedPaths());
                         // update head revision
                         setHeadRevision(c.getRevision());
+                        commitQueue.headRevisionChanged();
                         dispatcher.contentChanged(getRoot(), info);
                     }
                 });
@@ -1381,8 +1364,10 @@ public final class DocumentNodeStore
                     b.applyTo(getPendingModifications(), commit.getRevision());
                     getBranches().remove(b);
                 } else {
-                    throw new CommitFailedException(MERGE, 2,
-                            "Conflicting concurrent change. Update operation failed: " + op);
+                    NodeDocument root = Utils.getRootDocument(store);
+                    Revision conflictRev = root.getMostRecentConflictFor(b.getCommits(), this);
+                    String msg = "Conflicting concurrent change. Update operation failed: " + op;
+                    throw new ConflictException(msg, conflictRev).asCommitFailedException();
                 }
             } else {
                 // no commits in this branch -> do nothing
@@ -1500,6 +1485,24 @@ public final class DocumentNodeStore
                 }
             };
         }
+    }
+
+    /**
+     * Suspends until the given revision is visible from the current
+     * headRevision or the given revision is canceled from the commit queue.
+     *
+     * The thread will *not* be suspended if the given revision is from a
+     * foreign cluster node and async delay is set to zero.
+     *
+     * @param r the revision to become visible.
+     */
+    void suspendUntil(@Nonnull Revision r) {
+        // do not suspend if revision is from another cluster node
+        // and background read is disabled
+        if (r.getClusterId() != getClusterId() && getAsyncDelay() == 0) {
+            return;
+        }
+        commitQueue.suspendUntil(r);
     }
 
     //------------------------< Observable >------------------------------------
@@ -1644,6 +1647,14 @@ public final class DocumentNodeStore
     @Nonnull
     public Revision getHeadRevision() {
         return headRevision;
+    }
+
+    @Nonnull
+    public Revision newRevision() {
+        if (simpleRevisionCounter != null) {
+            return new Revision(simpleRevisionCounter.getAndIncrement(), 0, clusterId);
+        }
+        return Revision.newRevision(clusterId);
     }
 
     //----------------------< background operations >---------------------------
@@ -1903,6 +1914,7 @@ public final class DocumentNodeStore
                     // the new head revision is after other revisions
                     setHeadRevision(newRevision());
                     if (dispatchChange) {
+                        commitQueue.headRevisionChanged();
                         time = clock.getTime();
                         if (externalSort != null) {
                             // then there were external changes and reading them
@@ -1910,7 +1922,7 @@ public final class DocumentNodeStore
                             try {
                                 JournalEntry.applyTo(externalSort, diffCache, oldHead, headRevision);
                             } catch (Exception e1) {
-                                LOG.error("backgroundRead: Exception while processing external changes from journal: "+e1, e1);
+                                LOG.error("backgroundRead: Exception while processing external changes from journal: {}", e1, e1);
                             }
                         }
                         stats.populateDiffCache = clock.getTime() - time;

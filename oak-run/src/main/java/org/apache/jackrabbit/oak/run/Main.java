@@ -49,6 +49,7 @@ import java.util.regex.Pattern;
 import javax.jcr.Repository;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.google.common.io.Closer;
@@ -61,10 +62,12 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.benchmark.BenchmarkRunner;
 import org.apache.jackrabbit.oak.checkpoint.Checkpoints;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.console.Console;
@@ -466,9 +469,16 @@ public final class Main {
             System.err.println("Invalid FileStore directory " + args[0]);
             System.exit(1);
         } else {
+            boolean persistCM = Boolean
+                    .getBoolean("tar.PersistCompactionMap");
+            Stopwatch watch = Stopwatch.createStarted();
             File directory = new File(args[0]);
             System.out.println("Compacting " + directory);
             System.out.println("    before " + Arrays.toString(directory.list()));
+            long sizeBefore = FileUtils.sizeOfDirectory(directory);
+            System.out.println("    size "
+                    + IOUtils.humanReadableByteCount(sizeBefore) + " (" + sizeBefore
+                    + " bytes)");
 
             System.out.println("    -> compacting");
             FileStore store = new FileStore(directory, 256, TAR_STORAGE_MEMORY_MAPPED);
@@ -486,6 +496,8 @@ public final class Main {
                         return setHead.call();
                     }
                 };
+                compactionStrategy.setOfflineCompaction(true);
+                compactionStrategy.setPersistCompactionMap(persistCM);
                 store.setCompactionStrategy(compactionStrategy);
                 store.compact();
             } finally {
@@ -499,8 +511,15 @@ public final class Main {
             } finally {
                 store.close();
             }
-
-            System.out.println("    after  " + Arrays.toString(directory.list()));
+            watch.stop();
+            System.out.println("    after  "
+                    + Arrays.toString(directory.list()));
+            long sizeAfter = FileUtils.sizeOfDirectory(directory);
+            System.out.println("    size "
+                    + IOUtils.humanReadableByteCount(sizeAfter) + " (" + sizeAfter
+                    + " bytes)");
+            System.out.println("    duration  " + watch.toString() + " ("
+                    + watch.elapsed(TimeUnit.SECONDS) + "s).");
         }
     }
 

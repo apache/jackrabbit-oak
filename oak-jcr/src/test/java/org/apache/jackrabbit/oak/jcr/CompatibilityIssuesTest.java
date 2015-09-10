@@ -273,6 +273,8 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
         } catch (InvalidItemStateException e) {
             assertTrue(e.getCause() instanceof CommitFailedException);
         }
+        s2.logout();
+        s3.logout();
     }
 
     private Session newSession(boolean refreshIntervalZero) throws RepositoryException {
@@ -448,6 +450,7 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
         QueryResult r = q.execute();
         RowIterator it = r.getRows();
         Assert.assertTrue(it.hasNext());
+        anonymousSession.logout();
     }
 
 }

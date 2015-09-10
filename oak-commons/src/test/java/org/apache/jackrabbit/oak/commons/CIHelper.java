@@ -39,6 +39,7 @@ public final class CIHelper {
 
     /**
      * @return  {@code true} iff running on with {@code PROFILE=pedantic}
+     * @deprecated Travis builds do not use PROFILE anymore. Use {@link #travis()} instead.
      */
     public static boolean travisPedantic() {
         return equal(getenv("PROFILE"), "pedantic");
@@ -46,6 +47,7 @@ public final class CIHelper {
 
     /**
      * @return  {@code true} iff running on with {@code PROFILE=unittesting}
+     * @deprecated Travis builds do not use PROFILE anymore. Use {@link #travis()} instead.
      */
     public static boolean travisUnitTesting() {
         return equal(getenv("PROFILE"), "unittesting");
@@ -53,6 +55,7 @@ public final class CIHelper {
 
     /**
      * @return  {@code true} iff running on with {@code PROFILE=integrationTesting}
+     * @deprecated Travis builds do not use PROFILE anymore. Use {@link #travis()} instead.
      */
     public static boolean travisIntegrationTesting() {
         return equal(getenv("PROFILE"), "integrationTesting");

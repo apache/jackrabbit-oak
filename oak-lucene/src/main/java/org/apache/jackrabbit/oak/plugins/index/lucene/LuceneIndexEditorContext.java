@@ -27,6 +27,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -42,6 +44,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.apache.jackrabbit.util.ISO8601;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper;
+import org.apache.lucene.analysis.shingle.ShingleAnalyzerWrapper;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
@@ -70,7 +75,11 @@ public class LuceneIndexEditorContext {
         ClassLoader loader = thread.getContextClassLoader();
         thread.setContextClassLoader(IndexWriterConfig.class.getClassLoader());
         try {
-            IndexWriterConfig config = new IndexWriterConfig(VERSION, definition.getAnalyzer());
+            Analyzer definitionAnalyzer = definition.getAnalyzer();
+            Map<String, Analyzer> analyzers = new HashMap<String, Analyzer>();
+            analyzers.put(FieldNames.SPELLCHECK, new ShingleAnalyzerWrapper(LuceneIndexConstants.ANALYZER, 3));
+            Analyzer analyzer = new PerFieldAnalyzerWrapper(definitionAnalyzer, analyzers);
+            IndexWriterConfig config = new IndexWriterConfig(VERSION, analyzer);
             if (remoteDir) {
                 config.setMergeScheduler(new SerialMergeScheduler());
             }

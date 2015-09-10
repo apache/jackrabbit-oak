@@ -19,8 +19,12 @@
 
 package org.apache.jackrabbit.oak.plugins.blob;
 
+import org.apache.jackrabbit.oak.commons.jmx.Description;
+import org.apache.jackrabbit.oak.commons.jmx.Name;
+
 import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
+import javax.management.openmbean.TabularData;
 
 /**
  * MBean for starting and monitoring the progress of
@@ -37,8 +41,11 @@ public interface BlobGCMBean {
      * @param markOnly whether to only mark references and not sweep in the mark and sweep operation.
      * @return  the status of the operation right after it was initiated
      */
-    CompositeData startBlobGC(boolean markOnly);
-
+    CompositeData startBlobGC(@Name("markOnly")
+            @Description("Set to true to only mark references and not sweep in the mark and sweep operation. " +
+                     "This mode is to be used when the underlying BlobStore is shared between multiple " +
+                     "different repositories. For all other cases set it to false to perform full garbage collection")
+                                boolean markOnly);
     /**
      * Data store garbage collection status
      *
@@ -47,5 +54,12 @@ public interface BlobGCMBean {
      */
     @Nonnull
     CompositeData getBlobGCStatus();
+    
+    /**
+     * Show details of the data Store garbage collection process.
+     * 
+     * @return List of available repositories and their status
+     */
+    TabularData getGlobalMarkStats();
 
 }

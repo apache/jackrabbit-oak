@@ -19,13 +19,20 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
+
+import com.google.common.collect.Maps;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,13 +41,22 @@ import org.slf4j.LoggerFactory;
  * <code>CommitQueue</code> ensures a sequence of commits consistent with the
  * commit revision even if commits did not complete in this sequence.
  */
-abstract class CommitQueue {
+final class CommitQueue {
 
     static final Logger LOG = LoggerFactory.getLogger(CommitQueue.class);
 
     private final SortedMap<Revision, Entry> commits = new TreeMap<Revision, Entry>(StableRevisionComparator.INSTANCE);
 
-    protected abstract Revision newRevision();
+    /**
+     * Map of currently suspended commits until a given Revision is visible.
+     */
+    private final Map<Semaphore, Revision> suspendedCommits = Maps.newIdentityHashMap();
+
+    private final RevisionContext context;
+
+    CommitQueue(@Nonnull RevisionContext context) {
+        this.context = checkNotNull(context);
+    }
 
     @Nonnull
     Revision createRevision() {
@@ -54,7 +70,7 @@ abstract class CommitQueue {
         Revision rev = null;
         synchronized (this) {
             for (int i = 0; i < num; i++) {
-                rev = newRevision();
+                rev = context.newRevision();
                 revs.add(rev);
             }
             commits.put(rev, new Entry(rev));
@@ -70,11 +86,50 @@ abstract class CommitQueue {
 
     void canceled(@Nonnull Revision rev) {
         removeCommit(rev);
+        notifySuspendedCommits(rev);
     }
 
     boolean contains(@Nonnull Revision revision) {
         synchronized (this) {
             return commits.containsKey(checkNotNull(revision));
+        }
+    }
+
+    /**
+     * Suspends until the given revision is visible from the current
+     * headRevision or the given revision is canceled from the commit queue.
+     *
+     * @param r the revision to become visible.
+     */
+    void suspendUntil(@Nonnull Revision r) {
+        Comparator<Revision> comparator = context.getRevisionComparator();
+        Semaphore s = null;
+        synchronized (suspendedCommits) {
+            Revision headRevision = context.getHeadRevision();
+            if (comparator.compare(r, headRevision) > 0) {
+                s = new Semaphore(0);
+                suspendedCommits.put(s, r);
+            }
+        }
+        if (s != null) {
+            s.acquireUninterruptibly();
+        }
+    }
+
+    /**
+     * Called when the head revision accessible via the {@link RevisionContext}
+     * passed to constructor changed.
+     */
+    void headRevisionChanged() {
+        notifySuspendedCommits();
+    }
+
+    /**
+     * @return the number of suspended threads on this commit queue.
+     */
+    int numSuspendedThreads() {
+        synchronized (suspendedCommits) {
+            return suspendedCommits.size();
         }
     }
 
@@ -84,6 +139,43 @@ abstract class CommitQueue {
     }
 
     //------------------------< internal >--------------------------------------
+
+    private void notifySuspendedCommits() {
+        synchronized (suspendedCommits) {
+            if (suspendedCommits.isEmpty()) {
+                return;
+            }
+            Comparator<Revision> comparator = context.getRevisionComparator();
+            Revision headRevision = context.getHeadRevision();
+            Iterator<Map.Entry<Semaphore, Revision>> it = suspendedCommits.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry<Semaphore, Revision> entry = it.next();
+                if (comparator.compare(entry.getValue(), headRevision) <= 0) {
+                    Semaphore s = entry.getKey();
+                    it.remove();
+                    s.release();
+                }
+            }
+        }
+    }
+
+    private void notifySuspendedCommits(@Nonnull Revision revision) {
+        checkNotNull(revision);
+        synchronized (suspendedCommits) {
+            if (suspendedCommits.isEmpty()) {
+                return;
+            }
+            Iterator<Map.Entry<Semaphore, Revision>> it = suspendedCommits.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry<Semaphore, Revision> entry = it.next();
+                if (revision.equals(entry.getValue())) {
+                    Semaphore s = entry.getKey();
+                    it.remove();
+                    s.release();
+                }
+            }
+        }
+    }
 
     private void removeCommit(@Nonnull Revision rev) {
         // simply remove and notify next head if any

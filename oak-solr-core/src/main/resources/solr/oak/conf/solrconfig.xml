@@ -1176,12 +1176,12 @@
 
     <searchComponent name="spellcheck" class="solr.SpellCheckComponent">
 
-        <str name="queryAnalyzerFieldType">text_general</str>
+        <str name="queryAnalyzerFieldType">spellcheck</str>
 
         <!-- a spellchecker built from a field of the main index -->
         <lst name="spellchecker">
             <str name="name">default</str>
-            <str name="field">catch_all</str>
+            <str name="field">:spellcheck</str>
             <str name="classname">solr.DirectSolrSpellChecker</str>
             <str name="distanceMeasure">internal</str>
             <!-- minimum accuracy needed to be considered a valid spellcheck suggestion -->
@@ -1202,7 +1202,6 @@
 
     <requestHandler name="/spellcheck" class="solr.SearchHandler" startup="lazy">
         <lst name="defaults">
-            <str name="df">catch_all</str>
             <str name="spellcheck.dictionary">default</str>
             <str name="spellcheck">on</str>
             <str name="spellcheck.extendedResults">true</str>

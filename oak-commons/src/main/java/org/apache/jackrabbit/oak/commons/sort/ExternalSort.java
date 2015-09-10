@@ -668,7 +668,7 @@ class BinaryFileBuffer {
         if (empty()) {
             return null;
         }
-        return this.cache.toString();
+        return this.cache;
     }
 
     public String pop() throws IOException {

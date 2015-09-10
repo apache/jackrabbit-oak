@@ -191,6 +191,7 @@ definition structure
 
     ruleName (nt:unstructured)
       - inherited (boolean) = true
+      - indexNodeName (boolean) = false
       - includePropertyTypes (string) multiple
       + properties (nt:unstructured)
 
@@ -207,6 +208,19 @@ includePropertyTypes
 : For full text index defaults to include all types
 : String array of property types which should be indexed. The values can be one
   specified in [PropertyType Names][1]
+  
+<a name="index-node-name"></a>  
+indexNodeName
+: `@since Oak 1.0.20, 1.2.5`
+: Default to false. If set to true then index would also be created for node name.
+  This would enable faster evaluation of queries involving constraints on Node 
+  name. For example
+    * _select [jcr:path] from [nt:base] where NAME() = 'kite'_
+    * _select [jcr:path] from [nt:base] where NAME() LIKE 'kite%'_
+    * //kite
+    * //*[jcr:like(fn:name(), 'kite%')]
+    * //element(*, app:Asset)[fn:name() = 'kite'] 
+    * //element(kite, app:Asset)
 
 ##### Cost Overrides
 
@@ -278,7 +292,8 @@ isRegexp
 
 boost
 : If the property is included in `nodeScopeIndex` then it defines the boost
-  done for the index value against the given property name.
+  done for the index value against the given property name. See 
+  [Boost and Search Relevancy](#boost) for more details
 
 index
 : Determines if this property should be indexed. Mostly useful for fulltext
@@ -588,6 +603,67 @@ the codec to `Lucene46`
       
 Refer to [OAK-2853][OAK-2853] for details. Enabling the `Lucene46` codec
 would lead to smaller and compact indexes.
+
+<a name="boost"></a>
+#### Boost and Search Relevancy
+
+`@since Oak 1.2.5`
+
+When fulltext indexing is enabled then internally Oak would create a fulltext
+field which consists of text extracted from various other fields i.e. fields 
+for which `nodeScopeIndex` is `true`. This allows search like 
+`//*[jcr:contains(., 'foo')]` to perform search across any indexable field 
+containing foo (See [contains function][jcr-contains] for details)
+
+In certain cases its desirable that those nodes where the searched term is present
+in a specific property are ranked higher (come earlier in search result) compared
+to those node where the searched term is found in some other property.
+
+In such cases it should be possible to boost specific text contributed by 
+individual property. Meaning that if a title field is boosted more than description, 
+then search result would those node coming earlier where searched term is found
+in title field
+
+For that to work ensure that for each such property (which need to be preferred)
+both `nodeScopeIndex` and `analyzed` are set to true. In addition you can specify 
+`boost` property so give higher weightage to values found in specific property
+
+Note that even without setting explicit `boost` and just setting `nodeScopeIndex` 
+and `analyzed` to true would improve the search result due to the way 
+[Lucene does scoring][boost-faq]. Internally Oak would create separate Lucene 
+fields for those jcr properties and would perform a search across all such fields. 
+For more details refer to [OAK-3367][OAK-3367]
+
+```
+  + indexRules
+    - jcr:primaryType = "nt:unstructured"
+    + app:Asset
+      + properties
+        - jcr:primaryType = "nt:unstructured"
+        + description
+          - nodeScopeIndex = true
+          - analyzed = true
+          - name = "jcr:content/metadata/jcr:description"
+        + title
+          - analyzed = true
+          - nodeScopeIndex = true
+          - name = "jcr:content/metadata/jcr:title"
+          - boost = 2.0
+```
+
+With above index config a search like
+
+```
+SELECT
+  *
+FROM [app:Asset] 
+WHERE 
+  CONTAINS(., 'Batman')
+```
+
+Would have those node (of type app:Asset) come first where _Batman_ is found in
+_jcr:title_. While those nodes where search text is found in other field
+like aggregated content would come later
 
 <a name="osgi-config"></a>
 ### LuceneIndexProvider Configuration
@@ -1328,6 +1404,7 @@ such fields
 [OAK-2247]: https://issues.apache.org/jira/browse/OAK-2247
 [OAK-2853]: https://issues.apache.org/jira/browse/OAK-2853
 [OAK-2892]: https://issues.apache.org/jira/browse/OAK-2892
+[OAK-3367]: https://issues.apache.org/jira/browse/OAK-3367
 [luke]: https://code.google.com/p/luke/
 [tika]: http://tika.apache.org/
 [oak-console]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run#console
@@ -1337,3 +1414,5 @@ such fields
 [lucene-codec]: https://lucene.apache.org/core/4_7_1/core/org/apache/lucene/codecs/Codec.html
 [tika-download]: https://tika.apache.org/download.html
 [oak-run-tika]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run#tika
+[jcr-contains]: http://www.day.com/specs/jcr/1.0/6.6.5.2_jcr_contains_Function.html
+[boost-faq]: https://wiki.apache.org/lucene-java/LuceneFAQ#How_do_I_make_sure_that_a_match_in_a_document_title_has_greater_weight_than_a_match_in_a_document_body.3F

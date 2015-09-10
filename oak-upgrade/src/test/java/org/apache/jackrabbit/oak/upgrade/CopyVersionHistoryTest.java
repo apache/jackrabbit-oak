@@ -21,7 +21,7 @@ import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.util.VersionCopyTestUtils.VersionCopySetup;
 import org.apache.jackrabbit.oak.upgrade.version.VersionCopyConfiguration;
@@ -39,6 +39,9 @@ import javax.jcr.version.VersionManager;
 import java.io.File;
 import java.io.IOException;
 import java.util.Calendar;
+import java.util.List;
+
+import com.google.common.collect.Lists;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -58,6 +61,8 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
     private static final String VERSIONABLES_YOUNG_ORPHANED = "/versionables/youngOrphaned";
 
     protected RepositoryImpl repository;
+
+    protected List<Session> sessions = Lists.newArrayList();
 
     private static Calendar betweenHistories;
 
@@ -221,7 +226,7 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
     protected Session performCopy(VersionCopySetup setup) throws RepositoryException, IOException {
         final RepositoryConfig sourceConfig = RepositoryConfig.create(source);
         final RepositoryContext sourceContext = RepositoryContext.create(sourceConfig);
-        final NodeStore targetNodeStore = new MemoryNodeStore();
+        final NodeStore targetNodeStore = new SegmentNodeStore();
         try {
             final RepositoryUpgrade upgrade = new RepositoryUpgrade(sourceContext, targetNodeStore);
             setup.setup(upgrade.versionCopyConfiguration);
@@ -232,11 +237,17 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
         }
 
         repository = (RepositoryImpl) new Jcr(new Oak(targetNodeStore)).createRepository();
-        return repository.login(AbstractRepositoryUpgradeTest.CREDENTIALS);
+        Session s = repository.login(AbstractRepositoryUpgradeTest.CREDENTIALS);
+        sessions.add(s);
+        return s;
     }
 
     @After
     public void closeRepository() {
+        for (Session s : sessions) {
+            s.logout();
+        }
+        sessions.clear();
         repository.shutdown();
     }
 

@@ -266,6 +266,14 @@ To define a property index on a subtree you have to add an index definition node
     This is a multi-valued property, and must not be empty.
     It usually contains only _one_ property name.
     All nodes that have _any_ of those properties are stored in this index.
+* `includedPaths` (String, multi-valued):
+    the paths that are included ('/' if not set).
+    The index is only used if the query has a path restriction that is not excluded,
+    and part of the included paths.
+* `excludedPaths` (String, multi-valued):
+    the paths where this index is excluded (none if not set).
+    The index is only used if the query has a path restriction that is not excluded,
+    and part of the included paths.
     
 It is recommended to index one property per index.
 (If multiple properties are indexed within one index, 

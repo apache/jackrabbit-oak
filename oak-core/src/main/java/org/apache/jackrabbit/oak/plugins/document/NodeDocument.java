@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -36,7 +37,6 @@ import javax.annotation.Nullable;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Queues;
 import org.apache.jackrabbit.oak.cache.CacheValue;
@@ -57,6 +57,7 @@ import com.google.common.collect.Sets;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.transform;
+import static java.util.Collections.reverseOrder;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator.REVERSE;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
@@ -251,7 +252,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      * into multiple types depending on the content i.e. weather it contains
      * REVISIONS, COMMIT_ROOT, property history etc
      */
-    public static enum SplitDocType {
+    public enum SplitDocType {
         /**
          * Not a split document
          */
@@ -297,7 +298,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
 
         final int type;
 
-        private SplitDocType(int type){
+        SplitDocType(int type){
             this.type = type;
         }
 
@@ -482,10 +483,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
 
     public boolean hasBinary() {
         Number flag = (Number) get(HAS_BINARY_FLAG);
-        if(flag == null){
-            return false;
-        }
-        return flag.intValue() == HAS_BINARY_VAL;
+        return flag != null && flag.intValue() == HAS_BINARY_VAL;
     }
 
     /**
@@ -654,6 +652,45 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     }
 
     /**
+     * Returns the most recent conflict on the given {@code branchCommits} if
+     * there are any. The returned revision is the commit, which created the
+     * collision marker for one of the {@code branchCommits}.
+     *
+     * @param branchCommits the branch commits to check.
+     * @param context a revision context.
+     * @return the conflict revision or {@code null} if there aren't any or
+     *          the collision marker does not have a revision value.
+     */
+    @CheckForNull
+    Revision getMostRecentConflictFor(@Nonnull Iterable<Revision> branchCommits,
+                                      @Nonnull RevisionContext context) {
+        checkNotNull(branchCommits);
+        checkNotNull(context);
+
+        Comparator<Revision> comparator = context.getRevisionComparator();
+        Revision conflict = null;
+
+        Map<Revision, String> collisions = getLocalMap(COLLISIONS);
+        for (Revision r : branchCommits) {
+            String value = collisions.get(r.asTrunkRevision());
+            if (value == null) {
+                continue;
+            }
+            Revision c;
+            try {
+                c = Revision.fromString(value);
+            } catch (IllegalArgumentException e) {
+                // backward compatibility: collision marker with value 'true'
+                continue;
+            }
+            if (conflict == null || comparator.compare(conflict, c) < 0) {
+                conflict = c;
+            }
+        }
+        return conflict;
+    }
+
+    /**
      * Returns the commit root path for the given <code>revision</code> or
      * <code>null</code> if this document does not have a commit root entry for
      * the given <code>revision</code>.
@@ -700,11 +737,11 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
 
         Revision newestRev = null;
         // check local commits first
-        SortedMap<Revision, String> revisions = getLocalRevisions();
-        SortedMap<Revision, String> commitRoots = getLocalCommitRoot();
-        Iterator<Revision> it = filter(Iterables.mergeSorted(
-                ImmutableList.of(revisions.keySet(), commitRoots.keySet()),
-                revisions.comparator()), predicate).iterator();
+        Comparator<Revision> comp = reverseOrder(context.getRevisionComparator());
+        SortedSet<Revision> revisions = Sets.newTreeSet(comp);
+        revisions.addAll(getLocalRevisions().keySet());
+        revisions.addAll(getLocalCommitRoot().keySet());
+        Iterator<Revision> it = filter(revisions, predicate).iterator();
         if (it.hasNext()) {
             newestRev = it.next();
         } else {
@@ -1480,10 +1517,18 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
         checkNotNull(op).removeMapEntry(REVISIONS, checkNotNull(revision));
     }
 
+    /**
+     * Add a collision marker for the given {@code revision}.
+     *
+     * @param op the update operation.
+     * @param revision the commit for which a collision was detected.
+     * @param other the revision for the commit, which detected the collision.
+     */
     public static void addCollision(@Nonnull UpdateOp op,
-                                    @Nonnull Revision revision) {
+                                    @Nonnull Revision revision,
+                                    @Nonnull Revision other) {
         checkNotNull(op).setMapEntry(COLLISIONS, checkNotNull(revision),
-                String.valueOf(true));
+                other.toString());
     }
 
     public static void removeCollision(@Nonnull UpdateOp op,
@@ -1846,8 +1891,8 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     }
     
     @SuppressWarnings("unchecked")
-    private static void toJson(JsopWriter json, Map<? extends Object, Object> map) {
-        for (Entry<? extends Object, Object>e : map.entrySet()) {
+    private static void toJson(JsopWriter json, Map<?, Object> map) {
+        for (Entry<?, Object>e : map.entrySet()) {
             json.key(e.getKey().toString());
             Object value = e.getValue();
             if (value == null) {

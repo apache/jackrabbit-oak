@@ -58,7 +58,6 @@ class JaasConfigSpiTest extends AbstractRepositoryFactoryTest{
         ]
     }
 
-    @Ignore("OAK-2185")
     @Test
     public void defaultConfigSpiAuth() throws Exception{
         repository = repositoryFactory.getRepository(config)
@@ -73,6 +72,8 @@ class JaasConfigSpiTest extends AbstractRepositoryFactoryTest{
                 'jaas.ranking' : '150',
 
         ] as Hashtable)
+
+
 
         Session session = repository.login(new SimpleCredentials("batman", "password".toCharArray()))
         assert session

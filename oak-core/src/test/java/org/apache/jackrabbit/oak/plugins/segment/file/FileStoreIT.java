@@ -21,8 +21,11 @@ import static com.google.common.collect.Sets.newTreeSet;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
+import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
+import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_MK;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.V_11;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -35,6 +38,7 @@ import java.util.Map;
 import java.util.Random;
 
 import com.google.common.base.Strings;
+
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.segment.Compactor;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
@@ -45,12 +49,18 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class FileStoreTest {
+public class FileStoreIT {
 
     private File directory;
 
+    @BeforeClass
+    public static void assumptions() {
+        assumeTrue(getFixtures().contains(SEGMENT_MK));
+    }
+    
     @Before
     public void setUp() throws IOException {
         directory = File.createTempFile(

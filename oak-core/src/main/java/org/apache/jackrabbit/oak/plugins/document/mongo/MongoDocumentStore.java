@@ -67,9 +67,6 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
-import org.apache.jackrabbit.oak.plugins.document.cache.ForwardingListener;
-import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocOffHeapCache;
-import org.apache.jackrabbit.oak.plugins.document.cache.OffHeapCache;
 import org.apache.jackrabbit.oak.plugins.document.mongo.CacheInvalidator.InvalidationResult;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -248,13 +245,8 @@ public class MongoDocumentStore implements DocumentStore {
         options.put("unique", Boolean.FALSE);
         this.journal.ensureIndex(index, options);
 
-        // TODO expire entries if the parent was changed
-        if (builder.useOffHeapCache()) {
-            nodesCache = createOffHeapCache(builder);
-        } else {
-            nodesCache = builder.buildDocumentCache(this);
-        }
 
+        nodesCache = builder.buildDocumentCache(this);
         cacheStats = new CacheStats(nodesCache, "Document-Documents", builder.getWeigher(),
                 builder.getDocumentCacheSize());
         LOG.info("Configuration maxReplicationLagMillis {}, " +
@@ -280,20 +272,6 @@ public class MongoDocumentStore implements DocumentStore {
         }
 
         return version;
-    }
-
-    private Cache<CacheValue, NodeDocument> createOffHeapCache(
-            DocumentMK.Builder builder) {
-        ForwardingListener<CacheValue, NodeDocument> listener = ForwardingListener.newInstance();
-
-        Cache<CacheValue, NodeDocument> primaryCache = CacheBuilder.newBuilder()
-                .weigher(builder.getWeigher())
-                .maximumWeight(builder.getDocumentCacheSize())
-                .removalListener(listener)
-                .recordStats()
-                .build();
-
-        return new NodeDocOffHeapCache(primaryCache, listener, builder, this);
     }
 
     @Override
@@ -1134,17 +1112,10 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     Iterable<? extends Map.Entry<CacheValue, ? extends CachedNodeDocument>> getCacheEntries() {
-        if (nodesCache instanceof OffHeapCache) {
-            return Iterables.concat(nodesCache.asMap().entrySet(), ((OffHeapCache) nodesCache).offHeapEntriesMap().entrySet());
-        }
         return nodesCache.asMap().entrySet();
     }
 
     CachedNodeDocument getCachedNodeDoc(String id) {
-        if (nodesCache instanceof OffHeapCache) {
-            return ((OffHeapCache) nodesCache).getCachedDocument(id);
-        }
-
         return nodesCache.getIfPresent(new StringValue(id));
     }
 

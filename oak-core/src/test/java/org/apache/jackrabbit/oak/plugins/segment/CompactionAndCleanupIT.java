@@ -20,16 +20,22 @@
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.collect.Lists.newArrayList;
+import static java.lang.Integer.getInteger;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.commons.io.FileUtils.deleteDirectory;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_MK;
+import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore.newSegmentNodeStore;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType.CLEAN_ALL;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType.CLEAN_NONE;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType.CLEAN_OLD;
+import static org.apache.jackrabbit.oak.plugins.segment.file.FileStore.newFileStore;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -61,17 +67,22 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CompactionAndCleanupTest {
+public class CompactionAndCleanupIT {
 
     private static final Logger log = LoggerFactory
-            .getLogger(CompactionAndCleanupTest.class);
+            .getLogger(CompactionAndCleanupIT.class);
 
     private File directory;
 
+    public static void assumptions() {
+        assumeTrue(getFixtures().contains(SEGMENT_MK));
+    }
+    
     @Before
     public void setUp() throws IOException {
         directory = File.createTempFile(
@@ -343,6 +354,74 @@ public class CompactionAndCleanupTest {
             }
         } finally {
             store.close();
+        }
+    }
+
+    /**
+     * Test asserting OAK-3348: Cross gc sessions might introduce references to pre-compacted segments
+     */
+    @Test
+    @Ignore("OAK-3348")  // FIXME OAK-3348
+    public void preCompactionReferences() throws IOException, CommitFailedException, InterruptedException {
+        for (String ref : new String[] {"merge-before-compact", "merge-after-compact"}) {
+            File repoDir = new File(directory, ref);
+            FileStore fileStore = newFileStore(repoDir).withMaxFileSize(2).create();
+            final SegmentNodeStore nodeStore = newSegmentNodeStore(fileStore).create();
+            fileStore.setCompactionStrategy(new CompactionStrategy(true, false, CLEAN_NONE, 0, (byte) 5) {
+                @Override
+                public boolean compacted(Callable<Boolean> setHead) throws Exception {
+                    return nodeStore.locked(setHead);
+                }
+            });
+
+            try {
+                // add some content
+                NodeBuilder root = nodeStore.getRoot().builder();
+                root.setChildNode("test").setProperty("blob", createBlob(nodeStore, 1024 * 1024));
+                nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+                // remove it again so we have something to gc
+                root = nodeStore.getRoot().builder();
+                root.getChildNode("test").remove();
+                nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+                // with a new builder simulate exceeding the update limit.
+                // This will cause changes to be pre-written to segments
+                root = nodeStore.getRoot().builder();
+                for (int k = 0; k < getInteger("update.limit", 10000); k += 2) {
+                    root.setChildNode("test").remove();
+                }
+                root.setChildNode("test");
+
+                // case 1: merge above changes before compact
+                if ("merge-before-compact".equals(ref)) {
+                    nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+                }
+
+                fileStore.compact();
+
+                // case 2: merge above changes after compact
+                if ("merge-after-compact".equals(ref)) {
+                    nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+                }
+            } finally {
+                fileStore.close();
+            }
+
+            // Re-initialise the file store to simulate off-line gc
+            fileStore = newFileStore(repoDir).withMaxFileSize(2).create();
+            try {
+                // The 1M blob should get gc-ed. This works for case 1.
+                // However it doesn't for case 2 as merging after compaction
+                // apparently creates references from the current segment
+                // to the pre-compacted segment to which above changes have
+                // been pre-written.
+                fileStore.cleanup();
+                assertTrue(ref + " repository size " + fileStore.size() + " < " + 1024 * 1024,
+                        fileStore.size() < 1024 * 1024);
+            } finally {
+                fileStore.close();
+            }
         }
     }
 

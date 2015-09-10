@@ -24,6 +24,7 @@ import java.io.InputStreamReader;
 import java.io.LineNumberReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.RandomAccessFile;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -227,10 +228,15 @@ public abstract class AbstractQueryTest {
             r.close();
         }
         if (errors) {
+            RandomAccessFile f = new RandomAccessFile(output, "r");
+            byte[] data = new byte[(int) f.length()];
+            f.readFully(data);
+            f.close();
             throw new Exception("Results in " + output.getPath()
                     + " don't match expected "
                     + "results in " + input.getPath()
-                    + "; compare the files for details");
+                    + "; compare the files for details; got=\n" +
+                    new String(data, "UTF-8"));
         }
     }
 
