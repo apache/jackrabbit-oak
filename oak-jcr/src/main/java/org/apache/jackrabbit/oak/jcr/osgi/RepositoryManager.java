@@ -64,9 +64,6 @@ public class RepositoryManager {
     private static final boolean DEFAULT_COMMIT_RATE_LIMIT = false;
     private static final boolean DEFAULT_FAST_QUERY_RESULT_SIZE = false;
 
-    //TODO Exposed for testing purpose due to SLING-4472
-    static boolean ignoreFrameworkProperties = false;
-
     private final WhiteboardEditorProvider editorProvider =
             new WhiteboardEditorProvider();
 
@@ -139,12 +136,10 @@ public class RepositoryManager {
     }
 
     private static Object prop(Map<String, ?> config, BundleContext bundleContext, String name) {
-        if (!ignoreFrameworkProperties) {
-            //Prefer framework property first
-            Object value = bundleContext.getProperty(name);
-            if (value != null) {
-                return value;
-            }
+        //Prefer framework property first
+        Object value = bundleContext.getProperty(name);
+        if (value != null) {
+            return value;
         }
 
         //Fallback to one from config
