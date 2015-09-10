@@ -107,8 +107,12 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
         int max = 8 * 1024 * 1024;
         int test = 0;
 
-        while (max - min >= 2) {
-            test = (max + min) / 2;
+        while (max - min > 256) {
+            if (test == 0) {
+                test = max; // try largest first
+            } else {
+                test = (max + min) / 2;
+            }
             byte[] data = new byte[test];
             Random r = new Random(0);
             r.nextBytes(data);
