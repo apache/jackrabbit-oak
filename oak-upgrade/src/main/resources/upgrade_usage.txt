@@ -64,6 +64,8 @@ An descriptor of the Oak node store. Possible options:
 
 # destination blob store options
 
+--datastore               Datastore directory to be used as a target
+                            FileDataStore
 --fileblobstore           Datastore directory to be used as a target
                             FileBlobStore
 --s3config                Configuration file for the target S3DataStore

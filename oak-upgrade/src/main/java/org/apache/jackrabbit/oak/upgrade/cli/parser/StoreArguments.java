@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.SRC_FBS;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.SRC_FDS;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.DST_FBS;
+import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.DST_FDS;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.DST_S3;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.DST_S3_CONFIG;
 
@@ -100,6 +101,8 @@ public class StoreArguments {
             factory = new FileBlobStoreFactory(parser.getOption(DST_FBS));
         } else if (parser.hasOption(DST_S3_CONFIG) && parser.hasOption(DST_S3)) {
             factory = new S3DataStoreFactory(parser.getOption(DST_S3_CONFIG), parser.getOption(DST_S3));
+        } else if (parser.hasOption(DST_FDS)) {
+            factory = new FileDataStoreFactory(parser.getOption(DST_FDS));
         } else {
             factory = new DummyBlobStoreFactory();
         }

@@ -46,6 +46,8 @@ public class OptionParserFactory {
 
     public static final String SRC_FDS = "src-datastore";
 
+    public static final String DST_FDS = "datastore";
+
     public static final String DST_FBS = "fileblobstore";
 
     public static final String DST_S3 = "s3datastore";
@@ -87,6 +89,8 @@ public class OptionParserFactory {
                 .ofType(String.class);
         op.accepts(SRC_FBS, "Datastore directory to be used as a source FileBlobStore").withRequiredArg()
                 .ofType(String.class);
+        op.accepts(DST_FDS, "Datastore directory to be used as a target FileDataStore").withRequiredArg()
+            .ofType(String.class);
         op.accepts(DST_FBS, "Datastore directory to be used as a target FileBlobStore").withRequiredArg()
                 .ofType(String.class);
         op.accepts(DST_S3, "Repository home to be used for the target S3").withRequiredArg().ofType(String.class);
