@@ -24,6 +24,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -33,6 +34,7 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class RepositoryManagerTest {
@@ -44,8 +46,6 @@ public class RepositoryManagerTest {
         context.registerService(SecurityProvider.class, new OpenSecurityProvider());
         context.registerService(NodeStore.class, new MemoryNodeStore());
 
-        //Due to SLING-4472
-        RepositoryManager.ignoreFrameworkProperties = true;
         context.registerInjectActivateService(new RepositoryManager());
 
         Executor executor = context.getService(Executor.class);
@@ -63,6 +63,21 @@ public class RepositoryManagerTest {
 
         latch.await(5, TimeUnit.SECONDS);
         assertTrue(invoked.get());
+    }
+
+    @Test
+    public void repositoryShutdown() throws Exception{
+        context.registerService(SecurityProvider.class, new OpenSecurityProvider());
+        context.registerService(NodeStore.class, new MemoryNodeStore());
+
+        RepositoryManager mgr = context.registerInjectActivateService(new RepositoryManager());
+        assertNotNull("MBean should be registered", context.getService(RepositoryManagementMBean.class));
+
+        mgr.deactivate();
+
+        assertNull("MBean should have been removed upon repository shutdown",
+                context.getService(RepositoryManagementMBean.class));
+
     }
 
 }
