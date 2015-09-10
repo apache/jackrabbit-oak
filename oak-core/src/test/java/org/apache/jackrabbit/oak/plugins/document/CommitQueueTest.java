@@ -246,6 +246,33 @@ public class CommitQueueTest {
         assertEquals(0, queue.numSuspendedThreads());
     }
 
+    @Test
+    public void suspendUntilTimeout() throws Exception {
+        final AtomicReference<Revision> headRevision = new AtomicReference<Revision>();
+        RevisionContext context = new DummyRevisionContext() {
+            @Nonnull
+            @Override
+            public Revision getHeadRevision() {
+                return headRevision.get();
+            }
+        };
+        headRevision.set(context.newRevision());
+        final CommitQueue queue = new CommitQueue(context);
+        queue.setSuspendTimeoutMillis(0);
+
+        final Revision r = context.newRevision();
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                queue.suspendUntil(r);
+            }
+        });
+        t.start();
+
+        t.join(1000);
+        assertFalse(t.isAlive());
+    }
+
     private void assertNoExceptions() throws Exception {
         if (!exceptions.isEmpty()) {
             throw exceptions.get(0);
