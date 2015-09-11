@@ -155,6 +155,7 @@ public class SharedBlobStoreGCTest {
         for (GarbageCollectionRepoStats stat : statsList) {
             observedNumBlobs.add(stat.getNumLines());
             observedRepoIds.add(stat.getRepositoryId());
+            Assert.assertTrue(stat.getStartTime() <= stat.getEndTime());
         }
     
         Assert.assertTrue(Sets.difference(actualNumBlobs, observedNumBlobs).isEmpty());
