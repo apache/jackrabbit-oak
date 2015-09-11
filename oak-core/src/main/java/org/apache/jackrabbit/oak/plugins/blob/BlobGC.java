@@ -117,7 +117,8 @@ public class  BlobGC extends AnnotatedStandardMBean implements BlobGCMBean {
     private CompositeDataSupport toCompositeData(GarbageCollectionRepoStats statObj) throws OpenDataException {
         Object[] values = new Object[] {
                 statObj.getRepositoryId(),
-                (statObj.getLastModified() == 0 ? "" : (new Date(statObj.getLastModified()))).toString(),
+                (statObj.getStartTime() == 0 ? "" : (new Date(statObj.getStartTime()))).toString(),
+                (statObj.getEndTime() == 0 ? "" : (new Date(statObj.getEndTime()))).toString(),
                 statObj.getLength(),
                 humanReadableByteCount(statObj.getLength()),
                 statObj.getNumLines()
@@ -127,21 +128,24 @@ public class  BlobGC extends AnnotatedStandardMBean implements BlobGCMBean {
     
     private static final String[] FIELD_NAMES = new String[] {
             "repositoryId",
-            "referencesLastModifiedTime",
+            "markStartTime",
+            "markEndTime",
             "referenceFileSizeBytes",
             "referencesFileSize",
             "numReferences",
     };
     
     private static final String[] FIELD_DESCRIPTIONS = new String[] {
-           "Repository ID",
-           "Last modified time of references",
+           "Repository ID", 
+           "Start time of mark",
+           "End time of mark",
            "References file size in bytes",
            "References file size in human readable format",
            "Number of references" 
     };
     
     private static final OpenType[] FIELD_TYPES = new OpenType[] {
+            SimpleType.STRING,
             SimpleType.STRING,
             SimpleType.STRING,
             SimpleType.LONG,

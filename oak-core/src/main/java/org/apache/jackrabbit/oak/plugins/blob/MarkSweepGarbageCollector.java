@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.blob;
 
 import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
@@ -178,6 +179,16 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 }
             });
     
+            // Get all the markers available
+            List<DataRecord> markerFiles =
+                ((SharedDataStore) blobStore).getAllMetadataRecords(SharedStoreRecordType.MARKED_START_MARKER.getType());
+            Map<String, DataRecord> markers = Maps.uniqueIndex(markerFiles, new Function<DataRecord, String>() {
+                @Override
+                public String apply(DataRecord input) {
+                    return SharedStoreRecordType.MARKED_START_MARKER.getIdFromName(input.getIdentifier().toString());
+                }
+            });
+            
             // Get all the repositories registered
             List<DataRecord> repoFiles =
                 ((SharedDataStore) blobStore).getAllMetadataRecords(SharedStoreRecordType.REPOSITORY.getType());
@@ -188,9 +199,13 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 stat.setRepositoryId(repoId);
                 if (references.containsKey(repoId)) {
                     DataRecord refRec = references.get(repoId);
-                    stat.setLastModified(refRec.getLastModified());
+                    stat.setEndTime(refRec.getLastModified());
                     stat.setLength(refRec.getLength());
-    
+                    
+                    if (markers.containsKey(repoId)) {
+                        stat.setStartTime(markers.get(repoId).getLastModified());    
+                    }
+                    
                     LineNumberReader reader = null;
                     try {
                         reader = new LineNumberReader(new InputStreamReader(refRec.getStream()));
@@ -242,7 +257,10 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      */
     private void mark(GarbageCollectorFileState fs) throws IOException, DataStoreException {
         LOG.debug("Starting mark phase of the garbage collector");
-
+        
+        // Create a time marker in the data store if applicable
+        GarbageCollectionType.get(blobStore).addMarkedStartMarker(blobStore, repoId);
+        
         // Mark all used references
         iterateNodeTree(fs);
 
@@ -629,13 +647,14 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
     enum GarbageCollectionType {
         SHARED {
             /**
-             * Remove the maked references from the blob store root. Default NOOP.
+             * Remove the maked references and the marked markers from the blob store root. Default NOOP.
              * 
              * @param blobStore the blobStore instance
              */
             @Override
             void removeAllMarkedReferences(GarbageCollectableBlobStore blobStore) {
                 ((SharedDataStore) blobStore).deleteAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType());
+                ((SharedDataStore) blobStore).deleteAllMetadataRecords(SharedStoreRecordType.MARKED_START_MARKER.getType());
             }
 
             /**
@@ -671,8 +690,18 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                     }
 
                     GarbageCollectorFileState.merge(files, fs.getMarkedRefs());
+                    
+                    // Get the timestamp to indicate the earliest mark phase start
+                    List<DataRecord> markerFiles =
+                        ((SharedDataStore) blobStore).getAllMetadataRecords(
+                                                        SharedStoreRecordType.MARKED_START_MARKER.getType());
+                    long earliestMarker = SharedDataStoreUtils.getEarliestRecord(markerFiles).getLastModified();
+                    LOG.trace("Earliest marker timestamp {}", earliestMarker);
 
-                    return SharedDataStoreUtils.getEarliestRecord(refFiles).getLastModified();
+                    long earliestRef = SharedDataStoreUtils.getEarliestRecord(refFiles).getLastModified();
+                    LOG.trace("Earliest ref timestamp {}", earliestRef);
+
+                    return (earliestMarker < earliestRef ? earliestMarker : earliestRef);
                 } else {
                     LOG.error("Not all repositories have marked references available : {}", unAvailRepos);
                     throw new IOException("Not all repositories have marked references available");
@@ -699,6 +728,17 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                     Closeables.close(is, false);
                 }
             }
+            
+            @Override
+            public void addMarkedStartMarker(GarbageCollectableBlobStore blobStore, String repoId) {
+                try {
+                    ((SharedDataStore) blobStore).addMetadataRecord(new ByteArrayInputStream(new byte[0]),
+                                                                       SharedStoreRecordType.MARKED_START_MARKER
+                                                                           .getNameFromId(repoId));
+                } catch (DataStoreException e) {
+                    LOG.debug("Error creating marked time marker for repo : {}", repoId);
+                }
+            }
         },
         DEFAULT;
 
@@ -723,5 +763,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             }
             return DEFAULT;
         }
+    
+        public void addMarkedStartMarker(GarbageCollectableBlobStore blobStore, String repoId) {}
     }
 }
