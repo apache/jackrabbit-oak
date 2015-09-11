@@ -86,6 +86,10 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
                 }
             }
             a.child("c" + i).setProperty("x", b);
+            // Add a duplicated entry
+            if (i == 0) {
+                a.child("cdup").setProperty("x", b);
+            }
         }
         s.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
@@ -163,12 +167,24 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         Set<String> existingAfterGC = gc(0);
         assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
     }
+    
     @Test
     public void gcVersionDeleteWithInlined() throws Exception {
         DataStoreState state = setUp(false);
         addInlined();
         Set<String> existingAfterGC = gc(0);
         assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
+    }
+    
+    @Test
+    public void consistencyCheckInlined() throws Exception {
+        DataStoreState state = setUp(true);
+        addInlined();
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
+        MarkSweepGarbageCollector gcObj = init(86400, executor);
+        long candidates = gcObj.checkConsistency();
+        assertEquals(1, executor.getTaskCount());
+        assertEquals(0, candidates);        
     }
     
     @Test

@@ -126,12 +126,19 @@ public class  BlobGC extends AnnotatedStandardMBean implements BlobGCMBean {
                 public String call() throws Exception {
                     long t0 = nanoTime();
                     long missing = blobGarbageCollector.checkConsistency();
-                    return missing + "missing blobs found (details in the log). Consistency check completed in "
-                               + formatTime(nanoTime() - t0);
+                    return "Consistency check completed in "
+                                + formatTime(nanoTime() - t0) + " " +
+                                + missing + "missing blobs found (details in the log).";
                 }
             });
             executor.execute(consistencyOp);
         }
+        return getConsistencyCheckStatus();
+    }
+    
+    @Nonnull
+    @Override
+    public CompositeData getConsistencyCheckStatus() {
         return consistencyOp.getStatus().toCompositeData();
     }
     

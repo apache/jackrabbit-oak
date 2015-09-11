@@ -58,6 +58,7 @@ import org.apache.commons.io.LineIterator;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.InMemoryDataRecord;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
@@ -568,12 +569,13 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             candidates = calculateDifference(fs, iter);
             LOG.trace("Ending difference phase of the consistency check");
             
+            LOG.info("Consistency check found [{}] missing blobs", candidates);
             if (candidates > 0) {
                 LOG.warn("Consistency check failure in the the blob store : {}, check missing candidates in file {}",
                             blobStore, fs.getGcCandidates().getAbsolutePath());
             }
         } finally {
-            if (!LOG.isTraceEnabled() || candidates == 0) {
+            if (!LOG.isTraceEnabled() && candidates == 0) {
                 Closeables.close(fs, threw);
             }
         }
@@ -617,7 +619,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
                 // sort the file
                 GarbageCollectorFileState.sort(fs.getAvailableRefs());
-                LOG.debug("Number of blobs present in BlobStore : [{}] ", blobsCount);
+                LOG.info("Number of blobs present in BlobStore : [{}] ", blobsCount);
             } finally {
                 IOUtils.closeQuietly(bufferWriter);
             }
@@ -692,7 +694,12 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                     } else {
                         //This entry is not found in marked entries
                         //hence part of diff
-                        return diff;
+                        if (!InMemoryDataRecord.isInstance(getKey(diff))) {
+                            return diff;
+                        } else {
+                            diff = null;
+                            break;
+                        }
                     }
                 }
             }
