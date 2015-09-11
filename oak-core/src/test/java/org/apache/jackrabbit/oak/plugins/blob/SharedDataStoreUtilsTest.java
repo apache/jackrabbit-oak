@@ -118,7 +118,7 @@ public class SharedDataStoreUtilsTest {
             SharedDataStoreUtils.getEarliestRecord(
                     dataStore.getAllMetadataRecords(SharedStoreRecordType.MARKED_START_MARKER.getType()))
                         .getLastModified();
-        Assert.assertTrue(minRefTime > minMarkerTime);
+        Assert.assertTrue(minRefTime >= minMarkerTime);
         
         // Delete references and check back if deleted
         dataStore.deleteAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType());
