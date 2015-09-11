@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Represents binary data which is backed by a byte[] (in memory).
  */
-class InMemoryDataRecord implements DataRecord {
+public class InMemoryDataRecord implements DataRecord {
 
     /**
      * Logger instance for this class
@@ -89,7 +89,7 @@ class InMemoryDataRecord implements DataRecord {
      * @param id DataRecord identifier
      * @return true if it can be converted
      */
-    static boolean isInstance(String id) {
+    public static boolean isInstance(String id) {
         return id.startsWith(PREFIX);
     }
 
