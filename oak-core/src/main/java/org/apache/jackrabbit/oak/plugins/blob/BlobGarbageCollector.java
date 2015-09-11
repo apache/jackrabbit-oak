@@ -39,4 +39,12 @@ public interface BlobGarbageCollector {
      * @throws Exception
      */
     List<GarbageCollectionRepoStats> getStats() throws Exception;
+    
+    /**
+     * Checks for consistency in the blob store and reporting the number of missing blobs.
+     * 
+     * @return number of inconsistencies
+     * @throws Exception
+     */
+    long checkConsistency() throws Exception;
 }

@@ -25,6 +25,7 @@ import java.util.List;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -48,7 +49,7 @@ public class BlobCollectorTest {
     @Test
     public void testCollect() throws Exception {
         NodeBuilder b1 = store.getRoot().builder();
-        List<Blob> blobs = Lists.newArrayList();
+        List<ReferencedBlob> blobs = Lists.newArrayList();
 
         b1.child("x").child("y");
         store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -58,7 +59,7 @@ public class BlobCollectorTest {
             b1 = store.getRoot().builder();
             Blob b = store.createBlob(randomStream(i, 4096));
             b1.child("x").child("y").setProperty("b" + i, b);
-            blobs.add(b);
+            blobs.add(new ReferencedBlob(b, "/x/y"));
             store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         }
 
@@ -68,7 +69,7 @@ public class BlobCollectorTest {
         for(int i = 0; i < 2; i++){
             Blob b = store.createBlob(randomStream(i, 4096));
             p1.addValue(b);
-            blobs.add(b);
+            blobs.add(new ReferencedBlob(b, "/x/y"));
         }
         b1 = store.getRoot().builder();
         b1.child("x").child("y").setProperty(p1.getPropertyState());
@@ -80,16 +81,16 @@ public class BlobCollectorTest {
             //Change the see to create diff binary
             Blob b = store.createBlob(randomStream(i+1, 4096));
             b1.child("x").child("y").setProperty("b" + i, b);
-            blobs.add(b);
+            blobs.add(new ReferencedBlob(b, "/x/y"));
             store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         }
 
         NodeDocument doc =
                 store.getDocumentStore().find(Collection.NODES, Utils.getIdFromPath("/x/y"));
-        List<Blob> collectedBlobs = Lists.newArrayList();
+        List<ReferencedBlob> collectedBlobs = Lists.newArrayList();
         blobCollector.collect(doc, collectedBlobs);
 
         assertEquals(blobs.size(), collectedBlobs.size());
-        assertEquals(new HashSet<Blob>(blobs), new HashSet<Blob>(collectedBlobs));
+        assertEquals(new HashSet<ReferencedBlob>(blobs), new HashSet<ReferencedBlob>(collectedBlobs));
     }
 }

@@ -118,7 +118,7 @@ public class ExternalBlobIT {
         final List<String> refrences = Lists.newArrayList();
         store.getTracker().collectBlobReferences(new ReferenceCollector() {
             @Override
-            public void addReference(String reference) {
+            public void addReference(String reference, String nodeId) {
                 assertNotNull(reference);
                 refrences.add(reference);
             }
