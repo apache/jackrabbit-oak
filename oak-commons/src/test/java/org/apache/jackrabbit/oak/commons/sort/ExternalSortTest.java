@@ -114,6 +114,8 @@ public class ExternalSortTest {
                 getResource(TEST_FILE2_TXT).toURI());
         this.csvFile = new File(this.getClass().
                 getResource(TEST_FILE1_CSV).toURI());
+        this.csvFile2 = new File(this.getClass().
+                 getResource(TEST_FILE2_CSV).toURI());
 
         File tmpFile1 = new File(this.file1.getPath().toString() + ".tmp");
         File tmpFile2 = new File(this.file2.getPath().toString() + ".tmp");
