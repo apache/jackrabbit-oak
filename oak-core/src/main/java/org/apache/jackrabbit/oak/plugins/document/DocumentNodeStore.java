@@ -81,6 +81,7 @@ import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
+import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.Checkpoints.Info;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobReferenceIterator;
@@ -2686,7 +2687,7 @@ public final class DocumentNodeStore
      * @see org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobReferenceIterator
      * @return an iterator for all the blobs
      */
-    public Iterator<Blob> getReferencedBlobsIterator() {
+    public Iterator<ReferencedBlob> getReferencedBlobsIterator() {
         if(store instanceof MongoDocumentStore){
             return new MongoBlobReferenceIterator(this, (MongoDocumentStore) store);
         }

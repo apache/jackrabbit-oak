@@ -59,7 +59,11 @@ public class  BlobGC extends AnnotatedStandardMBean implements BlobGCMBean {
     private final Executor executor;
 
     private ManagementOperation<String> gcOp = done(OP_NAME, "");
-
+    
+    public static final String CONSISTENCY_OP_NAME = "Blob consistency check";
+    
+    private ManagementOperation<String> consistencyOp = done(CONSISTENCY_OP_NAME, "");
+    
     /**
      * @param blobGarbageCollector  Blob garbage collector
      * @param executor              executor for running the garbage collection task
@@ -112,6 +116,23 @@ public class  BlobGC extends AnnotatedStandardMBean implements BlobGCMBean {
             throw new IllegalStateException(e);
         }
         return tds;
+    }
+    
+    @Override 
+    public CompositeData checkConsistency() {
+        if (consistencyOp.isDone()) {
+            consistencyOp = newManagementOperation(CONSISTENCY_OP_NAME, new Callable<String>() {
+                @Override
+                public String call() throws Exception {
+                    long t0 = nanoTime();
+                    long missing = blobGarbageCollector.checkConsistency();
+                    return missing + "missing blobs found (details in the log). Consistency check completed in "
+                               + formatTime(nanoTime() - t0);
+                }
+            });
+            executor.execute(consistencyOp);
+        }
+        return consistencyOp.getStatus().toCompositeData();
     }
     
     private CompositeDataSupport toCompositeData(GarbageCollectionRepoStats statObj) throws OpenDataException {

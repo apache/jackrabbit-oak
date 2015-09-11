@@ -226,20 +226,49 @@ public class SegmentDataStoreBlobGCIT {
         assertTrue(Sets.symmetricDifference(state.blobsAdded, existingAfterGC).isEmpty());
     }
     
-    private Set<String> gcInternal(long maxBlobGcInSecs) throws Exception {
-        String repoId = null;
-        if (SharedDataStoreUtils.isShared(store.getBlobStore())) {
-            repoId = ClusterRepositoryInfo.createId(nodeStore);
-            ((SharedDataStore) store.getBlobStore()).addMetadataRecord(
-                new ByteArrayInputStream(new byte[0]),
-                REPOSITORY.getNameFromId(repoId));
-        }
+    @Test
+    public void consistencyCheckInit() throws Exception {
+        DataStoreState state = setUp();
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
+        MarkSweepGarbageCollector gcObj = init(86400, executor);
+        long candidates = gcObj.checkConsistency();
+        assertEquals(1, executor.getTaskCount());
+        assertEquals(0, candidates);
+    }
+    
+    @Test
+    public void consistencyCheckWithGc() throws Exception {
+        DataStoreState state = setUp();
+        Set<String> existingAfterGC = gcInternal(0);
+        assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
         
         ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
-        MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector(
-                new SegmentBlobReferenceRetriever(store.getTracker()),
-                    (GarbageCollectableBlobStore) store.getBlobStore(), executor, "./target", 2048, maxBlobGcInSecs, 
-                                                                        repoId);
+        MarkSweepGarbageCollector gcObj = init(86400, executor);
+        long candidates = gcObj.checkConsistency();
+        assertEquals(1, executor.getTaskCount());
+        assertEquals(0, candidates);
+    }
+    
+    @Test
+    public void consistencyCheckWithRenegadeDelete() throws Exception {
+        DataStoreState state = setUp();
+        
+        // Simulate faulty state by deleting some blobs directly
+        Random rand = new Random(87);
+        List<String> existing = Lists.newArrayList(state.blobsPresent);
+        
+        long count = blobStore.countDeleteChunks(ImmutableList.of(existing.get(rand.nextInt(existing.size()))), 0);
+        
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
+        MarkSweepGarbageCollector gcObj = init(86400, executor);
+        long candidates = gcObj.checkConsistency();
+        assertEquals(1, executor.getTaskCount());
+        assertEquals(count, candidates);
+    }
+    
+    private Set<String> gcInternal(long maxBlobGcInSecs) throws Exception {
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
+        MarkSweepGarbageCollector gc = init(maxBlobGcInSecs, executor);
         gc.collectGarbage(false);
 
         assertEquals(0, executor.getTaskCount());
@@ -247,6 +276,21 @@ public class SegmentDataStoreBlobGCIT {
         log.info("{} blobs existing after gc : {}", existingAfterGC.size(), existingAfterGC);
         return existingAfterGC;
     }
+    
+    private MarkSweepGarbageCollector init(long blobGcMaxAgeInSecs, ThreadPoolExecutor executor) throws Exception {
+        String repoId = null;
+        if (SharedDataStoreUtils.isShared(store.getBlobStore())) {
+            repoId = ClusterRepositoryInfo.createId(nodeStore);
+            ((SharedDataStore) store.getBlobStore()).addMetadataRecord(
+                new ByteArrayInputStream(new byte[0]), 
+                REPOSITORY.getNameFromId(repoId));
+        }
+        MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector(
+            new SegmentBlobReferenceRetriever(store.getTracker()),
+            (GarbageCollectableBlobStore) store.getBlobStore(), executor, "./target", 2048, blobGcMaxAgeInSecs,
+            repoId);
+        return gc;
+    }    
 
     protected Set<String> iterate() throws Exception {
         Iterator<String> cur = blobStore.getAllChunkIds(0);

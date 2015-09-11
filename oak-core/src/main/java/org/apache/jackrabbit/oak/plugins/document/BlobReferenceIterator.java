@@ -21,7 +21,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 
 /**
  * An iterator over all referenced binaries.
@@ -30,13 +30,13 @@ import org.apache.jackrabbit.oak.api.Blob;
  * The items are returned in no particular order.
  * An item might be returned multiple times.
  */
-public class BlobReferenceIterator implements Iterator<Blob> {
+public class BlobReferenceIterator implements Iterator<ReferencedBlob> {
 
     private static final int BATCH_SIZE = 1000;
     private final DocumentStore docStore;
     private final BlobCollector blobCollector;
-    private HashSet<Blob> batch = new HashSet<Blob>();
-    private Iterator<Blob> batchIterator;
+    private HashSet<ReferencedBlob> batch = new HashSet<ReferencedBlob>();
+    private Iterator<ReferencedBlob> batchIterator;
     private boolean done;
     private String fromKey = NodeDocument.MIN_ID_VALUE;
 
@@ -55,7 +55,7 @@ public class BlobReferenceIterator implements Iterator<Blob> {
     }
 
     @Override
-    public Blob next() {
+    public ReferencedBlob next() {
         // this will load the next batch if required
         if (!hasNext()) {
             throw new NoSuchElementException();
