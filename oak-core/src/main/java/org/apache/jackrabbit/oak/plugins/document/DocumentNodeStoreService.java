@@ -505,13 +505,16 @@ public class DocumentNodeStoreService {
         for (Registration r : registrations) {
             r.unregister();
         }
+        registrations.clear();
 
         if (reg != null) {
             reg.unregister();
+            reg = null;
         }
 
         if (mk != null) {
             mk.dispose();
+            mk = null;
         }
 
         if (executor != null) {
