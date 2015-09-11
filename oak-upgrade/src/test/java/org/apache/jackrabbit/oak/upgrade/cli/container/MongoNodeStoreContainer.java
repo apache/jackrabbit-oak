@@ -59,7 +59,7 @@ public class MongoNodeStoreContainer implements NodeStoreContainer {
         clean();
     }
 
-    private static boolean isMongoAvailable() {
+    public static boolean isMongoAvailable() {
         Mongo mongo = null;
         try {
             MongoClientURI uri = new MongoClientURI(MONGO_URI);

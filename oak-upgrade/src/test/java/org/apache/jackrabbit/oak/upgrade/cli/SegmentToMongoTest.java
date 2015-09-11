@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli;
 
+import static org.apache.jackrabbit.oak.upgrade.cli.container.MongoNodeStoreContainer.isMongoAvailable;
+import static org.junit.Assume.assumeTrue;
+
 import java.io.IOException;
 
 import org.apache.jackrabbit.oak.upgrade.cli.container.MongoNodeStoreContainer;
@@ -29,6 +32,7 @@ public class SegmentToMongoTest extends AbstractOak2OakTest {
     private final NodeStoreContainer destination;
 
     public SegmentToMongoTest() throws IOException {
+        assumeTrue(isMongoAvailable());
         source = new SegmentNodeStoreContainer();
         destination = new MongoNodeStoreContainer();
     }

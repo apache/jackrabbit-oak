@@ -16,20 +16,17 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli;
 
-import java.io.IOException;
-
 import static org.apache.jackrabbit.oak.upgrade.cli.container.MongoNodeStoreContainer.isMongoAvailable;
 import static org.junit.Assume.assumeTrue;
 
+import java.io.IOException;
+
 import org.apache.jackrabbit.oak.upgrade.cli.container.BlobStoreContainer;
-import org.apache.jackrabbit.oak.upgrade.cli.container.FileBlobStoreContainer;
+import org.apache.jackrabbit.oak.upgrade.cli.container.FileDataStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.MongoNodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
 
-/**
- * This covers the bug GRANITE-8719.
- */
-public class MongoToMongoFbsTest extends AbstractOak2OakTest {
+public class MongoToMongoFds extends AbstractOak2OakTest {
 
     private final BlobStoreContainer destinationBlob;
 
@@ -37,9 +34,9 @@ public class MongoToMongoFbsTest extends AbstractOak2OakTest {
 
     private final NodeStoreContainer destination;
 
-    public MongoToMongoFbsTest() throws IOException {
+    public MongoToMongoFds() throws IOException {
         assumeTrue(isMongoAvailable());
-        destinationBlob = new FileBlobStoreContainer();
+        destinationBlob = new FileDataStoreContainer();
         source = new MongoNodeStoreContainer();
         destination = new MongoNodeStoreContainer(destinationBlob);
     }
