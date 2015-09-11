@@ -578,14 +578,8 @@ public class DocumentNodeStoreService {
         final long blobGcMaxAgeInSecs = toLong(prop(PROP_BLOB_GC_MAX_AGE), DEFAULT_BLOB_GC_MAX_AGE);
 
         if (store.getBlobStore() instanceof GarbageCollectableBlobStore) {
-            BlobGarbageCollector gc = new BlobGarbageCollector() {
-                @Override
-                public void collectGarbage(boolean sweep) throws Exception {
-                    store.createBlobGarbageCollector(blobGcMaxAgeInSecs,
-                            ClusterRepositoryInfo.getId(mk.getNodeStore()))
-                            .collectGarbage(sweep);
-                }
-            };
+            BlobGarbageCollector gc = store.createBlobGarbageCollector(blobGcMaxAgeInSecs, 
+                                                        ClusterRepositoryInfo.getId(mk.getNodeStore()));
             registrations.add(registerMBean(whiteboard, BlobGCMBean.class, new BlobGC(gc, executor),
                     BlobGCMBean.TYPE, "Document node store blob garbage collection"));
         }

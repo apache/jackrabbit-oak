@@ -378,17 +378,11 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         }
 
         if (store.getBlobStore() instanceof GarbageCollectableBlobStore) {
-            BlobGarbageCollector gc = new BlobGarbageCollector() {
-                @Override
-                public void collectGarbage(boolean sweep) throws Exception {
-                    MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector(
-                            new SegmentBlobReferenceRetriever(store.getTracker()),
-                            (GarbageCollectableBlobStore) store.getBlobStore(),
-                            executor, TimeUnit.SECONDS.toMillis(blobGcMaxAgeInSecs),
-                            ClusterRepositoryInfo.getId(delegate));
-                    gc.collectGarbage(sweep);
-                }
-            };
+            BlobGarbageCollector gc = new MarkSweepGarbageCollector(
+                                                    new SegmentBlobReferenceRetriever(store.getTracker()),
+                                                    (GarbageCollectableBlobStore) store.getBlobStore(),
+                                                    executor, TimeUnit.SECONDS.toMillis(blobGcMaxAgeInSecs),
+                                                    ClusterRepositoryInfo.getId(delegate));
 
             blobGCRegistration = registerMBean(whiteboard, BlobGCMBean.class, new BlobGC(gc, executor),
                     BlobGCMBean.TYPE, "Segment node store blob garbage collection");
