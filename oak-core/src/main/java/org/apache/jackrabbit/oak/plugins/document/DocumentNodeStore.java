@@ -534,6 +534,10 @@ public final class DocumentNodeStore
                     new BackgroundLeaseUpdate(this, isDisposed),
                     "DocumentNodeStore lease update thread " + threadNamePostfix);
             leaseUpdateThread.setDaemon(true);
+            // OAK-3398 : make lease updating more robust by ensuring it
+            // has higher likelihood of succeeding than other threads
+            // on a very busy machine - so as to prevent lease timeout.
+            leaseUpdateThread.setPriority(Thread.MAX_PRIORITY);
             leaseUpdateThread.start();
         }
 
