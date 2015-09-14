@@ -61,7 +61,9 @@ public class ClusterInfoTest {
         clock.waitUntil(clock.getTime() + ns1.getClusterInfo().getLeaseTime());
 
         ns1.getClusterInfo().setLeaseTime(0);
+        ns1.getClusterInfo().setLeaseUpdateInterval(0);
         ns2.getClusterInfo().setLeaseTime(0);
+        ns2.getClusterInfo().setLeaseUpdateInterval(0);
 
         List<ClusterNodeInfoDocument> list = mem.query(
                 Collection.CLUSTER_NODES, "0", "a", Integer.MAX_VALUE);
@@ -113,8 +115,8 @@ public class ClusterInfoTest {
         // current lease end
         long leaseEnd = getLeaseEndTime(ns);
 
-        // wait a bit, but not more than a third of the lease time
-        clock.waitUntil(clock.getTime() + (ns.getClusterInfo().getLeaseTime() / 3) - 1000);
+        // wait a bit, 1sec less than leaseUpdateTime (10sec-1sec by default)
+        clock.waitUntil(clock.getTime() + ClusterNodeInfo.DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS - 1000);
 
         // must not renew lease right now
         ns.renewClusterIdLease();
