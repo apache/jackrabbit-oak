@@ -78,6 +78,8 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
+import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleException;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
@@ -360,7 +362,28 @@ public class DocumentNodeStoreService {
                         diffCachePercentage).
                 setCacheSegmentCount(cacheSegmentCount).
                 setCacheStackMoveDistance(cacheStackMoveDistance).
-                setLeaseCheck(true /* OAK-2739: enabled by default */);
+                setLeaseCheck(true /* OAK-2739: enabled by default */).
+                setLeaseFailureHandler(new LeaseFailureHandler() {
+                    
+                    @Override
+                    public void handleLeaseFailure() {
+                        try {
+                            // plan A: try stopping oak-core
+                            log.error("handleLeaseFailure: stopping oak-core...");
+                            Bundle bundle = context.getBundleContext().getBundle();
+                            bundle.stop();
+                            log.error("handleLeaseFailure: stopped oak-core.");
+                            // plan A worked, perfect!
+                        } catch (BundleException e) {
+                            log.error("handleLeaseFailure: exception while stopping oak-core: "+e, e);
+                            // plan B: stop only DocumentNodeStoreService (to stop the background threads)
+                            log.error("handleLeaseFailure: stopping DocumentNodeStoreService...");
+                            context.disableComponent(DocumentNodeStoreService.class.getName());
+                            log.error("handleLeaseFailure: stopped DocumentNodeStoreService");
+                            // plan B succeeded.
+                        }
+                    }
+                });
 
         if (persistentCache != null && persistentCache.length() > 0) {
             mkBuilder.setPersistentCache(persistentCache);
@@ -433,13 +456,6 @@ public class DocumentNodeStoreService {
 
         observerTracker.start(context.getBundleContext());
 
-        ClusterNodeInfo clusterInfo = mk.getNodeStore().getClusterInfo();
-        if (clusterInfo!=null) {
-            clusterInfo.setComponentContext(context);
-        } else {
-            log.warn("registerNodeStore: no ClusterNodeInfo available, lease-check will be disabled!");
-        }
-        
         DocumentStore ds = mk.getDocumentStore();
 
         // OAK-2682: time difference detection applied at startup with a default

@@ -493,6 +493,7 @@ public class DocumentMK {
         private Executor executor;
         private String persistentCacheURI = DEFAULT_PERSISTENT_CACHE_URI;
         private PersistentCache persistentCache;
+        private LeaseFailureHandler leaseFailureHandler;
 
         public Builder() {
         }
@@ -614,6 +615,15 @@ public class DocumentMK {
             return leaseCheck;
         }
 
+        public Builder setLeaseFailureHandler(LeaseFailureHandler leaseFailureHandler) {
+            this.leaseFailureHandler = leaseFailureHandler;
+            return this;
+        }
+        
+        public LeaseFailureHandler getLeaseFailureHandler() {
+            return leaseFailureHandler;
+        }
+        
         /**
          * Set the document store to use. By default an in-memory store is used.
          *

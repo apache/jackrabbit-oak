@@ -439,6 +439,9 @@ public final class DocumentNodeStore
         }
         if (builder.getLeaseCheck()) {
             s = new LeaseCheckDocumentStoreWrapper(s, clusterNodeInfo);
+            if (clusterNodeInfo!=null) {
+                clusterNodeInfo.setLeaseFailureHandler(builder.getLeaseFailureHandler());
+            }
         }
         this.store = s;
         this.clusterId = cid;
