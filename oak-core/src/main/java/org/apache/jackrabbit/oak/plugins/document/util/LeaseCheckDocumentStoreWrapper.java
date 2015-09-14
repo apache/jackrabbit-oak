@@ -157,8 +157,11 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
         // this is debatable whether or not a lease check should be done on dispose.
         // I'd say the lease must still be valid as on dispose there could be
         // stuff written to the document store which should only be done
-        // when the lease is valid
-        performLeaseCheck();
+        // when the lease is valid.
+        // however.. dispose() is also called as a result of the 'failed lease check stopping'
+        // mechanism - and in that case this would just throw an exception and the
+        // DocumentNodeStore.dispose() would not correctly finish.
+        // so: let's let the dispose ignore the lease state
         delegate.dispose();
     }
 
