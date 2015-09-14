@@ -272,6 +272,8 @@ public abstract class OakFixture {
                     DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcuri, jdbcuser, jdbcpasswd);
                     DocumentMK.Builder mkBuilder = new DocumentMK.Builder()
                             .setRDBConnection(ds, getOptions(dropDBAfterTest, tablePrefix)).memoryCacheSize(cacheSize)
+                            // FIXME: OAK-3389
+                            .setLeaseCheck(false)
                             .setClusterId(i).setLogging(false);
                     if (blobStore != null) {
                         mkBuilder.setBlobStore(blobStore);
