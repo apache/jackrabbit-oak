@@ -39,9 +39,11 @@ import com.mongodb.DBCollection;
 import junit.framework.Assert;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
+import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobReferenceIterator;
 import org.apache.jackrabbit.oak.plugins.identifier.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -227,7 +229,14 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         long candidates = gcObj.checkConsistency();
         assertEquals(1, executor.getTaskCount());
         assertEquals(count, candidates);
-    }    
+    }
+
+    // OAK-3390
+    @Test
+    public void referencedBlobs() throws Exception {
+        Iterator<ReferencedBlob> blobs = mk.getNodeStore().getReferencedBlobsIterator();
+        assertTrue(blobs instanceof MongoBlobReferenceIterator);
+    }
 
     private Set<String> gc(int blobGcMaxAgeInSecs) throws Exception {
         ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);

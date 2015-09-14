@@ -84,8 +84,6 @@ import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.Checkpoints.Info;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobReferenceIterator;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
@@ -400,6 +398,8 @@ public final class DocumentNodeStore
     private final VersionGarbageCollector versionGarbageCollector;
 
     private final JournalGarbageCollector journalGarbageCollector;
+
+    private final Iterable<ReferencedBlob> referencedBlobs;
     
     private final Executor executor;
 
@@ -448,6 +448,7 @@ public final class DocumentNodeStore
         this.versionGarbageCollector = new VersionGarbageCollector(
                 this, builder.createVersionGCSupport());
         this.journalGarbageCollector = new JournalGarbageCollector(this);
+        this.referencedBlobs = builder.createReferencedBlobs(this);
         this.lastRevRecoveryAgent = new LastRevRecoveryAgent(this);
         this.disableBranches = builder.isDisableBranches();
         this.missing = new DocumentNodeState(this, "MISSING", new Revision(0, 0, 0)) {
@@ -2698,10 +2699,7 @@ public final class DocumentNodeStore
      * @return an iterator for all the blobs
      */
     public Iterator<ReferencedBlob> getReferencedBlobsIterator() {
-        if(store instanceof MongoDocumentStore){
-            return new MongoBlobReferenceIterator(this, (MongoDocumentStore) store);
-        }
-        return new BlobReferenceIterator(this);
+        return referencedBlobs.iterator();
     }
 
     public DiffCache getDiffCache() {
