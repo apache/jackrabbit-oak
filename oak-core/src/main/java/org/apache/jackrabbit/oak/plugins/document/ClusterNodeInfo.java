@@ -30,9 +30,6 @@ import java.util.UUID;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.util.OakVersion;
-import org.osgi.framework.Bundle;
-import org.osgi.framework.BundleException;
-import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -271,8 +268,8 @@ public class ClusterNodeInfo {
      */
     private boolean newEntry;
 
-    /** OAK-3397 : this context is used to stop the oak-core bundle in case of lease failure **/
-    private ComponentContext cc;
+    /** OAK-3397 / OAK-3400 : the LeaseFailureHandler is the one that actually stops the oak-core bundle (or does something else if necessary) **/
+    private LeaseFailureHandler leaseFailureHandler;
 
     private ClusterNodeInfo(int id, DocumentStore store, String machineId, String instanceId, ClusterNodeState state,
             RecoverLockState revRecoveryLock, Long leaseEnd, boolean newEntry) {
@@ -431,7 +428,7 @@ public class ClusterNodeInfo {
     }
 
     public void performLeaseCheck() {
-        if (leaseCheckDisabled || !renewed || (cc==null)) {
+        if (leaseCheckDisabled || !renewed) {
             // if leaseCheckDisabled is set we never do the check, so return fast
 
             // the 'renewed' flag indicates if this instance *ever* renewed the lease after startup
@@ -494,36 +491,22 @@ public class ClusterNodeInfo {
         LOG.error(restarterErrorMsg);
         
         // actual stopping should be done in a separate thread, so:
-        final Runnable r = new Runnable() {
-
-            @Override
-            public void run() {
-                handleLeaseCheckFailed();
-            }
-        };
-        final Thread th = new Thread(r, "FailedLeaseCheck-Thread");
-        th.setDaemon(true);
-        th.start();
+        if (leaseFailureHandler!=null) {
+            final Runnable r = new Runnable() {
+    
+                @Override
+                public void run() {
+                    if (leaseFailureHandler!=null) {
+                        leaseFailureHandler.handleLeaseFailure();
+                    }
+                }
+            };
+            final Thread th = new Thread(r, "LeaseFailureHandler-Thread");
+            th.setDaemon(true);
+            th.start();
+        }
 
         throw new AssertionError(restarterErrorMsg);
-    }
-
-    private void handleLeaseCheckFailed() {
-        try {
-            // plan A: try stopping oak-core
-            LOG.error("handleLeaseCheckFailed: stopping oak-core...");
-            Bundle bundle = cc.getBundleContext().getBundle();
-            bundle.stop();
-            LOG.error("handleLeaseCheckFailed: stopped oak-core.");
-            // plan A worked, perfect!
-        } catch (BundleException e) {
-            LOG.error("handleLeaseCheckFailed: exception while stopping oak-core: "+e, e);
-            // plan B: stop only DocumentNodeStoreService (to stop the background threads)
-            LOG.error("handleLeaseCheckFailed: stopping DocumentNodeStoreService...");
-            cc.disableComponent(DocumentNodeStoreService.class.getName());
-            LOG.error("handleLeaseCheckFailed: stopped DocumentNodeStoreService");
-            // plan B succeeded.
-        }
     }
 
     /**
@@ -577,10 +560,10 @@ public class ClusterNodeInfo {
         return leaseTime;
     }
 
-    public void setComponentContext(ComponentContext cc) {
-        this.cc = cc;
+    public void setLeaseFailureHandler(LeaseFailureHandler leaseFailureHandler) {
+        this.leaseFailureHandler = leaseFailureHandler;
     }
-
+    
     public void dispose() {
         synchronized(this) {
             if (leaseCheckFailed) {
