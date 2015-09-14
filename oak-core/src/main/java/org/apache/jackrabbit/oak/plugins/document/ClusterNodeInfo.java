@@ -155,15 +155,42 @@ public class ClusterNodeInfo {
      */
     private static Clock clock = Clock.SIMPLE;
 
-
-    public static final int DEFAULT_LEASE_DURATION_MILLIS = 1000 * 60;
+    /** OAK-3398 : default lease duration 120sec **/
+    public static final int DEFAULT_LEASE_DURATION_MILLIS = 1000 * 120;
+    
+    /** OAK-3398 : default update interval 10sec **/
+    public static final int DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS = 1000 * 10;
+    
+    /** OAK-3398 : default failure margin 20sec before actual lease timeout **/
+    public static final int DEFAULT_LEASE_FAILURE_MARGIN_MILLIS = 1000 * 20;
 
     /**
-     * The number of milliseconds for a lease (1 minute by default, and
+     * The number of milliseconds for a lease (2 minute by default, and
      * initially).
      */
     private long leaseTime = DEFAULT_LEASE_DURATION_MILLIS;
+    
+    /**
+     * The number of milliseconds after which a lease will be updated
+     * (should not be every second as that would increase number of 
+     * writes towards DocumentStore considerably - but it should also
+     * not be too low as that would eat into the lease duration on average.
+     */
+    private long leaseUpdateInterval = DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS;
 
+    /**
+     * The number of milliseconds that a lease must still be valid
+     * before prematurely declaring it as failed. The default is 20sec.
+     * The idea of declaring a lease as failed before it actually failed
+     * is to avoid a race condition where the local instance assumes
+     * things are all fine but another instance in the cluster will
+     * 'in the same moment' declare it as failed. The lease should be 
+     * checked every second and updated after 10sec, so it should always
+     * have a validity of at least 110sec - if that's down to this margin
+     * of 20sec then things are not good and we have to give up.
+     */
+    private long leaseFailureMargin = DEFAULT_LEASE_FAILURE_MARGIN_MILLIS;
+    
     /**
      * The assigned cluster id.
      */
@@ -425,7 +452,9 @@ public class ClusterNodeInfo {
             throw new AssertionError(LEASE_CHECK_FAILED_MSG);
         }
         long now = getCurrentTime();
-        if (now < (leaseEndTime - leaseTime / 3)) { // OAK-3238 : put the barrier 1/3 before lease end
+        // OAK-3238 put the barrier 1/3 of 60sec=20sec before the end
+        // OAK-3398 keeps this the same but uses an explicit leaseFailureMargin for this
+        if (now < (leaseEndTime - leaseFailureMargin)) {
             // then all is good
             return;
         }
@@ -437,7 +466,7 @@ public class ClusterNodeInfo {
             // synchronized could have delayed the 'now', so
             // set it again..
             now = getCurrentTime();
-            if (now < (leaseEndTime - leaseTime / 3)) { // OAK-3238 : put the barrier 1/3 before lease end
+            if (now < (leaseEndTime - leaseFailureMargin)) {
                 // if lease is OK here, then there was a race
                 // between performLeaseCheck and renewLease()
                 // where the winner was: renewLease().
@@ -457,9 +486,10 @@ public class ClusterNodeInfo {
         
         final String restarterErrorMsg = LEASE_CHECK_FAILED_MSG+" (leaseEndTime: "+leaseEndTime+
                 ", leaseTime: "+leaseTime+
-                ", lease check end time (1/3 before lease end): "+(leaseEndTime - leaseTime / 3)+
+                ", leaseFailureMargin: "+leaseFailureMargin+
+                ", lease check end time (leaseEndTime-leaseFailureMargin): "+(leaseEndTime - leaseFailureMargin)+
                 ", now: "+now+
-                ", remaining: "+((leaseEndTime - leaseTime / 3) - now)+
+                ", remaining: "+((leaseEndTime - leaseFailureMargin) - now)+
                 ") Need to stop oak-core/DocumentNodeStoreService.";
         LOG.error(restarterErrorMsg);
         
@@ -499,14 +529,14 @@ public class ClusterNodeInfo {
     /**
      * Renew the cluster id lease. This method needs to be called once in a while,
      * to ensure the same cluster id is not re-used by a different instance.
-     * The lease is only renewed when a third of the lease time passed. That is,
-     * with a lease time of 60 seconds, the lease is renewed every 20 seconds.
+     * The lease is only renewed when after leaseUpdateInterval millis
+     * since last lease update - default being every 10 sec.
      *
      * @return {@code true} if the lease was renewed; {@code false} otherwise.
      */
     public boolean renewLease() {
         long now = getCurrentTime();
-        if (now + 2 * leaseTime / 3 < leaseEndTime) {
+        if (now < leaseEndTime - leaseTime + leaseUpdateInterval) {
             return false;
         }
         synchronized(this) {
@@ -534,8 +564,13 @@ public class ClusterNodeInfo {
     }
 
     /** for testing purpose only, not to be changed at runtime! */
-    public void setLeaseTime(long leaseTime) {
+    void setLeaseTime(long leaseTime) {
         this.leaseTime = leaseTime;
+    }
+    
+    /** for testing purpose only, not to be changed at runtime! */
+    void setLeaseUpdateInterval(long leaseUpdateInterval) {
+        this.leaseUpdateInterval = leaseUpdateInterval;
     }
 
     public long getLeaseTime() {

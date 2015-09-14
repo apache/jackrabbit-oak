@@ -127,6 +127,7 @@ public class ClusterTest {
         c1 = ClusterNodeInfo.getInstance(store, "m1", null);
         assertEquals(1, c1.getId());
         c1.setLeaseTime(1);
+        c1.setLeaseUpdateInterval(0);
         // this will quickly expire
         c1.renewLease();
         Thread.sleep(10);
