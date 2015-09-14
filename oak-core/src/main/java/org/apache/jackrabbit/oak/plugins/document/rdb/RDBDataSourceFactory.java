@@ -58,14 +58,24 @@ public class RDBDataSourceFactory {
         }
 
         try {
-            org.apache.tomcat.jdbc.pool.DataSource bds = new org.apache.tomcat.jdbc.pool.DataSource();
             LOG.debug("Getting driver for " + url);
             Driver d = DriverManager.getDriver(url);
-            bds.setDriverClassName(d.getClass().getName());
-            bds.setUsername(username);
-            bds.setPassword(passwd);
-            bds.setUrl(url);
-            return bds;
+
+            String classname = "org.apache.tomcat.jdbc.pool.DataSource";
+            try {
+                Class<?> dsclazz = Class.forName(classname);
+                DataSource ds = (DataSource)dsclazz.newInstance();
+                dsclazz.getMethod("setDriverClassName",  String.class).invoke(ds, d.getClass().getName());
+                dsclazz.getMethod("setUsername",  String.class).invoke(ds, username);
+                dsclazz.getMethod("setPassword",  String.class).invoke(ds, passwd);
+                dsclazz.getMethod("setUrl",  String.class).invoke(ds, url);
+                return ds;
+            }
+            catch (Exception ex) {
+                String message = "trying to create datasource " + classname;
+                LOG.info(message, ex);
+                throw new DocumentStoreException(message, ex);
+            }
         } catch (SQLException ex) {
             String message = "trying to obtain driver for " + url;
             LOG.info(message, ex);
