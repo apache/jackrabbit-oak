@@ -433,6 +433,13 @@ public class DocumentNodeStoreService {
 
         observerTracker.start(context.getBundleContext());
 
+        ClusterNodeInfo clusterInfo = mk.getNodeStore().getClusterInfo();
+        if (clusterInfo!=null) {
+            clusterInfo.setComponentContext(context);
+        } else {
+            log.warn("registerNodeStore: no ClusterNodeInfo available, lease-check will be disabled!");
+        }
+        
         DocumentStore ds = mk.getDocumentStore();
 
         // OAK-2682: time difference detection applied at startup with a default

@@ -30,6 +30,9 @@ import java.util.UUID;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.util.OakVersion;
+import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleException;
+import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +40,9 @@ import org.slf4j.LoggerFactory;
  * Information about a cluster node.
  */
 public class ClusterNodeInfo {
+
+    private static final String LEASE_CHECK_FAILED_MSG = "performLeaseCheck: this oak instance failed to update "
+            + "the lease in time and can therefore no longer access this DocumentNodeStore.";
 
     private static final Logger LOG = LoggerFactory.getLogger(ClusterNodeInfo.class);
 
@@ -204,10 +210,12 @@ public class ClusterNodeInfo {
     private ClusterNodeState state;
     
     /**
-     * Whether or not the OAK-2739/leaseCheck failed and thus a System.exit was already triggered
-     * (is used to avoid calling System.exit a hundred times when it then happens)
+     * OAK-2739 / OAK-3397 : once a lease check turns out negative, this flag
+     * is set to prevent any further checks to succeed. Also, only the first
+     * one to change this flag will take the appropriate action that results
+     * from a failed leaseCheck (which is currently to stop oak-core bundle)
      */
-    private volatile boolean systemExitTriggered;
+    private boolean leaseCheckFailed = false;
 
     /**
      * OAK-2739: for development it would be useful to be able to disable the
@@ -235,6 +243,9 @@ public class ClusterNodeInfo {
      * reused
      */
     private boolean newEntry;
+
+    /** OAK-3397 : this context is used to stop the oak-core bundle in case of lease failure **/
+    private ComponentContext cc;
 
     private ClusterNodeInfo(int id, DocumentStore store, String machineId, String instanceId, ClusterNodeState state,
             RecoverLockState revRecoveryLock, Long leaseEnd, boolean newEntry) {
@@ -393,47 +404,96 @@ public class ClusterNodeInfo {
     }
 
     public void performLeaseCheck() {
-        if (leaseCheckDisabled || !renewed) {
+        if (leaseCheckDisabled || !renewed || (cc==null)) {
             // if leaseCheckDisabled is set we never do the check, so return fast
 
             // the 'renewed' flag indicates if this instance *ever* renewed the lease after startup
             // until that is not set, we cannot do the lease check (otherwise startup wouldn't work)
             return;
         }
-        final long now = getCurrentTime();
+        if (leaseCheckFailed) {
+            // unsynchronized access to leaseCheckFailed is fine
+            // since it only ever changes from false to true once
+            // and should the current thread read it erroneously
+            // as false here, it would further down find out that
+            // the lease has indeed still expired and then
+            // go into the synchronized.
+            // (note that once a lease check failed it would not
+            // be updated again, ever, as guaranteed by checking
+            // for leaseCheckFailed in renewLease() )
+            LOG.error(LEASE_CHECK_FAILED_MSG);
+            throw new AssertionError(LEASE_CHECK_FAILED_MSG);
+        }
+        long now = getCurrentTime();
         if (now < (leaseEndTime - leaseTime / 3)) { // OAK-3238 : put the barrier 1/3 before lease end
             // then all is good
             return;
         }
-
-        // OAK-2739 : when the lease is not current, we must stop
-        // the instance immediately to avoid any cluster inconsistency
-        final String errorMsg = "performLeaseCheck: this instance failed to update the lease in time "
-                + "(leaseEndTime: "+leaseEndTime+", now: "+now+", leaseTime: "+leaseTime+") "
-                + "and is thus no longer eligible for taking part in the cluster. Shutting down NOW!";
-        LOG.error(errorMsg);
-
-        // now here comes the thing: we should a) call System.exit in a separate thread
-        // to avoid any deadlock when calling from eg within the shutdown hook
-        // AND b) we should not call system.exit hundred times.
-        // so for b) we use 'systemExitTriggered' to avoid calling it over and over
-        // BUT it doesn't have to be 100% ensured that system.exit is called only once.
-        // it is fine if it gets called once, twice - but just not hundred times.
-        // which is a long way of saying: volatile is fine here - and the 'if' too
-        if (!systemExitTriggered) {
-            systemExitTriggered = true;
-            final Runnable r = new Runnable() {
-
-                @Override
-                public void run() {
-                    System.exit(-1);
-                }
-            };
-            final Thread th = new Thread(r, "FailedLeaseCheckShutdown-Thread");
-            th.setDaemon(true);
-            th.start();
+        synchronized(this) {
+            if (leaseCheckFailed) {
+                LOG.error(LEASE_CHECK_FAILED_MSG);
+                throw new AssertionError(LEASE_CHECK_FAILED_MSG);
+            }
+            // synchronized could have delayed the 'now', so
+            // set it again..
+            now = getCurrentTime();
+            if (now < (leaseEndTime - leaseTime / 3)) { // OAK-3238 : put the barrier 1/3 before lease end
+                // if lease is OK here, then there was a race
+                // between performLeaseCheck and renewLease()
+                // where the winner was: renewLease().
+                // so: luckily we can continue here
+                return;
+            }
+            leaseCheckFailed = true; // make sure only one thread 'wins', ie goes any further
         }
-        throw new AssertionError(errorMsg);
+        
+        // OAK-3397 : unlike previously, when the lease check fails we should not
+        // do a hard System exit here but rather stop the oak-core bundle 
+        // (or if that fails just deactivate DocumentNodeStore) - with the
+        // goals to prevent this instance to continue to operate
+        // give that a lease failure is a strong indicator of a faulty
+        // instance - and to stop the background threads of DocumentNodeStore,
+        // specifically the BackgroundLeaseUpdate and the BackgroundOperation.
+        
+        final String restarterErrorMsg = LEASE_CHECK_FAILED_MSG+" (leaseEndTime: "+leaseEndTime+
+                ", leaseTime: "+leaseTime+
+                ", lease check end time (1/3 before lease end): "+(leaseEndTime - leaseTime / 3)+
+                ", now: "+now+
+                ", remaining: "+((leaseEndTime - leaseTime / 3) - now)+
+                ") Need to stop oak-core/DocumentNodeStoreService.";
+        LOG.error(restarterErrorMsg);
+        
+        // actual stopping should be done in a separate thread, so:
+        final Runnable r = new Runnable() {
+
+            @Override
+            public void run() {
+                handleLeaseCheckFailed();
+            }
+        };
+        final Thread th = new Thread(r, "FailedLeaseCheck-Thread");
+        th.setDaemon(true);
+        th.start();
+
+        throw new AssertionError(restarterErrorMsg);
+    }
+
+    private void handleLeaseCheckFailed() {
+        try {
+            // plan A: try stopping oak-core
+            LOG.error("handleLeaseCheckFailed: stopping oak-core...");
+            Bundle bundle = cc.getBundleContext().getBundle();
+            bundle.stop();
+            LOG.error("handleLeaseCheckFailed: stopped oak-core.");
+            // plan A worked, perfect!
+        } catch (BundleException e) {
+            LOG.error("handleLeaseCheckFailed: exception while stopping oak-core: "+e, e);
+            // plan B: stop only DocumentNodeStoreService (to stop the background threads)
+            LOG.error("handleLeaseCheckFailed: stopping DocumentNodeStoreService...");
+            cc.disableComponent(DocumentNodeStoreService.class.getName());
+            LOG.error("handleLeaseCheckFailed: stopped DocumentNodeStoreService");
+            // plan B succeeded.
+        }
     }
 
     /**
@@ -449,8 +509,18 @@ public class ClusterNodeInfo {
         if (now + 2 * leaseTime / 3 < leaseEndTime) {
             return false;
         }
+        synchronized(this) {
+            if (leaseCheckFailed) {
+                // prevent lease renewal after it failed
+                LOG.error(LEASE_CHECK_FAILED_MSG);
+                throw new AssertionError(LEASE_CHECK_FAILED_MSG);
+            }
+            // synchronized could have delayed the 'now', so
+            // set it again..
+            now = getCurrentTime();
+            leaseEndTime = now + leaseTime;
+        }
         UpdateOp update = new UpdateOp("" + id, true);
-        leaseEndTime = now + leaseTime;
         update.set(LEASE_END_KEY, leaseEndTime);
         update.set(STATE, ClusterNodeState.ACTIVE.name());
         ClusterNodeInfoDocument doc = store.createOrUpdate(Collection.CLUSTER_NODES, update);
@@ -463,6 +533,7 @@ public class ClusterNodeInfo {
         return true;
     }
 
+    /** for testing purpose only, not to be changed at runtime! */
     public void setLeaseTime(long leaseTime) {
         this.leaseTime = leaseTime;
     }
@@ -471,7 +542,17 @@ public class ClusterNodeInfo {
         return leaseTime;
     }
 
+    public void setComponentContext(ComponentContext cc) {
+        this.cc = cc;
+    }
+
     public void dispose() {
+        synchronized(this) {
+            if (leaseCheckFailed) {
+                LOG.warn("dispose: lease check failed, thus not marking instance as cleanly shut down.");
+                return;
+            }
+        }
         UpdateOp update = new UpdateOp("" + id, true);
         update.set(LEASE_END_KEY, null);
         update.set(STATE, null);

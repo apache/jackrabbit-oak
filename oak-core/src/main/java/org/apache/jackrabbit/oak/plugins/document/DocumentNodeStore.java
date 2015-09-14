@@ -566,7 +566,17 @@ public final class DocumentNodeStore
 
         // do a final round of background operations after
         // the background thread stopped
-        internalRunBackgroundUpdateOperations();
+        try{
+            internalRunBackgroundUpdateOperations();
+        } catch(AssertionError ae) {
+            // OAK-3250 : when a lease check fails, subsequent modifying requests
+            // to the DocumentStore will throw an AssertionError. Since as a result
+            // of a failing lease check a bundle.stop is done and thus a dispose of the
+            // DocumentNodeStore happens, it is very likely that in that case 
+            // you run into an AssertionError. We should still continue with disposing
+            // though - thus catching and logging..
+            LOG.error("dispose: an AssertionError happened during dispose's last background ops: "+ae, ae);
+        }
 
         if (leaseUpdateThread != null) {
             try {
