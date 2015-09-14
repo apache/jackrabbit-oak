@@ -43,6 +43,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
@@ -162,6 +163,47 @@ public class VersionGCDeletionTest {
             assertNull(ts.find(Collection.NODES, "2:/a"+i+"/b"+i));
             assertNull(ts.find(Collection.NODES, "1:/a"+i));
         }
+    }
+
+    @Ignore("OAK-3395")
+    @Test
+    public void gcWithPathsHavingNewLine() throws Exception{
+        int noOfDocsToDelete = 200;
+        DocumentStore ts = new MemoryDocumentStore();
+        store = new DocumentMK.Builder()
+                .clock(clock)
+                .setDocumentStore(new MemoryDocumentStore())
+                .setAsyncDelay(0)
+                .getNodeStore();
+
+        //Baseline the clock
+        clock.waitUntil(Revision.getCurrentTimestamp());
+
+        NodeBuilder b1 = store.getRoot().builder();
+        NodeBuilder xb = b1.child("x");
+        for (int i = 0; i < noOfDocsToDelete - 1; i++){
+            xb.child("a"+i).child("b"+i);
+        }
+        xb.child("a-1").child("b\r");
+        store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        long maxAge = 1; //hours
+        long delta = TimeUnit.MINUTES.toMillis(10);
+
+        //Remove x/y
+        NodeBuilder b2 = store.getRoot().builder();
+        b2.child("x").remove();
+        store.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        store.runBackgroundOperations();
+
+        //3. Check that deleted doc does get collected post maxAge
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
+        VersionGarbageCollector gc = store.getVersionGarbageCollector();
+        gc.setOverflowToDiskThreshold(100);
+
+        VersionGCStats stats = gc.gc(maxAge * 2, HOURS);
+        assertEquals(noOfDocsToDelete * 2 + 1, stats.deletedDocGCCount);
     }
 
     // OAK-2420
