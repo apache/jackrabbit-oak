@@ -18,10 +18,6 @@ Apache Jackrabbit is a project of the Apache Software Foundation.
 New configuration options in Oak 1.0.20
 ---------------------------------------
 
-
-Changes in Oak 1.0.20
----------------------
-
 This release of Oak includes an improvement to the DocumentNodeStore,
 which requires a new collection in the DocumentStore. The DocumentStore
 implementations in Oak will try to create the new collection if necessary.
@@ -37,13 +33,55 @@ http://jackrabbit.apache.org/oak/docs/query/lucene.html#index-node-name
 for usage details.
  
 
-Sub-task
+Changes in Oak 1.0.20
+---------------------
 
-Bug
+Sub-tasks
 
-Improvement
+    [OAK-2634] - QueryEngine should expose name query as property restriction
+    [OAK-3261] - consider existing locks when creating new ones
+    [OAK-3279] - Create StringUtils.estimateMemoryUsage(String)
+    [OAK-3338] - Deprecate CIHelper travis methods with profile 
+    [OAK-3345] - SessionMBean should provide information about pending refresh
 
-Task    
+Technical tasks
+
+    [OAK-3385] - Make compress-interval configurable
+    [OAK-3391] - RDBBlobStore: speed up testBigBlob(), also improve memory usage
+
+Bugs
+
+    [OAK-2712] - Possible null-dereference when calling ItemImpl#perform
+    [OAK-2929] - Parent of unseen children must not be removable
+    [OAK-2979] - JournalTest.cleanupTest reliably fails on Windows
+    [OAK-3265] - Test failures: NodeLocalNameTest, NodeNameTest
+    [OAK-3281] - Test failures on trunk: SolrIndexQueryTestIT.sql2
+    [OAK-3282] - DataStoreBlobStore cache ignores key for memory calculation
+    [OAK-3283] - Background read does not close StringSort
+    [OAK-3310] - Write operations on Property do not check checked-out state of Node
+    [OAK-3313] - Many tests leak DocumentNodeStore instances
+    [OAK-3324] - Evaluation with restriction is not consistent with parent ACLs
+    [OAK-3333] - SplitOperations purges _commitRoot entries too eagerly
+    [OAK-3339] - Logging in and out many sessions leads to high memory consumption 
+    [OAK-3376] - DocumentNodeStoreTest.dispose() waiting indefinitely on ArrayBlockingQueue.put()
+    [OAK-3383] - "The unbindBlobDataSource method has thrown an exception" message on shutdown of the RDBMK
+
+Improvements
+
+    [OAK-1752] - Node name queries should use an index
+    [OAK-3146] - ExternalLoginModuleFactory should inject SyncManager and ExternalIdentityProviderManager
+    [OAK-3259] - Optimize NodeDocument.getNewestRevision()
+    [OAK-3288] - clarify DocumentStore contract with respect to number formats
+    [OAK-3365] - Wording in Log statements inconsistent
+
+Tasks
+
+    [OAK-1743] - Cleanup documentation of _modCount
+
+Tests
+
+    [OAK-3312] - [Blob GC] Test case for GC / OAK-3167
+    [OAK-3337] - CIHelper methods related to travis outdated 
 
 In addition to the above-mentioned changes, this release contains
 all changes included in previous Apache Jackrabbit Oak 1.0.x releases.
