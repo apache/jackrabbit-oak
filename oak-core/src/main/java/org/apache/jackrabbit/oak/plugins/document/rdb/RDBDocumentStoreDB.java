@@ -204,7 +204,6 @@ public enum RDBDocumentStoreDB {
         public String getConcatQueryString(int dataOctetLimit, int dataLength) {
             return "CONCAT(DATA, ?)";
         }
-
         @Override
         public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
             Connection con = null;
@@ -218,6 +217,13 @@ public enum RDBDocumentStoreDB {
                 rs = stmt.executeQuery();
                 while (rs.next()) {
                     result.put("collation", rs.getString("Collation"));
+                }
+                stmt.close();
+                stmt = con.prepareStatement(
+                        "SHOW VARIABLES WHERE variable_name LIKE 'character\\_set\\_%' OR variable_name LIKE 'collation%' OR variable_name = 'max_allowed_packet'");
+                rs = stmt.executeQuery();
+                while (rs.next()) {
+                    result.put(rs.getString(1), rs.getString(2));
                 }
                 stmt.close();
                 con.commit();
