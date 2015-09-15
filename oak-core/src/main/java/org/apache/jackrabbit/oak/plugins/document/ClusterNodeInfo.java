@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
  */
 public class ClusterNodeInfo {
 
-    private static final String LEASE_CHECK_FAILED_MSG = "performLeaseCheck: this oak instance failed to update "
+    private static final String LEASE_CHECK_FAILED_MSG = "This oak instance failed to update "
             + "the lease in time and can therefore no longer access this DocumentNodeStore.";
 
     private static final Logger LOG = LoggerFactory.getLogger(ClusterNodeInfo.class);
@@ -222,6 +222,20 @@ public class ClusterNodeInfo {
      * The time (in milliseconds UTC) where the lease of this instance ends.
      */
     private volatile long leaseEndTime;
+    
+    /**
+     * The value of leaseEnd last updated towards DocumentStore -
+     * this one is used to compare against (for OAK-3398) when checking
+     * if any other instance updated the lease or if the lease is unchanged.
+     * (This is kind of a duplication of the leaseEndTime field, yes - but the semantics
+     * are that previousLeaseEndTime exactly only serves the purpose of
+     * keeping the value of what was stored in the previous lease update.
+     * leaseEndTime on the other hand serves the purpose of *defining the lease end*,
+     * these are two different concerns, thus justify two different fields.
+     * the leaseEndTime for example can be manipulated during tests therefore,
+     * without interfering with previousLeaseEndTime)
+     */
+    private long previousLeaseEndTime;
 
     /**
      * The read/write mode.
@@ -455,8 +469,12 @@ public class ClusterNodeInfo {
             // then all is good
             return;
         }
+        // synchronized: we need to guard leaseCheckFailed in order to ensure
+        //               that it is only set by 1 thread - thus handleLeaseFailure
+        //               is guaranteed to be only called once
         synchronized(this) {
             if (leaseCheckFailed) {
+                // someone else won and marked leaseCheckFailed - so we only log/throw
                 LOG.error(LEASE_CHECK_FAILED_MSG);
                 throw new AssertionError(LEASE_CHECK_FAILED_MSG);
             }
@@ -473,6 +491,19 @@ public class ClusterNodeInfo {
             leaseCheckFailed = true; // make sure only one thread 'wins', ie goes any further
         }
         
+        final String errorMsg = LEASE_CHECK_FAILED_MSG+" (leaseEndTime: "+leaseEndTime+
+                ", leaseTime: "+leaseTime+
+                ", leaseFailureMargin: "+leaseFailureMargin+
+                ", lease check end time (leaseEndTime-leaseFailureMargin): "+(leaseEndTime - leaseFailureMargin)+
+                ", now: "+now+
+                ", remaining: "+((leaseEndTime - leaseFailureMargin) - now)+
+                ") Need to stop oak-core/DocumentNodeStoreService.";
+        LOG.error(errorMsg);
+
+        handleLeaseFailure(errorMsg);
+    }
+    
+    private void handleLeaseFailure(final String errorMsg) {
         // OAK-3397 : unlike previously, when the lease check fails we should not
         // do a hard System exit here but rather stop the oak-core bundle 
         // (or if that fails just deactivate DocumentNodeStore) - with the
@@ -480,15 +511,6 @@ public class ClusterNodeInfo {
         // give that a lease failure is a strong indicator of a faulty
         // instance - and to stop the background threads of DocumentNodeStore,
         // specifically the BackgroundLeaseUpdate and the BackgroundOperation.
-        
-        final String restarterErrorMsg = LEASE_CHECK_FAILED_MSG+" (leaseEndTime: "+leaseEndTime+
-                ", leaseTime: "+leaseTime+
-                ", leaseFailureMargin: "+leaseFailureMargin+
-                ", lease check end time (leaseEndTime-leaseFailureMargin): "+(leaseEndTime - leaseFailureMargin)+
-                ", now: "+now+
-                ", remaining: "+((leaseEndTime - leaseFailureMargin) - now)+
-                ") Need to stop oak-core/DocumentNodeStoreService.";
-        LOG.error(restarterErrorMsg);
         
         // actual stopping should be done in a separate thread, so:
         if (leaseFailureHandler!=null) {
@@ -506,23 +528,32 @@ public class ClusterNodeInfo {
             th.start();
         }
 
-        throw new AssertionError(restarterErrorMsg);
+        throw new AssertionError(errorMsg);
     }
 
     /**
      * Renew the cluster id lease. This method needs to be called once in a while,
      * to ensure the same cluster id is not re-used by a different instance.
-     * The lease is only renewed when after leaseUpdateInterval millis
-     * since last lease update - default being every 10 sec.
+     * The lease is only renewed after 'leaseUpdateInterval' millis
+     * since last lease update - default being every 10 sec (this used to be 30sec).
      *
      * @return {@code true} if the lease was renewed; {@code false} otherwise.
      */
     public boolean renewLease() {
         long now = getCurrentTime();
         if (now < leaseEndTime - leaseTime + leaseUpdateInterval) {
+            // no need to renew the lease - it is still within 'leaseUpdateInterval'
             return false;
         }
+        // lease requires renewal
+        
         synchronized(this) {
+            // this is synchronized since access to leaseCheckFailed and leaseEndTime
+            // are both normally synchronzied to propagate values between renewLease() 
+            // and performLeaseCheck().
+            // (there are unsychronized accesses to both of these as well - however
+            // they are both double-checked - and with both reading a stale value is thus OK)
+            
             if (leaseCheckFailed) {
                 // prevent lease renewal after it failed
                 LOG.error(LEASE_CHECK_FAILED_MSG);
@@ -536,7 +567,55 @@ public class ClusterNodeInfo {
         UpdateOp update = new UpdateOp("" + id, true);
         update.set(LEASE_END_KEY, leaseEndTime);
         update.set(STATE, ClusterNodeState.ACTIVE.name());
-        ClusterNodeInfoDocument doc = store.createOrUpdate(Collection.CLUSTER_NODES, update);
+        ClusterNodeInfoDocument doc = null;
+        if (renewed && !leaseCheckDisabled) { // if leaseCheckDisabled, then we just update the lease without checking
+            // OAK-3398:
+            // if we renewed the lease ever with this instance/ClusterNodeInfo
+            // (which is the normal case.. except for startup),
+            // then we can now make an assertion that the lease is unchanged
+            // and the incremental update must only succeed if no-one else
+            // did a recover/inactivation in the meantime
+            update.setNew(false); // in this case it is *not* a new document
+            // make two assertions: the leaseEnd must match ..
+            update.equals(LEASE_END_KEY, null, previousLeaseEndTime);
+            // plus it must still be active ..
+            update.equals(STATE, null, ClusterNodeState.ACTIVE.name());
+            // @TODO: to make it 100% failure proof we could introduce
+            // yet another field to clusterNodes: a runtimeId that we
+            // create (UUID) at startup each time - and against that
+            // we could also check here - but that goes a bit far IMO
+            doc = store.findAndUpdate(Collection.CLUSTER_NODES, update);
+        } else {
+            // this is only for startup - then we 'just' overwrite
+            // the lease - or create it - and don't care a lot about what the
+            // status of the lease was
+            doc = store.createOrUpdate(Collection.CLUSTER_NODES, update);
+        }
+        if (doc==null) { // should not occur when leaseCheckDisabled
+            // OAK-3398 : someone else either started recovering or is already through with that.
+            // in both cases the local instance lost the lease-update-game - and hence
+            // should behave and must consider itself as 'lease failed'
+
+            synchronized(this) {                
+                if (leaseCheckFailed) {
+                    // somehow the instance figured out otherwise that the 
+                    // lease check failed - so we don't have to too - so we just log/throw
+                    LOG.error(LEASE_CHECK_FAILED_MSG);
+                    throw new AssertionError(LEASE_CHECK_FAILED_MSG);
+                }
+                leaseCheckFailed = true; // make sure only one thread 'wins', ie goes any further
+            }
+            final String errorMsg = LEASE_CHECK_FAILED_MSG+
+                    " (Could not update lease anymore, someone else in the cluster "
+                    + "must have noticed this instance' slowness already. "
+                    + "Going to invoke leaseFailureHandler!)";
+            LOG.error(errorMsg);
+
+            handleLeaseFailure(errorMsg);
+            // should never be reached: handleLeaseFailure throws an AssertionError
+            return false;
+        }
+        previousLeaseEndTime = leaseEndTime; // store previousLeaseEndTime for reference for next time
         String mode = (String) doc.get(READ_WRITE_MODE_KEY);
         if (mode != null && !mode.equals(readWriteMode)) {
             readWriteMode = mode;
