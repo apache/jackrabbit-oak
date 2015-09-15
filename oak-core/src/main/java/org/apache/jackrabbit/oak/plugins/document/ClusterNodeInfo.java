@@ -516,7 +516,7 @@ public class ClusterNodeInfo {
                             "ms of failing ("+(leaseEndTime-now)+" ms precisely) - "
                             + "waiting 1sec to retry (up to another "+
                             (MAX_RETRY_SLEEPS_BEFORE_LEASE_FAILURE-1-i)+" times)...");
-                    Thread.sleep(1000);
+                    wait(1000); // directly use this to sleep on - to allow renewLease() to work
                 } catch (InterruptedException e) {
                     LOG.warn("performLeaseCheck: got interrupted - giving up: "+e, e);
                     break;
