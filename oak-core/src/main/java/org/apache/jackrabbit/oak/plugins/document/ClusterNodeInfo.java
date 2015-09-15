@@ -158,8 +158,15 @@ public class ClusterNodeInfo {
     /** OAK-3398 : default update interval 10sec **/
     public static final int DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS = 1000 * 10;
     
-    /** OAK-3398 : default failure margin 20sec before actual lease timeout **/
+    /** OAK-3398 : default failure margin 20sec before actual lease timeout
+     * (note that OAK-3399 / MAX_RETRY_SLEEPS_BEFORE_LEASE_FAILURE eats
+     * off another few seconds from this margin, by default 5sec,
+     * so the actual default failure-margin is down to 15sec - and that is high-noon!)
+     */
     public static final int DEFAULT_LEASE_FAILURE_MARGIN_MILLIS = 1000 * 20;
+
+    /** OAK-3399 : max number of times we're doing a 1sec retry loop just before declaring lease failure **/
+    private static final int MAX_RETRY_SLEEPS_BEFORE_LEASE_FAILURE = 5;
 
     /**
      * The number of milliseconds for a lease (2 minute by default, and
@@ -478,15 +485,42 @@ public class ClusterNodeInfo {
                 LOG.error(LEASE_CHECK_FAILED_MSG);
                 throw new AssertionError(LEASE_CHECK_FAILED_MSG);
             }
-            // synchronized could have delayed the 'now', so
-            // set it again..
-            now = getCurrentTime();
-            if (now < (leaseEndTime - leaseFailureMargin)) {
-                // if lease is OK here, then there was a race
-                // between performLeaseCheck and renewLease()
-                // where the winner was: renewLease().
-                // so: luckily we can continue here
-                return;
+            for(int i=0; i<MAX_RETRY_SLEEPS_BEFORE_LEASE_FAILURE; i++) {
+                now = getCurrentTime();
+                if (now < (leaseEndTime - leaseFailureMargin)) {
+                    // if lease is OK here, then there was a race
+                    // between performLeaseCheck and renewLease()
+                    // where the winner was: renewLease().
+                    // so: luckily we can continue here
+                    return;
+                }
+                // OAK-3399 : in case of running into the leaseFailureMargin
+                // (shortly, 20sec, before the lease times out), we're now doing
+                // a short retry loop of 1sec sleeps (default 5x1sec=5sec),
+                // to give this instance 'one last chance' before we have to 
+                // declare the lease as failed.
+                // This sort of retry loop would allow situations such as
+                // when running a single-node cluster and interrupting/pausing
+                // the process temporarily: in this case when waking up, the
+                // lease might momentarily be timed out, but the lease would
+                // still be 'updateable' and that would happen pretty soon
+                // after waking up. So in that case, doing these retry-sleeps
+                // would help.
+                // in most other cases where the local instance is not doing
+                // lease updates due to 'GC-death' or 'lease-thread-crashed'
+                // or the like, it would not help. But it would also not hurt
+                // as the margin is 20sec and we're just reducing it by 5sec
+                // (in the un-paused case)
+                try {
+                    LOG.info("performLeaseCheck: lease within "+leaseFailureMargin+
+                            "ms of failing ("+(leaseEndTime-now)+" ms precisely) - "
+                            + "waiting 1sec to retry (up to another "+
+                            (MAX_RETRY_SLEEPS_BEFORE_LEASE_FAILURE-1-i)+" times)...");
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    LOG.warn("performLeaseCheck: got interrupted - giving up: "+e, e);
+                    break;
+                }
             }
             leaseCheckFailed = true; // make sure only one thread 'wins', ie goes any further
         }
