@@ -487,9 +487,9 @@ public class RDBDocumentStore implements DocumentStore {
 
         DatabaseMetaData md = con.getMetaData();
         String dbDesc = String.format("%s %s (%d.%d)", md.getDatabaseProductName(), md.getDatabaseProductVersion(),
-                md.getDatabaseMajorVersion(), md.getDatabaseMinorVersion());
+                md.getDatabaseMajorVersion(), md.getDatabaseMinorVersion()).replaceAll("[\r\n\t]", " ").trim();
         String driverDesc = String.format("%s %s (%d.%d)", md.getDriverName(), md.getDriverVersion(), md.getDriverMajorVersion(),
-                md.getDriverMinorVersion());
+                md.getDriverMinorVersion()).replaceAll("[\r\n\t]", " ").trim();
         String dbUrl = md.getURL();
 
         this.db = RDBDocumentStoreDB.getValue(md.getDatabaseProductName());
