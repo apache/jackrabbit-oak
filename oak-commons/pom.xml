@@ -109,5 +109,12 @@
       <artifactId>commons-math3</artifactId>
       <optional>true</optional>
     </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+      <version>3.3.2</version>
+      <optional>true</optional>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 </project>
