@@ -91,6 +91,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -1065,6 +1066,7 @@ public class DocumentNodeStoreTest {
     }
 
     // OAK-2929
+    @Ignore
     @Test
     public void conflictDetectionWithClockDifference() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
@@ -1122,6 +1124,7 @@ public class DocumentNodeStoreTest {
     }
 
     // OAK-2929
+    @Ignore
     @Test
     public void parentWithUnseenChildrenMustNotBeDeleted() throws Exception {
         final MemoryDocumentStore docStore = new MemoryDocumentStore();
@@ -1284,7 +1287,12 @@ public class DocumentNodeStoreTest {
         //root would hold reference to store2 root state after initial repo initialization
         root = store2.getRoot();
 
-        //The hidden node and children should be creatable across cluster concurrently
+        //The hidden node itself should be creatable across cluster concurrently
+        builder = root.builder();
+        builder.child(":dynHidden");
+        merge(store2, builder);
+
+        //Children of hidden node should be creatable across cluster concurrently
         builder = root.builder();
         builder.child(":hidden").child("b");
         builder.child(":dynHidden").child("c");
