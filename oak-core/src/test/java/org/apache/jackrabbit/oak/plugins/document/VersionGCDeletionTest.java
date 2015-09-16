@@ -165,7 +165,6 @@ public class VersionGCDeletionTest {
         }
     }
 
-    @Ignore("OAK-3395")
     @Test
     public void gcWithPathsHavingNewLine() throws Exception{
         int noOfDocsToDelete = 200;
