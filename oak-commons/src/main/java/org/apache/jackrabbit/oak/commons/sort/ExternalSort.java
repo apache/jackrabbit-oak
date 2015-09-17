@@ -201,7 +201,7 @@ public class ExternalSort {
                     // in bytes
                     long currentblocksize = 0;
                     while ((currentblocksize < blocksize)
-                            && ((line = fbr.readLine()) != null)) {
+                            && ((line = readLine(fbr)) != null)) {
                         // as long as you have enough memory
                         if (counter < numHeader) {
                             counter++;
@@ -296,7 +296,7 @@ public class ExternalSort {
             for (String r : tmplist) {
                 // Skip duplicate lines
                 if (!distinct || !r.equals(lastLine)) {
-                    fbw.write(r);
+                    writeLine(fbw, r);
                     fbw.newLine();
                     lastLine = r;
                 }
@@ -454,7 +454,7 @@ public class ExternalSort {
                 String r = bfb.pop();
                 // Skip duplicate lines
                 if (!distinct || !r.equals(lastLine)) {
-                    fbw.write(r);
+                    writeLine(fbw, r);
                     fbw.newLine();
                     lastLine = r;
                 }
@@ -629,6 +629,14 @@ public class ExternalSort {
         }
     };
 
+    static String readLine(BufferedReader br) throws IOException {
+        return EscapeUtils.unescapeLineBreaks(br.readLine());
+    }
+
+    static void writeLine(BufferedWriter wr, String line) throws IOException {
+        wr.write(EscapeUtils.escapeLineBreak(line));
+    }
+
 }
 
 class BinaryFileBuffer {
@@ -648,7 +656,7 @@ class BinaryFileBuffer {
 
     private void reload() throws IOException {
         try {
-            if ((this.cache = this.fbr.readLine()) == null) {
+            if ((this.cache = ExternalSort.readLine(fbr)) == null) {
                 this.empty = true;
                 this.cache = null;
             } else {
