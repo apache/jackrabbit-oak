@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import java.lang.reflect.InvocationTargetException;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.CallableStatement;
@@ -168,7 +169,19 @@ public class RDBConnectionWrapper implements Connection {
     // needed in Java 7...
     @SuppressWarnings("unused")
     public String getSchema() throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        try {
+            return (String) connection.getClass().getMethod("getSchema").invoke(connection);
+        } catch (InvocationTargetException ex) {
+            if (ex.getCause() instanceof SQLException) {
+                throw (SQLException) ex.getCause();
+            } else {
+                // best effort otherwise
+                return null;
+            }
+        } catch (Throwable ex) {
+            // best effort otherwise
+            return null;
+        }
     }
 
     public int getTransactionIsolation() throws SQLException {
