@@ -36,6 +36,8 @@ import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.PROP_SPLIT_BLOBSTORE;
+
 public abstract class AbstractDataStoreService {
     private static final String PROP_HOME = "repository.home";
 
@@ -65,6 +67,9 @@ public abstract class AbstractDataStoreService {
         Dictionary<String, Object> props = new Hashtable<String, Object>();
         props.put(Constants.SERVICE_PID, ds.getClass().getName());
         props.put(DESCRIPTION, getDescription());
+        if (context.getProperties().get(PROP_SPLIT_BLOBSTORE) != null) {
+            props.put(PROP_SPLIT_BLOBSTORE, context.getProperties().get(PROP_SPLIT_BLOBSTORE));
+        }
 
         reg = context.getBundleContext().registerService(new String[]{
                 BlobStore.class.getName(),
