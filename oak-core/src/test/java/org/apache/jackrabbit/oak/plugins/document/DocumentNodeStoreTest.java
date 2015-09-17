@@ -2000,6 +2000,69 @@ public class DocumentNodeStoreTest {
         }
     }
 
+    // OAK-3411
+    @Test
+    public void sameSeenAtRevision() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ns1 = builderProvider.newBuilder()
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+        DocumentNodeStore ns2 = builderProvider.newBuilder()
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+
+        NodeBuilder b2 = ns2.getRoot().builder();
+        b2.child("test");
+        merge(ns2, b2);
+        ns2.runBackgroundOperations();
+        ns1.runBackgroundOperations();
+
+        NodeBuilder b1 = ns1.getRoot().builder();
+        assertTrue(b1.hasChildNode("test"));
+        b1.child("test").remove();
+        merge(ns1, b1);
+        ns1.runBackgroundOperations();
+
+        DocumentNodeStore ns3 = builderProvider.newBuilder()
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+        ns3.setMaxBackOffMillis(0);
+        NodeBuilder b3 = ns3.getRoot().builder();
+        assertFalse(b3.hasChildNode("test"));
+        b3.child("test");
+        merge(ns3, b3);
+    }
+
+    // OAK-3411
+    @Test
+    public void sameSeenAtRevision2() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ns1 = builderProvider.newBuilder()
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+        DocumentNodeStore ns2 = builderProvider.newBuilder()
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+
+        NodeBuilder b2 = ns2.getRoot().builder();
+        b2.child("test");
+        merge(ns2, b2);
+        b2 = ns2.getRoot().builder();
+        b2.child("test").remove();
+        merge(ns2, b2);
+        ns2.runBackgroundOperations();
+        ns1.runBackgroundOperations();
+
+        NodeBuilder b1 = ns1.getRoot().builder();
+        assertFalse(b1.hasChildNode("test"));
+        b1.child("test");
+        merge(ns1, b1);
+        ns1.runBackgroundOperations();
+
+        DocumentNodeStore ns3 = builderProvider.newBuilder()
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+        ns3.setMaxBackOffMillis(0);
+        NodeBuilder b3 = ns3.getRoot().builder();
+        assertTrue(b3.hasChildNode("test"));
+        b3.child("test").remove();
+        merge(ns3, b3);
+    }
+
     private static DocumentNodeState asDocumentNodeState(NodeState state) {
         if (!(state instanceof DocumentNodeState)) {
             throw new IllegalArgumentException("Not a DocumentNodeState");
