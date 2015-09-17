@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -144,6 +145,19 @@ public class RDBConnectionHandler implements Closeable {
 
     public boolean isClosed() {
         return this.ds == null;
+    }
+
+    /**
+     * Return current schema name or {@code null} when unavailable
+     */
+    @CheckForNull
+    public String getSchema(Connection c) {
+        try {
+            return (String) c.getClass().getMethod("getSchema").invoke(c);
+        } catch (Throwable ex) {
+            // ignored, it's really best effort
+            return null;
+        }
     }
 
     @Override
