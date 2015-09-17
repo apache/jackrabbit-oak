@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.2.5
+Release Notes -- Apache Jackrabbit Oak -- Version 1.2.6
 
 Introduction
 ------------
@@ -7,14 +7,14 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.2.5 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.2.6 is a patch release that contains fixes and
 improvements over Oak 1.2. Jackrabbit Oak 1.2.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-New configuration options in Oak 1.2.5
+New configuration options in Oak 1.2.6
 --------------------------------------
 
 Node name index support (OAK-1752) - With this queries involving
@@ -22,12 +22,13 @@ node name constraint can make use of index and perform better. Refer to
 http://jackrabbit.apache.org/oak/docs/query/lucene.html#index-node-name
 for usage details.
 
-Changes in Oak 1.2.5
+Changes in Oak 1.2.6
 --------------------
 
 Sub-tasks
 
  [OAK-2634] - QueryEngine should expose name query as property restriction
+ [OAK-2986] - RDB: switch to tomcat datasource implementation 
  [OAK-3031] - [Blob GC] Mbean for reporting shared repository GC stats
  [OAK-3261] - consider existing locks when creating new ones
  [OAK-3279] - Create StringUtils.estimateMemoryUsage(String)
@@ -39,11 +40,12 @@ Technical tasks
  [OAK-3369] - OakDocumentRDBRepositoryStub should have working default for JDBC URL
  [OAK-3385] - Make compress-interval configurable
  [OAK-3391] - RDBBlobStore: speed up testBigBlob(), also improve memory usage
+ [OAK-3408] - RDBDocumentStore: improve MySQL diagnostics
+ [OAK-3410] - RDB*Store diagnostics: strip line feeds from product information
 
 Bugs
 
  [OAK-2712] - Possible null-dereference when calling ItemImpl#perform
- [OAK-2929] - Parent of unseen children must not be removable
  [OAK-3265] - Test failures: NodeLocalNameTest, NodeNameTest
  [OAK-3281] - Test failures on trunk: SolrIndexQueryTestIT.sql2
  [OAK-3282] - DataStoreBlobStore cache ignores key for memory calculation
@@ -54,6 +56,8 @@ Bugs
  [OAK-3367] - Boosting fields not working as expected
  [OAK-3376] - DocumentNodeStoreTest.dispose() waiting indefinitely on ArrayBlockingQueue.put()
  [OAK-3383] - "The unbindBlobDataSource method has thrown an exception" message on shutdown of the RDBMK 
+ [OAK-3395] - RevisionGC fails for JCR paths having line feed characters
+ [OAK-3411] - Inconsistent read on DocumentNodeStore startup
 
 Improvements
 
