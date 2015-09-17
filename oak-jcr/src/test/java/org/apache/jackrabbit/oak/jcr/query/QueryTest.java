@@ -69,6 +69,25 @@ public class QueryTest extends AbstractRepositoryTest {
     }
     
     @Test
+    @Ignore("OAK-3416")
+    public void join() throws Exception {
+        Session session = getAdminSession();
+        Node root = session.getRootNode();
+        Node a = root.addNode("a");
+        a.addMixin("mix:referenceable");
+        Node b = root.addNode("b");
+        b.setProperty("join", a.getProperty("jcr:uuid").getString(), PropertyType.REFERENCE);
+        // b.setProperty("join", a.getProperty("jcr:uuid").getString(), PropertyType.STRING);
+        session.save();
+        assertEquals("/a",
+                getNodeList(session, 
+                        "select [a].* from [nt:unstructured] as [a] "+ 
+                                "inner join [nt:unstructured] as [b] " + 
+                                "on [a].[jcr:uuid] = [b].[join] where issamenode([a], '/a')",
+                        Query.JCR_SQL2));
+    }
+    
+    @Test
     public void typeConversion() throws Exception {
         Session session = getAdminSession();
         Node root = session.getRootNode();
