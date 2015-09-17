@@ -41,6 +41,9 @@ import org.apache.commons.io.LineIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.escapeLineBreak;
+import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.unescapeLineBreaks;
+
 /**
  * Utility class to store a list of string and perform sort on that. For small size
  * the list would be maintained in memory. If the size crosses the required threshold then
@@ -139,7 +142,7 @@ public class StringSort implements Iterable<String>, Closeable {
     private void flushToFile(List<String> ids) throws IOException {
         BufferedWriter w = getPersistentState().getWriter();
         for (String id : ids) {
-            w.write(id);
+            w.write(escapeLineBreak(id));
             w.newLine();
         }
         ids.clear();
@@ -263,6 +266,11 @@ public class StringSort implements Iterable<String>, Closeable {
     private static class CloseableIterator extends LineIterator implements Closeable {
         public CloseableIterator(Reader reader) throws IllegalArgumentException {
             super(reader);
+        }
+
+        @Override
+        public String next() {
+            return unescapeLineBreaks(super.next());
         }
     }
 }
