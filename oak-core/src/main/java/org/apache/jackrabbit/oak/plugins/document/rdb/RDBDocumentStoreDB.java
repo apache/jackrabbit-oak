@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -28,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
+import javax.sql.DataSource;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -117,14 +119,25 @@ public enum RDBDocumentStoreDB {
             Map<String, String> result = new HashMap<String, String>();
             try {
                 con = ch.getROConnection();
-                // we can't look up by schema as con.getSchema is JDK 1.7
-                stmt = con
-                        .prepareStatement("SELECT CODEPAGE, COLLATIONSCHEMA, COLLATIONNAME, TABSCHEMA FROM SYSCAT.COLUMNS WHERE COLNAME=? and COLNO=0 AND UPPER(TABNAME)=UPPER(?)");
+
+                // schema name will only be available with JDK 1.7
+                String conSchema = ch.getSchema(con);
+
+                StringBuilder sb = new StringBuilder();
+                sb.append("SELECT CODEPAGE, COLLATIONSCHEMA, COLLATIONNAME, TABSCHEMA FROM SYSCAT.COLUMNS WHERE COLNAME=? and COLNO=0 AND UPPER(TABNAME)=UPPER(?)");
+                if (conSchema != null) {
+                    conSchema = conSchema.trim();
+                    sb.append(" AND UPPER(TABSCHEMA)=UPPER(?)");
+                }
+                stmt = con.prepareStatement(sb.toString());
                 stmt.setString(1, "ID");
                 stmt.setString(2, tableName);
+                if (conSchema != null) {
+                    stmt.setString(3, conSchema);
+                }
+
                 rs = stmt.executeQuery();
                 while (rs.next() && result.size() < 20) {
-                    // thus including the schema name here
                     String schema = rs.getString("TABSCHEMA").trim();
                     result.put(schema + ".CODEPAGE", rs.getString("CODEPAGE").trim());
                     result.put(schema + ".COLLATIONSCHEMA", rs.getString("COLLATIONSCHEMA").trim());
