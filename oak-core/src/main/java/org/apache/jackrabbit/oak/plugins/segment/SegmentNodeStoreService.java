@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Collections.emptyMap;
+import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toBoolean;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toInteger;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
@@ -250,7 +251,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     private ComponentContext context;
 
     @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY,
-            policy = ReferencePolicy.DYNAMIC)
+            policy = ReferencePolicy.DYNAMIC, target = ONLY_STANDALONE_TARGET)
     private volatile BlobStore blobStore;
 
     private ServiceRegistration storeRegistration;
