@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.util.OakVersion;
 import org.slf4j.Logger;
@@ -414,9 +415,11 @@ public class ClusterNodeInfo {
             }
             String mId = "" + doc.get(MACHINE_ID_KEY);
             String iId = "" + doc.get(INSTANCE_ID_KEY);
-            if (machineId.startsWith(RANDOM_PREFIX)) {
+            if (mId.startsWith(RANDOM_PREFIX)) {
                 // remove expired entries with random keys
                 store.remove(Collection.CLUSTER_NODES, key);
+                LOG.debug("Cleaned up cluster node info for clusterNodeId {} [machineId: {}, leaseEnd: {}]", id, mId,
+                        leaseEnd == null ? "n/a" : Utils.timestampToString(leaseEnd));
                 continue;
             }
             if (!mId.equals(machineId) ||
