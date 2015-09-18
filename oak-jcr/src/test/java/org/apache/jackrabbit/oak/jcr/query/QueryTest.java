@@ -69,7 +69,6 @@ public class QueryTest extends AbstractRepositoryTest {
     }
     
     @Test
-    @Ignore("OAK-3416")
     public void join() throws Exception {
         Session session = getAdminSession();
         Node root = session.getRootNode();
@@ -84,6 +83,12 @@ public class QueryTest extends AbstractRepositoryTest {
                         "select [a].* from [nt:unstructured] as [a] "+ 
                                 "inner join [nt:unstructured] as [b] " + 
                                 "on [a].[jcr:uuid] = [b].[join] where issamenode([a], '/a')",
+                        Query.JCR_SQL2));
+        assertEquals("/a",
+                getNodeList(session, 
+                        "select [a].* from [nt:unstructured] as [a] "+ 
+                                "inner join [nt:unstructured] as [b] " + 
+                                "on [b].[join] = [a].[jcr:uuid] where issamenode([a], '/a')",
                         Query.JCR_SQL2));
     }
     

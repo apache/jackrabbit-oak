@@ -62,16 +62,30 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
 
     @Override
     public boolean evaluate() {
+        // 6.7.8 EquiJoinCondition
+        // A node-tuple satisfies the constraint only if:
         PropertyValue p1 = selector1.currentProperty(property1Name);
         if (p1 == null) {
+            // the selector1Name node has a property named property1Name, and
             return false;
         }
         PropertyValue p2 = selector2.currentProperty(property2Name);
         if (p2 == null) {
+            // the selector2Name node has a property named property2Name, and
             return false;
         }
+        // the value of property property1Name is equal to the value of property property2Name, 
+        // as defined in §3.6.5 Comparison of Values.
+        // -> that can be interpreted as follows: if the property types
+        // don't match, then they don't match, however for compatibility
+        // with Jackrabbit 2.x, we try to convert the values so the property types match
+        // (for example, convert reference to string)
+        // See OAK-3416
         if (!p1.isArray() && !p2.isArray()) {
             // both are single valued
+            // "the value of operand2 is converted to the
+            // property type of the value of operand1"
+            p2 = convertValueToType(p2, p1);
             return PropertyValues.match(p1, p2);
         }
         // TODO what is the expected result of an equi join for multi-valued properties?
