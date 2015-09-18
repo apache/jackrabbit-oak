@@ -616,7 +616,7 @@ public class RDBDocumentStore implements DocumentStore {
         }
     }
 
-    private String asQualifiedDbName(String one, String two) {
+    private static String asQualifiedDbName(String one, String two) {
         if (one == null && two == null) {
             return null;
         }
@@ -624,6 +624,21 @@ public class RDBDocumentStore implements DocumentStore {
             one = one == null ? "" : one.trim();
             two = two == null ? "" : two.trim();
             return one.isEmpty() ? two : one + "." + two;
+        }
+    }
+
+    private static String indexTypeAsString(int type) {
+        switch (type) {
+            case DatabaseMetaData.tableIndexClustered:
+                return "clustered";
+            case DatabaseMetaData.tableIndexHashed:
+                return "hashed";
+            case DatabaseMetaData.tableIndexStatistic:
+                return "statistic";
+            case DatabaseMetaData.tableIndexOther:
+                return "other";
+            default:
+                return "indexType=" + type;
         }
     }
 
@@ -654,7 +669,7 @@ public class RDBDocumentStore implements DocumentStore {
                         info.put("fields", new TreeMap<Integer, String>());
                     }
                     info.put("nonunique", rs.getBoolean(4));
-                    info.put("type", rs.getInt(7));
+                    info.put("type", indexTypeAsString(rs.getInt(7)));
                     String inSchema = rs.getString(2);
                     inSchema = inSchema == null ? "" : inSchema.trim();
                     // skip indices on tables in other schemas in case we have that information
@@ -685,6 +700,7 @@ public class RDBDocumentStore implements DocumentStore {
                         sb.append(field);
                     }
                     sb.append(")");
+                    sb.append(" ").append(index.getValue().get("type"));
                 }
             }
             if (sb.length() != 0) {
