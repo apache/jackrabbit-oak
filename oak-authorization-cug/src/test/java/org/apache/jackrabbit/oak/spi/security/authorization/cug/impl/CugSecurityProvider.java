@@ -33,12 +33,8 @@ final class CugSecurityProvider extends SecurityProviderImpl {
             composite.setDefaultConfig(authorizationConfiguration);
             composite.addConfiguration(new CugConfiguration(this));
             composite.addConfiguration(authorizationConfiguration);
-            ((CugSecurityProvider) this).bindAuthorizationConfiguration(composite);
+            setAuthorizationConfiguration(composite);
         }
     }
 
-    @Override
-    protected void bindAuthorizationConfiguration(@Nonnull AuthorizationConfiguration reference) {
-        super.bindAuthorizationConfiguration(reference);
-    }
 }
