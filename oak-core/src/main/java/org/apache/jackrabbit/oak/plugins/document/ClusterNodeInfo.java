@@ -155,10 +155,10 @@ public class ClusterNodeInfo {
 
     /** OAK-3398 : default lease duration 120sec **/
     public static final int DEFAULT_LEASE_DURATION_MILLIS = 1000 * 120;
-    
+
     /** OAK-3398 : default update interval 10sec **/
     public static final int DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS = 1000 * 10;
-    
+
     /** OAK-3398 : default failure margin 20sec before actual lease timeout
      * (note that OAK-3399 / MAX_RETRY_SLEEPS_BEFORE_LEASE_FAILURE eats
      * off another few seconds from this margin, by default 5sec,
@@ -174,10 +174,10 @@ public class ClusterNodeInfo {
      * initially).
      */
     private long leaseTime = DEFAULT_LEASE_DURATION_MILLIS;
-    
+
     /**
      * The number of milliseconds after which a lease will be updated
-     * (should not be every second as that would increase number of 
+     * (should not be every second as that would increase number of
      * writes towards DocumentStore considerably - but it should also
      * not be too low as that would eat into the lease duration on average.
      */
@@ -189,13 +189,13 @@ public class ClusterNodeInfo {
      * The idea of declaring a lease as failed before it actually failed
      * is to avoid a race condition where the local instance assumes
      * things are all fine but another instance in the cluster will
-     * 'in the same moment' declare it as failed. The lease should be 
+     * 'in the same moment' declare it as failed. The lease should be
      * checked every second and updated after 10sec, so it should always
      * have a validity of at least 110sec - if that's down to this margin
      * of 20sec then things are not good and we have to give up.
      */
     private long leaseFailureMargin = DEFAULT_LEASE_FAILURE_MARGIN_MILLIS;
-    
+
     /**
      * The assigned cluster id.
      */
@@ -230,7 +230,7 @@ public class ClusterNodeInfo {
      * The time (in milliseconds UTC) where the lease of this instance ends.
      */
     private volatile long leaseEndTime;
-    
+
     /**
      * The value of leaseEnd last updated towards DocumentStore -
      * this one is used to compare against (for OAK-3398) when checking
@@ -251,10 +251,10 @@ public class ClusterNodeInfo {
     private String readWriteMode;
 
     /**
-     * The state of the cluter node.
+     * The state of the cluster node.
      */
     private ClusterNodeState state;
-    
+
     /**
      * OAK-2739 / OAK-3397 : once a lease check turns out negative, this flag
      * is set to prevent any further checks to succeed. Also, only the first
@@ -318,7 +318,7 @@ public class ClusterNodeInfo {
 
     /**
      * Create a cluster node info instance for the store, with the
-     * 
+     *
      * @param store the document store (for the lease)
      * @return the cluster node info
      */
@@ -328,7 +328,7 @@ public class ClusterNodeInfo {
 
     /**
      * Create a cluster node info instance for the store.
-     * 
+     *
      * @param store the document store (for the lease)
      * @param machineId the machine id (null for MAC address)
      * @param instanceId the instance id (null for current working directory)
@@ -446,8 +446,8 @@ public class ClusterNodeInfo {
         }
 
         // Do not expire entries and stick on the earlier state, and leaseEnd so,
-        // that _lastRev recovery if needed is done.        
-        return new ClusterNodeInfo(clusterNodeId, store, machineId, instanceId, state, 
+        // that _lastRev recovery if needed is done.
+        return new ClusterNodeInfo(clusterNodeId, store, machineId, instanceId, state,
                 RecoverLockState.NONE, prevLeaseEnd, newEntry);
     }
 
@@ -500,7 +500,7 @@ public class ClusterNodeInfo {
                 // OAK-3399 : in case of running into the leaseFailureMargin
                 // (shortly, 20sec, before the lease times out), we're now doing
                 // a short retry loop of 1sec sleeps (default 5x1sec=5sec),
-                // to give this instance 'one last chance' before we have to 
+                // to give this instance 'one last chance' before we have to
                 // declare the lease as failed.
                 // This sort of retry loop would allow situations such as
                 // when running a single-node cluster and interrupting/pausing
@@ -527,7 +527,7 @@ public class ClusterNodeInfo {
             }
             leaseCheckFailed = true; // make sure only one thread 'wins', ie goes any further
         }
-        
+
         final String errorMsg = LEASE_CHECK_FAILED_MSG+" (leaseEndTime: "+leaseEndTime+
                 ", leaseTime: "+leaseTime+
                 ", leaseFailureMargin: "+leaseFailureMargin+
@@ -539,20 +539,20 @@ public class ClusterNodeInfo {
 
         handleLeaseFailure(errorMsg);
     }
-    
+
     private void handleLeaseFailure(final String errorMsg) {
         // OAK-3397 : unlike previously, when the lease check fails we should not
-        // do a hard System exit here but rather stop the oak-core bundle 
+        // do a hard System exit here but rather stop the oak-core bundle
         // (or if that fails just deactivate DocumentNodeStore) - with the
         // goals to prevent this instance to continue to operate
         // give that a lease failure is a strong indicator of a faulty
         // instance - and to stop the background threads of DocumentNodeStore,
         // specifically the BackgroundLeaseUpdate and the BackgroundOperation.
-        
+
         // actual stopping should be done in a separate thread, so:
         if (leaseFailureHandler!=null) {
             final Runnable r = new Runnable() {
-    
+
                 @Override
                 public void run() {
                     if (leaseFailureHandler!=null) {
@@ -583,14 +583,14 @@ public class ClusterNodeInfo {
             return false;
         }
         // lease requires renewal
-        
+
         synchronized(this) {
             // this is synchronized since access to leaseCheckFailed and leaseEndTime
-            // are both normally synchronzied to propagate values between renewLease() 
+            // are both normally synchronized to propagate values between renewLease()
             // and performLeaseCheck().
-            // (there are unsychronized accesses to both of these as well - however
+            // (there are unsynchronized accesses to both of these as well - however
             // they are both double-checked - and with both reading a stale value is thus OK)
-            
+
             if (leaseCheckFailed) {
                 // prevent lease renewal after it failed
                 LOG.error(LEASE_CHECK_FAILED_MSG);
@@ -633,9 +633,9 @@ public class ClusterNodeInfo {
             // in both cases the local instance lost the lease-update-game - and hence
             // should behave and must consider itself as 'lease failed'
 
-            synchronized(this) {                
+            synchronized(this) {
                 if (leaseCheckFailed) {
-                    // somehow the instance figured out otherwise that the 
+                    // somehow the instance figured out otherwise that the
                     // lease check failed - so we don't have to too - so we just log/throw
                     LOG.error(LEASE_CHECK_FAILED_MSG);
                     throw new AssertionError(LEASE_CHECK_FAILED_MSG);
@@ -666,7 +666,7 @@ public class ClusterNodeInfo {
     void setLeaseTime(long leaseTime) {
         this.leaseTime = leaseTime;
     }
-    
+
     /** for testing purpose only, not to be changed at runtime! */
     void setLeaseUpdateInterval(long leaseUpdateInterval) {
         this.leaseUpdateInterval = leaseUpdateInterval;
@@ -679,7 +679,7 @@ public class ClusterNodeInfo {
     public void setLeaseFailureHandler(LeaseFailureHandler leaseFailureHandler) {
         this.leaseFailureHandler = leaseFailureHandler;
     }
-    
+
     public void dispose() {
         synchronized(this) {
             if (leaseCheckFailed) {
@@ -737,7 +737,7 @@ public class ClusterNodeInfo {
     /**
      * Calculate the unique machine id. This is the lowest MAC address if
      * available. As an alternative, a randomly generated UUID is used.
-     * 
+     *
      * @return the unique id
      */
     private static String getMachineId() {
