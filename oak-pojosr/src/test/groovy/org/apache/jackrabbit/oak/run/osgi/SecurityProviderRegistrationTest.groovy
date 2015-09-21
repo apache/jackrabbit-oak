@@ -165,7 +165,7 @@ class SecurityProviderRegistrationTest extends AbstractRepositoryFactoryTest {
 
     private void setRequiredServicePids(String... pids) {
         setConfiguration([
-                "org.apache.jackrabbit.oak.security.SecurityProviderRegistration": [
+                "org.apache.jackrabbit.oak.security.internal.SecurityProviderRegistration": [
                         "requiredServicePids": pids
                 ]
         ])

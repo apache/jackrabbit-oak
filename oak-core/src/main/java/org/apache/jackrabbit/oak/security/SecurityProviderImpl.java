@@ -82,27 +82,27 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
         this.tokenConfiguration = new TokenConfigurationImpl(this);
     }
 
-    protected void setAuthenticationConfiguration(AuthenticationConfiguration authenticationConfiguration) {
+    public void setAuthenticationConfiguration(AuthenticationConfiguration authenticationConfiguration) {
         this.authenticationConfiguration = checkNotNull(authenticationConfiguration);
     }
 
-    protected void setAuthorizationConfiguration(AuthorizationConfiguration authorizationConfiguration) {
+    public void setAuthorizationConfiguration(AuthorizationConfiguration authorizationConfiguration) {
         this.authorizationConfiguration = authorizationConfiguration;
     }
 
-    protected void setUserConfiguration(UserConfiguration userConfiguration) {
+    public void setUserConfiguration(UserConfiguration userConfiguration) {
         this.userConfiguration = userConfiguration;
     }
 
-    protected void setPrincipalConfiguration(PrincipalConfiguration principalConfiguration) {
+    public void setPrincipalConfiguration(PrincipalConfiguration principalConfiguration) {
         this.principalConfiguration = principalConfiguration;
     }
 
-    protected void setPrivilegeConfiguration(PrivilegeConfiguration privilegeConfiguration) {
+    public void setPrivilegeConfiguration(PrivilegeConfiguration privilegeConfiguration) {
         this.privilegeConfiguration = privilegeConfiguration;
     }
 
-    protected void setTokenConfiguration(TokenConfiguration tokenConfiguration) {
+    public void setTokenConfiguration(TokenConfiguration tokenConfiguration) {
         this.tokenConfiguration = tokenConfiguration;
     }
 
