@@ -508,7 +508,8 @@ public final class DocumentNodeStore
         }
 
         this.mbean = createMBean();
-        LOG.info("Initialized DocumentNodeStore with clusterNodeId: {}", clusterId);
+        LOG.info("Initialized DocumentNodeStore with clusterNodeId: {} ({})", clusterId,
+                getClusterNodeInfoDisplayString());
     }
 
     /**
@@ -519,6 +520,9 @@ public final class DocumentNodeStore
     }
 
     public void dispose() {
+        LOG.info("Starting disposal of DocumentNodeStore with clusterNodeId: {} ({})", clusterId,
+                getClusterNodeInfoDisplayString());
+
         if (isDisposed.getAndSet(true)) {
             // only dispose once
             return;
@@ -568,6 +572,10 @@ public final class DocumentNodeStore
             persistentCache.close();
         }
         LOG.info("Disposed DocumentNodeStore with clusterNodeId: {}", clusterId);
+    }
+
+    private String getClusterNodeInfoDisplayString() {
+        return clusterNodeInfo == null ? "no cluster node info" : clusterNodeInfo.toString().replaceAll("[\r\n\t]", " ").trim();
     }
 
     Revision setHeadRevision(@Nonnull Revision newHead) {
