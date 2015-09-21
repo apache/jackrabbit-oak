@@ -233,7 +233,7 @@ public class ClusterNodeInfo {
 
     /**
      * Create a cluster node info instance for the store, with the
-     * 
+     *
      * @param store the document store (for the lease)
      * @return the cluster node info
      */
@@ -243,7 +243,7 @@ public class ClusterNodeInfo {
 
     /**
      * Create a cluster node info instance for the store.
-     * 
+     *
      * @param store the document store (for the lease)
      * @param machineId the machine id (null for MAC address)
      * @param instanceId the instance id (null for current working directory)
@@ -361,8 +361,8 @@ public class ClusterNodeInfo {
         }
 
         // Do not expire entries and stick on the earlier state, and leaseEnd so,
-        // that _lastRev recovery if needed is done.        
-        return new ClusterNodeInfo(clusterNodeId, store, machineId, instanceId, state, 
+        // that _lastRev recovery if needed is done.
+        return new ClusterNodeInfo(clusterNodeId, store, machineId, instanceId, state,
                 RecoverLockState.NONE, prevLeaseEnd, newEntry);
     }
 
@@ -451,7 +451,7 @@ public class ClusterNodeInfo {
     /**
      * Calculate the unique machine id. This is the lowest MAC address if
      * available. As an alternative, a randomly generated UUID is used.
-     * 
+     *
      * @return the unique id
      */
     private static String getMachineId() {
