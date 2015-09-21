@@ -170,6 +170,11 @@ public class ClusterNodeInfo {
     private static final int MAX_RETRY_SLEEPS_BEFORE_LEASE_FAILURE = 5;
 
     /**
+     * The Oak version.
+     */
+    private static final String OAK_VERSION = OakVersion.getVersion();
+
+    /**
      * The number of milliseconds for a lease (2 minute by default, and
      * initially).
      */
@@ -370,7 +375,7 @@ public class ClusterNodeInfo {
             update.set(INFO_KEY, clusterNode.toString());
             update.set(STATE, clusterNode.state.name());
             update.set(REV_RECOVERY_LOCK, clusterNode.revRecoveryLock.name());
-            update.set(OAK_VERSION_KEY, OakVersion.getVersion());
+            update.set(OAK_VERSION_KEY, OAK_VERSION);
 
             final boolean success;
             if (clusterNode.newEntry) {
@@ -704,7 +709,8 @@ public class ClusterNodeInfo {
                 "uuid: " + uuid + ",\n" +
                 "readWriteMode: " + readWriteMode + ",\n" +
                 "state: " + state + ",\n" +
-                "revLock: " + revRecoveryLock;
+                "revLock: " + revRecoveryLock + ",\n" +
+                "oakVersion: " + OAK_VERSION;
     }
 
     /**
