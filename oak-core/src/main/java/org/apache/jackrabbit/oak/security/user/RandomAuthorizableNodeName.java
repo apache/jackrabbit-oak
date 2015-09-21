@@ -33,7 +33,7 @@ import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
  * Implementation of the {@code AuthorizableNodeName} that generates a random
  * node name that doesn't reveal the ID of the authorizable.
  */
-@Component(metatype = true, label = "Apache Jackrabbit Oak Random Authorizable Node Name", description = "Generates a random name for the authorizable node.")
+@Component(metatype = true, label = "Apache Jackrabbit Oak Random Authorizable Node Name", description = "Generates a random name for the authorizable node.", policy = ConfigurationPolicy.REQUIRE)
 @Service(AuthorizableNodeName.class)
 public class RandomAuthorizableNodeName implements AuthorizableNodeName {
 

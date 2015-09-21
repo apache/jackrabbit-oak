@@ -86,7 +86,6 @@ import static com.google.common.collect.Lists.newCopyOnWriteArrayList;
                 value = {
                         "org.apache.jackrabbit.oak.security.principal.PrincipalConfigurationImpl",
                         "org.apache.jackrabbit.oak.security.authentication.token.TokenConfigurationImpl",
-                        "org.apache.jackrabbit.oak.security.user.RandomAuthorizableNodeName",
                         "org.apache.jackrabbit.oak.spi.security.user.action.DefaultAuthorizableActionProvider",
                         "org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl",
                         "org.apache.jackrabbit.oak.security.user.UserAuthenticationFactoryImpl"
