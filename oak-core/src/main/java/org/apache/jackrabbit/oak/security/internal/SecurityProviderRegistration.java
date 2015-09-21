@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security;
+package org.apache.jackrabbit.oak.security.internal;
 
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -29,6 +29,7 @@ import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.References;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
+import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.security.user.UserConfigurationImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -131,6 +132,7 @@ import static com.google.common.collect.Lists.newCopyOnWriteArrayList;
                 policy = ReferencePolicy.DYNAMIC
         )
 })
+@SuppressWarnings("unused")
 public class SecurityProviderRegistration {
 
     private static final Logger log = LoggerFactory.getLogger(SecurityProviderRegistration.class);
