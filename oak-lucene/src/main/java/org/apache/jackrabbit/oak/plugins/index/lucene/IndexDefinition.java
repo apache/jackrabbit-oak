@@ -748,6 +748,12 @@ class IndexDefinition implements Aggregate.AggregateMapper{
          *         <code>false</code> otherwise.
          */
         public boolean appliesTo(Tree state) {
+            for (String mixinName : getMixinTypeNames(state)){
+                if (nodeTypeName.equals(mixinName)){
+                    return true;
+                }
+            }
+
             if (!nodeTypeName.equals(getPrimaryTypeName(state))) {
                 return false;
             }
@@ -1242,7 +1248,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
     }
 
     private static Iterable<String> getMixinTypeNames(Tree tree) {
-        PropertyState property = tree.getProperty(JcrConstants.JCR_MIMETYPE);
+        PropertyState property = tree.getProperty(JcrConstants.JCR_MIXINTYPES);
         return property != null ? property.getValue(Type.NAMES) : Collections.<String>emptyList();
     }
 
