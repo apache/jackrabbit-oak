@@ -81,8 +81,8 @@ public class ClusterNodeInfo {
          */
         ACTIVE;
 
-        static ClusterNodeState fromString(String state){
-            if(state == null){
+        static ClusterNodeState fromString(String state) {
+            if (state == null) {
                 return NONE;
             }
             return valueOf(state);
@@ -103,8 +103,8 @@ public class ClusterNodeInfo {
          */
         ACQUIRED;
 
-        static RecoverLockState fromString(String state){
-            if(state == null){
+        static RecoverLockState fromString(String state) {
+            if (state == null) {
                 return NONE;
             }
             return valueOf(state);
@@ -303,7 +303,7 @@ public class ClusterNodeInfo {
                 success = true;
             }
 
-            if(success){
+            if (success) {
                 return clusterNode;
             }
         }
@@ -440,7 +440,7 @@ public class ClusterNodeInfo {
     /**
      * Resets the clock to the default
      */
-    static void resetClockToDefault(){
+    static void resetClockToDefault() {
         clock = Clock.SIMPLE;
     }
 
@@ -461,16 +461,21 @@ public class ClusterNodeInfo {
      * @return the unique id
      */
     private static String getMachineId() {
+        Exception exception = null;
         try {
             ArrayList<String> list = new ArrayList<String>();
             Enumeration<NetworkInterface> e = NetworkInterface
                     .getNetworkInterfaces();
             while (e.hasMoreElements()) {
                 NetworkInterface ni = e.nextElement();
-                byte[] mac = ni.getHardwareAddress();
-                if (mac != null) {
-                    String x = StringUtils.convertBytesToHex(mac);
-                    list.add(x);
+                try {
+                    byte[] mac = ni.getHardwareAddress();
+                    if (mac != null) {
+                        String x = StringUtils.convertBytesToHex(mac);
+                        list.add(x);
+                    }
+                } catch (Exception e2) {
+                    exception = e2;
                 }
             }
             if (list.size() > 0) {
@@ -480,7 +485,10 @@ public class ClusterNodeInfo {
                 return "mac:" + list.get(0);
             }
         } catch (Exception e) {
-            LOG.error("Error calculating the machine id", e);
+            exception = e;
+        }
+        if (exception != null) {
+            LOG.warn("Error getting the machine id; using a UUID", exception);
         }
         return RANDOM_PREFIX + UUID.randomUUID().toString();
     }
