@@ -85,7 +85,7 @@ public class RepositoryManager {
     
     private boolean fastQueryResultSize;
 
-    @Reference
+    @Reference(target = "(type=default)")
     private SecurityProvider securityProvider;
 
     @Reference

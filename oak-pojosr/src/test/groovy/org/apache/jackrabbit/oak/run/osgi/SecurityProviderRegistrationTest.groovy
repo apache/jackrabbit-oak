@@ -160,7 +160,7 @@ class SecurityProviderRegistrationTest extends AbstractRepositoryFactoryTest {
     }
 
     private ServiceReference<?>[] getSecurityProviderServiceReferences() {
-        return registry.getServiceReferences(SecurityProvider.class.name, null)
+        return registry.getServiceReferences(SecurityProvider.class.name, "(type=default)")
     }
 
     private void setRequiredServicePids(String... pids) {
