@@ -32,10 +32,8 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.Ignore;
 import org.junit.Test;
 
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -61,7 +59,6 @@ public class ClusterConflictTest extends AbstractMongoConnectionTest {
     }
 
     // OAK-3433
-    @Ignore
     @Test
     public void mergeRetryWhileBackgroundRead() throws Exception {
         DocumentNodeStore ns1 = mk.getNodeStore();
@@ -100,7 +97,7 @@ public class ClusterConflictTest extends AbstractMongoConnectionTest {
         // because /a/b/c is seen as changed in the future
         // without the fix for OAK-3433:
         // the second merge attempt succeeds because now the
-        // /a/b/c change is visible and happened before the commit
+        // /a/b/c change revision is visible and happened before the commit
         // revision but before the base revision
         b2 = ns2.getRoot().builder();
         b2.child("z").setProperty("q", "v");
@@ -115,13 +112,18 @@ public class ClusterConflictTest extends AbstractMongoConnectionTest {
                     runBackgroundRead(ns2);
 
                     NodeBuilder builder = after.builder();
-                    builder.child("a").child("b").child("c").child("bar");
+                    if (builder.getChildNode("a").getChildNode("b").hasChildNode("c")) {
+                        builder.child("a").child("b").child("c").child("bar");
+                    } else {
+                        throw new CommitFailedException(
+                                CommitFailedException.OAK, 0,
+                                "/a/b/c does not exist anymore");
+                    }
                     return builder.getNodeState();
                 }
             }, CommitInfo.EMPTY);
             fail("Merge must fail with CommitFailedException");
         } catch (CommitFailedException e) {
-            e.printStackTrace();
             // expected
         }
     }
