@@ -741,34 +741,50 @@ public class ClusterNodeInfo {
     }
 
     /**
-     * Calculate the unique machine id. This is the lowest MAC address if
-     * available. As an alternative, a randomly generated UUID is used.
+     * Calculate the unique machine id. This usually is the lowest MAC address
+     * if available. As an alternative, a randomly generated UUID is used.
      *
      * @return the unique id
      */
     private static String getMachineId() {
         Exception exception = null;
         try {
-            ArrayList<String> list = new ArrayList<String>();
+            ArrayList<String> macAddresses = new ArrayList<String>();
+            ArrayList<String> otherAddresses = new ArrayList<String>();
             Enumeration<NetworkInterface> e = NetworkInterface
                     .getNetworkInterfaces();
             while (e.hasMoreElements()) {
                 NetworkInterface ni = e.nextElement();
                 try {
-                    byte[] mac = ni.getHardwareAddress();
-                    if (mac != null) {
-                        String x = StringUtils.convertBytesToHex(mac);
-                        list.add(x);
+                    byte[] hwa = ni.getHardwareAddress();
+                    // empty addresses have been seen on loopback devices
+                    if (hwa != null && hwa.length != 0) {
+                        String str = StringUtils.convertBytesToHex(hwa);
+                        if (hwa.length == 6) {
+                            // likely a MAC address
+                            macAddresses.add(str);
+                        } else {
+                            otherAddresses.add(str);
+                        }
                     }
                 } catch (Exception e2) {
                     exception = e2;
                 }
             }
-            if (list.size() > 0) {
-                // use the lowest value, such that if the order changes,
+
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("getMachineId(): discovered addresses: {} {}", macAddresses, otherAddresses);
+            }
+
+            if (macAddresses.size() > 0) {
+                // use the lowest MAC value, such that if the order changes,
                 // the same one is used
-                Collections.sort(list);
-                return "mac:" + list.get(0);
+                Collections.sort(macAddresses);
+                return "mac:" + macAddresses.get(0);
+            } else if (otherAddresses.size() > 0) {
+                // try the lowest "other" address
+                Collections.sort(otherAddresses);
+                return "hwa:" + otherAddresses.get(0);
             }
         } catch (Exception e) {
             exception = e;
