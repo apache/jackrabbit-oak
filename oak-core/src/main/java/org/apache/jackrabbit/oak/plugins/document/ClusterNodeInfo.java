@@ -123,6 +123,11 @@ public class ClusterNodeInfo {
     }
 
     /**
+     * Flag indicating which cluster node is running the recovery.
+     */
+    public static final String REV_RECOVERY_BY = "recoveryBy";
+
+    /**
      * Additional info, such as the process id, for support.
      */
     private static final String INFO_KEY = "info";
