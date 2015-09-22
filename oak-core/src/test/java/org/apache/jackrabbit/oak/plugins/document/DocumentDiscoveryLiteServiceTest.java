@@ -780,14 +780,14 @@ public class DocumentDiscoveryLiteServiceTest {
         assertNotNull(missingLastRevUtil);
         MissingLastRevSeeker mockedLongduringMissingLastRevUtil = mock(MissingLastRevSeeker.class, delegatesTo(missingLastRevUtil));
         final Semaphore waitBeforeLocking = new Semaphore(0);
-        when(mockedLongduringMissingLastRevUtil.acquireRecoveryLock(anyInt())).then(new Answer<Boolean>() {
+        when(mockedLongduringMissingLastRevUtil.acquireRecoveryLock(anyInt(), anyInt())).then(new Answer<Boolean>() {
 
             @Override
             public Boolean answer(InvocationOnMock invocation) throws Throwable {
                 logger.info("going to waitBeforeLocking");
                 waitBeforeLocking.acquire();
                 logger.info("done with waitBeforeLocking");
-                return missingLastRevUtil.acquireRecoveryLock((Integer) invocation.getArguments()[0]);
+                return missingLastRevUtil.acquireRecoveryLock((Integer) invocation.getArguments()[0], (Integer) invocation.getArguments()[1]);
             }
         });
         PrivateAccessor.setField(s1.ns.getLastRevRecoveryAgent(), "missingLastRevUtil", mockedLongduringMissingLastRevUtil);
