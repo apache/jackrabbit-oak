@@ -19,11 +19,14 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import java.util.Collections;
+
 import javax.jcr.PropertyType;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
@@ -199,8 +202,35 @@ public class IndexDefinitionTest {
         assertNull(defn.getApplicableIndexingRule(newTree(newNode("nt:base"))));
         assertNotNull(defn.getApplicableIndexingRule(newTree(newNode("nt:hierarchyNode"))));
         assertNotNull(defn.getApplicableIndexingRule(newTree(newNode("nt:folder"))));
+    }
 
-        //TODO Inheritance and mixin
+    @Test
+    public void indexRuleMixin() throws Exception{
+        NodeBuilder rules = builder.child(INDEX_RULES);
+        rules.child("mix:title");
+        TestUtil.child(rules, "mix:title/properties/jcr:title")
+                .setProperty(LuceneIndexConstants.FIELD_BOOST, 3.0);
+
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+
+        assertNotNull(defn.getApplicableIndexingRule(newTree(newNode("nt:folder", "mix:title"))));
+        assertNull(defn.getApplicableIndexingRule(newTree(newNode("nt:folder"))));
+    }
+
+    @Test
+    public void indexRuleMixinInheritance() throws Exception{
+        NodeBuilder rules = builder.child(INDEX_RULES);
+        rules.child("mix:mimeType");
+        TestUtil.child(rules, "mix:mimeType/properties/jcr:mimeType")
+                .setProperty(LuceneIndexConstants.FIELD_BOOST, 3.0);
+
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+
+        assertNotNull(defn.getApplicableIndexingRule(newTree(newNode("nt:folder", "mix:mimeType"))));
+        assertNull(defn.getApplicableIndexingRule(newTree(newNode("nt:folder"))));
+
+        //nt:resource > mix:mimeType
+        assertNotNull(defn.getApplicableIndexingRule(newTree(newNode("nt:resource"))));
     }
 
     @Test
@@ -665,6 +695,13 @@ public class IndexDefinitionTest {
     private static NodeBuilder newNode(String typeName){
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty(JcrConstants.JCR_PRIMARYTYPE, typeName);
+        return builder;
+    }
+
+    private static NodeBuilder newNode(String typeName, String mixins){
+        NodeBuilder builder = EMPTY_NODE.builder();
+        builder.setProperty(JcrConstants.JCR_PRIMARYTYPE, typeName);
+        builder.setProperty(JcrConstants.JCR_MIXINTYPES, Collections.singleton(mixins), Type.NAMES);
         return builder;
     }
 

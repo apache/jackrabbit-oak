@@ -1516,6 +1516,52 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertQuery(queryString, "xpath", asList("/test/b"));
     }
 
+    @Test
+    public void indexingBasedOnMixin() throws Exception {
+        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree props = TestUtil.newRulePropTree(idx, "mix:title");
+        Tree prop = props.addChild(TestUtil.unique("prop"));
+        prop.setProperty(LuceneIndexConstants.PROP_NAME, "jcr:title");
+        prop.setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        createNodeWithMixinType(test, "a", "mix:title").setProperty("jcr:title", "a");
+        createNodeWithMixinType(test, "b", "mix:title").setProperty("jcr:title", "c");
+        test.addChild("c").setProperty("jcr:title", "a");
+        root.commit();
+
+        String propabQuery = "select [jcr:path] from [mix:title] where [jcr:title] = 'a'";
+        assertThat(explain(propabQuery), containsString("lucene:test1(/oak:index/test1)"));
+        assertQuery(propabQuery, asList("/test/a"));
+    }
+
+    @Test
+    public void indexingBasedOnMixinWithInheritence() throws Exception {
+        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree props = TestUtil.newRulePropTree(idx, "mix:mimeType");
+        Tree prop = props.addChild(TestUtil.unique("prop"));
+        prop.setProperty(LuceneIndexConstants.PROP_NAME, "jcr:mimeType");
+        prop.setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        createNodeWithType(test, "a", "nt:resource").setProperty("jcr:mimeType", "a");
+        createNodeWithType(test, "b", "nt:resource").setProperty("jcr:mimeType", "c");
+        test.addChild("c").setProperty("jcr:mimeType", "a");
+        root.commit();
+
+        String propabQuery = "select [jcr:path] from [mix:mimeType] where [jcr:mimeType] = 'a'";
+        assertThat(explain(propabQuery), containsString("lucene:test1(/oak:index/test1)"));
+        assertQuery(propabQuery, asList("/test/a"));
+    }
+
+    private static Tree createNodeWithMixinType(Tree t, String nodeName, String typeName){
+        t = t.addChild(nodeName);
+        t.setProperty(JcrConstants.JCR_MIXINTYPES, Collections.singleton(typeName), Type.NAMES);
+        return t;
+    }
+
     private Tree createFileNode(Tree tree, String name, String content, String mimeType){
         return createFileNode(tree, name, new ArrayBasedBlob(content.getBytes()), mimeType);
     }
