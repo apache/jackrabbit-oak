@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.RecoverLockState;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
@@ -30,10 +32,14 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifie
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getSelectedDocuments;
 
 /**
- * Utils to retrieve _lastRev missing update candidates.
+ * Utilities to retrieve _lastRev missing update candidates.
  */
 public class MissingLastRevSeeker {
+
+    private static final Logger LOG = LoggerFactory.getLogger(MissingLastRevSeeker.class);
+
     protected final String ROOT_PATH = "/";
+
     private final DocumentStore store;
 
     public MissingLastRevSeeker(DocumentStore store) {
@@ -80,20 +86,35 @@ public class MissingLastRevSeeker {
         });
     }
 
-    public boolean acquireRecoveryLock(int clusterId){
-        //This approach has a race condition where two different cluster nodes
-        //can acquire the lock simultaneously.
-        UpdateOp update = new UpdateOp(Integer.toString(clusterId), true);
-        update.set(ClusterNodeInfo.REV_RECOVERY_LOCK, RecoverLockState.ACQUIRED.name());
-        store.createOrUpdate(Collection.CLUSTER_NODES, update);
-        return true;
+    public boolean acquireRecoveryLock(int clusterId, int recoveredBy) {
+        try {
+            // This approach has a race condition where two different cluster
+            // nodes
+            // can acquire the lock simultaneously.
+            UpdateOp update = new UpdateOp(Integer.toString(clusterId), true);
+            update.set(ClusterNodeInfo.REV_RECOVERY_LOCK, RecoverLockState.ACQUIRED.name());
+            if (recoveredBy != 0) {
+                update.set(ClusterNodeInfo.REV_RECOVERY_BY, recoveredBy);
+            }
+            store.createOrUpdate(Collection.CLUSTER_NODES, update);
+            return true;
+        } catch (RuntimeException ex) {
+            LOG.error("Failed to acquire the recovery lock for clusterNodeId " + clusterId, ex);
+            throw (ex);
+        }
     }
 
-    public void releaseRecoveryLock(int clusterId){
-        UpdateOp update = new UpdateOp(Integer.toString(clusterId), true);
-        update.set(ClusterNodeInfo.REV_RECOVERY_LOCK, null);
-        update.set(ClusterNodeInfo.STATE, null);
-        store.createOrUpdate(Collection.CLUSTER_NODES, update);
+    public void releaseRecoveryLock(int clusterId) {
+        try {
+            UpdateOp update = new UpdateOp(Integer.toString(clusterId), true);
+            update.set(ClusterNodeInfo.REV_RECOVERY_LOCK, null);
+            update.set(ClusterNodeInfo.REV_RECOVERY_BY, null);
+            update.set(ClusterNodeInfo.STATE, null);
+            store.createOrUpdate(Collection.CLUSTER_NODES, update);
+        } catch (RuntimeException ex) {
+            LOG.error("Failed to release the recovery lock for clusterNodeId " + clusterId, ex);
+            throw (ex);
+        }
     }
 
     public NodeDocument getRoot() {
