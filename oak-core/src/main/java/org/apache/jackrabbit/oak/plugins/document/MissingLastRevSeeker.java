@@ -69,7 +69,7 @@ public class MissingLastRevSeeker {
      */
     public Iterable<NodeDocument> getCandidates(final long startTime) {
         // Fetch all documents where lastmod >= startTime
-        Iterable<NodeDocument> nodes = getSelectedDocuments(store, 
+        Iterable<NodeDocument> nodes = getSelectedDocuments(store,
                 MODIFIED_IN_SECS, getModifiedInSecs(startTime));
         return Iterables.filter(nodes, new Predicate<NodeDocument>() {
             @Override
@@ -113,4 +113,3 @@ public class MissingLastRevSeeker {
         return false;
     }
 }
-
