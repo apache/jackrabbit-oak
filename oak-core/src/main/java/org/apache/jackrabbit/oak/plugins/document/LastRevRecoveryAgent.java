@@ -67,9 +67,9 @@ public class LastRevRecoveryAgent {
 
     /**
      * Recover the correct _lastRev updates for potentially missing candidate nodes.
-     * 
+     *
      * @param clusterId the cluster id for which the _lastRev are to be recovered
-     * @return the int the number of restored nodes
+     * @return the number of restored nodes
      */
     public int recover(int clusterId) {
         ClusterNodeInfoDocument nodeInfo = missingLastRevUtil.getClusterNodeInfo(clusterId);
@@ -84,7 +84,7 @@ public class LastRevRecoveryAgent {
 
             // Check if _lastRev recovery needed for this cluster node
             // state is Active && recoveryLock not held by someone
-            if (isRecoveryNeeded(nodeInfo)) {            
+            if (isRecoveryNeeded(nodeInfo)) {
                 // retrieve the root document's _lastRev
                 NodeDocument root = missingLastRevUtil.getRoot();
                 Revision lastRev = root.getLastRev().get(clusterId);
@@ -112,10 +112,10 @@ public class LastRevRecoveryAgent {
 
     /**
      * Recover the correct _lastRev updates for the given candidate nodes.
-     * 
+     *
      * @param suspects the potential suspects
      * @param clusterId the cluster id for which _lastRev recovery needed
-     * @return the int
+     * @return the number of restored nodes
      */
     public int recover(Iterator<NodeDocument> suspects, int clusterId) {
         Closer closer = Closer.create();
@@ -244,10 +244,10 @@ public class LastRevRecoveryAgent {
     /**
      * Retrieves possible candidates which have been modified after the given
      * {@code startTime} and recovers the missing updates.
-     * 
+     *
      * @param clusterId the cluster id
      * @param startTime the start time
-     * @return the int the number of restored nodes
+     * @return the number of restored nodes
      */
     private int recoverCandidates(final int clusterId, final long startTime) {
         boolean lockAcquired = missingLastRevUtil.acquireRecoveryLock(clusterId);
@@ -275,7 +275,7 @@ public class LastRevRecoveryAgent {
     /**
      * Determines the last revision value which needs to set for given clusterId
      * on the passed document. If the last rev entries are consisted
-     * 
+     *
      * @param doc NodeDocument where lastRev entries needs to be fixed
      * @param clusterId clusterId for which lastRev has to be checked
      * @return lastRev which needs to be updated. <tt>null</tt> if no
@@ -339,7 +339,7 @@ public class LastRevRecoveryAgent {
             }
         }
     }
-    
+
     /**
      * Gets the _lastRev recovery candidate cluster nodes.
      *
@@ -348,16 +348,16 @@ public class LastRevRecoveryAgent {
     public List<Integer> getRecoveryCandidateNodes() {
         Iterable<ClusterNodeInfoDocument> clusters = missingLastRevUtil.getAllClusters();
         List<Integer> candidateClusterNodes = Lists.newArrayList();
-        
+
         for (ClusterNodeInfoDocument nodeInfo : clusters) {
             if (isRecoveryNeeded(nodeInfo)) {
                 candidateClusterNodes.add(Integer.valueOf(nodeInfo.getId()));
             }
         }
-        
+
         return candidateClusterNodes;
     }
-    
+
     private boolean isRecoveryNeeded(ClusterNodeInfoDocument nodeInfo) {
         if (nodeInfo != null) {
             // Check if _lastRev recovery needed for this cluster node
@@ -370,7 +370,7 @@ public class LastRevRecoveryAgent {
         }
         return false;
     }
-    
+
     private static class ClusterPredicate implements Predicate<Revision> {
         private final int clusterId;
 
