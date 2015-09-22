@@ -299,4 +299,9 @@ public interface SegmentCompactionMBean {
      * @return  last error
      */
     String getLastError();
+
+    /**
+     * @return  Number of commits
+     */
+    long getCommitCount();
 }

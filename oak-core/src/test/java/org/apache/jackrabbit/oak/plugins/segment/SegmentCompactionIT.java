@@ -56,6 +56,7 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -460,6 +461,7 @@ public class SegmentCompactionIT {
                                     ? new CompositeHook(new ConflictHook(DefaultConflictHandler.OURS))
                                     : new CompositeHook(new ConflictHook(DefaultConflictHandler.THEIRS));
                             nodeStore.merge(root, commitHook, CommitInfo.EMPTY);
+                            segmentCompactionMBean.committed();
                         } catch (CommitFailedException e) {
                             LOG.warn("Commit failed: {}", e.getMessage());
                         }
@@ -748,6 +750,8 @@ public class SegmentCompactionIT {
     }
 
     private class SegmentCompactionITMBean extends AnnotatedStandardMBean implements SegmentCompactionMBean {
+        private final AtomicLong commitCount = new AtomicLong();
+
         private String lastError;
 
         SegmentCompactionITMBean() {
@@ -1038,6 +1042,11 @@ public class SegmentCompactionIT {
             return lastError;
         }
 
+        @Override
+        public long getCommitCount() {
+            return commitCount.get();
+        }
+
         void error(String message, Throwable t) {
             if (!(t instanceof CancellationException)) {
                 StringWriter sw = new StringWriter();
@@ -1047,6 +1056,10 @@ public class SegmentCompactionIT {
 
                 LOG.error(message, t);
             }
+        }
+
+        void committed() {
+            commitCount.incrementAndGet();
         }
     }
 }
