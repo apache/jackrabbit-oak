@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
-import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -29,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
-import javax.sql.DataSource;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -231,6 +229,7 @@ public enum RDBDocumentStoreDB {
                 while (rs.next()) {
                     result.put("collation", rs.getString("Collation"));
                 }
+                rs.close();
                 stmt.close();
                 stmt = con.prepareStatement(
                         "SHOW VARIABLES WHERE variable_name LIKE 'character\\_set\\_%' OR variable_name LIKE 'collation%' OR variable_name = 'max_allowed_packet'");
