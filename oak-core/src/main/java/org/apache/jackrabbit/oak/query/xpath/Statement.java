@@ -118,7 +118,8 @@ public class Statement {
         // explain | measure ...
         if (explain) {
             buff.append("explain ");
-        } else if (measure) {
+        } 
+        if (measure) {
             buff.append("measure ");
         }
         
@@ -250,9 +251,10 @@ public class Statement {
         public String toString() {
             StringBuilder buff = new StringBuilder();
             // explain | measure ...
-            if (this.explain) {
+            if (explain) {
                 buff.append("explain ");
-            } else if (measure) {
+            } 
+            if (measure) {
                 buff.append("measure ");
             }
             buff.append(s1).append(" union ").append(s2);

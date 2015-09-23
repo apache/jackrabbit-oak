@@ -352,6 +352,25 @@ public class SelectorImpl extends SourceImpl {
         return buff.toString();
     }
 
+    @Override
+    public String getIndexCost(NodeState rootState) {
+        StringBuilder buff = new StringBuilder();
+        buff.append(quoteJson(selectorName)).append(": ");
+        QueryIndex index = getIndex();
+        if (index != null) {
+            if (index instanceof AdvancedQueryIndex) {
+                IndexPlan p = plan.getIndexPlan();
+                buff.append("{ perEntry: ").append(p.getCostPerEntry());
+                buff.append(", perExecution: ").append(p.getCostPerExecution());
+                buff.append(", count: ").append(p.getEstimatedEntryCount());
+                buff.append(" }");
+            } else {
+                buff.append(index.getCost(createFilter(true), rootState));
+            }
+        }
+        return buff.toString();
+    }
+
     /**
      * Create the filter condition for planning or execution.
      * 

@@ -102,12 +102,12 @@ public class NodeCounter implements NodeCounterMBean {
         // check in the counter index (if it exists)
         s = child(root,
                 IndexConstants.INDEX_DEFINITIONS_NAME,
-                "counter",
-                NodeCounterEditor.DATA_NODE_NAME);
-        if (s == null) {
+                "counter");
+        if (s == null || !s.exists()) {
             // no index
             return -1;
         }
+        s = child(s, NodeCounterEditor.DATA_NODE_NAME);
         s = child(s, PathUtils.elements(path));
         if (s == null || !s.exists()) {
             // we have an index, but no data
