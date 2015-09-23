@@ -197,4 +197,12 @@ public abstract class DocumentMKTestBase {
         }
         return rev;
     }
+
+    protected void runBackgroundUpdate(DocumentNodeStore store) {
+        store.runBackgroundUpdateOperations();
+    }
+
+    protected void runBackgroundRead(DocumentNodeStore store) {
+        store.runBackgroundReadOperations();
+    }
 }
