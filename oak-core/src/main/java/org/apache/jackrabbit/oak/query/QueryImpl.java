@@ -466,6 +466,9 @@ public class QueryImpl implements Query {
         prepare();
         if (explain) {
             String plan = getPlan();
+            if (measure) {
+                plan += " cost: { " + getIndexCost() + " }";
+            }
             columns = new ColumnImpl[] { new ColumnImpl("explain", "plan", "plan")};
             ResultRowImpl r = new ResultRowImpl(this,
                     Tree.EMPTY_ARRAY,
@@ -572,6 +575,11 @@ public class QueryImpl implements Query {
         return source.getPlan(context.getBaseState());
     }
     
+    @Override
+    public String getIndexCost() {
+        return source.getIndexCost(context.getBaseState());
+    }
+
     @Override
     public double getEstimatedCost() {
         return estimatedCost;

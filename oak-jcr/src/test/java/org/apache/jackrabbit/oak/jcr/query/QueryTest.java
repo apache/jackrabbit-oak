@@ -54,6 +54,9 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
+import org.apache.jackrabbit.oak.commons.json.JsonObject;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
+import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
 import org.junit.Ignore;
@@ -800,6 +803,39 @@ public class QueryTest extends AbstractRepositoryTest {
         assertEquals("/one", n.getPath());
         assertFalse(ni.hasNext());
         session.logout();
+    }
+    
+    @Test
+    public void approxCount() throws Exception {
+        Session session = createAdminSession();
+        double c = getCost(session, "//*[@x=1]");
+        // *with* the counter index, the estimated cost to traverse is low
+        assertTrue("cost: " + c, c > 0 && c < 100000);
+        
+        // *without* the counter index, the estimated cost to traverse is high
+        session.getNode("/oak:index/counter").remove();
+        session.save();
+        double c2 = getCost(session, "//*[@x=1]");
+        assertTrue("cost: " + c2, c2 > 1000000);
+
+        session.logout();
+    }
+    
+    private static double getCost(Session session, String xpath) throws RepositoryException {
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        QueryResult qr = qm.createQuery("explain measure " + xpath, "xpath").execute();
+        Row r = qr.getRows().nextRow();
+        String plan = r.getValue("plan").getString();
+        String cost = plan.substring(plan.lastIndexOf('{'));
+        JsonObject json = parseJson(cost);
+        double c = Double.parseDouble(json.getProperties().get("a"));
+        return c;
+    }
+    
+    private static JsonObject parseJson(String json) {
+        JsopTokenizer t = new JsopTokenizer(json);
+        t.read('{');
+        return JsonObject.create(t);
     }
 
 }
