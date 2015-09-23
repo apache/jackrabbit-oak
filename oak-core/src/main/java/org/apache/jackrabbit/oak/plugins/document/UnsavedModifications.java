@@ -188,7 +188,7 @@ class UnsavedModifications implements Closeable {
         try {
             stats.lock = clock.getTime() - time;
             time = clock.getTime();
-            snapshot.acquiring();
+            snapshot.acquiring(getMostRecentRevision());
             if (map.size() > IN_MEMORY_SIZE_LIMIT) {
                 tmpFactory = MapFactory.createFactory();
                 pending = tmpFactory.create(PathComparator.INSTANCE);
@@ -270,14 +270,26 @@ class UnsavedModifications implements Closeable {
         return map.toString();
     }
 
+    private Revision getMostRecentRevision() {
+        // use revision of root document
+        Revision rev = map.get("/");
+        // otherwise find most recent
+        if (rev == null) {
+            for (Revision r : map.values()) {
+                rev = Utils.max(rev, r);
+            }
+        }
+        return rev;
+    }
+
     public interface Snapshot {
 
         Snapshot IGNORE = new Snapshot() {
             @Override
-            public void acquiring() {
+            public void acquiring(Revision mostRecent) {
             }
         };
 
-        void acquiring();
+        void acquiring(Revision mostRecent);
     }
 }

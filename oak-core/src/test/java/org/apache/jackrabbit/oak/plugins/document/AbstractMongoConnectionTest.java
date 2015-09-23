@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import com.mongodb.DB;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -44,7 +46,11 @@ public abstract class AbstractMongoConnectionTest extends DocumentMKTestBase {
         mongoConnection = MongoUtils.getConnection();
         MongoUtils.dropCollections(mongoConnection.getDB());
         Revision.setClock(getTestClock());
-        mk = new DocumentMK.Builder().clock(getTestClock()).setMongoDB(mongoConnection.getDB()).open();
+        mk = newBuilder(mongoConnection.getDB()).open();
+    }
+
+    protected DocumentMK.Builder newBuilder(DB db) throws Exception {
+        return new DocumentMK.Builder().clock(getTestClock()).setMongoDB(db);
     }
 
     protected Clock getTestClock() throws InterruptedException {

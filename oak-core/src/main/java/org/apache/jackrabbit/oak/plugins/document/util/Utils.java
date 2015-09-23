@@ -45,6 +45,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionContext;
+import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
 import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -484,6 +485,25 @@ public class Utils {
                                           @Nonnull Revision x,
                                           @Nonnull Revision previous) {
         return context.getRevisionComparator().compare(x, previous) > 0;
+    }
+
+    /**
+     * Returns the revision with the newer timestamp or {@code null} if both
+     * revisions are {@code null}. The implementation will return the first
+     * revision if both have the same timestamp.
+     *
+     * @param a the first revision (or {@code null}).
+     * @param b the second revision (or {@code null}).
+     * @return the revision with the newer timestamp.
+     */
+    @CheckForNull
+    public static Revision max(@Nullable Revision a, @Nullable Revision b) {
+        if (a == null) {
+            return b;
+        } else if (b == null) {
+            return a;
+        }
+        return StableRevisionComparator.INSTANCE.compare(a, b) >= 0 ? a : b;
     }
 
     /**
