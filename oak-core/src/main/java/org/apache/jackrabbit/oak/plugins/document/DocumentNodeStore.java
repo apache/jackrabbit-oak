@@ -1626,7 +1626,7 @@ public final class DocumentNodeStore
         runBackgroundReadOperations();
     }
 
-    private void runBackgroundUpdateOperations() {
+    void runBackgroundUpdateOperations() {
         if (isDisposed.get()) {
             return;
         }
@@ -1667,7 +1667,7 @@ public final class DocumentNodeStore
 
     //----------------------< background read operations >----------------------
 
-    private void runBackgroundReadOperations() {
+    void runBackgroundReadOperations() {
         if (isDisposed.get()) {
             return;
         }
@@ -2007,9 +2007,9 @@ public final class DocumentNodeStore
     BackgroundWriteStats backgroundWrite() {
         return unsavedLastRevisions.persist(this, new UnsavedModifications.Snapshot() {
             @Override
-            public void acquiring() {
+            public void acquiring(Revision mostRecent) {
                 if (store.create(JOURNAL,
-                        singletonList(changes.asUpdateOp(getHeadRevision())))) {
+                        singletonList(changes.asUpdateOp(mostRecent)))) {
                     changes = JOURNAL.newDocument(getDocumentStore());
                 }
             }
