@@ -16,20 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security;
 
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.ImmutableMap;
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.ReferenceCardinality;
-import org.apache.felix.scr.annotations.ReferencePolicy;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.security.authentication.AuthenticationConfigurationImpl;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenConfigurationImpl;
@@ -59,38 +46,26 @@ import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardRestrictionProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUserAuthenticationFactory;
 import org.osgi.framework.BundleContext;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 
-@Component
-@Service(value = {SecurityProvider.class})
 public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
 
-    @Reference
     private volatile AuthorizationConfiguration authorizationConfiguration;
 
-    @Reference
     private volatile AuthenticationConfiguration authenticationConfiguration;
 
-    @Reference
     private volatile PrivilegeConfiguration privilegeConfiguration;
 
-    @Reference
     private volatile UserConfiguration userConfiguration;
 
-    @Reference(referenceInterface = PrincipalConfiguration.class,
-            name = "principalConfiguration",
-            bind = "bindPrincipalConfiguration",
-            unbind = "unbindPrincipalConfiguration",
-            policy = ReferencePolicy.DYNAMIC,
-            cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE)
     private final CompositePrincipalConfiguration principalConfiguration = new CompositePrincipalConfiguration(this);
 
-    @Reference(referenceInterface = TokenConfiguration.class,
-            name = "tokenConfiguration",
-            bind = "bindTokenConfiguration",
-            unbind = "unbindTokenConfiguration",
-            policy = ReferencePolicy.DYNAMIC,
-            cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE)
     private final CompositeTokenConfiguration tokenConfiguration = new CompositeTokenConfiguration(this);
 
     private final WhiteboardAuthorizableNodeName authorizableNodeName = new WhiteboardAuthorizableNodeName();
@@ -187,8 +162,6 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
         }
     }
 
-    //----------------------------------------------------------------< SCR >---
-    @Activate
     protected void activate(BundleContext context) {
         whiteboard = new OsgiWhiteboard(context);
         authorizableActionProvider.start(whiteboard);
@@ -199,7 +172,6 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
         initializeConfigurations();
     }
 
-    @Deactivate
     protected void deactivate() {
         authorizableActionProvider.stop();
         authorizableNodeName.stop();
@@ -272,4 +244,35 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
         }
         return config;
     }
+
+    @SuppressWarnings("UnusedDeclaration")
+    protected void bindAuthenticationConfiguration(AuthenticationConfiguration authenticationConfiguration) {
+        this.authenticationConfiguration = authenticationConfiguration;
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    protected void unbindAuthenticationConfiguration(AuthenticationConfiguration authenticationConfiguration) {
+        this.authenticationConfiguration = null;
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    protected void bindPrivilegeConfiguration(PrivilegeConfiguration privilegeConfiguration) {
+        this.privilegeConfiguration = privilegeConfiguration;
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    protected void unbindPrivilegeConfiguration(PrivilegeConfiguration privilegeConfiguration) {
+        this.privilegeConfiguration = null;
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    protected void bindUserConfiguration(UserConfiguration userConfiguration) {
+        this.userConfiguration = userConfiguration;
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    protected void unbindUserConfiguration(UserConfiguration userConfiguration) {
+        this.userConfiguration = null;
+    }
+
 }
