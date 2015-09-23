@@ -201,7 +201,7 @@ public class LastRevRecoveryAgent {
             unsaved.persist(nodeStore, new UnsavedModifications.Snapshot() {
 
                 @Override
-                public void acquiring() {
+                public void acquiring(Revision mostRecent) {
                     if (lastRootRev == null) {
                         // this should never happen - when unsaved has no changes
                         // that is reflected in the 'map' to be empty - in that
