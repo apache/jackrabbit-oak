@@ -55,7 +55,6 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
-import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
@@ -819,6 +818,32 @@ public class QueryTest extends AbstractRepositoryTest {
         assertTrue("cost: " + c2, c2 > 1000000);
 
         session.logout();
+    }
+
+    @Test
+    public void nodeType() throws Exception {
+        Session session = createAdminSession();
+        String xpath = "/jcr:root//element(*,rep:User)[xyz/@jcr:primaryType]";
+        assertTrue(getPlan(session, xpath).startsWith("[rep:User] as [a] /* nodeType"));
+        
+        session.getNode("/oak:index/nodetype").setProperty("declaringNodeTypes", 
+                new String[]{"oak:Unstructured"}, PropertyType.NAME);
+        session.save();
+
+        assertTrue(getPlan(session, xpath).startsWith("[rep:User] as [a] /* traverse "));
+
+        xpath = "/jcr:root//element(*,oak:Unstructured)[xyz/@jcr:primaryType]";
+        assertTrue(getPlan(session, xpath).startsWith("[oak:Unstructured] as [a] /* nodeType "));
+
+        session.logout();
+    }
+    
+    private static String getPlan(Session session, String xpath) throws RepositoryException {
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        QueryResult qr = qm.createQuery("explain " + xpath, "xpath").execute();
+        Row r = qr.getRows().nextRow();
+        String plan = r.getValue("plan").getString();
+        return plan;
     }
     
     private static double getCost(Session session, String xpath) throws RepositoryException {
