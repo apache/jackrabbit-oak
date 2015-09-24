@@ -1434,52 +1434,77 @@ public class RDBDocumentStore implements DocumentStore {
 
     private List<RDBRow> dbQuery(Connection connection, String tableName, String minId, String maxId, String indexedProperty,
             long startValue, int limit) throws SQLException {
+        boolean noLowerBound = tableName.equals(this.tnNodes) && minId.equals(NodeDocument.MIN_ID_VALUE);
+        boolean noUpperBound = tableName.equals(this.tnNodes) && maxId.equals(NodeDocument.MAX_ID_VALUE);
         long start = System.currentTimeMillis();
-        String t = "select ";
+        StringBuilder selectClause = new StringBuilder();
+        StringBuilder whereClause = new StringBuilder();
         if (limit != Integer.MAX_VALUE && this.db.getFetchFirstSyntax() == FETCHFIRSTSYNTAX.TOP) {
-            t += "TOP " + limit +  " ";
+            selectClause.append("TOP " + limit +  " ");
         }
-        t += "ID, MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, DATA, BDATA from " + tableName
-                + " where ID > ? and ID < ?";
+        selectClause.append("ID, MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, DATA, BDATA from ").append(tableName);
+
+        // dynamically build where clause
+        String whereSep = "";
+        if (!noLowerBound) {
+            whereClause.append("ID > ?");
+            whereSep = " and ";
+        }
+        if (!noUpperBound) {
+            whereClause.append(whereSep).append("ID < ?");
+            whereSep = " and ";
+        }
+
         if (indexedProperty != null) {
             if (MODIFIED.equals(indexedProperty)) {
-                t += " and MODIFIED >= ?";
+                whereClause.append(whereSep).append("MODIFIED >= ?");
             } else if (NodeDocument.HAS_BINARY_FLAG.equals(indexedProperty)) {
                 if (startValue != NodeDocument.HAS_BINARY_VAL) {
                     throw new DocumentStoreException("unsupported value for property " + NodeDocument.HAS_BINARY_FLAG);
                 }
-                t += " and HASBINARY = 1";
+                whereClause.append(whereSep).append("HASBINARY = 1");
             } else if (NodeDocument.DELETED_ONCE.equals(indexedProperty)) {
                 if (startValue != 1) {
                     throw new DocumentStoreException("unsupported value for property " + NodeDocument.DELETED_ONCE);
                 }
-                t += " and DELETEDONCE = 1";
+                whereClause.append(whereSep).append("DELETEDONCE = 1");
             } else {
                 throw new DocumentStoreException("unsupported indexed property: " + indexedProperty);
             }
         }
-        t += " order by ID";
+
+        StringBuilder query = new StringBuilder();
+        query.append("select ").append(selectClause);
+        if (whereClause.length() != 0) {
+            query.append(" where ").append(whereClause);
+        }
+
+        query.append(" order by ID");
 
         if (limit != Integer.MAX_VALUE) {
             switch (this.db.getFetchFirstSyntax()) {
                 case LIMIT:
-                    t += " LIMIT " + limit;
+                    query.append(" LIMIT " + limit);
                     break;
                 case FETCHFIRST:
-                    t += " FETCH FIRST " + limit + " ROWS ONLY";
+                    query.append(" FETCH FIRST " + limit + " ROWS ONLY");
                     break;
                 default:
                     break;
             }
         }
 
-        PreparedStatement stmt = connection.prepareStatement(t);
+        PreparedStatement stmt = connection.prepareStatement(query.toString());
         List<RDBRow> result = new ArrayList<RDBRow>();
         long dataTotal = 0, bdataTotal = 0;
         try {
             int si = 1;
-            setIdInStatement(stmt, si++, minId);
-            setIdInStatement(stmt, si++, maxId);
+            if (!noLowerBound) {
+                setIdInStatement(stmt, si++, minId);
+            }
+            if (!noUpperBound) {
+                setIdInStatement(stmt, si++, maxId);
+            }
 
             if (MODIFIED.equals(indexedProperty)) {
                 stmt.setLong(si++, startValue);
