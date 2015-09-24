@@ -66,6 +66,32 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
     }
 
     @Test
+    public void testRDBDocumentStoreRestart() throws Exception {
+        registry = repositoryFactory.initializeServiceRegistry(config)
+
+        //1. Register the DataSource as a service
+        DataSource ds = createDS("jdbc:h2:mem:testRDBrestart;DB_CLOSE_DELAY=-1")
+        ServiceRegistration srds = registry.registerService(DataSource.class.name, ds, ['datasource.name': 'oak'] as Hashtable)
+
+        //2. Create config for DocumentNodeStore with RDB enabled
+        createConfig([
+                'org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService': [
+                        documentStoreType: 'RDB'
+                ]
+        ])
+
+        DocumentNodeStore ns = getServiceWithWait(NodeStore.class)
+
+        //3. Shut down ds
+        srds.unregister();
+        assertNoService(NodeStore.class)
+
+        //4. Restart ds, service should still be down
+        srds = registry.registerService(DataSource.class.name, ds, ['datasource.name': 'oak'] as Hashtable)
+        assertNoService(NodeStore.class)
+    }
+
+    @Test
     public void testRDBDocumentStoreLateDataSource() throws Exception {
         registry = repositoryFactory.initializeServiceRegistry(config)
 
