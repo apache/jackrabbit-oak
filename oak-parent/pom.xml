@@ -477,7 +477,7 @@
         <dependency>
           <groupId>mysql</groupId>
           <artifactId>mysql-connector-java</artifactId>
-          <version>5.1.34</version>
+          <version>5.1.36</version>
         </dependency>
       </dependencies>
     </profile>
@@ -487,7 +487,7 @@
         <dependency>
           <groupId>org.postgresql</groupId>
           <artifactId>postgresql</artifactId>
-          <version>9.4-1201-jdbc4</version>
+          <version>9.4-1203-jdbc4</version>
         </dependency>
       </dependencies>
     </profile>
