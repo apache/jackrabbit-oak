@@ -76,6 +76,11 @@ abstract class AbstractRepositoryFactoryTest{
         return ((ServiceRegistryProvider) repository).getServiceRegistry()
     }
 
+    protected <T> void assertNoService(Class<T> clazz) {
+        ServiceReference<T> sr = registry.getServiceReference(clazz.name)
+        assert sr == null: "Service of type $clazz was found"
+    }
+
     protected <T> T getService(Class<T> clazz) {
         ServiceReference<T> sr = registry.getServiceReference(clazz.name)
         assert sr: "Not able to found a service of type $clazz"
