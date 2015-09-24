@@ -16,21 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security;
 
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.ImmutableMap;
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.ReferenceCardinality;
-import org.apache.felix.scr.annotations.ReferencePolicy;
-import org.apache.felix.scr.annotations.ReferencePolicyOption;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.security.authentication.AuthenticationConfigurationImpl;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenConfigurationImpl;
@@ -59,45 +45,28 @@ import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardRestrictionProvider;
 import org.osgi.framework.BundleContext;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 
-@Component
-@Service(value = {SecurityProvider.class})
 public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
 
-    @Reference
     private volatile AuthorizationConfiguration authorizationConfiguration;
 
-    @Reference
     private volatile AuthenticationConfiguration authenticationConfiguration;
 
-    @Reference
     private volatile PrivilegeConfiguration privilegeConfiguration;
 
-    @Reference
     private volatile UserConfiguration userConfiguration;
 
-    @Reference(referenceInterface = PrincipalConfiguration.class,
-            name = "principalConfiguration",
-            bind = "bindPrincipalConfiguration",
-            unbind = "unbindPrincipalConfiguration",
-            policy = ReferencePolicy.DYNAMIC,
-            cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE)
     private final CompositePrincipalConfiguration principalConfiguration = new CompositePrincipalConfiguration(this);
 
-    @Reference(referenceInterface = TokenConfiguration.class,
-            name = "tokenConfiguration",
-            bind = "bindTokenConfiguration",
-            unbind = "unbindTokenConfiguration",
-            policy = ReferencePolicy.DYNAMIC,
-            cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE)
     private final CompositeTokenConfiguration tokenConfiguration = new CompositeTokenConfiguration(this);
 
-    @Reference(referenceInterface = AuthorizableNodeName.class,
-            name = "authorizableNodeName",
-            bind = "bindAuthorizableNodeName",
-            cardinality = ReferenceCardinality.OPTIONAL_UNARY,
-            policyOption = ReferencePolicyOption.GREEDY)
     private final NameGenerator nameGenerator = new NameGenerator();
 
     private final WhiteboardAuthorizableActionProvider authorizableActionProvider = new WhiteboardAuthorizableActionProvider();
@@ -192,8 +161,6 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
         }
     }
 
-    //----------------------------------------------------------------< SCR >---
-    @Activate
     protected void activate(BundleContext context) throws Exception {
         whiteboard = new OsgiWhiteboard(context);
         authorizableActionProvider.start(whiteboard);
@@ -202,28 +169,32 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
         initializeConfigurations();
     }
 
-    @Deactivate
     protected void deactivate() throws Exception {
         authorizableActionProvider.stop();
         restrictionProvider.stop();
     }
 
+    @SuppressWarnings("unused")
     protected void bindPrincipalConfiguration(@Nonnull PrincipalConfiguration reference) {
         principalConfiguration.addConfiguration(initConfiguration(reference));
     }
 
+    @SuppressWarnings("unused")
     protected void unbindPrincipalConfiguration(@Nonnull PrincipalConfiguration reference) {
         principalConfiguration.removeConfiguration(reference);
     }
 
+    @SuppressWarnings("unused")
     protected void bindTokenConfiguration(@Nonnull TokenConfiguration reference) {
         tokenConfiguration.addConfiguration(initConfiguration(reference));
     }
 
+    @SuppressWarnings("unused")
     protected void unbindTokenConfiguration(@Nonnull TokenConfiguration reference) {
         tokenConfiguration.removeConfiguration(reference);
     }
 
+    @SuppressWarnings("unused")
     protected void bindAuthorizableNodeName(@Nonnull AuthorizableNodeName reference) {
         nameGenerator.dlg = reference;
     }
