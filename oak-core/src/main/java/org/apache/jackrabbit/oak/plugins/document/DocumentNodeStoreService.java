@@ -221,6 +221,7 @@ public class DocumentNodeStoreService {
     private ObserverTracker observerTracker;
     private ComponentContext context;
     private Whiteboard whiteboard;
+    private long deactivationTimestamp = 0;
 
 
     /**
@@ -263,7 +264,10 @@ public class DocumentNodeStoreService {
     }
 
     private void registerNodeStoreIfPossible() throws IOException {
-        if (context == null) {
+        // disallow attempts to restart (OAK-3420)
+        if (deactivationTimestamp != 0) {
+            log.info("DocumentNodeStore was already unregistered ({}ms ago)", System.currentTimeMillis() - deactivationTimestamp);
+        } else if (context == null) {
             log.info("Component still not activated. Ignoring the initialization call");
         } else if (customBlobStore && blobStore == null) {
             log.info("Custom BlobStore use enabled. DocumentNodeStoreService would be initialized when "
@@ -429,6 +433,8 @@ public class DocumentNodeStoreService {
     }
 
     private void unregisterNodeStore() {
+        deactivationTimestamp = System.currentTimeMillis();
+
         for (Registration r : registrations) {
             r.unregister();
         }
