@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 /**
 * {@link TokenConfiguration} that combines different token provider implementations.
 */
-public final class CompositeTokenConfiguration extends CompositeConfiguration<TokenConfiguration> implements TokenConfiguration {
+public class CompositeTokenConfiguration extends CompositeConfiguration<TokenConfiguration> implements TokenConfiguration {
 
     public CompositeTokenConfiguration(@Nonnull SecurityProvider securityProvider) {
         super(TokenConfiguration.NAME, securityProvider);
