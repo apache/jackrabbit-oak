@@ -91,7 +91,7 @@ public abstract class SourceImpl extends AstElement {
      * @param rootState the root
      * @return the cost
      */
-    public abstract String getIndexCost(NodeState rootState);
+    public abstract String getIndexCostInfo(NodeState rootState);
 
     /**
      * Prepare executing the query (recursively). This will 'wire' the

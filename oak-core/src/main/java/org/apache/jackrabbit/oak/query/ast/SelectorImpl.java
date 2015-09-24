@@ -353,7 +353,7 @@ public class SelectorImpl extends SourceImpl {
     }
 
     @Override
-    public String getIndexCost(NodeState rootState) {
+    public String getIndexCostInfo(NodeState rootState) {
         StringBuilder buff = new StringBuilder();
         buff.append(quoteJson(selectorName)).append(": ");
         QueryIndex index = getIndex();

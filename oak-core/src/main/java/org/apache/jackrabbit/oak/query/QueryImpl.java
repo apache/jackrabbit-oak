@@ -467,7 +467,7 @@ public class QueryImpl implements Query {
         if (explain) {
             String plan = getPlan();
             if (measure) {
-                plan += " cost: { " + getIndexCost() + " }";
+                plan += " cost: { " + getIndexCostInfo() + " }";
             }
             columns = new ColumnImpl[] { new ColumnImpl("explain", "plan", "plan")};
             ResultRowImpl r = new ResultRowImpl(this,
@@ -576,8 +576,8 @@ public class QueryImpl implements Query {
     }
     
     @Override
-    public String getIndexCost() {
-        return source.getIndexCost(context.getBaseState());
+    public String getIndexCostInfo() {
+        return source.getIndexCostInfo(context.getBaseState());
     }
 
     @Override

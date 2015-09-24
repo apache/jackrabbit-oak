@@ -110,13 +110,13 @@ public class JoinImpl extends SourceImpl {
     }
 
     @Override
-    public String getIndexCost(NodeState rootState) {
+    public String getIndexCostInfo(NodeState rootState) {
         StringBuilder buff = new StringBuilder();
         buff.append(toString());
         buff.append("{ ");
-        buff.append(left.getIndexCost(rootState));
+        buff.append(left.getIndexCostInfo(rootState));
         buff.append(", ");
-        buff.append(right.getIndexCost(rootState));
+        buff.append(right.getIndexCostInfo(rootState));
         buff.append(" }");
         return buff.toString();
     }
