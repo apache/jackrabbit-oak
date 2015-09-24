@@ -79,6 +79,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ENTRY_COUNT_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ACTIVE_DELETE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.BLOB_SIZE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.COMPAT_MODE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EVALUATE_PATH_RESTRICTION;
@@ -107,6 +108,12 @@ class IndexDefinition implements Aggregate.AggregateMapper{
     private static final String OAK_CHILD_ORDER = ":childOrder";
 
     private static final Logger log = LoggerFactory.getLogger(IndexDefinition.class);
+
+    /**
+     * Default number of seconds after which to delete actively. Default is -1, meaning disabled.
+     * The plan is to use 3600 (1 hour) in the future.
+     */
+    static final int DEFAULT_ACTIVE_DELETE = -1; // 60 * 60;
 
     /**
      * Blob size to use by default. To avoid issues in OAK-2105 the size should not
@@ -151,6 +158,8 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
     private final String funcName;
 
+    private final int activeDelete;
+    
     private final int blobSize;
 
     private final Codec codec;
@@ -227,6 +236,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         this.definition = defn;
         this.indexName = determineIndexName(defn, indexPath);
         this.blobSize = getOptionalValue(defn, BLOB_SIZE, DEFAULT_BLOB_SIZE);
+        this.activeDelete = getOptionalValue(defn, ACTIVE_DELETE, DEFAULT_ACTIVE_DELETE);
         this.testMode = getOptionalValue(defn, LuceneIndexConstants.TEST_MODE, false);
 
         this.aggregates = collectAggregates(defn);
@@ -1393,6 +1403,10 @@ class IndexDefinition implements Aggregate.AggregateMapper{
             return defn.getProperty(REINDEX_COUNT).getValue(Type.LONG);
         }
         return 0;
+    }
+
+    public boolean getActiveDeleteEnabled() {
+        return activeDelete >= 0;
     }
 
 }

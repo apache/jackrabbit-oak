@@ -147,7 +147,7 @@ public class OakDirectoryTest {
         assertEquals(blobSize, testNode.getProperty(PROP_BLOB_SIZE).getValue(Type.LONG).longValue());
 
         List<Blob> blobs = newArrayList(testNode.getProperty(JCR_DATA).getValue(BINARIES));
-        assertEquals(blobSize, blobs.get(0).length());
+        assertEquals(blobSize + OakDirectory.UNIQUE_KEY_SIZE, blobs.get(0).length());
 
         return data;
     }
@@ -162,7 +162,7 @@ public class OakDirectoryTest {
     }
 
     private Directory createDir(NodeBuilder builder, boolean readOnly){
-        return new OakDirectory(builder.child(INDEX_DATA_CHILD_NAME),
+        return new OakDirectory(builder,
                 new IndexDefinition(root, builder.getNodeState()), readOnly);
     }
 
