@@ -236,12 +236,12 @@ public class UnionQueryImpl implements Query {
     }
     
     @Override
-    public String getIndexCost() {
+    public String getIndexCostInfo() {
         StringBuilder buff = new StringBuilder();
         buff.append("{ ");
-        buff.append(left.getIndexCost());
+        buff.append(left.getIndexCostInfo());
         buff.append(", ");
-        buff.append(right.getIndexCost());
+        buff.append(right.getIndexCostInfo());
         buff.append(" }");
         return buff.toString();
     }

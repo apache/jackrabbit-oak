@@ -100,11 +100,11 @@ public interface Query {
     String getPlan();
 
     /**
-     * Get the index cost. The query must already be prepared.
+     * Get the index cost as a JSON string. The query must already be prepared.
      * 
      * @return the index cost
      */
-    String getIndexCost();
+    String getIndexCostInfo();
 
     /**
      * Get the estimated cost.
