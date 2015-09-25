@@ -28,6 +28,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.hash.Hashing;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -41,8 +44,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.hash.Hashing;
 
 /**
  * Tool for compacting segments.
@@ -64,6 +65,12 @@ public class Compactor {
 
     private final CompactionMap map;
 
+    /**
+     * Filters nodes that will be included in the compaction map, allowing for
+     * optimization in case of an offline compaction
+     */
+    private Predicate<NodeState> includeInMap = Predicates.alwaysTrue();
+
     private final ProgressTracker progress = new ProgressTracker();
 
     /**
@@ -80,13 +87,16 @@ public class Compactor {
     private final boolean cloneBinaries;
 
     public Compactor(SegmentWriter writer) {
-        this(writer, false);
+        this(writer, false, false);
     }
 
-    public Compactor(SegmentWriter writer, boolean cloneBinaries) {
+    public Compactor(SegmentWriter writer, boolean cloneBinaries, boolean offlineCompaction) {
         this.writer = writer;
         this.map = new CompactionMap(writer.getTracker());
         this.cloneBinaries = cloneBinaries;
+        if (offlineCompaction) {
+            includeInMap = new OfflineCompactionPredicate();
+        }
     }
 
     protected SegmentNodeBuilder process(NodeState before, NodeState after) {
@@ -177,7 +187,7 @@ public class Compactor {
             if (success) {
                 SegmentNodeState state = writer.writeNode(child.getNodeState());
                 builder.setChildNode(name, state);
-                if (id != null) {
+                if (id != null && includeInMap.apply(state)) {
                     map.put(id, state.getRecordId());
                 }
             }
@@ -353,6 +363,33 @@ public class Compactor {
                         "Finished compaction: {} nodes, {} properties, {} binaries.",
                         nodes, properties, binaries);
             }
+        }
+    }
+
+    private static class OfflineCompactionPredicate implements
+            Predicate<NodeState> {
+
+        /**
+         * over 64K in size, node will be included in the compaction map
+         */
+        private static final long offlineThreshold = 65536;
+
+        @Override
+        public boolean apply(NodeState state) {
+            if (state.getChildNodeCount(2) > 1) {
+                return true;
+            }
+            long count = 0;
+            for (PropertyState ps : state.getProperties()) {
+                for (int i = 0; i < ps.count(); i++) {
+                    long size = ps.size(i);
+                    count += size;
+                    if (size >= offlineThreshold || count >= offlineThreshold) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
     }
 
