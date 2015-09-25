@@ -28,12 +28,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Timestamp;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -67,9 +63,6 @@ import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.time.DateUtils;
-import org.apache.jackrabbit.core.RepositoryContext;
-import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.benchmark.BenchmarkRunner;
@@ -114,7 +107,6 @@ import org.apache.jackrabbit.oak.plugins.tika.TextExtractorMain;
 import org.apache.jackrabbit.oak.scalability.ScalabilityRunner;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade;
 import org.apache.jackrabbit.server.remoting.davex.JcrRemotingServlet;
 import org.apache.jackrabbit.webdav.jcr.JCRWebdavServerServlet;
 import org.apache.jackrabbit.webdav.server.AbstractWebdavServlet;
@@ -176,7 +168,7 @@ public final class Main {
                 server(URI, args);
                 break;
             case UPGRADE:
-                upgrade(args);
+                System.out.println("This command was moved to the oak-upgrade module");
                 break;
             case SCALABILITY:
                 ScalabilityRunner.main(args);
@@ -959,89 +951,6 @@ public final class Main {
             }
         }
         return false;
-    }
-
-    private static void upgrade(String[] args) throws Exception {
-        OptionParser parser = new OptionParser();
-        parser.accepts("datastore", "keep data store");
-        ArgumentAcceptingOptionSpec<String> copyVersions = parser.accepts("copy-versions", "copy referenced versions. valid arguments: true|false|yyyy-mm-dd").withRequiredArg().defaultsTo("true");
-        ArgumentAcceptingOptionSpec<String> copyOrphanedVersions = parser.accepts("copy-orphaned-versions", "copy all versions. valid arguments: true|false|yyyy-mm-dd").withRequiredArg().defaultsTo("true");
-        OptionSpec<String> nonOption = parser.nonOptions();
-        OptionSet options = parser.parse(args);
-
-        List<String> argList = nonOption.values(options);
-        if (argList.size() == 2 || argList.size() == 3) {
-            File dir = new File(argList.get(0));
-            File xml = new File(dir, "repository.xml");
-            String dst = argList.get(1);
-            if (argList.size() == 3) {
-                xml = new File(dst);
-                dst = argList.get(2);
-            }
-
-            RepositoryContext source =
-                    RepositoryContext.create(RepositoryConfig.create(xml, dir));
-            try {
-                if (dst.startsWith("mongodb://")) {
-                    MongoClientURI uri = new MongoClientURI(dst);
-                    MongoClient client = new MongoClient(uri);
-                    try {
-                        DocumentNodeStore target = new DocumentMK.Builder()
-                            .setMongoDB(client.getDB(uri.getDatabase()))
-                            .getNodeStore();
-                        try {
-                            RepositoryUpgrade upgrade =
-                                    new RepositoryUpgrade(source, target);
-                            upgrade.setCopyBinariesByReference(
-                                    options.has("datastore"));
-                            setCopyVersionOptions(copyVersions.value(options), copyOrphanedVersions.value(options), upgrade);
-                            upgrade.copy(null);
-                        } finally {
-                            target.dispose();
-                        }
-                    } finally {
-                        client.close();
-                    }
-                } else {
-                    FileStore store = new FileStore(new File(dst), 256);
-                    try {
-                        NodeStore target = new SegmentNodeStore(store);
-                        RepositoryUpgrade upgrade =
-                                new RepositoryUpgrade(source, target);
-                        upgrade.setCopyBinariesByReference(
-                                options.has("datastore"));
-                        upgrade.copy(null);
-                    } finally {
-                        store.close();
-                    }
-                }
-            } finally {
-                source.getRepository().shutdown();
-            }
-        } else {
-            System.err.println("usage: upgrade <olddir> <newdir>");
-            System.exit(1);
-        }
-    }
-
-    private static void setCopyVersionOptions(String copyVersions, String copyOrphanedVersions, RepositoryUpgrade upgrade) throws ParseException {
-        upgrade.setCopyVersions(parseVersionCopyArgument(copyVersions));
-        upgrade.setCopyOrphanedVersions(parseVersionCopyArgument(copyOrphanedVersions));
-    }
-
-    static Calendar parseVersionCopyArgument(String string) throws ParseException {
-        final DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
-        final Calendar calendar;
-
-        if (Boolean.parseBoolean(string)) {
-            calendar = Calendar.getInstance();
-            calendar.setTimeInMillis(0);
-        } else if (string != null && string.matches("^\\d{4}-\\d{2}-\\d{2}$")) {
-            calendar = DateUtils.toCalendar(df.parse(string));
-        } else {
-            calendar = null;
-        }
-        return calendar;
     }
 
     private static void server(String defaultUri, String[] args) throws Exception {

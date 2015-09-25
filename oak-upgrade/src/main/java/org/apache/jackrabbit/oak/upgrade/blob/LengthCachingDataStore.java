@@ -210,6 +210,7 @@ public class LengthCachingDataStore extends AbstractDataStore {
             this.mapping = recordSizeMapping;
         }
 
+        @Override
         public long getLength() throws DataStoreException {
             Long size = mapping.get(getIdentifier().toString());
             if (size == null) {
