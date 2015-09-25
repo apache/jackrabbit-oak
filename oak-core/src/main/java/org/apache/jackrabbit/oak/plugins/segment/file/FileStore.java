@@ -695,7 +695,7 @@ public class FileStore implements SegmentStore {
 
         long start = System.currentTimeMillis();
         SegmentWriter writer = new SegmentWriter(this, tracker, getVersion());
-        final Compactor compactor = new Compactor(writer, compactionStrategy.cloneBinaries());
+        final Compactor compactor = new Compactor(writer, compactionStrategy.cloneBinaries(), compactionStrategy.isOfflineCompaction());
         SegmentNodeState before = getHead();
         long existing = before.getChildNode(SegmentNodeStore.CHECKPOINTS)
                 .getChildNodeCount(Long.MAX_VALUE);

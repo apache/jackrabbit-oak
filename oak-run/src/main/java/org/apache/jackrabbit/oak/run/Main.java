@@ -486,6 +486,7 @@ public final class Main {
                         return setHead.call();
                     }
                 };
+                compactionStrategy.setOfflineCompaction(true);
                 store.setCompactionStrategy(compactionStrategy);
                 store.compact();
             } finally {
