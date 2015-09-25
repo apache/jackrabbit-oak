@@ -36,7 +36,7 @@ import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
  * Also, manages any temporary files needed as well as external sorting.
  * 
  */
-class GarbageCollectorFileState implements Closeable{
+public class GarbageCollectorFileState implements Closeable{
     /** The root of the gc file state directory. */
     private final File home;
 
