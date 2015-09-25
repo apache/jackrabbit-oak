@@ -82,7 +82,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
     private final BlobReferenceRetriever marker;
     
     /** The garbage collector file state */
-    private final GarbageCollectorFileState fs;
+    protected final GarbageCollectorFileState fs;
 
     private final Executor executor;
 
@@ -159,22 +159,25 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
     /**
      * Mark and sweep. Main method for GC.
      */
-    private void markAndSweep() throws IOException, InterruptedException {
+    protected void markAndSweep() throws IOException, InterruptedException {
         boolean threw = true;
         try {
             Stopwatch sw = Stopwatch.createStarted();
             LOG.info("Starting Blob garbage collection");
-
+            
+            long markStart = System.currentTimeMillis();
             mark();
-            int deleteCount = sweep();
+            int deleteCount = sweep(markStart);
             threw = false;
 
-                LOG.info(
-                    "Blob garbage collection completed in {}. Number of blobs identified for deletion [{}] (This "
-                        + "includes blobs newer than configured interval [{}] which are ignored for deletion)",
-                    sw.toString(), deleteCount, maxLastModifiedInterval);
+            LOG.info(
+                "Blob garbage collection completed in {}. Number of blobs identified for deletion [{}] (This "
+                    + "includes blobs newer than configured interval [{}] which are ignored for deletion)",
+                sw.toString(), deleteCount, maxLastModifiedInterval);
         } finally {
-            Closeables.close(fs, threw);
+            if (!LOG.isTraceEnabled()) {
+                Closeables.close(fs, threw);
+            }
             state = State.NOT_RUNNING;
         }
     }
@@ -182,7 +185,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
     /**
      * Mark phase of the GC.
      */
-    private void mark() throws IOException, InterruptedException {
+    protected void mark() throws IOException, InterruptedException {
         state = State.MARKING;
         LOG.debug("Starting mark phase of the garbage collector");
 
@@ -214,7 +217,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      * @throws IOException
      *             Signals that an I/O exception has occurred.
      */
-    private void difference() throws IOException {
+    protected void difference() throws IOException {
         LOG.debug("Starting difference phase of the garbage collector");
 
         FileLineDifferenceIterator iter = new FileLineDifferenceIterator(
@@ -253,13 +256,15 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      * 
      * @throws IOException
      *             Signals that an I/O exception has occurred.
+     * @param markStart the start time of mark to take as reference for deletion
      */
-    private int sweep() throws IOException {
+    protected int sweep(long markStart) throws IOException {
         int count = 0;
         state = State.SWEEPING;
+        long lastMaxModifiedTime = getLastMaxModifiedTime(markStart);
         LOG.debug("Starting sweep phase of the garbage collector");
         LOG.debug("Sweeping blobs with modified time > than the configured max deleted time ({}). " +
-                timestampToString(getLastMaxModifiedTime()));
+                timestampToString(lastMaxModifiedTime));
 
         ConcurrentLinkedQueue<String> exceptionQueue = new ConcurrentLinkedQueue<String>();
 
@@ -272,13 +277,13 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
             if (ids.size() > getBatchCount()) {
                 count += ids.size();
-                sweepInternal(ids, exceptionQueue);
+                sweepInternal(ids, exceptionQueue, lastMaxModifiedTime);
                 ids = Lists.newArrayList();
             }
         }
         if (!ids.isEmpty()) {
             count += ids.size();
-            sweepInternal(ids, exceptionQueue);
+            sweepInternal(ids, exceptionQueue, lastMaxModifiedTime);
         }
 
         count -= exceptionQueue.size();
@@ -296,7 +301,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             LOG.warn("Unable to delete some blobs entries from the blob store. " +
                     "This may happen if blob modified time is > than the max deleted time ({}). " +
                     "Details around such blob entries can be found in [{}]",
-                    timestampToString(getLastMaxModifiedTime()), fs.getGarbage().getAbsolutePath());
+                    timestampToString(lastMaxModifiedTime), fs.getGarbage().getAbsolutePath());
         }
         LOG.debug("Ending sweep phase of the garbage collector");
         return count;
@@ -306,10 +311,10 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         return batchCount;
     }
 
-    private long getLastMaxModifiedTime(){
+    private long getLastMaxModifiedTime(long maxModified) {
         return maxLastModifiedInterval > 0 ?
-                System.currentTimeMillis() - maxLastModifiedInterval : 0;
-
+            ((maxModified <= 0 ? System.currentTimeMillis() : maxModified) - maxLastModifiedInterval) :
+            0;
     }
 
     /**
@@ -324,14 +329,14 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
     /**
      * Deletes a batch of blobs from blob store.
-     * 
-     * @param ids
-     * @param exceptionQueue
+     * @param ids the ids to delete
+     * @param exceptionQueue the queue to save exceptions
+     * @param lastMaxModifiedTime the max modified time of blobs to delete
      */
-    private void sweepInternal(List<String> ids, ConcurrentLinkedQueue<String> exceptionQueue) {
+    private void sweepInternal(List<String> ids, ConcurrentLinkedQueue<String> exceptionQueue, long lastMaxModifiedTime) {
         try {
             LOG.debug("Blob ids to be deleted {}", ids);
-            boolean deleted = blobStore.deleteChunks(ids, getLastMaxModifiedTime());
+            boolean deleted = blobStore.deleteChunks(ids, lastMaxModifiedTime);
             if (!deleted) {
                 // Only log and do not add to exception queue since some blobs may not match the
                 // lastMaxModifiedTime criteria.
@@ -346,7 +351,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
     /**
      * Iterates the complete node tree and collect all blob references
      */
-    private void iterateNodeTree() throws IOException {
+    protected void iterateNodeTree() throws IOException {
         final BufferedWriter writer = Files.newWriter(fs.getMarkedRefs(), Charsets.UTF_8);
         final AtomicInteger count = new AtomicInteger();
         try {
@@ -402,7 +407,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
     /**
      * BlobIdRetriever class to retrieve all blob ids.
      */
-    private class BlobIdRetriever implements Callable<Integer> {
+    public class BlobIdRetriever implements Callable<Integer> {
         @Override
         public Integer call() throws Exception {
             LOG.debug("Starting retrieve of all blobs");
