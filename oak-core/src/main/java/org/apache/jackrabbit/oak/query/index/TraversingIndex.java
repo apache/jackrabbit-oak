@@ -34,6 +34,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 public class TraversingIndex implements QueryIndex {
 
     @Override
+    public double getMinimumCost() {
+        return 0;
+    }
+
+    @Override
     public Cursor query(Filter filter, NodeState rootState) {
         return Cursors.newTraversingCursor(filter, rootState);
     }

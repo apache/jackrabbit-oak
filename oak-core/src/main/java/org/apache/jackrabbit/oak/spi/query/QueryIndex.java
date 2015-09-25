@@ -53,7 +53,16 @@ import static org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
  * even thought it will be set in the filter.
  */
 public interface QueryIndex {
-    
+
+    /**
+     * Returns the minimum cost which {@link #getCost(Filter, NodeState)} would return in the best possible case.
+     * <p>
+     * The implementation should return a static/cached value because it is called very often.
+     *
+     * @return the minimum cost for the index
+     */
+    double getMinimumCost();
+
     /**
      * Estimate the worst-case cost to query with the given filter. The returned
      * cost is a value between 1 (very fast; lookup of a unique node) and the
@@ -336,7 +345,7 @@ public interface QueryIndex {
             protected PropertyRestriction propRestriction;
             protected String pathPrefix = "/";
             protected Map<String, Object> attributes = Maps.newHashMap();
-            protected String planName = null;
+            protected String planName;
 
             public Builder setCostPerExecution(double costPerExecution) {
                 this.costPerExecution = costPerExecution;
@@ -543,7 +552,7 @@ public interface QueryIndex {
                     }
 
                     @Override
-                    public String getPlanName(){
+                    public String getPlanName() {
                         return planName;
                     }
                 };

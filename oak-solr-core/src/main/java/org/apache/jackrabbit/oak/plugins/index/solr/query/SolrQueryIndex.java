@@ -77,6 +77,10 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
 
     static final String NATIVE_LUCENE_QUERY = "native*lucene";
 
+    private static double MIN_COST = 2.3;
+
+    private static double COST_FOR_SINGLE_RESTRICTION = 10;
+
     private final Logger log = LoggerFactory.getLogger(SolrQueryIndex.class);
 
     private final String name;
@@ -104,6 +108,11 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
     }
 
     @Override
+    public double getMinimumCost() {
+        return MIN_COST;
+    }
+
+    @Override
     public String getIndexName() {
         return name;
     }
@@ -111,7 +120,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
     @Override
     public double getCost(Filter filter, NodeState root) {
         // cost is inverse proportional to the number of matching restrictions, infinite if no restriction matches
-        double cost = 10d / getMatchingFilterRestrictions(filter);
+        double cost = COST_FOR_SINGLE_RESTRICTION / getMatchingFilterRestrictions(filter);
         if (log.isDebugEnabled()) {
             log.debug("Solr: cost for {} is {}", name, cost);
         }

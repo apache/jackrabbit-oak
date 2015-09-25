@@ -36,6 +36,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 class NodeTypeIndex implements QueryIndex, JcrConstants {
 
     @Override
+    public double getMinimumCost() {
+        return NodeTypeIndexLookup.MINIMUM_COST;
+    }
+
+    @Override
     public double getCost(Filter filter, NodeState root) {
         // TODO don't call getCost for such queries
         if (filter.getFullTextConstraint() != null) {

@@ -30,13 +30,22 @@ import com.google.common.collect.ImmutableList;
 public class LowCostOrderedPropertyIndexProvider extends OrderedPropertyIndexProvider {
     @Override
     public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
-        return ImmutableList.<QueryIndex> of(new LowCostOrderedPropertyIndex());
+        return ImmutableList.<QueryIndex> of(new LowCostOrderedPropertyIndex(this));
     }
 
     private static class LowCostOrderedPropertyIndex extends OrderedPropertyIndex {
+        public LowCostOrderedPropertyIndex(LowCostOrderedPropertyIndexProvider indexProvider) {
+            super(indexProvider);
+        }
+
+        @Override
+        public double getMinimumCost() {
+            return 1e-3;
+        }
+
         @Override
         public double getCost(Filter filter, NodeState root) {
-            return 1e-3;
+            return getMinimumCost();
         }
     }
 }

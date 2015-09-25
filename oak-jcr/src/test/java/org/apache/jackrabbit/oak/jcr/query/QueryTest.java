@@ -58,6 +58,9 @@ import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
+import org.apache.jackrabbit.oak.plugins.index.property.OrderedPropertyIndexProvider;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -69,7 +72,17 @@ public class QueryTest extends AbstractRepositoryTest {
     public QueryTest(NodeStoreFixture fixture) {
         super(fixture);
     }
-    
+
+    @Before
+    public void disableCaching() {
+        OrderedPropertyIndexProvider.setCacheTimeoutForTesting(0);
+    }
+
+    @After
+    public void enableCaching() {
+        OrderedPropertyIndexProvider.resetCacheTimeoutForTesting();
+    }
+
     @Test
     public void join() throws Exception {
         Session session = getAdminSession();

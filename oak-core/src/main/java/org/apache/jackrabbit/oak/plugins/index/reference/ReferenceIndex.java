@@ -53,6 +53,13 @@ class ReferenceIndex implements QueryIndex {
 
     private static final ContentMirrorStoreStrategy STORE = new ContentMirrorStoreStrategy();
 
+    private static final double COST = 1;
+
+    @Override
+    public double getMinimumCost() {
+        return COST;
+    }
+
     @Override
     public String getIndexName() {
         return NAME;
@@ -72,7 +79,7 @@ class ReferenceIndex implements QueryIndex {
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
             if (isEqualityRestrictionOnType(pr, REFERENCE) ||
                     isEqualityRestrictionOnType(pr, WEAKREFERENCE)) {
-                return 1;
+                return COST;
             }
         }
         // not an appropriate index
