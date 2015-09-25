@@ -31,7 +31,6 @@ import java.util.Set;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.PathFilter;
-import org.apache.jackrabbit.oak.plugins.index.PathFilter.Result;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.UniqueEntryStoreStrategy;
@@ -58,7 +57,7 @@ public class PropertyIndexPlan {
     /**
      * The cost overhead to use the index in number of read operations.
      */
-    private static final double COST_OVERHEAD = 2;
+    static final double COST_OVERHEAD = 2;
 
     /**
      * The maximum cost when the index can be used.
@@ -258,6 +257,10 @@ public class PropertyIndexPlan {
             cursor = Cursors.newAncestorCursor(cursor, depth - 1, settings);
         }
         return cursor;
+    }
+
+    Filter getFilter() {
+        return filter;
     }
 
     //------------------------------------------------------------< Object >--

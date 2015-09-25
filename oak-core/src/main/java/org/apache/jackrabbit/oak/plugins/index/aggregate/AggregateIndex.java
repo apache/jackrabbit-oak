@@ -55,6 +55,11 @@ public class AggregateIndex implements AdvanceFulltextQueryIndex {
     }
 
     @Override
+    public double getMinimumCost() {
+        return baseIndex.getMinimumCost();
+    }
+
+    @Override
     public double getCost(Filter filter, NodeState rootState) {
         throw new UnsupportedOperationException("Not supported as implementing AdvancedQueryIndex");
     }

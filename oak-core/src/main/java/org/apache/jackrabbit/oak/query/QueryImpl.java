@@ -28,6 +28,7 @@ import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import com.google.common.collect.Ordering;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -121,6 +122,13 @@ public class QueryImpl implements Query {
     public static final String REP_SUGGEST = "rep:suggest()";
 
     private static final Logger LOG = LoggerFactory.getLogger(QueryImpl.class);
+
+    private static final Ordering<QueryIndex> MINIMAL_COST_ORDERING = new Ordering<QueryIndex>() {
+        @Override
+        public int compare(QueryIndex left, QueryIndex right) {
+            return Double.compare(left.getMinimumCost(), right.getMinimumCost());
+        }
+    };
 
     SourceImpl source;
     final String statement;
@@ -928,7 +936,16 @@ public class QueryImpl implements Query {
 
         double bestCost = Double.POSITIVE_INFINITY;
         IndexPlan bestPlan = null;
-        for (QueryIndex index : indexProvider.getQueryIndexes(rootState)) {
+
+        // Sort the indexes according to their minimum cost to be able to skip the remaining indexes if the cost of the
+        // current index is below the minimum cost of the next index.
+        final List<? extends QueryIndex> queryIndexes = MINIMAL_COST_ORDERING
+                .sortedCopy(indexProvider.getQueryIndexes(rootState));
+
+        for (int i = 0; i < queryIndexes.size(); i++) {
+            final QueryIndex index = queryIndexes.get(i);
+            final QueryIndex nextIndex = (i < queryIndexes.size()) ? queryIndexes.get(i) : null;
+
             double cost;
             String indexName = index.getIndexName();
             IndexPlan indexPlan = null;
@@ -997,6 +1014,10 @@ public class QueryImpl implements Query {
                 bestCost = cost;
                 bestIndex = index;
                 bestPlan = indexPlan;
+            }
+            // Stop looking for a better index if the current best cost is lower than the next minimum cost
+            if (nextIndex != null && bestCost <= nextIndex.getMinimumCost()) {
+                break;
             }
         }
 
