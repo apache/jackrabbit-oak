@@ -67,6 +67,7 @@ import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.OrderDirect
 import org.apache.jackrabbit.test.RepositoryStub;
 import org.apache.jackrabbit.test.RepositoryStubException;
 import org.apache.jackrabbit.util.ISO8601;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -155,6 +156,7 @@ public class OrderedIndexIT {
     
     @SuppressWarnings("deprecation")
     @Test
+    @Ignore("OAK-3451")
     public void oak2035() throws IOException, RepositoryException, RepositoryStubException  {
         final int numberOfNodes = 1500;
         final String statement = String.format(
