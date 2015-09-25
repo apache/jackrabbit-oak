@@ -59,7 +59,11 @@ public class  BlobGC extends AnnotatedStandardMBean implements BlobGCMBean {
     private final Executor executor;
 
     private ManagementOperation<String> gcOp = done(OP_NAME, "");
-
+    
+    public static final String CONSISTENCY_OP_NAME = "Blob consistency check";
+    
+    private ManagementOperation<String> consistencyOp = done(CONSISTENCY_OP_NAME, "");
+    
     /**
      * @param blobGarbageCollector  Blob garbage collector
      * @param executor              executor for running the garbage collection task
@@ -114,10 +118,35 @@ public class  BlobGC extends AnnotatedStandardMBean implements BlobGCMBean {
         return tds;
     }
     
+    @Override 
+    public CompositeData checkConsistency() {
+        if (consistencyOp.isDone()) {
+            consistencyOp = newManagementOperation(CONSISTENCY_OP_NAME, new Callable<String>() {
+                @Override
+                public String call() throws Exception {
+                    long t0 = nanoTime();
+                    long missing = blobGarbageCollector.checkConsistency();
+                    return "Consistency check completed in "
+                                + formatTime(nanoTime() - t0) + " " +
+                                + missing + "missing blobs found (details in the log).";
+                }
+            });
+            executor.execute(consistencyOp);
+        }
+        return getConsistencyCheckStatus();
+    }
+    
+    @Nonnull
+    @Override
+    public CompositeData getConsistencyCheckStatus() {
+        return consistencyOp.getStatus().toCompositeData();
+    }
+    
     private CompositeDataSupport toCompositeData(GarbageCollectionRepoStats statObj) throws OpenDataException {
         Object[] values = new Object[] {
                 statObj.getRepositoryId(),
-                (statObj.getLastModified() == 0 ? "" : (new Date(statObj.getLastModified()))).toString(),
+                (statObj.getStartTime() == 0 ? "" : (new Date(statObj.getStartTime()))).toString(),
+                (statObj.getEndTime() == 0 ? "" : (new Date(statObj.getEndTime()))).toString(),
                 statObj.getLength(),
                 humanReadableByteCount(statObj.getLength()),
                 statObj.getNumLines()
@@ -127,21 +156,24 @@ public class  BlobGC extends AnnotatedStandardMBean implements BlobGCMBean {
     
     private static final String[] FIELD_NAMES = new String[] {
             "repositoryId",
-            "referencesLastModifiedTime",
+            "markStartTime",
+            "markEndTime",
             "referenceFileSizeBytes",
             "referencesFileSize",
             "numReferences",
     };
     
     private static final String[] FIELD_DESCRIPTIONS = new String[] {
-           "Repository ID",
-           "Last modified time of references",
+           "Repository ID", 
+           "Start time of mark",
+           "End time of mark",
            "References file size in bytes",
            "References file size in human readable format",
            "Number of references" 
     };
     
     private static final OpenType[] FIELD_TYPES = new OpenType[] {
+            SimpleType.STRING,
             SimpleType.STRING,
             SimpleType.STRING,
             SimpleType.LONG,

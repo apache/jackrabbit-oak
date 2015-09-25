@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.3.5
+Release Notes -- Apache Jackrabbit Oak -- Version 1.3.6
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.3.5 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.3.6 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.2.x
 release.
@@ -15,73 +15,74 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.3.5
+Changes in Oak 1.3.6
 --------------------
 
-Sub-task
-    
-    [OAK-2634] - QueryEngine should expose name query as property restriction
-    [OAK-2875] - Namespaces keep references to old node states
-    [OAK-3031] - [Blob GC] Mbean for reporting shared repository GC stats
-    [OAK-3230] - Query engine should support virtual index rows
-    [OAK-3241] - Support including and excluding paths in RepositorySidegrade
-    [OAK-3242] - Repeated upgrades in RepositorySidegrade
-    [OAK-3243] - Allow to skip copying versions in the RepositorySidegrade
-    [OAK-3245] - Allow to set custom commit hooks in the RepositorySidegrade
-    [OAK-3261] - consider existing locks when creating new ones
-    [OAK-3264] - Deadlock between persisted compaction map and cleanup 2
-    [OAK-3279] - Create StringUtils.estimateMemoryUsage(String)
-    [OAK-3280] - Remove Utils.estimateMemoryUsage(String)
-    [OAK-3306] - Create a copy of MemoryDocumentStore
-    
 Bug
 
-    [OAK-3079] - LastRevRecoveryAgent can update _lastRev of children but not the root
-    [OAK-3249] - Some version copy settings conflicts with the earlyShutdown
-    [OAK-3282] - DataStoreBlobStore cache ignores key for memory calculation
-    [OAK-3283] - Background read does not close StringSort
-    [OAK-3289] - ClusterViewDocument should store longs, not integers
-    [OAK-3301] - AbstractRepositoryUpgrade leaks Repository instances
-    [OAK-3304] - ClusterViewDocument uses Map as property value
-    [OAK-3317] - ConcurrentModificationException when running SegmentOverflowExceptionIT
+    [OAK-2929] - Parent of unseen children must not be removable
+    [OAK-3158] - IAE when specifiying 2G cache for FileStore
+    [OAK-3248] - Felix Connect throws exception when launching Oak in Spring Boot env
+    [OAK-3265] - Test failures: NodeLocalNameTest, NodeNameTest
+    [OAK-3281] - Test failures on trunk: SolrIndexQueryTestIT.sql2
+    [OAK-3305] - Self recovering instance may not see all changes
+    [OAK-3310] - Write operations on Property do not check checked-out state of Node
+    [OAK-3313] - Many tests leak DocumentNodeStore instances
+    [OAK-3324] - Evaluation with restriction is not consistent with parent ACLs
+    [OAK-3333] - SplitOperations purges _commitRoot entries too eagerly
+    [OAK-3344] - Commit may add collision marker for committed revision
+    [OAK-3354] - Clock.Fast delays repository shutdown
+    [OAK-3356] - Unclosed sessions in oak-jcr and oak-upgrade tests
+    [OAK-3366] - Property indexes reindex flag getting reset to true at startup
+    [OAK-3367] - Boosting fields not working as expected
+    [OAK-3375] - RepositoryManager doesn't perform a shutdown of OsgiRepository on deactivation
+    [OAK-3376] - DocumentNodeStoreTest.dispose() waiting indefinitely on ArrayBlockingQueue.put()
+    [OAK-3377] - Two spaces in SQL2 fulltext search -> error
+    [OAK-3383] - "The unbindBlobDataSource method has thrown an exception" message on shutdown of the RDBMK 
+    [OAK-3386] - ConcurrentAddNodesClusterIT.addNodesConcurrent() blocks occasionally
 
 Improvement
 
-    [OAK-2805] - oak-run: register JMX beans 
-    [OAK-3050] - Move oak-it-osgi to top level
-    [OAK-3146] - ExternalLoginModuleFactory should inject SyncManager and ExternalIdentityProviderManager    
-    [OAK-3153] - Make it possible to disable recording of stack trace in SessionStats
-    [OAK-3163] - Improve binary comparison during repeated upgrades
-    [OAK-3238] - fine tune clock-sync check vs lease-check settings
-    [OAK-3247] - DocumentNodeStore.retrieve() should not throw IllegalArgumentException
-    [OAK-3252] - make AbstractQueryTest#test() reflects real file paths
-    [OAK-3254] - Log expensive NodeDocument.getNewestRevision() call
-    [OAK-3258] - Async index should change thread name to improve log readability
-    [OAK-3259] - Optimize NodeDocument.getNewestRevision()
-    [OAK-3263] - Support including and excluding paths for PropertyIndex    
-    [OAK-3273] - ColdStandby make sync start and end timestamp updates atomic
-    [OAK-3288] - clarify DocumentStore contract with respect to number formats
-    [OAK-3293] - SegmentOverflowExceptionIT runs forever unless it fails
-    [OAK-3294] - Read-only live FileStore implementation
-    [OAK-3296] - Oak Explorer support for live read-only store
-    [OAK-3298] - Allow to specify LogDumper's log buffer size
-    [OAK-3299] - SNFE in SegmentOverflowExceptionIT
-    [OAK-3322] - Change activation policy of RemoteServletRegistration
-
-New Feature
-
-    [OAK-2844] - Introducing a simple document-based discovery-light service (to circumvent documentMk's eventual consistency delays)
-    [OAK-3239] - Port RepositoryUpgrade features to the RepositorySidegrade
+    [OAK-1752] - Node name queries should use an index
+    [OAK-3042] - Suspend commit on conflict
+    [OAK-3144] - Support multivalue user properties for Ldap users
+    [OAK-3331] - Support spellchecking multiple words
+    [OAK-3347] - Ineffective cleanup after compaction due to references to root
+    [OAK-3357] - detail: use Number instead of Long/Integer
+    [OAK-3361] - Reduce PerfLogger isDebugEnabled overhead
+    [OAK-3365] - Wording in Log statements inconsistent
+    [OAK-3370] - Use SegmentNodeStore instead of MemoryNodeStore in CopyVersionHistoryTest
 
 Task
     
-    [OAK-3267] - Add discovery-lite descriptor for segmentNodeStore
-    [OAK-3278] - Move Utils.estimateMemoryUsage(String) to oak-commons
+    [OAK-1591] - org.apache.jackrabbit.oak.plugins.document.mongo.CacheInvalidationIT fails
+    [OAK-1743] - Cleanup documentation of _modCount
+    [OAK-2767] - Enable a Jenkins matrix for the 1.2 branch
+    [OAK-2937] - Remove code related to directmemory for off heap caching
+    [OAK-3308] - re-enable redirectTestOutputToFile in oak-core/pom
+    [OAK-3364] - Remove empty directories under oak-it
+    
+Sub-task
+        
+    [OAK-3184] - Consistency checker for data/blob store
+    [OAK-3338] - Deprecate CIHelper travis methods with profile 
+    [OAK-3359] - Compactor progress log
+    [OAK-3360] - Tracking the start time of mark in GC for a shared datastore
+
+Technical task
+
+    [OAK-3369] - OakDocumentRDBRepositoryStub should have working default for JDBC URL
+    [OAK-3379] - Oak run should use InMemoryCompactionMap by default
+    [OAK-3391] - RDBBlobStore: speed up testBigBlob(), also improve memory usage
 
 Test
 
-    [OAK-3277] - Turn VersionGarbageCollectorTest into an integration test
-    [OAK-3292] - DocumentDiscoveryLiteServiceTest failures on travis and jenkins
+    [OAK-3312] - [Blob GC] Test case for GC / OAK-3167
+    [OAK-3326] - Remove System.out.println() in tests
+    [OAK-3332] - Respect 'nsfixtures' in VersionGarbageCollectorIT
+    [OAK-3334] - Disable lease check in VersionGarbageCollectorIT
+    [OAK-3337] - CIHelper methods related to travis outdated
+    [OAK-3353] - Enable ConcurrentConflictTest.concurrentUpdatesWithBranch()
 
 
 In addition to the above-mentioned changes, this release contains

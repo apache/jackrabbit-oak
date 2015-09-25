@@ -38,9 +38,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Lock;
@@ -534,9 +536,9 @@ public class RDBDocumentStore implements DocumentStore {
 
         DatabaseMetaData md = con.getMetaData();
         String dbDesc = String.format("%s %s (%d.%d)", md.getDatabaseProductName(), md.getDatabaseProductVersion(),
-                md.getDatabaseMajorVersion(), md.getDatabaseMinorVersion());
+                md.getDatabaseMajorVersion(), md.getDatabaseMinorVersion()).replaceAll("[\r\n\t]", " ").trim();
         String driverDesc = String.format("%s %s (%d.%d)", md.getDriverName(), md.getDriverVersion(), md.getDriverMajorVersion(),
-                md.getDriverMinorVersion());
+                md.getDriverMinorVersion()).replaceAll("[\r\n\t]", " ").trim();
         String dbUrl = md.getURL();
 
         this.db = RDBDocumentStoreDB.getValue(md.getDatabaseProductName());
@@ -602,12 +604,115 @@ public class RDBDocumentStore implements DocumentStore {
         return sqlType == Types.VARBINARY || sqlType == Types.BINARY || sqlType == Types.LONGVARBINARY;
     }
 
-    private static String dumpTableMeta(int idType, String idTypeName, int idPrecision, int dataType, String dataTypeName,
-            int dataPrecision, int bdataType, String bdataTypeName, int bdataPrecision) {
-        return String
-                .format("type of ID: %d (%s) precision %d (-> %s), type of DATA: %d (%s) precision %d, type of BDATA: %d (%s) precision %d",
-                        idType, idTypeName, idPrecision, isBinaryType(idType) ? "binary" : "character", dataType, dataTypeName,
-                        dataPrecision, bdataType, bdataTypeName, bdataPrecision);
+    private void obtainFlagsFromResultSetMeta(ResultSetMetaData met) throws SQLException {
+        for (int i = 1; i <= met.getColumnCount(); i++) {
+            String lcName = met.getColumnName(i).toLowerCase(Locale.ENGLISH);
+            if ("id".equals(lcName)) {
+                this.isIdBinary = isBinaryType(met.getColumnType(i));
+            }
+            if ("data".equals(lcName)) {
+                this.dataLimitInOctets = met.getPrecision(i);
+            }
+        }
+    }
+
+    private static String asQualifiedDbName(String one, String two) {
+        if (one == null && two == null) {
+            return null;
+        }
+        else {
+            one = one == null ? "" : one.trim();
+            two = two == null ? "" : two.trim();
+            return one.isEmpty() ? two : one + "." + two;
+        }
+    }
+
+    private static String indexTypeAsString(int type) {
+        switch (type) {
+            case DatabaseMetaData.tableIndexClustered:
+                return "clustered";
+            case DatabaseMetaData.tableIndexHashed:
+                return "hashed";
+            case DatabaseMetaData.tableIndexStatistic:
+                return "statistic";
+            case DatabaseMetaData.tableIndexOther:
+                return "other";
+            default:
+                return "indexType=" + type;
+        }
+    }
+
+    private String dumpIndexData(DatabaseMetaData met, ResultSetMetaData rmet, String tableName) {
+
+        ResultSet rs = null;
+        try {
+            // if the result set metadata provides a table name, use that (the other one
+            // might be inaccurate due to case insensitivity issues
+            String rmetTableName = rmet.getTableName(1);
+            if (rmetTableName != null && !rmetTableName.trim().isEmpty()) {
+                tableName = rmetTableName.trim();
+            }
+
+            String rmetSchemaName = rmet.getSchemaName(1);
+            rmetSchemaName = rmetSchemaName == null ? "" : rmetSchemaName.trim();
+
+            Map<String, Map<String, Object>> indices = new TreeMap<String, Map<String, Object>>();
+            StringBuilder sb = new StringBuilder();
+            rs = met.getIndexInfo(null, null, tableName, false, true);
+            while (rs.next()) {
+                String name = asQualifiedDbName(rs.getString(5), rs.getString(6));
+                if (name != null) {
+                    Map<String, Object> info = indices.get(name);
+                    if (info == null) {
+                        info = new HashMap<String, Object>();
+                        indices.put(name, info);
+                        info.put("fields", new TreeMap<Integer, String>());
+                    }
+                    info.put("nonunique", rs.getBoolean(4));
+                    info.put("type", indexTypeAsString(rs.getInt(7)));
+                    String inSchema = rs.getString(2);
+                    inSchema = inSchema == null ? "" : inSchema.trim();
+                    // skip indices on tables in other schemas in case we have that information
+                    if (rmetSchemaName.isEmpty() || inSchema.isEmpty() || rmetSchemaName.equals(inSchema)) {
+                        String tname = asQualifiedDbName(inSchema, rs.getString(3));
+                        info.put("tname", tname);
+                        String cname = rs.getString(9);
+                        if (cname != null) {
+                            String order = "A".equals(rs.getString(10)) ? " ASC" : ("D".equals(rs.getString(10)) ? " DESC" : "");
+                            ((Map<Integer, String>) info.get("fields")).put(rs.getInt(8), cname + order);
+                        }
+                    }
+                }
+            }
+            for (Entry<String, Map<String, Object>> index : indices.entrySet()) {
+                boolean nonUnique = ((Boolean) index.getValue().get("nonunique"));
+                Map<Integer, String> fields = (Map<Integer, String>) index.getValue().get("fields");
+                if (!fields.isEmpty()) {
+                    if (sb.length() != 0) {
+                        sb.append(", ");
+                    }
+                    sb.append(String.format("%sindex %s on %s (", nonUnique ? "" : "unique ", index.getKey(),
+                            index.getValue().get("tname")));
+                    String delim = "";
+                    for (String field : fields.values()) {
+                        sb.append(delim);
+                        delim = ", ";
+                        sb.append(field);
+                    }
+                    sb.append(")");
+                    sb.append(" ").append(index.getValue().get("type"));
+                }
+            }
+            if (sb.length() != 0) {
+                sb.insert(0, "/* ").append(" */");
+            }
+            return sb.toString();
+        } catch (SQLException ex) {
+            // well it was best-effort
+            return "";
+        } finally {
+            this.ch.closeResultSet(rs);
+        }
     }
 
     private void createTableFor(Connection con, Collection<? extends Document> col, List<String> tablesCreated,
@@ -622,18 +727,20 @@ public class RDBDocumentStore implements DocumentStore {
         ResultSet checkResultSet = null;
         Statement creatStatement = null;
         try {
-            checkStatement = con.prepareStatement("select ID, DATA, BDATA from " + tableName + " where ID = ?");
+            checkStatement = con.prepareStatement("select * from " + tableName + " where ID = ?");
             checkStatement.setString(1, "0:/");
             checkResultSet = checkStatement.executeQuery();
 
             if (col.equals(Collection.NODES)) {
                 // try to discover size of DATA column
                 ResultSetMetaData met = checkResultSet.getMetaData();
-                this.isIdBinary = isBinaryType(met.getColumnType(1));
-                this.dataLimitInOctets = met.getPrecision(2);
-                diagnostics.append(dumpTableMeta(met.getColumnType(1), met.getColumnTypeName(1), met.getPrecision(1),
-                        met.getColumnType(2), met.getColumnTypeName(2), met.getPrecision(2), met.getColumnType(3),
-                        met.getColumnTypeName(3), met.getPrecision(3)));
+                obtainFlagsFromResultSetMeta(met);
+                String tableInfo = RDBJDBCTools.dumpResultSetMeta(met);
+                diagnostics.append(tableInfo);
+                String indexInfo = dumpIndexData(con.getMetaData(), met, tableName);
+                if (!indexInfo.isEmpty()) {
+                    diagnostics.append(" ").append(indexInfo);
+                }
             }
             tablesPresent.add(tableName);
         } catch (SQLException ex) {
@@ -656,15 +763,17 @@ public class RDBDocumentStore implements DocumentStore {
                 tablesCreated.add(tableName);
 
                 if (col.equals(Collection.NODES)) {
-                    PreparedStatement pstmt = con.prepareStatement("select ID, DATA, BDATA from " + tableName + " where ID = ?");
+                    PreparedStatement pstmt = con.prepareStatement("select * from " + tableName + " where ID = ?");
                     pstmt.setString(1, "0:/");
                     ResultSet rs = pstmt.executeQuery();
                     ResultSetMetaData met = rs.getMetaData();
-                    this.isIdBinary = isBinaryType(met.getColumnType(1));
-                    this.dataLimitInOctets = met.getPrecision(2);
-                    diagnostics.append(dumpTableMeta(met.getColumnType(1), met.getColumnTypeName(1), met.getPrecision(1),
-                            met.getColumnType(2), met.getColumnTypeName(2), met.getPrecision(2), met.getColumnType(3),
-                            met.getColumnTypeName(3), met.getPrecision(3)));
+                    obtainFlagsFromResultSetMeta(met);
+                    String tableInfo = RDBJDBCTools.dumpResultSetMeta(met);
+                    diagnostics.append(tableInfo);
+                    String indexInfo = dumpIndexData(con.getMetaData(), met, tableName);
+                    if (!indexInfo.isEmpty()) {
+                        diagnostics.append(" ").append(indexInfo);
+                    }
                 }
             }
             catch (SQLException ex2) {
@@ -1377,52 +1486,77 @@ public class RDBDocumentStore implements DocumentStore {
 
     private List<RDBRow> dbQuery(Connection connection, String tableName, String minId, String maxId, String indexedProperty,
             long startValue, int limit) throws SQLException {
+        boolean noLowerBound = tableName.equals(this.tnNodes) && minId.equals(NodeDocument.MIN_ID_VALUE);
+        boolean noUpperBound = tableName.equals(this.tnNodes) && maxId.equals(NodeDocument.MAX_ID_VALUE);
         long start = System.currentTimeMillis();
-        String t = "select ";
+        StringBuilder selectClause = new StringBuilder();
+        StringBuilder whereClause = new StringBuilder();
         if (limit != Integer.MAX_VALUE && this.db.getFetchFirstSyntax() == FETCHFIRSTSYNTAX.TOP) {
-            t += "TOP " + limit +  " ";
+            selectClause.append("TOP " + limit +  " ");
         }
-        t += "ID, MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, DATA, BDATA from " + tableName
-                + " where ID > ? and ID < ?";
+        selectClause.append("ID, MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, DATA, BDATA from ").append(tableName);
+
+        // dynamically build where clause
+        String whereSep = "";
+        if (!noLowerBound) {
+            whereClause.append("ID > ?");
+            whereSep = " and ";
+        }
+        if (!noUpperBound) {
+            whereClause.append(whereSep).append("ID < ?");
+            whereSep = " and ";
+        }
+
         if (indexedProperty != null) {
             if (MODIFIED.equals(indexedProperty)) {
-                t += " and MODIFIED >= ?";
+                whereClause.append(whereSep).append("MODIFIED >= ?");
             } else if (NodeDocument.HAS_BINARY_FLAG.equals(indexedProperty)) {
                 if (startValue != NodeDocument.HAS_BINARY_VAL) {
                     throw new DocumentStoreException("unsupported value for property " + NodeDocument.HAS_BINARY_FLAG);
                 }
-                t += " and HASBINARY = 1";
+                whereClause.append(whereSep).append("HASBINARY = 1");
             } else if (NodeDocument.DELETED_ONCE.equals(indexedProperty)) {
                 if (startValue != 1) {
                     throw new DocumentStoreException("unsupported value for property " + NodeDocument.DELETED_ONCE);
                 }
-                t += " and DELETEDONCE = 1";
+                whereClause.append(whereSep).append("DELETEDONCE = 1");
             } else {
                 throw new DocumentStoreException("unsupported indexed property: " + indexedProperty);
             }
         }
-        t += " order by ID";
+
+        StringBuilder query = new StringBuilder();
+        query.append("select ").append(selectClause);
+        if (whereClause.length() != 0) {
+            query.append(" where ").append(whereClause);
+        }
+
+        query.append(" order by ID");
 
         if (limit != Integer.MAX_VALUE) {
             switch (this.db.getFetchFirstSyntax()) {
                 case LIMIT:
-                    t += " LIMIT " + limit;
+                    query.append(" LIMIT " + limit);
                     break;
                 case FETCHFIRST:
-                    t += " FETCH FIRST " + limit + " ROWS ONLY";
+                    query.append(" FETCH FIRST " + limit + " ROWS ONLY");
                     break;
                 default:
                     break;
             }
         }
 
-        PreparedStatement stmt = connection.prepareStatement(t);
+        PreparedStatement stmt = connection.prepareStatement(query.toString());
         List<RDBRow> result = new ArrayList<RDBRow>();
         long dataTotal = 0, bdataTotal = 0;
         try {
             int si = 1;
-            setIdInStatement(stmt, si++, minId);
-            setIdInStatement(stmt, si++, maxId);
+            if (!noLowerBound) {
+                setIdInStatement(stmt, si++, minId);
+            }
+            if (!noUpperBound) {
+                setIdInStatement(stmt, si++, maxId);
+            }
 
             if (MODIFIED.equals(indexedProperty)) {
                 stmt.setLong(si++, startValue);

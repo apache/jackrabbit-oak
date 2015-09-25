@@ -73,7 +73,7 @@ public class MongoMissingLastRevSeeker extends MissingLastRevSeeker {
     }
 
     @Override
-    public boolean acquireRecoveryLock(int clusterId) {
+    public boolean acquireRecoveryLock(int clusterId, int recoveredBy) {
         QueryBuilder query =
                 start().and(
                         start(Document.ID).is(Integer.toString(clusterId)).get(),
@@ -85,6 +85,9 @@ public class MongoMissingLastRevSeeker extends MissingLastRevSeeker {
 
         BasicDBObject setUpdates = new BasicDBObject();
         setUpdates.append(ClusterNodeInfo.REV_RECOVERY_LOCK, RecoverLockState.ACQUIRED.name());
+        if (recoveredBy != 0) {
+            setUpdates.append(ClusterNodeInfo.REV_RECOVERY_BY, recoveredBy);
+        }
 
         BasicDBObject update = new BasicDBObject();
         update.append("$set", setUpdates);

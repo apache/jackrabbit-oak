@@ -17,7 +17,7 @@
 
 ## The Query Engine
 
-Oak does not index content by default as does Jackrabbit 2. You need to create custom 
+Oak does not index as much content by default as does Jackrabbit 2. You need to create custom 
 indexes when necessary, much like in traditional RDBMSs. If there is no index for a 
 specific query, then the repository will be traversed. That is, the query will still 
 work but probably be very slow.

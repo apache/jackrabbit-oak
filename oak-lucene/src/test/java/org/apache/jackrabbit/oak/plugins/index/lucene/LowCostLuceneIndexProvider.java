@@ -36,9 +36,13 @@ public class LowCostLuceneIndexProvider extends LuceneIndexProvider {
     }
 
     private static class LowCostLuceneIndex extends LuceneIndex {
-
         public LowCostLuceneIndex(IndexTracker tracker, NodeAggregator aggregator) {
             super(tracker, aggregator);
+        }
+
+        @Override
+        public double getMinimumCost() {
+            return 1e-3;
         }
 
         @Override
@@ -48,7 +52,7 @@ public class LowCostLuceneIndexProvider extends LuceneIndexProvider {
                 return Collections.emptyList();
             }
             return Collections.singletonList(planBuilder(filter)
-                    .setCostPerExecution(1e-3)
+                    .setCostPerExecution(getMinimumCost())
                     .setAttribute(ATTR_INDEX_PATH, indexPath)
                     .build());
         }

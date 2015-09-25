@@ -89,7 +89,21 @@ public class FileLineDifferenceIteratorTest {
         assertDiff("a,b,d,e,f", "a,b,c,f, h", asList("c", "h"));
         assertDiff("3,7", "2,3,5,9", asList("2", "5", "9"));
     }
-
+    
+    @Test
+    public void testMarkedDiffWithExtraEntriesInMarked() throws IOException {
+        assertReverseDiff("a,b,c,e,h", "a,b,c", asList("e", "h"));
+        assertReverseDiff("a,b,d,e", "a,b,c", asList("d", "e"));
+        assertReverseDiff("a,b,d", "a,b,d", Collections.<String>emptyList());
+        assertReverseDiff("a,0xb,d,e,f", "a,d", asList("e", "f"));
+        assertReverseDiff("a,0xb,d,e,f", "a,d,e,f,g", Collections.<String>emptyList());
+    }
+    
+    private static void assertReverseDiff(String marked, String all, List<String> diff) throws IOException {
+        Iterator<String> itr = createItr(all, marked);
+        assertThat("marked: " + marked + " all: " + all, ImmutableList.copyOf(itr), is(diff));
+    }
+    
     private static void assertDiff(String marked, String all, List<String> diff) throws IOException {
         Iterator<String> itr = createItr(marked, all);
         assertThat("marked: " + marked + " all: " + all, ImmutableList.copyOf(itr), is(diff));

@@ -154,6 +154,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
     private static final Logger LOG = LoggerFactory
             .getLogger(LuceneIndex.class);
     public static final String NATIVE_QUERY_FUNCTION = "native*lucene";
+    private static double MIN_COST = 2.2;
 
     /**
      * IndexPaln Attribute name which refers to the path of Lucene index to be used
@@ -175,6 +176,11 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
     public LuceneIndex(IndexTracker tracker, NodeAggregator aggregator) {
         this.tracker = tracker;
         this.aggregator = aggregator;
+    }
+
+    @Override
+    public double getMinimumCost() {
+        return MIN_COST;
     }
 
     @Override

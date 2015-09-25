@@ -76,18 +76,21 @@ public class OrderedPropertyIndexLookup {
      */
     private static final int MAX_COST = 100;
 
+    private final OrderedPropertyIndexProvider indexProvider;
+
     private NodeState root;
 
     private String name;
 
     private OrderedPropertyIndexLookup parent;
 
-    public OrderedPropertyIndexLookup(NodeState root) {
-        this(root, "", null);
+    public OrderedPropertyIndexLookup(OrderedPropertyIndexProvider indexProvider, NodeState root) {
+        this(indexProvider, root, "", null);
     }
 
-    public OrderedPropertyIndexLookup(NodeState root, String name,
+    public OrderedPropertyIndexLookup(OrderedPropertyIndexProvider indexProvider, NodeState root, String name,
                                       OrderedPropertyIndexLookup parent) {
+        this.indexProvider = indexProvider;
         this.root = root;
         this.name = name;
         this.parent = parent;
@@ -106,9 +109,14 @@ public class OrderedPropertyIndexLookup {
      */
     @Nullable
     NodeState getIndexNode(NodeState node, String propertyName, Filter filter) {
+        if (parent == null && !indexProvider.mayHaveRootIndexes()) {
+            return null;
+        }
+
         // keep a fallback to a matching index def that has *no* node type constraints
         // (initially, there is no fallback)
         NodeState fallback = null;
+        boolean hasRootIndexes = false;
 
         NodeState state = node.getChildNode(INDEX_DEFINITIONS_NAME);
         for (ChildNodeEntry entry : state.getChildNodeEntries()) {
@@ -117,6 +125,8 @@ public class OrderedPropertyIndexLookup {
             if (type == null || type.isArray() || !getType().equals(type.getValue(Type.STRING))) {
                 continue;
             }
+            hasRootIndexes = true;
+
             if (contains(index.getNames(PROPERTY_NAMES), propertyName)) {
                 NodeState indexContent = index.getChildNode(INDEX_CONTENT_NODE_NAME);
                 if (!indexContent.exists()) {
@@ -139,6 +149,10 @@ public class OrderedPropertyIndexLookup {
                     fallback = index;
                 }
             }
+        }
+
+        if (parent == null) {
+            indexProvider.indicateRootIndexes(hasRootIndexes);
         }
         return fallback;
     }
@@ -243,7 +257,7 @@ public class OrderedPropertyIndexLookup {
         for (String element : PathUtils.elements(path)) {
             if (lookup == null) {
                 lookup = new OrderedPropertyIndexLookup(
-                        root.getChildNode(element), element, this);
+                        indexProvider, root.getChildNode(element), element, this);
             } else {
                 remainder = PathUtils.concat(remainder, element);
             }
@@ -308,7 +322,7 @@ public class OrderedPropertyIndexLookup {
         for (String element : PathUtils.elements(path)) {
             if (lookup == null) {
                 lookup = new OrderedPropertyIndexLookup(
-                        root.getChildNode(element), element, this);
+                        indexProvider, root.getChildNode(element), element, this);
             } else {
                 remainder = PathUtils.concat(remainder, element);
             }

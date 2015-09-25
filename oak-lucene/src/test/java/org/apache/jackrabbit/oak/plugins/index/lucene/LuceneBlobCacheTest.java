@@ -110,7 +110,7 @@ public class LuceneBlobCacheTest {
     }
 
     private Directory createDir(NodeBuilder builder, boolean readOnly){
-        return new OakDirectory(builder.child(INDEX_DATA_CHILD_NAME),
+        return new OakDirectory(builder,
                 new IndexDefinition(root, builder.getNodeState()), readOnly);
     }
 

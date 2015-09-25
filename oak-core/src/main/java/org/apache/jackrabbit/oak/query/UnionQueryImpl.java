@@ -236,6 +236,17 @@ public class UnionQueryImpl implements Query {
     }
     
     @Override
+    public String getIndexCostInfo() {
+        StringBuilder buff = new StringBuilder();
+        buff.append("{ ");
+        buff.append(left.getIndexCostInfo());
+        buff.append(", ");
+        buff.append(right.getIndexCostInfo());
+        buff.append(" }");
+        return buff.toString();
+    }
+
+    @Override
     public Tree getTree(String path) {
         return left.getTree(path);
     }

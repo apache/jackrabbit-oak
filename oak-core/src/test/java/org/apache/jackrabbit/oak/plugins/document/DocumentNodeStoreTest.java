@@ -92,6 +92,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -1096,6 +1097,7 @@ public class DocumentNodeStoreTest {
     }
 
     // OAK-2929
+    @Ignore
     @Test
     public void conflictDetectionWithClockDifference() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
@@ -1153,6 +1155,7 @@ public class DocumentNodeStoreTest {
     }
 
     // OAK-2929
+    @Ignore
     @Test
     public void parentWithUnseenChildrenMustNotBeDeleted() throws Exception {
         final MemoryDocumentStore docStore = new MemoryDocumentStore();
@@ -1315,7 +1318,12 @@ public class DocumentNodeStoreTest {
         //root would hold reference to store2 root state after initial repo initialization
         root = store2.getRoot();
 
-        //The hidden node and children should be creatable across cluster concurrently
+        //The hidden node itself should be creatable across cluster concurrently
+        builder = root.builder();
+        builder.child(":dynHidden");
+        merge(store2, builder);
+
+        //Children of hidden node should be creatable across cluster concurrently
         builder = root.builder();
         builder.child(":hidden").child("b");
         builder.child(":dynHidden").child("c");
@@ -1488,6 +1496,111 @@ public class DocumentNodeStoreTest {
         ref = UUID.randomUUID().toString();
         assertNull(store.retrieve(ref));
         store.dispose();
+    }
+
+    // OAK-3388
+    @Ignore
+    @Test
+    public void clusterWithClockDifferences() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        long now = System.currentTimeMillis();
+        Clock c1 = new Clock.Virtual();
+        c1.waitUntil(now);
+        Revision.setClock(c1);
+        DocumentNodeStore ns1 = builderProvider.newBuilder().clock(c1)
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+        NodeBuilder b1 = ns1.getRoot().builder();
+        b1.child("node");
+        merge(ns1, b1);
+        // make /node visible
+        ns1.runBackgroundOperations();
+
+        Revision.resetClockToDefault();
+        Clock c2 = new Clock.Virtual();
+        // c2 is five seconds ahead
+        c2.waitUntil(now + 5000);
+        Revision.setClock(c2);
+
+        DocumentNodeStore ns2 = builderProvider.newBuilder().clock(c2)
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+        // ns2 sees /node
+        assertTrue(ns2.getRoot().hasChildNode("node"));
+
+        // remove /node on ns2
+        NodeBuilder b2 = ns2.getRoot().builder();
+        b2.child("node").remove();
+        merge(ns2, b2);
+        ns2.runBackgroundOperations();
+
+        // add /node again on ns1
+        Revision.resetClockToDefault();
+        Revision.setClock(c1);
+        ns1.runBackgroundOperations();
+        b1 = ns1.getRoot().builder();
+        assertFalse(b1.hasChildNode("node"));
+        b1.child("node");
+        merge(ns1, b1);
+        ns1.runBackgroundOperations();
+
+        // check if /node is visible on ns2
+        Revision.resetClockToDefault();
+        Revision.setClock(c2);
+        ns2.runBackgroundOperations();
+        b2 = ns2.getRoot().builder();
+        assertTrue(b2.hasChildNode("node"));
+    }
+
+    // OAK-3388
+    @Ignore
+    @Test
+    public void clusterWithClockDifferences2() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        long now = System.currentTimeMillis();
+        Clock c1 = new Clock.Virtual();
+        c1.waitUntil(now);
+        Revision.setClock(c1);
+        DocumentNodeStore ns1 = builderProvider.newBuilder().clock(c1)
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+        NodeBuilder b1 = ns1.getRoot().builder();
+        b1.child("node").setProperty("p", 1);
+        merge(ns1, b1);
+        // make /node visible
+        ns1.runBackgroundOperations();
+
+        Revision.resetClockToDefault();
+        Clock c2 = new Clock.Virtual();
+        // c2 is five seconds ahead
+        c2.waitUntil(now + 5000);
+        Revision.setClock(c2);
+
+        DocumentNodeStore ns2 = builderProvider.newBuilder().clock(c2)
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+        // ns2 sees /node
+        assertTrue(ns2.getRoot().hasChildNode("node"));
+        assertEquals(1, ns2.getRoot().getChildNode("node").getProperty("p").getValue(Type.LONG).longValue());
+
+        // increment /node/p ns2
+        NodeBuilder b2 = ns2.getRoot().builder();
+        b2.child("node").setProperty("p", 2);
+        merge(ns2, b2);
+        ns2.runBackgroundOperations();
+
+        // increment /node/p2 on ns1
+        Revision.resetClockToDefault();
+        Revision.setClock(c1);
+        ns1.runBackgroundOperations();
+        b1 = ns1.getRoot().builder();
+        assertEquals(2, b1.getChildNode("node").getProperty("p").getValue(Type.LONG).longValue());
+        b1.child("node").setProperty("p", 3);
+        merge(ns1, b1);
+        ns1.runBackgroundOperations();
+
+        // check if /node/p=3 is visible on ns2
+        Revision.resetClockToDefault();
+        Revision.setClock(c2);
+        ns2.runBackgroundOperations();
+        b2 = ns2.getRoot().builder();
+        assertEquals(3, b2.getChildNode("node").getProperty("p").getValue(Type.LONG).longValue());
     }
 
     /**
@@ -2074,6 +2187,69 @@ public class DocumentNodeStoreTest {
 
         assertTrue("too many merge attempts: " + mergeAttempts.get(),
                 mergeAttempts.get() <= 1);
+    }
+
+    // OAK-3411
+    @Test
+    public void sameSeenAtRevision() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ns1 = builderProvider.newBuilder()
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+        DocumentNodeStore ns2 = builderProvider.newBuilder()
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+
+        NodeBuilder b2 = ns2.getRoot().builder();
+        b2.child("test");
+        merge(ns2, b2);
+        ns2.runBackgroundOperations();
+        ns1.runBackgroundOperations();
+
+        NodeBuilder b1 = ns1.getRoot().builder();
+        assertTrue(b1.hasChildNode("test"));
+        b1.child("test").remove();
+        merge(ns1, b1);
+        ns1.runBackgroundOperations();
+
+        DocumentNodeStore ns3 = builderProvider.newBuilder()
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+        ns3.setMaxBackOffMillis(0);
+        NodeBuilder b3 = ns3.getRoot().builder();
+        assertFalse(b3.hasChildNode("test"));
+        b3.child("test");
+        merge(ns3, b3);
+    }
+
+    // OAK-3411
+    @Test
+    public void sameSeenAtRevision2() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ns1 = builderProvider.newBuilder()
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+        DocumentNodeStore ns2 = builderProvider.newBuilder()
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+
+        NodeBuilder b2 = ns2.getRoot().builder();
+        b2.child("test");
+        merge(ns2, b2);
+        b2 = ns2.getRoot().builder();
+        b2.child("test").remove();
+        merge(ns2, b2);
+        ns2.runBackgroundOperations();
+        ns1.runBackgroundOperations();
+
+        NodeBuilder b1 = ns1.getRoot().builder();
+        assertFalse(b1.hasChildNode("test"));
+        b1.child("test");
+        merge(ns1, b1);
+        ns1.runBackgroundOperations();
+
+        DocumentNodeStore ns3 = builderProvider.newBuilder()
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+        ns3.setMaxBackOffMillis(0);
+        NodeBuilder b3 = ns3.getRoot().builder();
+        assertTrue(b3.hasChildNode("test"));
+        b3.child("test").remove();
+        merge(ns3, b3);
     }
 
     private static DocumentNodeState asDocumentNodeState(NodeState state) {

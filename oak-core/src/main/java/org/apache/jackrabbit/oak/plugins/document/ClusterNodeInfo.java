@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.util.OakVersion;
 import org.slf4j.Logger;
@@ -37,6 +38,9 @@ import org.slf4j.LoggerFactory;
  * Information about a cluster node.
  */
 public class ClusterNodeInfo {
+
+    private static final String LEASE_CHECK_FAILED_MSG = "This oak instance failed to update "
+            + "the lease in time and can therefore no longer access this DocumentNodeStore.";
 
     private static final Logger LOG = LoggerFactory.getLogger(ClusterNodeInfo.class);
 
@@ -119,6 +123,11 @@ public class ClusterNodeInfo {
     }
 
     /**
+     * Flag indicating which cluster node is running the recovery.
+     */
+    public static final String REV_RECOVERY_BY = "recoveryBy";
+
+    /**
      * Additional info, such as the process id, for support.
      */
     private static final String INFO_KEY = "info";
@@ -149,14 +158,53 @@ public class ClusterNodeInfo {
      */
     private static Clock clock = Clock.SIMPLE;
 
+    /** OAK-3398 : default lease duration 120sec **/
+    public static final int DEFAULT_LEASE_DURATION_MILLIS = 1000 * 120;
 
-    public static final int DEFAULT_LEASE_DURATION_MILLIS = 1000 * 60;
+    /** OAK-3398 : default update interval 10sec **/
+    public static final int DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS = 1000 * 10;
+
+    /** OAK-3398 : default failure margin 20sec before actual lease timeout
+     * (note that OAK-3399 / MAX_RETRY_SLEEPS_BEFORE_LEASE_FAILURE eats
+     * off another few seconds from this margin, by default 5sec,
+     * so the actual default failure-margin is down to 15sec - and that is high-noon!)
+     */
+    public static final int DEFAULT_LEASE_FAILURE_MARGIN_MILLIS = 1000 * 20;
+
+    /** OAK-3399 : max number of times we're doing a 1sec retry loop just before declaring lease failure **/
+    private static final int MAX_RETRY_SLEEPS_BEFORE_LEASE_FAILURE = 5;
 
     /**
-     * The number of milliseconds for a lease (1 minute by default, and
+     * The Oak version.
+     */
+    private static final String OAK_VERSION = OakVersion.getVersion();
+
+    /**
+     * The number of milliseconds for a lease (2 minute by default, and
      * initially).
      */
     private long leaseTime = DEFAULT_LEASE_DURATION_MILLIS;
+
+    /**
+     * The number of milliseconds after which a lease will be updated
+     * (should not be every second as that would increase number of
+     * writes towards DocumentStore considerably - but it should also
+     * not be too low as that would eat into the lease duration on average.
+     */
+    private long leaseUpdateInterval = DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS;
+
+    /**
+     * The number of milliseconds that a lease must still be valid
+     * before prematurely declaring it as failed. The default is 20sec.
+     * The idea of declaring a lease as failed before it actually failed
+     * is to avoid a race condition where the local instance assumes
+     * things are all fine but another instance in the cluster will
+     * 'in the same moment' declare it as failed. The lease should be
+     * checked every second and updated after 10sec, so it should always
+     * have a validity of at least 110sec - if that's down to this margin
+     * of 20sec then things are not good and we have to give up.
+     */
+    private long leaseFailureMargin = DEFAULT_LEASE_FAILURE_MARGIN_MILLIS;
 
     /**
      * The assigned cluster id.
@@ -194,20 +242,36 @@ public class ClusterNodeInfo {
     private volatile long leaseEndTime;
 
     /**
+     * The value of leaseEnd last updated towards DocumentStore -
+     * this one is used to compare against (for OAK-3398) when checking
+     * if any other instance updated the lease or if the lease is unchanged.
+     * (This is kind of a duplication of the leaseEndTime field, yes - but the semantics
+     * are that previousLeaseEndTime exactly only serves the purpose of
+     * keeping the value of what was stored in the previous lease update.
+     * leaseEndTime on the other hand serves the purpose of *defining the lease end*,
+     * these are two different concerns, thus justify two different fields.
+     * the leaseEndTime for example can be manipulated during tests therefore,
+     * without interfering with previousLeaseEndTime)
+     */
+    private long previousLeaseEndTime;
+
+    /**
      * The read/write mode.
      */
     private String readWriteMode;
 
     /**
-     * The state of the cluter node.
+     * The state of the cluster node.
      */
     private ClusterNodeState state;
-    
+
     /**
-     * Whether or not the OAK-2739/leaseCheck failed and thus a System.exit was already triggered
-     * (is used to avoid calling System.exit a hundred times when it then happens)
+     * OAK-2739 / OAK-3397 : once a lease check turns out negative, this flag
+     * is set to prevent any further checks to succeed. Also, only the first
+     * one to change this flag will take the appropriate action that results
+     * from a failed leaseCheck (which is currently to stop oak-core bundle)
      */
-    private volatile boolean systemExitTriggered;
+    private boolean leaseCheckFailed = false;
 
     /**
      * OAK-2739: for development it would be useful to be able to disable the
@@ -236,6 +300,9 @@ public class ClusterNodeInfo {
      */
     private boolean newEntry;
 
+    /** OAK-3397 / OAK-3400 : the LeaseFailureHandler is the one that actually stops the oak-core bundle (or does something else if necessary) **/
+    private LeaseFailureHandler leaseFailureHandler;
+
     private ClusterNodeInfo(int id, DocumentStore store, String machineId, String instanceId, ClusterNodeState state,
             RecoverLockState revRecoveryLock, Long leaseEnd, boolean newEntry) {
         this.id = id;
@@ -261,7 +328,7 @@ public class ClusterNodeInfo {
 
     /**
      * Create a cluster node info instance for the store, with the
-     * 
+     *
      * @param store the document store (for the lease)
      * @return the cluster node info
      */
@@ -271,7 +338,7 @@ public class ClusterNodeInfo {
 
     /**
      * Create a cluster node info instance for the store.
-     * 
+     *
      * @param store the document store (for the lease)
      * @param machineId the machine id (null for MAC address)
      * @param instanceId the instance id (null for current working directory)
@@ -313,7 +380,7 @@ public class ClusterNodeInfo {
             update.set(INFO_KEY, clusterNode.toString());
             update.set(STATE, clusterNode.state.name());
             update.set(REV_RECOVERY_LOCK, clusterNode.revRecoveryLock.name());
-            update.set(OAK_VERSION_KEY, OakVersion.getVersion());
+            update.set(OAK_VERSION_KEY, OAK_VERSION);
 
             final boolean success;
             if (clusterNode.newEntry) {
@@ -358,9 +425,11 @@ public class ClusterNodeInfo {
             }
             String mId = "" + doc.get(MACHINE_ID_KEY);
             String iId = "" + doc.get(INSTANCE_ID_KEY);
-            if (machineId.startsWith(RANDOM_PREFIX)) {
+            if (mId.startsWith(RANDOM_PREFIX)) {
                 // remove expired entries with random keys
                 store.remove(Collection.CLUSTER_NODES, key);
+                LOG.debug("Cleaned up cluster node info for clusterNodeId {} [machineId: {}, leaseEnd: {}]", id, mId,
+                        leaseEnd == null ? "n/a" : Utils.timestampToString(leaseEnd));
                 continue;
             }
             if (!mId.equals(machineId) ||
@@ -387,8 +456,8 @@ public class ClusterNodeInfo {
         }
 
         // Do not expire entries and stick on the earlier state, and leaseEnd so,
-        // that _lastRev recovery if needed is done.        
-        return new ClusterNodeInfo(clusterNodeId, store, machineId, instanceId, state, 
+        // that _lastRev recovery if needed is done.
+        return new ClusterNodeInfo(clusterNodeId, store, machineId, instanceId, state,
                 RecoverLockState.NONE, prevLeaseEnd, newEntry);
     }
 
@@ -400,60 +469,200 @@ public class ClusterNodeInfo {
             // until that is not set, we cannot do the lease check (otherwise startup wouldn't work)
             return;
         }
-        final long now = getCurrentTime();
-        if (now < (leaseEndTime - leaseTime / 3)) { // OAK-3238 : put the barrier 1/3 before lease end
+        if (leaseCheckFailed) {
+            // unsynchronized access to leaseCheckFailed is fine
+            // since it only ever changes from false to true once
+            // and should the current thread read it erroneously
+            // as false here, it would further down find out that
+            // the lease has indeed still expired and then
+            // go into the synchronized.
+            // (note that once a lease check failed it would not
+            // be updated again, ever, as guaranteed by checking
+            // for leaseCheckFailed in renewLease() )
+            LOG.error(LEASE_CHECK_FAILED_MSG);
+            throw new AssertionError(LEASE_CHECK_FAILED_MSG);
+        }
+        long now = getCurrentTime();
+        // OAK-3238 put the barrier 1/3 of 60sec=20sec before the end
+        // OAK-3398 keeps this the same but uses an explicit leaseFailureMargin for this
+        if (now < (leaseEndTime - leaseFailureMargin)) {
             // then all is good
             return;
         }
+        // synchronized: we need to guard leaseCheckFailed in order to ensure
+        //               that it is only set by 1 thread - thus handleLeaseFailure
+        //               is guaranteed to be only called once
+        synchronized(this) {
+            if (leaseCheckFailed) {
+                // someone else won and marked leaseCheckFailed - so we only log/throw
+                LOG.error(LEASE_CHECK_FAILED_MSG);
+                throw new AssertionError(LEASE_CHECK_FAILED_MSG);
+            }
+            for(int i=0; i<MAX_RETRY_SLEEPS_BEFORE_LEASE_FAILURE; i++) {
+                now = getCurrentTime();
+                if (now < (leaseEndTime - leaseFailureMargin)) {
+                    // if lease is OK here, then there was a race
+                    // between performLeaseCheck and renewLease()
+                    // where the winner was: renewLease().
+                    // so: luckily we can continue here
+                    return;
+                }
+                // OAK-3399 : in case of running into the leaseFailureMargin
+                // (shortly, 20sec, before the lease times out), we're now doing
+                // a short retry loop of 1sec sleeps (default 5x1sec=5sec),
+                // to give this instance 'one last chance' before we have to
+                // declare the lease as failed.
+                // This sort of retry loop would allow situations such as
+                // when running a single-node cluster and interrupting/pausing
+                // the process temporarily: in this case when waking up, the
+                // lease might momentarily be timed out, but the lease would
+                // still be 'updateable' and that would happen pretty soon
+                // after waking up. So in that case, doing these retry-sleeps
+                // would help.
+                // in most other cases where the local instance is not doing
+                // lease updates due to 'GC-death' or 'lease-thread-crashed'
+                // or the like, it would not help. But it would also not hurt
+                // as the margin is 20sec and we're just reducing it by 5sec
+                // (in the un-paused case)
+                try {
+                    LOG.info("performLeaseCheck: lease within "+leaseFailureMargin+
+                            "ms of failing ("+(leaseEndTime-now)+" ms precisely) - "
+                            + "waiting 1sec to retry (up to another "+
+                            (MAX_RETRY_SLEEPS_BEFORE_LEASE_FAILURE-1-i)+" times)...");
+                    wait(1000); // directly use this to sleep on - to allow renewLease() to work
+                } catch (InterruptedException e) {
+                    LOG.warn("performLeaseCheck: got interrupted - giving up: "+e, e);
+                    break;
+                }
+            }
+            leaseCheckFailed = true; // make sure only one thread 'wins', ie goes any further
+        }
 
-        // OAK-2739 : when the lease is not current, we must stop
-        // the instance immediately to avoid any cluster inconsistency
-        final String errorMsg = "performLeaseCheck: this instance failed to update the lease in time "
-                + "(leaseEndTime: "+leaseEndTime+", now: "+now+", leaseTime: "+leaseTime+") "
-                + "and is thus no longer eligible for taking part in the cluster. Shutting down NOW!";
+        final String errorMsg = LEASE_CHECK_FAILED_MSG+" (leaseEndTime: "+leaseEndTime+
+                ", leaseTime: "+leaseTime+
+                ", leaseFailureMargin: "+leaseFailureMargin+
+                ", lease check end time (leaseEndTime-leaseFailureMargin): "+(leaseEndTime - leaseFailureMargin)+
+                ", now: "+now+
+                ", remaining: "+((leaseEndTime - leaseFailureMargin) - now)+
+                ") Need to stop oak-core/DocumentNodeStoreService.";
         LOG.error(errorMsg);
 
-        // now here comes the thing: we should a) call System.exit in a separate thread
-        // to avoid any deadlock when calling from eg within the shutdown hook
-        // AND b) we should not call system.exit hundred times.
-        // so for b) we use 'systemExitTriggered' to avoid calling it over and over
-        // BUT it doesn't have to be 100% ensured that system.exit is called only once.
-        // it is fine if it gets called once, twice - but just not hundred times.
-        // which is a long way of saying: volatile is fine here - and the 'if' too
-        if (!systemExitTriggered) {
-            systemExitTriggered = true;
+        handleLeaseFailure(errorMsg);
+    }
+
+    private void handleLeaseFailure(final String errorMsg) {
+        // OAK-3397 : unlike previously, when the lease check fails we should not
+        // do a hard System exit here but rather stop the oak-core bundle
+        // (or if that fails just deactivate DocumentNodeStore) - with the
+        // goals to prevent this instance to continue to operate
+        // give that a lease failure is a strong indicator of a faulty
+        // instance - and to stop the background threads of DocumentNodeStore,
+        // specifically the BackgroundLeaseUpdate and the BackgroundOperation.
+
+        // actual stopping should be done in a separate thread, so:
+        if (leaseFailureHandler!=null) {
             final Runnable r = new Runnable() {
 
                 @Override
                 public void run() {
-                    System.exit(-1);
+                    if (leaseFailureHandler!=null) {
+                        leaseFailureHandler.handleLeaseFailure();
+                    }
                 }
             };
-            final Thread th = new Thread(r, "FailedLeaseCheckShutdown-Thread");
+            final Thread th = new Thread(r, "LeaseFailureHandler-Thread");
             th.setDaemon(true);
             th.start();
         }
+
         throw new AssertionError(errorMsg);
     }
 
     /**
      * Renew the cluster id lease. This method needs to be called once in a while,
      * to ensure the same cluster id is not re-used by a different instance.
-     * The lease is only renewed when a third of the lease time passed. That is,
-     * with a lease time of 60 seconds, the lease is renewed every 20 seconds.
+     * The lease is only renewed after 'leaseUpdateInterval' millis
+     * since last lease update - default being every 10 sec (this used to be 30sec).
      *
      * @return {@code true} if the lease was renewed; {@code false} otherwise.
      */
     public boolean renewLease() {
         long now = getCurrentTime();
-        if (now + 2 * leaseTime / 3 < leaseEndTime) {
+        if (now < leaseEndTime - leaseTime + leaseUpdateInterval) {
+            // no need to renew the lease - it is still within 'leaseUpdateInterval'
             return false;
         }
+        // lease requires renewal
+
+        synchronized(this) {
+            // this is synchronized since access to leaseCheckFailed and leaseEndTime
+            // are both normally synchronized to propagate values between renewLease()
+            // and performLeaseCheck().
+            // (there are unsynchronized accesses to both of these as well - however
+            // they are both double-checked - and with both reading a stale value is thus OK)
+
+            if (leaseCheckFailed) {
+                // prevent lease renewal after it failed
+                LOG.error(LEASE_CHECK_FAILED_MSG);
+                throw new AssertionError(LEASE_CHECK_FAILED_MSG);
+            }
+            // synchronized could have delayed the 'now', so
+            // set it again..
+            now = getCurrentTime();
+            leaseEndTime = now + leaseTime;
+        }
         UpdateOp update = new UpdateOp("" + id, true);
-        leaseEndTime = now + leaseTime;
         update.set(LEASE_END_KEY, leaseEndTime);
         update.set(STATE, ClusterNodeState.ACTIVE.name());
-        ClusterNodeInfoDocument doc = store.createOrUpdate(Collection.CLUSTER_NODES, update);
+        ClusterNodeInfoDocument doc = null;
+        if (renewed && !leaseCheckDisabled) { // if leaseCheckDisabled, then we just update the lease without checking
+            // OAK-3398:
+            // if we renewed the lease ever with this instance/ClusterNodeInfo
+            // (which is the normal case.. except for startup),
+            // then we can now make an assertion that the lease is unchanged
+            // and the incremental update must only succeed if no-one else
+            // did a recover/inactivation in the meantime
+            update.setNew(false); // in this case it is *not* a new document
+            // make two assertions: the leaseEnd must match ..
+            update.equals(LEASE_END_KEY, null, previousLeaseEndTime);
+            // plus it must still be active ..
+            update.equals(STATE, null, ClusterNodeState.ACTIVE.name());
+            // @TODO: to make it 100% failure proof we could introduce
+            // yet another field to clusterNodes: a runtimeId that we
+            // create (UUID) at startup each time - and against that
+            // we could also check here - but that goes a bit far IMO
+            doc = store.findAndUpdate(Collection.CLUSTER_NODES, update);
+        } else {
+            // this is only for startup - then we 'just' overwrite
+            // the lease - or create it - and don't care a lot about what the
+            // status of the lease was
+            doc = store.createOrUpdate(Collection.CLUSTER_NODES, update);
+        }
+        if (doc==null) { // should not occur when leaseCheckDisabled
+            // OAK-3398 : someone else either started recovering or is already through with that.
+            // in both cases the local instance lost the lease-update-game - and hence
+            // should behave and must consider itself as 'lease failed'
+
+            synchronized(this) {
+                if (leaseCheckFailed) {
+                    // somehow the instance figured out otherwise that the
+                    // lease check failed - so we don't have to too - so we just log/throw
+                    LOG.error(LEASE_CHECK_FAILED_MSG);
+                    throw new AssertionError(LEASE_CHECK_FAILED_MSG);
+                }
+                leaseCheckFailed = true; // make sure only one thread 'wins', ie goes any further
+            }
+            final String errorMsg = LEASE_CHECK_FAILED_MSG+
+                    " (Could not update lease anymore, someone else in the cluster "
+                    + "must have noticed this instance' slowness already. "
+                    + "Going to invoke leaseFailureHandler!)";
+            LOG.error(errorMsg);
+
+            handleLeaseFailure(errorMsg);
+            // should never be reached: handleLeaseFailure throws an AssertionError
+            return false;
+        }
+        previousLeaseEndTime = leaseEndTime; // store previousLeaseEndTime for reference for next time
         String mode = (String) doc.get(READ_WRITE_MODE_KEY);
         if (mode != null && !mode.equals(readWriteMode)) {
             readWriteMode = mode;
@@ -463,15 +672,31 @@ public class ClusterNodeInfo {
         return true;
     }
 
-    public void setLeaseTime(long leaseTime) {
+    /** for testing purpose only, not to be changed at runtime! */
+    void setLeaseTime(long leaseTime) {
         this.leaseTime = leaseTime;
+    }
+
+    /** for testing purpose only, not to be changed at runtime! */
+    void setLeaseUpdateInterval(long leaseUpdateInterval) {
+        this.leaseUpdateInterval = leaseUpdateInterval;
     }
 
     public long getLeaseTime() {
         return leaseTime;
     }
 
+    public void setLeaseFailureHandler(LeaseFailureHandler leaseFailureHandler) {
+        this.leaseFailureHandler = leaseFailureHandler;
+    }
+
     public void dispose() {
+        synchronized(this) {
+            if (leaseCheckFailed) {
+                LOG.warn("dispose: lease check failed, thus not marking instance as cleanly shut down.");
+                return;
+            }
+        }
         UpdateOp update = new UpdateOp("" + id, true);
         update.set(LEASE_END_KEY, null);
         update.set(STATE, null);
@@ -489,7 +714,8 @@ public class ClusterNodeInfo {
                 "uuid: " + uuid + ",\n" +
                 "readWriteMode: " + readWriteMode + ",\n" +
                 "state: " + state + ",\n" +
-                "revLock: " + revRecoveryLock;
+                "revLock: " + revRecoveryLock + ",\n" +
+                "oakVersion: " + OAK_VERSION;
     }
 
     /**
@@ -520,34 +746,50 @@ public class ClusterNodeInfo {
     }
 
     /**
-     * Calculate the unique machine id. This is the lowest MAC address if
-     * available. As an alternative, a randomly generated UUID is used.
-     * 
+     * Calculate the unique machine id. This usually is the lowest MAC address
+     * if available. As an alternative, a randomly generated UUID is used.
+     *
      * @return the unique id
      */
     private static String getMachineId() {
         Exception exception = null;
         try {
-            ArrayList<String> list = new ArrayList<String>();
+            ArrayList<String> macAddresses = new ArrayList<String>();
+            ArrayList<String> otherAddresses = new ArrayList<String>();
             Enumeration<NetworkInterface> e = NetworkInterface
                     .getNetworkInterfaces();
             while (e.hasMoreElements()) {
                 NetworkInterface ni = e.nextElement();
                 try {
-                    byte[] mac = ni.getHardwareAddress();
-                    if (mac != null) {
-                        String x = StringUtils.convertBytesToHex(mac);
-                        list.add(x);
+                    byte[] hwa = ni.getHardwareAddress();
+                    // empty addresses have been seen on loopback devices
+                    if (hwa != null && hwa.length != 0) {
+                        String str = StringUtils.convertBytesToHex(hwa);
+                        if (hwa.length == 6) {
+                            // likely a MAC address
+                            macAddresses.add(str);
+                        } else {
+                            otherAddresses.add(str);
+                        }
                     }
                 } catch (Exception e2) {
                     exception = e2;
                 }
             }
-            if (list.size() > 0) {
-                // use the lowest value, such that if the order changes,
+
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("getMachineId(): discovered addresses: {} {}", macAddresses, otherAddresses);
+            }
+
+            if (macAddresses.size() > 0) {
+                // use the lowest MAC value, such that if the order changes,
                 // the same one is used
-                Collections.sort(list);
-                return "mac:" + list.get(0);
+                Collections.sort(macAddresses);
+                return "mac:" + macAddresses.get(0);
+            } else if (otherAddresses.size() > 0) {
+                // try the lowest "other" address
+                Collections.sort(otherAddresses);
+                return "hwa:" + otherAddresses.get(0);
             }
         } catch (Exception e) {
             exception = e;

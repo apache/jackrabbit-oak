@@ -1527,7 +1527,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             return this;
         }
 
-        public Builder<K, V> maximumSize(int maxSize) {
+        public Builder<K, V> maximumSize(long maxSize) {
             this.maxWeight = maxSize;
             this.averageWeight = 1;
             return this;

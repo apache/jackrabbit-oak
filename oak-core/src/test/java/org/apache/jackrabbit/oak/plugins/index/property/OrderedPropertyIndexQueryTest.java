@@ -507,7 +507,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
 
         NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
-        final OrderedPropertyIndex index = new OrderedPropertyIndex();
+        final OrderedPropertyIndex index = new OrderedPropertyIndex(new OrderedPropertyIndexProvider());
         final String nodeTypeName = JcrConstants.NT_BASE;
 
         Filter filter = createFilter(indexed, nodeTypeName);
@@ -583,7 +583,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
 
         NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
-        final OrderedPropertyIndex index = new OrderedPropertyIndex();
+        final OrderedPropertyIndex index = new OrderedPropertyIndex(new OrderedPropertyIndexProvider());
         final String nodeTypeName = JcrConstants.NT_BASE;
         Filter filter = createFilter(indexed, nodeTypeName);
 
@@ -624,7 +624,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
 
         NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
-        final OrderedPropertyIndex index = new OrderedPropertyIndex();
+        final OrderedPropertyIndex index = new OrderedPropertyIndex(new OrderedPropertyIndexProvider());
         final String nodeTypeName = JcrConstants.NT_BASE;
         FilterImpl filter = createFilter(indexed, nodeTypeName);
         filter.restrictProperty("somethingNotIndexed", Operator.EQUAL, PropertyValues.newLong(1L));

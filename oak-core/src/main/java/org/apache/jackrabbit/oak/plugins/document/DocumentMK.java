@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.InputStream;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -41,8 +42,10 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState.Children;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobReferenceIterator;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoVersionGCSupport;
@@ -490,6 +493,7 @@ public class DocumentMK {
         private Executor executor;
         private String persistentCacheURI = DEFAULT_PERSISTENT_CACHE_URI;
         private PersistentCache persistentCache;
+        private LeaseFailureHandler leaseFailureHandler;
 
         public Builder() {
         }
@@ -611,6 +615,15 @@ public class DocumentMK {
             return leaseCheck;
         }
 
+        public Builder setLeaseFailureHandler(LeaseFailureHandler leaseFailureHandler) {
+            this.leaseFailureHandler = leaseFailureHandler;
+            return this;
+        }
+        
+        public LeaseFailureHandler getLeaseFailureHandler() {
+            return leaseFailureHandler;
+        }
+        
         /**
          * Set the document store to use. By default an in-memory store is used.
          *
@@ -823,6 +836,19 @@ public class DocumentMK {
             } else {
                 return new VersionGCSupport(store);
             }
+        }
+
+        Iterable<ReferencedBlob> createReferencedBlobs(final DocumentNodeStore ns) {
+            final DocumentStore store = getDocumentStore();
+            return new Iterable<ReferencedBlob>() {
+                @Override
+                public Iterator<ReferencedBlob> iterator() {
+                    if(store instanceof MongoDocumentStore){
+                        return new MongoBlobReferenceIterator(ns, (MongoDocumentStore) store);
+                    }
+                    return new BlobReferenceIterator(ns);
+                }
+            };
         }
 
         /**

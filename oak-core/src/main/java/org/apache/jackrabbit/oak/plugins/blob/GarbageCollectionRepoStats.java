@@ -22,7 +22,9 @@ package org.apache.jackrabbit.oak.plugins.blob;
 public class GarbageCollectionRepoStats {
     private String repositoryId;
     
-    private long lastModified;
+    private long startTime;
+    
+    private long endTime;
     
     private long length;
     
@@ -36,12 +38,12 @@ public class GarbageCollectionRepoStats {
         this.repositoryId = repositoryId;
     }
     
-    public long getLastModified() {
-        return lastModified;
+    public long getEndTime() {
+        return endTime;
     }
     
-    public void setLastModified(long lastModified) {
-        this.lastModified = lastModified;
+    public void setEndTime(long endTime) {
+        this.endTime = endTime;
     }
     
     public long getLength() {
@@ -58,5 +60,13 @@ public class GarbageCollectionRepoStats {
     
     public int getNumLines() {
         return numLines;
+    }
+    
+    public long getStartTime() {
+        return startTime;
+    }
+    
+    public void setStartTime(long startTime) {
+        this.startTime = startTime;
     }
 }

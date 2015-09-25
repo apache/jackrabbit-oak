@@ -31,6 +31,11 @@ import com.google.common.collect.Iterables;
  */
 class NodeTypeIndexLookup implements JcrConstants {
 
+    /**
+     * Derived from {@link #getCost(Filter)}
+     */
+    static final double MINIMUM_COST = PropertyIndexLookup.COST_OVERHEAD;
+
     private final NodeState root;
 
     public NodeTypeIndexLookup(NodeState root) {

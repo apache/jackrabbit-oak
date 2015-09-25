@@ -140,7 +140,8 @@ public class SQL2Parser {
         boolean explain = false, measure = false;
         if (readIf("EXPLAIN")) {
             explain = true;
-        } else if (readIf("MEASURE")) {
+        }
+        if (readIf("MEASURE")) {
             measure = true;
         }
         Query q = parseSelect();

@@ -286,7 +286,7 @@ public class DocumentDiscoveryLiteServiceTest {
             stopLastRevThread();
             logger.info("crash: stopped lastrev thread, now setting least to end within 1 sec");
 
-            boolean renewed = setLeaseTime(1000 /* 1 sec */);
+            boolean renewed = setLeaseTime(1000 /* 1 sec */, 10 /*10ms*/);
             if (!renewed) {
                 logger.info("halt");
                 fail("did not renew clusterid lease");
@@ -311,8 +311,9 @@ public class DocumentDiscoveryLiteServiceTest {
          * time so that the crash detection doesn't take a minute (as it would
          * by default)
          */
-        private boolean setLeaseTime(final int leaseTime) throws NoSuchFieldException {
+        private boolean setLeaseTime(final int leaseTime, final int leaseUpdateInterval) throws NoSuchFieldException {
             ns.getClusterInfo().setLeaseTime(leaseTime);
+            ns.getClusterInfo().setLeaseUpdateInterval(leaseUpdateInterval);
             PrivateAccessor.setField(ns.getClusterInfo(), "leaseEndTime", System.currentTimeMillis() + (leaseTime / 3) - 10 /* 10ms safety margin */);
             boolean renewed = ns.renewClusterIdLease();
             return renewed;
@@ -405,8 +406,9 @@ public class DocumentDiscoveryLiteServiceTest {
             ns.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         }
 
-        public void setLeastTimeout(long timeoutInMs) throws NoSuchFieldException {
+        public void setLeastTimeout(long timeoutInMs, long updateIntervalInMs) throws NoSuchFieldException {
             ns.getClusterInfo().setLeaseTime(timeoutInMs);
+            ns.getClusterInfo().setLeaseUpdateInterval(updateIntervalInMs);
             PrivateAccessor.setField(ns.getClusterInfo(), "leaseEndTime", System.currentTimeMillis() - 1000);
         }
 
@@ -778,14 +780,14 @@ public class DocumentDiscoveryLiteServiceTest {
         assertNotNull(missingLastRevUtil);
         MissingLastRevSeeker mockedLongduringMissingLastRevUtil = mock(MissingLastRevSeeker.class, delegatesTo(missingLastRevUtil));
         final Semaphore waitBeforeLocking = new Semaphore(0);
-        when(mockedLongduringMissingLastRevUtil.acquireRecoveryLock(anyInt())).then(new Answer<Boolean>() {
+        when(mockedLongduringMissingLastRevUtil.acquireRecoveryLock(anyInt(), anyInt())).then(new Answer<Boolean>() {
 
             @Override
             public Boolean answer(InvocationOnMock invocation) throws Throwable {
                 logger.info("going to waitBeforeLocking");
                 waitBeforeLocking.acquire();
                 logger.info("done with waitBeforeLocking");
-                return missingLastRevUtil.acquireRecoveryLock((Integer) invocation.getArguments()[0]);
+                return missingLastRevUtil.acquireRecoveryLock((Integer) invocation.getArguments()[0], (Integer) invocation.getArguments()[1]);
             }
         });
         PrivateAccessor.setField(s1.ns.getLastRevRecoveryAgent(), "missingLastRevUtil", mockedLongduringMissingLastRevUtil);
@@ -948,7 +950,7 @@ public class DocumentDiscoveryLiteServiceTest {
                             // so: stop testing at this point:
                             return;
                         }
-                        newInstance.setLeastTimeout(5000);
+                        newInstance.setLeastTimeout(5000, 1000);
                         newInstance.startSimulatingWrites(500);
                         logger.info("Case 0: created instance: " + newInstance.ns.getClusterId());
                         if (newInstance.ns.getClusterId() != cid) {
@@ -982,7 +984,7 @@ public class DocumentDiscoveryLiteServiceTest {
                             // so: stop testing at this point:
                             return;
                         }
-                        newInstance.setLeastTimeout(5000);
+                        newInstance.setLeastTimeout(5000, 1000);
                         newInstance.startSimulatingWrites(500);
                         logger.info("Case 1: created instance: " + newInstance.ns.getClusterId());
                         instances.add(newInstance);

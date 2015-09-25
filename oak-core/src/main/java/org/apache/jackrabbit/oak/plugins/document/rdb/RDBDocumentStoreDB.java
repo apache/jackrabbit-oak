@@ -117,14 +117,25 @@ public enum RDBDocumentStoreDB {
             Map<String, String> result = new HashMap<String, String>();
             try {
                 con = ch.getROConnection();
-                // we can't look up by schema as con.getSchema is JDK 1.7
-                stmt = con
-                        .prepareStatement("SELECT CODEPAGE, COLLATIONSCHEMA, COLLATIONNAME, TABSCHEMA FROM SYSCAT.COLUMNS WHERE COLNAME=? and COLNO=0 AND UPPER(TABNAME)=UPPER(?)");
+
+                // schema name will only be available with JDK 1.7
+                String conSchema = ch.getSchema(con);
+
+                StringBuilder sb = new StringBuilder();
+                sb.append("SELECT CODEPAGE, COLLATIONSCHEMA, COLLATIONNAME, TABSCHEMA FROM SYSCAT.COLUMNS WHERE COLNAME=? and COLNO=0 AND UPPER(TABNAME)=UPPER(?)");
+                if (conSchema != null) {
+                    conSchema = conSchema.trim();
+                    sb.append(" AND UPPER(TABSCHEMA)=UPPER(?)");
+                }
+                stmt = con.prepareStatement(sb.toString());
                 stmt.setString(1, "ID");
                 stmt.setString(2, tableName);
+                if (conSchema != null) {
+                    stmt.setString(3, conSchema);
+                }
+
                 rs = stmt.executeQuery();
                 while (rs.next() && result.size() < 20) {
-                    // thus including the schema name here
                     String schema = rs.getString("TABSCHEMA").trim();
                     result.put(schema + ".CODEPAGE", rs.getString("CODEPAGE").trim());
                     result.put(schema + ".COLLATIONSCHEMA", rs.getString("COLLATIONSCHEMA").trim());
@@ -210,7 +221,6 @@ public enum RDBDocumentStoreDB {
         public String getConcatQueryString(int dataOctetLimit, int dataLength) {
             return "CONCAT(DATA, ?)";
         }
-
         @Override
         public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
             Connection con = null;
@@ -224,6 +234,14 @@ public enum RDBDocumentStoreDB {
                 rs = stmt.executeQuery();
                 while (rs.next()) {
                     result.put("collation", rs.getString("Collation"));
+                }
+                rs.close();
+                stmt.close();
+                stmt = con.prepareStatement(
+                        "SHOW VARIABLES WHERE variable_name LIKE 'character\\_set\\_%' OR variable_name LIKE 'collation%' OR variable_name = 'max_allowed_packet'");
+                rs = stmt.executeQuery();
+                while (rs.next()) {
+                    result.put(rs.getString(1), rs.getString(2));
                 }
                 stmt.close();
                 con.commit();

@@ -46,6 +46,10 @@ abstract class AstElement {
         return '[' + pathOrName + ']';
     }
 
+    protected String quoteJson(String string) {
+        return '"' + string.replaceAll("\"", "\"\"") + '"';
+    }
+
     public void setQuery(QueryImpl query) {
         this.query = query;
     }

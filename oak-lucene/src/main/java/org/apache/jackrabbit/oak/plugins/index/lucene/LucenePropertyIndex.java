@@ -163,6 +163,8 @@ import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
  */
 public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, NativeQueryIndex,
         AdvanceFulltextQueryIndex {
+    
+    private static double MIN_COST = 2.1;
 
     private static final Logger LOG = LoggerFactory
             .getLogger(LucenePropertyIndex.class);
@@ -188,6 +190,11 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
     public LucenePropertyIndex(IndexTracker tracker, ScorerProviderFactory factory) {
         this.tracker = tracker;
         this.scorerProviderFactory = factory;
+    }
+
+    @Override
+    public double getMinimumCost() {
+        return MIN_COST;
     }
 
     @Override

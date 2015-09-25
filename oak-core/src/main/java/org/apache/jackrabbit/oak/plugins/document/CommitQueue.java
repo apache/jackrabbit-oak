@@ -45,6 +45,11 @@ final class CommitQueue {
 
     static final Logger LOG = LoggerFactory.getLogger(CommitQueue.class);
 
+    /**
+     * The default suspend timeout in milliseconds: 60'000.
+     */
+    static final long DEFAULT_SUSPEND_TIMEOUT = TimeUnit.MINUTES.toMillis(1);
+
     private final SortedMap<Revision, Entry> commits = new TreeMap<Revision, Entry>(StableRevisionComparator.INSTANCE);
 
     /**
@@ -53,6 +58,8 @@ final class CommitQueue {
     private final Map<Semaphore, Revision> suspendedCommits = Maps.newIdentityHashMap();
 
     private final RevisionContext context;
+
+    private long suspendTimeout = Long.getLong("oak.documentMK.suspendTimeoutMillis", DEFAULT_SUSPEND_TIMEOUT);
 
     CommitQueue(@Nonnull RevisionContext context) {
         this.context = checkNotNull(context);
@@ -96,8 +103,13 @@ final class CommitQueue {
     }
 
     /**
-     * Suspends until the given revision is visible from the current
-     * headRevision or the given revision is canceled from the commit queue.
+     * Suspends until one of the following happens:
+     * <ul>
+     *     <li>the given revision is visible from the current headRevision</li>
+     *     <li>the given revision is canceled from the commit queue</li>
+     *     <li>the suspend timeout is reached. See {@link #setSuspendTimeoutMillis(long)}</li>
+     *     <li>the thread is interrupted</li>
+     * </ul>
      *
      * @param r the revision to become visible.
      */
@@ -112,7 +124,13 @@ final class CommitQueue {
             }
         }
         if (s != null) {
-            s.acquireUninterruptibly();
+            try {
+                s.tryAcquire(suspendTimeout, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                synchronized (suspendedCommits) {
+                    suspendedCommits.remove(s);
+                }
+            }
         }
     }
 
@@ -131,6 +149,16 @@ final class CommitQueue {
         synchronized (suspendedCommits) {
             return suspendedCommits.size();
         }
+    }
+
+    /**
+     * Sets the suspend timeout in milliseconds.
+     * See also {@link #suspendUntil(Revision)}.
+     *
+     * @param timeout the timeout to set.
+     */
+    void setSuspendTimeoutMillis(long timeout) {
+        this.suspendTimeout = timeout;
     }
 
     interface Callback {

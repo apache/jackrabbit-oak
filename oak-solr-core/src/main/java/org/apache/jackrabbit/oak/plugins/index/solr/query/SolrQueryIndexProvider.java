@@ -17,9 +17,11 @@
 package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -49,6 +51,11 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPER
  */
 public class SolrQueryIndexProvider implements QueryIndexProvider {
 
+    /**
+     * How often it should check for a new Solr index.
+     */
+    private static final long NO_INDEX_CACHE_TIMEOUT = TimeUnit.SECONDS.toMillis(30);
+
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final SolrServerProvider solrServerProvider;
@@ -58,6 +65,11 @@ public class SolrQueryIndexProvider implements QueryIndexProvider {
     private final NodeAggregator aggregator;
 
     private final Map<NodeState, LMSEstimator> estimators = new WeakHashMap<NodeState, LMSEstimator>();
+
+    /**
+     * The last time when it checked for the existence of a Solr index AND could not find any.
+     */
+    private volatile long lastNegativeIndexCheck = 0;
 
     public SolrQueryIndexProvider(@Nonnull SolrServerProvider solrServerProvider, @Nonnull OakSolrConfigurationProvider oakSolrConfigurationProvider,
                                   @Nullable NodeAggregator nodeAggregator) {
@@ -73,7 +85,19 @@ public class SolrQueryIndexProvider implements QueryIndexProvider {
     @Nonnull
     @Override
     public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
+        List<? extends QueryIndex> queryIndexes;
+        // Return immediately if there are not any Solr indexes and the cache timeout has not been exceeded
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - lastNegativeIndexCheck > NO_INDEX_CACHE_TIMEOUT) {
+            queryIndexes = internalGetQueryIndexes(nodeState);
+            lastNegativeIndexCheck = queryIndexes.isEmpty() ? currentTime : 0;
+        } else {
+            queryIndexes = Collections.emptyList();
+        }
+        return queryIndexes;
+    }
 
+    private List<? extends QueryIndex> internalGetQueryIndexes(NodeState nodeState) {
         List<QueryIndex> tempIndexes = new ArrayList<QueryIndex>();
         NodeState definitions = nodeState.getChildNode(INDEX_DEFINITIONS_NAME);
         for (ChildNodeEntry entry : definitions.getChildNodeEntries()) {
