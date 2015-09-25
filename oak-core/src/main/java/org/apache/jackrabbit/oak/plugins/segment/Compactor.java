@@ -64,6 +64,8 @@ public class Compactor {
 
     private final CompactionMap map;
 
+    private final ProgressTracker progress = new ProgressTracker();
+
     /**
      * Map from {@link #getBlobKey(Blob) blob keys} to matching compacted
      * blob record identifiers. Used to de-duplicate copies of the same
@@ -95,8 +97,10 @@ public class Compactor {
     }
 
     public SegmentNodeState compact(NodeState before, NodeState after) {
+        progress.start();
         SegmentNodeState compacted = process(before, after).getNodeState();
         writer.flush();
+        progress.stop();
         return compacted;
     }
 
@@ -137,6 +141,7 @@ public class Compactor {
             if (path != null) {
                 log.trace("propertyAdded {}/{}", path, after.getName());
             }
+            progress.onProperty();
             return super.propertyAdded(compact(after));
         }
 
@@ -145,6 +150,7 @@ public class Compactor {
             if (path != null) {
                 log.trace("propertyChanged {}/{}", path, after.getName());
             }
+            progress.onProperty();
             return super.propertyChanged(before, compact(after));
         }
 
@@ -153,6 +159,7 @@ public class Compactor {
             if (path != null) {
                 log.trace("childNodeAdded {}/{}", path, name);
             }
+            progress.onNode();
             RecordId id = null;
             if (after instanceof SegmentNodeState) {
                 id = ((SegmentNodeState) after).getRecordId();
@@ -184,6 +191,7 @@ public class Compactor {
             if (path != null) {
                 log.trace("childNodeChanged {}/{}", path, name);
             }
+            progress.onNode();
 
             RecordId id = null;
             if (after instanceof SegmentNodeState) {
@@ -239,7 +247,7 @@ public class Compactor {
     private Blob compact(Blob blob) {
         if (blob instanceof SegmentBlob) {
             SegmentBlob sb = (SegmentBlob) blob;
-
+            progress.onBinary();
             try {
                 // else check if we've already cloned this specific record
                 RecordId id = sb.getRecordId();
@@ -295,6 +303,56 @@ public class Compactor {
             return blob.length() + ":" + Hashing.sha1().hashBytes(buffer, 0, n);
         } finally {
             stream.close();
+        }
+    }
+
+    private class ProgressTracker {
+
+        private final long logAt = Long.getLong("compaction-progress-log",
+                150000);
+
+        private long start = 0;
+
+        private long nodes = 0;
+        private long properties = 0;
+        private long binaries = 0;
+
+        void start() {
+            nodes = 0;
+            properties = 0;
+            binaries = 0;
+            start = System.currentTimeMillis();
+        }
+
+        void onNode() {
+            if (++nodes % logAt == 0) {
+                logProgress(start, false);
+                start = System.currentTimeMillis();
+            }
+        }
+
+        void onProperty() {
+            properties++;
+        }
+
+        void onBinary() {
+            binaries++;
+        }
+
+        void stop() {
+            logProgress(start, true);
+        }
+
+        private void logProgress(long start, boolean done) {
+            log.debug(
+                    "Compacted {} nodes, {} properties, {} binaries in {} ms.",
+                    nodes, properties, binaries, System.currentTimeMillis()
+                            - start);
+            if (done) {
+                log.info(
+                        "Finished compaction: {} nodes, {} properties, {} binaries.",
+                        nodes, properties, binaries);
+            }
         }
     }
 
