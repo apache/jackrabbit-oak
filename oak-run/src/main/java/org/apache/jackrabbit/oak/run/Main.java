@@ -471,7 +471,7 @@ public final class Main {
             System.out.println("    before " + Arrays.toString(directory.list()));
 
             System.out.println("    -> compacting");
-            FileStore store = new FileStore(directory, 256, TAR_STORAGE_MEMORY_MAPPED);
+            FileStore store = openFileStore(directory);
             try {
                 CompactionStrategy compactionStrategy = new CompactionStrategy(
                         false, CompactionStrategy.CLONE_BINARIES_DEFAULT,
@@ -494,7 +494,7 @@ public final class Main {
             }
 
             System.out.println("    -> cleaning up");
-            store = new FileStore(directory, 256, TAR_STORAGE_MEMORY_MAPPED);
+            store = openFileStore(directory);
             try {
                 store.cleanup();
             } finally {
@@ -503,6 +503,14 @@ public final class Main {
 
             System.out.println("    after  " + Arrays.toString(directory.list()));
         }
+    }
+
+    private static FileStore openFileStore(File directory) throws IOException {
+        return FileStore
+                .newFileStore(directory)
+                .withCacheSize(256)
+                .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED)
+                .create();
     }
 
     private static void checkpoints(String[] args) throws IOException {
