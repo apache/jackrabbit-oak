@@ -1038,11 +1038,8 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
 
             @Override
             public boolean visit(FullTextTerm term) {
-                String p = term.getPropertyName();
-                if (p != null) {
-                    p = getLuceneFieldName(p, pr);
-                }
-                Query q = tokenToQuery(term.getText(), p, analyzer, reader);
+                String p = getLuceneFieldName(term.getPropertyName(), pr);
+                Query q = tokenToQuery(term.getText(), p, pr.indexingRule, analyzer, reader);
                 if (q == null) {
                     return false;
                 }
@@ -1064,6 +1061,10 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
     }
 
     static String getLuceneFieldName(String p, PlanResult pr) {
+        if (p == null){
+            return FieldNames.FULLTEXT;
+        }
+
         if (isNodePath(p)){
             if (pr.isPathTransformed()){
                 p = PathUtils.getName(p);
@@ -1078,7 +1079,30 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             }
             p = FieldNames.createAnalyzedFieldName(p);
         }
+
+        if ("*".equals(p)){
+            p = FieldNames.FULLTEXT;
+        }
         return p;
+    }
+
+    private static Query tokenToQuery(String text, String fieldName, IndexingRule indexingRule, Analyzer analyzer, IndexReader reader) {
+        //Expand the query on fulltext field
+        if (FieldNames.FULLTEXT.equals(fieldName) &&
+                !indexingRule.getNodeScopeAnalyzedProps().isEmpty()) {
+            BooleanQuery in = new BooleanQuery();
+            for (PropertyDefinition pd : indexingRule.getNodeScopeAnalyzedProps()) {
+                Query q = tokenToQuery(text, FieldNames.createAnalyzedFieldName(pd.name), analyzer, reader);
+                q.setBoost(pd.boost);
+                in.add(q, BooleanClause.Occur.SHOULD);
+            }
+
+            //Add the query for actual fulltext field also. That query would
+            //not be boosted
+            in.add(tokenToQuery(text, fieldName, analyzer, reader), BooleanClause.Occur.SHOULD);
+            return in;
+        }
+        return tokenToQuery(text, fieldName, analyzer, reader);
     }
 
     static Query tokenToQuery(String text, String fieldName, Analyzer analyzer, IndexReader reader) {

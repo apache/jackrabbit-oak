@@ -103,7 +103,13 @@ class PropertyDefinition {
         this.index = getOptionalValue(defn, LuceneIndexConstants.PROP_INDEX, true);
         this.stored = getOptionalValue(defn, LuceneIndexConstants.PROP_USE_IN_EXCERPT, false);
         this.nodeScopeIndex = getOptionalValue(defn, LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, false);
-        this.analyzed = getOptionalValue(defn, LuceneIndexConstants.PROP_ANALYZED, false);
+
+        //If boost is specified then that field MUST be analyzed
+        if (defn.hasProperty(FIELD_BOOST)){
+            this.analyzed = true;
+        } else {
+            this.analyzed = getOptionalValue(defn, LuceneIndexConstants.PROP_ANALYZED, false);
+        }
 
         //If node is not set for full text then a property definition indicates that definition is for property index
         this.propertyIndex = getOptionalValue(defn, LuceneIndexConstants.PROP_PROPERTY_INDEX, false);
