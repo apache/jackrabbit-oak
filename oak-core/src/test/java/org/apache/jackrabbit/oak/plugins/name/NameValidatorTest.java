@@ -89,6 +89,11 @@ public class NameValidatorTest {
         validator.childNodeAdded("name", EMPTY_NODE);
     }
 
+    @Test(expected = CommitFailedException.class)
+    public void testNameWithLineBreaks() throws Exception{
+        validator.childNodeAdded("name\tx", EMPTY_NODE);
+    }
+
     @Test
     public void testDeleted() throws CommitFailedException {
         validator.childNodeDeleted(".", EMPTY_NODE);
