@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -203,6 +204,62 @@ public class VersionGCDeletionTest {
 
         VersionGCStats stats = gc.gc(maxAge * 2, HOURS);
         assertEquals(noOfDocsToDelete * 2 + 1, stats.deletedDocGCCount);
+    }
+
+    @Test
+    public void gcForPreviousDocs() throws Exception{
+        DocumentStore ts = new MemoryDocumentStore();
+        store = new DocumentMK.Builder()
+                .clock(clock)
+                .setDocumentStore(ts)
+                .setAsyncDelay(0)
+                .getNodeStore();
+
+        //Baseline the clock
+        clock.waitUntil(Revision.getCurrentTimestamp());
+
+        NodeBuilder b1;
+        NodeBuilder xb;
+
+        //Create/remove "/x/split" sufficient times to split it
+        boolean create = true;
+        for (int i = 0; create || i < NodeDocument.NUM_REVS_THRESHOLD ; i++) {
+            b1 = store.getRoot().builder();
+            xb = b1.child("x").child("split");
+            if (!create) {
+                xb.remove();
+            }
+            store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            create = !create;
+        }
+        store.runBackgroundOperations();
+
+        //Count split docs
+        NodeDocument doc = ts.find(Collection.NODES, "2:/x/split");
+        int splitDocCount = Iterators.size(doc.getAllPreviousDocs());
+
+        long maxAge = 1; //hours
+        long delta = TimeUnit.MINUTES.toMillis(10);
+
+        //Remove "/x"
+        NodeBuilder b2 = store.getRoot().builder();
+        b2.child("x").remove();
+        store.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        store.runBackgroundOperations();
+
+        //Pass some time and run GC
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge * 2) + delta);
+        VersionGarbageCollector gc = store.getVersionGarbageCollector();
+        VersionGCStats stats = gc.gc(maxAge * 2, HOURS);
+
+        //Asset GC stats
+        assertEquals(2, stats.deletedDocGCCount);
+        assertEquals(splitDocCount, stats.splitDocGCCount);
+
+        //check if the deleted docs are really gone after GC
+        assertNull(ts.find(Collection.NODES, "1:/x"));
+        assertNull(ts.find(Collection.NODES, "2:/x/split"));
     }
 
     // OAK-2420
