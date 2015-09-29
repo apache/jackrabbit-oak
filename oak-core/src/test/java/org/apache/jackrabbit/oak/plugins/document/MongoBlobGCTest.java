@@ -56,6 +56,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -250,6 +251,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         assertTrue(blobs instanceof MongoBlobReferenceIterator);
     }
     
+    @Ignore("OAK-3456")
     @Test
     public void gcLongRunningBlobCollection() throws Exception {
         DataStoreState state = setUp(true);
