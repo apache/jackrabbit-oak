@@ -122,16 +122,4 @@ final class PermissionEntry implements Comparable<PermissionEntry>, PermissionCo
     public int hashCode() {
         return Objects.hashCode(privilegeBits, index, path, isAllow, restriction);
     }
-
-    @Override
-    public String toString() {
-        final StringBuilder sb = new StringBuilder("PermissionEntry{");
-        sb.append("isAllow=").append(isAllow);
-        sb.append(", privilegeBits=").append(privilegeBits);
-        sb.append(", index=").append(index);
-        sb.append(", path='").append(path).append('\'');
-        sb.append(", restriction=").append(restriction);
-        sb.append('}');
-        return sb.toString();
-    }
 }

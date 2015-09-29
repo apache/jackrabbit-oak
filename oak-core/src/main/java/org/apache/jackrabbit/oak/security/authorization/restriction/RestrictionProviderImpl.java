@@ -72,7 +72,8 @@ public class RestrictionProviderImpl extends AbstractRestrictionProvider {
         RestrictionDefinition glob = new RestrictionDefinitionImpl(REP_GLOB, Type.STRING, false);
         RestrictionDefinition nts = new RestrictionDefinitionImpl(REP_NT_NAMES, Type.NAMES, false);
         RestrictionDefinition pfxs = new RestrictionDefinitionImpl(REP_PREFIXES, Type.STRINGS, false);
-        return ImmutableMap.of(glob.getName(), glob, nts.getName(), nts, pfxs.getName(), pfxs);
+        RestrictionDefinition names = new RestrictionDefinitionImpl(REP_ITEM_NAMES, Type.NAMES, false);
+        return ImmutableMap.of(glob.getName(), glob, nts.getName(), nts, pfxs.getName(), pfxs, names.getName(), names);
     }
 
     //------------------------------------------------< RestrictionProvider >---
@@ -96,6 +97,11 @@ public class RestrictionProviderImpl extends AbstractRestrictionProvider {
             if (prefixes != null) {
                 patterns.add(new PrefixPattern(prefixes.getValue(Type.STRINGS)));
             }
+            PropertyState itemNames = tree.getProperty(REP_ITEM_NAMES);
+            if (itemNames != null) {
+                patterns.add(new ItemNamePattern(itemNames.getValue(Type.NAMES)));
+            }
+
             return CompositePattern.create(patterns);
         }
     }
@@ -115,6 +121,8 @@ public class RestrictionProviderImpl extends AbstractRestrictionProvider {
                     patterns.add(new NodeTypePattern(r.getProperty().getValue(Type.NAMES)));
                 } else if (REP_PREFIXES.equals(name)) {
                     patterns.add(new PrefixPattern(r.getProperty().getValue(Type.STRINGS)));
+                } else if (REP_ITEM_NAMES.equals(name)) {
+                    patterns.add(new ItemNamePattern(r.getProperty().getValue(Type.NAMES)));
                 } else {
                     log.debug("Ignoring unsupported restriction " + name);
                 }
