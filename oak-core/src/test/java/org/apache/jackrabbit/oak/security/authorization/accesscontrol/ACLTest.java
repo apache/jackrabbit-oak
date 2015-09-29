@@ -648,11 +648,12 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
     public void testRestrictions() throws Exception {
         String[] names = acl.getRestrictionNames();
         assertNotNull(names);
-        assertEquals(3, names.length);
-        assertArrayEquals(new String[] {REP_GLOB, REP_NT_NAMES, REP_PREFIXES}, names);
+        assertEquals(4, names.length);
+        assertArrayEquals(new String[] {REP_GLOB, REP_NT_NAMES, REP_PREFIXES, REP_ITEM_NAMES}, names);
         assertEquals(PropertyType.STRING, acl.getRestrictionType(names[0]));
         assertEquals(PropertyType.NAME, acl.getRestrictionType(names[1]));
         assertEquals(PropertyType.STRING, acl.getRestrictionType(names[2]));
+        assertEquals(PropertyType.NAME, acl.getRestrictionType(names[3]));
 
         Privilege[] writePriv = privilegesFromNames(JCR_WRITE);
 
