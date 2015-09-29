@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
@@ -45,8 +46,10 @@ import static org.apache.jackrabbit.oak.plugins.document.Revision.RevisionCompar
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getRootDocument;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Tests for {@link NodeDocument}.
@@ -366,18 +369,132 @@ public class NodeDocumentTest {
         // simulate a change revision within the range of
         // the most recent previous document
         Iterable<Revision> changes = prev.getAllChanges();
-        Revision changeRev = new Revision(Iterables.getLast(changes).getTimestamp(), 1000, ns.getClusterId());
+        Revision baseRev = Iterables.getLast(changes);
+        Revision changeRev = new Revision(baseRev.getTimestamp(), 1000, ns.getClusterId());
         // reset calls to previous documents
         prevDocCalls.clear();
-        doc.getNewestRevision(ns, changeRev, new CollisionHandler() {
-            @Override
-            void concurrentModification(Revision other) {
-                // ignore
-            }
-        });
+        doc.getNewestRevision(ns, baseRev, changeRev, null, new HashSet<Revision>());
         // must not read all previous docs
         assertTrue("too many calls for previous documents: " + prevDocCalls,
                 prevDocCalls.size() <= 4);
+
+        ns.dispose();
+    }
+
+    @Test
+    public void getNewestRevision() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ns1 = createTestStore(store, 0);
+        DocumentNodeStore ns2 = createTestStore(store, 0);
+
+        NodeBuilder b1 = ns1.getRoot().builder();
+        b1.child("test");
+        merge(ns1, b1);
+        Revision created = ns1.getHeadRevision();
+
+        NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test"));
+        Set<Revision> collisions = Sets.newHashSet();
+        Revision newest = doc.getNewestRevision(ns1, ns1.getHeadRevision(),
+                ns1.newRevision(), null, collisions);
+        assertEquals(created, newest);
+        assertEquals(0, collisions.size());
+
+        // from ns2 POV newest must be null, because the node is not yet visible
+        newest = doc.getNewestRevision(ns2, ns2.getHeadRevision(),
+                ns2.newRevision(), null, collisions);
+        assertNull(newest);
+        assertEquals(1, collisions.size());
+        assertEquals(created, collisions.iterator().next());
+
+        ns1.runBackgroundOperations();
+        ns2.runBackgroundOperations();
+        collisions.clear();
+
+        // now ns2 sees /test
+        doc = store.find(NODES, Utils.getIdFromPath("/test"));
+        newest = doc.getNewestRevision(ns2, ns2.getHeadRevision(),
+                ns2.newRevision(), null, collisions);
+        assertEquals(created, newest);
+        assertEquals(0, collisions.size());
+
+        Revision uncommitted = ns1.newRevision();
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/test"), false);
+        NodeDocument.setCommitRoot(op, uncommitted, 0);
+        op.setMapEntry("p", uncommitted, "v");
+        assertNotNull(store.findAndUpdate(NODES, op));
+
+        collisions.clear();
+        // ns1 must report uncommitted in collisions
+        doc = store.find(NODES, Utils.getIdFromPath("/test"));
+        newest = doc.getNewestRevision(ns1, ns1.getHeadRevision(),
+                ns1.newRevision(), null, collisions);
+        assertEquals(created, newest);
+        assertEquals(1, collisions.size());
+        assertEquals(uncommitted, collisions.iterator().next());
+
+        collisions.clear();
+        // ns2 must report uncommitted in collisions
+        newest = doc.getNewestRevision(ns2, ns2.getHeadRevision(),
+                ns2.newRevision(), null, collisions);
+        assertEquals(created, newest);
+        assertEquals(1, collisions.size());
+        assertEquals(uncommitted, collisions.iterator().next());
+
+        b1 = ns1.getRoot().builder();
+        b1.child("test").setProperty("q", "v");
+        merge(ns1, b1);
+        Revision committed = ns1.getHeadRevision();
+
+        collisions.clear();
+        // ns1 must now report committed revision as newest
+        // uncommitted is not considered a collision anymore
+        // because it is older than the base revision
+        doc = store.find(NODES, Utils.getIdFromPath("/test"));
+        newest = doc.getNewestRevision(ns1, created,
+                ns1.newRevision(), null, collisions);
+        assertEquals(committed, newest);
+        assertEquals(0, collisions.size());
+
+        // ns2 must report committed revision as collision because
+        // it is not yet visible. newest is when the node was created
+        newest = doc.getNewestRevision(ns2, ns2.getHeadRevision(),
+                ns2.newRevision(), null, collisions);
+        assertEquals(created, newest);
+        assertEquals(2, collisions.size());
+        assertTrue(collisions.contains(uncommitted));
+        assertTrue(collisions.contains(committed));
+
+
+        ns1.dispose();
+        ns2.dispose();
+    }
+
+    @Test
+    public void getNewestRevisionCheckArgument() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ns = createTestStore(store, 0);
+
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("test");
+        merge(ns, builder);
+
+        Set<Revision> collisions = Sets.newHashSet();
+        NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test"));
+        Revision branchBase = ns.getHeadRevision().asBranchRevision();
+        try {
+            doc.getNewestRevision(ns, branchBase, ns.newRevision(), null, collisions);
+            fail("Must fail with IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            // expected
+        }
+        try {
+            Revision head = ns.getHeadRevision();
+            Branch b = ns.getBranches().create(head, ns.newRevision(), null);
+            doc.getNewestRevision(ns, head, ns.newRevision(), b, collisions);
+            fail("Must fail with IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            // expected
+        }
 
         ns.dispose();
     }

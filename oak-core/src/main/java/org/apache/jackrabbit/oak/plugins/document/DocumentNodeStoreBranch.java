@@ -113,12 +113,6 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             throws CommitFailedException {
         try {
             return merge0(hook, info, false);
-        } catch (FailedWithConflictException e) {
-            // suspend until conflicting revision is visible
-            LOG.debug("Suspending until {} is visible. Current head {}.",
-                    e.getConflictRevision(), store.getHeadRevision());
-            store.suspendUntil(e.getConflictRevision());
-            LOG.debug("Resumed. Current head {}.", store.getHeadRevision());
         } catch (CommitFailedException e) {
             if (!e.isOfType(MERGE)) {
                 throw e;
@@ -155,6 +149,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                              boolean exclusive)
             throws CommitFailedException {
         CommitFailedException ex = null;
+        Revision conflictRevision = null;
         long time = System.currentTimeMillis();
         int numRetries = 0;
         for (long backoff = MIN_BACKOFF; backoff <= maximumBackoff; backoff *= 2) {
@@ -162,7 +157,19 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 try {
                     numRetries++;
                     final long start = perfLogger.start();
-                    Thread.sleep(backoff + RANDOM.nextInt((int) Math.min(backoff, Integer.MAX_VALUE)));
+                    // suspend until conflict revision is visible
+                    // or as a fallback sleep for a while
+                    if (conflictRevision != null) {
+                        // suspend until conflicting revision is visible
+                        LOG.debug("Suspending until {} is visible. Current head {}.",
+                                conflictRevision, store.getHeadRevision());
+                        store.suspendUntil(conflictRevision);
+                        LOG.debug("Resumed. Current head {}.", store.getHeadRevision());
+                        // reset conflict revision
+                        conflictRevision = null;
+                    } else {
+                        Thread.sleep(backoff + RANDOM.nextInt((int) Math.min(backoff, Integer.MAX_VALUE)));
+                    }
                     perfLogger.end(start, 1, "Merge - Retry attempt [{}]", numRetries);
                 } catch (InterruptedException e) {
                     throw new CommitFailedException(
@@ -173,18 +180,19 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 return branchState.merge(checkNotNull(hook),
                         checkNotNull(info), exclusive);
             } catch (FailedWithConflictException e) {
-                // let caller decide what to do with conflicting revision
-                throw e;
-            } catch (CommitFailedException e) {
-                LOG.trace("Merge Error", e);
                 ex = e;
-                // only retry on merge failures. these may be caused by
-                // changes introduce by a commit hook and may be resolved
-                // by a rebase and running the hook again
-                if (!e.isOfType(MERGE)) {
-                    throw e;
-                }
+                conflictRevision = e.getConflictRevision();
+            } catch (CommitFailedException e) {
+                ex = e;
             }
+            LOG.trace("Merge Error", ex);
+            // only retry on merge failures. these may be caused by
+            // changes introduce by a commit hook and may be resolved
+            // by a rebase and running the hook again
+            if (!ex.isOfType(MERGE)) {
+                throw ex;
+            }
+
         }
         // if we get here retrying failed
         time = System.currentTimeMillis() - time;
@@ -588,6 +596,8 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 return newRoot;
             } catch (CommitFailedException e) {
                 throw e;
+            } catch (ConflictException e) {
+                throw e.asCommitFailedException();
             } catch (Exception e) {
                 throw new CommitFailedException(MERGE, 1,
                         "Failed to merge changes to the underlying store", e);
