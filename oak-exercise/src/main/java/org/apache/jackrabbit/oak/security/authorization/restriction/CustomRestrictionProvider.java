@@ -76,14 +76,14 @@ public class CustomRestrictionProvider implements RestrictionProvider {
     @Nonnull
     @Override
     public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Tree tree) {
-        // TODO
+        // EXERCISE
         return null;
     }
 
     @Nonnull
     @Override
     public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Set<Restriction> restrictions) {
-        // TODO
+        // EXERCISE
         return null;
     }
 }
