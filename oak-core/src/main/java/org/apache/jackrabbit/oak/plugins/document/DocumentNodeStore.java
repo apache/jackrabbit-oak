@@ -204,6 +204,7 @@ public final class DocumentNodeStore
     /**
      * The cluster instance info.
      */
+    @Nonnull
     private final ClusterNodeInfo clusterNodeInfo;
 
     /**
@@ -287,8 +288,8 @@ public final class DocumentNodeStore
 
     /**
      * Background thread performing the clusterId lease renew.
-     * Will be {@code null} if {@link #clusterNodeInfo} is {@code null}.
      */
+    @Nonnull
     private Thread leaseUpdateThread;
 
     /**
@@ -427,22 +428,18 @@ public final class DocumentNodeStore
         this.changes = Collection.JOURNAL.newDocument(s);
         this.executor = builder.getExecutor();
         this.clock = builder.getClock();
+
         int cid = builder.getClusterId();
         cid = Integer.getInteger("oak.documentMK.clusterId", cid);
-        if (cid == 0) {
-            clusterNodeInfo = ClusterNodeInfo.getInstance(s);
-            // TODO we should ensure revisions generated from now on
-            // are never "older" than revisions already in the repository for
-            // this cluster id
-            cid = clusterNodeInfo.getId();
-        } else {
-            clusterNodeInfo = null;
-        }
+        clusterNodeInfo = ClusterNodeInfo.getInstance(s, cid);
+        // TODO we should ensure revisions generated from now on
+        // are never "older" than revisions already in the repository for
+        // this cluster id
+        cid = clusterNodeInfo.getId();
+
         if (builder.getLeaseCheck()) {
             s = new LeaseCheckDocumentStoreWrapper(s, clusterNodeInfo);
-            if (clusterNodeInfo!=null) {
-                clusterNodeInfo.setLeaseFailureHandler(builder.getLeaseFailureHandler());
-            }
+            clusterNodeInfo.setLeaseFailureHandler(builder.getLeaseFailureHandler());
         }
         this.store = s;
         this.clusterId = cid;
@@ -530,17 +527,14 @@ public final class DocumentNodeStore
         backgroundReadThread.start();
         backgroundUpdateThread.start();
 
-        if (clusterNodeInfo != null) {
-            leaseUpdateThread = new Thread(
-                    new BackgroundLeaseUpdate(this, isDisposed),
-                    "DocumentNodeStore lease update thread " + threadNamePostfix);
-            leaseUpdateThread.setDaemon(true);
-            // OAK-3398 : make lease updating more robust by ensuring it
-            // has higher likelihood of succeeding than other threads
-            // on a very busy machine - so as to prevent lease timeout.
-            leaseUpdateThread.setPriority(Thread.MAX_PRIORITY);
-            leaseUpdateThread.start();
-        }
+        leaseUpdateThread = new Thread(new BackgroundLeaseUpdate(this, isDisposed),
+                "DocumentNodeStore lease update thread " + threadNamePostfix);
+        leaseUpdateThread.setDaemon(true);
+        // OAK-3398 : make lease updating more robust by ensuring it
+        // has higher likelihood of succeeding than other threads
+        // on a very busy machine - so as to prevent lease timeout.
+        leaseUpdateThread.setPriority(Thread.MAX_PRIORITY);
+        leaseUpdateThread.start();
 
         this.mbean = createMBean();
         LOG.info("Initialized DocumentNodeStore with clusterNodeId: {} ({})", clusterId,
@@ -601,9 +595,7 @@ public final class DocumentNodeStore
 
         // now mark this cluster node as inactive by
         // disposing the clusterNodeInfo
-        if (clusterNodeInfo != null) {
-            clusterNodeInfo.dispose();
-        }
+        clusterNodeInfo.dispose();
         store.dispose();
 
         if (blobStore instanceof Closeable) {
@@ -620,7 +612,7 @@ public final class DocumentNodeStore
     }
 
     private String getClusterNodeInfoDisplayString() {
-        return clusterNodeInfo == null ? "no cluster node info" : clusterNodeInfo.toString().replaceAll("[\r\n\t]", " ").trim();
+        return clusterNodeInfo.toString().replaceAll("[\r\n\t]", " ").trim();
     }
 
     Revision setHeadRevision(@Nonnull Revision newHead) {
@@ -756,7 +748,7 @@ public final class DocumentNodeStore
         return enableConcurrentAddRemove;
     }
 
-    @CheckForNull
+    @Nonnull
     public ClusterNodeInfo getClusterInfo() {
         return clusterNodeInfo;
     }
@@ -1776,7 +1768,7 @@ public final class DocumentNodeStore
      * @return {@code true} if the lease was renewed; {@code false} otherwise.
      */
     boolean renewClusterIdLease() {
-        return clusterNodeInfo != null && clusterNodeInfo.renewLease();
+        return clusterNodeInfo.renewLease();
     }
 
     /**
