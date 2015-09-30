@@ -418,6 +418,7 @@ public class ClusterNodeInfo {
         boolean newEntry = false;
 
         ClusterNodeInfoDocument alreadyExistingConfigured = null;
+        String reuseFailureReason = "";
         List<ClusterNodeInfoDocument> list = ClusterNodeInfoDocument.all(store);
 
         for (ClusterNodeInfoDocument doc : list) {
@@ -448,6 +449,7 @@ public class ClusterNodeInfo {
 
             if (leaseEnd != null && leaseEnd > now) {
                 // TODO wait for lease end, see OAK-3449
+                reuseFailureReason = "leaseEnd " + leaseEnd + " > " + now + " - " + (leaseEnd - now) + "ms in the future";
                 continue;
             }
 
@@ -464,6 +466,7 @@ public class ClusterNodeInfo {
 
             if (!mId.equals(machineId) || !iId.equals(instanceId)) {
                 // a different machine or instance
+                reuseFailureReason = "machineId/instanceId do not match: " + mId + "/" + iId + " != " + machineId + "/" + instanceId;
                 continue;
             }
 
@@ -484,7 +487,7 @@ public class ClusterNodeInfo {
             if (configuredClusterId != 0) {
                 if (alreadyExistingConfigured != null) {
                     throw new DocumentStoreException(
-                            "Configured cluster node id " + configuredClusterId + " already in use: " + alreadyExistingConfigured);
+                            "Configured cluster node id " + configuredClusterId + " already in use: " + reuseFailureReason);
                 }
                 clusterNodeId = configuredClusterId;
             } else {
