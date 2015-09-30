@@ -46,8 +46,8 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandle
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncResultImpl;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncedIdentityImpl;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncResultImpl;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncedIdentity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -219,8 +219,8 @@ public class SyncMBeanImpl implements SynchronizationMBean {
                         systemSession.save();
                         list.add(getJSONString(r));
                     } else {
-                        SyncResult r = new SyncResultImpl(
-                                new SyncedIdentityImpl("", ref, false, -1),
+                        SyncResult r = new DefaultSyncResultImpl(
+                                new DefaultSyncedIdentity("", ref, false, -1),
                                 SyncResult.Status.NO_SUCH_IDENTITY
                         );
                         list.add(getJSONString(r));
