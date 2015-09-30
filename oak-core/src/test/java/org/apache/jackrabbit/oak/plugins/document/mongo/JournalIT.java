@@ -52,9 +52,9 @@ public class JournalIT extends AbstractJournalTest {
         Assume.assumeNotNull(MongoUtils.getConnection());
     }
 
-    @Before
-    @After
-    public void dropCollections() throws Exception {
+    @Override
+    public void clear() {
+        super.clear();
         MongoConnection mongoConnection = MongoUtils.getConnection();
         MongoUtils.dropCollections(mongoConnection.getDB());
         mongoConnection.close();
