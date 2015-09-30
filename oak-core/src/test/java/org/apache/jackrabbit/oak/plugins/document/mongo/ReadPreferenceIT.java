@@ -78,7 +78,9 @@ public class ReadPreferenceIT {
 
     @After
     public void clearDB() {
-        MongoUtils.dropCollections(mongoDS.getDBCollection(NODES).getDB());
+        if (mongoDS != null) {
+            MongoUtils.dropCollections(mongoDS.getDBCollection(NODES).getDB());
+        }
     }
 
     @Test
