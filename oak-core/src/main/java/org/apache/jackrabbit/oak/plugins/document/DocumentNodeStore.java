@@ -585,12 +585,10 @@ public final class DocumentNodeStore
             LOG.error("dispose: an AssertionError happened during dispose's last background ops: "+ae, ae);
         }
 
-        if (leaseUpdateThread != null) {
-            try {
-                leaseUpdateThread.join();
-            } catch (InterruptedException e) {
-                // ignore
-            }
+        try {
+            leaseUpdateThread.join();
+        } catch (InterruptedException e) {
+            // ignore
         }
 
         // now mark this cluster node as inactive by
