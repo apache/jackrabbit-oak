@@ -607,7 +607,7 @@ public class Revision {
             if (comp != 0) {
                 return comp;
             }
-            return Integer.signum(o1.getClusterId() - o2.getClusterId());
+            return o1.compareTo(o2);
         }
 
         /**

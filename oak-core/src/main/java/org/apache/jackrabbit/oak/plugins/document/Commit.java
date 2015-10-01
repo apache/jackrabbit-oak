@@ -58,9 +58,10 @@ public class Commit {
     private final DocumentNodeStoreBranch branch;
     private final Revision baseRevision;
     private final Revision revision;
-    private HashMap<String, UpdateOp> operations = new LinkedHashMap<String, UpdateOp>();
-    private JsopWriter diff = new JsopStream();
-    private Set<Revision> collisions = new LinkedHashSet<Revision>();
+    private final HashMap<String, UpdateOp> operations = new LinkedHashMap<String, UpdateOp>();
+    private final JsopWriter diff = new JsopStream();
+    private final Set<Revision> collisions = new LinkedHashSet<Revision>();
+    private Branch b;
 
     /**
      * List of all node paths which have been modified in this commit. In addition to the nodes
@@ -494,13 +495,12 @@ public class Commit {
         if (baseRevision != null) {
             Revision newestRev = null;
             if (before != null) {
-                newestRev = before.getNewestRevision(nodeStore, revision,
-                        new CollisionHandler() {
-                            @Override
-                            void concurrentModification(Revision other) {
-                                collisions.add(other);
-                            }
-                        });
+                Revision base = baseRevision;
+                if (nodeStore.isDisableBranches()) {
+                    base = base.asTrunkRevision();
+                }
+                newestRev = before.getNewestRevision(
+                        nodeStore, base, revision, getBranch(), collisions);
             }
             String conflictMessage = null;
             if (newestRev == null) {
@@ -580,6 +580,20 @@ public class Commit {
         }
         return doc.isConflicting(op, baseRevision, revision, nodeStore,
                 nodeStore.getEnableConcurrentAddRemove());
+    }
+
+    /**
+     * @return the branch if this is a branch commit, otherwise {@code null}.
+     */
+    @CheckForNull
+    private Branch getBranch() {
+        if (baseRevision == null || !baseRevision.isBranch()) {
+            return null;
+        }
+        if (b == null) {
+            b = nodeStore.getBranches().getBranch(revision);
+        }
+        return b;
     }
 
     /**
