@@ -70,7 +70,6 @@ import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
-import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.analysis.Analyzer;
@@ -587,14 +586,8 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
         if (qs.size() == 0) {
             return new LuceneRequestFacade<Query>(new MatchAllDocsQuery());
         }
-        if (qs.size() == 1) {
-            return new LuceneRequestFacade<Query>(qs.get(0));
-        }
-        BooleanQuery bq = new BooleanQuery();
-        for (Query q : qs) {
-            bq.add(q, MUST);
-        }
-        return new LuceneRequestFacade<Query>(bq);
+        
+        return LucenePropertyIndex.performAdditionalWraps(qs);
     }
 
     private static void addNonFullTextConstraints(List<Query> qs,
