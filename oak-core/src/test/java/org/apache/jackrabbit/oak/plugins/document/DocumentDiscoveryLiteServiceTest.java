@@ -602,30 +602,38 @@ public class DocumentDiscoveryLiteServiceTest {
      * http://stackoverflow.com/questions/3301635/change-private-static-final-
      * field-using-java-reflection
      */
-    static void setFinalStatic(Field field, Object newValue) throws Exception {
+    static Object setFinalStatic(Field field, Object newValue) throws Exception {
         field.setAccessible(true);
 
         Field modifiersField = Field.class.getDeclaredField("modifiers");
         modifiersField.setAccessible(true);
         modifiersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
 
+        Object prev = field.get(null);
         field.set(null, newValue);
+        return prev;
     }
 
     // subsequent tests should get a DocumentDiscoveryLiteService setup from the
     // start
     private DocumentNodeStore createNodeStore(String workingDir) throws SecurityException, Exception {
-        // ensure that we always get a fresh cluster[node]id
-        setFinalStatic(ClusterNodeInfo.class.getDeclaredField("WORKING_DIR"), workingDir);
+        Object prevWorkingDir = System.getProperty("user.dir", "");
+        try {
+            // ensure that we always get a fresh cluster[node]id
+            prevWorkingDir = setFinalStatic(ClusterNodeInfo.class.getDeclaredField("WORKING_DIR"), workingDir);
 
-        // then create the DocumentNodeStore
-        DocumentMK mk1 = createMK(
-                0 /* to make sure the clusterNodes collection is used **/,
-                500 /* asyncDelay: background interval */);
+            // then create the DocumentNodeStore
+            DocumentMK mk1 = createMK(
+                    0 /* to make sure the clusterNodes collection is used **/,
+                    500 /* asyncDelay: background interval */);
 
-        logger.info("createNodeStore: created DocumentNodeStore with cid=" + mk1.nodeStore.getClusterId() + ", workingDir="
-                + workingDir);
-        return mk1.nodeStore;
+            logger.info("createNodeStore: created DocumentNodeStore with cid=" + mk1.nodeStore.getClusterId() + ", workingDir="
+                    + workingDir);
+            return mk1.nodeStore;
+        }
+        finally {
+            setFinalStatic(ClusterNodeInfo.class.getDeclaredField("WORKING_DIR"), prevWorkingDir);
+        }
     }
 
     private SimplifiedInstance createInstance() throws Exception {
