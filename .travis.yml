@@ -14,7 +14,7 @@
 # limitations under the License.
 
 install:  true
-script:   mvn --batch-mode verify -Ppedantic,integrationTesting -Dnsfixtures=DOCUMENT_NS
+script:   mvn --batch-mode verify -PintegrationTesting -Dnsfixtures=DOCUMENT_NS
 language: java
 jdk:
   - oraclejdk7
