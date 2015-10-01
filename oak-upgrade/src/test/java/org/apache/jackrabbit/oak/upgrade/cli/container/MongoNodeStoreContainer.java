@@ -32,6 +32,8 @@ import com.mongodb.MongoClientURI;
 
 public class MongoNodeStoreContainer implements NodeStoreContainer {
 
+    private static Boolean mongoAvailable;
+
     private static final Logger LOG = LoggerFactory.getLogger(MongoNodeStoreContainer.class);
 
     private static final String MONGO_URI = System.getProperty("oak.mongo.uri",
@@ -60,9 +62,18 @@ public class MongoNodeStoreContainer implements NodeStoreContainer {
     }
 
     public static boolean isMongoAvailable() {
+        if (mongoAvailable != null) {
+            return mongoAvailable;
+        }
+
+        mongoAvailable = testMongoAvailability();
+        return mongoAvailable;
+    }
+
+    private static boolean testMongoAvailability() {
         Mongo mongo = null;
         try {
-            MongoClientURI uri = new MongoClientURI(MONGO_URI);
+            MongoClientURI uri = new MongoClientURI(MONGO_URI + "?connectTimeoutMS=3000");
             mongo = new MongoClient(uri);
             mongo.getDatabaseNames();
             return true;
