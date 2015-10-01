@@ -80,7 +80,6 @@ public class OakDocumentRDBRepositoryStub extends OakRepositoryStub {
         String prefix = "T" + UUID.randomUUID().toString().replace("-",  "");
         RDBOptions options = new RDBOptions().tablePrefix(prefix).dropTablesOnClose(true);
         DocumentNodeStore m = new DocumentMK.Builder().
-                setClusterId(1).
                 memoryCacheSize(64 * 1024 * 1024).
                 setPersistentCache("target/persistentCache,time").
                 setRDBConnection(RDBDataSourceFactory.forJdbcUrl(url, username, password), options).
