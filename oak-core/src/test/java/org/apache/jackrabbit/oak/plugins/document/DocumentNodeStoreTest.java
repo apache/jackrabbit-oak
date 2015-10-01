@@ -90,7 +90,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -1112,7 +1111,6 @@ public class DocumentNodeStoreTest {
     }
 
     // OAK-2929
-    @Ignore
     @Test
     public void conflictDetectionWithClockDifference() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
@@ -1170,7 +1168,6 @@ public class DocumentNodeStoreTest {
     }
 
     // OAK-2929
-    @Ignore
     @Test
     public void parentWithUnseenChildrenMustNotBeDeleted() throws Exception {
         final MemoryDocumentStore docStore = new MemoryDocumentStore();
@@ -1333,12 +1330,7 @@ public class DocumentNodeStoreTest {
         //root would hold reference to store2 root state after initial repo initialization
         root = store2.getRoot();
 
-        //The hidden node itself should be creatable across cluster concurrently
-        builder = root.builder();
-        builder.child(":dynHidden");
-        merge(store2, builder);
-
-        //Children of hidden node should be creatable across cluster concurrently
+        //The hidden node and children should be creatable across cluster concurrently
         builder = root.builder();
         builder.child(":hidden").child("b");
         builder.child(":dynHidden").child("c");
@@ -1499,6 +1491,109 @@ public class DocumentNodeStoreTest {
                 new String[]{":2"}, new String[]{":b"}, false,
                 new String[]{":3", ":a", ":b"}, new String[]{}, true,
                 false, "Change deleted merge conflicts for internal docs should fail");
+    }
+
+    // OAK-3388
+    @Test
+    public void clusterWithClockDifferences() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        long now = System.currentTimeMillis();
+        Clock c1 = new Clock.Virtual();
+        c1.waitUntil(now);
+        Revision.setClock(c1);
+        DocumentNodeStore ns1 = builderProvider.newBuilder().clock(c1)
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+        NodeBuilder b1 = ns1.getRoot().builder();
+        b1.child("node");
+        merge(ns1, b1);
+        // make /node visible
+        ns1.runBackgroundOperations();
+
+        Revision.resetClockToDefault();
+        Clock c2 = new Clock.Virtual();
+        // c2 is five seconds ahead
+        c2.waitUntil(now + 5000);
+        Revision.setClock(c2);
+
+        DocumentNodeStore ns2 = builderProvider.newBuilder().clock(c2)
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+        // ns2 sees /node
+        assertTrue(ns2.getRoot().hasChildNode("node"));
+
+        // remove /node on ns2
+        NodeBuilder b2 = ns2.getRoot().builder();
+        b2.child("node").remove();
+        merge(ns2, b2);
+        ns2.runBackgroundOperations();
+
+        // add /node again on ns1
+        Revision.resetClockToDefault();
+        Revision.setClock(c1);
+        ns1.runBackgroundOperations();
+        b1 = ns1.getRoot().builder();
+        assertFalse(b1.hasChildNode("node"));
+        b1.child("node");
+        merge(ns1, b1);
+        ns1.runBackgroundOperations();
+
+        // check if /node is visible on ns2
+        Revision.resetClockToDefault();
+        Revision.setClock(c2);
+        ns2.runBackgroundOperations();
+        b2 = ns2.getRoot().builder();
+        assertTrue(b2.hasChildNode("node"));
+    }
+
+    // OAK-3388
+    @Test
+    public void clusterWithClockDifferences2() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        long now = System.currentTimeMillis();
+        Clock c1 = new Clock.Virtual();
+        c1.waitUntil(now);
+        Revision.setClock(c1);
+        DocumentNodeStore ns1 = builderProvider.newBuilder().clock(c1)
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+        NodeBuilder b1 = ns1.getRoot().builder();
+        b1.child("node").setProperty("p", 1);
+        merge(ns1, b1);
+        // make /node visible
+        ns1.runBackgroundOperations();
+
+        Revision.resetClockToDefault();
+        Clock c2 = new Clock.Virtual();
+        // c2 is five seconds ahead
+        c2.waitUntil(now + 5000);
+        Revision.setClock(c2);
+
+        DocumentNodeStore ns2 = builderProvider.newBuilder().clock(c2)
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+        // ns2 sees /node
+        assertTrue(ns2.getRoot().hasChildNode("node"));
+        assertEquals(1, ns2.getRoot().getChildNode("node").getProperty("p").getValue(Type.LONG).longValue());
+
+        // increment /node/p ns2
+        NodeBuilder b2 = ns2.getRoot().builder();
+        b2.child("node").setProperty("p", 2);
+        merge(ns2, b2);
+        ns2.runBackgroundOperations();
+
+        // increment /node/p2 on ns1
+        Revision.resetClockToDefault();
+        Revision.setClock(c1);
+        ns1.runBackgroundOperations();
+        b1 = ns1.getRoot().builder();
+        assertEquals(2, b1.getChildNode("node").getProperty("p").getValue(Type.LONG).longValue());
+        b1.child("node").setProperty("p", 3);
+        merge(ns1, b1);
+        ns1.runBackgroundOperations();
+
+        // check if /node/p=3 is visible on ns2
+        Revision.resetClockToDefault();
+        Revision.setClock(c2);
+        ns2.runBackgroundOperations();
+        b2 = ns2.getRoot().builder();
+        assertEquals(3, b2.getChildNode("node").getProperty("p").getValue(Type.LONG).longValue());
     }
 
     /**
