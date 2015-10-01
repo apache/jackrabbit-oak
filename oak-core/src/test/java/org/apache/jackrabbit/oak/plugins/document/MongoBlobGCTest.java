@@ -251,7 +251,6 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         assertTrue(blobs instanceof MongoBlobReferenceIterator);
     }
     
-    @Ignore("OAK-3456")
     @Test
     public void gcLongRunningBlobCollection() throws Exception {
         DataStoreState state = setUp(true);
