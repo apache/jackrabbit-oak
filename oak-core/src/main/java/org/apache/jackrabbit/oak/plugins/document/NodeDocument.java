@@ -18,12 +18,12 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Queue;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -55,7 +55,9 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -672,15 +674,21 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      * Get the revision of the latest change made to this node.
      *
      * @param context the revision context
+     * @param baseRev the base revision of the current change.
      * @param changeRev the revision of the current change
-     * @param handler the conflict handler, which is called for concurrent changes
-     *                preceding <code>changeRev</code>.
+     * @param branch the branch associated with the current change or
+     *              {@code null} if {@code changeRev} is not a branch commit.
+     * @param collisions concurrent changes preceding <code>changeRev</code>.
      * @return the revision, or null if deleted
      */
     @CheckForNull
-    public Revision getNewestRevision(final RevisionContext context,
-                                      final Revision changeRev,
-                                      final CollisionHandler handler) {
+    Revision getNewestRevision(final RevisionContext context,
+                               final Revision baseRev,
+                               final Revision changeRev,
+                               final Branch branch,
+                               final Set<Revision> collisions) {
+        checkArgument(!baseRev.isBranch() || branch != null,
+                "Branch must be non-null if baseRev is a branch revision");
         final Map<Revision, String> validRevisions = Maps.newHashMap();
         Predicate<Revision> predicate = new Predicate<Revision>() {
             @Override
@@ -691,15 +699,25 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                 if (isValidRevision(context, input, null, changeRev, validRevisions)) {
                     return true;
                 }
-                handler.concurrentModification(input);
+                collisions.add(input);
                 return false;
             }
         };
 
         Revision newestRev = null;
+        int localClusterId = context.getClusterId();
         // check local commits first
         SortedMap<Revision, String> revisions = getLocalRevisions();
         SortedMap<Revision, String> commitRoots = getLocalCommitRoot();
+        // go through all local commits and consider all
+        // changes from another cluster node not yet visible from
+        // the base version as collision
+        for (Revision r : concat(revisions.keySet(), commitRoots.keySet())) {
+            if (r.getClusterId() != localClusterId
+                    && isRevisionNewer(context, r, baseRev)) {
+                collisions.add(r);
+            }
+        }
         Iterator<Revision> it = filter(Iterables.mergeSorted(
                 ImmutableList.of(revisions.keySet(), commitRoots.keySet()),
                 revisions.comparator()), predicate).iterator();
