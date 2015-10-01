@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak;
+package org.apache.jackrabbit.oak.benchmark;
 
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -25,7 +25,6 @@ import javax.jcr.Session;
 
 import com.google.common.base.Stopwatch;
 
-import org.apache.jackrabbit.oak.benchmark.RevisionGCTest;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
