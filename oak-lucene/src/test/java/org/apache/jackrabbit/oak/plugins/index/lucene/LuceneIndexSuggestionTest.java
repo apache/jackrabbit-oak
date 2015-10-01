@@ -98,19 +98,19 @@ public class LuceneIndexSuggestionTest extends AbstractQueryTest {
 
         Tree indexRules = def.addChild("indexRules");
         indexRules.setProperty(JcrConstants.JCR_PRIMARYTYPE,
-                INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
+        		JcrConstants.NT_UNSTRUCTURED, Type.NAME);
 
         Tree nodeType = indexRules.addChild(indexedNodeType);
         nodeType.setProperty(JcrConstants.JCR_PRIMARYTYPE,
-                INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
+        		JcrConstants.NT_UNSTRUCTURED, Type.NAME);
 
         Tree properties = nodeType.addChild(LuceneIndexConstants.PROP_NODE);
         properties.setProperty(JcrConstants.JCR_PRIMARYTYPE,
-                INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
+        		JcrConstants.NT_UNSTRUCTURED, Type.NAME);
 
         Tree propertyIdxDef = properties.addChild("indexedProperty");
         propertyIdxDef.setProperty(JcrConstants.JCR_PRIMARYTYPE,
-                INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
+        		JcrConstants.NT_UNSTRUCTURED, Type.NAME);
         propertyIdxDef.setProperty("propertyIndex", true);
         propertyIdxDef.setProperty("analyzed", true);
         propertyIdxDef.setProperty("useInSuggest", true);
