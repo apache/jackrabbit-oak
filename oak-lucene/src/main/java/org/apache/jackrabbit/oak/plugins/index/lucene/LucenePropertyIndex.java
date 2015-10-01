@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 
@@ -37,6 +38,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
+
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.api.Type;
@@ -102,6 +104,7 @@ import org.apache.lucene.util.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
@@ -661,16 +664,73 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
 
             throw new IllegalStateException("No query created for filter " + filter);
         }
+        return performAdditionalWraps(qs);
+    }
+
+    /**
+     * Perform additional wraps on the list of queries to allow, for example, the NOT CONTAINS to
+     * play properly when sent to lucene.
+     * 
+     * @param qs the list of queries. Cannot be null.
+     * @return
+     */
+    @Nonnull
+    public static LuceneRequestFacade<Query> performAdditionalWraps(@Nonnull List<Query> qs) {
+        checkNotNull(qs);
         if (qs.size() == 1) {
+            Query q = qs.get(0);
+            if (q instanceof BooleanQuery) {
+                BooleanQuery ibq = (BooleanQuery) q;
+                boolean onlyNotClauses = true;
+                for (BooleanClause c : ibq.getClauses()) {
+                    if (c.getOccur() != BooleanClause.Occur.MUST_NOT) {
+                        onlyNotClauses = false;
+                        break;
+                    }
+                }
+                if (onlyNotClauses) {
+                    // if we have only NOT CLAUSES we have to add a match all docs (*.*) for the
+                    // query to work
+                    ibq.add(new MatchAllDocsQuery(), BooleanClause.Occur.SHOULD);
+                }
+            }
             return new LuceneRequestFacade<Query>(qs.get(0));
         }
         BooleanQuery bq = new BooleanQuery();
         for (Query q : qs) {
-            bq.add(q, MUST);
+            boolean unwrapped = false;
+            if (q instanceof BooleanQuery) {
+                unwrapped = unwrapMustNot((BooleanQuery) q, bq);
+            }
+
+            if (!unwrapped) {
+                bq.add(q, MUST);                
+            }
         }
         return new LuceneRequestFacade<Query>(bq);
     }
 
+    /**
+     * unwraps any NOT clauses from the provided boolean query into another boolean query.
+     * 
+     * @param input the query to be analysed for the existence of NOT clauses. Cannot be null.
+     * @param output the query where the unwrapped NOTs will be saved into. Cannot be null.
+     * @return true if there where at least one unwrapped NOT. false otherwise.
+     */
+    private static boolean unwrapMustNot(@Nonnull BooleanQuery input, @Nonnull BooleanQuery output) {
+        checkNotNull(input);
+        checkNotNull(output);
+        boolean unwrapped = false;
+        for (BooleanClause bc : input.getClauses()) {
+            if (bc.getOccur() == BooleanClause.Occur.MUST_NOT) {
+                output.add(bc);
+                unwrapped = true;
+            }
+        }
+        
+        return unwrapped;
+    }
+    
     private CustomScoreQuery getCustomScoreQuery(IndexPlan plan, Query subQuery) {
         PlanResult planResult = getPlanResult(plan);
         IndexDefinition idxDef = planResult.indexDefinition;
@@ -1035,7 +1095,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
 
             @Override
             public boolean visit(FullTextContains contains) {
-                visitTerm(contains.getPropertyName(), contains.getRawText(), null, false);
+                visitTerm(contains.getPropertyName(), contains.getRawText(), null, contains.isNot());
                 return true;
             }
 

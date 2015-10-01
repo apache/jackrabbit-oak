@@ -104,6 +104,9 @@ public class AstElementFactory {
     }
 
     public NotImpl not(ConstraintImpl constraint) {
+        if (constraint instanceof FullTextSearchImpl) {
+            return new NotFullTextImpl((FullTextSearchImpl) constraint);
+        }
         return new NotImpl(constraint);
     }
 

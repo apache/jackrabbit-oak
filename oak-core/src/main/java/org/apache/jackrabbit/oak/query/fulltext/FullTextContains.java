@@ -75,4 +75,8 @@ public class FullTextContains extends FullTextExpression {
         return rawText;
     }
 
+    @Override
+    public boolean isNot() {
+        return base.isNot();
+    }
 }

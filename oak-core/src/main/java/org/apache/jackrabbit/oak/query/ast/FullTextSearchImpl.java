@@ -50,10 +50,10 @@ public class FullTextSearchImpl extends ConstraintImpl {
      */
     public static final boolean JACKRABBIT_2_SINGLE_QUOTED_PHRASE = true;
 
-    private final String selectorName;
+    final String selectorName;
     private final String relativePath;
-    private final String propertyName;
-    private final StaticOperandImpl fullTextSearchExpression;
+    final String propertyName;
+    final StaticOperandImpl fullTextSearchExpression;
     private SelectorImpl selector;
 
     public FullTextSearchImpl(
@@ -139,7 +139,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
                 p = PathUtils.concat(relativePath, p);
             }
             String p2 = normalizePropertyName(p);
-            String rawText = v.getValue(Type.STRING);
+            String rawText = getRawText(v);
             FullTextExpression e = FullTextParser.parse(p2, rawText);
             return new FullTextContains(p2, rawText, e);
         } catch (ParseException e) {
@@ -147,11 +147,30 @@ public class FullTextSearchImpl extends ConstraintImpl {
         }
     }
     
+    String getRawText(PropertyValue v) {
+        return v.getValue(Type.STRING);
+    }
+    
     @Override
     public Set<SelectorImpl> getSelectors() {
         return Collections.singleton(selector);
     }
 
+    /**
+     * verify that a property exists in the node. {@code property IS NOT NULL}
+     * 
+     * @param propertyName the property to check
+     * @param selector the selector to work with
+     * @return true if the property is there, false otherwise.
+     */
+    boolean enforcePropertyExistence(String propertyName, SelectorImpl selector) {
+        PropertyValue p = selector.currentProperty(propertyName);
+        if (p == null) {
+            return false;
+        }
+        return true;
+    }
+    
     @Override
     public boolean evaluate() {
         // disable evaluation if a fulltext index is used,
@@ -163,10 +182,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
             // condition checks out, this takes out some extra rows from the index
             // aggregation bits
             if (relativePath == null && propertyName != null) {
-                PropertyValue p = selector.currentProperty(propertyName);
-                if (p == null) {
-                    return false;
-                }
+                return enforcePropertyExistence(propertyName, selector);
             }
             return true;
         }
@@ -259,7 +275,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
                     p = PathUtils.concat(p, relativePath);
                 }                
                 p = normalizePropertyName(p);
-                f.restrictProperty(p, Operator.NOT_EQUAL, null);
+                restrictPropertyOnFilter(p, f);
             }
         }
         f.restrictFulltextCondition(fullTextSearchExpression.currentValue().getValue(Type.STRING));
@@ -272,4 +288,14 @@ public class FullTextSearchImpl extends ConstraintImpl {
         }
     }
 
+    /**
+     * restrict the provided property to the property to the provided filter achieving so
+     * {@code property IS NOT NULL}
+     * 
+     * @param propertyName
+     * @param f
+     */
+    void restrictPropertyOnFilter(String propertyName, FilterImpl f) {
+        f.restrictProperty(propertyName, Operator.NOT_EQUAL, null);
+    }
 }
