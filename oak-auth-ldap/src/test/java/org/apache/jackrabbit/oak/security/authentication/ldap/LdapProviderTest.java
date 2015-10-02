@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -61,6 +62,8 @@ public class LdapProviderTest {
     protected static final boolean USE_COMMON_LDAP_FIXTURE = false;
 
     private static final String TUTORIAL_LDIF = "apache-ds-tutorial.ldif";
+
+    private static final String ERRONEOUS_LDIF = "erroneous.ldif";
 
     public static final String IDP_NAME = "ldap";
 
@@ -163,6 +166,25 @@ public class LdapProviderTest {
         ExternalIdentity id = idp.getIdentity(ref);
         assertTrue("User instance", id instanceof ExternalUser);
         assertEquals("User ID", TEST_USER1_UID, id.getId());
+    }
+    
+    /**
+     * Test case to reproduce OAK-3396 where an ldap user entry
+     * without a uid caused a NullpointerException in LdapIdentityProvider.createUser
+     */
+    @Test
+    public void testListUsersWithMissingUid() throws Exception {
+        // the ERRONEOUS_LDIF contains an entry without uid
+        InputStream erroneousDIF = LdapProviderTest.class.getResourceAsStream(ERRONEOUS_LDIF);
+        LDAP_SERVER.loadLdif(erroneousDIF);
+        Iterator<ExternalUser> users = idp.listUsers();
+        // without the LdapInvalidAttributeValueException a NPE would result here:
+        while(users.hasNext()) {
+            ExternalUser user = users.next();
+            // the 'Faulty Entry' of the ERRONEOUS_LDIF should be filtered out
+            // (by LdapIdentityProvider.listUsers.getNext())
+            assertTrue(!user.getPrincipalName().startsWith("cn=Faulty Entry"));
+        }
     }
 
     @Test
