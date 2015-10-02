@@ -64,4 +64,15 @@ public class DefaultSyncedIdentity implements SyncedIdentity {
     public long lastSynced() {
         return lastSynced;
     }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("SyncedIdentityImpl{");
+        sb.append("id='").append(id).append('\'');
+        sb.append(", ref=").append(ref);
+        sb.append(", isGroup=").append(isGroup);
+        sb.append(", lastSynced=").append(lastSynced);
+        sb.append('}');
+        return sb.toString();
+    }
 }
