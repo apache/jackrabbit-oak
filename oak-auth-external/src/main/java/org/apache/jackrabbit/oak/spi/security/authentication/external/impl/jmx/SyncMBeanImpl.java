@@ -159,9 +159,7 @@ public class SyncMBeanImpl implements SynchronizationMBean {
                     SyncResult r = context.sync(userId);
                     systemSession.save();
                     result.add(getJSONString(r));
-                } catch (SyncException e) {
-                    log.warn("Error while syncing user {}", userId, e);
-                } catch (RepositoryException e) {
+                } catch (Exception e) {
                     log.warn("Error while syncing user {}", userId, e);
                 }
             }
@@ -186,9 +184,8 @@ public class SyncMBeanImpl implements SynchronizationMBean {
                             SyncResult r = context.sync(id.getId());
                             systemSession.save();
                             list.add(getJSONString(r));
-                        } catch (SyncException e) {
-                            list.add(getJSONString(id, e));
-                        } catch (RepositoryException e) {
+                        } catch (Exception e) {
+                            log.error("Error while syncing user {}", id, e);
                             list.add(getJSONString(id, e));
                         }
                     }
@@ -224,9 +221,8 @@ public class SyncMBeanImpl implements SynchronizationMBean {
                 } catch (ExternalIdentityException e) {
                     log.warn("error while fetching the external identity {}", externalId, e);
                     list.add(getJSONString(ref, e));
-                } catch (SyncException e) {
-                    list.add(getJSONString(ref, e));
-                } catch (RepositoryException e) {
+                } catch (Exception e) {
+                    log.error("Error while syncing user {}", ref, e);
                     list.add(getJSONString(ref, e));
                 }
             }
@@ -247,10 +243,18 @@ public class SyncMBeanImpl implements SynchronizationMBean {
                     try {
                         SyncResult r = context.sync(user);
                         systemSession.save();
+                        if (r.getIdentity() == null) {
+                            r = new DefaultSyncResultImpl(
+                                    new DefaultSyncedIdentity(user.getId(), user.getExternalId(), false, -1),
+                                    SyncResult.Status.NO_SUCH_IDENTITY
+                            );
+                            log.warn("sync failed. {}", r.getIdentity());
+                        } else {
+                            log.info("synced {}", r.getIdentity());
+                        }
                         list.add(getJSONString(r));
-                    } catch (SyncException e) {
-                        list.add(getJSONString(user.getExternalId(), e));
-                    } catch (RepositoryException e) {
+                    } catch (Exception e) {
+                        log.error("Error while syncing user {}", user, e);
                         list.add(getJSONString(user.getExternalId(), e));
                     }
                 }
@@ -271,17 +275,19 @@ public class SyncMBeanImpl implements SynchronizationMBean {
                 while (iter.hasNext()) {
                     SyncedIdentity id = iter.next();
                     if (isMyIDP(id)) {
-                        ExternalIdentityRef exIdRef = id.getExternalIdRef();
-                        ExternalIdentity extId = (exIdRef == null) ? null : idp.getIdentity(exIdRef);
-                        if (extId == null) {
-                            list.add(id.getId());
+                        try {
+                            ExternalIdentityRef ref = id.getExternalIdRef();
+                            ExternalIdentity extId = ref == null ? null : idp.getIdentity(ref);
+                            if (extId == null) {
+                                list.add(id.getId());
+                            }
+                        } catch (Exception e) {
+                            log.error("Error while fetching external identity {}", id, e);
                         }
                     }
                 }
             } catch (RepositoryException e) {
                 log.error("Error while listing orphaned users", e);
-            } catch (ExternalIdentityException e) {
-                log.error("Error while fetching external identity", e);
             }
             return list.toArray(new String[list.size()]);
         }
@@ -298,9 +304,7 @@ public class SyncMBeanImpl implements SynchronizationMBean {
                     SyncResult r = context.sync(userId);
                     systemSession.save();
                     result.add(getJSONString(r));
-                } catch (SyncException e) {
-                    log.warn("Error while syncing user {}", userId, e);
-                } catch (RepositoryException e) {
+                } catch (Exception e) {
                     log.warn("Error while syncing user {}", userId, e);
                 }
             }
