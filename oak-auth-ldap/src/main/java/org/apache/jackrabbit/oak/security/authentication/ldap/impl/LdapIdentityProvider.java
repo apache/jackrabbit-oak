@@ -664,7 +664,13 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
             throws LdapInvalidAttributeValueException {
         ExternalIdentityRef ref = new ExternalIdentityRef(entry.getDn().getName(), this.getName());
         if (id == null) {
-            id = entry.get(config.getUserConfig().getIdAttribute()).getString();
+            String idAttribute = config.getUserConfig().getIdAttribute();
+            Attribute attr = entry.get(idAttribute);
+            if (attr == null) {
+                throw new LdapInvalidAttributeValueException(ResultCodeEnum.CONSTRAINT_VIOLATION,
+                        "no value found for attribute '" + idAttribute + "' for entry " + entry);
+            }
+            id = attr.getString();
         }
         String path = config.getUserConfig().makeDnPath()
                 ? createDNPath(entry.getDn())
@@ -684,7 +690,13 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
             throws LdapInvalidAttributeValueException {
         ExternalIdentityRef ref = new ExternalIdentityRef(entry.getDn().getName(), this.getName());
         if (name == null) {
-            name = entry.get(config.getGroupConfig().getIdAttribute()).getString();
+            String idAttribute = config.getGroupConfig().getIdAttribute();
+            Attribute attr = entry.get(idAttribute);
+            if (attr == null) {
+                throw new LdapInvalidAttributeValueException(ResultCodeEnum.CONSTRAINT_VIOLATION,
+                        "no value found for attribute '" + idAttribute + "' for entry " + entry);
+            }
+            name = attr.getString();
         }
         String path = config.getGroupConfig().makeDnPath()
                 ? createDNPath(entry.getDn())
