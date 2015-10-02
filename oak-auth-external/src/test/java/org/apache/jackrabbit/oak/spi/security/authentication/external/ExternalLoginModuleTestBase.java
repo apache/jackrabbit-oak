@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.Defau
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIDPManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncManagerImpl;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx.SynchronizationMBean;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.junit.After;
@@ -57,6 +58,10 @@ public abstract class ExternalLoginModuleTestBase extends AbstractSecurityTest {
     protected Whiteboard whiteboard;
 
     protected ExternalIdentityProvider idp;
+
+    protected SyncManager syncManager;
+
+    protected ExternalIdentityProviderManager idpManager;
 
     protected DefaultSyncConfig syncConfig;
 
@@ -123,8 +128,10 @@ public abstract class ExternalLoginModuleTestBase extends AbstractSecurityTest {
 
         // register non-OSGi managers
         whiteboard = oak.getWhiteboard();
-        whiteboard.register(SyncManager.class, new SyncManagerImpl(whiteboard), Collections.emptyMap());
-        whiteboard.register(ExternalIdentityProviderManager.class, new ExternalIDPManagerImpl(whiteboard), Collections.emptyMap());
+        syncManager = new SyncManagerImpl(whiteboard);
+        whiteboard.register(SyncManager.class, syncManager, Collections.emptyMap());
+        idpManager = new ExternalIDPManagerImpl(whiteboard);
+        whiteboard.register(ExternalIdentityProviderManager.class, idpManager, Collections.emptyMap());
 
         return oak;
     }
@@ -132,6 +139,14 @@ public abstract class ExternalLoginModuleTestBase extends AbstractSecurityTest {
     protected abstract ExternalIdentityProvider createIDP();
 
     protected abstract void destroyIDP(ExternalIdentityProvider idp);
+
+    protected SynchronizationMBean createMBean() {
+        // todo: how to retrieve JCR repository here? maybe we should base the sync mbean on oak directly.
+        // JackrabbitRepository repository =  null;
+        // return new SyncMBeanImpl(repository, syncManager, "default", idpManager, idp.getName());
+
+        throw new UnsupportedOperationException("creating the mbean is not supported yet.");
+    }
 
     protected void setSyncConfig(DefaultSyncConfig cfg) {
         if (syncHandlerReg != null) {
