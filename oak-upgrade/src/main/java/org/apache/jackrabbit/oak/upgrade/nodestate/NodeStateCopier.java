@@ -140,15 +140,14 @@ public class NodeStateCopier {
         return hasChanges;
     }
 
-
-    private boolean copyNodeState(@Nonnull final NodeState source, @Nonnull final NodeBuilder target) {
-        final NodeState wrappedSource = FilteringNodeState.wrap("/", source, this.includePaths, this.excludePaths);
+    private boolean copyNodeState(@Nonnull final NodeState sourceRoot, @Nonnull final NodeBuilder targetRoot) {
+        final NodeState wrappedSource = FilteringNodeState.wrap("/", sourceRoot, this.includePaths, this.excludePaths);
         boolean hasChanges = false;
         for (String includePath : this.includePaths) {
-            hasChanges = copyMissingAncestors(source, target, includePath) || hasChanges;
+            hasChanges = copyMissingAncestors(sourceRoot, targetRoot, includePath) || hasChanges;
             final NodeState sourceState = NodeStateUtils.getNode(wrappedSource, includePath);
             if (sourceState.exists()) {
-                final NodeBuilder targetBuilder = getChildNodeBuilder(target, includePath);
+                final NodeBuilder targetBuilder = getChildNodeBuilder(targetRoot, includePath);
                 hasChanges = copyNodeState(sourceState, targetBuilder, includePath, this.mergePaths) || hasChanges;
             }
         }
@@ -226,16 +225,17 @@ public class NodeStateCopier {
     }
 
     /**
-     * Ensure that all ancestors of {@code path} are present in {@code target}. Copies any
-     * missing ancestors from {@code source}.
+     * Ensure that all ancestors of {@code path} are present in {@code targetRoot}. Copies any
+     * missing ancestors from {@code sourceRoot}.
      *
-     * @param source NodeState to copy from
-     * @param target NodeBuilder to copy to
+     * @param sourceRoot NodeState to copy from
+     * @param targetRoot NodeBuilder to copy to
      * @param path The path along which ancestors should be copied.
      */
-    private static boolean copyMissingAncestors(final NodeState source, final NodeBuilder target, final String path) {
-        NodeState current = source;
-        NodeBuilder currentBuilder = target;
+    private static boolean copyMissingAncestors(
+            final NodeState sourceRoot, final NodeBuilder targetRoot, final String path) {
+        NodeState current = sourceRoot;
+        NodeBuilder currentBuilder = targetRoot;
         boolean hasChanges = false;
         for (String name : PathUtils.elements(path)) {
             if (current.hasChildNode(name)) {
@@ -387,21 +387,21 @@ public class NodeStateCopier {
         }
 
         /**
-         * Creates a NodeStateCopier to copy the {@code source} NodeState to the
-         * {@code target} NodeBuilder, using any include, exclude and merge paths
+         * Creates a NodeStateCopier to copy the {@code sourceRoot} NodeState to the
+         * {@code targetRoot} NodeBuilder, using any include, exclude and merge paths
          * set on this NodeStateCopier.Builder.
          * <br>
          * It is the responsibility of the caller to persist any changes using e.g.
          * {@link NodeStore#merge(NodeBuilder, CommitHook, CommitInfo)}.
          *
-         * @param source NodeState to copy from
-         * @param target NodeBuilder to copy to
-         * @return true if there were any changes, false if source and target represent
+         * @param sourceRoot NodeState to copy from
+         * @param targetRoot NodeBuilder to copy to
+         * @return true if there were any changes, false if sourceRoot and targetRoot represent
          *         the same content
          */
-        public boolean copy(@Nonnull final NodeState source, @Nonnull final NodeBuilder target) {
+        public boolean copy(@Nonnull final NodeState sourceRoot, @Nonnull final NodeBuilder targetRoot) {
             final NodeStateCopier copier = new NodeStateCopier(includePaths, excludePaths, mergePaths);
-            return copier.copyNodeState(checkNotNull(source), checkNotNull(target));
+            return copier.copyNodeState(checkNotNull(sourceRoot), checkNotNull(targetRoot));
         }
 
         /**
@@ -420,9 +420,9 @@ public class NodeStateCopier {
          */
         public boolean copy(@Nonnull final NodeStore source, @Nonnull final NodeStore target)
                 throws CommitFailedException {
-            final NodeBuilder targetBuilder = checkNotNull(target).getRoot().builder();
-            if (copy(checkNotNull(source).getRoot(), targetBuilder)) {
-                target.merge(targetBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            final NodeBuilder targetRoot = checkNotNull(target).getRoot().builder();
+            if (copy(checkNotNull(source).getRoot(), targetRoot)) {
+                target.merge(targetRoot, EmptyHook.INSTANCE, CommitInfo.EMPTY);
                 return true;
             }
             return false;

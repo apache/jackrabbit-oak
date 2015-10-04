@@ -348,9 +348,8 @@ public class RepositoryUpgrade {
         RepositoryConfig config = source.getRepositoryConfig();
         logger.info("Copying repository content from {} to Oak", config.getHomeDir());
         try {
-            NodeState base = target.getRoot();
-            NodeBuilder builder = base.builder();
-            final Root upgradeRoot = new UpgradeRoot(builder);
+            NodeBuilder targetBuilder = target.getRoot().builder();
+            final Root upgradeRoot = new UpgradeRoot(targetBuilder);
 
             String workspaceName =
                     source.getRepositoryConfig().getDefaultWorkspaceName();
@@ -359,26 +358,26 @@ public class RepositoryUpgrade {
 
             // init target repository first
             logger.info("Initializing initial repository content from {}", config.getHomeDir());
-            new InitialContent().initialize(builder);
+            new InitialContent().initialize(targetBuilder);
             if (initializer != null) {
-                initializer.initialize(builder);
+                initializer.initialize(targetBuilder);
             }
             logger.debug("InitialContent completed from {}", config.getHomeDir());
 
             for (SecurityConfiguration sc : security.getConfigurations()) {
                 RepositoryInitializer ri = sc.getRepositoryInitializer();
-                ri.initialize(builder);
+                ri.initialize(targetBuilder);
                 logger.debug("Repository initializer '" + ri.getClass().getName() + "' completed", config.getHomeDir());
             }
             for (SecurityConfiguration sc : security.getConfigurations()) {
                 WorkspaceInitializer wi = sc.getWorkspaceInitializer();
-                wi.initialize(builder, workspaceName);
+                wi.initialize(targetBuilder, workspaceName);
                 logger.debug("Workspace initializer '" + wi.getClass().getName() + "' completed", config.getHomeDir());
             }
 
             HashBiMap<String, String> uriToPrefix = HashBiMap.create();
             logger.info("Copying registered namespaces");
-            copyNamespaces(builder, uriToPrefix);
+            copyNamespaces(targetBuilder, uriToPrefix);
             logger.debug("Namespace registration completed.");
 
             logger.info("Copying registered node types");
@@ -406,28 +405,28 @@ public class RepositoryUpgrade {
             // Triggers compilation of type information, which we need for
             // the type predicates used by the bulk  copy operations below.
             new TypeEditorProvider(false).getRootEditor(
-                    base, builder.getNodeState(), builder, null);
+                    targetBuilder.getBaseState(), targetBuilder.getNodeState(), targetBuilder, null);
 
-            NodeState root = builder.getNodeState();
-
-            final NodeState sourceState = ReportingNodeState.wrap(
+            final NodeState sourceRoot = ReportingNodeState.wrap(
                     JackrabbitNodeState.createRootNodeState(
-                            source, workspaceName, root, uriToPrefix, copyBinariesByReference, skipOnError),
+                            source, workspaceName, targetBuilder.getNodeState(), 
+                            uriToPrefix, copyBinariesByReference, skipOnError
+                    ),
                     new LoggingReporter(logger, "Migrating", 10000, -1)
             );
 
             final Stopwatch watch = Stopwatch.createStarted();
 
             logger.info("Copying workspace content");
-            copyWorkspace(sourceState, builder, workspaceName);
-            builder.getNodeState(); // on TarMK this does call triggers the actual copy
+            copyWorkspace(sourceRoot, targetBuilder, workspaceName);
+            targetBuilder.getNodeState(); // on TarMK this does call triggers the actual copy
             logger.info("Upgrading workspace content completed in {}s ({})", watch.elapsed(TimeUnit.SECONDS), watch);
 
             if (!versionCopyConfiguration.skipOrphanedVersionsCopy()) {
                 logger.info("Copying version storage");
                 watch.reset().start();
-                copyVersionStorage(sourceState, builder, versionCopyConfiguration);
-                builder.getNodeState(); // on TarMK this does call triggers the actual copy
+                copyVersionStorage(sourceRoot, targetBuilder, versionCopyConfiguration);
+                targetBuilder.getNodeState(); // on TarMK this does call triggers the actual copy
                 logger.info("Version storage copied in {}s ({})", watch.elapsed(TimeUnit.SECONDS), watch);
             } else {
                 logger.info("Skipping the version storage as the copyOrphanedVersions is set to false");
@@ -449,7 +448,7 @@ public class RepositoryUpgrade {
                     new RestrictionEditorProvider(),
                     new GroupEditorProvider(groupsPath),
                     // copy referenced version histories
-                    new VersionableEditor.Provider(sourceState, workspaceName, versionCopyConfiguration)
+                    new VersionableEditor.Provider(sourceRoot, workspaceName, versionCopyConfiguration)
             )));
 
             // security-related hooks
@@ -467,7 +466,7 @@ public class RepositoryUpgrade {
                 createIndexEditorProvider()
             )));
 
-            target.merge(builder, new LoggingCompositeHook(hooks, source, overrideEarlyShutdown()), CommitInfo.EMPTY);
+            target.merge(targetBuilder, new LoggingCompositeHook(hooks, source, overrideEarlyShutdown()), CommitInfo.EMPTY);
             logger.info("Processing commit hooks completed in {}s ({})", watch.elapsed(TimeUnit.SECONDS), watch);
             logger.debug("Repository upgrade completed.");
         } catch (Exception e) {
@@ -586,15 +585,15 @@ public class RepositoryUpgrade {
      * Copies the registered namespaces to the target repository, and returns
      * the internal namespace index mapping used in bundle serialization.
      *
-     * @param root root builder
+     * @param targetRoot root builder of the target store
      * @param uriToPrefix namespace URI to prefix mapping
      * @throws RepositoryException
      */
     private void copyNamespaces(
-            NodeBuilder root,
+            NodeBuilder targetRoot,
             Map<String, String> uriToPrefix)
             throws RepositoryException {
-        NodeBuilder system = root.child(JCR_SYSTEM);
+        NodeBuilder system = targetRoot.child(JCR_SYSTEM);
         NodeBuilder namespaces = system.child(NamespaceConstants.REP_NAMESPACES);
 
         Properties registry = loadProperties("/namespaces/ns_reg.properties");
@@ -839,9 +838,9 @@ public class RepositoryUpgrade {
         return tmpl;
     }
 
-    private String copyWorkspace(NodeState sourceState, NodeBuilder builder, String workspaceName)
+    private String copyWorkspace(NodeState sourceRoot, NodeBuilder targetRoot, String workspaceName)
             throws RepositoryException {
-        final Set<String> includes = calculateEffectiveIncludePaths(includePaths, sourceState);
+        final Set<String> includes = calculateEffectiveIncludePaths(includePaths, sourceRoot);
         final Set<String> excludes = union(copyOf(this.excludePaths), of("/jcr:system/jcr:versionStorage"));
         final Set<String> merges = union(copyOf(this.mergePaths), of("/jcr:system"));
 
@@ -851,19 +850,19 @@ public class RepositoryUpgrade {
                 .include(includes)
                 .exclude(excludes)
                 .merge(merges)
-                .copy(sourceState, builder);
+                .copy(sourceRoot, targetRoot);
 
         return workspaceName;
     }
 
-    static Set<String> calculateEffectiveIncludePaths(Set<String> includePaths, NodeState state) {
+    static Set<String> calculateEffectiveIncludePaths(Set<String> includePaths, NodeState sourceRoot) {
         if (!includePaths.contains("/")) {
             return copyOf(includePaths);
         }
 
         // include child nodes from source individually to avoid deleting other initialized content
         final Set<String> includes = newHashSet();
-        for (String childNodeName : state.getChildNodeNames()) {
+        for (String childNodeName : sourceRoot.getChildNodeNames()) {
             includes.add("/" + childNodeName);
         }
         return includes;
