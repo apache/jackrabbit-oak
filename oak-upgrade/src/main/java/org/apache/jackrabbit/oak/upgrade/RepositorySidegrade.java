@@ -36,9 +36,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.LoggingCompositeHook;
+import org.apache.jackrabbit.oak.upgrade.nodestate.report.LoggingReporter;
+import org.apache.jackrabbit.oak.upgrade.nodestate.report.ReportingNodeState;
 import org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier;
 import org.apache.jackrabbit.oak.upgrade.version.VersionCopyConfiguration;
 import org.apache.jackrabbit.oak.upgrade.version.VersionableEditor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableSet.copyOf;
@@ -51,6 +55,8 @@ import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.calculateEffec
 import static org.apache.jackrabbit.oak.upgrade.version.VersionCopier.copyVersionStorage;
 
 public class RepositorySidegrade {
+
+    private static final Logger LOG = LoggerFactory.getLogger(RepositorySidegrade.class);
 
     /**
      * Target node store.
@@ -207,7 +213,8 @@ public class RepositorySidegrade {
             if (initializer != null) {
                 initializer.initialize(builder);
             }
-            copyState(builder, root);
+
+            copyState(builder, ReportingNodeState.wrap(root, new LoggingReporter(LOG, "Copying", 10000, -1)));
 
             cleanCheckpoints(builder);
         } catch (Exception e) {
