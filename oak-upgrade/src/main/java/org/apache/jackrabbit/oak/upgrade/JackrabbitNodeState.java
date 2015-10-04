@@ -94,15 +94,6 @@ class JackrabbitNodeState extends AbstractNodeState {
     private static final Logger log =
             LoggerFactory.getLogger(JackrabbitNodeState.class);
 
-    private static long count = 0;
-
-    private static void logNewNode(JackrabbitNodeState state) {
-        count++;
-        if (count % 10000 == 0) {
-            log.info("Migrating node #" + count + ": " + state.getPath());
-        }
-    }
-
     private JackrabbitNodeState parent;
 
     private final String name;
@@ -210,7 +201,6 @@ class JackrabbitNodeState extends AbstractNodeState {
         this.nodeStateCache = parent.nodeStateCache;
         setChildOrder();
         fixFrozenUuid();
-        logNewNode(this);
     }
 
     JackrabbitNodeState(
@@ -248,7 +238,6 @@ class JackrabbitNodeState extends AbstractNodeState {
         } catch (ItemStateException e) {
             throw new IllegalStateException("Unable to access node " + id, e);
         }
-        logNewNode(this);
     }
 
     @Override

@@ -108,6 +108,8 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.upgrade.nodestate.report.LoggingReporter;
+import org.apache.jackrabbit.oak.upgrade.nodestate.report.ReportingNodeState;
 import org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier;
 import org.apache.jackrabbit.oak.upgrade.security.GroupEditorProvider;
 import org.apache.jackrabbit.oak.upgrade.security.RestrictionEditorProvider;
@@ -408,8 +410,11 @@ public class RepositoryUpgrade {
 
             NodeState root = builder.getNodeState();
 
-            final NodeState sourceState = JackrabbitNodeState.createRootNodeState(
-                    source, workspaceName, root, uriToPrefix, copyBinariesByReference, skipOnError);
+            final NodeState sourceState = ReportingNodeState.wrap(
+                    JackrabbitNodeState.createRootNodeState(
+                            source, workspaceName, root, uriToPrefix, copyBinariesByReference, skipOnError),
+                    new LoggingReporter(logger, "Migrating", 10000, -1)
+            );
 
             final Stopwatch watch = Stopwatch.createStarted();
 
