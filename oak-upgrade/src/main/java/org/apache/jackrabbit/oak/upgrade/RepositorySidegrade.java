@@ -30,7 +30,6 @@ import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
-import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -206,47 +205,51 @@ public class RepositorySidegrade {
      */
     public void copy(RepositoryInitializer initializer) throws RepositoryException {
         try {
-            NodeState root = source.getRoot();
-            NodeBuilder builder = target.getRoot().builder();
+            NodeState sourceRoot = source.getRoot();
+            NodeBuilder targetRoot = target.getRoot().builder();
 
-            new InitialContent().initialize(builder);
+            new InitialContent().initialize(targetRoot);
             if (initializer != null) {
-                initializer.initialize(builder);
+                initializer.initialize(targetRoot);
             }
 
-            copyState(builder, ReportingNodeState.wrap(root, new LoggingReporter(LOG, "Copying", 10000, -1)));
+            copyState(
+                    ReportingNodeState.wrap(sourceRoot, new LoggingReporter(LOG, "Copying", 10000, -1)),
+                    targetRoot
+            );
 
-            cleanCheckpoints(builder);
         } catch (Exception e) {
             throw new RepositoryException("Failed to copy content", e);
         }
     }
 
-    private void cleanCheckpoints(NodeBuilder builder) throws CommitFailedException {
+    private void removeCheckpointReferences(NodeBuilder builder) throws CommitFailedException {
         // removing references to the checkpoints, 
         // which don't exist in the new repository
         builder.setChildNode(":async");
-        target.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
-    private void copyState(NodeBuilder parent, NodeState state) throws CommitFailedException {
-        copyWorkspace(state, parent);
+    private void copyState(NodeState sourceRoot, NodeBuilder targetRoot) throws CommitFailedException {
+        copyWorkspace(sourceRoot, targetRoot);
+        removeCheckpointReferences(targetRoot);
         if (!versionCopyConfiguration.skipOrphanedVersionsCopy()) {
-            copyVersionStorage(state, parent, versionCopyConfiguration);
+            copyVersionStorage(sourceRoot, targetRoot, versionCopyConfiguration);
         }
 
         final List<CommitHook> hooks = new ArrayList<CommitHook>();
         hooks.add(new EditorHook(
-                new VersionableEditor.Provider(state, Oak.DEFAULT_WORKSPACE_NAME, versionCopyConfiguration)));
+                new VersionableEditor.Provider(sourceRoot, Oak.DEFAULT_WORKSPACE_NAME, versionCopyConfiguration)));
 
         if (customCommitHooks != null) {
             hooks.addAll(customCommitHooks);
         }
-        target.merge(parent, new LoggingCompositeHook(hooks, null, false), CommitInfo.EMPTY);
+
+
+        target.merge(targetRoot, new LoggingCompositeHook(hooks, null, false), CommitInfo.EMPTY);
     }
 
-    private void copyWorkspace(NodeState state, NodeBuilder parent) {
-        final Set<String> includes = calculateEffectiveIncludePaths(includePaths, state);
+    private void copyWorkspace(NodeState sourceRoot, NodeBuilder targetRoot) {
+        final Set<String> includes = calculateEffectiveIncludePaths(includePaths, sourceRoot);
         final Set<String> excludes = union(copyOf(this.excludePaths), of("/jcr:system/jcr:versionStorage"));
         final Set<String> merges = union(copyOf(this.mergePaths), of("/jcr:system"));
 
@@ -254,6 +257,6 @@ public class RepositorySidegrade {
             .include(includes)
             .exclude(excludes)
             .merge(merges)
-            .copy(state, parent);
+            .copy(sourceRoot, targetRoot);
     }
 }
