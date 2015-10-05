@@ -81,6 +81,7 @@ import org.apache.jackrabbit.oak.plugins.backup.FileStoreBackup;
 import org.apache.jackrabbit.oak.plugins.backup.FileStoreRestore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreHelper;
 import org.apache.jackrabbit.oak.plugins.document.LastRevRecoveryAgent;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
@@ -193,6 +194,9 @@ public final class Main {
                 break;
             case TIKA:
                 TextExtractorMain.main(args);
+                break;
+            case GARBAGE:
+                garbage(args);
                 break;
             case HELP:
             default:
@@ -422,6 +426,7 @@ public final class Main {
             closer.register(asCloseable(mongo));
             DocumentNodeStore store = new DocumentMK.Builder()
                     .setMongoDB(mongo.getDB())
+                    .setLeaseCheck(false)
                     .setClusterId(clusterId.value(options)).getNodeStore();
             closer.register(asCloseable(store));
             return store;
@@ -691,6 +696,25 @@ public final class Main {
 
             String path = args[args.length - 1];
             MongoDocumentStoreHelper.repair(docStore, path);
+        } catch (Throwable e) {
+            throw closer.rethrow(e);
+        } finally {
+            closer.close();
+        }
+    }
+
+    private static void garbage(String[] args) throws IOException {
+        Closer closer = Closer.create();
+        String h = "garbage mongodb://host:port/database";
+        try {
+            NodeStore store = bootstrapNodeStore(args, closer, h);
+            if (!(store instanceof DocumentNodeStore)) {
+                System.err.println("Garbage mode only available for DocumentNodeStore");
+                System.exit(1);
+            }
+            DocumentNodeStore dns = (DocumentNodeStore) store;
+
+            DocumentNodeStoreHelper.garbageReport(dns);
         } catch (Throwable e) {
             throw closer.rethrow(e);
         } finally {
@@ -1150,7 +1174,8 @@ public final class Main {
         CHECKPOINTS("checkpoints"),
         RECOVERY("recovery"),
         REPAIR("repair"),
-        TIKA("tika");
+        TIKA("tika"),
+        GARBAGE("garbage");
 
         private final String name;
 
