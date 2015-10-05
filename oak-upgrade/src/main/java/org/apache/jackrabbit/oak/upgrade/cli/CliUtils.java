@@ -32,8 +32,6 @@ import com.google.common.io.Closer;
 
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
-import sun.misc.Signal;
-import sun.misc.SignalHandler;
 
 @SuppressWarnings("restriction")
 public class CliUtils {
@@ -80,18 +78,16 @@ public class CliUtils {
     }
 
     public static void handleSigInt(final Closer closer) {
-        SignalHandler handler = new SignalHandler() {
+        Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
-            public void handle(Signal signal) {
+            public void run() {
                 try {
                     closer.close();
                 } catch (IOException e) {
                     log.error("Can't close", e);
                 }
-                System.exit(0);
             }
-        };
-        Signal.handle(new Signal("INT"), handler);
+        });
     }
 
     public static void backupOldJcr2Files(String repositoryDirPath) {
