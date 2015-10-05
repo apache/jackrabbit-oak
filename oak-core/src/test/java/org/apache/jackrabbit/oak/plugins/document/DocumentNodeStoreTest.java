@@ -1550,6 +1550,32 @@ public class DocumentNodeStoreTest {
         assertEquals(3, b2.getChildNode("node").getProperty("p").getValue(Type.LONG).longValue());
     }
 
+    // OAK-3455
+    @Test
+    public void notYetVisibleExceptionMessage() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ns1 = builderProvider.newBuilder()
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+        DocumentNodeStore ns2 = builderProvider.newBuilder()
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+        ns2.setMaxBackOffMillis(0);
+
+        NodeBuilder b1 = ns1.getRoot().builder();
+        b1.child("test").setProperty("p", "v");
+        merge(ns1, b1);
+
+        NodeBuilder b2 = ns2.getRoot().builder();
+        b2.child("test").setProperty("q", "v");
+        try {
+            merge(ns2, b2);
+            fail("Must throw CommitFailedException");
+        } catch (CommitFailedException e) {
+            assertNotNull(e.getCause());
+            assertTrue(e.getCause().getMessage().contains("not yet visible"));
+        }
+
+    }
+
     /**
      * Utility class that eases creating single cluster id merge conflicts. The two methods:
      * <ul>
