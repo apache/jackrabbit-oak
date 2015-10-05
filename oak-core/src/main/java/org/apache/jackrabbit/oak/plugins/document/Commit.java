@@ -42,6 +42,7 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COLLISIONS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SPLIT_CANDIDATE_THRESHOLD;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isRevisionNewer;
 
 /**
  * A higher level object representing a commit.
@@ -518,11 +519,12 @@ public class Commit {
                 if (op.isNew() && isConflicting(before, op)) {
                     conflictMessage = "The node " +
                             op.getId() + " was already added in revision\n" +
-                            newestRev;
+                            formatConflictRevision(newestRev);
                 } else if (nodeStore.isRevisionNewer(newestRev, baseRevision)
                         && (op.isDelete() || isConflicting(before, op))) {
                     conflictMessage = "The node " +
-                            op.getId() + " was changed in revision\n" + newestRev +
+                            op.getId() + " was changed in revision\n" +
+                            formatConflictRevision(newestRev) +
                             ", which was applied after the base revision\n" +
                             baseRevision;
                 }
@@ -544,7 +546,8 @@ public class Commit {
                             } else {
                                 // fail immediately
                                 conflictMessage = "The node " +
-                                        op.getId() + " was changed in revision\n" + r +
+                                        op.getId() + " was changed in revision\n" +
+                                        formatConflictRevision(r) +
                                         ", which was applied after the base revision\n" +
                                         baseRevision;
                             }
@@ -558,6 +561,14 @@ public class Commit {
                         ",\nrevision order:\n" + nodeStore.getRevisionComparator();
                 throw new DocumentStoreException(conflictMessage);
             }
+        }
+    }
+
+    private String formatConflictRevision(Revision r) {
+        if (isRevisionNewer(nodeStore, r, nodeStore.getHeadRevision())) {
+            return r + " (not yet visible)";
+        } else {
+            return r.toString();
         }
     }
 
