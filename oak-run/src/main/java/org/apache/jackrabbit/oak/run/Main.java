@@ -21,7 +21,9 @@ import static java.util.Arrays.asList;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jackrabbit.oak.checkpoint.Checkpoints.CP;
 import static org.apache.jackrabbit.oak.plugins.segment.RecordType.NODE;
+import static org.apache.jackrabbit.oak.plugins.segment.file.FileStore.newFileStore;
 import static org.apache.jackrabbit.oak.plugins.segment.file.tooling.ConsistencyChecker.checkConsistency;
+import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.Closeable;
 import java.io.File;
@@ -48,6 +50,8 @@ import java.util.regex.Pattern;
 
 import javax.jcr.Repository;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
 import com.google.common.base.Joiner;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Maps;
@@ -61,7 +65,6 @@ import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -97,14 +100,15 @@ import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.standby.client.StandbyClient;
 import org.apache.jackrabbit.oak.plugins.segment.standby.server.StandbyServer;
+import org.apache.jackrabbit.oak.plugins.tika.TextExtractorMain;
 import org.apache.jackrabbit.oak.remote.content.ContentRemoteRepository;
 import org.apache.jackrabbit.oak.remote.http.RemoteServlet;
-import org.apache.jackrabbit.oak.plugins.tika.TextExtractorMain;
 import org.apache.jackrabbit.oak.scalability.ScalabilityRunner;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -529,8 +533,7 @@ public final class Main {
     }
 
     private static FileStore openFileStore(File directory) throws IOException {
-        return FileStore
-                .newFileStore(directory)
+        return newFileStore(directory)
                 .withCacheSize(256)
                 .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED)
                 .create();
@@ -733,7 +736,10 @@ public final class Main {
             // TODO: enable debug information for other node store implementations
             System.out.println("Debug " + args[0]);
             File file = new File(args[0]);
-            FileStore store = new FileStore(file, 256, TAR_STORAGE_MEMORY_MAPPED);
+            FileStore store = newFileStore(file)
+                .withMaxFileSize(256)
+                .withMemoryMapping(false)
+                .create();
             try {
                 if (args.length == 1) {
                     debugFileStore(store);
@@ -897,6 +903,8 @@ public final class Main {
         long dataSize = 0;
         int bulkCount = 0;
         long bulkSize = 0;
+
+        ((Logger) getLogger(SegmentTracker.class)).setLevel(Level.OFF);
         RecordUsageAnalyser analyser = new RecordUsageAnalyser();
 
         for (SegmentId id : store.getSegmentIds()) {
