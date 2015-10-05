@@ -597,30 +597,13 @@ public class DocumentDiscoveryLiteServiceTest {
         discoveryLite.deactivate();
     }
 
-    /**
-     * Borrowed from
-     * http://stackoverflow.com/questions/3301635/change-private-static-final-
-     * field-using-java-reflection
-     */
-    static Object setFinalStatic(Field field, Object newValue) throws Exception {
-        field.setAccessible(true);
-
-        Field modifiersField = Field.class.getDeclaredField("modifiers");
-        modifiersField.setAccessible(true);
-        modifiersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
-
-        Object prev = field.get(null);
-        field.set(null, newValue);
-        return prev;
-    }
-
     // subsequent tests should get a DocumentDiscoveryLiteService setup from the
     // start
     private DocumentNodeStore createNodeStore(String workingDir) throws SecurityException, Exception {
-        Object prevWorkingDir = System.getProperty("user.dir", "");
+        String prevWorkingDir = ClusterNodeInfo.WORKING_DIR;
         try {
             // ensure that we always get a fresh cluster[node]id
-            prevWorkingDir = setFinalStatic(ClusterNodeInfo.class.getDeclaredField("WORKING_DIR"), workingDir);
+            ClusterNodeInfo.WORKING_DIR = workingDir;
 
             // then create the DocumentNodeStore
             DocumentMK mk1 = createMK(
@@ -632,7 +615,7 @@ public class DocumentDiscoveryLiteServiceTest {
             return mk1.nodeStore;
         }
         finally {
-            setFinalStatic(ClusterNodeInfo.class.getDeclaredField("WORKING_DIR"), prevWorkingDir);
+            ClusterNodeInfo.WORKING_DIR = prevWorkingDir;
         }
     }
 
