@@ -23,6 +23,7 @@ import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Lists.newLinkedList;
 import static com.google.common.collect.Maps.newHashMap;
+import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.String.format;
 import static java.util.Collections.emptyMap;
@@ -55,8 +56,6 @@ import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Stopwatch;
-import com.google.common.collect.Maps;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.segment.CompactionMap;
@@ -161,7 +160,7 @@ public class FileStore implements SegmentStore {
      * not be removed immediately, because they first need to be closed, and the
      * JVM needs to release the memory mapped file references.
      */
-    private final LinkedList<File> toBeRemoved = newLinkedList();
+    private final List<File> pendingRemove = newLinkedList();
 
     /**
      * Version of the segment storage format.
@@ -653,6 +652,7 @@ public class FileStore implements SegmentStore {
             RecordId before = persistedHead.get();
             RecordId after = head.get();
             boolean cleanup = cleanupNeeded.getAndSet(false);
+
             if (cleanup || !after.equals(before)) {
                 // needs to happen outside the synchronization block below to
                 // avoid a deadlock with another thread flushing the writer
@@ -677,20 +677,21 @@ public class FileStore implements SegmentStore {
                     // otherwise they would block cleanup. See OAK-3347
                     before = null;
                     after = null;
-                    cleanup();
+                    pendingRemove.addAll(cleanup());
                 }
             }
-            synchronized (this) {
-                // remove all obsolete tar generations
-                Iterator<File> iterator = toBeRemoved.iterator();
-                while (iterator.hasNext()) {
-                    File file = iterator.next();
-                    log.debug("TarMK GC: Attempting to remove old file {}",
-                            file);
-                    if (!file.exists() || file.delete()) {
-                        log.debug("TarMK GC: Removed old file {}", file);
-                        iterator.remove();
-                    }
+
+            // remove all obsolete tar generations
+            Iterator<File> iterator = pendingRemove.iterator();
+            while (iterator.hasNext()) {
+                File file = iterator.next();
+                log.debug("TarMK GC: Attempting to remove old file {}",
+                        file);
+                if (!file.exists() || file.delete()) {
+                    log.debug("TarMK GC: Removed old file {}", file);
+                    iterator.remove();
+                } else {
+                    log.warn("TarMK GC: Failed to remove old file {}. Will retry later.", file);
                 }
             }
         }
@@ -704,11 +705,11 @@ public class FileStore implements SegmentStore {
      * A new generation of a tar file is created (and segments are only
      * discarded) if doing so releases more than 25% of the space in a tar file.
      */
-    public void cleanup() throws IOException {
+    public List<File> cleanup() throws IOException {
         Stopwatch watch = Stopwatch.createStarted();
         long initialSize = size();
-        CompactionMap cm = tracker.getCompactionMap();
-        Set<UUID> cleanedIds = newHashSet();
+        Set<UUID> referencedIds = newHashSet();
+        Map<TarReader, TarReader> cleaned = newLinkedHashMap();
 
         synchronized (this) {
             gcMonitor.info("TarMK revision cleanup started. Current repository size {}",
@@ -721,33 +722,55 @@ public class FileStore implements SegmentStore {
             // to clear stale weak references in the SegmentTracker
             System.gc();
 
-            Set<UUID> ids = newHashSet();
             for (SegmentId id : tracker.getReferencedSegmentIds()) {
-                ids.add(new UUID(
-                        id.getMostSignificantBits(),
-                        id.getLeastSignificantBits()));
+                referencedIds.add(id.asUUID());
             }
-            writer.collectReferences(ids);
-
-            List<TarReader> list = newArrayListWithCapacity(readers.size());
+            writer.collectReferences(referencedIds);
             for (TarReader reader : readers) {
-                TarReader cleaned = reader.cleanup(ids, cm, cleanedIds);
-                if (cleaned == reader) {
-                    list.add(reader);
-                } else {
-                    if (cleaned != null) {
-                        list.add(cleaned);
-                    }
-                    closeAndLogOnFail(reader);
-                    File file = reader.getFile();
-                    gcMonitor.info("TarMK revision cleanup reclaiming {}", file.getName());
-                    toBeRemoved.addLast(file);
-                }
+                cleaned.put(reader, null);
             }
-            readers = list;
         }
 
-        // Do this outside sync to avoid deadlock with SegmentId.getSegment(). See OAK-3179
+        // Do actual cleanup outside of the lock to prevent blocking
+        // concurrent writers for a long time
+        CompactionMap cm = tracker.getCompactionMap();
+        LinkedList<File> toRemove = newLinkedList();
+        Set<UUID> cleanedIds = newHashSet();
+        for (TarReader reader : cleaned.keySet()) {
+            TarReader newReader = reader.cleanup(referencedIds, cm, cleanedIds);
+            cleaned.put(reader, newReader);
+        }
+
+        List<TarReader> oldReaders = newArrayList();
+        synchronized (this) {
+            // Replace current list of reader with the cleaned readers taking care not to lose
+            // any new reader that might have come in through concurrent calls to newWriter()
+            List<TarReader> newReaders = newArrayList();
+            for (TarReader reader : readers) {
+                if (cleaned.containsKey(reader)) {
+                    TarReader newReader = cleaned.get(reader);
+                    if (newReader != null) {
+                        newReaders.add(newReader);
+                    }
+                    if (newReader != reader) {
+                        oldReaders.add(reader);
+                    }
+                } else {
+                    newReaders.add(reader);
+                }
+            }
+            readers = newReaders;
+        }
+
+        // Close old readers *after* setting readers to the new readers to avoid accessing
+        // a closed reader from readSegment()
+        for (TarReader oldReader : oldReaders) {
+            closeAndLogOnFail(oldReader);
+            File file = oldReader.getFile();
+            gcMonitor.info("TarMK revision cleanup marking file for deletion: {}", file.getName());
+            toRemove.addLast(file);
+        }
+
         cm.remove(cleanedIds);
         long finalSize = size();
         gcMonitor.cleaned(initialSize - finalSize, finalSize);
@@ -757,6 +780,7 @@ public class FileStore implements SegmentStore {
                 humanReadableByteCount(initialSize - finalSize),
                 humanReadableByteCount(sum(cm.getEstimatedWeights())),
                 cm.getDepth());
+        return toRemove;
     }
 
     /**
@@ -1067,7 +1091,7 @@ public class FileStore implements SegmentStore {
     public Map<UUID, List<UUID>> getTarGraph(String fileName) throws IOException {
         for (TarReader reader : readers) {
             if (fileName.equals(reader.getFile().getName())) {
-                Map<UUID, List<UUID>> graph = Maps.newHashMap();
+                Map<UUID, List<UUID>> graph = newHashMap();
                 for (UUID uuid : reader.getUUIDs()) {
                     graph.put(uuid, null);
                 }
@@ -1132,7 +1156,7 @@ public class FileStore implements SegmentStore {
         public void flush() { /* nop */ }
 
         @Override
-        public synchronized void cleanup() {
+        public synchronized LinkedList<File> cleanup() {
             throw new UnsupportedOperationException("Read Only Store");
         }
 
