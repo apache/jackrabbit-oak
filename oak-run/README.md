@@ -21,6 +21,7 @@ The following runmodes are currently available:
     * recovery    : Run a _lastRev recovery on a MongoMK repository
     * checkpoints : Manage checkpoints
     * tika        : Performs text extraction
+    * garbage     : Identifies blob garbage on a DocumentMK repository
     * help        : Print a list of available runmodes
     
 
@@ -777,6 +778,22 @@ The following recovery options (with default values) are currently supported:
 The recovery tool will only perform the check and fix for the given clusterId.
 It is therefore recommended to explicitly specify a clusterId. The tool will
 fix the documents it identified, unless the `dryRun` keyword is specified.
+
+Garbage
+=======
+
+The garbage mode can the used to identify blob garbage still referenced by
+documents in a MongoMK repository. It can be invoked like this:
+
+    $ java -jar oak-run-*.jar garbage [options] mongodb://host:port/database
+
+The following recovery options (with default values) are currently supported:
+
+    --clusterId         - MongoMK clusterId (default: 0 -> automatic)
+
+The tool will scan the store for documents with blob references and print a
+report with the top 100 documents with blob references considered garbage. The
+rank is based on the size of the referenced blobs.
 
 <a name="jr2"></a>
 Oak Runnable Jar - JR 2
