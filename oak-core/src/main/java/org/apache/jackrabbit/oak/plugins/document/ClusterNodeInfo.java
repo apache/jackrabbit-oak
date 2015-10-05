@@ -150,8 +150,9 @@ public class ClusterNodeInfo {
 
     /**
      * The current working directory.
+     * Note: marked protected non-final for testing purpose only.
      */
-    private static final String WORKING_DIR = System.getProperty("user.dir", "");
+    protected static String WORKING_DIR = System.getProperty("user.dir", "");
 
     /**
      * <b>Only Used For Testing</b>
