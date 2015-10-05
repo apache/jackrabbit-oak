@@ -72,14 +72,14 @@ class AssertingPeriodicReporter extends PeriodicReporter {
     }
 
     public static Matcher<AssertingPeriodicReporter> hasReportedNode(final int count, final Matcher<String> pathMatcher) {
-        return hasReports(hasEntry(equalTo((long) count), pathMatcher), whatever());
+        return hasReports(typesafeHasEntry(equalTo((long) count), pathMatcher), whatever());
     }
 
     public static Matcher<AssertingPeriodicReporter> hasReportedNodes(final String... paths) {
         final List<Matcher<? super AssertingPeriodicReporter>> matchers =
                 new ArrayList<Matcher<? super AssertingPeriodicReporter>>();
         for (final String path : paths) {
-            matchers.add(hasReports(hasEntry(any(Long.class), equalTo(path)), whatever()));
+            matchers.add(hasReports(typesafeHasEntry(any(Long.class), equalTo(path)), whatever()));
         }
         return allOf(matchers);
     }
@@ -89,7 +89,7 @@ class AssertingPeriodicReporter extends PeriodicReporter {
     }
 
     public static Matcher<AssertingPeriodicReporter> hasReportedProperty(final int count, final Matcher<String> pathMatcher) {
-        return hasReports(whatever(), hasEntry(equalTo((long) count), pathMatcher));
+        return hasReports(whatever(), typesafeHasEntry(equalTo((long) count), pathMatcher));
     }
 
     public static Matcher<AssertingPeriodicReporter> hasReportedProperty(final String... paths) {
@@ -97,14 +97,11 @@ class AssertingPeriodicReporter extends PeriodicReporter {
         for (final String path : paths) {
             pathMatchers.add(equalTo(path));
         }
-        return hasReports(whatever(), hasEntry(any(Long.class), allOf(pathMatchers)));
+        return hasReports(whatever(), typesafeHasEntry(any(Long.class), allOf(pathMatchers)));
     }
 
     private static Matcher<Map<? extends Long, ? extends String>> whatever() {
-        return anyOf(
-            hasEntry(any(Long.class), any(String.class)),
-            anything()
-        );
+        return anyOf(typesafeHasEntry(any(Long.class), any(String.class)), anything());
     }
 
     private static Matcher<AssertingPeriodicReporter> hasReports(
@@ -131,21 +128,10 @@ class AssertingPeriodicReporter extends PeriodicReporter {
         };
     }
 
-    private static Matcher<AssertingPeriodicReporter> hasPropertyMapContaining(
-            final Matcher<Map<? extends Long, ? extends String>> mapMatcher) {
-
-        return new org.hamcrest.TypeSafeMatcher<AssertingPeriodicReporter>() {
-            @Override
-            protected boolean matchesSafely(final AssertingPeriodicReporter reporter) {
-                return mapMatcher.matches(reporter.reportedProperties);
-            }
-
-            @Override
-            public void describeTo(final Description description) {
-                description
-                        .appendText("Has reported properties ")
-                        .appendDescriptionOf(mapMatcher);
-            }
-        };
+    // Java 6 fails to infer generics correctly if hasEntry is not wrapped in this
+    // method.
+    private static Matcher<Map<? extends Long, ? extends String>> typesafeHasEntry(
+            final Matcher<Long> countMatcher, final Matcher<String> pathMatcher) {
+        return hasEntry(countMatcher, pathMatcher);
     }
 }
