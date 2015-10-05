@@ -1613,8 +1613,7 @@ public class DocumentNodeStoreTest {
             merge(ns2, b2);
             fail("Must throw CommitFailedException");
         } catch (CommitFailedException e) {
-            assertNotNull(e.getCause());
-            assertTrue(e.getCause().getMessage().contains("not yet visible"));
+            assertTrue(e.getMessage().contains("not yet visible"));
         }
 
     }

@@ -27,7 +27,6 @@ import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
 import com.mongodb.WriteResult;
 
-import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
@@ -91,16 +90,6 @@ public class MongoDocumentStoreHelper {
             System.out.println("Unable to repair " + path + " (concurrent update).");
         }
         
-    }
-
-    public static <T extends Document> DBCollection getDBCollection(
-            MongoDocumentStore store, Collection<T> c) {
-        return store.getDBCollection(c);
-    }
-
-    public static <T extends Document> T convertFromDBObject(
-            MongoDocumentStore store, Collection<T> col, DBObject obj) {
-        return store.convertFromDBObject(col, obj);
     }
 
 }
