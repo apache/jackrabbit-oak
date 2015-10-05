@@ -48,7 +48,7 @@ First of all you need to [fork the github repo](http://github.com/apache/jackrab
     # init git svn 
     git svn init --prefix=upstream/ --tags=tags --trunk=trunk \
         --branches=branches \
-        https://svn.apache.org/repos/asf/jackrabbit-oak
+        https://svn.apache.org/repos/asf/jackrabbit/oak
         
 ## Creating a new feature branch
 
