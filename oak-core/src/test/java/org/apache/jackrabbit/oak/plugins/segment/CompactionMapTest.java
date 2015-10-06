@@ -42,6 +42,7 @@ import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -64,6 +65,11 @@ public class CompactionMapTest {
     @Parameterized.Parameters
     public static List<Boolean[]> fixtures() {
         return ImmutableList.of(new Boolean[] {true}, new Boolean[] {false});
+    }
+
+    @After
+    public void tearDown() {
+        store.close();
     }
 
     private PartialCompactionMap createCompactionMap(boolean persisted) {
