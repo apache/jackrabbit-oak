@@ -113,9 +113,9 @@ public class SegmentTracker {
         }
 
         this.store = store;
-        this.writer = new SegmentWriter(store, this, version);
         this.compactionMap = new AtomicReference<CompactionMap>(
                 CompactionMap.EMPTY);
+        this.writer = new SegmentWriter(store, this, version);
         StringCache c;
         if (DISABLE_STRING_CACHE) {
             c = null;
