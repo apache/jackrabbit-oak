@@ -22,9 +22,10 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import static com.google.common.collect.Iterables.get;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
-import static com.google.inject.internal.util.$Sets.newHashSet;
+import static com.google.common.collect.Sets.newHashSet;
 import static java.io.File.createTempFile;
 import static junit.framework.Assert.assertTrue;
+import static org.apache.commons.io.FileUtils.deleteDirectory;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.commons.benchmark.MicroBenchmark.run;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.MAX_SEGMENT_SIZE;
@@ -49,7 +50,8 @@ import java.util.Set;
 import java.util.UUID;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
+
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.jackrabbit.oak.commons.benchmark.MicroBenchmark.Benchmark;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.junit.After;
@@ -57,10 +59,23 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+/**
+ * <p>
+ * This is a unit test + benchmark test for all the compaction map
+ * implementations.
+ * </p>
+ * <p>
+ * The benchmark tests are <b>disabled</b> by default, to run one of them you
+ * need to set the specific {@code benchmark.*} system property:<br>
+ * {@code mvn test -Dtest.opts.memory=-Xmx5G -Dtest=PartialCompactionMapTest -Dbenchmark.benchLargeMap=true -Dbenchmark.benchPut=true -Dbenchmark.benchGet=true}
+ * </p>
+ */
 @RunWith(Parameterized.class)
 public class PartialCompactionMapTest {
-    private static final boolean BENCH = Boolean.getBoolean("benchmark");
+    private static final Logger log = LoggerFactory.getLogger(PartialCompactionMapTest.class);
     private static final int SEED = Integer.getInteger("SEED", new Random().nextInt());
 
     private final Random rnd = new Random(SEED);
@@ -93,7 +108,11 @@ public class PartialCompactionMapTest {
     @After
     public void tearDown() {
         segmentStore.close();
-        directory.delete();
+        try {
+            deleteDirectory(directory);
+        } catch (IOException e) {
+            //
+        }
     }
 
     private SegmentTracker getTracker() {
@@ -189,7 +208,7 @@ public class PartialCompactionMapTest {
         assertEquals(after1, map.get(before1));
         assertEquals(after2, map.get(before2));
 
-        map.remove(Sets.newHashSet(before1.asUUID()));
+        map.remove(newHashSet(before1.asUUID()));
         assertNull(map.get(before1));
         assertNull(map.get(before2));
         assertEquals(0, map.getRecordCount());
@@ -232,8 +251,8 @@ public class PartialCompactionMapTest {
 
     @Test
     public void benchLargeMap() {
-        assumeTrue(BENCH);
-        assertHeapSize(1000000000);
+        assumeTrue(Boolean.getBoolean("benchmark.benchLargeMap"));
+        assertHeapSize(4000000000L);
 
         map = createCompactionMap();
 
@@ -245,7 +264,8 @@ public class PartialCompactionMapTest {
             for (Entry<RecordId, RecordId> entry : ids.entrySet()) {
                 map.put(entry.getKey(), entry.getValue());
             }
-            System.out.println(
+            log.info(
+                    "Bench Large Map #" +
                     (i + 1) + ": " + (runtime.totalMemory() - runtime.freeMemory()) /
                     (1024 * 1024) + "MB, " + (System.nanoTime() - start) / 1000000 + "ms");
         }
@@ -253,7 +273,7 @@ public class PartialCompactionMapTest {
 
     @Test
     public void benchPut() throws Exception {
-        assumeTrue(BENCH);
+        assumeTrue(Boolean.getBoolean("benchmark.benchPut"));
         assertHeapSize(4000000000L);
 
         run(new PutBenchmark(0, 100));
@@ -267,7 +287,7 @@ public class PartialCompactionMapTest {
 
     @Test
     public void benchGet() throws Exception {
-        assumeTrue(BENCH);
+        assumeTrue(Boolean.getBoolean("benchmark.benchGet"));
         assertHeapSize(4000000000L);
 
         run(new GetBenchmark(0, 100));
@@ -279,7 +299,32 @@ public class PartialCompactionMapTest {
         run(new GetBenchmark(1000000, 100));
     }
 
-    private class PutBenchmark extends Benchmark {
+    private static abstract class LoggingBenchmark extends Benchmark {
+
+        @Override
+        public void result(DescriptiveStatistics statistics) {
+            log.info("{}", this);
+            if (statistics.getN() > 0) {
+                log.info(String
+                        .format("%6s  %6s  %6s  %6s  %6s  %6s  %6s  %6s", "min",
+                        "10%", "50%", "90%", "max", "mean", "stdev", "N"));
+                log.info(String
+                        .format("%6.0f  %6.0f  %6.0f  %6.0f  %6.0f  %6.0f  %6.0f  %6d",
+                                statistics.getMin() / 1000000,
+                                statistics.getPercentile(10.0) / 1000000,
+                                statistics.getPercentile(50.0) / 1000000,
+                                statistics.getPercentile(90.0) / 1000000,
+                                statistics.getMax() / 1000000,
+                                statistics.getMean() / 1000000,
+                                statistics.getStandardDeviation() / 1000000,
+                                statistics.getN()));
+            } else {
+                log.info("No results");
+            }
+        }
+    }
+
+    private class PutBenchmark extends LoggingBenchmark {
         private final int segmentCount;
         private final int entriesPerSegment;
 
@@ -316,7 +361,7 @@ public class PartialCompactionMapTest {
         }
     }
 
-    private class GetBenchmark extends Benchmark {
+    private class GetBenchmark extends LoggingBenchmark {
         private final int segmentCount;
         private final int entriesPerSegment;
 
