@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,9 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@Version("2.0.2")
-@Export(optional = "provide:=true")
-package org.apache.jackrabbit.oak.spi.security.authorization.permission;
+package org.apache.jackrabbit.oak.security.authorization.composite;
 
-import aQute.bnd.annotation.Version;
-import aQute.bnd.annotation.Export;
+/**
+ * Same as {@link CompositeProviderEmptyTest}
+ * with reverse order of the aggregated providers.
+ */
+public class CompositeProviderEmptyReverseTest extends CompositeProviderEmptyTest {
+
+    @Override
+    boolean reverseOrder() {
+        return true;
+    }
+}

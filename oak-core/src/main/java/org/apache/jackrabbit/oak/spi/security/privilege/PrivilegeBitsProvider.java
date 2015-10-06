@@ -28,10 +28,12 @@ import javax.jcr.RepositoryException;
 import javax.jcr.security.Privilege;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -88,21 +90,26 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
      */
     @Nonnull
     public PrivilegeBits getBits(@Nonnull Iterable<String> privilegeNames) {
-        if (!privilegeNames.iterator().hasNext()) {
+        if (Iterables.isEmpty(privilegeNames)) {
             return PrivilegeBits.EMPTY;
         }
 
-        Tree privilegesTree = getPrivilegesTree();
-        if (!privilegesTree.exists()) {
-            return PrivilegeBits.EMPTY;
-        }
+        Tree privilegesTree = null;
         PrivilegeBits bits = PrivilegeBits.getInstance();
         for (String privilegeName : privilegeNames) {
-            if (privilegesTree.hasChild(privilegeName)) {
-                Tree defTree = privilegesTree.getChild(privilegeName);
-                bits.add(PrivilegeBits.getInstance(defTree));
+            PrivilegeBits builtIn = PrivilegeBits.BUILT_IN.get(privilegeName);
+            if (builtIn != null) {
+                bits.add(builtIn);
             } else {
-                log.debug("Ignoring privilege name " + privilegeName);
+                if (privilegesTree == null) {
+                    privilegesTree = getPrivilegesTree();
+                }
+                if (privilegesTree.exists() && privilegesTree.hasChild(privilegeName)) {
+                    Tree defTree = privilegesTree.getChild(privilegeName);
+                    bits.add(PrivilegeBits.getInstance(defTree));
+                } else {
+                    log.debug("Ignoring privilege name " + privilegeName);
+                }
             }
         }
         return bits.unmodifiable();
@@ -117,7 +124,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
      */
     @Nonnull
     public PrivilegeBits getBits(@Nonnull Privilege[] privileges, final @Nonnull NameMapper nameMapper) {
-        return getBits(Iterables.transform(Arrays.asList(privileges), new Function<Privilege, String>() {
+        return getBits(Iterables.filter(Iterables.transform(Arrays.asList(privileges), new Function<Privilege, String>() {
 
             @Override
             public String apply(@Nullable Privilege privilege) {
@@ -131,7 +138,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
                 // null privilege or failed to resolve the privilege name
                 return null;
             }
-        }));
+        }), Predicates.notNull()));
     }
 
     /**
@@ -247,8 +254,9 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
             if (!privTree.exists()) {
                 return;
             }
-            if (privTree.hasProperty(REP_AGGREGATES)) {
-                for (String name : privTree.getProperty(REP_AGGREGATES).getValue(Type.NAMES)) {
+            PropertyState aggregates = privTree.getProperty(REP_AGGREGATES);
+            if (aggregates != null) {
+                for (String name : aggregates.getValue(Type.NAMES)) {
                     if (NON_AGGREGATE_PRIVILEGES.contains(name)) {
                         aggSet.add(name);
                     } else if (aggregation.containsKey(name)) {

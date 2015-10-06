@@ -32,6 +32,29 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
  */
 public interface AggregatedPermissionProvider extends PermissionProvider {
 
+    /**
+     * Allows to determined the set or subset of privileges evaluated by the
+     * implementing permission provider at the specified path or at the repository
+     * level in case the specified {@code tree} is {@code null}.
+     *
+     * If the given {@code privilegeBits} is {@code null} an implementation returns
+     * the complete set that is covered by the provider; otherwise the supported
+     * subset of the specified {@code privilegeBits} is returned.
+     *
+     * Returning {@link PrivilegeBits#EMPTY} indicates that this implementation
+     * is not in charge of evaluating the specified privileges and thus will
+     * be ignored while computing the composite result of
+     * {@link PermissionProvider#getPrivileges(org.apache.jackrabbit.oak.api.Tree)}
+     * or {@link PermissionProvider#hasPrivileges(org.apache.jackrabbit.oak.api.Tree, String...)}.
+     *
+     * @param tree The tree for which the privileges will be evaluated or {@code null}
+     * for repository level privileges.
+     * @param privilegeBits The privilege(s) to be tested or {@code null}
+     * @return The set of privileges or the subset of the given {@code privilegeBits}
+     * that are supported and evaluated by the the implementation at the given {@code tree}
+     * represented as {@code PrivilegeBits}.
+     */
+    @Nonnull
     PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits);
 
     long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property, long permissions);
