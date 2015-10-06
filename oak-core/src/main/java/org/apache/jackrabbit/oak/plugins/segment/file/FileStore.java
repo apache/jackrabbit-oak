@@ -16,46 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.file;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Lists.newArrayListWithCapacity;
-import static com.google.common.collect.Lists.newLinkedList;
-import static com.google.common.collect.Maps.newHashMap;
-import static com.google.common.collect.Maps.newLinkedHashMap;
-import static com.google.common.collect.Sets.newHashSet;
-import static java.lang.String.format;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonMap;
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.plugins.segment.CompactionMap.sum;
-import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.NO_COMPACTION;
-
-import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileLock;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Stopwatch;
+import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.segment.CompactionMap;
@@ -78,6 +40,46 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nonnull;
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileLock;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Lists.newArrayListWithCapacity;
+import static com.google.common.collect.Lists.newLinkedList;
+import static com.google.common.collect.Maps.newHashMap;
+import static com.google.common.collect.Maps.newLinkedHashMap;
+import static com.google.common.collect.Sets.newHashSet;
+import static java.lang.String.format;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonMap;
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.segment.CompactionMap.sum;
+import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.NO_COMPACTION;
 
 /**
  * The storage implementation for tar files.
@@ -148,6 +150,14 @@ public class FileStore implements SegmentStore {
      */
     private final BackgroundThread compactionThread;
 
+    /**
+     * This background thread periodically asks the {@code CompactionStrategy}
+     * to compare the approximate size of the repository with the available disk
+     * space. The result of this comparison is stored in the state of this
+     * {@code FileStore}.
+     */
+    private final BackgroundThread diskSpaceThread;
+
     private CompactionStrategy compactionStrategy = NO_COMPACTION;
 
     /**
@@ -171,6 +181,17 @@ public class FileStore implements SegmentStore {
      * {@code GCMonitor} monitoring this instance's gc progress
      */
     private final GCMonitor gcMonitor;
+
+    /**
+     * Represents the approximate size on disk of the repository.
+     */
+    private final AtomicLong approximateSize;
+
+    /**
+     * This flag is periodically updated by calling the {@code
+     * CompactionStrategy} at regular intervals.
+     */
+    private final AtomicBoolean sufficientDiskSpace;
 
     /**
      * Create a new instance of a {@link Builder} for a file store.
@@ -456,10 +477,25 @@ public class FileStore implements SegmentStore {
                             maybeCompact(true);
                         }
                     });
+
+            diskSpaceThread = new BackgroundThread("TarMK disk space check [" + directory + "]", TimeUnit.MINUTES.toMillis(1), new Runnable() {
+
+                @Override
+                public void run() {
+                    checkDiskSpace();
+                }
+
+            });
+
+            approximateSize = new AtomicLong(size());
         } else {
             this.flushThread = null;
             this.compactionThread = null;
+            diskSpaceThread = null;
+            approximateSize = null;
         }
+
+        sufficientDiskSpace = new AtomicBoolean(true);
 
         if (readonly) {
             log.info("TarMK ReadOnly opened: {} (mmap={})", directory,
@@ -773,6 +809,7 @@ public class FileStore implements SegmentStore {
 
         cm.remove(cleanedIds);
         long finalSize = size();
+        approximateSize.set(finalSize);
         gcMonitor.cleaned(initialSize - finalSize, finalSize);
         gcMonitor.info("TarMK revision cleanup completed in {}. Post cleanup size is {} " +
                 "and space reclaimed {}. Compaction map weight/depth is {}/{}.", watch,
@@ -791,6 +828,36 @@ public class FileStore implements SegmentStore {
     }
 
     /**
+     * Returns the cancellation policy for the compaction phase. If the disk
+     * space was considered insufficient at least once during compaction (or if
+     * the space was never sufficient to begin with), compaction is considered
+     * canceled.
+     *
+     * @return a flag indicating if compaction should be canceled.
+     */
+    private Supplier<Boolean> newCancelCompactionCondition() {
+        return new Supplier<Boolean>() {
+
+            private boolean canceled = false;
+
+            @Override
+            public Boolean get() {
+
+                // The canceled flag can only transition from false (its initial
+                // value), to true. Once compaction is considered canceled,
+                // there should be no way to go back.
+
+                if (!sufficientDiskSpace.get()) {
+                    canceled = true;
+                }
+
+                return canceled;
+            }
+
+        };
+    }
+
+    /**
      * Copy every referenced record in data (non-bulk) segments. Bulk segments
      * are fully kept (they are only removed in cleanup, if there is no
      * reference to them).
@@ -799,9 +866,9 @@ public class FileStore implements SegmentStore {
         checkArgument(!compactionStrategy.equals(NO_COMPACTION),
                 "You must set a compactionStrategy before calling compact");
         gcMonitor.info("TarMK compaction running, strategy={}", compactionStrategy);
-
         long start = System.currentTimeMillis();
-        Compactor compactor = new Compactor(this, compactionStrategy);
+        Supplier<Boolean> compactionCanceled = newCancelCompactionCondition();
+        Compactor compactor = new Compactor(this, compactionStrategy, compactionCanceled);
         SegmentNodeState before = getHead();
         long existing = before.getChildNode(SegmentNodeStore.CHECKPOINTS)
                 .getChildNodeCount(Long.MAX_VALUE);
@@ -812,6 +879,11 @@ public class FileStore implements SegmentStore {
         }
 
         SegmentNodeState after = compactor.compact(EMPTY_NODE, before, EMPTY_NODE);
+
+        if (compactionCanceled.get()) {
+            gcMonitor.warn("TarMK compaction was canceled, not enough disk space available.");
+            return;
+        }
 
         Callable<Boolean> setHead = new SetHead(before, after, compactor);
         try {
@@ -826,6 +898,12 @@ public class FileStore implements SegmentStore {
                         "Compacting these commits. Cycle {}", cycles);
                 SegmentNodeState head = getHead();
                 after = compactor.compact(before, head, after);
+
+                if (compactionCanceled.get()) {
+                    gcMonitor.warn("TarMK compaction was canceled, not enough disk space available.");
+                    return;
+                }
+
                 before = head;
                 setHead = new SetHead(head, after, compactor);
             }
@@ -899,6 +977,7 @@ public class FileStore implements SegmentStore {
         // threads before acquiring the synchronization lock
         closeAndLogOnFail(compactionThread);
         closeAndLogOnFail(flushThread);
+        closeAndLogOnFail(diskSpaceThread);
         synchronized (this) {
             try {
                 flush();
@@ -1035,6 +1114,7 @@ public class FileStore implements SegmentStore {
             if (size >= maxFileSize) {
                 newWriter();
             }
+            approximateSize.addAndGet(TarWriter.BLOCK_SIZE + length + TarWriter.getPaddingSize(length));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -1115,6 +1195,25 @@ public class FileStore implements SegmentStore {
         RecordId id = RecordId.fromString(tracker, rootRevision);
         head.set(id);
         persistedHead.set(id);
+    }
+
+    private void checkDiskSpace() {
+        long repositoryDiskSpace = approximateSize.get();
+        long availableDiskSpace = directory.getFreeSpace();
+        boolean updated = compactionStrategy.isDiskSpaceSufficient(repositoryDiskSpace, availableDiskSpace);
+        boolean previous = sufficientDiskSpace.getAndSet(updated);
+
+        if (previous && !updated) {
+            log.warn("Available disk space ({}) is too low, current repository size is approx. {}",
+                    humanReadableByteCount(availableDiskSpace),
+                    humanReadableByteCount(repositoryDiskSpace));
+        }
+
+        if (updated && !previous) {
+            log.info("Available disk space ({}) is sufficient again for repository operations, current repository size is approx. {}",
+                    humanReadableByteCount(availableDiskSpace),
+                    humanReadableByteCount(repositoryDiskSpace));
+        }
     }
 
     /**

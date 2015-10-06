@@ -18,15 +18,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.compaction;
 
+import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
+
+import javax.annotation.Nonnull;
+import java.util.concurrent.Callable;
+
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.System.currentTimeMillis;
-
-import java.util.concurrent.Callable;
-
-import javax.annotation.Nonnull;
-
-import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 
 public abstract class CompactionStrategy {
 
@@ -291,6 +290,20 @@ public abstract class CompactionStrategy {
 
     public void setOfflineCompaction(boolean offlineCompaction) {
         this.offlineCompaction = offlineCompaction;
+    }
+
+    /**
+     * Check if the approximate repository size is getting too big compared with
+     * the available space on disk.
+     *
+     * @param repositoryDiskSpace Approximate size of the disk space occupied by
+     *                            the repository.
+     * @param availableDiskSpace  Currently available disk space.
+     * @return {@code true} if the available disk space is considered enough for
+     * normal repository operations.
+     */
+    public boolean isDiskSpaceSufficient(long repositoryDiskSpace, long availableDiskSpace) {
+        return availableDiskSpace > 0.25 * repositoryDiskSpace;
     }
 
 }

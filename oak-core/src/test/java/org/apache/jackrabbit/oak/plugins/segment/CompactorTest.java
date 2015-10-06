@@ -16,8 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import junit.framework.Assert;
-
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
@@ -27,33 +28,61 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
+
+import static org.junit.Assert.assertFalse;
 
 public class CompactorTest {
 
+    private SegmentStore segmentStore;
+
+    @Before
+    public void openSegmentStore() {
+        segmentStore = new MemoryStore();
+    }
+
+    @After
+    public void closeSegmentStore() {
+        segmentStore.close();
+    }
+
     @Test
     public void testCompactor() throws Exception {
-        MemoryStore source = new MemoryStore();
-        try {
-            NodeStore store = new SegmentNodeStore(source);
-            init(store);
+        NodeStore store = new SegmentNodeStore(segmentStore);
+        init(store);
 
-            Compactor compactor = new Compactor(source.getTracker().getWriter());
-            addTestContent(store, 0);
+        Compactor compactor = new Compactor(segmentStore.getTracker().getWriter());
+        addTestContent(store, 0);
 
-            NodeState initial = store.getRoot();
-            SegmentNodeState after = compactor
-                    .compact(initial, store.getRoot(), initial);
-            Assert.assertEquals(store.getRoot(), after);
+        NodeState initial = store.getRoot();
+        SegmentNodeState after = compactor
+                .compact(initial, store.getRoot(), initial);
+        Assert.assertEquals(store.getRoot(), after);
 
-            addTestContent(store, 1);
-            after = compactor.compact(initial, store.getRoot(), initial);
-            Assert.assertEquals(store.getRoot(), after);
+        addTestContent(store, 1);
+        after = compactor.compact(initial, store.getRoot(), initial);
+        Assert.assertEquals(store.getRoot(), after);
+    }
 
-        } finally {
-            source.close();
-        }
+    @Test
+    public void testCancel() throws Throwable {
 
+        // Create a Compactor that will cancel itself as soon as possible. The
+        // early cancellation is the reason why the returned SegmentNodeState
+        // doesn't have the child named "b".
+
+        NodeStore store = SegmentNodeStore.newSegmentNodeStore(segmentStore).create();
+        Compactor compactor = new Compactor(segmentStore.getTracker().getWriter(), Suppliers.ofInstance(true));
+        SegmentNodeState sns = compactor.compact(store.getRoot(), addChild(store.getRoot(), "b"), store.getRoot());
+        assertFalse(sns.hasChildNode("b"));
+    }
+
+    private NodeState addChild(NodeState current, String name) {
+        NodeBuilder builder = current.builder();
+        builder.child(name);
+        return builder.getNodeState();
     }
 
     private static void init(NodeStore store) {
