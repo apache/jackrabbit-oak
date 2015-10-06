@@ -30,6 +30,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.primitives.Longs;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
@@ -220,7 +221,7 @@ public class DocumentNodeStoreHelper {
 
         @Override
         public int compare(BlobReferences o1, BlobReferences o2) {
-            int c = Long.compare(o1.garbageSize, o2.garbageSize);
+            int c = Longs.compare(o1.garbageSize, o2.garbageSize);
             if (c != 0) {
                 return c;
             }
