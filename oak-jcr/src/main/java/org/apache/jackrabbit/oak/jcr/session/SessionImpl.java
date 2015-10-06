@@ -165,14 +165,7 @@ public class SessionImpl implements JackrabbitSession {
         }
     }
 
-    /**
-     * Returns the node at the specified absolute path in the workspace or
-     * {@code null} if no such node exists.
-     *
-     * @param absPath An absolute path.
-     * @return the specified {@code Node} or {@code null}.
-     * @throws RepositoryException If another error occurs.
-     */
+    @Override
     @CheckForNull
     public Node getNodeOrNull(final String absPath) throws RepositoryException {
         checkNotNull(absPath);
@@ -188,14 +181,7 @@ public class SessionImpl implements JackrabbitSession {
         });
     }
 
-    /**
-     * Returns the property at the specified absolute path in the workspace or
-     * {@code null} if no such node exists.
-     *
-     * @param absPath An absolute path.
-     * @return the specified {@code Property} or {@code null}.
-     * @throws RepositoryException if another error occurs.
-     */
+    @Override
     @CheckForNull
     public Property getPropertyOrNull(final String absPath) throws RepositoryException {
         if (checkNotNull(absPath).equals("/")) {
@@ -221,15 +207,7 @@ public class SessionImpl implements JackrabbitSession {
         }
     }
 
-    /**
-     * Returns the node at the specified absolute path in the workspace. If no
-     * such node exists, then it returns the property at the specified path.
-     * If no such property exists, then it return {@code null}.
-     *
-     * @param absPath An absolute path.
-     * @return the specified {@code Item} or {@code null}.
-     * @throws RepositoryException if another error occurs.
-     */
+    @Override
     @CheckForNull
     public Item getItemOrNull(final String absPath) throws RepositoryException {
         checkNotNull(absPath);
