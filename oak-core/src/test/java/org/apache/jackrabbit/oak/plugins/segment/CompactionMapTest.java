@@ -23,6 +23,7 @@ import static com.google.common.collect.Iterables.get;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.io.File.createTempFile;
+import static org.apache.commons.io.FileUtils.deleteDirectory;
 import static org.apache.jackrabbit.oak.plugins.segment.CompactionMap.sum;
 import static org.apache.jackrabbit.oak.plugins.segment.TestUtils.randomRecordIdMap;
 import static org.junit.Assert.assertArrayEquals;
@@ -49,6 +50,8 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class CompactionMapTest {
+
+    private final File directory;
     private final FileStore store;
     private final Random rnd = new Random();
 
@@ -70,6 +73,11 @@ public class CompactionMapTest {
     @After
     public void tearDown() {
         store.close();
+        try {
+            deleteDirectory(directory);
+        } catch (IOException e) {
+            //
+        }
     }
 
     private PartialCompactionMap createCompactionMap(boolean persisted) {
@@ -89,7 +97,8 @@ public class CompactionMapTest {
     }
 
     public CompactionMapTest(boolean usePersistedMap) throws IOException {
-        store = FileStore.newFileStore(mkDir()).create();
+        directory = mkDir();
+        store = FileStore.newFileStore(directory).create();
 
         compactionMap1 = createCompactionMap(usePersistedMap);
         referenceMap1 = randomRecordIdMap(rnd, store.getTracker(), 10, 10);
@@ -169,9 +178,11 @@ public class CompactionMapTest {
         assertArrayEquals(new long[] {100, 100, 100}, compactionMap.getRecordCounts());
 
         int expectedDepth = 3;
+        int expectedGeneration = 3;
         long expectedSize = countUUIDs(referenceMap.keySet());
         assertEquals(expectedDepth, compactionMap.getDepth());
         assertEquals(expectedSize, sum(compactionMap.getSegmentCounts()));
+        assertEquals(expectedGeneration, compactionMap.getGeneration());
 
         for (Map<RecordId, RecordId> referenceMap : ImmutableList.of(referenceMap2, referenceMap1, referenceMap3)) {
             Set<UUID> removedUUIDs = newHashSet();
@@ -185,7 +196,14 @@ public class CompactionMapTest {
             assertEquals(expectedDepth + 1, consed.getDepth());
             expectedSize -= removedUUIDs.size();
             assertEquals(expectedSize, sum(compactionMap.getSegmentCounts()));
+            assertEquals(expectedGeneration + 1, consed.getGeneration());
         }
+
+        // one final 'cons' to trigger cleanup of empty maps
+        CompactionMap consed = compactionMap.cons(createCompactionMap(false));
+        assertEquals(1, consed.getDepth());
+        assertEquals(0, sum(compactionMap.getSegmentCounts()));
+        assertEquals(expectedGeneration + 1, consed.getGeneration());
     }
 
 }
