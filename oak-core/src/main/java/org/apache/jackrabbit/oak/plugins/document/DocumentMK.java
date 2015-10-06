@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobReferenceIterator;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoMissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoVersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.CacheType;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
@@ -849,6 +850,15 @@ public class DocumentMK {
                     return new BlobReferenceIterator(ns);
                 }
             };
+        }
+
+        public MissingLastRevSeeker createMissingLastRevSeeker() {
+            final DocumentStore store = getDocumentStore();
+            if (store instanceof MongoDocumentStore) {
+                return new MongoMissingLastRevSeeker((MongoDocumentStore) store);
+            } else {
+                return new MissingLastRevSeeker(store);
+            }
         }
 
         /**

@@ -38,8 +38,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoMissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.slf4j.Logger;
@@ -56,15 +54,14 @@ public class LastRevRecoveryAgent {
 
     private final MissingLastRevSeeker missingLastRevUtil;
 
-    public LastRevRecoveryAgent(DocumentNodeStore nodeStore) {
+    public LastRevRecoveryAgent(DocumentNodeStore nodeStore,
+                                MissingLastRevSeeker seeker) {
         this.nodeStore = nodeStore;
+        this.missingLastRevUtil = seeker;
+    }
 
-        if (nodeStore.getDocumentStore() instanceof MongoDocumentStore) {
-            this.missingLastRevUtil =
-                    new MongoMissingLastRevSeeker((MongoDocumentStore) nodeStore.getDocumentStore());
-        } else {
-            this.missingLastRevUtil = new MissingLastRevSeeker(nodeStore.getDocumentStore());
-        }
+    public LastRevRecoveryAgent(DocumentNodeStore nodeStore) {
+        this(nodeStore, new MissingLastRevSeeker(nodeStore.getDocumentStore()));
     }
 
     /**
