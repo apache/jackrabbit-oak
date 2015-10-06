@@ -435,8 +435,7 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener,
     private static Set<UUID> getReferencedUUIDs(FileStore store) {
         Set<UUID> ids = newHashSet();
         for (SegmentId id : store.getTracker().getReferencedSegmentIds()) {
-            ids.add(new UUID(id.getMostSignificantBits(), id
-                    .getLeastSignificantBits()));
+            ids.add(id.asUUID());
         }
         return ids;
     }
@@ -483,23 +482,20 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener,
             if (ps instanceof SegmentPropertyState) {
                 SegmentPropertyState sps = (SegmentPropertyState) ps;
                 RecordId recordId = sps.getRecordId();
-                SegmentId sid = recordId.getSegmentId();
-                UUID id = new UUID(sid.getMostSignificantBits(),
-                        sid.getLeastSignificantBits());
+                UUID id = recordId.getSegmentId().asUUID();
                 if (uuids.contains(id)) {
-                    localPaths.add(path + "@" + ps + " [SegmentPropertyState@"
-                            + recordId + "]");
+                    localPaths.add(path + ps + " [SegmentPropertyState<"
+                            + ps.getType() + ">@" + recordId + "]");
                 }
                 if (ps.getType().tag() == PropertyType.BINARY) {
                     for (int i = 0; i < ps.count(); i++) {
                         Blob b = ps.getValue(Type.BINARY, i);
                         for (SegmentId sbid : SegmentBlob.getBulkSegmentIds(b)) {
-                            UUID bid = new UUID(sbid.getMostSignificantBits(),
-                                    sbid.getLeastSignificantBits());
+                            UUID bid = sbid.asUUID();
                             if (!bid.equals(id) && uuids.contains(bid)) {
-                                localPaths.add(path + "@" + ps
-                                        + " [SegmentPropertyState@" + recordId
-                                        + "]");
+                                localPaths.add(path + ps
+                                        + " [SegmentPropertyState<"
+                                        + ps.getType() + ">@" + recordId + "]");
                             }
                         }
                     }
@@ -508,16 +504,12 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener,
         }
 
         RecordId stateId = state.getRecordId();
-        SegmentId segmentId = stateId.getSegmentId();
-        if (uuids.contains(new UUID(segmentId.getMostSignificantBits(),
-                segmentId.getLeastSignificantBits()))) {
+        if (uuids.contains(stateId.getSegmentId().asUUID())) {
             localPaths.add(path + " [SegmentNodeState@" + stateId + "]");
         }
 
         RecordId templateId = SegmentNodeStateHelper.getTemplateId(state);
-        SegmentId template = templateId.getSegmentId();
-        if (uuids.contains(new UUID(template.getMostSignificantBits(), template
-                .getLeastSignificantBits()))) {
+        if (uuids.contains(templateId.getSegmentId().asUUID())) {
             localPaths.add(path + "[Template@" + templateId + "]");
         }
         paths.addAll(localPaths);
