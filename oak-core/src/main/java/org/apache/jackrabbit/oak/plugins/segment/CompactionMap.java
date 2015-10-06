@@ -40,12 +40,20 @@ public class CompactionMap {
      * An empty map.
      */
     public static final CompactionMap EMPTY =
-            new CompactionMap(Collections.<PartialCompactionMap>emptyList());
+            new CompactionMap(Collections.<PartialCompactionMap>emptyList(), 0);
 
     private final List<PartialCompactionMap> maps;
 
-    private CompactionMap(@Nonnull List<PartialCompactionMap> maps) {
+    /**
+     * Generation represents the number of compaction cycles since the system
+     * came online. This is not persisted so it will be reset to 0 on each
+     * restart
+     */
+    private final int generation;
+
+    private CompactionMap(@Nonnull List<PartialCompactionMap> maps, int generation) {
         this.maps = maps;
+        this.generation = generation;
     }
 
     /**
@@ -122,7 +130,7 @@ public class CompactionMap {
                 maps.add(map);
             }
         }
-        return new CompactionMap(maps);
+        return new CompactionMap(maps, generation + 1);
     }
 
     /**
@@ -147,6 +155,10 @@ public class CompactionMap {
      */
     public int getDepth() {
         return maps.size();
+    }
+
+    public int getGeneration() {
+        return generation;
     }
 
     /**
