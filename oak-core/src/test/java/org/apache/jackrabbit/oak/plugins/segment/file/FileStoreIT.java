@@ -21,6 +21,7 @@ import static com.google.common.collect.Sets.newTreeSet;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
+import static org.apache.commons.io.FileUtils.deleteDirectory;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_MK;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -48,6 +49,7 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -60,13 +62,22 @@ public class FileStoreIT {
     public static void assumptions() {
         assumeTrue(getFixtures().contains(SEGMENT_MK));
     }
-    
+
     @Before
     public void setUp() throws IOException {
         directory = File.createTempFile(
-                "FileStoreTest", "dir", new File("target"));
+                "FileStoreIT", "dir", new File("target"));
         directory.delete();
         directory.mkdir();
+    }
+
+    @After
+    public void tearDown() {
+        try {
+            deleteDirectory(directory);
+        } catch (IOException e) {
+            //
+        }
     }
 
     @Test
