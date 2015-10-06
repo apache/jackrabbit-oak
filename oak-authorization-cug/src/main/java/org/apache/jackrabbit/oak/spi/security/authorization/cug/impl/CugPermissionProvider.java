@@ -162,6 +162,7 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
     }
 
     //---------------------------------------< AggregatedPermissionProvider >---
+    @Nonnull
     @Override
     public PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits) {
         if (tree == null) {

@@ -93,16 +93,18 @@ class CompositePermissionProvider implements PermissionProvider {
             PrivilegeBits supported = aggregatedPermissionProvider.supportedPrivileges(immutableTree, null).modifiable();
             if (doEvaluate(supported)) {
                 PrivilegeBits granted = privilegeBitsProvider.getBits(aggregatedPermissionProvider.getPrivileges(immutableTree));
-                // make sure privs denied by a previous provider are substracted
-                if (!denied.isEmpty()) {
-                    result.add(granted.modifiable().diff(denied));
-                } else {
+                // add the granted privileges to the result
+                if (!granted.isEmpty()) {
                     result.add(granted);
                 }
                 // update the set of denied privs by comparing the granted privs
-                // the complete set of supported privileges.
+                // with the complete set of supported privileges
                 denied.add(supported.diff(granted));
             }
+        }
+        // subtract all denied privileges from the result
+        if (!denied.isEmpty()) {
+            result.diff(denied);
         }
         return privilegeBitsProvider.getPrivilegeNames(result);
     }
@@ -111,6 +113,9 @@ class CompositePermissionProvider implements PermissionProvider {
     public boolean hasPrivileges(@Nullable Tree tree, @Nonnull String... privilegeNames) {
         Tree immutableTree = PermissionUtil.getImmutableTree(tree, immutableRoot);
         PrivilegeBits privilegeBits = privilegeBitsProvider.getBits(privilegeNames);
+        if (privilegeBits.isEmpty()) {
+            return true;
+        }
 
         boolean hasPrivileges = false;
         PrivilegeBits coveredPrivs = PrivilegeBits.getInstance();
@@ -120,7 +125,7 @@ class CompositePermissionProvider implements PermissionProvider {
             if (doEvaluate(supported)) {
                 Set<String> supportedNames = privilegeBitsProvider.getPrivilegeNames(supported);
                 hasPrivileges = aggregatedPermissionProvider.hasPrivileges(immutableTree, supportedNames.toArray(new String[supportedNames.size()]));
-                coveredPrivs.add(supported);;
+                coveredPrivs.add(supported);
 
                 if (!hasPrivileges) {
                     break;
@@ -218,26 +223,21 @@ class CompositePermissionProvider implements PermissionProvider {
     private final class CompositeTreePermission implements TreePermission {
 
         private final ImmutableTree tree;
-        private final CompositeTreePermission parentPermission;
-
         private final Map<AggregatedPermissionProvider, TreePermission> map;
 
         private Boolean canRead;
 
         private CompositeTreePermission() {
             tree = null;
-            parentPermission = null;
-
             map = ImmutableMap.of();
         }
 
         private CompositeTreePermission(@Nonnull final ImmutableTree tree, @Nonnull CompositeTreePermission parentPermission) {
             this.tree = tree;
-            this.parentPermission = parentPermission;
-
             map = new LinkedHashMap<AggregatedPermissionProvider, TreePermission>(pps.size());
             for (AggregatedPermissionProvider provider : pps) {
-                TreePermission tp = provider.getTreePermission(tree, getParentPermission(provider));
+                // TODO: stop aggregation for providers that don't support evaluation within this path
+                TreePermission tp = provider.getTreePermission(tree, getParentPermission(parentPermission, provider));
                 map.put(provider, tp);
             }
         }
@@ -324,11 +324,9 @@ class CompositePermissionProvider implements PermissionProvider {
         }
 
         @Nonnull
-        private TreePermission getParentPermission(AggregatedPermissionProvider provider) {
-            TreePermission parent = null;
-            if (parentPermission != null) {
-                parent = parentPermission.map.get(provider);
-            }
+        private TreePermission getParentPermission(@Nonnull CompositeTreePermission compositeParent,
+                                                   @Nonnull AggregatedPermissionProvider provider) {
+            TreePermission parent = compositeParent.map.get(provider);
             return (parent == null) ? TreePermission.EMPTY : parent;
         }
     }

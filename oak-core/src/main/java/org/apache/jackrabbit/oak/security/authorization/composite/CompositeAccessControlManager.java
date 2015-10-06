@@ -28,6 +28,7 @@ import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
@@ -62,12 +63,12 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
     @Nonnull
     @Override
     public Privilege[] getSupportedPrivileges(String absPath) throws RepositoryException {
-        ImmutableList.Builder<Privilege> privs = ImmutableList.builder();
+        ImmutableSet.Builder<Privilege> privs = ImmutableSet.builder();
         for (AccessControlManager acMgr : acMgrs) {
             privs.add(acMgr.getSupportedPrivileges(absPath));
         }
-        List<Privilege> l = privs.build();
-        return l.toArray(new Privilege[l.size()]);
+        Set<Privilege> s = privs.build();
+        return s.toArray(new Privilege[s.size()]);
     }
 
     @Override
