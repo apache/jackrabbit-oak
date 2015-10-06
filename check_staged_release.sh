@@ -31,7 +31,7 @@ then
  echo "                           DOWNLOAD STAGED REPOSITORY                           "
  echo "################################################################################"
 
- wget -e "robots=off" --wait 1 -nv -r -np "--reject=html,txt" "--follow-tags=" \
+ wget --progress=bar -e "robots=off" --wait 1 -r -np "--reject=html,txt" "--follow-tags=" \
   -P "${DOWNLOAD}/${STAGING}" -nH "--cut-dirs=3" \
   "${STAGING_REPO}"
 
