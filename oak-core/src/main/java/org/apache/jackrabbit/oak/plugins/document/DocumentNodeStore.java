@@ -450,7 +450,8 @@ public final class DocumentNodeStore
                 this, builder.createVersionGCSupport());
         this.journalGarbageCollector = new JournalGarbageCollector(this);
         this.referencedBlobs = builder.createReferencedBlobs(this);
-        this.lastRevRecoveryAgent = new LastRevRecoveryAgent(this);
+        this.lastRevRecoveryAgent = new LastRevRecoveryAgent(this,
+                builder.createMissingLastRevSeeker());
         this.disableBranches = builder.isDisableBranches();
         this.missing = new DocumentNodeState(this, "MISSING", new Revision(0, 0, 0)) {
             @Override
