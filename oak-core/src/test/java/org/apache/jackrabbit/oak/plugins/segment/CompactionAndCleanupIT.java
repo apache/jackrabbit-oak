@@ -99,7 +99,9 @@ public class CompactionAndCleanupIT {
 
         // really long time span, no binary cloning
 
-        FileStore fileStore = new FileStore(directory, 1);
+        FileStore fileStore = FileStore.newFileStore(directory)
+                .withMaxFileSize(1)
+                .create();
         final SegmentNodeStore nodeStore = new SegmentNodeStore(fileStore);
         CompactionStrategy custom = new CompactionStrategy(false, false,
                 CLEAN_OLD, TimeUnit.HOURS.toMillis(1), (byte) 0) {
