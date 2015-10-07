@@ -42,7 +42,6 @@ import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.JournalReader;
 
 import com.google.common.collect.Lists;
