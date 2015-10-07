@@ -966,8 +966,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
 
             // check if there may be more recent values in a previous document
             if (!getPreviousRanges().isEmpty()) {
-                Revision newest = local.firstKey();
-                if (isRevisionNewer(nodeStore, newest, value.revision)) {
+                if (!isMostRecentCommitted(nodeStore, local, value.revision)) {
                     // not reading the most recent value, we may need to
                     // consider previous documents as well
                     Revision newestPrev = getPreviousRanges().firstKey();
@@ -1707,6 +1706,39 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     }
 
     //----------------------------< internal >----------------------------------
+
+    /**
+     * Returns {@code true} if the given {@code revision} is more recent or
+     * equal to the committed revision in {@code valueMap}. This method assumes
+     * the given {@code revision} is committed.
+     *
+     * @param context the revision context.
+     * @param valueMap the value map sorted most recent first.
+     * @param revision a committed revision.
+     * @return if {@code revision} is the most recent committed revision in the
+     *          {@code valueMap}.
+     */
+    private boolean isMostRecentCommitted(RevisionContext context,
+                                          SortedMap<Revision, String> valueMap,
+                                          Revision revision) {
+        if (valueMap.isEmpty()) {
+            return true;
+        }
+        // shortcut when revision is the first key
+        Revision first = valueMap.firstKey();
+        if (!isRevisionNewer(context, first, revision)) {
+            return true;
+        }
+        // need to check commit status
+        for (Revision r : valueMap.keySet()) {
+            Revision c = getCommitRevision(r);
+            if (c != null) {
+                return !isRevisionNewer(context, c, revision);
+            }
+        }
+        // no committed revision found in valueMap
+        return true;
+    }
 
     /**
      * Returns {@code true} if the two revisions are ambiguous. That is, they
