@@ -59,8 +59,8 @@ import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
 import org.apache.jackrabbit.oak.plugins.index.property.OrderedPropertyIndexProvider;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -73,13 +73,13 @@ public class QueryTest extends AbstractRepositoryTest {
         super(fixture);
     }
 
-    @Before
-    public void disableCaching() {
+    @BeforeClass
+    public static void disableCaching() {
         OrderedPropertyIndexProvider.setCacheTimeoutForTesting(0);
     }
 
-    @After
-    public void enableCaching() {
+    @AfterClass
+    public static void enableCaching() {
         OrderedPropertyIndexProvider.resetCacheTimeoutForTesting();
     }
 
