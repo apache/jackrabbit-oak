@@ -53,6 +53,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -2266,6 +2267,52 @@ public class DocumentNodeStoreTest {
         assertTrue(b3.hasChildNode("test"));
         b3.child("test").remove();
         merge(ns3, b3);
+    }
+
+    // OAK-3474
+    @Test
+    public void ignoreUncommitted() throws Exception {
+        final AtomicLong numPreviousFinds = new AtomicLong();
+        MemoryDocumentStore store = new MemoryDocumentStore() {
+            @Override
+            public <T extends Document> T find(Collection<T> collection,
+                                               String key) {
+                if (Utils.getPathFromId(key).startsWith("p")) {
+                    numPreviousFinds.incrementAndGet();
+                }
+                return super.find(collection, key);
+            }
+        };
+        DocumentNodeStore ns = builderProvider.newBuilder()
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+
+        String id = Utils.getIdFromPath("/test");
+        NodeBuilder b = ns.getRoot().builder();
+        b.child("test").setProperty("p", "a");
+        merge(ns, b);
+        NodeDocument doc;
+        int i = 0;
+        do {
+            b = ns.getRoot().builder();
+            b.child("test").setProperty("q", i++);
+            merge(ns, b);
+            doc = store.find(NODES, id);
+            assertNotNull(doc);
+            if (i % 100 == 0) {
+                ns.runBackgroundOperations();
+            }
+        } while (doc.getPreviousRanges().isEmpty());
+
+        Revision r = ns.newRevision();
+        UpdateOp op = new UpdateOp(id, false);
+        NodeDocument.setCommitRoot(op, r, 0);
+        op.setMapEntry("p", r, "b");
+        assertNotNull(store.findAndUpdate(NODES, op));
+
+        doc = store.find(NODES, id);
+        numPreviousFinds.set(0);
+        doc.getNodeAtRevision(ns, ns.getHeadRevision(), null);
+        assertEquals(0, numPreviousFinds.get());
     }
 
     private static DocumentNodeState asDocumentNodeState(NodeState state) {
