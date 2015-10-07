@@ -376,7 +376,7 @@ public class NodeDocumentTest {
         doc.getNewestRevision(ns, baseRev, changeRev, null, new HashSet<Revision>());
         // must not read all previous docs
         assertTrue("too many calls for previous documents: " + prevDocCalls,
-                prevDocCalls.size() <= 4);
+                prevDocCalls.size() <= 5);
 
         ns.dispose();
     }
