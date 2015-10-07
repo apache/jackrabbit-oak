@@ -24,13 +24,12 @@ import static org.mockito.AdditionalAnswers.delegatesTo;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -47,8 +46,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.jcr.PropertyType;
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
-
-import junitx.util.PrivateAccessor;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Descriptors;
@@ -79,6 +76,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.mongodb.DB;
+
+import junitx.util.PrivateAccessor;
 
 /**
  * Tests for the DocumentDiscoveryLiteService
@@ -284,7 +283,7 @@ public class DocumentDiscoveryLiteServiceTest {
             stopSimulatingWrites();
             logger.info("crash: stopping lastrev thread...");
             stopLastRevThread();
-            logger.info("crash: stopped lastrev thread, now setting least to end within 1 sec");
+            logger.info("crash: stopped lastrev thread, now setting lease to end within 1 sec");
 
             boolean renewed = setLeaseTime(1000 /* 1 sec */, 10 /*10ms*/);
             if (!renewed) {
@@ -771,16 +770,16 @@ public class DocumentDiscoveryLiteServiceTest {
         assertNotNull(missingLastRevUtil);
         MissingLastRevSeeker mockedLongduringMissingLastRevUtil = mock(MissingLastRevSeeker.class, delegatesTo(missingLastRevUtil));
         final Semaphore waitBeforeLocking = new Semaphore(0);
-        when(mockedLongduringMissingLastRevUtil.acquireRecoveryLock(anyInt(), anyInt())).then(new Answer<Boolean>() {
-
+        doAnswer(new Answer<Boolean>() {
             @Override
             public Boolean answer(InvocationOnMock invocation) throws Throwable {
                 logger.info("going to waitBeforeLocking");
                 waitBeforeLocking.acquire();
                 logger.info("done with waitBeforeLocking");
-                return missingLastRevUtil.acquireRecoveryLock((Integer) invocation.getArguments()[0], (Integer) invocation.getArguments()[1]);
+                return missingLastRevUtil.acquireRecoveryLock((Integer) invocation.getArguments()[0],
+                        (Integer) invocation.getArguments()[1]);
             }
-        });
+        }).when(mockedLongduringMissingLastRevUtil).acquireRecoveryLock(anyInt(), anyInt());
         PrivateAccessor.setField(s1.ns.getLastRevRecoveryAgent(), "missingLastRevUtil", mockedLongduringMissingLastRevUtil);
 
         // so let's start the lastRevThread again and wait for that
