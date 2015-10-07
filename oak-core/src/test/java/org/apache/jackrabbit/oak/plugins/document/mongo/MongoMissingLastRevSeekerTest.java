@@ -27,7 +27,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeNotNull;
+import static org.junit.Assume.assumeTrue;
 
 public class MongoMissingLastRevSeekerTest {
 
@@ -39,7 +39,7 @@ public class MongoMissingLastRevSeekerTest {
     @Before
     public void before() throws Exception {
         c = MongoUtils.getConnection();
-        assumeNotNull(c);
+        assumeTrue(c != null);
         dbName = c.getDB().getName();
         builder = new DocumentMK.Builder().setMongoDB(c.getDB());
         ns = builder.getNodeStore();
@@ -47,8 +47,12 @@ public class MongoMissingLastRevSeekerTest {
 
     @After
     public void after() throws Exception {
-        ns.dispose();
-        c.close();
+        if (ns != null) {
+            ns.dispose();
+        }
+        if (c != null) {
+            c.close();
+        }
         MongoUtils.dropDatabase(dbName);
     }
 
