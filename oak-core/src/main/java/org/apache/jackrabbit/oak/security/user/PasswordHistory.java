@@ -111,7 +111,7 @@ final class PasswordHistory implements UserConstants {
      */
     private void checkPasswordInHistory(@Nonnull Tree userTree, @Nonnull String newPassword) throws ConstraintViolationException, AccessDeniedException {
         if (PasswordUtil.isSame(TreeUtil.getString(userTree, UserConstants.REP_PASSWORD), newPassword)) {
-            throw new ConstraintViolationException("New password is identical to the current password.");
+            throw new PasswordHistoryException("New password is identical to the current password.");
         }
         Tree pwTree = getPasswordTree(userTree, false);
         if (pwTree.exists()) {
@@ -119,7 +119,7 @@ final class PasswordHistory implements UserConstants {
             if (pwHistoryProperty != null) {
                 for (String historyPwHash : Iterables.limit(pwHistoryProperty.getValue(Type.STRINGS), maxSize)) {
                     if (PasswordUtil.isSame(historyPwHash, newPassword)) {
-                        throw new ConstraintViolationException("New password was found in password history.");
+                        throw new PasswordHistoryException("New password was found in password history.");
                     }
                 }
             }
