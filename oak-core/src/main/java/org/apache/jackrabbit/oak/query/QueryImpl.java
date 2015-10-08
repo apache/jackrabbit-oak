@@ -939,12 +939,15 @@ public class QueryImpl implements Query {
 
         // Sort the indexes according to their minimum cost to be able to skip the remaining indexes if the cost of the
         // current index is below the minimum cost of the next index.
-        final List<? extends QueryIndex> queryIndexes = MINIMAL_COST_ORDERING
+        List<? extends QueryIndex> queryIndexes = MINIMAL_COST_ORDERING
                 .sortedCopy(indexProvider.getQueryIndexes(rootState));
-
         for (int i = 0; i < queryIndexes.size(); i++) {
-            final QueryIndex index = queryIndexes.get(i);
-            final QueryIndex nextIndex = (i < queryIndexes.size()) ? queryIndexes.get(i) : null;
+            QueryIndex index = queryIndexes.get(i);
+            double minCost = index.getMinimumCost();
+            if (minCost > bestCost) {
+                // Stop looking if the minimum cost is higher than the current best cost
+                break;
+            }
 
             double cost;
             String indexName = index.getIndexName();
@@ -1014,10 +1017,6 @@ public class QueryImpl implements Query {
                 bestCost = cost;
                 bestIndex = index;
                 bestPlan = indexPlan;
-            }
-            // Stop looking for a better index if the current best cost is lower than the next minimum cost
-            if (nextIndex != null && bestCost <= nextIndex.getMinimumCost()) {
-                break;
             }
         }
 
