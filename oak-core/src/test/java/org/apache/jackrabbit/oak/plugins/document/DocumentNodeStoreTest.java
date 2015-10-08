@@ -841,8 +841,9 @@ public class DocumentNodeStoreTest {
                         indexedProperty, startValue, limit);
             }
         };
-        final DocumentNodeStore ns = builderProvider.newBuilder()
-                .setDocumentStore(store).getNodeStore();
+        final DocumentMK mk = builderProvider.newBuilder()
+                .setDocumentStore(store).open();
+        final DocumentNodeStore ns = mk.getNodeStore();
         NodeBuilder builder = ns.getRoot().builder();
         // make sure we have enough children to trigger diffManyChildren
         for (int i = 0; i < DocumentMK.MANY_CHILDREN_THRESHOLD * 2; i++) {
@@ -864,7 +865,7 @@ public class DocumentNodeStoreTest {
                     try {
                         ready.countDown();
                         go.await();
-                        ns.diff(head.toString(), to.toString(), "/");
+                        mk.diff(head.toString(), to.toString(), "/", 0);
                     } catch (InterruptedException e) {
                         // ignore
                     }
