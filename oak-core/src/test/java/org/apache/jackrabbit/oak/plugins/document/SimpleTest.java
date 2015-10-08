@@ -159,7 +159,7 @@ public class SimpleTest {
         String diff23 = mk.diff(rev2, rev3, "/", 0).trim();
         assertEquals("+\"/t3\":{}", diff23);
         String diff13 = mk.diff(rev1, rev3, "/", 0).trim();
-        assertEquals("+\"/t2\":{}\n+\"/t3\":{}", diff13);
+        assertEquals("+\"/t2\":{}+\"/t3\":{}", diff13);
         String diff34 = mk.diff(rev3, rev4, "/", 0).trim();
         assertEquals("^\"/t3\":{}", diff34);
     }
