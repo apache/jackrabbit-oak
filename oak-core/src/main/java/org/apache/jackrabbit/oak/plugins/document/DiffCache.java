@@ -21,11 +21,15 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.commons.json.JsopReader;
+import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.unshareString;
 
 /**
  * A cache for child node diffs.
  */
-public interface DiffCache {
+abstract class DiffCache {
 
     /**
      * Returns a jsop diff for the child nodes at the given path. The returned
@@ -45,10 +49,10 @@ public interface DiffCache {
      * @return the diff or {@code null} if unknown and no loader was passed.
      */
     @CheckForNull
-    String getChanges(@Nonnull Revision from,
-                      @Nonnull Revision to,
-                      @Nonnull String path,
-                      @Nullable Loader loader);
+    abstract String getChanges(@Nonnull Revision from,
+                               @Nonnull Revision to,
+                               @Nonnull String path,
+                               @Nullable Loader loader);
 
     /**
      * Starts a new cache entry for the diff cache. Actual changes are added
@@ -61,15 +65,70 @@ public interface DiffCache {
      * @return the cache entry.
      */
     @Nonnull
-    Entry newEntry(@Nonnull Revision from,
-                   @Nonnull Revision to,
-                   boolean local);
+    abstract Entry newEntry(@Nonnull Revision from,
+                            @Nonnull Revision to,
+                            boolean local);
 
     /**
      * @return the statistics for this cache.
      */
     @Nonnull
-    Iterable<CacheStats> getStats();
+    abstract Iterable<CacheStats> getStats();
+
+    /**
+     * Parses the jsop diff returned by
+     * {@link #getChanges(Revision, Revision, String, Loader)} and reports the
+     * changes by calling the appropriate methods on {@link Diff}.
+     *
+     * @param jsop the jsop diff to parse.
+     * @param diff the diff handler.
+     * @return {@code true} it the complete jsop was processed or {@code false}
+     *      if one of the {@code diff} callbacks requested a stop.
+     * @throws IllegalArgumentException if {@code jsop} is malformed.
+     */
+    static boolean parseJsopDiff(@Nonnull String jsop,
+                                 @Nonnull Diff diff) {
+        if (jsop.trim().isEmpty()) {
+            return true;
+        }
+        JsopTokenizer t = new JsopTokenizer(jsop);
+        boolean continueComparison = true;
+        while (continueComparison) {
+            int r = t.read();
+            if (r == JsopReader.END) {
+                break;
+            }
+            switch (r) {
+                case '+': {
+                    String name = unshareString(t.readString());
+                    t.read(':');
+                    t.read('{');
+                    while (t.read() != '}') {
+                        // skip properties
+                    }
+                    continueComparison = diff.childNodeAdded(name);
+                    break;
+                }
+                case '-': {
+                    String name = unshareString(t.readString());
+                    continueComparison = diff.childNodeDeleted(name);
+                    break;
+                }
+                case '^': {
+                    String name = unshareString(t.readString());
+                    t.read(':');
+                    t.read('{');
+                    t.read('}');
+                    continueComparison = diff.childNodeChanged(name);
+                    break;
+                }
+                default:
+                    throw new IllegalArgumentException("jsonDiff: illegal token '"
+                            + t.getToken() + "' at pos: " + t.getLastPos() + ' ' + jsop);
+            }
+        }
+        return continueComparison;
+    }
 
     interface Entry {
 
@@ -95,5 +154,15 @@ public interface DiffCache {
     interface Loader {
 
         String call();
+    }
+
+    interface Diff {
+
+        boolean childNodeAdded(String name);
+
+        boolean childNodeChanged(String name);
+
+        boolean childNodeDeleted(String name);
+
     }
 }
