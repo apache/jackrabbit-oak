@@ -34,7 +34,7 @@ class NodeTypeIndexLookup implements JcrConstants {
     /**
      * Derived from {@link #getCost(Filter)}
      */
-    static final double MINIMUM_COST = PropertyIndexLookup.COST_OVERHEAD;
+    static final double MINIMUM_COST = 2.05;
 
     private final NodeState root;
 
