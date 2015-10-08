@@ -57,7 +57,7 @@ public class ClusterNodeInfo {
     /**
      * The Oak version.
      */
-    private static final String OAK_VERSION_KEY = "oakVersion";
+    static final String OAK_VERSION_KEY = "oakVersion";
 
     /**
      * The unique instance id within this machine (the current working directory

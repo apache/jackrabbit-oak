@@ -43,6 +43,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.osgi.framework.Version;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -505,7 +506,25 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
         // interfere with normal (jcr) nodes at all).
         String lastWrittenRootRevStr = clusterNode.getLastWrittenRootRev();
         if (lastWrittenRootRevStr == null) {
-            logger.warn("hasBacklog: node has lastWrittenRootRev=null");
+            boolean warn = false;
+            Object oakVersion = clusterNode.get(ClusterNodeInfo.OAK_VERSION_KEY);
+            if (oakVersion!=null && (oakVersion instanceof String)) {
+                try{
+                    Version actual = Version.parseVersion((String) oakVersion);
+                    Version introduced = Version.parseVersion("1.3.5");
+                    if (actual.compareTo(introduced)>=0) {
+                        warn = true;
+                    }
+                } catch(Exception e) {
+                    logger.debug("hasBacklog: couldn't parse version "+oakVersion+" : "+e);
+                    warn = true;
+                }
+            }
+            if (warn) {
+                logger.warn("hasBacklog: node has lastWrittenRootRev=null");
+            } else {
+                logger.debug("hasBacklog: node has lastWrittenRootRev=null");
+            }
             return false;
         }
         Revision lastWrittenRootRev = Revision.fromString(lastWrittenRootRevStr);
