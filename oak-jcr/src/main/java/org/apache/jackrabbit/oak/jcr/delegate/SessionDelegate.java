@@ -66,8 +66,6 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.Marker;
-import org.slf4j.MarkerFactory;
 
 /**
  * TODO document
@@ -648,13 +646,12 @@ public class SessionDelegate {
         if (readOperationLogger.isTraceEnabled()
                 || writeOperationLogger.isTraceEnabled()
                 || auditLogger.isDebugEnabled()) {
-            Marker sessionMarker = MarkerFactory.getMarker(session.toString());
             Logger log = ops.isUpdate() ? writeOperationLogger : readOperationLogger;
-            log.trace(sessionMarker, "[{}] {}", session, ops);
+            log.trace("[{}] {}", session, ops);
 
             //For a logout operation the auth info is not accessible
             if (!ops.isLogout() && !ops.isRefresh() && !ops.isSave() && ops.isUpdate()) {
-                auditLogger.debug(sessionMarker, "[{}] [{}] {}", session.getAuthInfo().getUserID(), session, ops);
+                auditLogger.debug("[{}] [{}] {}", session.getAuthInfo().getUserID(), session, ops);
             }
         }
     }
