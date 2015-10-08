@@ -34,7 +34,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /**
  * An in-memory diff cache implementation.
  */
-public class MemoryDiffCache implements DiffCache {
+public class MemoryDiffCache extends DiffCache {
 
     /**
      * Diff cache.
