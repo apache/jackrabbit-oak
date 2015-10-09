@@ -21,6 +21,7 @@ import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import java.io.File;
 import java.util.UUID;
 
+import com.google.common.base.Supplier;
 import com.google.common.hash.BloomFilter;
 import com.google.common.hash.Funnel;
 import com.google.common.hash.PrimitiveSink;
@@ -49,13 +50,22 @@ class CompactionGainEstimate implements TarEntryVisitor {
 
     private long reachableSize = 0;
 
-    CompactionGainEstimate(SegmentNodeState node, int estimatedBulkCount) {
+    /**
+     * Create a new instance of gain estimator. The estimation process can be stopped
+     * by switching the supplier {@code stop} to {@code true}, in which case the returned
+     * estimates are undefined.
+     *
+     * @param node  root node state
+     * @param estimatedBulkCount
+     * @param stop  stop signal
+     */
+    CompactionGainEstimate(SegmentNodeState node, int estimatedBulkCount, Supplier<Boolean> stop) {
         uuids = BloomFilter.create(UUID_FUNNEL, estimatedBulkCount);
-        collectReferencedSegments(node, new RecordIdSet());
+        collectReferencedSegments(node, new RecordIdSet(), stop);
     }
 
-    private void collectReferencedSegments(SegmentNodeState node, RecordIdSet visited) {
-        if (visited.addIfNotPresent(node.getRecordId())) {
+    private void collectReferencedSegments(SegmentNodeState node, RecordIdSet visited, Supplier<Boolean> stop) {
+        if (!stop.get() && visited.addIfNotPresent(node.getRecordId())) {
             collectUUID(node.getRecordId().getSegmentId());
             for (PropertyState property : node.getProperties()) {
                 if (property instanceof SegmentPropertyState) {
@@ -75,7 +85,7 @@ class CompactionGainEstimate implements TarEntryVisitor {
             }
             for (ChildNodeEntry child : node.getChildNodeEntries()) {
                 collectReferencedSegments((SegmentNodeState) child.getNodeState(),
-                        visited);
+                        visited, stop);
             }
         }
     }
