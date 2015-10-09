@@ -84,6 +84,16 @@ public class AndImpl extends ConstraintImpl {
     }
 
     @Override
+    ConstraintImpl not() {
+        // not (X and Y) == (not X) or (not Y)
+        List<ConstraintImpl> list = newArrayList();
+        for (ConstraintImpl constraint : constraints) {
+            list.add(new NotImpl(constraint));
+        }
+        return new OrImpl(list).simplify();
+    }
+
+    @Override
     public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
         Set<PropertyExistenceImpl> result = newHashSet();
         for (ConstraintImpl constraint : constraints) {

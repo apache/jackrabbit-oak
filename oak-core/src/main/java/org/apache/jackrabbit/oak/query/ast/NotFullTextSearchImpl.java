@@ -40,7 +40,13 @@ public class NotFullTextSearchImpl extends FullTextSearchImpl {
     public NotFullTextSearchImpl(FullTextSearchImpl ft) {
         this(ft.selectorName, ft.propertyName, ft.fullTextSearchExpression);
     }
-    
+
+    @Override
+    ConstraintImpl not() {
+        return new FullTextSearchImpl(this.selectorName, this.propertyName,
+                this.fullTextSearchExpression);
+    }
+
     @Override
     String getRawText(PropertyValue v) {
         Iterable<String> terms = SPACE_SPLITTER.split(super.getRawText(v));
@@ -55,7 +61,7 @@ public class NotFullTextSearchImpl extends FullTextSearchImpl {
         return raw.toString().trim();
     }
 
-    private boolean isKeyword(@Nonnull String term) {
+    private static boolean isKeyword(@Nonnull String term) {
         return KEYWORDS.contains(checkNotNull(term).toLowerCase());
     }
     
