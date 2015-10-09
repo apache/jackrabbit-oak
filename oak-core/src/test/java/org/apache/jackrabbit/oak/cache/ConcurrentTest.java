@@ -54,7 +54,7 @@ public class ConcurrentTest {
                 public void run() {
                     while (!stop.get()) {
                         final int key = nextKey.getAndIncrement();
-                        final int wait = key;
+                        final int wait = Math.min(key, 100);
                         Callable<Integer> callable = new Callable<Integer>() {
                             @Override
                             public Integer call() throws ExecutionException {
