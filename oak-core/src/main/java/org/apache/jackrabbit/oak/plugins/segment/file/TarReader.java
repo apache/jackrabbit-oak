@@ -647,6 +647,9 @@ class TarReader implements Closeable {
      */
     synchronized TarReader cleanup(Set<UUID> referencedIds, CompactionMap cm, Set<UUID> removed)
             throws IOException {
+        String name = file.getName();
+        log.debug("Cleaning up {}", name);
+
         Set<UUID> cleaned = newHashSet();
         Map<UUID, List<UUID>> graph = getGraph();
 
@@ -703,7 +706,7 @@ class TarReader implements Closeable {
         size += 2 * BLOCK_SIZE;
 
         if (count == 0) {
-            // none of the entries within this tar file are referenceable
+            log.debug("None of the entries of {} are referenceable.", name);
             removed.addAll(cleaned);
             logCleanedSegments(cleaned);
             return null;
@@ -712,23 +715,25 @@ class TarReader implements Closeable {
             // unless this tar file lacks a pre-compiled segment graph
             // in which case we'll always generate a new tar file with
             // the graph to speed up future garbage collection runs.
+            log.debug("Not enough space savings. ({}/{}). Skipping clean up of {}",
+                    access.length() - size, access.length(), name);
             return this;
         }
 
-        String name = file.getName();
         int pos = name.length() - "a.tar".length();
         char generation = name.charAt(pos);
         if (generation == 'z') {
-            // no garbage collection after reaching generation z
+            log.debug("No garbage collection after reaching generation z: {}", name);
             return this;
         }
 
         File newFile = new File(
                 file.getParentFile(),
                 name.substring(0, pos) + (char) (generation + 1) + ".tar");
+
+        log.debug("Writing new generation {}", newFile.getName());
         TarWriter writer = new TarWriter(newFile);
-        for (int i = 0; i < sorted.length; i++) {
-            TarEntry entry = sorted[i];
+        for (TarEntry entry : sorted) {
             if (entry != null) {
                 byte[] data = new byte[entry.size()];
                 access.read(entry.offset(), entry.size()).get(data);
