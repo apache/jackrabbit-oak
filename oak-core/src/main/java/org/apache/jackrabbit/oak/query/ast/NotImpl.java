@@ -18,10 +18,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import static com.google.common.collect.Lists.newArrayList;
-
 import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -47,30 +44,19 @@ public class NotImpl extends ConstraintImpl {
     @Override
     public ConstraintImpl simplify() {
         ConstraintImpl simple = constraint.simplify();
-        if (simple instanceof AndImpl) {
-            // not (X and Y) == (not X) or (not Y)
-            AndImpl and = (AndImpl) simple;
-            List<ConstraintImpl> constraints = newArrayList();
-            for (ConstraintImpl constraint : and.getConstraints()) {
-                constraints.add(new NotImpl(constraint));
-            }
-            return new OrImpl(constraints).simplify();
-        } else if (simple instanceof OrImpl) {
-            // not (X or Y) == (not X) and (not Y)
-            OrImpl or = (OrImpl) simple;
-            List<ConstraintImpl> constraints = newArrayList();
-            for (ConstraintImpl constraint : or.getConstraints()) {
-                constraints.add(new NotImpl(constraint));
-            }
-            return new AndImpl(constraints).simplify();
-        } else if (simple instanceof NotImpl) {
-            // not not X == X
-            return ((NotImpl) simple).constraint;
+        ConstraintImpl not = simple.not();
+        if (not != null) {
+            return not.simplify();
         } else if (simple != constraint) {
             return new NotImpl(simple);
-        } else {
-            return this;
         }
+        return this;
+    }
+
+    @Override
+    ConstraintImpl not() {
+        // not not X == X -> X == X
+        return constraint;
     }
 
     @Override

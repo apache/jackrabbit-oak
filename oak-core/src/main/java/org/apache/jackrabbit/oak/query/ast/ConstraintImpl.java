@@ -37,6 +37,16 @@ public abstract class ConstraintImpl extends AstElement {
     }
 
     /**
+     * Get the negative constraint, if it is simpler, or null. For example,
+     * "not x = 1" returns "x = 1", but "x = 1" returns null.
+     * 
+     * @return the negative constraint, or null
+     */
+    ConstraintImpl not() {
+        return null;
+    }
+
+    /**
      * Evaluate the result using the currently set values.
      *
      * @return true if the constraint matches

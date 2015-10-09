@@ -86,6 +86,11 @@ public class FullTextSearchImpl extends ConstraintImpl {
     }
 
     @Override
+    ConstraintImpl not() {
+        return new NotFullTextSearchImpl(this);
+    }
+
+    @Override
     boolean accept(AstVisitor v) {
         return v.visit(this);
     }
