@@ -112,12 +112,43 @@ public class NodeTypeIndexQueryTest extends AbstractQueryTest {
         
         root.commit();
         
-        List<String> plan = executeQuery(
-            "explain SELECT * FROM [nt:unstructured] WHERE ISDESCENDANTNODE([/test]) AND NOT CONTAINS(foo, 'bar')",
-            Query.JCR_SQL2, false);
-        
+        List<String> plan;
+
+        plan = executeQuery(
+                "explain SELECT * FROM [nt:unstructured] " + 
+                "WHERE ISDESCENDANTNODE([/test]) " + 
+                "AND CONTAINS(foo, 'bar')", 
+                Query.JCR_SQL2, false);
         assertEquals(1, plan.size());
         assertTrue(plan.get(0).contains("no-index"));
+        assertEquals("[nt:unstructured] as [nt:unstructured] /* no-index\n" +
+                "  where (isdescendantnode([nt:unstructured], [/test]))\n" +
+                "  and (contains([nt:unstructured].[foo], 'bar')) */", 
+                plan.get(0));
+
+        plan = executeQuery(
+                "explain SELECT * FROM [nt:unstructured] " + 
+                "WHERE ISDESCENDANTNODE([/test]) " + 
+                "AND NOT CONTAINS(foo, 'bar')", 
+                Query.JCR_SQL2, false);
+        assertEquals(1, plan.size());
+        assertTrue(plan.get(0).contains("no-index"));
+        assertEquals("[nt:unstructured] as [nt:unstructured] /* no-index\n" +
+                "  where (isdescendantnode([nt:unstructured], [/test]))\n" +
+                "  and (not contains([nt:unstructured].[foo], 'bar')) */", 
+                plan.get(0));
+        
+        plan = executeQuery(
+                "explain SELECT * FROM [nt:unstructured] " + 
+                "WHERE ISDESCENDANTNODE([/test]) " + 
+                "AND NOT NOT CONTAINS(foo, 'bar')", 
+                Query.JCR_SQL2, false);
+        assertEquals(1, plan.size());
+        assertTrue(plan.get(0).contains("no-index"));
+        assertEquals("[nt:unstructured] as [nt:unstructured] /* no-index\n" +
+                "  where (isdescendantnode([nt:unstructured], [/test]))\n" +
+                "  and (contains([nt:unstructured].[foo], 'bar')) */", 
+                plan.get(0));
         
         setTraversalEnabled(true);
     }

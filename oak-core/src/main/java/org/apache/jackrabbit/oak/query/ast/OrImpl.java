@@ -129,6 +129,16 @@ public class OrImpl extends ConstraintImpl {
     }
 
     @Override
+    ConstraintImpl not() {
+        // not (X or Y) == (not X) and (not Y)
+        List<ConstraintImpl> list = newArrayList();
+        for (ConstraintImpl constraint : getConstraints()) {
+            list.add(new NotImpl(constraint));
+        }
+        return new AndImpl(list).simplify();
+    }
+
+    @Override
     public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
         // for the condition "x=1 or x=2", the existence condition
         // "x is not null" be be derived
