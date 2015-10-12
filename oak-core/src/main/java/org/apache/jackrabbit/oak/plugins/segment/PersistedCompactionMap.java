@@ -178,7 +178,7 @@ public class PersistedCompactionMap implements PartialCompactionMap {
             return;
         }
 
-        SegmentWriter writer = store.createSegmentWriter();
+        SegmentWriter writer = null;
         Map<String, RecordId> segmentIdMap = newHashMap();
         for (Entry<UUID, RecordIdMap> recentEntry : recent.entrySet()) {
             UUID uuid = recentEntry.getKey();
@@ -191,6 +191,10 @@ public class PersistedCompactionMap implements PartialCompactionMap {
             MapRecord base;
             MapEntry baseEntry = entries == null ? null : entries.getEntry(uuid.toString());
             base = baseEntry == null ? null : new MapRecord(baseEntry.getValue());
+
+            if (writer == null) {
+                writer = store.createSegmentWriter();
+            }
 
             Map<String, RecordId> offsetMap = newHashMap();
             for (int k = 0; k < newSegment.size(); k++) {
@@ -212,15 +216,25 @@ public class PersistedCompactionMap implements PartialCompactionMap {
             }
         }
 
-        RecordId previousBaseId = entries == null ? null : entries.getRecordId();
-        entries = writer.writeMap(entries, segmentIdMap);
-        entries.getSegment().getSegmentId().pin();
-        String mapInfo = PERSISTED_COMPACTION_MAP + '{' +
-                "id=" + entries.getRecordId() +
-                ", baseId=" + previousBaseId + '}';
-        writer.writeString(mapInfo);
-        writer.flush();
-        recent.clear();
+        if (!segmentIdMap.isEmpty()) {
+            if (writer == null) {
+                writer = store.createSegmentWriter();
+            }
+
+            RecordId previousBaseId = entries == null ? null : entries.getRecordId();
+            entries = writer.writeMap(entries, segmentIdMap);
+            entries.getSegment().getSegmentId().pin();
+            String mapInfo = PERSISTED_COMPACTION_MAP + '{' +
+                    "id=" + entries.getRecordId() +
+                    ", baseId=" + previousBaseId + '}';
+            writer.writeString(mapInfo);
+            writer.flush();
+            recent.clear();
+        }
+
+        if (recordCount == 0) {
+            entries = null;
+        }
     }
 
     /**
