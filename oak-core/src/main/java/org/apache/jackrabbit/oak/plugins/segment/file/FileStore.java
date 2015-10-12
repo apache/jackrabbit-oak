@@ -1037,12 +1037,11 @@ public class FileStore implements SegmentStore {
         closeAndLogOnFail(compactionThread);
         closeAndLogOnFail(flushThread);
         closeAndLogOnFail(diskSpaceThread);
-        synchronized (this) {
-            try {
-                flush();
-
+        try {
+            flush();
+            tracker.getWriter().dropCache();
+            synchronized (this) {
                 closeAndLogOnFail(writer);
-                tracker.getWriter().dropCache();
 
                 List<TarReader> list = readers;
                 readers = newArrayList();
@@ -1055,10 +1054,10 @@ public class FileStore implements SegmentStore {
                 }
                 closeAndLogOnFail(lockFile);
                 closeAndLogOnFail(journalFile);
-            } catch (IOException e) {
-                throw new RuntimeException(
-                        "Failed to close the TarMK at " + directory, e);
             }
+        } catch (IOException e) {
+            throw new RuntimeException(
+                    "Failed to close the TarMK at " + directory, e);
         }
 
         System.gc(); // for any memory-mappings that are no longer used
