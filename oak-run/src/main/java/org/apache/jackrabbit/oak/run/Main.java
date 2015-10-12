@@ -29,6 +29,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.RandomAccessFile;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -104,6 +105,7 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.plugins.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.plugins.segment.standby.client.StandbyClient;
 import org.apache.jackrabbit.oak.plugins.segment.standby.server.StandbyServer;
 import org.apache.jackrabbit.oak.plugins.tika.TextExtractorMain;
@@ -517,6 +519,25 @@ public final class Main {
             store = openFileStore(directory);
             try {
                 store.cleanup();
+
+                String head;
+                File journal = new File(directory, "journal.log");
+                JournalReader journalReader = new JournalReader(journal);
+                try {
+                    head = journalReader.iterator().next() + " root\n";
+                } finally {
+                    journalReader.close();
+                }
+
+                RandomAccessFile journalFile = new RandomAccessFile(journal, "rw");
+                try {
+                    System.out.println("    -> writing new " + journal.getName() + ": " + head);
+                    journalFile.setLength(0);
+                    journalFile.writeBytes(head);
+                    journalFile.getChannel().force(false);
+                } finally {
+                    journalFile.close();
+                }
             } finally {
                 store.close();
             }
