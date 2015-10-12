@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.3.7
+Release Notes -- Apache Jackrabbit Oak -- Version 1.3.8
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.3.7 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.3.8 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.2.x
 release.
@@ -15,73 +15,98 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.3.7
+Changes in Oak 1.3.8
 --------------------
-
-Bug
-
-    [OAK-955] - Query: Filter doesn't contain fulltext constraints from joins 
-    [OAK-1501] - Property index on "jcr:primaryType" returns the wrong cost
-    [OAK-2852] - Query engine: if counter index is not available, cost of traversing is too low
-    [OAK-3201] - Use static references in SecurityProviderImpl for composite services
-    [OAK-3318] - IndexRule not respecting inheritence based on mixins
-    [OAK-3325] - MissingIndexProviderStrategy should warn when setting the reindex flag
-    [OAK-3343] - LIRS Cache: investigate concurrency behavior
-    [OAK-3390] - Avoid instanceof check in DocumentNodeStore
-    [OAK-3395] - RevisionGC fails for JCR paths having line feed characters
-    [OAK-3400] - ClusterNodeInfo should not be osgi-dependent (for lease check failure handling)
-    [OAK-3411] - Inconsistent read on DocumentNodeStore startup
-    [OAK-3416] - Query: join on different property types fails
-    [OAK-3418] - ClusterNodeInfo uses irrelevant network interface IDs on Windows
-    [OAK-3419] - ClusterNodeInfo.createInstance fails to clean up random entries
-    [OAK-3420] - DocumentNodeStoreService fails to restart DocumentNodeStore
-    [OAK-3423] - RandomAuthorizableNodeName should not be part of the default configuration of SecurityProviderImpl
-    [OAK-3431] - SecurityProviderRegistration should not be part of an exported package
-    [OAK-3432] - ConcurrentTest.testLoaderBlock fails because of waiting issue
-    [OAK-3433] - Background update may create journal entry with incorrect id
-    [OAK-3434] - Revert backwards-incompatible changes to SecurityProviderImpl
-    [OAK-3442] - Intermittent IllegalMonitorStateException seen while releaseing IndexNode
-
-Improvement
-
-    [OAK-2679] - Query engine: faster cost calculation
-    [OAK-3183] - [Blob GC] Improvements/tools for blob garbage collection
-    [OAK-3358] - Make SecurityProviderImpl independent from OSGi
-    [OAK-3397] - stop oak-core bundle on lease failure
-    [OAK-3398] - make lease update more robust
-    [OAK-3399] - 5sec retry loop before declaring lease failure (was: as a last resort try to update it there)
-    [OAK-3425] - Improve DocumentNodeStore startup/shutdown diagnostics
-    [OAK-3435] - LastRevRecoveryAgent/MissingLastRevSeeker improvements
-    [OAK-3440] - MemoryNodeBuilder creates superfluous instances of ConnectedHead
-    [OAK-3441] - SecurityProviderImpl should not be an OSGi component
-
-New Feature
-    
-    [OAK-3148] - Online migration process for the binaries
-
-Task
-
-    [OAK-2185] - Fix intermittent failure in JaasConfigSpiTest
 
 Sub-task
 
-    [OAK-2171] - oak-run should support repository upgrades with all available options
-    [OAK-2986] - RDB: switch to tomcat datasource implementation 
-    [OAK-3133] - Make compaction map more efficient for offline compaction
-    [OAK-3443] - Track the start time of mark in GC
+    [OAK-2507] - Truncate journal.log after off line compaction
+    [OAK-2879] - Compaction should check for required disk space
+    before running
+    [OAK-3172] - Unreleased closed sessions can keep a root reference
+    from getting collected
+    [OAK-3260] - oak-jcr: update test exclusions once JCR-3900 is
+    resolved
 
 Technical task
 
-    [OAK-3394] - RDBDocumentStore startup: log more DDL information (incl. index information)
-    [OAK-3408] - RDBDocumentStore: improve MySQL diagnostics
-    [OAK-3410] - RDB*Store diagnostics: strip line feeds from product information
-    [OAK-3413] - RDBDocumentStorePerformanceTest leaks PreparedStatements
-    [OAK-3414] - RDBDocumentStore: improve DB2 diagnostics
-    [OAK-3422] - RDBDocumentStore: improve index diagnostics
-    [OAK-3438] - RDBDocumentStoreDB: leaking resultset
-    [OAK-3445] - RDBDocumentStore: when generating SQL for queries, leave out unneeded constraints
-    [OAK-3446] - RDBDocumentStore: update PostgresQL and MySQL JDBC drivers
-    
+    [OAK-3384] - Revisit PartialCompactionMapTest
+    [OAK-3479] - Add generation info to compaction map
+    [OAK-3501] - PersistedCompactionMap could release reference to
+    records early
+
+Bug
+
+    [OAK-1648] - Creating multiple checkpoint on same head revision
+    overwrites previous entries
+    [OAK-2635] - TimeSeriesMax's frequent 'drops to 0'
+    [OAK-2881] - ConsistencyChecker#checkConsistency can't cope with
+    inconsistent journal
+    [OAK-2929] - Parent of unseen children must not be removable
+    [OAK-3235] - Deadlock when closing a concurrently used FileStore
+    [OAK-3371] - Wrong evaluation of NOT clause
+    [OAK-3388] - Inconsistent read in cluster with clock differences
+    [OAK-3396] - NPE during syncAllExternalUsers in
+    LdapIdentityProvider.createUser
+    [OAK-3405] - Avoid instanceof check in LastRevRecoveryAgent
+    [OAK-3417] - oak-run OakFixture might set incorrect clusterIDs
+    [OAK-3456] - MongoBlobGCTest.gcLongRunningBlobCollection() fails
+    [OAK-3463] - Communicate Password Change Failure Reason During
+    Expiry + Pw History
+    [OAK-3473] - CliUtils#handleSigInt uses classes from sun.misc.*
+    [OAK-3474] - NodeDocument.getNodeAtRevision can go into property
+    history traversal when latest rev on current doc isn't committed
+    [OAK-3476] - Memory leak caused by using marker names based on non
+    static session id
+    [OAK-3481] - CompationMapTest does not close file store
+    [OAK-3487] - NodeDocumentTest.getNewestRevisionTooExpensive()
+    fails occasionally
+    [OAK-3490] - QueryTest.orderBy() fails occasionally
+    [OAK-3491] - DocumentDiscoveryLiteServiceTest makes incorrect call
+    to MissingLastRevRecovery
+    [OAK-3492] - reduce DocumentDiscoveryLiteService hasBacklog WARNs
+    [OAK-3493] - Deadlock when closing a concurrently used FileStore
+    2.0
+
+Documentation
+
+    [OAK-3452] - Document possible migration options
+
+Improvement
+
+    [OAK-3166] - Apply adjustments for newly exported
+    JackrabbitSession#getItemOrNull
+    [OAK-3251] - speeding up the build time
+    [OAK-3290] - Revision gc blocks repository shutdown
+    [OAK-3329] - TarMK cleanup blocks writers
+    [OAK-3448] - Update jackrabbit version to 2.11.1
+    [OAK-3454] - Improve the logging capabilities of offline
+    compaction
+    [OAK-3455] - Improve conflict exception message
+    [OAK-3460] - Progress logging for RepositorySidegrade
+    [OAK-3465] - Move ContinuousRevisionGCTest to benchmark package
+    [OAK-3469] - Fix naming in oak-upgrade
+    [OAK-3471] - Avoid reflection in DocumentDiscoveryLiteServiceTest
+    [OAK-3475] - Confusing SNFE whith oak-run debug
+    [OAK-3484] - Oak Explorer: add property type to reference output
+    [OAK-3485] - FileStoreIT cleanup after tests
+    [OAK-3497] - Remove DocumentNodeStore.diff()
+    [OAK-3502] - Improve logging during cleanup
+
+New Feature
+
+    [OAK-3457] - Multivalued restriction to limit effect of ACE to
+    items with a given name
+    [OAK-3472] - Run mode to identify blob garbage
+
+Task
+
+    [OAK-2623] - Add test for GC of previous docs of a deleted
+    document
+
+Wish
+
+    [OAK-3467] - Tests slow after OAK-2171
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.2.x release.
