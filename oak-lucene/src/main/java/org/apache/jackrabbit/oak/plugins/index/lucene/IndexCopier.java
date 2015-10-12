@@ -352,6 +352,16 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
                 }
             }
 
+            //If file does not exist then just delegate to remote and not
+            //schedule a copy task
+            if (!remote.fileExists(name)){
+                if (log.isDebugEnabled()) {
+                    log.debug("[{}] Looking for non existent file {}. Current known files {}",
+                            indexPath, name, Arrays.toString(remote.listAll()));
+                }
+                return remote.openInput(name, context);
+            }
+
             CORFileReference toPut = new CORFileReference(name);
             CORFileReference old = files.putIfAbsent(name, toPut);
             if (old == null) {

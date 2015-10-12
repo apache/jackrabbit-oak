@@ -142,6 +142,26 @@ public class IndexCopierTest {
     }
 
     @Test
+    public void nonExistentFile() throws Exception{
+        Directory baseDir = new RAMDirectory();
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+        CollectingExecutor executor = new CollectingExecutor();
+        IndexCopier c1 = new RAMIndexCopier(baseDir, executor, getWorkDir(), true);
+
+        Directory remote = new RAMDirectory();
+        Directory wrapped = c1.wrapForRead("/foo", defn, remote);
+
+        try {
+            wrapped.openInput("foo.txt", IOContext.DEFAULT);
+            fail();
+        } catch(FileNotFoundException ignore){
+
+        }
+
+        assertEquals(0, executor.commands.size());
+    }
+
+    @Test
     public void basicTestWithFS() throws Exception{
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
         IndexCopier c1 = new IndexCopier(sameThreadExecutor(), getWorkDir());
