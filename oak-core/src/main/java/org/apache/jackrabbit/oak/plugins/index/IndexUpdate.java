@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
+import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
@@ -47,6 +48,7 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -165,10 +167,11 @@ public class IndexUpdate implements Editor {
                 }
                 boolean shouldReindex = shouldReindex(definition,
                         before, name);
+                String indexPath = getIndexPath(getPath(), name);
                 Editor editor = rootState.provider.getIndexEditor(type, definition, rootState.root,
-                        rootState.newCallback(getIndexPath(getPath(), name), shouldReindex));
+                        rootState.newCallback(indexPath, shouldReindex));
                 if (editor == null) {
-                    missingProvider.onMissingIndex(type, definition);
+                    missingProvider.onMissingIndex(type, definition, indexPath);
                 } else if (shouldReindex) {
                     if (definition.getBoolean(REINDEX_ASYNC_PROPERTY_NAME)
                             && definition.getString(ASYNC_PROPERTY_NAME) == null) {
@@ -310,15 +313,28 @@ public class IndexUpdate implements Editor {
     }
 
     public static class MissingIndexProviderStrategy {
-        public void onMissingIndex(String type, NodeBuilder definition)
+
+        private final Set<String> ignore = newHashSet("disabled");
+
+        public void onMissingIndex(String type, NodeBuilder definition, String indexPath)
                 throws CommitFailedException {
+            if (isDisabled(type)) {
+                return;
+            }
             // trigger reindexing when an indexer becomes available
             PropertyState ps = definition.getProperty(REINDEX_PROPERTY_NAME);
             if (ps != null && ps.getValue(BOOLEAN)) {
                 // already true, skip the update
                 return;
             }
+            log.warn(
+                    "Missing index provider of type [{}], requesting reindex on [{}]",
+                    type, indexPath);
             definition.setProperty(REINDEX_PROPERTY_NAME, true);
+        }
+
+        boolean isDisabled(String type) {
+            return ignore.contains(type);
         }
     }
 

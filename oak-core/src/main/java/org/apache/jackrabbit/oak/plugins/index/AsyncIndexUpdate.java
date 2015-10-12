@@ -743,16 +743,15 @@ public class AsyncIndexUpdate implements Runnable {
     static class DefaultMissingIndexProviderStrategy extends
             MissingIndexProviderStrategy {
 
-        private final Set<String> ignore = Sets.newHashSet("disabled");
-
         @Override
-        public void onMissingIndex(String type, NodeBuilder definition)
+        public void onMissingIndex(String type, NodeBuilder definition, String path)
                 throws CommitFailedException {
-            if (ignore.contains(type)) {
+            if (isDisabled(type)) {
                 return;
             }
             throw new CommitFailedException("Async", 2,
-                    "Missing index provider detected for type ["+type+"]");
+                    "Missing index provider detected for type [" + type
+                            + "] on index [" + path + "]");
         }
     }
 
