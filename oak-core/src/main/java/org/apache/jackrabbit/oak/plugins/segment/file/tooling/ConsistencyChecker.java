@@ -78,19 +78,23 @@ public class ConsistencyChecker {
         try {
             int revisionCount = 0;
             for (String revision : journal) {
-                print("Checking revision {}", revision);
-                revisionCount++;
-                String badPath = checker.check(revision, badPaths, binLen);
-                if (badPath == null && fullTraversal) {
-                    badPath = checker.traverse(revision, binLen);
-                }
-                if (badPath == null) {
-                    print("Found latest good revision {}", revision);
-                    print("Searched through {} revisions", revisionCount);
-                    return revision;
-                } else {
-                    badPaths.add(badPath);
-                    print("Broken revision {}", revision);
+                try {
+                    print("Checking revision {}", revision);
+                    revisionCount++;
+                    String badPath = checker.check(revision, badPaths, binLen);
+                    if (badPath == null && fullTraversal) {
+                        badPath = checker.traverse(revision, binLen);
+                    }
+                    if (badPath == null) {
+                        print("Found latest good revision {}", revision);
+                        print("Searched through {} revisions", revisionCount);
+                        return revision;
+                    } else {
+                        badPaths.add(badPath);
+                        print("Broken revision {}", revision);
+                    }
+                } catch (IllegalArgumentException e) {
+                    print("Skipping invalid record id {}", revision);
                 }
             }
         } finally {
