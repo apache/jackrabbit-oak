@@ -425,14 +425,19 @@ public class FileStore implements SegmentStore {
         try {
             Iterator<String> heads = journalReader.iterator();
             while (id == null && heads.hasNext()) {
-                RecordId last = RecordId.fromString(tracker, heads.next());
-                SegmentId segmentId = last.getSegmentId();
-                if (containsSegment(
-                        segmentId.getMostSignificantBits(),
-                        segmentId.getLeastSignificantBits())) {
-                    id = last;
-                } else {
-                    log.warn("Unable to access revision {}, rewinding...", last);
+                String head = heads.next();
+                try {
+                    RecordId last = RecordId.fromString(tracker, head);
+                    SegmentId segmentId = last.getSegmentId();
+                    if (containsSegment(
+                            segmentId.getMostSignificantBits(),
+                            segmentId.getLeastSignificantBits())) {
+                        id = last;
+                    } else {
+                        log.warn("Unable to access revision {}, rewinding...", last);
+                    }
+                } catch (IllegalArgumentException e) {
+                    log.warn("Skipping invalid record id {}", head);
                 }
             }
         } finally {
