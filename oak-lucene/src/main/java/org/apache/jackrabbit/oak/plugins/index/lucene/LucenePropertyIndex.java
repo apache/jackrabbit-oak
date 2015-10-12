@@ -202,8 +202,8 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
     public List<IndexPlan> getPlans(Filter filter, List<OrderEntry> sortOrder, NodeState rootState) {
         Collection<String> indexPaths = new LuceneIndexLookup(rootState).collectIndexNodePaths(filter);
         List<IndexPlan> plans = Lists.newArrayListWithCapacity(indexPaths.size());
-        IndexNode indexNode = null;
         for (String path : indexPaths) {
+            IndexNode indexNode = null;
             try {
                 indexNode = tracker.acquireIndexNode(path);
 
