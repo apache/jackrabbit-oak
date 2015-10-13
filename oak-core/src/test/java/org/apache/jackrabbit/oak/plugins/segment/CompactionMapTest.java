@@ -46,7 +46,6 @@ import javax.annotation.Nonnull;
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -213,7 +212,6 @@ public class CompactionMapTest {
      * See OAK-3511
      */
     @Test
-    @Ignore("OAK-3511")  // FIXME OAK-3511
     public void removeRecentKey() {
         compactionMap1.compress();
 
