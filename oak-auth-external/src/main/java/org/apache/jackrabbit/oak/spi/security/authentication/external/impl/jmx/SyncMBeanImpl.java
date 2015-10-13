@@ -315,7 +315,7 @@ public class SyncMBeanImpl implements SynchronizationMBean {
             String providerName = id.getExternalIdRef() == null
                     ? null
                     : id.getExternalIdRef().getProviderName();
-            return (providerName == null || providerName.isEmpty() || providerName.equals(idp.getName()));
+            return providerName != null && (providerName.isEmpty() || providerName.equals(idp.getName()));
         }
     }
 

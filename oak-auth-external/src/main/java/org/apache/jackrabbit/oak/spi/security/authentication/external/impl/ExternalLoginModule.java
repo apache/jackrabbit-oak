@@ -213,6 +213,10 @@ public class ExternalLoginModule extends AbstractLoginModule {
             }
 
             if (preAuthLogin != null) {
+                if (sId != null && !syncHandler.requiresSync(sId)) {
+                    log.debug("pre-authenticated external user {} does not require syncing.", sId);
+                    return false;
+                }
                 externalUser = idp.getUser(preAuthLogin.getUserId());
             } else {
                 externalUser = idp.authenticate(credentials);

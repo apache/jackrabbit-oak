@@ -67,7 +67,7 @@ public class DefaultSyncedIdentity implements SyncedIdentity {
 
     @Override
     public String toString() {
-        final StringBuilder sb = new StringBuilder("SyncedIdentityImpl{");
+        final StringBuilder sb = new StringBuilder("DefaultSyncedIdentity{");
         sb.append("id='").append(id).append('\'');
         sb.append(", ref=").append(ref);
         sb.append(", isGroup=").append(isGroup);

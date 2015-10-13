@@ -115,17 +115,16 @@ public class DefaultSyncContext implements SyncContext {
      */
     @CheckForNull
     public static DefaultSyncedIdentity createSyncedIdentity(@Nullable Authorizable auth) throws RepositoryException {
-        ExternalIdentityRef ref = (auth == null) ? null : getIdentityRef(auth);
-        if (ref == null) {
+        if (auth == null) {
             return null;
-        } else {
-            Value[] lmValues = auth.getProperty(REP_LAST_SYNCED);
-            long lastModified = -1;
-            if (lmValues != null && lmValues.length > 0) {
-                lastModified = lmValues[0].getLong();
-            }
-            return new DefaultSyncedIdentity(auth.getID(), ref, auth.isGroup(), lastModified);
         }
+        ExternalIdentityRef ref = getIdentityRef(auth);
+        Value[] lmValues = auth.getProperty(REP_LAST_SYNCED);
+        long lastModified = -1;
+        if (lmValues != null && lmValues.length > 0) {
+            lastModified = lmValues[0].getLong();
+        }
+        return new DefaultSyncedIdentity(auth.getID(), ref, auth.isGroup(), lastModified);
     }
 
     /**
