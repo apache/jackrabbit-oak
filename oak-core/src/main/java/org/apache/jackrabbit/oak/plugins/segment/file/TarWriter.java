@@ -35,6 +35,7 @@ import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -123,6 +124,8 @@ class TarWriter implements Closeable {
      */
     private RandomAccessFile access = null;
 
+    private FileChannel channel = null;
+
     /**
      * Flag to indicate a closed writer. Accessing a closed writer is illegal.
      * Should only be accessed from synchronized code.
@@ -177,15 +180,18 @@ class TarWriter implements Closeable {
      * @param lsb the least significant bits of the segment id
      * @return the byte buffer, or null if not in this file
      */
-    synchronized ByteBuffer readEntry(long msb, long lsb) throws IOException {
+    ByteBuffer readEntry(long msb, long lsb) throws IOException {
         checkState(!closed);
-        TarEntry entry = index.get(new UUID(msb, lsb));
+        
+        TarEntry entry;
+        synchronized (this) {
+            entry = index.get(new UUID(msb, lsb));
+        }
         if (entry != null) {
-            checkState(access != null); // implied by entry != null
+            checkState(channel != null); // implied by entry != null
             ByteBuffer data = ByteBuffer.allocate(entry.size());
-            access.seek(entry.offset());
-            access.readFully(data.array());
-            access.seek(access.length());
+            channel.read(data, entry.offset());
+            data.rewind();
             return data;
         } else {
             return null;
@@ -214,6 +220,7 @@ class TarWriter implements Closeable {
         checkState(!closed);
         if (access == null) {
             access = new RandomAccessFile(file, "rw");
+            channel = access.getChannel();
         }
 
         access.write(header);
