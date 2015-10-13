@@ -398,7 +398,21 @@ public class Segment {
     }
 
     static String readString(final RecordId id) {
-        return id.getSegmentId().getSegment().readString(id.getOffset());
+        final SegmentId segmentId = id.getSegmentId();
+        StringCache cache = segmentId.getTracker().getStringCache();
+        if (cache == null) {
+            return segmentId.getSegment().readString(id.getOffset());
+        } else {
+            long msb = segmentId.getMostSignificantBits();
+            long lsb = segmentId.getLeastSignificantBits();
+            return cache.getString(msb, lsb, id.getOffset(), new Function<Integer, String>() {
+                @Nullable
+                @Override
+                public String apply(Integer offset) {
+                    return segmentId.getSegment().loadString(offset);
+                }
+            });
+        }
     }
 
     private String readString(int offset) {
