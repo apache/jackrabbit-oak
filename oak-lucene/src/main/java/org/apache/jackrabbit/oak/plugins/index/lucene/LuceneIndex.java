@@ -1038,14 +1038,17 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
         final String path;
         final double score;
         final Iterable<String> suggestWords;
+        final boolean isVirtual;
 
         LuceneResultRow(String path, double score) {
+            this.isVirtual = false;
             this.path = path;
             this.score = score;
             this.suggestWords = Collections.emptySet();
         }
 
         LuceneResultRow(Iterable<String> suggestWords) {
+            this.isVirtual = true;
             this.path = "/";
             this.score = 1.0d;
             this.suggestWords = suggestWords;
@@ -1110,7 +1113,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
 
                 @Override
                 public boolean isVirtualRow() {
-                    return getPath() == null;
+                    return currentRow.isVirtual;
                 }
 
                 @Override
