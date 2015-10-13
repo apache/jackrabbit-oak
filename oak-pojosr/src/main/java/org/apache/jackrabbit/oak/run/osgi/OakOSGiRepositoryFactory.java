@@ -245,7 +245,7 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
         return descriptors;
     }
 
-    private static void shutdown(PojoServiceRegistry registry, int timeoutInSecs) throws BundleException {
+    static void shutdown(PojoServiceRegistry registry, int timeoutInSecs) throws BundleException {
         if (registry == null){
             return;
         }
