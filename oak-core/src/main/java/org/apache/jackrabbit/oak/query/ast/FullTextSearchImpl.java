@@ -215,13 +215,23 @@ public class FullTextSearchImpl extends ConstraintImpl {
     
     private static void appendString(StringBuilder buff, PropertyValue p) {
         if (p.isArray()) {
-            for (String v : p.getValue(STRINGS)) {
-                buff.append(v).append(' ');
+            if (p.getType() == Type.BINARIES) {
+                // OAK-3495: don't try to load binaries as this would 
+                // run out of memory
+            } else {
+                for (String v : p.getValue(STRINGS)) {
+                    buff.append(v).append(' ');
+                }
             }
         } else {
-            buff.append(p.getValue(STRING)).append(' ');
+            if (p.getType() == Type.BINARY) {
+                // OAK-3495: don't try to load binaries as this would 
+                // run out of memory
+            } else {
+                buff.append(p.getValue(STRING)).append(' ');
+            }
         }
-    }
+    }    
 
     public void bindSelector(SourceImpl source) {
         selector = source.getExistingSelector(selectorName);
