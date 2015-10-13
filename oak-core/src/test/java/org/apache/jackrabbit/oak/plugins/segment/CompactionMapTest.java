@@ -23,8 +23,10 @@ import static com.google.common.collect.Iterables.get;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.io.File.createTempFile;
+import static java.util.Collections.singleton;
 import static org.apache.commons.io.FileUtils.deleteDirectory;
 import static org.apache.jackrabbit.oak.plugins.segment.CompactionMap.sum;
+import static org.apache.jackrabbit.oak.plugins.segment.TestUtils.newRecordId;
 import static org.apache.jackrabbit.oak.plugins.segment.TestUtils.randomRecordIdMap;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -44,6 +46,7 @@ import javax.annotation.Nonnull;
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -204,6 +207,26 @@ public class CompactionMapTest {
         assertEquals(1, consed.getDepth());
         assertEquals(0, sum(compactionMap.getSegmentCounts()));
         assertEquals(expectedGeneration + 1, consed.getGeneration());
+    }
+
+    /**
+     * See OAK-3511
+     */
+    @Test
+    @Ignore("OAK-3511")  // FIXME OAK-3511
+    public void removeRecentKey() {
+        compactionMap1.compress();
+
+        // Find a key not present in the compaction map
+        RecordId key = newRecordId(store.getTracker(), rnd);
+        while (compactionMap1.get(key) != null) {
+            key = newRecordId(store.getTracker(), rnd);
+        }
+
+        // Add it and immediately remove it, after which is should be gone
+        compactionMap1.put(key, newRecordId(store.getTracker(), rnd));
+        compactionMap1.remove(singleton(key.asUUID()));
+        assertNull("Compaction map must not contain removed key", compactionMap1.get(key));
     }
 
 }
