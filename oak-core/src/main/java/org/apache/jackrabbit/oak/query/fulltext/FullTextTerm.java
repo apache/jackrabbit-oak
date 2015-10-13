@@ -197,6 +197,7 @@ public class FullTextTerm extends FullTextExpression {
         return boost;
     }
     
+    @Override   
     public boolean isNot() {
         return not;
     }
