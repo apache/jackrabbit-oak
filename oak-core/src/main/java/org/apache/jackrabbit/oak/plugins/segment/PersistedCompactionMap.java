@@ -229,9 +229,9 @@ public class PersistedCompactionMap implements PartialCompactionMap {
                     ", baseId=" + previousBaseId + '}';
             writer.writeString(mapInfo);
             writer.flush();
-            recent.clear();
         }
 
+        recent.clear();
         if (recordCount == 0) {
             entries = null;
         }
