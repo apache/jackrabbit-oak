@@ -28,10 +28,20 @@ import java.util.Random;
 
 import javax.annotation.Nonnull;
 
+// FIXME SegmentTestUtils duplicates this
 public final class TestUtils {
     private TestUtils() {}
 
-    // FIXME SegmentTestUtils duplicates this
+    public static RecordId newRecordId(SegmentTracker factory, Random random) {
+        SegmentId id = factory.newDataSegmentId();
+        RecordId r = new RecordId(id, newValidOffset(random));
+        return r;
+    }
+
+    public static int newValidOffset(Random random) {
+        return random.nextInt(MAX_SEGMENT_SIZE >> RECORD_ALIGN_BITS) << RECORD_ALIGN_BITS;
+    }
+
     /**
      * Returns a new valid record offset, between {@code a} and {@code b},
      * exclusive.
