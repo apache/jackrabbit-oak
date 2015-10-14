@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerM
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerObserver;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -50,6 +51,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.io.Closer;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
@@ -511,6 +513,7 @@ public class Oak {
     }
 
     public ContentRepository createContentRepository() {
+        final RepoStateCheckHook repoStateCheckHook = new RepoStateCheckHook();
         final List<Registration> regs = Lists.newArrayList();
         regs.add(whiteboard.register(Executor.class, getExecutor(), Collections.emptyMap()));
 
@@ -519,6 +522,7 @@ public class Oak {
 
         QueryIndexProvider indexProvider = CompositeQueryIndexProvider.compose(queryIndexProviders);
 
+        commitHooks.add(repoStateCheckHook);
         List<CommitHook> initHooks = new ArrayList<CommitHook>(commitHooks);
         initHooks.add(new EditorHook(CompositeEditorProvider
                 .compose(editorProviders)));
@@ -584,6 +588,7 @@ public class Oak {
             @Override
             public void close() throws IOException {
                 super.close();
+                repoStateCheckHook.close();
                 new CompositeRegistration(regs).unregister();
             }
         };
@@ -635,6 +640,29 @@ public class Oak {
      */
     public Root createRoot() {
         return createContentSession().getLatestRoot();
+    }
+
+    /**
+     * CommitHook to ensure that commit only go through till repository is not
+     * closed. Once repository is closed the commits would be failed
+     */
+    private static class RepoStateCheckHook implements CommitHook, Closeable {
+        private volatile boolean closed;
+
+        @Nonnull
+        @Override
+        public NodeState processCommit(NodeState before, NodeState after, CommitInfo info) throws CommitFailedException {
+            if (closed){
+                throw new CommitFailedException(
+                        CommitFailedException.OAK, 2, "ContentRepository closed");
+            }
+            return after;
+        }
+
+        @Override
+        public void close() throws IOException {
+            this.closed = true;
+        }
     }
 
 }
