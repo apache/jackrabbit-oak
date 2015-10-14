@@ -98,6 +98,7 @@ public class RepositoryManager {
                 "queue exceed 90% of its capacity.")
     private static final String COMMIT_RATE_LIMIT = "oak.observation.limit-commit-rate";
 
+    private OsgiRepository repository;
     @Activate
     public void activate(BundleContext bundleContext, Map<String, ?> config) throws Exception {
         observationQueueLength = PropertiesUtil.toInteger(prop(
@@ -136,6 +137,12 @@ public class RepositoryManager {
     public void deactivate() {
         if (registration != null) {
             registration.unregister();
+            registration = null;
+        }
+
+        if (repository != null) {
+            repository.shutdown();
+            repository = null;
         }
 
         initializers.stop();
@@ -163,10 +170,14 @@ public class RepositoryManager {
             oak.with(commitRateLimiter);
         }
 
-        return bundleContext.registerService(
-                Repository.class.getName(),
-                new OsgiRepository(oak.createContentRepository(), whiteboard, securityProvider,
-                        observationQueueLength, commitRateLimiter),
-                new Properties());
+        repository = new OsgiRepository(
+                oak.createContentRepository(),
+                whiteboard,
+                securityProvider,
+                observationQueueLength,
+                commitRateLimiter
+        );
+
+        return bundleContext.registerService(Repository.class.getName(), repository, new Properties());
     }
 }
