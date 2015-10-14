@@ -16,16 +16,22 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
+import java.lang.reflect.Field;
 import java.security.Principal;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import javax.jcr.Session;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
+import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
@@ -33,11 +39,11 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -49,7 +55,8 @@ import static org.junit.Assert.assertTrue;
  * The tests are executed both for the set of principals associated with the test
  * user and with the admin session.
  * The expected outcome is that the composite provider behaves exactly like the
- * default provider (i.e. is never respected during evaluation).
+ * default provider (i.e. the {@code NotSupportingProvider} is never respected
+ * during evaluation).
  *
  * While there is no real use in such a {@link AggregatedPermissionProvider}, that
  * is never called, is is used here to verify that the composite provider doesn't
@@ -81,7 +88,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
 
     @Override
     protected AggregatedPermissionProvider getTestPermissionProvider() {
-        return new NotSupportingProvider();
+        return new NoScopeProvider();
     }
 
     @Test
@@ -97,7 +104,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
 
     @Test
     public void testGetPrivilegesAdmin() throws Exception {
-        Set<String> expected = ImmutableSet.of(PrivilegeConstants.JCR_ALL);
+        Set<String> expected = ImmutableSet.of(JCR_ALL);
         for (String p : NODE_PATHS) {
             Tree tree = root.getTree(p);
 
@@ -108,7 +115,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
 
     @Test
     public void testGetPrivilegesOnRepo() throws Exception {
-        Set<String> expected = ImmutableSet.of(PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT, PrivilegeConstants.JCR_NODE_TYPE_DEFINITION_MANAGEMENT);
+        Set<String> expected = ImmutableSet.of(JCR_NAMESPACE_MANAGEMENT, JCR_NODE_TYPE_DEFINITION_MANAGEMENT);
 
         assertEquals(expected, cppTestUser.getPrivileges(null));
         assertEquals(defTestUser.getPrivileges(null), cppTestUser.getPrivileges(null));
@@ -116,7 +123,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
 
     @Test
     public void testGetPrivilegesOnRepoAdmin() throws Exception {
-        Set<String> expected = ImmutableSet.of(PrivilegeConstants.JCR_ALL);
+        Set<String> expected = ImmutableSet.of(JCR_ALL);
 
         assertEquals(expected, cppAdminUser.getPrivileges(null));
         assertEquals(defAdminUser.getPrivileges(null), cppAdminUser.getPrivileges(null));
@@ -140,37 +147,28 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
         for (String p : NODE_PATHS) {
             Tree tree = root.getTree(p);
 
-            assertTrue(p, cppAdminUser.hasPrivileges(tree, PrivilegeConstants.JCR_ALL));
-            assertEquals(p, defAdminUser.hasPrivileges(tree, PrivilegeConstants.JCR_ALL), cppAdminUser.hasPrivileges(tree, PrivilegeConstants.JCR_ALL));
+            assertTrue(p, cppAdminUser.hasPrivileges(tree, JCR_ALL));
+            assertTrue(p, defAdminUser.hasPrivileges(tree, JCR_ALL));
         }
     }
 
     @Test
     public void testHasPrivilegesOnRepo() throws Exception {
-        assertTrue(cppTestUser.hasPrivileges(null, PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT, PrivilegeConstants.JCR_NODE_TYPE_DEFINITION_MANAGEMENT));
-        assertEquals(
-                defTestUser.hasPrivileges(null, PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT, PrivilegeConstants.JCR_NODE_TYPE_DEFINITION_MANAGEMENT),
-                cppTestUser.hasPrivileges(null, PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT, PrivilegeConstants.JCR_NODE_TYPE_DEFINITION_MANAGEMENT));
+        assertTrue(cppTestUser.hasPrivileges(null, JCR_NAMESPACE_MANAGEMENT, JCR_NODE_TYPE_DEFINITION_MANAGEMENT));
+        assertTrue(defTestUser.hasPrivileges(null, JCR_NAMESPACE_MANAGEMENT, JCR_NODE_TYPE_DEFINITION_MANAGEMENT));
 
         assertTrue(cppTestUser.hasPrivileges(null));
-        assertEquals(
-                defTestUser.hasPrivileges(null),
-                cppTestUser.hasPrivileges(null));
+        assertTrue(defTestUser.hasPrivileges(null));
     }
 
     @Test
     public void testHasPrivilegeOnRepoAdminUser() throws Exception {
-        assertTrue(cppAdminUser.hasPrivileges(null, PrivilegeConstants.JCR_ALL));
-        assertEquals(
-                defAdminUser.hasPrivileges(null, PrivilegeConstants.JCR_ALL),
-                cppAdminUser.hasPrivileges(null, PrivilegeConstants.JCR_ALL));
+        assertTrue(cppAdminUser.hasPrivileges(null, JCR_ALL));
+        assertTrue(defAdminUser.hasPrivileges(null, JCR_ALL));
 
         assertTrue(cppAdminUser.hasPrivileges(null));
-        assertEquals(
-                defAdminUser.hasPrivileges(null),
-                cppAdminUser.hasPrivileges(null));
+        assertTrue(defAdminUser.hasPrivileges(null));
     }
-
 
     @Test
     public void testIsGranted() throws Exception {
@@ -179,7 +177,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
             Tree tree = root.getTree(p);
 
             assertTrue(p, cppTestUser.isGranted(tree, null, expected));
-            assertEquals(p, defTestUser.isGranted(tree, null, expected), cppTestUser.isGranted(tree, null, expected));
+            assertTrue(p, defTestUser.isGranted(tree, null, expected));
         }
     }
 
@@ -189,18 +187,66 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
             Tree tree = root.getTree(p);
 
             assertTrue(p, cppAdminUser.isGranted(tree, null, Permissions.ALL));
-            assertEquals(p, defAdminUser.isGranted(tree, null, Permissions.ALL), cppAdminUser.isGranted(tree, null, Permissions.ALL));
+            assertTrue(p, defAdminUser.isGranted(tree, null, Permissions.ALL));
         }
     }
 
     @Test
     public void testIsGrantedProperty() throws Exception {
-        // TODO
+        for (String p : defPermissions.keySet()) {
+            long expected = defPermissions.get(p);
+            Tree tree = root.getTree(p);
+
+            assertTrue(p, cppTestUser.isGranted(tree, PROPERTY_STATE, expected));
+            assertTrue(p, defTestUser.isGranted(tree, PROPERTY_STATE, expected));
+        }
+    }
+
+    @Test
+    public void testIsGrantedPropertyAdmin() throws Exception {
+        for (String p : defPermissions.keySet()) {
+            Tree tree = root.getTree(p);
+
+            assertTrue(p, cppAdminUser.isGranted(tree, PROPERTY_STATE, Permissions.ALL));
+            assertTrue(p, defAdminUser.isGranted(tree, PROPERTY_STATE, Permissions.ALL));
+        }
     }
 
     @Test
     public void testIsGrantedAction() throws Exception {
-        // TODO
+        for (String p : defActionsGranted.keySet()) {
+            String actions = getActionString(defActionsGranted.get(p));
+            assertTrue(p + " : " + actions, cppTestUser.isGranted(p, actions));
+            assertTrue(p + " : " + actions, defTestUser.isGranted(p, actions));
+        }
+    }
+
+    @Test
+    public void testIsGrantedAction2() throws Exception {
+        Map<String, String[]> noAccess = ImmutableMap.<String, String[]>builder().
+                put(ROOT_PATH, new String[] {Session.ACTION_READ}).
+                put(ROOT_PATH + "jcr:primaryType", new String[] {Session.ACTION_READ, Session.ACTION_SET_PROPERTY}).
+                put("/nonexisting", new String[] {Session.ACTION_READ, Session.ACTION_ADD_NODE}).
+                put(TEST_PATH_2, new String[] {Session.ACTION_READ, Session.ACTION_REMOVE}).
+                put(TEST_PATH_2 + "/jcr:primaryType", new String[] {Session.ACTION_READ, Session.ACTION_SET_PROPERTY}).
+                put(TEST_A_B_C_PATH, new String[] {Session.ACTION_READ, Session.ACTION_REMOVE}).
+                put(TEST_A_B_C_PATH + "/noneExisting", new String[] {Session.ACTION_READ, JackrabbitSession.ACTION_REMOVE_NODE}).
+                put(TEST_A_B_C_PATH + "/jcr:primaryType", new String[] {JackrabbitSession.ACTION_REMOVE_PROPERTY}).build();
+
+        for (String p : noAccess.keySet()) {
+            String actions = getActionString(noAccess.get(p));
+            assertFalse(p, cppTestUser.isGranted(p, actions));
+            assertFalse(p, defTestUser.isGranted(p, actions));
+        }
+    }
+
+    @Test
+    public void testIsGrantedActionAdmin() throws Exception {
+        String allActions = getActionString(ALL_ACTIONS);
+        for (String p : defActionsGranted.keySet()) {
+            assertTrue(p + " : " + allActions, cppAdminUser.isGranted(p, allActions));
+            assertTrue(p + " : " + allActions, defAdminUser.isGranted(p, allActions));
+        }
     }
 
     @Test
@@ -220,75 +266,126 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
     }
 
     @Test
-    public void testGetTreePermission() throws Exception {
-        // TODO
+    public void testTreePermissionIsGranted() throws Exception {
+        TreePermission parentPermission = TreePermission.EMPTY;
+
+        for (String path : TP_PATHS) {
+            TreePermission tp = cppTestUser.getTreePermission(root.getTree(path), parentPermission);
+            Long toTest = (defPermissions.containsKey(path)) ? defPermissions.get(path) : defPermissions.get(PathUtils.getAncestorPath(path, 1));
+            if (toTest != null) {
+                assertTrue(tp.isGranted(toTest));
+            }
+            parentPermission = tp;
+        }
     }
 
-    private static final class NotSupportingProvider implements AggregatedPermissionProvider {
+    @Test
+    public void testTreePermissionIsGrantedProperty() throws Exception {
+        TreePermission parentPermission = TreePermission.EMPTY;
 
-        @Nonnull
-        @Override
-        public PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits) {
-            return PrivilegeBits.EMPTY;
+        for (String path : TP_PATHS) {
+            TreePermission tp = cppTestUser.getTreePermission(root.getTree(path), parentPermission);
+            Long toTest = (defPermissions.containsKey(path)) ? defPermissions.get(path) : defPermissions.get(PathUtils.getAncestorPath(path, 1));
+            if (toTest != null) {
+                assertTrue(tp.isGranted(toTest, PROPERTY_STATE));
+            }
+            parentPermission = tp;
         }
+    }
 
-        @Override
-        public long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property, long permissions) {
-            return Permissions.NO_PERMISSION;
+    @Test
+    public void testTreePermissionCanRead() throws Exception {
+        Map<String, Boolean> readMap = ImmutableMap.<String, Boolean>builder().
+                put(ROOT_PATH, false).
+                put(TEST_PATH, true).
+                put(TEST_A_PATH, true).
+                put(TEST_A_B_PATH, true).
+                put(TEST_A_B_C_PATH, false).
+                put(TEST_A_B_C_PATH + "/nonexisting", false).
+                build();
+
+        TreePermission parentPermission = TreePermission.EMPTY;
+        TreePermission parentPermission2 = TreePermission.EMPTY;
+        for (String nodePath : readMap.keySet()) {
+            Tree tree = root.getTree(nodePath);
+            TreePermission tp = cppTestUser.getTreePermission(tree, parentPermission);
+            TreePermission tp2 = defTestUser.getTreePermission(tree, parentPermission2);
+
+            boolean expectedResult = readMap.get(nodePath);
+            assertEquals(nodePath, expectedResult, tp.canRead());
+            assertEquals(nodePath + "(default)", expectedResult, tp2.canRead());
+
+            parentPermission = tp;
+            parentPermission2 = tp2;
         }
+    }
 
-        @Override
-        public long supportedPermissions(@Nonnull TreeLocation location, long permissions) {
-            return Permissions.NO_PERMISSION;
+    @Test
+    public void testTreePermissionCanReadProperty() throws Exception {
+        Map<String, Boolean> readMap = ImmutableMap.<String, Boolean>builder().
+                put(ROOT_PATH, false).
+                put(TEST_PATH, true).
+                put(TEST_A_PATH, true).
+                put(TEST_A_B_PATH, true).
+                put(TEST_A_B_C_PATH, true).
+                put(TEST_A_B_C_PATH + "/nonexisting", true).
+                build();
+
+        TreePermission parentPermission = TreePermission.EMPTY;
+        TreePermission parentPermission2 = TreePermission.EMPTY;
+        for (String nodePath : readMap.keySet()) {
+            Tree tree = root.getTree(nodePath);
+
+            TreePermission tp = cppTestUser.getTreePermission(tree, parentPermission);
+            TreePermission tp2 = defTestUser.getTreePermission(tree, parentPermission2);
+
+            boolean expectedResult = readMap.get(nodePath);
+            assertEquals(nodePath, expectedResult, tp.canRead(PROPERTY_STATE));
+            assertEquals(nodePath + "(default)", expectedResult, tp2.canRead(PROPERTY_STATE));
+
+            parentPermission = tp;
+            parentPermission2 = tp2;
         }
+    }
 
-        @Override
-        public long supportedPermissions(@Nonnull TreePermission treePermission, long permissions) {
-            return Permissions.NO_PERMISSION;
+    @Test
+    public void testTreePermissionCanReadAdmin() {
+        TreePermission parentPermission = TreePermission.EMPTY;
+        TreePermission parentPermission2 = TreePermission.EMPTY;
+
+        for (String nodePath : TP_PATHS) {
+            Tree tree = root.getTree(nodePath);
+
+            TreePermission tp = cppAdminUser.getTreePermission(tree, parentPermission);
+            TreePermission tp2 = defAdminUser.getTreePermission(tree, parentPermission2);
+
+            assertTrue(nodePath, tp.canRead());
+            assertTrue(nodePath, tp.canRead(PROPERTY_STATE));
+
+            assertTrue(nodePath + "(default)", tp2.canRead());
+            assertTrue(nodePath + "(default)", tp2.canRead(PROPERTY_STATE));
+
+            parentPermission = tp;
+            parentPermission2 = tp2;
         }
+    }
 
-        @Override
-        public boolean isGranted(@Nonnull TreeLocation location, long permissions) {
-            throw new UnsupportedOperationException("should never get here");
-        }
+    @Test
+    public void testTreePermissionMapSize() throws Exception {
+        Field mapField = CompositeTreePermission.class.getDeclaredField("map");
+        mapField.setAccessible(true);
 
-        @Override
-        public void refresh() {
-            // nop
-        }
 
-        @Nonnull
-        @Override
-        public Set<String> getPrivileges(@Nullable Tree tree) {
-            throw new UnsupportedOperationException("should never get here");
-        }
+        NodeState ns = ((ImmutableTree) RootFactory.createReadOnlyRoot(root).getTree(ROOT_PATH)).getNodeState();
+        TreePermission tp = cppTestUser.getTreePermission(root.getTree(ROOT_PATH), TreePermission.EMPTY);
+        assertEquals(2, ((Map<AggregatedPermissionProvider, TreePermission>) mapField.get(tp)).size());
 
-        @Override
-        public boolean hasPrivileges(@Nullable Tree tree, @Nonnull String... privilegeNames) {
-            throw new UnsupportedOperationException("should never get here");
-        }
+        List<String> childNames = ImmutableList.of("test", "a", "b", "c", "nonexisting");
+        for (String cName : childNames) {
+            ns = ns.getChildNode(cName);
+            tp = tp.getChildPermission(cName, ns);
 
-        @Nonnull
-        @Override
-        public RepositoryPermission getRepositoryPermission() {
-            throw new UnsupportedOperationException("should never get here");
-        }
-
-        @Nonnull
-        @Override
-        public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
-            // TODO: fix such that this is no required
-            return TreePermission.EMPTY;
-        }
-
-        @Override
-        public boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
-            throw new UnsupportedOperationException("should never get here");
-        }
-
-        @Override
-        public boolean isGranted(@Nonnull String oakPath, @Nonnull String jcrActions) {
-            throw new UnsupportedOperationException("should never get here");
+            assertEquals(1, ((Map<AggregatedPermissionProvider, TreePermission>) mapField.get(tp)).size());
         }
     }
 }

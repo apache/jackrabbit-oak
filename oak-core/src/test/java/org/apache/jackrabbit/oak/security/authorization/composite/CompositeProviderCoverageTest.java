@@ -16,69 +16,77 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
+import java.security.Principal;
+import java.util.List;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.Session;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.EmptyPermissionProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Test the effect of the combination of
+ * Test the {@link org.apache.jackrabbit.oak.security.authorization.composite.CompositePermissionProvider}
+ * where permissions are granted but not all permissions/privileges have been
+ * covered by the call. This might be the case when combining different
+ * providers that don't cover the full set of permissions/privileges.
  *
- * - default permission provider, which always grants full access to an administrative session.
- * - custom provider that prevents all access but supports all permissions and
- *   thus is always called during composite evaluation.
+ * For simplicity the test only lists a single provider which only supports a
+ * limited set of permissions|privileges.
  *
- * The tests are executed with the set of principals associated with the admin session,
- * which in the default permission provider is granted full access.
- *
- * The expected outcome is that despite the default provider granting full access,
- * the combination effectively prevents any access.
+ * The expected result is:
+ * - testing for the supported privileges|permissions must reveal that it is granted
+ * - any other combination of permissions|privileges must be denied.
  */
-public class CompositeProviderEmptyTest extends AbstractCompositeProviderTest {
+public class CompositeProviderCoverageTest extends AbstractCompositeProviderTest {
 
     private CompositePermissionProvider cpp;
 
     @Override
     public void before() throws Exception {
         super.before();
-        cpp = createPermissionProvider(root.getContentSession().getAuthInfo().getPrincipals());
+
+        cpp = createPermissionProvider();
     }
 
     @Override
-    protected AggregatedPermissionProvider getTestPermissionProvider() {
-        return new EmptyAggregatedProvider(root);
+    AggregatedPermissionProvider getTestPermissionProvider() {
+        return new LimitCoverageProvider();
+    }
+
+    @Override
+    List<AggregatedPermissionProvider> getAggregatedProviders(@Nonnull String workspaceName, @Nonnull AuthorizationConfiguration config, @Nonnull Set<Principal> principals) {
+        return ImmutableList.of(getTestPermissionProvider());
     }
 
     @Test
     public void testGetPrivileges() throws Exception {
         for (String p : NODE_PATHS) {
-            assertTrue(cpp.getPrivileges(root.getTree(p)).isEmpty());
+            assertEquals(ImmutableSet.of(REP_READ_NODES), cpp.getPrivileges(root.getTree(p)));
         }
     }
 
     @Test
     public void testGetPrivilegesOnRepo() throws Exception {
-        assertTrue(cpp.getPrivileges(null).isEmpty());
+        assertEquals(ImmutableSet.of(JCR_NAMESPACE_MANAGEMENT), cpp.getPrivileges(null));
     }
 
     @Test
@@ -86,15 +94,18 @@ public class CompositeProviderEmptyTest extends AbstractCompositeProviderTest {
         for (String p : NODE_PATHS) {
             Tree tree = root.getTree(p);
 
+            assertTrue(cpp.hasPrivileges(tree, REP_READ_NODES));
             assertFalse(cpp.hasPrivileges(tree, JCR_READ));
             assertFalse(cpp.hasPrivileges(tree, JCR_WRITE));
-            assertFalse(cpp.hasPrivileges(tree, REP_READ_NODES));
+            assertFalse(cpp.hasPrivileges(tree, JCR_ALL));
         }
     }
 
     @Test
     public void testHasPrivilegesOnRepo() throws Exception {
-        assertFalse(cpp.hasPrivileges(null, JCR_NAMESPACE_MANAGEMENT));
+        assertTrue(cpp.hasPrivileges(null, JCR_NAMESPACE_MANAGEMENT));
+        assertFalse(cpp.hasPrivileges(null, JCR_NODE_TYPE_DEFINITION_MANAGEMENT));
+        assertFalse(cpp.hasPrivileges(null, JCR_ALL));
     }
 
 
@@ -103,9 +114,10 @@ public class CompositeProviderEmptyTest extends AbstractCompositeProviderTest {
         for (String p : NODE_PATHS) {
             Tree tree = root.getTree(p);
 
-            assertFalse(cpp.isGranted(tree, null, Permissions.READ_NODE));
-            assertFalse(cpp.isGranted(tree, null, Permissions.READ_NODE | Permissions.MODIFY_CHILD_NODE_COLLECTION));
-            assertFalse(cpp.isGranted(tree, null, Permissions.READ_ACCESS_CONTROL | Permissions.MODIFY_ACCESS_CONTROL));
+            assertTrue(cpp.isGranted(tree, null, Permissions.READ_NODE));
+            assertFalse(cpp.isGranted(tree, null, Permissions.LOCK_MANAGEMENT));
+            assertFalse(cpp.isGranted(tree, null, Permissions.ALL));
+            assertFalse(cpp.isGranted(tree, null, Permissions.READ_NODE | Permissions.LOCK_MANAGEMENT));
         }
     }
 
@@ -114,11 +126,11 @@ public class CompositeProviderEmptyTest extends AbstractCompositeProviderTest {
         for (String p : NODE_PATHS) {
             Tree tree = root.getTree(p);
 
+            assertTrue(cpp.isGranted(tree, PROPERTY_STATE, Permissions.READ_NODE));
             assertFalse(cpp.isGranted(tree, PROPERTY_STATE, Permissions.READ_PROPERTY));
-            assertFalse(cpp.isGranted(tree, PROPERTY_STATE, Permissions.MODIFY_PROPERTY));
-            assertFalse(cpp.isGranted(tree, PROPERTY_STATE, Permissions.ADD_PROPERTY));
-            assertFalse(cpp.isGranted(tree, PROPERTY_STATE, Permissions.REMOVE_PROPERTY));
-            assertFalse(cpp.isGranted(tree, PROPERTY_STATE, Permissions.READ_ACCESS_CONTROL | Permissions.MODIFY_ACCESS_CONTROL));
+            assertFalse(cpp.isGranted(tree, PROPERTY_STATE, Permissions.LOCK_MANAGEMENT));
+            assertFalse(cpp.isGranted(tree, PROPERTY_STATE, Permissions.ALL));
+            assertFalse(cpp.isGranted(tree, PROPERTY_STATE, Permissions.READ_NODE | Permissions.LOCK_MANAGEMENT));
         }
     }
 
@@ -126,12 +138,17 @@ public class CompositeProviderEmptyTest extends AbstractCompositeProviderTest {
     public void testIsGrantedAction() throws Exception {
         for (String nodePath : NODE_PATHS) {
             String propPath = PathUtils.concat(nodePath, JcrConstants.JCR_PRIMARYTYPE);
-            String nonExisting = PathUtils.concat(nodePath, "nonExisting");
+
+            assertTrue(cpp.isGranted(nodePath, Session.ACTION_READ));
+            assertFalse(cpp.isGranted(propPath, Session.ACTION_READ));
 
             assertFalse(cpp.isGranted(nodePath, Session.ACTION_REMOVE));
             assertFalse(cpp.isGranted(propPath, JackrabbitSession.ACTION_MODIFY_PROPERTY));
 
             assertFalse(cpp.isGranted(nodePath, getActionString(JackrabbitSession.ACTION_MODIFY_ACCESS_CONTROL, JackrabbitSession.ACTION_READ_ACCESS_CONTROL)));
+
+            String nonExisting = PathUtils.concat(nodePath, "nonExisting");
+            assertFalse(cpp.isGranted(nonExisting, Session.ACTION_READ));
             assertFalse(cpp.isGranted(nonExisting, JackrabbitSession.ACTION_ADD_PROPERTY));
             assertFalse(cpp.isGranted(nonExisting, Session.ACTION_ADD_NODE));
         }
@@ -140,21 +157,21 @@ public class CompositeProviderEmptyTest extends AbstractCompositeProviderTest {
     @Test
     public void testRepositoryPermissionsIsGranted() throws Exception {
         RepositoryPermission rp = cpp.getRepositoryPermission();
-        assertFalse(rp.isGranted(Permissions.NAMESPACE_MANAGEMENT));
+        assertTrue(rp.isGranted(Permissions.NAMESPACE_MANAGEMENT));
         assertFalse(rp.isGranted(Permissions.NODE_TYPE_DEFINITION_MANAGEMENT));
+        assertFalse(rp.isGranted(Permissions.ALL));
     }
 
     @Test
     public void testTreePermissionIsGranted() throws Exception {
         TreePermission parentPermission = TreePermission.EMPTY;
-
         for (String path : TP_PATHS) {
             TreePermission tp = cpp.getTreePermission(root.getTree(path), parentPermission);
 
-            assertFalse(tp.isGranted(Permissions.READ_NODE));
+            assertTrue(tp.isGranted(Permissions.READ_NODE));
             assertFalse(tp.isGranted(Permissions.REMOVE_NODE));
+            assertFalse(tp.isGranted(Permissions.READ));
             assertFalse(tp.isGranted(Permissions.ALL));
-
 
             parentPermission = tp;
         }
@@ -169,6 +186,8 @@ public class CompositeProviderEmptyTest extends AbstractCompositeProviderTest {
 
             assertFalse(tp.isGranted(Permissions.READ_PROPERTY, PROPERTY_STATE));
             assertFalse(tp.isGranted(Permissions.REMOVE_PROPERTY, PROPERTY_STATE));
+            assertFalse(tp.isGranted(Permissions.READ, PROPERTY_STATE));
+            assertFalse(tp.isGranted(Permissions.ALL, PROPERTY_STATE));
 
             parentPermission = tp;
         }
@@ -181,7 +200,8 @@ public class CompositeProviderEmptyTest extends AbstractCompositeProviderTest {
         for (String path : TP_PATHS) {
             Tree t = root.getTree(path);
             TreePermission tp = cpp.getTreePermission(t, parentPermission);
-            assertFalse(tp.canRead());
+
+            assertTrue(tp.canRead());
 
             parentPermission = tp;
         }
@@ -200,82 +220,80 @@ public class CompositeProviderEmptyTest extends AbstractCompositeProviderTest {
         }
     }
 
-    /**
-     * {@code AggregatedPermissionProvider} that doesn't grant any access.
-     */
-    private static final class EmptyAggregatedProvider implements AggregatedPermissionProvider {
+    private static final class LimitCoverageProvider implements AggregatedPermissionProvider {
 
-        private static final PermissionProvider BASE = EmptyPermissionProvider.getInstance();
-        private final Root root;
-
-        private EmptyAggregatedProvider(@Nonnull Root root) {
-            this.root = root;
+        @Nonnull
+        @Override
+        public PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits) {
+            PrivilegeBits supported = PrivilegeBits.getInstance(
+                    PrivilegeBits.BUILT_IN.get(JCR_NAMESPACE_MANAGEMENT),
+                    PrivilegeBits.BUILT_IN.get(REP_READ_NODES));
+            if (privilegeBits != null) {
+                return PrivilegeBits.getInstance(privilegeBits).retain(supported);
+            } else {
+                return supported;
+            }
         }
 
-        //---------------------------------------------< PermissionProvider >---
+        @Override
+        public long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property, long permissions) {
+            if (tree == null) {
+                return permissions & Permissions.NAMESPACE_MANAGEMENT;
+            } else {
+                return permissions & Permissions.READ_NODE;
+            }
+        }
+
+        @Override
+        public long supportedPermissions(@Nonnull TreeLocation location, long permissions) {
+            return permissions & Permissions.READ_NODE;
+        }
+
+        @Override
+        public long supportedPermissions(@Nonnull TreePermission treePermission, @Nullable PropertyState propertyState, long permissions) {
+            return permissions & Permissions.READ_NODE;
+        }
+
+        @Override
+        public boolean isGranted(@Nonnull TreeLocation location, long permissions) {
+            return true;
+        }
+
         @Override
         public void refresh() {
-            root.refresh();
         }
 
         @Nonnull
         @Override
         public Set<String> getPrivileges(@Nullable Tree tree) {
-            return BASE.getPrivileges(tree);
+            return (tree == null) ? ImmutableSet.of(JCR_NAMESPACE_MANAGEMENT) : ImmutableSet.of(REP_READ_NODES);
         }
 
         @Override
         public boolean hasPrivileges(@Nullable Tree tree, @Nonnull String... privilegeNames) {
-            return BASE.hasPrivileges(tree, privilegeNames);
+            return true;
         }
 
         @Nonnull
         @Override
         public RepositoryPermission getRepositoryPermission() {
-            return BASE.getRepositoryPermission();
+            return RepositoryPermission.ALL;
         }
 
         @Nonnull
         @Override
         public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
-            return BASE.getTreePermission(tree, parentPermission);
+            return TreePermission.ALL;
         }
 
         @Override
         public boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
-            return BASE.isGranted(tree, property, permissions);
+            return true;
         }
 
         @Override
         public boolean isGranted(@Nonnull String oakPath, @Nonnull String jcrActions) {
-            return BASE.isGranted(oakPath, jcrActions);
-        }
-
-        //-----------------------------------< AggregatedPermissionProvider >---
-        @Nonnull
-        @Override
-        public PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits) {
-            return (privilegeBits == null) ? new PrivilegeBitsProvider(root).getBits(JCR_ALL) : privilegeBits;
-        }
-
-        @Override
-        public long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property, long permissions) {
-            return permissions;
-        }
-
-        @Override
-        public long supportedPermissions(@Nonnull TreeLocation location, long permissions) {
-            return permissions;
-        }
-
-        @Override
-        public long supportedPermissions(@Nonnull TreePermission treePermission, @Nullable PropertyState propertyState, long permissions) {
-            return permissions;
-        }
-
-        @Override
-        public boolean isGranted(@Nonnull TreeLocation location, long permissions) {
-            return false;
+            return true;
         }
     }
 }
