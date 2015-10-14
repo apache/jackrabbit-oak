@@ -73,6 +73,13 @@ public interface SyncHandler {
     SyncedIdentity findIdentity(@Nonnull UserManager userManager, @Nonnull String id) throws RepositoryException;
 
     /**
+     * Checks if the identity requires sync based on the configuration, type and last sync time.
+     * @param identity the identity to check
+     * @return {@code true} if the identity requires synchronization.
+     */
+    boolean requiresSync(@Nonnull SyncedIdentity identity);
+
+    /**
      * Lists all externally synced identities.
      * @param userManager the user manager
      * @return an iterator over all authorizable that are externally synced.
@@ -80,4 +87,5 @@ public interface SyncHandler {
      */
     @Nonnull
     Iterator<SyncedIdentity> listIdentities(@Nonnull UserManager userManager) throws RepositoryException;
+
 }
