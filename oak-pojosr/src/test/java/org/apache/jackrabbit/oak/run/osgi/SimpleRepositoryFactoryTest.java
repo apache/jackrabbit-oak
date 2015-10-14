@@ -28,6 +28,7 @@ import javax.jcr.Repository;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -55,6 +56,7 @@ public class SimpleRepositoryFactoryTest {
 
         Repository repository = JcrUtils.getRepository(config);
         assertNotNull(repository);
+        ((JackrabbitRepository)repository).shutdown();
     }
 
 
