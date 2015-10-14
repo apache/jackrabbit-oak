@@ -118,6 +118,21 @@ public class DefaultSyncHandler implements SyncHandler {
     /**
      * {@inheritDoc}
      */
+    @Override
+    public boolean requiresSync(@Nonnull SyncedIdentity identity) {
+        if (identity.getExternalIdRef() == null || identity.lastSynced() < 0) {
+            return true;
+        }
+        final long now = System.currentTimeMillis();
+        final long expirationTime = identity.isGroup()
+                ? config.group().getExpirationTime()
+                : config.user().getExpirationTime();
+        return now - identity.lastSynced() > expirationTime;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     @Nonnull
     @Override
     public Iterator<SyncedIdentity> listIdentities(@Nonnull UserManager userManager) throws RepositoryException {
