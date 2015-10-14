@@ -235,16 +235,16 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
      */
     @Test
     public void testSupportedPermissionsByNullTree() {
-        assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(null, null, Permissions.READ));
-        assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(null, null, Permissions.READ_NODE));
-        assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(null, null, Permissions.READ_PROPERTY));
+        assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions((Tree) null, null, Permissions.READ));
+        assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions((Tree) null, null, Permissions.READ_NODE));
+        assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions((Tree) null, null, Permissions.READ_PROPERTY));
 
-        assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(null, null, Permissions.ALL));
-        assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(null, null, Permissions.READ_NODE | Permissions.READ_ACCESS_CONTROL));
+        assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions((Tree) null, null, Permissions.ALL));
+        assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions((Tree) null, null, Permissions.READ_NODE | Permissions.READ_ACCESS_CONTROL));
 
-        assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(null, null, Permissions.WRITE));
-        assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(null, null, Permissions.ADD_NODE|Permissions.REMOVE));
-        assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(null, null, Permissions.READ_ACCESS_CONTROL));
+        assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions((Tree) null, null, Permissions.WRITE));
+        assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions((Tree) null, null, Permissions.ADD_NODE|Permissions.REMOVE));
+        assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions((Tree) null, null, Permissions.READ_ACCESS_CONTROL));
     }
 
     /**
@@ -280,7 +280,7 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
     }
 
     /**
-     * @see org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider#supportedPermissions(org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission, long)
+     * @see org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider#supportedPermissions(org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission, org.apache.jackrabbit.oak.api.PropertyState, long)
      */
     @Test
     public void testSupportedPermissionsByTreePermission() {
@@ -314,19 +314,19 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
             boolean isInCug = tpMap.get(tp);
 
             if (isInCug) {
-                assertEquals(Permissions.READ, cugPermProvider.supportedPermissions(tp, Permissions.READ));
-                assertEquals(Permissions.READ_NODE, cugPermProvider.supportedPermissions(tp, Permissions.READ_NODE));
-                assertEquals(Permissions.READ_PROPERTY, cugPermProvider.supportedPermissions(tp, Permissions.READ_PROPERTY));
-                assertEquals(Permissions.READ, cugPermProvider.supportedPermissions(tp, Permissions.ALL));
-                assertEquals(Permissions.READ_NODE, cugPermProvider.supportedPermissions(tp, Permissions.READ_NODE | Permissions.READ_ACCESS_CONTROL));
+                assertEquals(Permissions.READ, cugPermProvider.supportedPermissions(tp, null, Permissions.READ));
+                assertEquals(Permissions.READ_NODE, cugPermProvider.supportedPermissions(tp, null, Permissions.READ_NODE));
+                assertEquals(Permissions.READ_PROPERTY, cugPermProvider.supportedPermissions(tp, null, Permissions.READ_PROPERTY));
+                assertEquals(Permissions.READ, cugPermProvider.supportedPermissions(tp, null, Permissions.ALL));
+                assertEquals(Permissions.READ_NODE, cugPermProvider.supportedPermissions(tp, null, Permissions.READ_NODE | Permissions.READ_ACCESS_CONTROL));
             } else {
-                assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(tp, Permissions.READ));
-                assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(tp, Permissions.READ_NODE));
-                assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(tp, Permissions.READ_PROPERTY));
-                assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(tp, Permissions.ALL));
-                assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(tp, Permissions.READ_NODE | Permissions.READ_ACCESS_CONTROL));
+                assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(tp, null, Permissions.READ));
+                assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(tp, null, Permissions.READ_NODE));
+                assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(tp, null, Permissions.READ_PROPERTY));
+                assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(tp, null, Permissions.ALL));
+                assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(tp, null, Permissions.READ_NODE | Permissions.READ_ACCESS_CONTROL));
             }
-            assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(tp, Permissions.ADD_NODE | Permissions.REMOVE));
+            assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(tp, null, Permissions.ADD_NODE | Permissions.REMOVE));
         }
     }
 

@@ -17,10 +17,10 @@
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
 /**
- * Same as {@link CompositeProviderLimitedTest}
+ * Same as {@link CompositeProviderFullScopeTest}
  * with reverse order of the aggregated providers.
  */
-public class CompositeProviderLimitedReverseTest extends CompositeProviderLimitedTest {
+public class CompositeProviderFullScopeReverseTest extends CompositeProviderFullScopeTest {
 
     @Override
     boolean reverseOrder() {

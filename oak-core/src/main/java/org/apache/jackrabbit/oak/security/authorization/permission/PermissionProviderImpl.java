@@ -133,7 +133,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     }
 
     @Override
-    public long supportedPermissions(@Nonnull TreePermission treePermission, long permissions) {
+    public long supportedPermissions(@Nonnull TreePermission treePermission, @Nullable PropertyState propertyState, long permissions) {
         return permissions;
     }
 

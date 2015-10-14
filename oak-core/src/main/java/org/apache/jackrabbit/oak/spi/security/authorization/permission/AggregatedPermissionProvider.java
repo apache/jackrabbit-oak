@@ -61,7 +61,7 @@ public interface AggregatedPermissionProvider extends PermissionProvider {
 
     long supportedPermissions(@Nonnull TreeLocation location, long permissions);
 
-    long supportedPermissions(@Nonnull TreePermission treePermission, long permissions);
+    long supportedPermissions(@Nonnull TreePermission treePermission, @Nullable PropertyState propertyState, long permissions);
 
     /**
      * Test if the specified permissions are granted for the set of {@code Principal}s
