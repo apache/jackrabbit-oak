@@ -20,36 +20,46 @@
 package org.apache.jackrabbit.oak.run.osgi
 
 import org.apache.felix.connect.launch.PojoServiceRegistry
-import org.apache.commons.io.FileUtils
 import org.apache.commons.io.FilenameUtils
 import org.apache.jackrabbit.api.JackrabbitRepository
 import org.junit.After
 import org.junit.Before
+import org.junit.Rule
+import org.junit.rules.TemporaryFolder
 import org.osgi.framework.ServiceReference
 import org.osgi.service.cm.ConfigurationAdmin
 import org.osgi.util.tracker.ServiceTracker
 
 import javax.jcr.*
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicInteger
 
 import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_HOME
-import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_STARTUP_TIMEOUT
+import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_TIMEOUT_IN_SECS
+import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_BUNDLE_FILTER
 
 abstract class AbstractRepositoryFactoryTest{
     static final int SVC_WAIT_TIME = Integer.getInteger("pojosr.waitTime", 10)
-    static final AtomicInteger counter = new AtomicInteger()
     Map config
     File workDir
     Repository repository
     RepositoryFactory repositoryFactory = new OakOSGiRepositoryFactory();
 
+    @Rule
+    public final TemporaryFolder tmpFolder = new TemporaryFolder()
+
     @Before
     void setUp() {
-        workDir = new File("target", "repotest-${counter.incrementAndGet()}-${System.currentTimeMillis()}");
+        workDir = tmpFolder.getRoot();
         config = [
                 (REPOSITORY_HOME): workDir.absolutePath,
-                (REPOSITORY_STARTUP_TIMEOUT) : 2
+                (REPOSITORY_TIMEOUT_IN_SECS) : 60,
+                (REPOSITORY_BUNDLE_FILTER) : '''
+                            (|
+                            (Bundle-SymbolicName=org.apache.jackrabbit*)
+                            (Bundle-SymbolicName=org.apache.sling*)
+                            (Bundle-SymbolicName=org.apache.felix*)
+                            (Bundle-SymbolicName=org.apache.aries*)
+                            )''',
         ]
     }
 
@@ -57,10 +67,6 @@ abstract class AbstractRepositoryFactoryTest{
     void tearDown() {
         if (repository instanceof JackrabbitRepository) {
             ((JackrabbitRepository) repository).shutdown();
-        }
-
-        if (workDir.exists()) {
-            FileUtils.deleteQuietly(workDir);
         }
     }
 
