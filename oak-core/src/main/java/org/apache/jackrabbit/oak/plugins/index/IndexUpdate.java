@@ -67,6 +67,34 @@ public class IndexUpdate implements Editor {
 
     private static final Logger log = LoggerFactory.getLogger(IndexUpdate.class);
 
+    /**
+     * <p>
+     * The value of this flag determines the behavior of the IndexUpdate when
+     * dealing with {@code reindex} flags.
+     * </p>
+     * <p>
+     * If {@code false} (default value), the indexer will start reindexing
+     * immediately in the current thread, blocking a commit until this operation
+     * is done.
+     * </p>
+     * <p>
+     * If {@code true}, the indexer will ignore the flag, therefore ignoring any
+     * reindex requests.
+     * </p>
+     * <p>
+     * This is only provided as a support tool (see OAK-3505) so it should be
+     * used with extreme caution!
+     * </p>
+     */
+    private static final boolean IGNORE_REINDEX_FLAGS = Boolean
+            .getBoolean("oak.indexUpdate.ignoreReindexFlags");
+
+    static {
+        if (IGNORE_REINDEX_FLAGS) {
+            log.warn("Reindexing is disabled by configuration. This value is configurable via the 'oak.indexUpdate.ignoreReindexFlags' system property.");
+        }
+    }
+
     private final IndexUpdateRootState rootState;
 
     private final NodeBuilder builder;
@@ -145,7 +173,7 @@ public class IndexUpdate implements Editor {
             String name) {
         PropertyState ps = definition.getProperty(REINDEX_PROPERTY_NAME);
         if (ps != null && ps.getValue(BOOLEAN)) {
-            return true;
+            return !IGNORE_REINDEX_FLAGS;
         }
         // reindex in the case this is a new node, even though the reindex flag
         // might be set to 'false' (possible via content import)
@@ -316,6 +344,16 @@ public class IndexUpdate implements Editor {
 
     public static class MissingIndexProviderStrategy {
 
+        /**
+         * The value of this flag determines the behavior of
+         * {@link #onMissingIndex(String, NodeBuilder, String)}. If
+         * {@code false} (default value), the method will set the
+         * {@code reindex} flag to true and log a warning. if {@code true}, the
+         * method will throw a {@link CommitFailedException} failing the commit.
+         */
+        private boolean failOnMissingIndexProvider = Boolean
+                .getBoolean("oak.indexUpdate.failOnMissingIndexProvider");
+
         private final Set<String> ignore = newHashSet("disabled");
 
         public void onMissingIndex(String type, NodeBuilder definition, String indexPath)
@@ -329,14 +367,25 @@ public class IndexUpdate implements Editor {
                 // already true, skip the update
                 return;
             }
-            log.warn(
-                    "Missing index provider of type [{}], requesting reindex on [{}]",
-                    type, indexPath);
-            definition.setProperty(REINDEX_PROPERTY_NAME, true);
+
+            if (failOnMissingIndexProvider) {
+                throw new CommitFailedException("IndexUpdate", 1,
+                        "Missing index provider detected for type [" + type
+                                + "] on index [" + indexPath + "]");
+            } else {
+                log.warn(
+                        "Missing index provider of type [{}], requesting reindex on [{}]",
+                        type, indexPath);
+                definition.setProperty(REINDEX_PROPERTY_NAME, true);
+            }
         }
 
         boolean isDisabled(String type) {
             return ignore.contains(type);
+        }
+
+        void setFailOnMissingIndexProvider(boolean failOnMissingIndexProvider) {
+            this.failOnMissingIndexProvider = failOnMissingIndexProvider;
         }
     }
 
