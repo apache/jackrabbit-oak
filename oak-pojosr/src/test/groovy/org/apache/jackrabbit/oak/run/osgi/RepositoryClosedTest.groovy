@@ -42,7 +42,6 @@ class RepositoryClosedTest extends AbstractRepositoryFactoryTest{
         config[REPOSITORY_CONFIG_FILE] = createConfigValue("oak-base-config.json", "oak-tar-config.json")
     }
 
-    @Ignore("OAK-3513")
     @Test
     public void sessionUsePostClose() throws Exception{
         repository = repositoryFactory.getRepository(config)
