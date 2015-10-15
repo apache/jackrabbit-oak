@@ -95,7 +95,7 @@ public class DefaultSyncContext implements SyncContext {
 
     protected final Value nowValue;
 
-    public DefaultSyncContext(DefaultSyncConfig config, ExternalIdentityProvider idp, UserManager userManager, ValueFactory valueFactory) {
+    public DefaultSyncContext(@Nonnull DefaultSyncConfig config, @Nonnull ExternalIdentityProvider idp, @Nonnull UserManager userManager, @Nonnull ValueFactory valueFactory) {
         this.config = config;
         this.idp = idp;
         this.userManager = userManager;
@@ -225,6 +225,7 @@ public class DefaultSyncContext implements SyncContext {
         return forceGroupSync;
     }
 
+    @Override
     @Nonnull
     public SyncContext setForceGroupSync(boolean forceGroupSync) {
         this.forceGroupSync = forceGroupSync;
@@ -357,7 +358,7 @@ public class DefaultSyncContext implements SyncContext {
      * @throws SyncException if the repository contains a colliding authorizable with the same name.
      */
     @CheckForNull
-    protected <T extends Authorizable> T getAuthorizable(@Nonnull ExternalIdentity external, Class<T> type)
+    protected <T extends Authorizable> T getAuthorizable(@Nonnull ExternalIdentity external, @Nonnull Class<T> type)
             throws RepositoryException, SyncException {
         Authorizable authorizable = userManager.getAuthorizable(external.getId());
         if (authorizable == null) {
@@ -469,7 +470,7 @@ public class DefaultSyncContext implements SyncContext {
      * @param depth recursion depth.
      * @throws RepositoryException
      */
-    protected void syncMembership(ExternalIdentity external, Authorizable auth, long depth)
+    protected void syncMembership(@Nonnull ExternalIdentity external, @Nonnull Authorizable auth, long depth)
             throws RepositoryException {
         if (depth <= 0) {
             return;
@@ -568,7 +569,7 @@ public class DefaultSyncContext implements SyncContext {
      * @param member the authorizable
      * @param groups set of groups.
      */
-    protected void applyMembership(Authorizable member, Set<String> groups) throws RepositoryException {
+    protected void applyMembership(@Nonnull Authorizable member, @Nonnull Set<String> groups) throws RepositoryException {
         for (String groupName: groups) {
             Authorizable group = userManager.getAuthorizable(groupName);
             if (group == null) {
@@ -590,7 +591,7 @@ public class DefaultSyncContext implements SyncContext {
      * @param mapping the property mapping
      * @throws RepositoryException if an error occurs
      */
-    protected void syncProperties(ExternalIdentity ext, Authorizable auth, Map<String, String> mapping)
+    protected void syncProperties(@Nonnull ExternalIdentity ext, @Nonnull Authorizable auth, @Nonnull Map<String, String> mapping)
             throws RepositoryException {
         Map<String, ?> properties = ext.getProperties();
         for (Map.Entry<String, String> entry: mapping.entrySet()) {
@@ -625,7 +626,7 @@ public class DefaultSyncContext implements SyncContext {
      * @param type debug message type
      * @return {@code true} if the authorizable needs sync
      */
-    protected boolean isExpired(Authorizable auth, long expirationTime, String type) throws RepositoryException {
+    protected boolean isExpired(@Nonnull Authorizable auth, long expirationTime, @Nonnull String type) throws RepositoryException {
         Value[] values = auth.getProperty(REP_LAST_SYNCED);
         if (values == null || values.length == 0) {
             if (log.isDebugEnabled()) {
@@ -688,7 +689,7 @@ public class DefaultSyncContext implements SyncContext {
      * @throws RepositoryException if an error occurs
      */
     @CheckForNull
-    protected Value[] createValues(Collection<?> propValues) throws RepositoryException {
+    protected Value[] createValues(@Nonnull Collection<?> propValues) throws RepositoryException {
         List<Value> values = new ArrayList<Value>();
         for (Object obj : propValues) {
             Value v = createValue(obj);
