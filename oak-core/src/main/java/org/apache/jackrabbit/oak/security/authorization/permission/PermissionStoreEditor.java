@@ -68,7 +68,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
         if (name.equals(REP_REPO_POLICY)) {
             accessControlledPath = "";
         } else {
-            accessControlledPath = aclPath.length() == 0 ? "/" : aclPath;
+            accessControlledPath = aclPath.isEmpty() ? "/" : aclPath;
         }
         nodeName = PermissionUtil.getEntryName(accessControlledPath);
 
@@ -151,7 +151,8 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
     }
 
     void updatePermissionEntries() {
-        for (String principalName: entries.keySet()) {
+        for (Map.Entry<String, List<AcEntry>> entry: entries.entrySet()) {
+            String principalName = entry.getKey();
             NodeBuilder principalRoot = permissionRoot.child(principalName);
             if (!principalRoot.hasProperty(JCR_PRIMARYTYPE)) {
                 principalRoot.setProperty(JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE, Type.NAME);
@@ -195,7 +196,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
                 // new parent
                 parent.setProperty(REP_ACCESS_CONTROLLED_PATH, accessControlledPath);
             }
-            updateEntries(parent, entries.get(principalName));
+            updateEntries(parent, entry.getValue());
         }
     }
 
