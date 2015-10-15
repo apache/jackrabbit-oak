@@ -545,8 +545,9 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
                 return false;
             }
 
-            for (String name : mandatoryAttributes.keySet()) {
-                String expectedValue = mandatoryAttributes.get(name);
+            for (Map.Entry<String,String> mandatory : mandatoryAttributes.entrySet()) {
+                String name = mandatory.getKey();
+                String expectedValue = mandatory.getValue();
                 if (!expectedValue.equals(tokenCredentials.getAttribute(name))) {
                     return false;
                 }
@@ -555,9 +556,10 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
             // update set of informative attributes on the credentials
             // based on the properties present on the token node.
             Collection<String> attrNames = Arrays.asList(tokenCredentials.getAttributeNames());
-            for (String name : publicAttributes.keySet()) {
+            for (Map.Entry<String,String> attr : publicAttributes.entrySet()) {
+                String name = attr.getKey();
                 if (!attrNames.contains(name)) {
-                    tokenCredentials.setAttribute(name, publicAttributes.get(name).toString());
+                    tokenCredentials.setAttribute(name, attr.getValue());
 
                 }
             }
