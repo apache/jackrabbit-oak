@@ -56,7 +56,8 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
         NodeUtil content = rootNode.addChild("content", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         content.addChild("subtree", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         rootNode.addChild("content2", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-        rootNode.addChild("testNode", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        NodeUtil testNode = rootNode.addChild("testNode", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        testNode.addChild("child", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         root.commit();
     }
 
@@ -64,6 +65,7 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
     public void after() throws Exception {
         try {
             root.getTree(SUPPORTED_PATH).remove();
+            root.getTree(SUPPORTED_PATH2).remove();
             root.getTree(UNSUPPORTED_PATH).remove();
             root.commit();
         } finally {

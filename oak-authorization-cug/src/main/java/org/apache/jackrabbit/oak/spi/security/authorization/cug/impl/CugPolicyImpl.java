@@ -58,6 +58,7 @@ class CugPolicyImpl implements CugPolicy {
     CugPolicyImpl(@Nonnull String oakPath, @Nonnull NamePathMapper namePathMapper,
                   @Nonnull PrincipalManager principalManager, int importBehavior,
                   @Nonnull Set<Principal> principals) {
+        ImportBehavior.nameFromValue(importBehavior);
         this.oakPath = oakPath;
         this.namePathMapper = namePathMapper;
         this.principalManager = principalManager;
@@ -150,7 +151,7 @@ class CugPolicyImpl implements CugPolicy {
                 log.debug("Best effort: don't verify existence of principals.");
                 break;
             default:
-                throw new IllegalArgumentException("Unsupported import behavior " + importBehavior);
+                throw new IllegalStateException("Unsupported import behavior " + importBehavior);
         }
         return isValid;
     }

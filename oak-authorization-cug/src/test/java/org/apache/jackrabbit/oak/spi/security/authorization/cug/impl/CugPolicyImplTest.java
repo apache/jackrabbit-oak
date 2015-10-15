@@ -142,6 +142,7 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
         Set<Principal> principalSet = cug.getPrincipals();
         assertEquals(2, principalSet.size());
         assertFalse(principalSet.contains(new PrincipalImpl("unknown")));
+        assertFalse(principalSet.contains(new PrincipalImpl("")));
     }
 
     @Test
@@ -154,6 +155,32 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
     }
 
     @Test
+    public void testAddNullPrincipal() throws Exception {
+        CugPolicy cug = new CugPolicyImpl(path, NamePathMapper.DEFAULT, principalManager, ImportBehavior.ABORT, principals);
+        assertTrue(cug.addPrincipals(EveryonePrincipal.getInstance(), null));
+
+        assertTrue(cug.getPrincipals().contains(EveryonePrincipal.getInstance()));
+        assertTrue(cug.getPrincipals().contains(testPrincipal));
+    }
+
+    @Test(expected = AccessControlException.class)
+    public void testAddEmptyPrincipalName() throws Exception {
+        CugPolicy cug = new CugPolicyImpl(path, NamePathMapper.DEFAULT, principalManager, ImportBehavior.BESTEFFORT);
+        cug.addPrincipals(new PrincipalImpl(""));
+    }
+
+    @Test(expected = AccessControlException.class)
+    public void testAddNullPrincipalName() throws Exception {
+        CugPolicy cug = new CugPolicyImpl(path, NamePathMapper.DEFAULT, principalManager, ImportBehavior.BESTEFFORT);
+        cug.addPrincipals(new Principal() {
+            @Override
+            public String getName() {
+                return null;
+            }
+        });
+    }
+
+    @Test
     public void testRemovePrincipals() throws Exception {
         CugPolicy cug = new CugPolicyImpl(path, NamePathMapper.DEFAULT, principalManager,
                 ImportBehavior.BESTEFFORT,
@@ -161,6 +188,14 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
 
         assertFalse(cug.removePrincipals(new PrincipalImpl("unknown")));
         assertTrue(cug.removePrincipals(testPrincipal, EveryonePrincipal.getInstance(), new PrincipalImpl("unknown")));
+        assertTrue(cug.getPrincipals().isEmpty());
+    }
+
+    @Test
+    public void testRemoveNullPrincipal() throws Exception {
+        CugPolicy cug = new CugPolicyImpl(path, NamePathMapper.DEFAULT, principalManager, ImportBehavior.ABORT, principals);
+        assertTrue(cug.removePrincipals(testPrincipal, null));
+
         assertTrue(cug.getPrincipals().isEmpty());
     }
 
@@ -177,5 +212,10 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
 
         CugPolicy empty = new CugPolicyImpl(oakPath, mapper, principalManager, ImportBehavior.ABORT);
         assertEquals("/quercus:testPath", empty.getPath());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testInvalidImportBehavior() {
+        CugPolicy cug = new CugPolicyImpl(path, NamePathMapper.DEFAULT, principalManager, -1, principals);
     }
 }
