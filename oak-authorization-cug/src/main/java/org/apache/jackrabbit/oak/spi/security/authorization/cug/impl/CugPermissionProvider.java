@@ -115,9 +115,12 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
     @Nonnull
     @Override
     public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
+        if (TreePermission.NO_RECOURSE == parentPermission) {
+            throw new IllegalStateException("Attempt to create tree permission for unsupported path.");
+        }
         Tree immutableTree = getImmutableTree(tree);
-        if (((TreePermission.EMPTY == parentPermission) && !immutableTree.isRoot()) || isAcContent(immutableTree, true)) {
-            return TreePermission.EMPTY;
+        if (isAcContent(immutableTree, true)) {
+            return TreePermission.NO_RECOURSE;
         }
 
         TreePermission tp;
@@ -130,7 +133,7 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
             } else if (supportedPaths.mayContainCug(path)) {
                 tp =  new EmptyCugTreePermission(immutableTree, this);
             } else {
-                tp = TreePermission.EMPTY;
+                tp = TreePermission.NO_RECOURSE;
             }
         }
         return tp;
@@ -195,7 +198,7 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
     @Override
     public long supportedPermissions(@Nonnull TreeLocation location, long permissions) {
         long supported = permissions & Permissions.READ;
-        if (supported != Permissions.NO_PERMISSION && includesCug(getTreeFromLocation(location, location.getProperty()), location.getPath())) {
+        if (supported != Permissions.NO_PERMISSION && includesCug(getTreeFromLocation(location), location.getPath())) {
             return supported;
         } else {
             return Permissions.NO_PERMISSION;
@@ -215,10 +218,9 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
     @Override
     public boolean isGranted(@Nonnull TreeLocation location, long permissions) {
         if (isRead(permissions)) {
-            PropertyState property = location.getProperty();
-            Tree tree = getTreeFromLocation(location, property);
+            Tree tree = getTreeFromLocation(location);
             if (tree != null) {
-                return isGranted(tree, property, permissions);
+                return isGranted(tree, location.getProperty(), permissions);
             }
         }
         return false;
@@ -294,8 +296,8 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
     }
 
     @CheckForNull
-    private static Tree getTreeFromLocation(@Nonnull TreeLocation location, @CheckForNull PropertyState property) {
-        Tree tree = (property == null) ? location.getTree() : location.getParent().getTree();
+    private static Tree getTreeFromLocation(@Nonnull TreeLocation location) {
+        Tree tree = (location.getProperty() == null) ? location.getTree() : location.getParent().getTree();
         while (tree == null && !PathUtils.denotesRoot(location.getPath())) {
             location = location.getParent();
             tree = location.getTree();

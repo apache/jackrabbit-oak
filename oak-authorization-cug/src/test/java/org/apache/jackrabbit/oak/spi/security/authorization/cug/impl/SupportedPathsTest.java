@@ -16,19 +16,23 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class SupportedPathsTest {
 
     @Test
     public void testIncludes() {
-        SupportedPaths supportedPaths = new SupportedPaths(Collections.singleton("/content"));
+        SupportedPaths supportedPaths = new SupportedPaths(ImmutableSet.of("/content"));
 
         Map<String, Boolean> pathMap = new HashMap<String, Boolean>();
         pathMap.put("/content", true);
@@ -53,7 +57,7 @@ public class SupportedPathsTest {
 
     @Test
     public void testMayContainCug() {
-        SupportedPaths supportedPaths = new SupportedPaths(Collections.singleton("/content/a"));
+        SupportedPaths supportedPaths = new SupportedPaths(ImmutableSet.of("/content/a"));
 
         Map<String, Boolean> pathMap = new HashMap<String, Boolean>();
         pathMap.put("/", true);
@@ -67,6 +71,31 @@ public class SupportedPathsTest {
         for (String path : pathMap.keySet()) {
             boolean expected = pathMap.get(path);
             assertEquals(path, expected, supportedPaths.mayContainCug(path));
+        }
+    }
+
+
+    @Test
+    public void testRootPath() {
+        SupportedPaths supportedPaths = new SupportedPaths(ImmutableSet.of("/"));
+
+        List<String> paths = ImmutableList.of("/", "/content", "/jcr:system", "/testRoot", "/some/other/path", "/content/a", "/content/a/b");
+
+        for (String path : paths) {
+            assertTrue(path, supportedPaths.includes(path));
+            assertTrue(path, supportedPaths.mayContainCug(path));
+        }
+    }
+
+    @Test
+    public void testEmpty() {
+        SupportedPaths supportedPaths = new SupportedPaths(ImmutableSet.<String>of());
+
+        List<String> paths = ImmutableList.of("/", "/content", "/jcr:system", "/testRoot", "/some/other/path", "/content/a", "/content/a/b");
+
+        for (String path : paths) {
+            assertFalse(path, supportedPaths.includes(path));
+            assertFalse(path, supportedPaths.mayContainCug(path));
         }
     }
 }
