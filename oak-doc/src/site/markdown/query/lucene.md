@@ -870,7 +870,7 @@ mentioned steps
    Codec][OAK-1737]. So oak-lucene jar needs to be included in Luke classpath
    for it to display the index details
 
-        $ java -XX:MaxPermSize=512m luke-with-deps.jar:oak-lucene-1.0.8.jar org.getoptuke.Luke
+        $ java -XX:MaxPermSize=512m -cp luke-with-deps.jar:oak-lucene-1.0.8.jar org.getopt.luke.Luke
         
 From the Luke UI shown you can access various details.
 
