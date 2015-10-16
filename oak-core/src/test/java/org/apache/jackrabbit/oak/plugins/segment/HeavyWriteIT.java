@@ -62,7 +62,7 @@ public class HeavyWriteIT {
 
     private File directory;
 
-    @Parameterized.Parameters
+    @Parameterized.Parameters(name="usePersistedMap: {0}")
     public static List<Boolean[]> fixtures() {
         return ImmutableList.of(new Boolean[] {true}, new Boolean[] {false});
     }
