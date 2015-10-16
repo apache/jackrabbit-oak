@@ -44,7 +44,7 @@ public abstract class OakBaseTest {
      */
     private static final Set<Fixture> FIXTURES = FixturesHelper.getFixtures();
 
-    @Parameterized.Parameters
+    @Parameterized.Parameters(name="{0}")
     public static Collection<Object[]> fixtures() {
         Collection<Object[]> result = new ArrayList<Object[]>();
         if (FIXTURES.contains(DOCUMENT_NS)) {
