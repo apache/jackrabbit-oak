@@ -124,11 +124,6 @@ public class OrderedIndexIT {
      * @param propertyType the type of the property to be stored
      * @return
      * @throws RepositoryException 
-     * @throws LockException 
-     * @throws ConstraintViolationException 
-     * @throws VersionException 
-     * @throws PathNotFoundException 
-     * @throws ItemExistsException 
      */
     private List<ValuePathTuple> addNodes(@Nonnull final List<String> values,
                                           @Nonnull final Node father,
