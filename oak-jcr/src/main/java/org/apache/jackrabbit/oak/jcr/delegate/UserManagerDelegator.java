@@ -69,9 +69,9 @@ public class UserManagerDelegator implements UserManager {
 
     @Override
     public <T extends Authorizable> T getAuthorizable(final String id, final Class<T> authorizableClass) throws RepositoryException {
-        return (T) sessionDelegate.performNullable(new UserManagerOperation<Authorizable>(sessionDelegate, "getAuthorizable") {
+        return sessionDelegate.performNullable(new UserManagerOperation<T>(sessionDelegate, "getAuthorizable") {
             @Override
-            public Authorizable performNullable() throws RepositoryException {
+            public T performNullable() throws RepositoryException {
                 Authorizable authorizable = userManagerDelegate.getAuthorizable(id);
                 return UserUtil.castAuthorizable(AuthorizableDelegator.wrap(sessionDelegate, authorizable), authorizableClass);
 
