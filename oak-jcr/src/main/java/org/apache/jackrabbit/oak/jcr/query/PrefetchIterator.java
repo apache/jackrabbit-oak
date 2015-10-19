@@ -50,7 +50,6 @@ public class PrefetchIterator<K> implements Iterator<K> {
      * 
      * @param it the base iterator
      * @param options the prefetch options to use
-     * @param result (optional) the result to get the size from
      */
     PrefetchIterator(Iterator<K> it, PrefetchOptions options) {
         this.it = it;

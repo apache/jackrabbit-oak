@@ -162,7 +162,7 @@ public class SessionContext implements NamePathMapper {
     }
 
     /**
-     * Factory method for creating the {@link Session} instance for this
+     * Factory method for creating the {@link javax.jcr.Session} instance for this
      * context. Called by {@link #getSession()} when first accessed. Can be
      * overridden by subclasses to customize the session implementation.
      *
@@ -173,7 +173,7 @@ public class SessionContext implements NamePathMapper {
     }
 
     /**
-     * Factory method for creating the {@link Workspace} instance for this
+     * Factory method for creating the {@link javax.jcr.Workspace} instance for this
      * context. Called by {@link #getWorkspace()} when first accessed. Can be
      * overridden by subclasses to customize the workspace implementation.
      *
