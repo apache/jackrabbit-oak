@@ -253,7 +253,7 @@ public class UserManagerDelegator implements UserManager {
 
     @Override
     public void autoSave(final boolean enable) throws RepositoryException {
-        sessionDelegate.performVoid(new UserManagerOperation(sessionDelegate, "autoSave") {
+        sessionDelegate.performVoid(new UserManagerOperation<Void>(sessionDelegate, "autoSave") {
             @Override
             public void performVoid() throws RepositoryException {
                 userManagerDelegate.autoSave(enable);

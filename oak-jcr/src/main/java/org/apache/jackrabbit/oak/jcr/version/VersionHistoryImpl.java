@@ -158,7 +158,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
                                 final boolean moveLabel)
             throws LabelExistsVersionException, VersionException,
             RepositoryException {
-        sessionDelegate.performVoid(new SessionOperation("addVersionLabel", true) {
+        sessionDelegate.performVoid(new SessionOperation<Void>("addVersionLabel", true) {
             @Override
             public void performVoid() throws RepositoryException {
                 String oakLabel = sessionContext.getOakName(label);
@@ -172,7 +172,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
     @Override
     public void removeVersionLabel(final String label)
             throws VersionException, RepositoryException {
-        sessionDelegate.performVoid(new SessionOperation("removeVersionLabel", true) {
+        sessionDelegate.performVoid(new SessionOperation<Void>("removeVersionLabel", true) {
             @Override
             public void performVoid() throws RepositoryException {
                 String oakLabel = sessionContext.getOakName(label);
@@ -233,7 +233,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
             UnsupportedRepositoryOperationException, VersionException,
             RepositoryException {
 
-        sessionDelegate.performVoid(new SessionOperation("removeVersion", true) {
+        sessionDelegate.performVoid(new SessionOperation<Void>("removeVersion", true) {
             @Override
             public void performVoid() throws RepositoryException {
                 String oakName = sessionContext.getOakName(versionName);

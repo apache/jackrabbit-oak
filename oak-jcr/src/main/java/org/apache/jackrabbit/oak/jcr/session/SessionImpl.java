@@ -125,7 +125,7 @@ public class SessionImpl implements JackrabbitSession {
         }
     }
 
-    private abstract class WriteOperation extends SessionOperation<Void> {
+    private abstract class WriteOperation<T> extends SessionOperation<T> {
         protected WriteOperation(String name) {
             super(name, true);
         }
@@ -374,7 +374,7 @@ public class SessionImpl implements JackrabbitSession {
         checkIndexOnName(checkNotNull(destAbsPath));
         final String srcOakPath = getOakPathOrThrowNotFound(checkNotNull(srcAbsPath));
         final String destOakPath = getOakPathOrThrowNotFound(destAbsPath);
-        sd.performVoid(new WriteOperation("move") {
+        sd.performVoid(new WriteOperation<Void>("move") {
             @Override
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
@@ -393,7 +393,7 @@ public class SessionImpl implements JackrabbitSession {
     public void removeItem(final String absPath) throws RepositoryException {
         checkAlive();
         final String oakPath = getOakPathOrThrowNotFound(checkNotNull(absPath));
-        sd.performVoid(new WriteOperation("removeItem") {
+        sd.performVoid(new WriteOperation<Void>("removeItem") {
             @Override
             public void performVoid() throws RepositoryException {
                 ItemDelegate item = sd.getItem(oakPath);
@@ -413,7 +413,7 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     public void save() throws RepositoryException {
         checkAlive();
-        sd.performVoid(new WriteOperation("save") {
+        sd.performVoid(new WriteOperation<Void>("save") {
             @Override
             public void performVoid() throws RepositoryException {
                 sd.save(null);
@@ -429,7 +429,7 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     public void refresh(final boolean keepChanges) throws RepositoryException {
         checkAlive();
-        sd.performVoid(new WriteOperation("refresh") {
+        sd.performVoid(new WriteOperation<Void>("refresh") {
             @Override
             public void performVoid() {
                 sd.refresh(keepChanges);
