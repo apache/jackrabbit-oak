@@ -137,7 +137,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
             throw new UnsupportedRepositoryOperationException("Not implemented.");
         }
 
-        sessionDelegate.performVoid(new SessionOperation("copy", true) {
+        sessionDelegate.performVoid(new SessionOperation<Void>("copy", true) {
             @Override
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
@@ -161,7 +161,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         final String srcOakPath = getOakPathOrThrowNotFound(srcAbsPath);
         final String destOakPath = getOakPathOrThrowNotFound(destAbsPath);
 
-        sessionDelegate.performVoid(new SessionOperation("clone", true) {
+        sessionDelegate.performVoid(new SessionOperation<Void>("clone", true) {
 
             @Override
             public void checkPreconditions() throws RepositoryException {

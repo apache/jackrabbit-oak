@@ -109,7 +109,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
 
     @Override
     public void remove() throws RepositoryException {
-        sessionDelegate.performVoid(new ItemWriteOperation("remove") {
+        sessionDelegate.performVoid(new ItemWriteOperation<Void>("remove") {
             @Override
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
@@ -459,7 +459,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
 
     private void internalSetValue(@Nonnull final Value value)
             throws RepositoryException {
-        sessionDelegate.performVoid(new ItemWriteOperation("internalSetValue") {
+        sessionDelegate.performVoid(new ItemWriteOperation<Void>("internalSetValue") {
             @Override
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
@@ -495,7 +495,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
             LOG.warn("Large multi valued property [{}] detected ({} values).",dlg.getPath(), values.length);
         }
 
-        sessionDelegate.performVoid(new ItemWriteOperation("internalSetValue") {
+        sessionDelegate.performVoid(new ItemWriteOperation<Void>("internalSetValue") {
             @Override
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();

@@ -250,7 +250,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     @Override
     public void save() throws RepositoryException {
         try {
-            sessionDelegate.performVoid(new ItemWriteOperation("save") {
+            sessionDelegate.performVoid(new ItemWriteOperation<Void>("save") {
                 @Override
                 public void performVoid() throws RepositoryException {
                     dlg.save();
@@ -285,7 +285,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
         if (!keepChanges) {
             log.warn("Item#refresh invokes Session#refresh!");
         }
-        sessionDelegate.performVoid(new SessionOperation("refresh") {
+        sessionDelegate.performVoid(new SessionOperation<Void>("refresh") {
             @Override
             public void performVoid() throws InvalidItemStateException {
                 sessionDelegate.refresh(keepChanges);

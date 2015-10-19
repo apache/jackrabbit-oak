@@ -401,7 +401,7 @@ public class SessionContext implements NamePathMapper {
      */
     // TODO: should this be in SessionImpl?
     private void unlockAllSessionScopedLocks() throws RepositoryException {
-        delegate.performVoid(new SessionOperation("unlockAllSessionScopedLocks") {
+        delegate.performVoid(new SessionOperation<Void>("unlockAllSessionScopedLocks") {
             @Override
             public void performVoid() {
                 Iterator<String> iterator = sessionScopedLocks.iterator();
