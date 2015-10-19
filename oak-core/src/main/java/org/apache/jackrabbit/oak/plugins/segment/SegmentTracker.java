@@ -125,6 +125,9 @@ public class SegmentTracker {
      * Clear the segment cache
      */
     public synchronized void clearCache() {
+        for (Segment segment : segments) {
+            segment.getSegmentId().setSegment(null);
+        }
         segments.clear();
         currentSize = 0;
     }
