@@ -60,6 +60,7 @@ public class SolrIndexQueryTestIT extends AbstractQueryTest {
     public void tearDown() throws Exception {
         solrServer.deleteByQuery("*:*");
         solrServer.commit();
+        solrServer.shutdown();
     }
 
     @Override
@@ -86,6 +87,7 @@ public class SolrIndexQueryTestIT extends AbstractQueryTest {
                     ))
                     .createContentRepository();
         } catch (Exception e) {
+            solrServer.shutdown();
             throw new RuntimeException(e);
         }
     }

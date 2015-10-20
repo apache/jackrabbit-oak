@@ -72,6 +72,7 @@ public abstract class SolrBaseTest {
         if (server != null && server.ping() != null) {
             server.deleteByQuery("*:*");
             server.commit();
+            server.shutdown();
             server = null;
         }
     }
