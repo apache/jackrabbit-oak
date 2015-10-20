@@ -48,52 +48,61 @@ public class SolrIndexEditorTest {
     public void testIndexedProperties() throws Exception {
         NodeBuilder builder = mock(NodeBuilder.class);
         SolrServer solrServer = TestUtils.createSolrServer();
-        OakSolrConfiguration configuration = TestUtils.getTestConfiguration();
-        IndexUpdateCallback callback = mock(IndexUpdateCallback.class);
-        SolrIndexEditor solrIndexEditor = new SolrIndexEditor(builder, solrServer, configuration, callback);
-        NodeState before = mock(NodeState.class);
-        NodeState after = mock(NodeState.class);
-        Iterable properties = new Iterable<PropertyState>() {
-            @Override
-            public Iterator<PropertyState> iterator() {
-                return Arrays.asList(PropertyStates.createProperty("foo1", "bar")).iterator();
-            }
-        };
-        when(after.getProperties()).thenReturn(properties);
-        solrIndexEditor.leave(before, after);
-        QueryResponse queryResponse = solrServer.query(new SolrQuery("foo1:*"));
-        assertEquals(1, queryResponse.getResults().getNumFound());
+        try {
+            OakSolrConfiguration configuration = TestUtils.getTestConfiguration();
+            IndexUpdateCallback callback = mock(IndexUpdateCallback.class);
+            SolrIndexEditor solrIndexEditor = new SolrIndexEditor(builder, solrServer, configuration, callback);
+            NodeState before = mock(NodeState.class);
+            NodeState after = mock(NodeState.class);
+            Iterable properties = new Iterable<PropertyState>() {
+                @Override
+                public Iterator<PropertyState> iterator() {
+                    return Arrays.asList(PropertyStates.createProperty("foo1", "bar")).iterator();
+                }
+            };
+            when(after.getProperties()).thenReturn(properties);
+            solrIndexEditor.leave(before, after);
+            QueryResponse queryResponse = solrServer.query(new SolrQuery("foo1:*"));
+            assertEquals(1, queryResponse.getResults().getNumFound());
+        } finally {
+            solrServer.shutdown();
+        }
     }
 
     @Test
     public void testIgnoredPropertiesNotIndexed() throws Exception {
         NodeBuilder builder = mock(NodeBuilder.class);
         SolrServer solrServer = TestUtils.createSolrServer();
-        OakSolrConfiguration configuration = new DefaultSolrConfiguration() {
-            @Nonnull
-            @Override
-            public Collection<String> getIgnoredProperties() {
-                return Arrays.asList("foo2");
-            }
-            @Nonnull
-            @Override
-            public CommitPolicy getCommitPolicy() {
-                return CommitPolicy.HARD;
-            }
-        };
-        IndexUpdateCallback callback = mock(IndexUpdateCallback.class);
-        SolrIndexEditor solrIndexEditor = new SolrIndexEditor(builder, solrServer, configuration, callback);
-        NodeState before = mock(NodeState.class);
-        NodeState after = mock(NodeState.class);
-        Iterable properties = new Iterable<PropertyState>() {
-            @Override
-            public Iterator<PropertyState> iterator() {
-                return Arrays.asList(PropertyStates.createProperty("foo2", "bar")).iterator();
-            }
-        };
-        when(after.getProperties()).thenReturn(properties);
-        solrIndexEditor.leave(before, after);
-        QueryResponse queryResponse = solrServer.query(new SolrQuery("foo2:*"));
-        assertEquals(0, queryResponse.getResults().getNumFound());
+        try {
+            OakSolrConfiguration configuration = new DefaultSolrConfiguration() {
+                @Nonnull
+                @Override
+                public Collection<String> getIgnoredProperties() {
+                    return Arrays.asList("foo2");
+                }
+
+                @Nonnull
+                @Override
+                public CommitPolicy getCommitPolicy() {
+                    return CommitPolicy.HARD;
+                }
+            };
+            IndexUpdateCallback callback = mock(IndexUpdateCallback.class);
+            SolrIndexEditor solrIndexEditor = new SolrIndexEditor(builder, solrServer, configuration, callback);
+            NodeState before = mock(NodeState.class);
+            NodeState after = mock(NodeState.class);
+            Iterable properties = new Iterable<PropertyState>() {
+                @Override
+                public Iterator<PropertyState> iterator() {
+                    return Arrays.asList(PropertyStates.createProperty("foo2", "bar")).iterator();
+                }
+            };
+            when(after.getProperties()).thenReturn(properties);
+            solrIndexEditor.leave(before, after);
+            QueryResponse queryResponse = solrServer.query(new SolrQuery("foo2:*"));
+            assertEquals(0, queryResponse.getResults().getNumFound());
+        } finally {
+            solrServer.shutdown();
+        }
     }
 }
