@@ -209,14 +209,14 @@ public class Explorer {
             }
         });
 
-        JMenuItem menuSCR = new JMenuItem("Segment Content Refs");
+        JMenuItem menuSCR = new JMenuItem("Segment Refs");
         menuSCR.setMnemonic(KeyEvent.VK_R);
         menuSCR.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent ev) {
                 String s = (String) JOptionPane.showInputDialog(frame,
-                        "Segment Content Ref\nUsage: <segmentId>",
-                        "Segment Content Ref", JOptionPane.PLAIN_MESSAGE);
+                        "Segment References\nUsage: <segmentId>",
+                        "Segment References", JOptionPane.PLAIN_MESSAGE);
                 if (s != null) {
                     treePanel.printDependenciesToSegment(s);
                     return;
