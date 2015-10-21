@@ -172,4 +172,8 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
         return available.contains(selector1) && available.contains(selector2);
     }
 
+    @Override
+    public AstElement copyOf() {
+        return new EquiJoinConditionImpl(selector1Name, property1Name, selector2Name, property2Name);
+    }
 }

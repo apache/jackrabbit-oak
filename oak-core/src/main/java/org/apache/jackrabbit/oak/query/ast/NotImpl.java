@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.query.ast.AstElementFactory.copyElementAndCheckReference;
+
 import java.util.Collections;
 import java.util.Set;
 
@@ -110,4 +113,8 @@ public class NotImpl extends ConstraintImpl {
         // TODO convert NOT conditions
     }
 
+    @Override
+    public AstElement copyOf() {
+        return new NotImpl((ConstraintImpl) copyElementAndCheckReference(constraint));
+    }
 }

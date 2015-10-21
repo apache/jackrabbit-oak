@@ -303,4 +303,9 @@ public class FullTextSearchImpl extends ConstraintImpl {
     void restrictPropertyOnFilter(String propertyName, FilterImpl f) {
         f.restrictProperty(propertyName, Operator.NOT_EQUAL, null);
     }
+
+    @Override
+    public AstElement copyOf() {
+        return new FullTextSearchImpl(selectorName, propertyName, fullTextSearchExpression);
+    }
 }

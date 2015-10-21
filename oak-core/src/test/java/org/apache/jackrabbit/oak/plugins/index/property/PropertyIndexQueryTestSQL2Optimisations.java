@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,9 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@Version("2.4")
-@Export(optional = "provide:=true")
-package org.apache.jackrabbit.oak.query;
+package org.apache.jackrabbit.oak.plugins.index.property;
 
-import aQute.bnd.annotation.Version;
-import aQute.bnd.annotation.Export;
+import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
+
+/**
+ * checks the same as {@link PropertyIndexQueryTest} enabling the feature for optimising SQL2
+ * statements.
+ */
+public class PropertyIndexQueryTestSQL2Optimisations extends PropertyIndexQueryTest {
+
+    @Override
+    Oak getOakRepositoryInstance() {
+        return super.getOakRepositoryInstance()
+            .with(new QueryEngineSettings() {
+                @Override
+                public boolean isSql2Optimisation() {
+                    return true;
+                }
+            });
+    }
+}

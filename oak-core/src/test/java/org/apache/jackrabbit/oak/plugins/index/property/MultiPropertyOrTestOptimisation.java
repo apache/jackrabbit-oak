@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,9 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@Version("2.4")
-@Export(optional = "provide:=true")
-package org.apache.jackrabbit.oak.query;
+package org.apache.jackrabbit.oak.plugins.index.property;
 
-import aQute.bnd.annotation.Version;
-import aQute.bnd.annotation.Export;
+import static org.apache.jackrabbit.oak.query.QueryEngineImpl.ForceOptimised.OPTIMISED;
+
+import org.junit.Before;
+
+/**
+ * should be executing the {@link MultiPropertyOrTest} by forcing the optimisation in place.
+ */
+public class MultiPropertyOrTestOptimisation extends MultiPropertyOrTest {
+    
+    @Override
+    @Before
+    public void before() throws Exception {
+        super.before();
+        setForceOptimised(OPTIMISED);
+        setTraversalEnabled(false);
+    }    
+}

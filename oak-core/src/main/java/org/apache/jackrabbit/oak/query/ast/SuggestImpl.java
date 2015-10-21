@@ -114,4 +114,8 @@ public class SuggestImpl extends ConstraintImpl {
         return expression;
     }
 
+    @Override
+    public AstElement copyOf() {
+        return new SuggestImpl(selectorName, expression);
+    }
 }

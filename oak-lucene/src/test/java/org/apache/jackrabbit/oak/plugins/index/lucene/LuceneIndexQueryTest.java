@@ -17,12 +17,9 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Iterator;
-import java.util.List;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -42,7 +39,6 @@ import static java.util.Arrays.asList;
 import static junit.framework.Assert.assertEquals;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.useV2;
@@ -67,21 +63,26 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         props.getParent().setProperty(LuceneIndexConstants.INDEX_NODE_NAME, true);
         TestUtil.enablePropertyIndex(props, "c1/p", false);
         TestUtil.enableForFullText(props, LuceneIndexConstants.REGEX_ALL_PROPS, true);
-
-        root.commit();
+        TestUtil.enablePropertyIndex(props, "a/name", false);
+        TestUtil.enablePropertyIndex(props, "b/name", false);
+        
+        root.commit();                
     }
-
+    
     @Override
     protected ContentRepository createRepository() {
-        LowCostLuceneIndexProvider provider = new LowCostLuceneIndexProvider();
-        return new Oak().with(new InitialContent())
-                .with(new OpenSecurityProvider())
-                .with((QueryIndexProvider) provider)
-                .with((Observer) provider)
-                .with(new LuceneIndexEditorProvider())
-                .createContentRepository();
+        return getOakRepo().createContentRepository();
     }
 
+    Oak getOakRepo() {
+        LowCostLuceneIndexProvider provider = new LowCostLuceneIndexProvider();
+        return new Oak().with(new InitialContent())
+            .with(new OpenSecurityProvider())
+            .with((QueryIndexProvider) provider)
+            .with((Observer) provider)
+            .with(new LuceneIndexEditorProvider());
+    }
+    
     @Test
     public void sql1() throws Exception {
         test("sql1.txt");
@@ -372,109 +373,6 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         root.commit();
         assertQuery("//*[jcr:contains(., '美女')]", "xpath",
                 ImmutableList.of(one.getPath()));
-    }
-
-    @Test
-    @Ignore
-    public void oak2660() throws Exception {
-        final String name = "name";
-        final String surname = "surname";
-        final String description = "description";
-        final String added = "added";
-        final String yes = "yes";
-        
-        Tree t;
-        
-        // re-define the lucene index
-        t = root.getTree("/oak:index/" + TEST_INDEX_NAME);
-        assertTrue(t.exists());
-        t.remove();
-        root.commit();
-        assertFalse(root.getTree("/oak:index/" + TEST_INDEX_NAME).exists());
-        
-        t = root.getTree("/");
-        Tree indexDefn = createTestIndexNode(t, LuceneIndexConstants.TYPE_LUCENE);
-        useV2(indexDefn);
-        indexDefn.setProperty(LuceneIndexConstants.TEST_MODE, true);
-
-        Tree props = TestUtil.newRulePropTree(indexDefn, NT_UNSTRUCTURED);
-        TestUtil.enablePropertyIndex(props, name, false);
-        TestUtil.enableForFullText(props, surname, false);
-        TestUtil.enableForFullText(props, description, false);
-        TestUtil.enableForOrdered(props, added);
-        
-        root.commit();
-                
-        // creating the dataset
-        List<String> expected = Lists.newArrayList();
-        Tree content = root.getTree("/").addChild("content");
-        t = content.addChild("test1");
-        t.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, NAME);
-        t.setProperty(name, yes);
-        t.setProperty(surname, yes);
-        t.setProperty(description, yes);
-        t.setProperty(added, Calendar.getInstance());
-        expected.add(t.getPath());
-
-        t = content.addChild("test2");
-        t.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, NAME);
-        t.setProperty(name, yes);
-        t.setProperty(surname, yes);
-        t.setProperty(description, "no");
-        t.setProperty(added, Calendar.getInstance());
-        expected.add(t.getPath());
-
-        t = content.addChild("test3");
-        t.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, NAME);
-        t.setProperty(name, yes);
-        t.setProperty(surname, "no");
-        t.setProperty(description, "no");
-        t.setProperty(added, Calendar.getInstance());
-        expected.add(t.getPath());
-
-        t = content.addChild("test4");
-        t.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, NAME);
-        t.setProperty(name, "no");
-        t.setProperty(surname, yes);
-        t.setProperty(description, "no");
-        t.setProperty(added, Calendar.getInstance());
-        expected.add(t.getPath());
-
-        t = content.addChild("test5");
-        t.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, NAME);
-        t.setProperty(name, "no");
-        t.setProperty(surname, "no");
-        t.setProperty(description, yes);
-        t.setProperty(added, Calendar.getInstance());
-        expected.add(t.getPath());
-
-        t = content.addChild("test6");
-        t.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, NAME);
-        t.setProperty(name, "no");
-        t.setProperty(surname, "no");
-        t.setProperty(description, "no");
-        t.setProperty(added, Calendar.getInstance());
-
-        root.commit();
-
-        // asserting the initial state
-        for (String s : expected) {
-            assertTrue("wrong initial state", root.getTree(s).exists());
-        }
-        
-        final String statement = 
-            "SELECT * " + 
-            "FROM [" + NT_UNSTRUCTURED + "] AS c " +
-            "WHERE " +
-            "( " +
-            "c.[" + name + "] = '" + yes + "' " +
-            "OR CONTAINS(c.[" + surname + "], '" + yes + "') " + 
-            "OR CONTAINS(c.[" + description + "], '" + yes + "') " + 
-            ") " + 
-            "AND ISDESCENDANTNODE(c, '" + content.getPath() + "') " +
-            "ORDER BY " + added + " DESC ";
-     
-        assertQuery(statement, SQL2, expected);
     }
 
     @Test
