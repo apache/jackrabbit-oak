@@ -449,7 +449,7 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener,
         return ids;
     }
 
-    public void printDependenciesToSegment(String sid) {
+    public void printSegmentReferences(String sid) {
         if (sid == null || sid.length() == 0) {
             return;
         }
@@ -465,7 +465,7 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener,
         sb.append(newline);
         for (Entry<String, Set<UUID>> e : index.entrySet()) {
             if (e.getValue().contains(id)) {
-                sb.append("Tar file: " + e.getKey());
+                sb.append("Tar file: " + new File(e.getKey()).getName());
                 sb.append(newline);
                 break;
             }
