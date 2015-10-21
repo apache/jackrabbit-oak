@@ -107,4 +107,8 @@ public class NativeFunctionImpl extends ConstraintImpl {
         return nativeSearchExpression;
     }
 
+    @Override
+    public AstElement copyOf() {
+        return new NativeFunctionImpl(selectorName, language, nativeSearchExpression);
+    }
 }

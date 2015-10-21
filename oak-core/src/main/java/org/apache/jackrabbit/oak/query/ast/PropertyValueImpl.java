@@ -155,5 +155,4 @@ public class PropertyValueImpl extends DynamicOperandImpl {
     public PropertyValueImpl createCopy() {
         return new PropertyValueImpl(selectorName, propertyName);
     }
-
 }

@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
 import com.google.common.collect.Lists;
@@ -55,9 +56,11 @@ import org.apache.jackrabbit.oak.json.TypeCodes;
 import org.apache.jackrabbit.oak.plugins.memory.BooleanPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
+import org.apache.jackrabbit.oak.query.QueryEngineImpl.ForceOptimised;
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
 import org.junit.Before;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
@@ -308,17 +311,26 @@ public abstract class AbstractQueryTest {
     protected List<String> assertQuery(String sql, String language,
                                        List<String> expected, boolean skipSort) {
         List<String> paths = executeQuery(sql, language, true, skipSort);
-        for (String p : expected) {
-            assertTrue("Expected path " + p + " not found, got " + paths, paths.contains(p));
-        }
-        assertEquals("Result set size is different", expected.size(),
-                paths.size());
+        assertResult(expected, paths);
         return paths;
 
+    }
+    
+    protected static void assertResult(@Nonnull List<String> expected, @Nonnull List<String> actual) {
+        for (String p : checkNotNull(expected)) {
+            assertTrue("Expected path " + p + " not found, got " + actual, checkNotNull(actual)
+                .contains(p));
+        }
+        assertEquals("Result set size is different", expected.size(),
+                actual.size());
     }
 
     protected void setTraversalEnabled(boolean traversalEnabled) {
         ((QueryEngineImpl) qe).setTraversalEnabled(traversalEnabled);
+    }
+    
+    protected void setForceOptimised(@Nonnull ForceOptimised forceOptimised) {
+        ((QueryEngineImpl) qe).setForceOptimised(checkNotNull(forceOptimised));
     }
 
     protected static String readRow(ResultRow row, boolean pathOnly) {

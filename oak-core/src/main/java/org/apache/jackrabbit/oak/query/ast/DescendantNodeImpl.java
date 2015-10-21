@@ -92,4 +92,8 @@ public class DescendantNodeImpl extends ConstraintImpl {
         }
     }
 
+    @Override
+    public AstElement copyOf() {
+        return new DescendantNodeImpl(selectorName, ancestorPath);
+    }
 }
