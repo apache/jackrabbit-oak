@@ -218,7 +218,7 @@ public class Explorer {
                         "Segment References\nUsage: <segmentId>",
                         "Segment References", JOptionPane.PLAIN_MESSAGE);
                 if (s != null) {
-                    treePanel.printDependenciesToSegment(s);
+                    treePanel.printSegmentReferences(s);
                     return;
                 }
             }
