@@ -16,31 +16,68 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashSet;
+import java.util.Set;
 
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
+import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 
+/**
+ * Utility for dumping contents from {@link RDBDocumentStore}'s tables.
+ */
 public class RDBExport {
 
-    public static void main(String[] args) throws ClassNotFoundException, SQLException {
-        String url = null, user = null, pw = null, table = null, query = null;
-        RDBDocumentSerializer ser = new RDBDocumentSerializer(new MemoryDocumentStore(), new HashSet<String>());
+    public static void main(String[] args)
+            throws ClassNotFoundException, SQLException, UnsupportedEncodingException, FileNotFoundException {
 
+        String url = null, user = null, pw = null, table = "nodes", query = null;
+        boolean asArray = false;
+        PrintStream out = System.out;
+        Set<String> excl = new HashSet<String>();
+        excl.add(Document.ID);
+        RDBDocumentSerializer ser = new RDBDocumentSerializer(new MemoryDocumentStore(), excl);
+
+        String param = null;
         try {
-            url = args[0];
-            user = args[1];
-            pw = args[2];
-            table = args[3];
-            query = args.length >= 5 ? args[4] : null;
+            for (int i = 0; i < args.length; i++) {
+                param = args[i];
+                if ("-u".equals(param) || "--username".equals(param)) {
+                    user = args[++i];
+                } else if ("-p".equals(param) || "--password".equals(param)) {
+                    pw = args[++i];
+                } else if ("-c".equals(param) || "--collection".equals(param)) {
+                    table = args[++i];
+                } else if ("-j".equals(param) || "--jdbc-url".equals(param)) {
+                    url = args[++i];
+                } else if ("-q".equals(param) || "--query".equals(param)) {
+                    query = args[++i];
+                } else if ("-o".equals(param) || "--out".equals(param)) {
+                    OutputStream os = new FileOutputStream(args[++i]);
+                    out = new PrintStream(os, true, "UTF-8");
+                } else if ("--jsonArray".equals(param)) {
+                    asArray = true;
+                } else {
+                    System.err.println(RDBExport.class.getName() + ": invalid parameter " + args[i]);
+                    printUsage();
+                    System.exit(2);
+                }
+            }
         } catch (IndexOutOfBoundsException ex) {
-            System.err.println("Usage: ... " + RDBCreator.class.getName() + " JDBC-URL username password table [query]");
+            System.err.println(RDBExport.class.getName() + ": value missing for parameter " + param);
+            printUsage();
             System.exit(2);
         }
 
@@ -48,7 +85,7 @@ public class RDBExport {
         try {
             Class.forName(driver);
         } catch (ClassNotFoundException ex) {
-            System.err.println("Attempt to load class " + driver + " failed.");
+            System.err.println(RDBExport.class.getName() + ":attempt to load class " + driver + " failed:" + ex.getMessage());
         }
         Connection c = DriverManager.getConnection(url, user, pw);
         c.setReadOnly(true);
@@ -59,21 +96,47 @@ public class RDBExport {
         }
         sql += " order by id";
         ResultSet rs = stmt.executeQuery(sql);
+
+        if (asArray) {
+            out.println("[");
+        }
+        boolean needComma = asArray;
         while (rs.next()) {
-            String id = rs.getString(1);
-            long modified = rs.getLong(2);
-            long modcount = rs.getLong(3);
-            long cmodcount = rs.getLong(4);
-            long hasBinary = rs.getLong(5);
-            long deletedOnce = rs.getLong(6);
-            String data = rs.getString(7);
-            byte[] bdata = rs.getBytes(8);
+            String id = rs.getString("ID");
+            long modified = rs.getLong("MODIFIED");
+            long modcount = rs.getLong("MODCOUNT");
+            long cmodcount = rs.getLong("CMODCOUNT");
+            long hasBinary = rs.getLong("HASBINARY");
+            long deletedOnce = rs.getLong("DELETEDONCE");
+            String data = rs.getString("DATA");
+            byte[] bdata = rs.getBytes("BDATA");
             RDBRow row = new RDBRow(id, hasBinary == 1, deletedOnce == 1, modified, modcount, cmodcount, data, bdata);
             NodeDocument doc = ser.fromRow(Collection.NODES, row);
-            System.out.println(ser.asString(doc));
+
+            String docjson = ser.asString(doc);
+            StringBuilder fulljson = new StringBuilder();
+            fulljson.append("{\"_id\":\"");
+            JsopBuilder.escape(id, fulljson);
+            fulljson.append("\",");
+            fulljson.append(docjson);
+            fulljson.append("}");
+            if (asArray && needComma && !rs.isLast()) {
+                fulljson.append(",");
+            }
+            out.println(fulljson);
+            needComma = true;
         }
+        if (asArray) {
+            out.println("]");
+        }
+        out.close();
         rs.close();
         stmt.close();
         c.close();
+    }
+
+    private static void printUsage() {
+        System.err.println("Usage: " + RDBExport.class.getName()
+                + " [-j/--jdbc-url JDBC-URL] [-u/--username username] [-p/--password password] [-c/--collection table] [-q/--query query][--jsonArray]");
     }
 }
