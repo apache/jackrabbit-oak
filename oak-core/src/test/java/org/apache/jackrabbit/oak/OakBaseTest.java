@@ -31,7 +31,7 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public abstract class OakBaseTest {
 
-    @Parameterized.Parameters
+    @Parameterized.Parameters(name="{0}")
     public static Collection<Object[]> fixtures() {
         Object[][] fixtures = new Object[][] {
                 {NodeStoreFixture.MK_IMPL},
