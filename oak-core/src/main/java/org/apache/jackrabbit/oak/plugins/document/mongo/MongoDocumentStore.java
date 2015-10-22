@@ -146,7 +146,7 @@ public class MongoDocumentStore implements DocumentStore {
 
     private Clock clock = Clock.SIMPLE;
 
-    private final ReplicationLagEstimator estimator;
+    private final ReplicationLagEstimator lagEstimator;
 
     /**
      * Duration in seconds under which queries would use index on _modified field
@@ -214,8 +214,8 @@ public class MongoDocumentStore implements DocumentStore {
         journal = db.getCollection(Collection.JOURNAL.toString());
 
         long maxReplicationLagMillis = builder.getMaxReplicationLagMillis();
-        estimator = new ReplicationLagEstimator(db.getSisterDB("admin"), maxReplicationLagMillis, estimationPullFrequencyMS);
-        new Thread(estimator, "MongoDocumentStore lag estimator (" + builder.getClusterId() + ")").start();
+        lagEstimator = new ReplicationLagEstimator(db.getSisterDB("admin"), maxReplicationLagMillis, estimationPullFrequencyMS);
+        new Thread(lagEstimator, "MongoDocumentStore lag estimator (" + builder.getClusterId() + ")").start();
 
         // indexes:
         // the _id field is the primary key, so we don't need to define it
@@ -974,7 +974,7 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     DocumentReadPreference getReadPreference(int maxCacheAge){
-        if(maxCacheAge >= 0 && maxCacheAge < estimator.getEstimation()) {
+        if(maxCacheAge >= 0 && maxCacheAge < lagEstimator.getLagEstimation()) {
             return DocumentReadPreference.PRIMARY;
         } else if(maxCacheAge == Integer.MAX_VALUE){
             return DocumentReadPreference.PREFER_SECONDARY;
@@ -1006,7 +1006,7 @@ public class MongoDocumentStore implements DocumentStore {
                 // within replication lag period
                 ReadPreference readPreference = ReadPreference.primary();
                 if (parentId != null) {
-                    long replicationSafeLimit = getTime() - estimator.getEstimation();
+                    long replicationSafeLimit = getTime() - lagEstimator.getLagEstimation();
                     NodeDocument cachedDoc = (NodeDocument) getIfCached(collection, parentId);
                     // FIXME: this is not quite accurate, because ancestors
                     // are updated in a background thread (_lastRev). We
@@ -1090,7 +1090,7 @@ public class MongoDocumentStore implements DocumentStore {
 
     @Override
     public void dispose() {
-        estimator.stop();
+        lagEstimator.stop();
         nodes.getDB().getMongo().close();
 
         if (nodesCache instanceof Closeable) {

@@ -17,10 +17,13 @@
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.bson.BasicBSONObject;
@@ -67,7 +70,7 @@ public class ReplicationLagEstimator implements Runnable {
         notify();
     }
 
-    public long getEstimation() {
+    public long getLagEstimation() {
         return lastEstimatedValue;
     }
 
@@ -94,14 +97,23 @@ public class ReplicationLagEstimator implements Runnable {
         } else {
             LOG.debug("Average lags for the instances: {}", memberLags);
             Long max = null;
-            for (Stat s : memberLags.values()) {
-                Long avg = s.average();
+            boolean allStatsPresent = true;
+            for (Entry<String, Stat> e : memberLags.entrySet()) {
+                Long avg = e.getValue().average();
+                if (avg == null) {
+                    LOG.debug("There's no data for instance {}", e.getKey());
+                    allStatsPresent = false;
+                }
                 if (max == null || max < avg) {
                     max = avg;
                 }
             }
-            LOG.debug("Estimated maximum lag is: {}", max);
-            return max;
+            if (allStatsPresent) {
+                LOG.debug("Estimated maximum lag is: {}", max);
+                return max;
+            } else {
+                return maxReplicationLagMillis;
+            }
         }
     }
 
@@ -147,16 +159,20 @@ public class ReplicationLagEstimator implements Runnable {
             Set<String> secondaryNames = new HashSet<String>();
             for (MemberReplicationInfo secondary : secondaries) {
                 String name = secondary.name;
-                Long lag = primary.getLag(secondary);
                 secondaryNames.add(name);
+
+                Stat stat = memberLags.get(name);
+                if (stat == null) {
+                    memberLags.put(name, stat = new Stat(STAT_SIZE));
+                }
+
+                Long lag = primary.getLag(secondary);
                 if (lag == null) {
                     unknownState = true;
-                    continue;
+                    stat.removeOldest();
+                } else {
+                    stat.add(lag);
                 }
-                if (!memberLags.containsKey(name)) {
-                    memberLags.put(name, new Stat(STAT_SIZE));
-                }
-                memberLags.get(name).add(lag);
             }
             memberLags.keySet().retainAll(secondaryNames);
         }
@@ -192,31 +208,34 @@ public class ReplicationLagEstimator implements Runnable {
                         optime, secondary.name, secondary.optime);
                 return null;
             } else {
-                return secondary.optime - optime;
+                return 1000l * (secondary.optime - optime);
             }
         }
     }
 
     private static class Stat {
 
-        private final long[] data;
+        private final Deque<Long> data;
 
-        private int i;
-
-        private int size;
+        private final int size;
 
         private Long average;
 
         public Stat(int size) {
-            this.data = new long[size];
+            this.data = new LinkedList<Long>();
+            this.size = size;
         }
 
         public void add(long entry) {
-            if (size < data.length) {
-                size++;
+            if (data.size() == size) {
+                data.removeFirst();
             }
-            data[i] = entry;
-            i = (i + 1) % data.length;
+            data.addLast(entry);
+            average = null;
+        }
+
+        public void removeOldest() {
+            data.removeFirst();
             average = null;
         }
 
@@ -224,14 +243,14 @@ public class ReplicationLagEstimator implements Runnable {
             if (average != null) {
                 return average;
             }
-            if (size == 0) {
+            if (data.isEmpty()) {
                 return null;
             }
             long sum = 0;
-            for (int i = 0; i < size; i++) {
-                sum += data[i];
+            for (Long i : data) {
+                sum += i;
             }
-            return average = sum / size;
+            return average = sum / data.size();
         }
 
         @Override
