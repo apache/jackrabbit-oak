@@ -71,7 +71,7 @@ public abstract class AbstractDocumentStoreTest {
         dsf.dispose();
     }
 
-    @Parameterized.Parameters
+    @Parameterized.Parameters(name="{0}")
     public static Collection<Object[]> fixtures() {
         return fixtures(false);
     }
