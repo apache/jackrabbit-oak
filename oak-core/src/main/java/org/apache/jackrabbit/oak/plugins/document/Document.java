@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -105,6 +106,13 @@ public class Document implements CacheValue {
      */
     public Set<String> keySet() {
         return data.keySet();
+    }
+
+    /**
+     * @return a Set view of the entries contained in this document.
+     */
+    public Set<Entry<String, Object>> entrySet() {
+        return data.entrySet();
     }
 
     /**
