@@ -16,22 +16,29 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
-import java.io.FileNotFoundException;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 
@@ -40,10 +47,9 @@ import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
  */
 public class RDBExport {
 
-    public static void main(String[] args)
-            throws ClassNotFoundException, SQLException, UnsupportedEncodingException, FileNotFoundException {
+    public static void main(String[] args) throws ClassNotFoundException, SQLException, IOException {
 
-        String url = null, user = null, pw = null, table = "nodes", query = null;
+        String url = null, user = null, pw = null, table = "nodes", query = null, dumpfile = null;
         boolean asArray = false;
         PrintStream out = System.out;
         Set<String> excl = new HashSet<String>();
@@ -67,6 +73,8 @@ public class RDBExport {
                 } else if ("-o".equals(param) || "--out".equals(param)) {
                     OutputStream os = new FileOutputStream(args[++i]);
                     out = new PrintStream(os, true, "UTF-8");
+                } else if ("--from-db2-dump".equals(param)) {
+                    dumpfile = args[++i];
                 } else if ("--jsonArray".equals(param)) {
                     asArray = true;
                 } else {
@@ -81,6 +89,109 @@ public class RDBExport {
             System.exit(2);
         }
 
+        if (dumpfile != null && url != null) {
+            System.err.println(RDBExport.class.getName() + ": must use either dump file or JDBC URL");
+            printUsage();
+            System.exit(2);
+        } else if (dumpfile != null) {
+            dumpFile(dumpfile, asArray, out, ser);
+        } else {
+            dumpJDBC(url, user, pw, table, query, asArray, out, ser);
+        }
+
+        out.flush();
+        out.close();
+    }
+
+    private static void dumpFile(String filename, boolean asArray, PrintStream out, RDBDocumentSerializer ser) throws IOException {
+        FileInputStream fis = new FileInputStream(new File(filename));
+        InputStreamReader ir = new InputStreamReader(fis, "UTF-8");
+        BufferedReader br = new BufferedReader(ir);
+        // scan for column names
+        String prev = null;
+        String line = br.readLine();
+        String columns = null;
+        while (line != null && columns == null) {
+            prev = line;
+            line = br.readLine();
+            if (line != null) {
+                // remove spaces
+                String stripped = line.replace(" ", "");
+                if (stripped.length() != 0 && stripped.replace("-", "").length() == 0) {
+                    columns = prev;
+                }
+            }
+        }
+        Map<String, Integer> starts = new HashMap<String, Integer>();
+        Map<String, Integer> ends = new HashMap<String, Integer>();
+        String cname = "";
+        int cstart = 0;
+        boolean inName = true;
+        for (int i = 0; i < columns.length(); i++) {
+            char c = columns.charAt(i);
+            if (c == ' ') {
+                if (inName == true) {
+                    starts.put(cname, cstart);
+                }
+                inName = false;
+            } else {
+                if (inName == false) {
+                    ends.put(cname, i - 1);
+                    cname = "";
+                    cstart = i;
+                }
+                cname += c;
+                inName = true;
+            }
+        }
+        // System.out.println("Found columns: " + starts + " " + ends + " " +
+        // columns.length());
+        if (asArray) {
+            out.println("[");
+        }
+        boolean needComma = asArray;
+        line = br.readLine();
+        while (line != null) {
+            try {
+                String id = line.substring(starts.get("ID"), ends.get("ID")).trim();
+                String smodified = line.substring(starts.get("MODIFIED"), ends.get("MODIFIED")).trim();
+                String shasbinary = line.substring(starts.get("HASBINARY"), ends.get("HASBINARY")).trim();
+                String sdeletedonce = line.substring(starts.get("DELETEDONCE"), ends.get("DELETEDONCE")).trim();
+                String smodcount = line.substring(starts.get("MODCOUNT"), ends.get("MODCOUNT")).trim();
+                String scmodcount = line.substring(starts.get("CMODCOUNT"), ends.get("CMODCOUNT")).trim();
+                String sdata = line.substring(starts.get("DATA"), ends.get("DATA")).trim();
+                String sbdata = line.substring(starts.get("BDATA")).trim(); // assumed
+                                                                            // to
+                                                                            // be
+                                                                            // last
+                byte[] bytes = null;
+                if (sbdata.length() != 0 && !"-".equals(sbdata)) {
+                    bytes = StringUtils.convertHexToBytes(sbdata.substring(1).replace("'", ""));
+                }
+                try {
+                    RDBRow row = new RDBRow(id, "1".equals(shasbinary), "1".equals(sdeletedonce), Long.parseLong(smodified),
+                            Long.parseLong(smodcount), Long.parseLong(scmodcount), sdata, bytes);
+                    StringBuilder fulljson = dumpRow(ser, id, row);
+                    if (asArray && needComma) {
+                        fulljson.append(",");
+                    }
+                    out.println(fulljson);
+                    needComma = true;
+                } catch (DocumentStoreException ex) {
+                    System.err.println("Error: skipping line for ID " + id + " because of " + ex.getMessage());
+                }
+            } catch (IndexOutOfBoundsException ex) {
+                // ignored
+            }
+            line = br.readLine();
+        }
+        if (asArray) {
+            out.println("]");
+        }
+    }
+
+    private static void dumpJDBC(String url, String user, String pw, String table, String query, boolean asArray, PrintStream out,
+            RDBDocumentSerializer ser) throws SQLException {
         String driver = RDBJDBCTools.driverForDBType(RDBJDBCTools.jdbctype(url));
         try {
             Class.forName(driver);
@@ -110,16 +221,9 @@ public class RDBExport {
             long deletedOnce = rs.getLong("DELETEDONCE");
             String data = rs.getString("DATA");
             byte[] bdata = rs.getBytes("BDATA");
-            RDBRow row = new RDBRow(id, hasBinary == 1, deletedOnce == 1, modified, modcount, cmodcount, data, bdata);
-            NodeDocument doc = ser.fromRow(Collection.NODES, row);
 
-            String docjson = ser.asString(doc);
-            StringBuilder fulljson = new StringBuilder();
-            fulljson.append("{\"_id\":\"");
-            JsopBuilder.escape(id, fulljson);
-            fulljson.append("\",");
-            fulljson.append(docjson);
-            fulljson.append("}");
+            RDBRow row = new RDBRow(id, hasBinary == 1, deletedOnce == 1, modified, modcount, cmodcount, data, bdata);
+            StringBuilder fulljson = dumpRow(ser, id, row);
             if (asArray && needComma && !rs.isLast()) {
                 fulljson.append(",");
             }
@@ -133,6 +237,17 @@ public class RDBExport {
         rs.close();
         stmt.close();
         c.close();
+    }
+
+    private static StringBuilder dumpRow(RDBDocumentSerializer ser, String id, RDBRow row) {
+        NodeDocument doc = ser.fromRow(Collection.NODES, row);
+        String docjson = ser.asString(doc);
+        StringBuilder fulljson = new StringBuilder();
+        fulljson.append("{\"_id\":\"");
+        JsopBuilder.escape(id, fulljson);
+        fulljson.append("\",");
+        fulljson.append(docjson.substring(1));
+        return fulljson;
     }
 
     private static void printUsage() {
