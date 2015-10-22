@@ -324,8 +324,8 @@ public class MemoryDocumentStore implements DocumentStore {
         for (String p : nodes.keySet()) {
             buff.append("Path: ").append(p).append('\n');
             NodeDocument doc = nodes.get(p);
-            for (String prop : doc.keySet()) {
-                buff.append(prop).append('=').append(doc.get(prop)).append('\n');
+            for (Map.Entry<String, Object> entry : doc.entrySet()) {
+                buff.append(entry.getKey()).append('=').append(entry.getValue()).append('\n');
             }
             buff.append("\n");
         }
