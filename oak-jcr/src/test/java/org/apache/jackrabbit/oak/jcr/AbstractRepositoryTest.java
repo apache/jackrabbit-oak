@@ -71,7 +71,7 @@ public abstract class AbstractRepositoryTest {
         this.fixture = fixture;
     }
 
-    @Parameterized.Parameters
+    @Parameterized.Parameters(name="{0}")
     public static Collection<Object[]> fixtures() {
         Collection<Object[]> result = new ArrayList<Object[]>();
         if (FIXTURES.contains(Fixture.DOCUMENT_NS)) {
