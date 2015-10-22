@@ -77,8 +77,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Objects;
 import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Striped;
 import com.mongodb.BasicDBObject;
@@ -148,7 +146,7 @@ public class MongoDocumentStore implements DocumentStore {
 
     private Clock clock = Clock.SIMPLE;
 
-    private final long maxReplicationLagMillis;
+    private final ReplicationLagEstimator estimator;
 
     /**
      * Duration in seconds under which queries would use index on _modified field
@@ -189,6 +187,15 @@ public class MongoDocumentStore implements DocumentStore {
     private long maxLockedQueryTimeMS =
             Long.getLong("oak.mongo.maxLockedQueryTimeMS", TimeUnit.SECONDS.toMillis(3));
 
+    /**
+     * How often in milliseconds the MongoDocumentStore should estimate the
+     * replication lag.
+     * <p>
+     * Default is 60'000 (one minute).
+     */
+    private long estimationPullFrequencyMS =
+            Long.getLong("oak.mongo.estimationPullFrequencyMS", TimeUnit.SECONDS.toMillis(60));
+
     private String lastReadWriteMode;
 
     private final Map<String, String> metadata;
@@ -206,7 +213,9 @@ public class MongoDocumentStore implements DocumentStore {
         settings = db.getCollection(Collection.SETTINGS.toString());
         journal = db.getCollection(Collection.JOURNAL.toString());
 
-        maxReplicationLagMillis = builder.getMaxReplicationLagMillis();
+        long maxReplicationLagMillis = builder.getMaxReplicationLagMillis();
+        estimator = new ReplicationLagEstimator(db.getSisterDB("admin"), maxReplicationLagMillis, estimationPullFrequencyMS);
+        new Thread(estimator, "MongoDocumentStore lag estimator (" + builder.getClusterId() + ")").start();
 
         // indexes:
         // the _id field is the primary key, so we don't need to define it
@@ -965,7 +974,7 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     DocumentReadPreference getReadPreference(int maxCacheAge){
-        if(maxCacheAge >= 0 && maxCacheAge < maxReplicationLagMillis) {
+        if(maxCacheAge >= 0 && maxCacheAge < estimator.getEstimation()) {
             return DocumentReadPreference.PRIMARY;
         } else if(maxCacheAge == Integer.MAX_VALUE){
             return DocumentReadPreference.PREFER_SECONDARY;
@@ -997,7 +1006,7 @@ public class MongoDocumentStore implements DocumentStore {
                 // within replication lag period
                 ReadPreference readPreference = ReadPreference.primary();
                 if (parentId != null) {
-                    long replicationSafeLimit = getTime() - maxReplicationLagMillis;
+                    long replicationSafeLimit = getTime() - estimator.getEstimation();
                     NodeDocument cachedDoc = (NodeDocument) getIfCached(collection, parentId);
                     // FIXME: this is not quite accurate, because ancestors
                     // are updated in a background thread (_lastRev). We
@@ -1081,6 +1090,7 @@ public class MongoDocumentStore implements DocumentStore {
 
     @Override
     public void dispose() {
+        estimator.stop();
         nodes.getDB().getMongo().close();
 
         if (nodesCache instanceof Closeable) {
