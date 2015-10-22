@@ -84,6 +84,10 @@ public abstract class DocumentStoreFixture {
         return true;
     }
 
+    public String toString() {
+        return getClass().getSimpleName() + ": "+ getName();
+    }
+
     public void dispose() throws Exception {
     }
 
