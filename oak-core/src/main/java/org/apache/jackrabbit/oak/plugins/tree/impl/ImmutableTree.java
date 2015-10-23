@@ -26,6 +26,7 @@ import com.google.common.base.Objects;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
@@ -94,6 +95,8 @@ public final class ImmutableTree extends AbstractTree {
 
     private String path;
 
+    private TreeType type;
+
     public ImmutableTree(@Nonnull NodeState rootState) {
         this(ParentProvider.ROOT_PROVIDER, "", rootState);
     }
@@ -106,6 +109,14 @@ public final class ImmutableTree extends AbstractTree {
         this.nodeBuilder = new ReadOnlyBuilder(state);
         this.name = name;
         this.parentProvider = checkNotNull(parentProvider);
+    }
+
+    public TreeType getType() {
+        return type;
+    }
+
+    public void setType(TreeType type) {
+        this.type = type;
     }
 
     //-------------------------------------------------------< AbstractTree >---

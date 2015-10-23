@@ -39,6 +39,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.plugins.tree.TreeType;
+import org.apache.jackrabbit.oak.plugins.tree.TreeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -70,19 +72,15 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
             Permissions.READ_PROPERTY, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.REP_READ_PROPERTIES),
             Permissions.READ_ACCESS_CONTROL, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
 
-    private Root root;
-
     private final String workspaceName;
-
     private final ReadPolicy readPolicy;
-
-    private PermissionStoreImpl store;
+    private final PermissionStoreImpl store;
     private final PermissionEntryProvider userStore;
     private final PermissionEntryProvider groupStore;
-
-    private PrivilegeBitsProvider bitsProvider;
-
     private final TreeTypeProvider typeProvider;
+
+    private Root root;
+    private PrivilegeBitsProvider bitsProvider;
 
     private CompiledPermissionImpl(@Nonnull Set<Principal> principals,
                                    @Nonnull Root root, @Nonnull String workspaceName,
@@ -155,20 +153,20 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
     @Override
     public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
         if (tree.isRoot()) {
-            return new TreePermissionImpl(tree, TreeTypeProvider.TYPE_DEFAULT, EMPTY);
+            return new TreePermissionImpl(tree, TreeType.DEFAULT, EMPTY);
         }
-        int parentType = getParentType(parentPermission);
-        int type = typeProvider.getType(tree, parentType);
+        TreeType parentType = getParentType(parentPermission);
+        TreeType type = typeProvider.getType(tree, parentType);
         switch (type) {
-            case TreeTypeProvider.TYPE_HIDDEN:
+            case HIDDEN:
                 return ALL;
-            case TreeTypeProvider.TYPE_VERSION:
+            case VERSION:
                 String ntName = TreeUtil.getPrimaryTypeName(tree);
                 if (ntName == null) {
                     return EMPTY;
                 }
                 if (VersionConstants.VERSION_STORE_NT_NAMES.contains(ntName) || VersionConstants.NT_ACTIVITY.equals(ntName)) {
-                    return new TreePermissionImpl(tree, TreeTypeProvider.TYPE_VERSION, parentPermission);
+                    return new TreePermissionImpl(tree, TreeType.VERSION, parentPermission);
                 } else {
                     Tree versionableTree = getVersionableTree(tree);
                     if (versionableTree == null) {
@@ -184,11 +182,11 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                         while (!versionableTree.exists()) {
                             versionableTree = versionableTree.getParent();
                         }
-                        TreePermission pp = getParentPermission(versionableTree, TreeTypeProvider.TYPE_VERSION);
-                        return new TreePermissionImpl(versionableTree, TreeTypeProvider.TYPE_VERSION, pp);
+                        TreePermission pp = getParentPermission(versionableTree, TreeType.VERSION);
+                        return new TreePermissionImpl(versionableTree, TreeType.VERSION, pp);
                     }
                 }
-            case TreeTypeProvider.TYPE_INTERNAL:
+            case INTERNAL:
                 return EMPTY;
             default:
                 return new TreePermissionImpl(tree, type, parentPermission);
@@ -196,7 +194,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
     }
 
     @Nonnull
-    private TreePermission getParentPermission(@Nonnull Tree tree, int type) {
+    private TreePermission getParentPermission(@Nonnull Tree tree, TreeType type) {
         List<Tree> trees = new ArrayList<Tree>();
         while (!tree.isRoot()) {
             tree = tree.getParent();
@@ -213,11 +211,11 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
 
     @Override
     public boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
-        int type = typeProvider.getType(tree);
+        TreeType type = typeProvider.getType(tree);
         switch (type) {
-            case TreeTypeProvider.TYPE_HIDDEN:
+            case HIDDEN:
                 return true;
-            case TreeTypeProvider.TYPE_VERSION:
+            case VERSION:
                 Tree versionableTree = getVersionableTree(tree);
                 if (versionableTree == null) {
                     // unable to determine the location of the versionable item -> deny access.
@@ -234,7 +232,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                     }
                     return isGranted(path, permissions);
                 }
-            case TreeTypeProvider.TYPE_INTERNAL:
+            case INTERNAL:
                 return false;
             default:
                 return internalIsGranted(tree, property, permissions);
@@ -337,11 +335,11 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
 
     @Nonnull
     private PrivilegeBits internalGetPrivileges(@Nullable Tree tree) {
-        int type = (tree == null) ? TreeTypeProvider.TYPE_DEFAULT : typeProvider.getType(tree);
+        TreeType type = (tree == null) ? TreeType.DEFAULT : typeProvider.getType(tree);
         switch (type) {
-            case TreeTypeProvider.TYPE_HIDDEN:
+            case HIDDEN:
                 return PrivilegeBits.EMPTY;
-            case TreeTypeProvider.TYPE_VERSION:
+            case VERSION:
                 Tree versionableTree = getVersionableTree(tree);
                 if (versionableTree == null || !versionableTree.exists()) {
                     // unable to determine the location of the versionable item -> deny access.
@@ -349,7 +347,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                 }  else {
                     return getPrivilegeBits(versionableTree);
                 }
-            case TreeTypeProvider.TYPE_INTERNAL:
+            case INTERNAL:
                 return PrivilegeBits.EMPTY;
             default:
                 return getPrivilegeBits(tree);
@@ -424,11 +422,11 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         return versionStoreTree;
     }
 
-    private static int getParentType(@Nonnull TreePermission parentPermission) {
+    private static TreeType getParentType(@Nonnull TreePermission parentPermission) {
         if (parentPermission instanceof TreePermissionImpl) {
             return ((TreePermissionImpl) parentPermission).type;
         } else if (parentPermission == TreePermission.EMPTY) {
-            return TreeTypeProvider.TYPE_DEFAULT;
+            return TreeType.DEFAULT;
         } else {
             throw new IllegalArgumentException("Illegal TreePermission implementation.");
         }
@@ -439,7 +437,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         private final Tree tree;
         private final TreePermissionImpl parent;
 
-        private final int type;
+        private final TreeType type;
         private final boolean readableTree;
 
         private Collection<PermissionEntry> userEntries;
@@ -448,15 +446,15 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         private boolean skipped;
         private ReadStatus readStatus;
 
-        private TreePermissionImpl(Tree tree, int treeType, TreePermission parentPermission) {
+        private TreePermissionImpl(Tree tree, TreeType type, TreePermission parentPermission) {
             this.tree = tree;
+            this.type = type;
             if (parentPermission instanceof TreePermissionImpl) {
                 parent = (TreePermissionImpl) parentPermission;
             } else {
                 parent = null;
             }
             readableTree = readPolicy.isReadableTree(tree, parent);
-            type = treeType;
         }
 
         //-------------------------------------------------< TreePermission >---
@@ -560,7 +558,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         }
 
         private boolean isAcTree() {
-            return type == TreeTypeProvider.TYPE_AC;
+            return type == TreeType.ACCESS_CONTROL;
         }
     }
 
