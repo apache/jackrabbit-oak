@@ -17,15 +17,12 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
 import java.security.Principal;
-import java.util.Set;
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
@@ -47,15 +44,12 @@ public class CugTreePermissionTest extends AbstractCugTest {
         createCug(SUPPORTED_PATH, EveryonePrincipal.getInstance());
         root.commit();
 
-        Set<Principal> principals = ImmutableSet.of(getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
-        Set<String> supportedPaths = ImmutableSet.of(SUPPORTED_PATH, SUPPORTED_PATH2);
-
-        allowedTp = getCugTreePermission(root, getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
-        deniedTp = getCugTreePermission(root);
+        allowedTp = getCugTreePermission(getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
+        deniedTp = getCugTreePermission();
     }
 
-    private static CugTreePermission getCugTreePermission(@Nonnull Root root, @Nonnull Principal... principals) {
-        PermissionProvider pp = new CugPermissionProvider(root, ImmutableSet.copyOf(principals), ImmutableSet.of(SUPPORTED_PATH, SUPPORTED_PATH2), CugContext.INSTANCE);
+    private CugTreePermission getCugTreePermission(@Nonnull Principal... principals) {
+        CugPermissionProvider pp = createCugPermissionProvider(ImmutableSet.of(SUPPORTED_PATH, SUPPORTED_PATH2), principals);
         TreePermission rootTp = pp.getTreePermission(root.getTree("/"), TreePermission.EMPTY);
         TreePermission targetTp = pp.getTreePermission(root.getTree(SUPPORTED_PATH), rootTp);
         assertTrue(targetTp instanceof CugTreePermission);

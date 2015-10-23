@@ -19,29 +19,23 @@ package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 import java.security.Principal;
 import java.util.List;
 import java.util.Set;
-import javax.jcr.SimpleCredentials;
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.Group;
-import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.Before;
@@ -53,9 +47,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConstants {
-
-    private static final String TEST_GROUP_ID = "testGroup";
-    private static final String TEST_USER2_ID = "testUser2";
 
     private ContentSession testSession;
     private Root testRoot;
@@ -71,41 +62,9 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
     public void before() throws Exception {
         super.before();
 
-        // create testGroup with 'testuser2' being a declared member (testUser is not)
-        Group testGroup = getUserManager(root).createGroup(TEST_GROUP_ID);
-        testGroupPrincipal = testGroup.getPrincipal();
-        User testUser2 = getUserManager(root).createUser(TEST_USER2_ID, TEST_USER2_ID);
-        testGroup.addMember(testUser2);
-        root.commit();
+        setupCugsAndAcls();
 
-        // add more child nodes
-        NodeUtil n = new NodeUtil(root.getTree(SUPPORTED_PATH));
-        n.addChild("a", NT_OAK_UNSTRUCTURED).addChild("b", NT_OAK_UNSTRUCTURED).addChild("c", NT_OAK_UNSTRUCTURED);
-        n.addChild("aa", NT_OAK_UNSTRUCTURED).addChild("bb", NT_OAK_UNSTRUCTURED).addChild("cc", NT_OAK_UNSTRUCTURED);
-
-        // create cugs
-        // - /content/a     : allow testGroup, deny everyone
-        // - /content/aa/bb : allow testGroup, deny everyone
-        // - /content/a/b/c : allow everyone,  deny testGroup (isolated)
-        // - /content2      : allow everyone,  deny testGroup (isolated)
-        createCug("/content/a", testGroupPrincipal);
-        createCug("/content/aa/bb", testGroupPrincipal);
-        createCug("/content/a/b/c", EveryonePrincipal.getInstance());
-        createCug("/content2", EveryonePrincipal.getInstance());
-
-        // setup regular acl at /content:
-        // - testUser  ; allow ; jcr:read
-        // - testGroup ; allow ; jcr:read, jcr:write, jcr:readAccessControl
-        AccessControlManager acMgr = getAccessControlManager(root);
-        AccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/content");
-        acl.addAccessControlEntry(getTestUser().getPrincipal(), privilegesFromNames(
-                PrivilegeConstants.JCR_READ));
-        acl.addAccessControlEntry(testGroupPrincipal, privilegesFromNames(
-                PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE, PrivilegeConstants.JCR_READ_ACCESS_CONTROL)
-        );
-        acMgr.setPolicy("/content", acl);
-
-        root.commit();
+        testGroupPrincipal = getTestGroupPrincipal();
 
         content = root.getTree("/content");
         content2 = root.getTree("/content2");
@@ -119,23 +78,10 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
     @Override
     public void after() throws Exception {
         try {
-            // revert transient pending changes (that might be invalid)
-            root.refresh();
-
-            // remove the test group and second test user
-            Authorizable testGroup = getUserManager(root).getAuthorizable(TEST_GROUP_ID);
-            if (testGroup != null) {
-                testGroup.remove();
-            }
-            Authorizable testUser2 = getUserManager(root).getAuthorizable(TEST_USER2_ID);
-            if (testUser2 != null) {
-                testUser2.remove();
-            }
-            root.commit();
-        } finally {
             if (testSession != null) {
                 testSession.close();
             }
+        } finally {
             super.after();
         }
     }
@@ -172,7 +118,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
 
     @Test
     public void testReadAcl2() throws Exception {
-        ContentSession cs = login(new SimpleCredentials(TEST_USER2_ID, TEST_USER2_ID.toCharArray()));
+        ContentSession cs = createTestSession2();
         try {
             Root r = cs.getLatestRoot();
 
@@ -194,7 +140,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
 
     @Test
     public void testReadCug2() throws Exception {
-        ContentSession cs = login(new SimpleCredentials(TEST_USER2_ID, TEST_USER2_ID.toCharArray()));
+        ContentSession cs = createTestSession2();
         try {
             Root r = cs.getLatestRoot();
 
@@ -224,14 +170,14 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
 
     @Test
     public void testWrite2() throws Exception {
-        Set<Principal> principalSet = (Set<Principal>) getConfig(PrincipalConfiguration.class).getPrincipalProvider(root, NamePathMapper.DEFAULT).getPrincipals(TEST_USER2_ID);
-        PermissionProvider pp = createPermissionProvider(principalSet);
-        assertTrue(pp.isGranted(root.getTree("/content/writeTest"), null, Permissions.ADD_NODE));
-        assertTrue(pp.isGranted(root.getTree("/content/a/b/c/writeTest"), null, Permissions.ADD_NODE));
-
-        ContentSession cs = login(new SimpleCredentials(TEST_USER2_ID, TEST_USER2_ID.toCharArray()));
+        ContentSession cs = createTestSession2();
         Root r = cs.getLatestRoot();
         try {
+            Set<Principal> principalSet = cs.getAuthInfo().getPrincipals();
+            PermissionProvider pp = createPermissionProvider(principalSet);
+            assertTrue(pp.isGranted(root.getTree("/content/writeTest"), null, Permissions.ADD_NODE));
+            assertTrue(pp.isGranted(root.getTree("/content/a/b/c/writeTest"), null, Permissions.ADD_NODE));
+
             List<String> paths = ImmutableList.of("/content", "/content/a/b/c");
             for (String p : paths) {
                 NodeUtil content = new NodeUtil(r.getTree(p));
@@ -246,7 +192,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
 
     @Test
     public void testWriteAcl() throws Exception {
-        ContentSession cs = login(new SimpleCredentials(TEST_USER2_ID, TEST_USER2_ID.toCharArray()));
+        ContentSession cs = createTestSession2();
         Root r = cs.getLatestRoot();
         try {
             Tree tree = r.getTree("/content/a/b/c");
@@ -263,7 +209,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
 
     @Test
     public void testWriteCug() throws Exception {
-        ContentSession cs = login(new SimpleCredentials(TEST_USER2_ID, TEST_USER2_ID.toCharArray()));
+        ContentSession cs = createTestSession2();
         Root r = cs.getLatestRoot();
         try {
             // modify the existing cug
