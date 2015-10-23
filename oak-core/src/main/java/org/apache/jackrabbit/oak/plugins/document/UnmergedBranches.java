@@ -41,7 +41,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * <code>UnmergedBranches</code> contains all un-merged branches of a DocumentMK
  * instance.
  */
-class UnmergedBranches {
+public class UnmergedBranches {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -190,5 +190,20 @@ class UnmergedBranches {
             }
         }
         return null;
+    }
+
+    /**
+     * Checks if there's a chance that this branch revisions affect the path.
+     * 
+     * @param path
+     * @return {@code true} if this branch may affect the given path, {@code false} otherwise
+     */
+    public boolean mightAffectPath(String path) {
+        for (Branch branch : branches) {
+            if (branch.mightBeAffectedPath(path)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

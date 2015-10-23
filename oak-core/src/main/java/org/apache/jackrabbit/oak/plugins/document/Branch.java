@@ -33,9 +33,12 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import com.google.common.hash.BloomFilter;
+import com.google.common.hash.Funnels;
 
 /**
  * Contains commit information about a branch and its base revision.
@@ -56,6 +59,11 @@ class Branch {
      * The branch reference.
      */
     private final BranchReference ref;
+
+    /**
+     * Bloom filter containing paths affected by revisions in this branch.
+     */
+    private final BloomFilter<CharSequence> affectedPaths;
 
     /**
      * Create a new branch instance with an initial set of commits and a given
@@ -88,6 +96,7 @@ class Branch {
         } else {
             this.ref = null;
         }
+        this.affectedPaths = BloomFilter.create(Funnels.stringFunnel(Charsets.UTF_8), 1000); // about 100kB
     }
 
     /**
@@ -254,6 +263,16 @@ class Branch {
         checkArgument(checkNotNull(rev).isBranch(),
                 "Not a branch revision: %s", rev);
         return checkNotNull(rev).equals(commits.lastKey());
+    }
+
+    void addAffectedPaths(Iterable<String> paths) {
+        for (String path : paths) {
+            affectedPaths.apply(path);
+        }
+    }
+
+    boolean mightBeAffectedPath(String path) {
+        return affectedPaths.mightContain(path);
     }
 
     /**

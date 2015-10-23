@@ -139,12 +139,11 @@ public class ReadPreferenceIT {
         nodeStore.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         String id = Utils.getIdFromPath("/x/y");
-        String parentId = Utils.getParentId(id);
         mongoDS.invalidateCache(NODES,id);
 
         //For modifiedTime < replicationLag primary must be used
         assertEquals(ReadPreference.primary(),
-                mongoDS.getMongoReadPreference(NODES,parentId, DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
+                mongoDS.getMongoReadPreference(NODES, id, DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
 
         //Going into future to make parent /x old enough
         clock.waitUntil(Revision.getCurrentTimestamp() + replicationLag);
@@ -152,7 +151,7 @@ public class ReadPreferenceIT {
 
         //For old modified nodes secondaries should be preferred
         assertEquals(testPref,
-                mongoDS.getMongoReadPreference(NODES, parentId, DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
+                mongoDS.getMongoReadPreference(NODES, id, DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
     }
 
     @Test

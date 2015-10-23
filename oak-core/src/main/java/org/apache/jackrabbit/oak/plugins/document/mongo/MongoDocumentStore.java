@@ -61,6 +61,10 @@ import org.apache.jackrabbit.oak.plugins.document.JournalEntry;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
+import org.apache.jackrabbit.oak.plugins.document.UnmergedBranches;
+import org.apache.jackrabbit.oak.plugins.document.UnmergedBranchesAware;
+import org.apache.jackrabbit.oak.plugins.document.UnsavedModifications;
+import org.apache.jackrabbit.oak.plugins.document.UnsavedModificationsAware;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
@@ -95,7 +99,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /**
  * A document store that uses MongoDB as the backend.
  */
-public class MongoDocumentStore implements DocumentStore {
+public class MongoDocumentStore implements DocumentStore, UnsavedModificationsAware, UnmergedBranchesAware {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentStore.class);
     private static final PerfLogger PERFLOG = new PerfLogger(
@@ -143,6 +147,16 @@ public class MongoDocumentStore implements DocumentStore {
      * descending, newest revisions first!
      */
     private final Comparator<Revision> comparator = StableRevisionComparator.REVERSE;
+
+    /**
+     * List of the unmerged branches, got from the DocumentNodeStore.
+     */
+    private UnmergedBranches unmergedBranches;
+
+    /**
+     * List of the unsaved modifications, got from the DocumentNodeStore.
+     */
+    private UnsavedModifications unsavedModifications;
 
     private Clock clock = Clock.SIMPLE;
 
@@ -505,7 +519,7 @@ public class MongoDocumentStore implements DocumentStore {
         final long start = PERFLOG.start();
         boolean isSlaveOk = false;
         try {
-            ReadPreference readPreference = getMongoReadPreference(collection, Utils.getParentId(key), docReadPref);
+            ReadPreference readPreference = getMongoReadPreference(collection, key, Utils.getParentId(key), docReadPref);
 
             if(readPreference.isSlaveOk()){
                 LOG.trace("Routing call to secondary for fetching [{}]", key);
@@ -630,8 +644,12 @@ public class MongoDocumentStore implements DocumentStore {
                 // OAK-2614: set maxTime if maxQueryTimeMS > 0
                 cursor.maxTime(maxQueryTime, TimeUnit.MILLISECONDS);
             }
+            String documentId = fromKey;
+            if (documentId.endsWith("/")) {
+                documentId = documentId.substring(0, documentId.length() - 1);
+            }
             ReadPreference readPreference =
-                    getMongoReadPreference(collection, parentId, getDefaultReadPreference(collection));
+                    getMongoReadPreference(collection, documentId, parentId, getDefaultReadPreference(collection));
 
             if(readPreference.isSlaveOk()){
                 LOG.trace("Routing call to secondary for fetching children from [{}] to [{}]", fromKey, toKey);
@@ -988,6 +1006,7 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     <T extends Document> ReadPreference getMongoReadPreference(Collection<T> collection,
+                                                               String documentId,
                                                                String parentId,
                                                                DocumentReadPreference preference) {
         switch(preference){
@@ -1008,11 +1027,8 @@ public class MongoDocumentStore implements DocumentStore {
                 if (parentId != null) {
                     long replicationSafeLimit = getTime() - lagEstimator.getLagEstimation();
                     NodeDocument cachedDoc = (NodeDocument) getIfCached(collection, parentId);
-                    // FIXME: this is not quite accurate, because ancestors
-                    // are updated in a background thread (_lastRev). We
-                    // will need to revise this for low maxReplicationLagMillis
-                    // values
-                    if (cachedDoc != null && !cachedDoc.hasBeenModifiedSince(replicationSafeLimit)) {
+                if (cachedDoc != null && !cachedDoc.hasBeenModifiedSince(replicationSafeLimit)
+                        && !belongsToBranch(documentId) && !waitsForLastRevUpdate(parentId)) {
 
                         //If parent has been modified loooong time back then there children
                         //would also have not be modified. In that case we can read from secondary
@@ -1023,6 +1039,28 @@ public class MongoDocumentStore implements DocumentStore {
             default:
                 throw new IllegalArgumentException("Unsupported usage " + preference);
         }
+    }
+
+    /**
+     * @param documentId
+     * @return {@code true} if it's possible that this document is part of the unsaved modification
+     */
+    private boolean waitsForLastRevUpdate(String documentId) {
+        if (unsavedModifications == null) {
+            return true;
+        }
+        return unsavedModifications.containsPath(Utils.getPathFromId(documentId));
+    }
+
+    /**
+     * @param documentId
+     * @return {@code true} if it's possible that this document belongs to a branch
+     */
+    private boolean belongsToBranch(String documentId) {
+        if (unmergedBranches == null) {
+            return true;
+        }
+        return unmergedBranches.mightAffectPath(Utils.getPathFromId(documentId));
     }
 
     /**
@@ -1497,5 +1535,15 @@ public class MongoDocumentStore implements DocumentStore {
         final long diff = midPoint - serverLocalTimeMillis;
 
         return diff;
+    }
+
+    @Override
+    public void setUnmergedBranches(UnmergedBranches unmergedBranches) {
+        this.unmergedBranches = unmergedBranches;
+    }
+
+    @Override
+    public void setUnsavedModifications(UnsavedModifications unsavedModifications) {
+        this.unsavedModifications = unsavedModifications;
     }
 }
