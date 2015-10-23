@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -32,12 +33,11 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -55,7 +55,7 @@ public class RDBExport {
 
     public static void main(String[] args) throws ClassNotFoundException, SQLException, IOException {
 
-        String url = null, user = null, pw = null, table = "nodes", query = null, dumpfile = null;
+        String url = null, user = null, pw = null, table = "nodes", query = null, dumpfile = null, lobdir = null;
         boolean asArray = false;
         PrintStream out = System.out;
         Set<String> excl = new HashSet<String>();
@@ -81,6 +81,8 @@ public class RDBExport {
                     out = new PrintStream(os, true, "UTF-8");
                 } else if ("--from-db2-dump".equals(param)) {
                     dumpfile = args[++i];
+                } else if ("--lobdir".equals(param)) {
+                    lobdir = args[++i];
                 } else if ("--jsonArray".equals(param)) {
                     asArray = true;
                 } else if ("--version".equals(param)) {
@@ -103,7 +105,7 @@ public class RDBExport {
             printUsage();
             System.exit(2);
         } else if (dumpfile != null) {
-            dumpFile(dumpfile, asArray, out, ser);
+            dumpFile(dumpfile, lobdir, asArray, out, ser);
         } else {
             dumpJDBC(url, user, pw, table, query, asArray, out, ser);
         }
@@ -112,85 +114,60 @@ public class RDBExport {
         out.close();
     }
 
-    private static void dumpFile(String filename, boolean asArray, PrintStream out, RDBDocumentSerializer ser) throws IOException {
-        FileInputStream fis = new FileInputStream(new File(filename));
+    private static void dumpFile(String filename, String lobdir, boolean asArray, PrintStream out, RDBDocumentSerializer ser)
+            throws IOException {
+        File f = new File(filename);
+        File lobDirectory = lobdir == null ? new File(f.getParentFile(), "lobdir") : new File(lobdir);
+        FileInputStream fis = new FileInputStream(f);
         InputStreamReader ir = new InputStreamReader(fis, UTF8);
         BufferedReader br = new BufferedReader(ir);
-        // scan for column names
-        String prev = null;
-        String line = br.readLine();
-        String columns = null;
-        while (line != null && columns == null) {
-            prev = line;
-            line = br.readLine();
-            if (line != null) {
-                // remove spaces
-                String stripped = line.replace(" ", "");
-                if (stripped.length() != 0 && stripped.replace("-", "").length() == 0) {
-                    columns = prev;
-                }
-            }
-        }
-        Map<String, Integer> starts = new HashMap<String, Integer>();
-        Map<String, Integer> ends = new HashMap<String, Integer>();
-        String cname = "";
-        int cstart = 0;
-        boolean inName = true;
-        for (int i = 0; i < columns.length(); i++) {
-            char c = columns.charAt(i);
-            if (c == ' ') {
-                if (inName == true) {
-                    starts.put(cname, cstart);
-                }
-                inName = false;
-            } else {
-                if (inName == false) {
-                    ends.put(cname, i - 1);
-                    cname = "";
-                    cstart = i;
-                }
-                cname += c;
-                inName = true;
-            }
-        }
-        // System.out.println("Found columns: " + starts + " " + ends + " " +
-        // columns.length());
+
         if (asArray) {
             out.println("[");
         }
         boolean needComma = asArray;
-        line = br.readLine();
+        String line = br.readLine();
         while (line != null) {
+            ArrayList<String> fields = parseDel(line);
+            String id = fields.get(0);
+            String smodified = fields.get(1);
+            String shasbinary = fields.get(2);
+            String sdeletedonce = fields.get(3);
+            String smodcount = fields.get(4);
+            String scmodcount = fields.get(5);
+            String sdata = fields.get(7);
+            String sbdata = fields.get(8);
+
+            byte[] bytes = null;
+            if (sbdata.length() != 0) {
+                String lobfile = sbdata.replace("/", "");
+                int lastdot = lobfile.lastIndexOf('.');
+                String length = lobfile.substring(lastdot + 1);
+                lobfile = lobfile.substring(0, lastdot);
+                lastdot = lobfile.lastIndexOf('.');
+                String startpos = lobfile.substring(lastdot + 1);
+                lobfile = lobfile.substring(0, lastdot);
+                int s = Integer.valueOf(startpos);
+                int l = Integer.valueOf(length);
+                File lf = new File(lobDirectory, lobfile);
+                InputStream is = new FileInputStream(lf);
+                bytes = new byte[l];
+                IOUtils.skip(is, s);
+                IOUtils.read(is, bytes, 0, l);
+                IOUtils.closeQuietly(is);
+            }
             try {
-                String id = line.substring(starts.get("ID"), ends.get("ID")).trim();
-                String smodified = line.substring(starts.get("MODIFIED"), ends.get("MODIFIED")).trim();
-                String shasbinary = line.substring(starts.get("HASBINARY"), ends.get("HASBINARY")).trim();
-                String sdeletedonce = line.substring(starts.get("DELETEDONCE"), ends.get("DELETEDONCE")).trim();
-                String smodcount = line.substring(starts.get("MODCOUNT"), ends.get("MODCOUNT")).trim();
-                String scmodcount = line.substring(starts.get("CMODCOUNT"), ends.get("CMODCOUNT")).trim();
-                String sdata = line.substring(starts.get("DATA"), ends.get("DATA")).trim();
-                String sbdata = line.substring(starts.get("BDATA")).trim(); // assumed
-                                                                            // to
-                                                                            // be
-                                                                            // last
-                byte[] bytes = null;
-                if (sbdata.length() != 0 && !"-".equals(sbdata)) {
-                    bytes = StringUtils.convertHexToBytes(sbdata.substring(1).replace("'", ""));
+                RDBRow row = new RDBRow(id, "1".equals(shasbinary), "1".equals(sdeletedonce),
+                        smodified.length() == 0 ? 0 : Long.parseLong(smodified), Long.parseLong(smodcount),
+                        Long.parseLong(scmodcount), sdata, bytes);
+                StringBuilder fulljson = dumpRow(ser, id, row);
+                if (asArray && needComma) {
+                    fulljson.append(",");
                 }
-                try {
-                    RDBRow row = new RDBRow(id, "1".equals(shasbinary), "1".equals(sdeletedonce), Long.parseLong(smodified),
-                            Long.parseLong(smodcount), Long.parseLong(scmodcount), sdata, bytes);
-                    StringBuilder fulljson = dumpRow(ser, id, row);
-                    if (asArray && needComma) {
-                        fulljson.append(",");
-                    }
-                    out.println(fulljson);
-                    needComma = true;
-                } catch (DocumentStoreException ex) {
-                    System.err.println("Error: skipping line for ID " + id + " because of " + ex.getMessage());
-                }
-            } catch (IndexOutOfBoundsException ex) {
-                // ignored
+                out.println(fulljson);
+                needComma = true;
+            } catch (DocumentStoreException ex) {
+                System.err.println("Error: skipping line for ID " + id + " because of " + ex.getMessage());
             }
             line = br.readLine();
         }
@@ -198,6 +175,45 @@ public class RDBExport {
         if (asArray) {
             out.println("]");
         }
+    }
+
+    private static ArrayList<String> parseDel(String line) {
+        ArrayList<String> result = new ArrayList<String>();
+
+        boolean inQuoted = false;
+        char quotechar = '"';
+        char fielddelim = ',';
+        StringBuilder value = new StringBuilder();
+        for (int i = 0; i < line.length(); i++) {
+            char c = line.charAt(i);
+            if (!inQuoted) {
+                if (c == fielddelim) {
+                    result.add(value.toString());
+                    value = new StringBuilder();
+                } else {
+                    if (value.length() == 0 && c == quotechar) {
+                        inQuoted = true;
+                    } else {
+                        value.append(c);
+                    }
+                }
+            } else {
+                if (c == quotechar) {
+                    if (i + 1 != line.length() && line.charAt(i + 1) == quotechar) {
+                        // quoted quote char
+                        value.append(c);
+                        i += 1;
+                    } else {
+                        inQuoted = false;
+                    }
+                } else {
+                    value.append(c);
+                }
+            }
+        }
+        result.add(value.toString());
+
+        return result;
     }
 
     private static void dumpJDBC(String url, String user, String pw, String table, String query, boolean asArray, PrintStream out,
@@ -272,6 +288,9 @@ public class RDBExport {
 
     private static void printUsage() {
         System.err.println("Usage: " + RDBExport.class.getName()
-                + " [-j/--jdbc-url JDBC-URL] [-u/--username username] [-p/--password password] [-c/--collection table] [-q/--query query] [-o/--out file] [--jsonArray] [--version]");
+                + " -j/--jdbc-url JDBC-URL [-u/--username username] [-p/--password password] [-c/--collection table] [-q/--query query] [-o/--out file] [--jsonArray]");
+        System.err.println(
+                "Usage: " + RDBExport.class.getName() + " --from-DB2-dump file [--lobdir lobdir] [-o/--out file] [--jsonArray]");
+        System.err.println("Usage: " + RDBExport.class.getName() + " --version");
     }
 }
