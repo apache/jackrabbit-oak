@@ -36,13 +36,12 @@ import org.apache.jackrabbit.commons.iterator.AbstractLazyIterator;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 import org.apache.jackrabbit.oak.plugins.tree.TreeTypeProvider;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
-import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
+import org.apache.jackrabbit.oak.plugins.version.ReadOnlyVersionManager;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
@@ -54,7 +53,7 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.util.TreeUtil;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,6 +79,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
     private final TreeTypeProvider typeProvider;
 
     private Root root;
+    private ReadOnlyVersionManager versionManager;
     private PrivilegeBitsProvider bitsProvider;
 
     private CompiledPermissionImpl(@Nonnull Set<Principal> principals,
@@ -132,6 +132,8 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
     public void refresh(@Nonnull Root root, @Nonnull String workspaceName) {
         this.root = root;
         this.bitsProvider = new PrivilegeBitsProvider(root);
+        this.versionManager = null;
+
         store.flush(root);
         userStore.flush();
         groupStore.flush();
@@ -153,22 +155,21 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
     @Override
     public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
         if (tree.isRoot()) {
-            return new TreePermissionImpl(tree, TreeType.DEFAULT, EMPTY);
+            return createRootPermission(tree);
         }
-        TreeType parentType = getParentType(parentPermission);
-        TreeType type = typeProvider.getType(tree, parentType);
+        if (parentPermission instanceof VersionTreePermission) {
+            return ((VersionTreePermission) parentPermission).createChildPermission(tree);
+        }
+
+        TreeType type = typeProvider.getType(tree, getParentType(parentPermission));
         switch (type) {
             case HIDDEN:
                 return ALL;
             case VERSION:
-                String ntName = TreeUtil.getPrimaryTypeName(tree);
-                if (ntName == null) {
-                    return EMPTY;
-                }
-                if (VersionConstants.VERSION_STORE_NT_NAMES.contains(ntName) || VersionConstants.NT_ACTIVITY.equals(ntName)) {
+                if (ReadOnlyVersionManager.isVersionStoreTree(tree)) {
                     return new TreePermissionImpl(tree, TreeType.VERSION, parentPermission);
                 } else {
-                    Tree versionableTree = getVersionableTree(tree);
+                    Tree versionableTree = getVersionManager().getVersionable(tree, workspaceName);
                     if (versionableTree == null) {
                         log.warn("Cannot retrieve versionable node for " + tree.getPath());
                         return EMPTY;
@@ -182,8 +183,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                         while (!versionableTree.exists()) {
                             versionableTree = versionableTree.getParent();
                         }
-                        TreePermission pp = getParentPermission(versionableTree, TreeType.VERSION);
-                        return new TreePermissionImpl(versionableTree, TreeType.VERSION, pp);
+                        return new VersionTreePermission(tree, buildVersionDelegatee(versionableTree));
                     }
                 }
             case INTERNAL:
@@ -194,16 +194,33 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
     }
 
     @Nonnull
-    private TreePermission getParentPermission(@Nonnull Tree tree, TreeType type) {
+    private TreePermission buildVersionDelegatee(@Nonnull Tree versionableTree) {
+        if (!versionableTree.exists()) {
+            return TreePermission.EMPTY;
+        } else if (versionableTree.isRoot()) {
+            return createRootPermission(versionableTree);
+        }
+        TreeType type = typeProvider.getType(versionableTree);
+        switch (type) {
+            case HIDDEN : return ALL;
+            case INTERNAL : return EMPTY;
+            // case VERSION is never expected here
+            default:
+                return new TreePermissionImpl(versionableTree, type, buildParentPermission(versionableTree));
+        }
+    }
+
+    @Nonnull
+    private TreePermission buildParentPermission(@Nonnull Tree tree) {
         List<Tree> trees = new ArrayList<Tree>();
         while (!tree.isRoot()) {
             tree = tree.getParent();
-            if (tree.exists()) {
-                trees.add(0, tree);
-            }
+            trees.add(0, tree);
         }
         TreePermission pp = EMPTY;
+        TreeType type = TreeType.DEFAULT;
         for (Tree tr : trees) {
+            type = typeProvider.getType(tr, type);
             pp = new TreePermissionImpl(tr, type, pp);
         }
         return pp;
@@ -216,17 +233,17 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
             case HIDDEN:
                 return true;
             case VERSION:
-                Tree versionableTree = getVersionableTree(tree);
-                if (versionableTree == null) {
+                Tree versionTree = getEvaluationTree(tree);
+                if (versionTree == null) {
                     // unable to determine the location of the versionable item -> deny access.
                     return false;
                 }
-                if (versionableTree.exists()) {
-                    return internalIsGranted(versionableTree, property, permissions);
+                if (versionTree.exists()) {
+                    return internalIsGranted(versionTree, property, permissions);
                 } else {
                     // versionable node does not exist (anymore) in this workspace;
                     // use best effort calculation based on the item path.
-                    String path = versionableTree.getPath();
+                    String path = versionTree.getPath();
                     if (property != null) {
                         path = PathUtils.concat(path, property.getName());
                     }
@@ -340,12 +357,12 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
             case HIDDEN:
                 return PrivilegeBits.EMPTY;
             case VERSION:
-                Tree versionableTree = getVersionableTree(tree);
-                if (versionableTree == null || !versionableTree.exists()) {
+                Tree versionTree = getEvaluationTree(tree);
+                if (versionTree == null || !versionTree.exists()) {
                     // unable to determine the location of the versionable item -> deny access.
                     return PrivilegeBits.EMPTY;
                 }  else {
-                    return getPrivilegeBits(versionableTree);
+                    return getPrivilegeBits(versionTree);
                 }
             case INTERNAL:
                 return PrivilegeBits.EMPTY;
@@ -388,38 +405,20 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
     }
 
     @CheckForNull
-    private Tree getVersionableTree(@Nonnull Tree versionStoreTree) {
-        String relPath = "";
-        String versionablePath = null;
-        Tree t = versionStoreTree;
-        while (t.exists() && !t.isRoot() && !VersionConstants.VERSION_STORE_ROOT_NAMES.contains(t.getName())) {
-            String ntName = TreeUtil.getPrimaryTypeName(t);
-            if (VersionConstants.JCR_FROZENNODE.equals(t.getName()) && t != versionStoreTree) {
-                relPath = PathUtils.relativize(t.getPath(), versionStoreTree.getPath());
-            } else if (JcrConstants.NT_VERSIONHISTORY.equals(ntName)) {
-                PropertyState prop = t.getProperty(workspaceName);
-                if (prop != null) {
-                    versionablePath = PathUtils.concat(prop.getValue(Type.PATH), relPath);
-                }
-                return (versionablePath == null) ? null : root.getTree(versionablePath);
-            } else if (VersionConstants.NT_CONFIGURATION.equals(ntName)) {
-                String rootId = TreeUtil.getString(t, VersionConstants.JCR_ROOT);
-                if (rootId != null) {
-                    versionablePath = new IdentifierManager(root).getPath(rootId);
-                    return (versionablePath == null) ? null : root.getTree(versionablePath);
-                } else {
-                    log.error("Missing mandatory property jcr:root with configuration node.");
-                    return null;
-                }
-            } else if (VersionConstants.NT_ACTIVITY.equals(ntName)) {
-                return versionStoreTree;
-            }
-            t = t.getParent();
+    private Tree getEvaluationTree(@Nonnull Tree versionStoreTree) {
+        if (ReadOnlyVersionManager.isVersionStoreTree(versionStoreTree)) {
+            return versionStoreTree;
+        } else {
+            return getVersionManager().getVersionable(versionStoreTree, workspaceName);
         }
+    }
 
-        // intermediate node in the version, configuration or activity store that
-        // matches none of the special conditions checked above -> regular permission eval.
-        return versionStoreTree;
+    @Nonnull
+    private ReadOnlyVersionManager getVersionManager() {
+        if (versionManager == null) {
+            versionManager = ReadOnlyVersionManager.getInstance(root, NamePathMapper.DEFAULT);
+        }
+        return versionManager;
     }
 
     private static TreeType getParentType(@Nonnull TreePermission parentPermission) {
@@ -430,6 +429,10 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         } else {
             throw new IllegalArgumentException("Illegal TreePermission implementation.");
         }
+    }
+
+    private TreePermissionImpl createRootPermission(@Nonnull Tree rootTree) {
+        return new TreePermissionImpl(rootTree, TreeType.DEFAULT, EMPTY);
     }
 
     private final class TreePermissionImpl implements TreePermission {
