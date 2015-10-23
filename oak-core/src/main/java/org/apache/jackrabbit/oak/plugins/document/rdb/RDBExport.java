@@ -24,11 +24,14 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.nio.charset.Charset;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -41,11 +44,14 @@ import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.util.OakVersion;
 
 /**
  * Utility for dumping contents from {@link RDBDocumentStore}'s tables.
  */
 public class RDBExport {
+
+    private static final Charset UTF8 = Charset.forName("UTF-8");
 
     public static void main(String[] args) throws ClassNotFoundException, SQLException, IOException {
 
@@ -77,6 +83,9 @@ public class RDBExport {
                     dumpfile = args[++i];
                 } else if ("--jsonArray".equals(param)) {
                     asArray = true;
+                } else if ("--version".equals(param)) {
+                    System.out.println(RDBExport.class.getName() + " version " + OakVersion.getVersion());
+                    System.exit(0);
                 } else {
                     System.err.println(RDBExport.class.getName() + ": invalid parameter " + args[i]);
                     printUsage();
@@ -105,7 +114,7 @@ public class RDBExport {
 
     private static void dumpFile(String filename, boolean asArray, PrintStream out, RDBDocumentSerializer ser) throws IOException {
         FileInputStream fis = new FileInputStream(new File(filename));
-        InputStreamReader ir = new InputStreamReader(fis, "UTF-8");
+        InputStreamReader ir = new InputStreamReader(fis, UTF8);
         BufferedReader br = new BufferedReader(ir);
         // scan for column names
         String prev = null;
@@ -185,6 +194,7 @@ public class RDBExport {
             }
             line = br.readLine();
         }
+        br.close();
         if (asArray) {
             out.println("]");
         }
@@ -212,8 +222,14 @@ public class RDBExport {
             out.println("[");
         }
         boolean needComma = asArray;
+        ResultSetMetaData rsm = null;
+        boolean idIsAscii = true;
         while (rs.next()) {
-            String id = rs.getString("ID");
+            if (rsm == null) {
+                rsm = rs.getMetaData();
+                idIsAscii = !isBinaryType(rsm.getColumnType(1));
+            }
+            String id = idIsAscii ? rs.getString("ID") : new String(rs.getBytes("ID"), UTF8);
             long modified = rs.getLong("MODIFIED");
             long modcount = rs.getLong("MODCOUNT");
             long cmodcount = rs.getLong("CMODCOUNT");
@@ -250,8 +266,12 @@ public class RDBExport {
         return fulljson;
     }
 
+    private static boolean isBinaryType(int sqlType) {
+        return sqlType == Types.VARBINARY || sqlType == Types.BINARY || sqlType == Types.LONGVARBINARY;
+    }
+
     private static void printUsage() {
         System.err.println("Usage: " + RDBExport.class.getName()
-                + " [-j/--jdbc-url JDBC-URL] [-u/--username username] [-p/--password password] [-c/--collection table] [-q/--query query][--jsonArray]");
+                + " [-j/--jdbc-url JDBC-URL] [-u/--username username] [-p/--password password] [-c/--collection table] [-q/--query query] [-o/--out file] [--jsonArray] [--version]");
     }
 }
