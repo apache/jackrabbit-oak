@@ -43,7 +43,6 @@
       org.apache.jackrabbit.core.query.ExcerptTest#testPunctuationStartsFragmentEndsWithDots         <!-- OAK-318 -->
       org.apache.jackrabbit.core.query.ExcerptTest#testPreferPhrase                                  <!-- OAK-318 -->
       org.apache.jackrabbit.core.query.QueryResultTest#testSkip                                      <!-- OAK-484 -->
-      org.apache.jackrabbit.core.query.QueryResultTest#testGetSize                                   <!-- OAK-2689 -->
       org.apache.jackrabbit.core.query.DerefTest#testDeref                                           <!-- OAK-321 -->
       org.apache.jackrabbit.core.query.DerefTest#testDerefInPredicate                                <!-- OAK-321 -->
       org.apache.jackrabbit.core.query.DerefTest#testRewrite                                         <!-- OAK-321 -->

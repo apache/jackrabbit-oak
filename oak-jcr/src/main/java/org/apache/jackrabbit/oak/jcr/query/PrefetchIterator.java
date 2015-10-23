@@ -182,6 +182,18 @@ public class PrefetchIterator<K> implements Iterator<K> {
          */
         Result fastSizeCallback;
         
+        {
+            String s = System.getProperty("oak.queryMinPrefetch");
+            if (s != null) {
+                try {
+                    min = Integer.parseInt(s);
+                    max = Math.max(min, max);
+                } catch (Exception e) {
+                    // ignore
+                }
+            }
+        }
+        
     }
 
 }
