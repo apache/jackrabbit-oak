@@ -52,7 +52,9 @@ import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.plugins.version.VersionEditorProvider;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
@@ -82,6 +84,7 @@ public abstract class AbstractSecurityTest {
     public void before() throws Exception {
         Oak oak = new Oak()
                 .with(new InitialContent())
+                .with(new EditorHook(new VersionEditorProvider()))
                 .with(JcrConflictHandler.createJcrConflictHandler())
                 .with(new NamespaceEditorProvider())
                 .with(new ReferenceEditorProvider())
