@@ -28,13 +28,18 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
+import org.apache.jackrabbit.oak.plugins.tree.TreeType;
+import org.apache.jackrabbit.oak.plugins.tree.TreeTypeProvider;
+import org.apache.jackrabbit.oak.plugins.version.ReadOnlyVersionManager;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
@@ -42,7 +47,9 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Repositor
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.util.TreeUtil;
+import org.apache.jackrabbit.util.Text;
 
 class CugPermissionProvider implements AggregatedPermissionProvider, CugConstants {
 
@@ -53,19 +60,24 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
     );
 
     private final Root root;
+    private final String workspaceName;
     private final Set<String> principalNames;
 
+    private final TreeTypeProvider typeProvider;
     private final Context ctx;
 
     private final SupportedPaths supportedPaths;
 
     private Root immutableRoot;
+    private ReadOnlyVersionManager versionManager;
 
     CugPermissionProvider(@Nonnull Root root,
+                          @Nonnull String workspaceName,
                           @Nonnull Set<Principal> principals,
                           @Nonnull Set<String> supportedPaths,
                           @Nonnull Context ctx) {
         this.root = root;
+        this.workspaceName = workspaceName;
 
         immutableRoot = RootFactory.createReadOnlyRoot(root);
         principalNames = new HashSet<String>(principals.size());
@@ -74,6 +86,7 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
         }
 
         this.supportedPaths = new SupportedPaths(supportedPaths);
+        this.typeProvider = new TreeTypeProvider(ctx);
         this.ctx = ctx;
     }
 
@@ -81,6 +94,7 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
     @Override
     public void refresh() {
         immutableRoot = RootFactory.createReadOnlyRoot(root);
+        versionManager = null;
     }
 
     @Nonnull
@@ -119,23 +133,53 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
             throw new IllegalStateException("Attempt to create tree permission for unsupported path.");
         }
         Tree immutableTree = getImmutableTree(tree);
-        if (isAcContent(immutableTree, true)) {
+        TreeType type = typeProvider.getType(immutableTree);
+        if (!isSupportedType(type)) {
             return TreePermission.NO_RECOURSE;
         }
 
         TreePermission tp;
-        if (parentPermission instanceof CugTreePermission) {
-            tp = createCugPermission(immutableTree, (CugTreePermission) parentPermission);
-        } else {
-            String path = immutableTree.getPath();
-            if (supportedPaths.includes(path)) {
-                tp =  createCugPermission(immutableTree, null);
-            } else if (supportedPaths.mayContainCug(path)) {
-                tp =  new EmptyCugTreePermission(immutableTree, this);
+        boolean parentIsCugPermission = (parentPermission instanceof CugTreePermission);
+        if (TreeType.VERSION == type) {
+            if (ReadOnlyVersionManager.isVersionStoreTree(immutableTree)) {
+                tp = (parentIsCugPermission) ?
+                        createCugPermission(immutableTree, (CugTreePermission) parentPermission) :
+                        new EmptyCugTreePermission(immutableTree, this);
             } else {
-                tp = TreePermission.NO_RECOURSE;
+                // TODO
+                Tree versionableTree = getVersionManager().getVersionable(immutableTree, workspaceName);
+                if (versionableTree == null) {
+                    tp = TreePermission.NO_RECOURSE;
+                } else if (!parentIsCugPermission &&
+                        !supportedPaths.includes(versionableTree.getPath()) &&
+                        !supportedPaths.mayContainCug(versionableTree.getPath())){
+                    tp = TreePermission.NO_RECOURSE;
+                } else {
+                    Tree cugRoot = getCugRoot(versionableTree, typeProvider.getType(versionableTree));
+                    if (cugRoot == null) {
+                        // there might be a cug in the live correspondent of any of the frozen subtrees
+                        tp = new EmptyCugTreePermission(immutableTree, this);
+                    } else {
+                        boolean canRead = createCugPermission(cugRoot, null).canRead();
+                        tp = new CugTreePermission(immutableTree, canRead, this);
+                    }
+                }
+            }
+        } else {
+            if (parentIsCugPermission) {
+                tp = createCugPermission(immutableTree, (CugTreePermission) parentPermission);
+            } else {
+                String path = immutableTree.getPath();
+                if (supportedPaths.includes(path)) {
+                    tp =  createCugPermission(immutableTree, null);
+                } else if (supportedPaths.mayContainCug(path) || isJcrSystemPath(path)) {
+                    tp =  new EmptyCugTreePermission(immutableTree, this);
+                } else {
+                    tp = TreePermission.NO_RECOURSE;
+                }
             }
         }
+
         return tp;
     }
 
@@ -151,9 +195,11 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
     @Override
     public boolean isGranted(@Nonnull String oakPath, @Nonnull String jcrActions) {
         TreeLocation location = TreeLocation.create(immutableRoot, oakPath);
-        boolean isAcContent = isAcContent(location);
-        long permissions = Permissions.getPermissions(jcrActions, location, isAcContent);
+        if (ctx.definesLocation(location) || NodeStateUtils.isHidden(PathUtils.getName(oakPath))) {
+            return false;
+        }
 
+        long permissions = Permissions.getPermissions(jcrActions, location, false);
         return isGranted(location, permissions);
     }
 
@@ -173,7 +219,7 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
             pb.retain(PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ));
         }
 
-        if (pb.isEmpty() || !includesCug(tree, tree.getPath())) {
+        if (pb.isEmpty() || !includesCug(tree)) {
             return PrivilegeBits.EMPTY;
         } else {
             return pb;
@@ -188,7 +234,7 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
         }
 
         long supported = permissions & Permissions.READ;
-        if (supported != Permissions.NO_PERMISSION && includesCug(tree, tree.getPath())) {
+        if (supported != Permissions.NO_PERMISSION && includesCug(tree)) {
             return supported;
         } else {
             return Permissions.NO_PERMISSION;
@@ -198,7 +244,7 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
     @Override
     public long supportedPermissions(@Nonnull TreeLocation location, long permissions) {
         long supported = permissions & Permissions.READ;
-        if (supported != Permissions.NO_PERMISSION && includesCug(getTreeFromLocation(location), location.getPath())) {
+        if (supported != Permissions.NO_PERMISSION && includesCug(getTreeFromLocation(location))) {
             return supported;
         } else {
             return Permissions.NO_PERMISSION;
@@ -227,6 +273,10 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
     }
 
     //--------------------------------------------------------------------------
+    private static boolean isJcrSystemPath(@Nonnull String path) {
+        return JcrConstants.JCR_SYSTEM.equals(Text.getName(path));
+    }
+
     private static boolean isRead(long permission) {
         return permission == Permissions.READ_NODE || permission == Permissions.READ_PROPERTY || permission == Permissions.READ;
     }
@@ -235,16 +285,19 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
         return tree.exists() && tree.hasChild(REP_CUG_POLICY);
     }
 
-    private boolean isAcContent(@Nonnull Tree tree, boolean testForCtxRoot) {
-        return (testForCtxRoot) ? ctx.definesContextRoot(tree) : ctx.definesTree(tree);
+    private static boolean isSupportedType(@Nonnull TreeType type) {
+        return type == TreeType.DEFAULT || type == TreeType.VERSION;
     }
 
-    private boolean isAcContent(@Nonnull TreeLocation location) {
-        return ctx.definesLocation(location);
-    }
-
-    private boolean includesCug(@CheckForNull Tree tree, @Nonnull String path) {
-        return tree != null && getCugRoot(tree, path) != null;
+    private boolean includesCug(@CheckForNull Tree tree) {
+        if (tree != null) {
+            Tree immutableTree = getImmutableTree(tree);
+            TreeType type = typeProvider.getType(immutableTree);
+            if (isSupportedType(type)) {
+                return getCugRoot(immutableTree, type) != null;
+            }
+        }
+        return false;
     }
 
     /**
@@ -252,29 +305,37 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
      * given {@code tree} with the specified {@code path} or {@code null} if no
      * such tree exists and thus no CUG is effective at the specified path.
      *
-     * @param tree The target tree.
-     * @param path The path of the given target tree.
+     * @param immutableTree The target tree.
+     * @param type the type of this tree.
      * @return the {@code tree} holding the CUG policy that effects the specified
      * path or {@code null} if no such policy exists.
      */
     @CheckForNull
-    private Tree getCugRoot(@Nonnull Tree tree, @Nonnull String path) {
-        if (!supportedPaths.includes(path)) {
+    private Tree getCugRoot(@Nonnull Tree immutableTree, @Nonnull TreeType type) {
+        Tree tree = immutableTree;
+        String p = immutableTree.getPath();
+        if (TreeType.VERSION == type && !ReadOnlyVersionManager.isVersionStoreTree(tree)) {
+            tree = getVersionManager().getVersionable(immutableTree, workspaceName);
+            if (tree == null) {
+                return null;
+            }
+            p = tree.getPath();
+        }
+        if (!supportedPaths.includes(p)) {
             return null;
         }
-        Tree immutableTree = getImmutableTree(tree);
-        if (hasCug(immutableTree)) {
-            return immutableTree;
+        if (hasCug(tree)) {
+            return tree;
         }
         String parentPath;
-        while (!immutableTree.isRoot()) {
-            parentPath = PathUtils.getParentPath(path);
+        while (!tree.isRoot()) {
+            parentPath = PathUtils.getParentPath(p);
             if (!supportedPaths.includes(parentPath)) {
                 break;
             }
-            immutableTree = immutableTree.getParent();
-            if (hasCug(immutableTree)) {
-                return immutableTree;
+            tree = tree.getParent();
+            if (hasCug(tree)) {
+                return tree;
             }
         }
         return null;
@@ -282,11 +343,11 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
 
     private boolean canRead(@Nonnull Tree tree) {
         Tree immutableTree = getImmutableTree(tree);
-        if (isAcContent(immutableTree, false)) {
-            // cug defining access control content is not accessible
+        TreeType type = typeProvider.getType(immutableTree);
+        if (!isSupportedType(type)) {
             return false;
         }
-        Tree cugRoot = getCugRoot(immutableTree, immutableTree.getPath());
+        Tree cugRoot = getCugRoot(immutableTree, type);
         return cugRoot != null && createCugPermission(cugRoot, null).canRead();
     }
 
@@ -310,11 +371,10 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
         TreePermission tp;
 
         Tree cugTree = tree.getChild(REP_CUG_POLICY);
-        PropertyState princNamesState = cugTree.getProperty(REP_PRINCIPAL_NAMES);
-
-        if (CugUtil.definesCug(cugTree) && princNamesState != null) {
+        if (CugUtil.definesCug(cugTree)) {
             // a new (possibly nested) cug starts off here
-            boolean allow = Iterables.any(princNamesState.getValue(Type.STRINGS), new Predicate<String>() {
+            PropertyState princNamesState = cugTree.getProperty(REP_PRINCIPAL_NAMES);
+            boolean allow = princNamesState != null && Iterables.any(princNamesState.getValue(Type.STRINGS), new Predicate<String>() {
                 @Override
                 public boolean apply(@Nullable String principalName) {
                     return (principalName != null) && principalNames.contains(principalName);
@@ -328,5 +388,13 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
             tp = new EmptyCugTreePermission(tree, this);
         }
         return tp;
+    }
+
+    @Nonnull
+    private ReadOnlyVersionManager getVersionManager() {
+        if (versionManager == null) {
+            versionManager = ReadOnlyVersionManager.getInstance(immutableRoot, NamePathMapper.DEFAULT);
+        }
+        return versionManager;
     }
 }

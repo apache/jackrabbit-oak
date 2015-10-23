@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import java.security.Principal;
-import java.util.Set;
-
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -45,10 +42,9 @@ public class EmptyCugTreePermissionTest extends AbstractCugTest {
         createCug(SUPPORTED_PATH, EveryonePrincipal.getInstance());
         root.commit();
 
-        Set<Principal> principals = ImmutableSet.of(getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
-        Set<String> supportedPaths = ImmutableSet.of(SUPPORTED_PATH, SUPPORTED_PATH2);
-
-        PermissionProvider pp = new CugPermissionProvider(root, principals, supportedPaths, CugContext.INSTANCE);
+        PermissionProvider pp = createCugPermissionProvider(
+                ImmutableSet.of(SUPPORTED_PATH, SUPPORTED_PATH2),
+                getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
         tp = new EmptyCugTreePermission(root.getTree("/"), pp);
     }
 
