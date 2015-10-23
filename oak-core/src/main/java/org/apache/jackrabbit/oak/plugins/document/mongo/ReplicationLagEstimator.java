@@ -192,8 +192,8 @@ public class ReplicationLagEstimator implements Runnable {
 
         public MemberReplicationInfo(BasicBSONObject member) {
             name = member.getString("name");
-            optime = ((BSONTimestamp) member.get("optime")).getTime();
-            lastHeartbeatRecv = member.getDate("lastHeartbeatRecv").toInstant().getEpochSecond();
+            optime = 1000l * ((BSONTimestamp) member.get("optime")).getTime();
+            lastHeartbeatRecv = member.getDate("lastHeartbeatRecv").getTime();
         }
 
         public Long getLag(MemberReplicationInfo secondary) {
@@ -208,7 +208,7 @@ public class ReplicationLagEstimator implements Runnable {
                         optime, secondary.name, secondary.optime);
                 return null;
             } else {
-                return 1000l * (secondary.optime - optime);
+                return secondary.optime - optime;
             }
         }
     }
