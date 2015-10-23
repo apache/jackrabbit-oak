@@ -494,10 +494,10 @@ class VersionableState {
                     versionedChild(child, dest.child(name));
                 } else {
                     // else copy
-                    copy(child, childId, dest.child(name));
+                    createFrozen(child, childId, dest.child(name));
                 }
             } else if (opv == COPY) {
-                copy(child, childId, dest.child(name));
+                createFrozen(child, childId, dest.child(name));
             }
         }
     }
@@ -506,20 +506,6 @@ class VersionableState {
         String ref = src.getProperty(JCR_VERSIONHISTORY).getValue(Type.REFERENCE);
         dest.setProperty(JCR_PRIMARYTYPE, NT_VERSIONEDCHILD, Type.NAME);
         dest.setProperty(JCR_CHILDVERSIONHISTORY, ref, Type.REFERENCE);
-    }
-
-    private void copy(NodeBuilder src,
-                      String srcId,
-                      NodeBuilder dest)
-            throws RepositoryException, CommitFailedException {
-        initFrozen(dest, src, srcId);
-        copyProperties(src, dest, OPVForceCopy.INSTANCE, true);
-        for (String name : src.getChildNodeNames()) {
-            if (!NodeStateUtils.isHidden(name)) {
-                NodeBuilder child = src.getChildNode(name);
-                copy(child, getChildId(srcId, child, name), dest.child(name));
-            }
-        }
     }
 
     /**
