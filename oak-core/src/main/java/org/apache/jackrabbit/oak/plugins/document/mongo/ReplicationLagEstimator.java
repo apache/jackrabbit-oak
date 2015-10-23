@@ -74,10 +74,12 @@ public class ReplicationLagEstimator implements Runnable {
         return lastEstimatedValue;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void run() {
         while (!stop) {
-            updateStats();
+            CommandResult result = adminDb.command("replSetGetStatus", ReadPreference.primary());
+            updateStats((Iterable<BasicBSONObject>) result.get("members"));
             lastEstimatedValue = estimate();
             synchronized (this) {
                 try {
@@ -91,7 +93,7 @@ public class ReplicationLagEstimator implements Runnable {
         }
     }
 
-    private long estimate() {
+    long estimate() {
         if (unknownState || memberLags.isEmpty()) {
             return maxReplicationLagMillis;
         } else {
@@ -121,11 +123,7 @@ public class ReplicationLagEstimator implements Runnable {
      * Read the replication lag for each member by comparing PRIMARY and
      * SECONDARY nodes last optime value.
      */
-    @SuppressWarnings("unchecked")
-    private void updateStats() {
-        CommandResult result = adminDb.command("replSetGetStatus", ReadPreference.primary());
-        Iterable<BasicBSONObject> members = (Iterable<BasicBSONObject>) result.get("members");
-
+    void updateStats(Iterable<BasicBSONObject> members) {
         MemberReplicationInfo primary = null;
         List<MemberReplicationInfo> secondaries = new ArrayList<MemberReplicationInfo>();
         unknownState = false;
@@ -178,11 +176,11 @@ public class ReplicationLagEstimator implements Runnable {
         }
     }
 
-    private enum ReplicaSetMemberState {
+    enum ReplicaSetMemberState {
         STARTUP, PRIMARY, SECONDARY, RECOVERING, STARTUP2, UNKNOWN, ARBITER, DOWN, ROLLBACK, REMOVED
     }
 
-    private static class MemberReplicationInfo {
+    static class MemberReplicationInfo {
 
         private final String name;
 
