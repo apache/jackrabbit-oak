@@ -25,6 +25,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefi
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider.TYPE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -34,17 +35,18 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.management.openmbean.CompositeData;
 
-import ch.qos.logback.classic.Level;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
+import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate.AsyncIndexStats;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate.IndexTaskSpliter;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
@@ -60,6 +62,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
+
+import ch.qos.logback.classic.Level;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
@@ -559,6 +563,25 @@ public class AsyncIndexUpdateTest {
                 provider.isFailed());
         assertTrue("Expecting no checkpoints",
                 store.listCheckpoints().size() == 0);
+
+        // OAK-3054 failure reports
+        AsyncIndexStats stats = async.getIndexStats();
+        String since = stats.getFailingSince();
+        assertTrue(stats.isFailing());
+        assertEquals(1, stats.getConsecutiveFailedExecutions());
+        assertEquals(since, stats.getLatestErrorTime());
+
+        TimeUnit.MILLISECONDS.sleep(100);
+        async.run();
+        assertTrue(stats.isFailing());
+        assertEquals(2, stats.getConsecutiveFailedExecutions());
+        assertEquals(since, stats.getFailingSince());
+        assertNotEquals(since, stats.getLatestErrorTime());
+
+        stats.fixed();
+        assertFalse(stats.isFailing());
+        assertEquals(0, stats.getConsecutiveFailedExecutions());
+        assertEquals("", stats.getFailingSince());
     }
 
     /**
