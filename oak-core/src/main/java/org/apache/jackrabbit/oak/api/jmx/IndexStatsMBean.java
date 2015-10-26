@@ -134,6 +134,13 @@ public interface IndexStatsMBean {
     CompositeData getExecutionTime();
 
     /**
+     * Returns the number of indexed nodes as a {@link org.apache.jackrabbit.api.stats.TimeSeries}.
+     *
+     * @return the indexed nodes time series
+     */
+    CompositeData getIndexedNodesCount();
+
+    /**
      * Returns the consolidated execution stats since last reset
      * @return consolidated execution stats
      */
@@ -162,4 +169,34 @@ public interface IndexStatsMBean {
      */
     void registerAsyncIndexer(@Name("name") String name,
             @Name("delayInSeconds") long delayInSeconds);
+
+    /**
+     * @return true if the indexing job is failing
+     */
+    boolean isFailing();
+
+    /**
+     * @return The time the indexing job stared failing, or {@code ""} if the
+     *         job is not currently failing.
+     */
+    String getFailingSince();
+
+    /**
+     * @return the number of consecutive failed executions or {@code 0} if the
+     *         job is not currently failing.
+     */
+    long getConsecutiveFailedExecutions();
+
+    /**
+     * @return the latest indexing error seen, will not be reset once the job
+     *         starts working again
+     */
+    String getLatestError();
+
+    /**
+     * @return the time when the latest indexing error has been seen, will not
+     *         be reset once the job starts working again
+     */
+    String getLatestErrorTime();
+
 }
