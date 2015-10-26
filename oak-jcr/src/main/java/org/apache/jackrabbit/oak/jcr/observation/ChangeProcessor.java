@@ -107,7 +107,16 @@ class ChangeProcessor implements Observer {
     private final int queueLength;
     private final CommitRateLimiter commitRateLimiter;
 
+    /**
+     * Lazy initialization via the {@link #start(Whiteboard)} method
+     */
+    private String listenerId;
+
+    /**
+     * Lazy initialization via the {@link #start(Whiteboard)} method
+     */
     private CompositeRegistration registration;
+
     private volatile NodeState previousRoot;
 
     public ChangeProcessor(
@@ -149,7 +158,8 @@ class ChangeProcessor implements Observer {
         final WhiteboardExecutor executor = new WhiteboardExecutor();
         executor.start(whiteboard);
         final BackgroundObserver observer = createObserver(executor);
-        Map<String, String> attrs = ImmutableMap.of(LISTENER_ID, String.valueOf(COUNTER.incrementAndGet()));
+        listenerId = COUNTER.incrementAndGet() + "";
+        Map<String, String> attrs = ImmutableMap.of(LISTENER_ID, listenerId);
         String name = tracker.toString();
         registration = new CompositeRegistration(
             registerObserver(whiteboard, observer),
@@ -407,5 +417,17 @@ class ChangeProcessor implements Observer {
             stopped = true;
             return !wasStopped;
         }
+    }
+
+    @Override
+    public String toString() {
+        return "ChangeProcessor ["
+                + "listenerId=" + listenerId
+                + ", tracker=" + tracker 
+                + ", contentSession=" + contentSession
+                + ", eventCount=" + eventCount 
+                + ", eventDuration=" + eventDuration 
+                + ", commitRateLimiter=" + commitRateLimiter
+                + ", running=" + running.isSatisfied() + "]";
     }
 }
