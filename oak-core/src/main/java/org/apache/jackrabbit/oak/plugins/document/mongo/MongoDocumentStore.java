@@ -1045,7 +1045,7 @@ public class MongoDocumentStore implements DocumentStore, UnsavedModificationsAw
      * @param documentId
      * @return {@code true} if it's possible that this document is part of the unsaved modification
      */
-    private boolean waitsForLastRevUpdate(String documentId) {
+    boolean waitsForLastRevUpdate(String documentId) {
         if (unsavedModifications == null) {
             return true;
         }
@@ -1056,7 +1056,7 @@ public class MongoDocumentStore implements DocumentStore, UnsavedModificationsAw
      * @param documentId
      * @return {@code true} if it's possible that this document belongs to a branch
      */
-    private boolean belongsToBranch(String documentId) {
+    boolean belongsToBranch(String documentId) {
         if (unmergedBranches == null) {
             return true;
         }
