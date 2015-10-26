@@ -508,8 +508,11 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener,
                 UUID id = recordId.getSegmentId().asUUID();
                 if (uuids.contains(id)) {
                     if (ps.getType().tag() == STRING) {
-                        // only shows the first value, do we need more?
-                        String val = displayString(ps.getValue(Type.STRING, 0));
+                        String val = "";
+                        if (ps.count() > 0) {
+                            // only shows the first value, do we need more?
+                            val = displayString(ps.getValue(Type.STRING, 0));
+                        }
                         localPaths.add(path + ps.getName() + " = " + val
                                 + " [SegmentPropertyState<" + ps.getType()
                                 + ">@" + recordId + "]");
