@@ -267,7 +267,7 @@ class Branch {
 
     void addAffectedPaths(Iterable<String> paths) {
         for (String path : paths) {
-            affectedPaths.apply(path);
+            affectedPaths.put(path);
         }
     }
 
