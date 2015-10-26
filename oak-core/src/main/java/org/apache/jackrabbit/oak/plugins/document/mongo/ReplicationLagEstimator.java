@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -63,6 +64,7 @@ public class ReplicationLagEstimator implements Runnable {
         this.adminDb = adminDb;
         this.maxReplicationLagMillis = maxReplicationLagMillis;
         this.pullFrequencyMillis = pullFrequencyMillis;
+        this.lastEstimatedValue = maxReplicationLagMillis;
     }
 
     public synchronized void stop() {
@@ -79,7 +81,11 @@ public class ReplicationLagEstimator implements Runnable {
     public void run() {
         while (!stop) {
             CommandResult result = adminDb.command("replSetGetStatus", ReadPreference.primary());
-            updateStats((Iterable<BasicBSONObject>) result.get("members"));
+            Iterable<BasicBSONObject> members = (Iterable<BasicBSONObject>) result.get("members");
+            if (members == null) {
+                members = Collections.emptyList();
+            }
+            updateStats(members);
             lastEstimatedValue = estimate();
             synchronized (this) {
                 try {
@@ -126,6 +132,7 @@ public class ReplicationLagEstimator implements Runnable {
     void updateStats(Iterable<BasicBSONObject> members) {
         MemberReplicationInfo primary = null;
         List<MemberReplicationInfo> secondaries = new ArrayList<MemberReplicationInfo>();
+        Set<String> secondaryNames = new HashSet<String>();
         unknownState = false;
         for (BasicBSONObject member : members) {
             ReplicaSetMemberState state = ReplicaSetMemberState.valueOf(member.getString("stateStr"));
@@ -136,7 +143,9 @@ public class ReplicationLagEstimator implements Runnable {
                 break;
 
             case SECONDARY:
-                secondaries.add(new MemberReplicationInfo(member));
+                MemberReplicationInfo info = new MemberReplicationInfo(member);
+                secondaries.add(info);
+                secondaryNames.add(info.name);
                 break;
 
             case ARBITER:
@@ -154,11 +163,8 @@ public class ReplicationLagEstimator implements Runnable {
         } else if (secondaries.isEmpty()) {
             LOG.debug("Can't estimate the replication lag - there's no SECONDARY instance");
         } else {
-            Set<String> secondaryNames = new HashSet<String>();
             for (MemberReplicationInfo secondary : secondaries) {
                 String name = secondary.name;
-                secondaryNames.add(name);
-
                 Stat stat = memberLags.get(name);
                 if (stat == null) {
                     memberLags.put(name, stat = new Stat(STAT_SIZE));
@@ -172,8 +178,8 @@ public class ReplicationLagEstimator implements Runnable {
                     stat.add(lag);
                 }
             }
-            memberLags.keySet().retainAll(secondaryNames);
         }
+        memberLags.keySet().retainAll(secondaryNames);
     }
 
     enum ReplicaSetMemberState {
