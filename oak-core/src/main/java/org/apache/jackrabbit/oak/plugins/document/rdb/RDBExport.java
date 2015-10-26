@@ -88,6 +88,9 @@ public class RDBExport {
                 } else if ("--version".equals(param)) {
                     System.out.println(RDBExport.class.getName() + " version " + OakVersion.getVersion());
                     System.exit(0);
+                } else if ("--help".equals(param)) {
+                    printHelp();
+                    System.exit(0);
                 } else {
                     System.err.println(RDBExport.class.getName() + ": invalid parameter " + args[i]);
                     printUsage();
@@ -292,5 +295,30 @@ public class RDBExport {
         System.err.println(
                 "Usage: " + RDBExport.class.getName() + " --from-DB2-dump file [--lobdir lobdir] [-o/--out file] [--jsonArray]");
         System.err.println("Usage: " + RDBExport.class.getName() + " --version");
+        System.err.println("Usage: " + RDBExport.class.getName() + " --help");
+    }
+
+    private static void printHelp() {
+        System.err.println("Export Apache OAK RDB data to JSON files");
+        System.err.println("");
+        System.err.println("Generic options:");
+        System.err.println("  --help                             produce this help message");
+        System.err.println("  --version                          show version information");
+        System.err.println("");
+        System.err.println("JDBC options:");
+        System.err.println("  -j/--jdbc-url JDBC-URL             JDBC URL of database to connect to");
+        System.err.println("  -u/--username username             database username");
+        System.err.println("  -p/--password password             database password");
+        System.err.println("  -c/--collection table              table name (defaults to 'nodes')");
+        System.err.println("  -q/--query query                   SQL where clause (minus 'where')");
+        System.err.println("");
+        System.err.println("Dump file options:");
+        System.err.println("  --from-DB2-dump file               name of DB2 DEL export file");
+        System.err.println("  --lobdir dir                       name of DB2 DEL export file LOB directory");
+        System.err.println("                                     (defaults to ./lobdir under the dump file)");
+        System.err.println("");
+        System.err.println("Output options:");
+        System.err.println("  -o/--out file                      Output to name file (instead of stdout)");
+        System.err.println("  --jsonArray                        Output a JSON array (instead of one JSON doc per line)");
     }
 }
