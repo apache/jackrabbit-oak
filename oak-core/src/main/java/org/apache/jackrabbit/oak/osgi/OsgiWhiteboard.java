@@ -42,11 +42,16 @@ import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.util.tracker.ServiceTracker;
 import org.osgi.util.tracker.ServiceTrackerCustomizer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * OSGi-based whiteboard implementation.
  */
 public class OsgiWhiteboard implements Whiteboard {
+
+    private static final Logger log = LoggerFactory
+            .getLogger(OsgiWhiteboard.class);
 
     private final BundleContext context;
 
@@ -56,7 +61,7 @@ public class OsgiWhiteboard implements Whiteboard {
 
     @Override
     public <T> Registration register(
-            Class<T> type, T service, Map<?, ?> properties) {
+            final Class<T> type, final T service, Map<?, ?> properties) {
         checkNotNull(type);
         checkNotNull(service);
         checkNotNull(properties);
@@ -72,7 +77,12 @@ public class OsgiWhiteboard implements Whiteboard {
         return new Registration() {
             @Override
             public void unregister() {
-                registration.unregister();
+                try {
+                    registration.unregister();
+                } catch (IllegalStateException ex) {
+                    log.warn("Error unregistering service: {} of type {}",
+                            service, type.getName(), ex);
+                }
             }
         };
     }
