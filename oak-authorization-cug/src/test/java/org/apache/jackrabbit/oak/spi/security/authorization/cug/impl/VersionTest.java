@@ -33,7 +33,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.version.ReadOnlyVersionManager;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
@@ -97,7 +96,7 @@ public class VersionTest extends AbstractCugTest implements NodeTypeConstants, V
         testSession = createTestSession();
         testRoot = testSession.getLatestRoot();
 
-        versionManager = new TestVersionManager(root);
+        versionManager = ReadOnlyVersionManager.getInstance(root, NamePathMapper.DEFAULT);
     }
 
     @Override
@@ -134,7 +133,7 @@ public class VersionTest extends AbstractCugTest implements NodeTypeConstants, V
     @Test
     public void testReadVersionContent() throws Exception {
         IdentifierManager idMgr = new IdentifierManager(testRoot);
-        TestVersionManager vMgr = new TestVersionManager(testRoot);
+        ReadOnlyVersionManager vMgr = ReadOnlyVersionManager.getInstance(testRoot, NamePathMapper.DEFAULT);
 
         for (String path : readAccess) {
             Tree t = testRoot.getTree(path);
@@ -199,22 +198,20 @@ public class VersionTest extends AbstractCugTest implements NodeTypeConstants, V
         assertEquals(Permissions.NO_PERMISSION, pp.supportedPermissions(versionStorage, null, Permissions.READ));
         assertEquals(Permissions.NO_PERMISSION, pp.supportedPermissions(versionStorage.getParent(), null, Permissions.READ));
 
-        ReadOnlyVersionManager vMgr = new TestVersionManager(root);
-
         // tree with cug (access is granted)
-        Tree vh = vMgr.getVersionHistory(versionable);
+        Tree vh = versionManager.getVersionHistory(versionable);
         assertEquals(Permissions.READ, pp.supportedPermissions(vh, null, Permissions.READ));
 
         // tree with cug (but no access granted)
-        vh = vMgr.getVersionHistory(root.getTree("/content2"));
+        vh = versionManager.getVersionHistory(root.getTree("/content2"));
         assertEquals(Permissions.READ, pp.supportedPermissions(vh, null, Permissions.READ));
 
         // tree without cug
-        vh = vMgr.getVersionHistory(root.getTree(UNSUPPORTED_PATH));
+        vh = versionManager.getVersionHistory(root.getTree(UNSUPPORTED_PATH));
         assertEquals(Permissions.NO_PERMISSION, pp.supportedPermissions(vh, null, Permissions.READ));
 
         // tree without cug
-        vh = vMgr.getVersionHistory(root.getTree(SUPPORTED_PATH));
+        vh = versionManager.getVersionHistory(root.getTree(SUPPORTED_PATH));
         assertEquals(Permissions.NO_PERMISSION, pp.supportedPermissions(vh, null, Permissions.READ));
     }
 
@@ -331,38 +328,6 @@ public class VersionTest extends AbstractCugTest implements NodeTypeConstants, V
             } else {
                 assertSame(t.getPath(), TreePermission.NO_RECOURSE, tp);
             }
-        }
-    }
-
-    private final class TestVersionManager extends ReadOnlyVersionManager {
-
-        private final Root root;
-
-        TestVersionManager(@Nonnull Root root) {
-            this.root = root;
-        }
-
-        @Nonnull
-        @Override
-        protected Tree getVersionStorage() {
-            return root.getTree(VersionConstants.VERSION_STORE_PATH);
-        }
-
-        @Nonnull
-        @Override
-        protected Root getWorkspaceRoot() {
-            return root;
-        }
-
-        @Nonnull
-        @Override
-        protected ReadOnlyNodeTypeManager getNodeTypeManager() {
-            return ReadOnlyNodeTypeManager.getInstance(root, NamePathMapper.DEFAULT);
-        }
-
-        @Override
-        protected boolean isVersionable(@Nonnull Tree tree) {
-            return super.isVersionable(tree);
         }
     }
 }

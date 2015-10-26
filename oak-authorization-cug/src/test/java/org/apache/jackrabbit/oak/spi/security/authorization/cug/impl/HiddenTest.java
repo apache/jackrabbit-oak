@@ -16,12 +16,20 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
+import java.security.Principal;
+
+import javax.jcr.security.AccessControlList;
+import javax.jcr.security.AccessControlManager;
+
 import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
@@ -102,6 +110,7 @@ public class HiddenTest extends AbstractCugTest {
         assertTrue(pp.isGranted(SUPPORTED_PATH, Permissions.getString(Permissions.READ)));
 
         assertFalse(pp.isGranted(SUPPORTED_PATH + "/:hidden", Permissions.getString(Permissions.READ)));
+        assertFalse(pp.isGranted(SUPPORTED_PATH + "/:hidden/child", Permissions.getString(Permissions.READ)));
         assertFalse(pp.isGranted(hiddenTree.getPath(), Permissions.getString(Permissions.READ)));
     }
 
@@ -115,5 +124,38 @@ public class HiddenTest extends AbstractCugTest {
     public void testGetPrivileges() {
         assertFalse(pp.getPrivileges(readOnlyRoot.getTree(SUPPORTED_PATH)).isEmpty());
         assertTrue(pp.getPrivileges(readOnlyRoot.getTree(SUPPORTED_PATH + "/:hidden")).isEmpty());
+    }
+
+    @Test
+    public void testCombinedSetup() throws Exception {
+        AccessControlManager acMgr = getAccessControlManager(root);
+        try {
+            AccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/");
+            acl.addAccessControlEntry(EveryonePrincipal.getInstance(), AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.JCR_READ));
+            acMgr.setPolicy("/", acl);
+            root.commit();
+
+            PermissionProvider combined = getConfig(AuthorizationConfiguration.class).getPermissionProvider(readOnlyRoot, root.getContentSession().getWorkspaceName(), ImmutableSet.<Principal>of(EveryonePrincipal.getInstance()));
+
+            assertFalse(combined.hasPrivileges(hiddenTree, PrivilegeConstants.JCR_READ));
+            assertTrue(combined.getPrivileges(hiddenTree).isEmpty());
+
+            assertTrue(combined.isGranted(hiddenTree, null, Permissions.ALL));
+            assertTrue(combined.isGranted(hiddenTree.getPath(), Permissions.getString(Permissions.ALL)));
+
+            Tree t = readOnlyRoot.getTree("/");
+            TreePermission tp = combined.getTreePermission(t, TreePermission.EMPTY);
+            for (String name : PathUtils.elements(hiddenTree.getPath())) {
+                t = t.getChild(name);
+                tp = combined.getTreePermission(t, tp);
+            }
+            assertTrue(tp.isGranted(Permissions.ALL));
+
+        } finally {
+            AccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/");
+            acl.addAccessControlEntry(EveryonePrincipal.getInstance(), AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.JCR_READ));
+            acMgr.removePolicy("/", acl);
+            root.commit();
+        }
     }
 }
