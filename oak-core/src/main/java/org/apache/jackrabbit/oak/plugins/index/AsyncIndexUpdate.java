@@ -19,6 +19,8 @@
 package org.apache.jackrabbit.oak.plugins.index;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Throwables.getStackTraceAsString;
+import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean.STATUS_DONE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
@@ -41,7 +43,6 @@ import javax.management.openmbean.OpenDataException;
 import javax.management.openmbean.OpenType;
 import javax.management.openmbean.SimpleType;
 
-import com.google.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -68,6 +69,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Objects;
+import com.google.common.base.Splitter;
+import com.google.common.base.Stopwatch;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 
 public class AsyncIndexUpdate implements Runnable {
@@ -118,9 +122,6 @@ public class AsyncIndexUpdate implements Runnable {
 
     private final long lifetime = DEFAULT_LIFETIME; // TODO: make configurable
 
-    /** Flag to avoid repeatedly logging failure warnings */
-    private boolean failing = false;
-
     private final AsyncIndexStats indexStats = new AsyncIndexStats();
 
     /** Flag to switch to synchronous updates once the index caught up to the repo */
@@ -135,6 +136,14 @@ public class AsyncIndexUpdate implements Runnable {
     private final Set<String> reindexedDefinitions = new HashSet<String>();
 
     private final MissingIndexProviderStrategy missingStrategy = new DefaultMissingIndexProviderStrategy();
+
+    /**
+     * Controls the length of the interval (in minutes) at which an indexing
+     * error is logged as 'warning'. for the rest of the indexing cycles errors
+     * will be logged at 'debug' level
+     */
+    private static long ERROR_WARN_INTERVAL = TimeUnit.MINUTES.toMillis(Integer
+            .getInteger("oak.async.warn.interval", 30));
 
     public AsyncIndexUpdate(@Nonnull String name, @Nonnull NodeStore store,
             @Nonnull IndexEditorProvider provider, boolean switchOnSync) {
@@ -164,8 +173,6 @@ public class AsyncIndexUpdate implements Runnable {
         /** Expiration time of the last lease we committed */
         private long lease;
 
-        private long updates = 0;
-
         private final String leaseName;
         private final String tempCpName;
 
@@ -190,7 +197,7 @@ public class AsyncIndexUpdate implements Runnable {
             mergeWithConcurrencyCheck(builder, checkpoint, beforeLease);
 
             // reset updates counter
-            indexStats.setUpdates(this.updates);
+            indexStats.resetUpdates();
         }
 
         private void updateTempCheckpoints(NodeBuilder async,
@@ -226,7 +233,7 @@ public class AsyncIndexUpdate implements Runnable {
         }
 
         boolean isDirty() {
-            return updates > 0;
+            return indexStats.getUpdates() > 0;
         }
 
         void close() throws CommitFailedException {
@@ -238,9 +245,7 @@ public class AsyncIndexUpdate implements Runnable {
 
         @Override
         public void indexUpdate() throws CommitFailedException {
-            updates++;
-            if (updates % 100 == 0) {
-                indexStats.setUpdates(this.updates);
+            if (indexStats.incUpdates() % 100 == 0) {
                 long now = System.currentTimeMillis();
                 if (now + ASYNC_TIMEOUT > lease) {
                     long newLease = now + 2 * ASYNC_TIMEOUT;
@@ -318,9 +323,8 @@ public class AsyncIndexUpdate implements Runnable {
                     after, afterCheckpoint, afterTime);
 
             // the update succeeded, i.e. it no longer fails
-            if (failing) {
-                log.info("Index update {} no longer fails", name);
-                failing = false;
+            if (indexStats.isFailing()) {
+                indexStats.fixed();
             }
 
             // the update succeeded, so we can release the earlier checkpoint
@@ -331,15 +335,8 @@ public class AsyncIndexUpdate implements Runnable {
             indexStats.setProcessedCheckpoint("");
             indexStats.releaseTempCheckpoint(afterCheckpoint);
 
-        } catch (CommitFailedException e) {
-            if (e == CONCURRENT_UPDATE) {
-                log.debug("Concurrent update detected in the {} index update", name);
-            } else if (failing) {
-                log.debug("The {} index update is still failing", name, e);
-            } else {
-                log.warn("The {} index update failed", name, e);
-                failing = true;
-            }
+        } catch (Exception e) {
+            indexStats.failed(e);
 
         } finally {
             if (checkpointToRelease != null) { // null during initial indexing
@@ -421,9 +418,9 @@ public class AsyncIndexUpdate implements Runnable {
             String msg = "AsyncIndex ({}) update run completed in {}. Indexed {} nodes";
             //Log at info level if time taken is more than 5 min
             if (watch.elapsed(TimeUnit.MINUTES) >= 5) {
-                log.info(msg, name, watch, callback.updates);
+                log.info(msg, name, watch, indexStats.getUpdates());
             } else {
-                log.debug(msg, name, watch, callback.updates);
+                log.debug(msg, name, watch, indexStats.getUpdates());
             }
         }
 
@@ -498,6 +495,15 @@ public class AsyncIndexUpdate implements Runnable {
         private final Stopwatch watch = Stopwatch.createUnstarted();
         private final ExecutionStats execStats = new ExecutionStats();
 
+        /** Flag to avoid repeatedly logging failure warnings */
+        private volatile boolean failing = false;
+        private long latestErrorWarn = 0;
+
+        private String failingSince = "";
+        private String latestError = null;
+        private String latestErrorTime = "";
+        private long consecutiveFailures = 0;
+
         public void start(String now) {
             status = STATUS_RUNNING;
             start = now;
@@ -518,6 +524,43 @@ public class AsyncIndexUpdate implements Runnable {
             execStats.incrementCounter();
             execStats.recordExecution(watch.elapsed(TimeUnit.MILLISECONDS), updates);
             watch.reset();
+        }
+
+        public void failed(Exception e) {
+            latestError = getStackTraceAsString(e);
+            latestErrorTime = now();
+            consecutiveFailures++;
+            if (!failing) {
+                // first occurrence of a failure
+                failing = true;
+                // reusing value so value display is consistent
+                failingSince = latestErrorTime;
+                latestErrorWarn = System.currentTimeMillis();
+                log.warn("[{}] The index update failed", name, e);
+            } else {
+                // subsequent occurrences
+                boolean warn = System.currentTimeMillis() - latestErrorWarn > ERROR_WARN_INTERVAL;
+                if (warn) {
+                    latestErrorWarn = System.currentTimeMillis();
+                    log.warn("[{}] The index update is still failing", name, e);
+                } else {
+                    log.debug("[{}] The index update is still failing", name, e);
+                }
+            }
+        }
+
+        public void fixed() {
+            log.info("[{}] Index update no longer fails", name);
+            failing = false;
+            failingSince = "";
+            consecutiveFailures = 0;
+            latestErrorWarn = 0;
+            latestError = null;
+            latestErrorTime = "";
+        }
+
+        public boolean isFailing() {
+            return failing;
         }
 
         @Override
@@ -557,8 +600,13 @@ public class AsyncIndexUpdate implements Runnable {
             return this.isPaused;
         }
 
-        void setUpdates(long updates) {
-            this.updates = updates;
+        void resetUpdates() {
+            this.updates = 0;
+        }
+
+        long incUpdates() {
+            updates++;
+            return updates;
         }
 
         @Override
@@ -608,6 +656,11 @@ public class AsyncIndexUpdate implements Runnable {
         }
 
         @Override
+        public CompositeData getIndexedNodesCount() {
+            return execStats.getIndexedNodesCount();
+        }
+
+        @Override
         public CompositeData getConsolidatedExecutionStats() {
             return execStats.getConsolidatedStats();
         }
@@ -621,9 +674,12 @@ public class AsyncIndexUpdate implements Runnable {
         public String toString() {
             return "AsyncIndexStats [start=" + start + ", done=" + done
                     + ", status=" + status + ", paused=" + isPaused
+                    + ", failing=" + failing + ", failingSince=" + failingSince
+                    + ", consecutiveFailures=" + consecutiveFailures
                     + ", updates=" + updates + ", referenceCheckpoint="
                     + referenceCp + ", processedCheckpoint=" + processedCp
-                    + " ,tempCheckpoints=" + tempCps + " ]";
+                    + " ,tempCheckpoints=" + tempCps + ", latestErrorTime="
+                    + latestErrorTime + ", latestError=" + latestError + " ]";
         }
 
         @Override
@@ -634,6 +690,7 @@ public class AsyncIndexUpdate implements Runnable {
         private class ExecutionStats {
             private final TimeSeriesRecorder execCounter;
             private final TimeSeriesRecorder execTimer;
+            private final TimeSeriesRecorder indexedNodesCounter;
 
             /**
              * Captures consolidated execution stats since last reset
@@ -647,6 +704,7 @@ public class AsyncIndexUpdate implements Runnable {
             private ExecutionStats() {
                 execCounter = new TimeSeriesRecorder(true);
                 execTimer = new TimeSeriesRecorder(true);
+                indexedNodesCounter = new TimeSeriesRecorder(true);
 
                 try {
                     consolidatedType = new CompositeType("ConsolidatedStats",
@@ -665,6 +723,7 @@ public class AsyncIndexUpdate implements Runnable {
 
             private void recordExecution(long time, long updates) {
                 execTimer.getCounter().addAndGet(time);
+                indexedNodesCounter.getCounter().addAndGet(updates);
                 consolidatedExecTime.addAndGet(time);
                 consolidatedNodes.addAndGet(updates);
             }
@@ -675,6 +734,10 @@ public class AsyncIndexUpdate implements Runnable {
 
             private CompositeData getExecutionTime() {
                 return TimeSeriesStatsUtil.asCompositeData(execTimer, "ExecutionTime");
+            }
+
+            private CompositeData getIndexedNodesCount() {
+                return TimeSeriesStatsUtil.asCompositeData(indexedNodesCounter, "ExecutionNodesCount");
             }
 
             private CompositeData getConsolidatedStats() {
@@ -697,7 +760,28 @@ public class AsyncIndexUpdate implements Runnable {
             private void recordTick() {
                 execCounter.recordOneSecond();
                 execTimer.recordOneSecond();
+                indexedNodesCounter.recordOneSecond();
             }
+        }
+
+        @Override
+        public String getFailingSince() {
+            return failingSince;
+        }
+
+        @Override
+        public long getConsecutiveFailedExecutions() {
+            return consecutiveFailures;
+        }
+
+        @Override
+        public String getLatestError() {
+            return latestError;
+        }
+
+        @Override
+        public String getLatestErrorTime() {
+            return latestErrorTime;
         }
     }
 
@@ -756,7 +840,7 @@ public class AsyncIndexUpdate implements Runnable {
     }
 
     public boolean isFailing() {
-        return failing;
+        return indexStats.isFailing();
     }
 
 }
