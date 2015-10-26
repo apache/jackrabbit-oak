@@ -202,7 +202,7 @@ class VersionableState {
      */
     NodeBuilder create() throws CommitFailedException {
         try {
-            createFrozen(versionable, uuidFromNode(versionable), frozenNode);
+            createFrozen(versionable, uuidFromNode(versionable), frozenNode, VERSION);
             return frozenNode;
         } catch (RepositoryException e) {
             throw new CommitFailedException(CommitFailedException.VERSION,
@@ -453,26 +453,16 @@ class VersionableState {
         }
     }
 
-    private void createFrozen(NodeBuilder src, String srcId, NodeBuilder dest)
+    private void createFrozen(NodeBuilder src, String srcId, NodeBuilder dest, int opva)
             throws CommitFailedException, RepositoryException {
         initFrozen(dest, src, srcId);
-        copyProperties(src, dest, new OPVProvider() {
-            @Override
-            public int getAction(NodeBuilder src,
-                                 NodeBuilder dest,
-                                 PropertyState prop)
-                    throws RepositoryException {
-                String propName = prop.getName();
-                if (BASIC_FROZEN_PROPERTIES.contains(propName)) {
-                    // OAK-940: do not overwrite basic frozen properties
-                    return IGNORE;
-                } else if (isHiddenProperty(propName)) {
-                    // don't copy hidden properties except for :childOrder
-                    return IGNORE;
-                }
-                return getOPV(src, prop);
-            }
-        }, true);
+        OPVProvider opvProvider;
+        if (opva == OnParentVersionAction.COPY) {
+            opvProvider = OPVForceCopy.INSTANCE;
+        } else {
+            opvProvider = new OPVVersion();
+        }
+        copyProperties(src, dest, opvProvider, true);
 
         // add the frozen children and histories
         for (String name : src.getChildNodeNames()) {
@@ -494,10 +484,10 @@ class VersionableState {
                     versionedChild(child, dest.child(name));
                 } else {
                     // else copy
-                    createFrozen(child, childId, dest.child(name));
+                    createFrozen(child, childId, dest.child(name), COPY);
                 }
             } else if (opv == COPY) {
-                createFrozen(child, childId, dest.child(name));
+                createFrozen(child, childId, dest.child(name), COPY);
             }
         }
     }
@@ -607,6 +597,25 @@ class VersionableState {
                              NodeBuilder dest,
                              PropertyState prop) {
             return COPY;
+        }
+    }
+
+    private final class OPVVersion implements OPVProvider {
+
+        @Override
+        public int getAction(NodeBuilder src,
+                             NodeBuilder dest,
+                             PropertyState prop)
+                throws RepositoryException {
+            String propName = prop.getName();
+            if (BASIC_FROZEN_PROPERTIES.contains(propName)) {
+                // OAK-940: do not overwrite basic frozen properties
+                return IGNORE;
+            } else if (isHiddenProperty(propName)) {
+                // don't copy hidden properties except for :childOrder
+                return IGNORE;
+            }
+            return getOPV(src, prop);
         }
     }
 }
