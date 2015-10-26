@@ -22,7 +22,6 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -34,7 +33,6 @@ public class ClusterNodeRestartTest {
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
     // OAK-3549
-    @Ignore
     @Test
     public void restart() throws Exception {
         MemoryDocumentStore docStore = new MemoryDocumentStore();
