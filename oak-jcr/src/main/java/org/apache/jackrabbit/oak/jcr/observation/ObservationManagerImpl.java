@@ -310,8 +310,12 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
 
     private static void stop(ChangeProcessor processor) {
         if (!processor.stopAndWait(STOP_TIME_OUT, MILLISECONDS)) {
-            LOG.warn(OBSERVATION, "Timed out waiting for change processor to stop after " +
-                    STOP_TIME_OUT + " milliseconds. Falling back to asynchronous stop.");
+            LOG.warn(
+                    OBSERVATION,
+                    "Timed out waiting for change processor to stop after "
+                            + STOP_TIME_OUT
+                            + " milliseconds. Falling back to asynchronous stop on "
+                            + processor);
             processor.stop();
         }
     }
