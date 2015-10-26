@@ -881,7 +881,7 @@ public class FileStore implements SegmentStore {
         approximateSize.set(finalSize);
         gcMonitor.cleaned(initialSize - finalSize, finalSize);
         gcMonitor.info("TarMK GC #{}: cleanup completed in {} ({} ms). Post cleanup size is {} ({} bytes)" +
-                "and space reclaimed {} ({} bytes). Compaction map weight/depth is {}/{} ({} bytes/{}).",
+                " and space reclaimed {} ({} bytes). Compaction map weight/depth is {}/{} ({} bytes/{}).",
                 gcCount, watch, watch.elapsed(MILLISECONDS),
                 humanReadableByteCount(finalSize), finalSize,
                 humanReadableByteCount(initialSize - finalSize), initialSize - finalSize,
