@@ -66,20 +66,6 @@ public class ReplicationLagEstimatorTest {
     }
 
     @Test
-    public void averageValueTest() {
-        addInstance(PRIMARY, "mongo-p", 10, 0);
-        addInstance(SECONDARY, "mongo-s1", 11, 11);
-        updateStats();
-        addInstance(PRIMARY, "mongo-p", 20, 0);
-        addInstance(SECONDARY, "mongo-s1", 22, 22);
-        updateStats();
-        addInstance(PRIMARY, "mongo-p", 30, 0);
-        addInstance(SECONDARY, "mongo-s1", 33, 33);
-        updateStats();
-        assertEquals(2, getEstimationSec());
-    }
-
-    @Test
     public void operationNotProcessedYet() {
         addInstance(PRIMARY, "mongo-p", 10, 0);
         addInstance(SECONDARY, "mongo-s1", 11, 11);
@@ -142,16 +128,10 @@ public class ReplicationLagEstimatorTest {
     @Test
     public void removedMember() {
         addInstance(PRIMARY, "mongo-p", 10, 0);
-        addInstance(SECONDARY, "mongo-s1", 13, 13); // avg = 3
-        addInstance(SECONDARY, "mongo-s2", 15, 15); // avg = 5
+        addInstance(SECONDARY, "mongo-s1", 13, 13);
+        addInstance(SECONDARY, "mongo-s2", 15, 15);
         updateStats();
         assertEquals(5, getEstimationSec());
-
-        addInstance(PRIMARY, "mongo-p", 20, 0);
-        addInstance(SECONDARY, "mongo-s1", 21, 21); // avg = 2
-        addInstance(SECONDARY, "mongo-s2", 27, 27); // avg = 6
-        updateStats();
-        assertEquals(6, getEstimationSec());
 
         addInstance(PRIMARY, "mongo-p", 30, 0);
         addInstance(SECONDARY, "mongo-s1", 32, 32); // avg = 2

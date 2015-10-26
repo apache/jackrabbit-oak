@@ -18,10 +18,8 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -40,13 +38,7 @@ public class ReplicationLagEstimator implements Runnable {
 
     private static final Logger LOG = LoggerFactory.getLogger(ReplicationLagEstimator.class);
 
-    /**
-     * How many replication lags should be taken into consideration for
-     * computing the average.
-     */
-    private static final int STAT_SIZE = 10;
-
-    private final Map<String, Stat> memberLags = new HashMap<String, Stat>();
+    private final Map<String, Long> memberLags = new HashMap<String, Long>();
 
     private final DB adminDb;
 
@@ -106,8 +98,8 @@ public class ReplicationLagEstimator implements Runnable {
             LOG.debug("Average lags for the instances: {}", memberLags);
             Long max = null;
             boolean allStatsPresent = true;
-            for (Entry<String, Stat> e : memberLags.entrySet()) {
-                Long avg = e.getValue().average();
+            for (Entry<String, Long> e : memberLags.entrySet()) {
+                Long avg = e.getValue();
                 if (avg == null) {
                     LOG.debug("There's no data for instance {}", e.getKey());
                     allStatsPresent = false;
@@ -165,18 +157,12 @@ public class ReplicationLagEstimator implements Runnable {
         } else {
             for (MemberReplicationInfo secondary : secondaries) {
                 String name = secondary.name;
-                Stat stat = memberLags.get(name);
-                if (stat == null) {
-                    memberLags.put(name, stat = new Stat(STAT_SIZE));
-                }
 
                 Long lag = primary.getLag(secondary);
                 if (lag == null) {
                     unknownState = true;
-                    stat.removeOldest();
-                } else {
-                    stat.add(lag);
                 }
+                memberLags.put(name, lag);
             }
         }
         memberLags.keySet().retainAll(secondaryNames);
@@ -214,52 +200,6 @@ public class ReplicationLagEstimator implements Runnable {
             } else {
                 return secondary.optime - optime;
             }
-        }
-    }
-
-    private static class Stat {
-
-        private final Deque<Long> data;
-
-        private final int size;
-
-        private Long average;
-
-        public Stat(int size) {
-            this.data = new LinkedList<Long>();
-            this.size = size;
-        }
-
-        public void add(long entry) {
-            if (data.size() == size) {
-                data.removeFirst();
-            }
-            data.addLast(entry);
-            average = null;
-        }
-
-        public void removeOldest() {
-            data.removeFirst();
-            average = null;
-        }
-
-        public Long average() {
-            if (average != null) {
-                return average;
-            }
-            if (data.isEmpty()) {
-                return null;
-            }
-            long sum = 0;
-            for (Long i : data) {
-                sum += i;
-            }
-            return average = sum / data.size();
-        }
-
-        @Override
-        public String toString() {
-            return new StringBuilder("[avg: ").append(average).append("]").toString();
         }
     }
 }
