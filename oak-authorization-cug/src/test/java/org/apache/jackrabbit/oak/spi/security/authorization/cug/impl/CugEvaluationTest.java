@@ -86,8 +86,8 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
         }
     }
 
-    private PermissionProvider createPermissionProvider(Set<Principal> principals) {
-        return getSecurityProvider().getConfiguration(AuthorizationConfiguration.class).getPermissionProvider(root, adminSession.getWorkspaceName(), principals);
+    private PermissionProvider createPermissionProvider(ContentSession cs) {
+        return getSecurityProvider().getConfiguration(AuthorizationConfiguration.class).getPermissionProvider(root, adminSession.getWorkspaceName(), cs.getAuthInfo().getPrincipals());
     }
 
     private PermissionProvider createPermissionProvider(Principal... principals) {
@@ -173,8 +173,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
         ContentSession cs = createTestSession2();
         Root r = cs.getLatestRoot();
         try {
-            Set<Principal> principalSet = cs.getAuthInfo().getPrincipals();
-            PermissionProvider pp = createPermissionProvider(principalSet);
+            PermissionProvider pp = createPermissionProvider(cs);
             assertTrue(pp.isGranted(root.getTree("/content/writeTest"), null, Permissions.ADD_NODE));
             assertTrue(pp.isGranted(root.getTree("/content/a/b/c/writeTest"), null, Permissions.ADD_NODE));
 
@@ -343,8 +342,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
     @Test
     public void testHasAllPrivileges() throws Exception {
         // testGroup
-        Set<Principal> principals = ImmutableSet.of(testGroupPrincipal);
-        PermissionProvider pp = createPermissionProvider(principals);
+        PermissionProvider pp = createPermissionProvider(testGroupPrincipal);
 
         assertFalse(pp.hasPrivileges(content, PrivilegeConstants.JCR_ALL));
         assertFalse(pp.hasPrivileges(a, PrivilegeConstants.JCR_ALL));
@@ -370,9 +368,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
 
     @Test
     public void testHasAllPrivilegesAdmin() throws Exception {
-        // admin principal
-        Set<Principal> principals = adminSession.getAuthInfo().getPrincipals();
-        PermissionProvider pp = createPermissionProvider(principals);
+        PermissionProvider pp = createPermissionProvider(adminSession);
 
         assertTrue(pp.hasPrivileges(content, PrivilegeConstants.JCR_ALL));
         assertTrue(pp.hasPrivileges(a, PrivilegeConstants.JCR_ALL));

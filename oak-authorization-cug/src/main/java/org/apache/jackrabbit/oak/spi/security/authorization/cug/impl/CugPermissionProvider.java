@@ -195,7 +195,7 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
     @Override
     public boolean isGranted(@Nonnull String oakPath, @Nonnull String jcrActions) {
         TreeLocation location = TreeLocation.create(immutableRoot, oakPath);
-        if (ctx.definesLocation(location) || NodeStateUtils.isHidden(PathUtils.getName(oakPath))) {
+        if (ctx.definesLocation(location) || NodeStateUtils.isHiddenPath(oakPath)) {
             return false;
         }
 
