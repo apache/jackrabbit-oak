@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.3.8
+Release Notes -- Apache Jackrabbit Oak -- Version 1.3.9
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.3.8 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.3.9 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.2.x
 release.
@@ -22,98 +22,88 @@ Providing the start-up parameter `-Doak.query.sql2optimisation` will
 enable the experimental feature OAK-1617 that performs another round
 of optimisations on top of a SQL2 query.
 
-Changes in Oak 1.3.8
+Changes in Oak 1.3.9
 --------------------
-
-Sub-task
-
-    [OAK-2507] - Truncate journal.log after off line compaction
-    [OAK-2879] - Compaction should check for required disk space
-    before running
-    [OAK-3172] - Unreleased closed sessions can keep a root reference
-    from getting collected
-    [OAK-3260] - oak-jcr: update test exclusions once JCR-3900 is
-    resolved
 
 Technical task
 
-    [OAK-3384] - Revisit PartialCompactionMapTest
-    [OAK-3479] - Add generation info to compaction map
-    [OAK-3501] - PersistedCompactionMap could release reference to
-    records early
+    [OAK-3540] - DocumentStore tests: use named parametrization
 
 Bug
 
-    [OAK-1648] - Creating multiple checkpoint on same head revision
-    overwrites previous entries
-    [OAK-2635] - TimeSeriesMax's frequent 'drops to 0'
-    [OAK-2881] - ConsistencyChecker#checkConsistency can't cope with
-    inconsistent journal
-    [OAK-2929] - Parent of unseen children must not be removable
-    [OAK-3235] - Deadlock when closing a concurrently used FileStore
-    [OAK-3371] - Wrong evaluation of NOT clause
-    [OAK-3388] - Inconsistent read in cluster with clock differences
-    [OAK-3396] - NPE during syncAllExternalUsers in
-    LdapIdentityProvider.createUser
-    [OAK-3405] - Avoid instanceof check in LastRevRecoveryAgent
-    [OAK-3417] - oak-run OakFixture might set incorrect clusterIDs
-    [OAK-3456] - MongoBlobGCTest.gcLongRunningBlobCollection() fails
-    [OAK-3463] - Communicate Password Change Failure Reason During
-    Expiry + Pw History
-    [OAK-3473] - CliUtils#handleSigInt uses classes from sun.misc.*
-    [OAK-3474] - NodeDocument.getNodeAtRevision can go into property
-    history traversal when latest rev on current doc isn't committed
-    [OAK-3476] - Memory leak caused by using marker names based on non
-    static session id
-    [OAK-3481] - CompationMapTest does not close file store
-    [OAK-3487] - NodeDocumentTest.getNewestRevisionTooExpensive()
-    fails occasionally
-    [OAK-3490] - QueryTest.orderBy() fails occasionally
-    [OAK-3491] - DocumentDiscoveryLiteServiceTest makes incorrect call
-    to MissingLastRevRecovery
-    [OAK-3492] - reduce DocumentDiscoveryLiteService hasBacklog WARNs
-    [OAK-3493] - Deadlock when closing a concurrently used FileStore
-    2.0
+    [OAK-2660] - Wrong result when using multiple OR conditions, with
+    a Lucene full-text index
+    [OAK-2689] - Test failure: QueryResultTest.testGetSize
+    [OAK-3156] - Lucene suggestions index definition can't be
+    restricted to a specific type of node
+    [OAK-3311] - Potential NPE in syncAllExternalUsers() aborts the
+    process
+    [OAK-3451] - OrderedIndexIT fails
+    [OAK-3510] - Troublesome ExternalIdentityRef.equals(Object)
+    implementation
+    [OAK-3511] - Test failure: CompactionMapTest.removeSome
+    [OAK-3513] - Session save going through despite repository being
+    shutdown causing reindex flag to reset
+    [OAK-3517] - Node.addNode(String, String) may check
+    nt-mgt-permission against the wrong node
+    [OAK-3530] - TreeTypeProvider returns wrong type for version
+    related node type definitions
+    [OAK-3541] - VersionableState.copy doesn't respect OPV flag in the
+    subtree
+    [OAK-3549] - Initial read of _lastRev creates incorrect
+    RevisionComparator
+    [OAK-3551] - Failing version restore tests
 
 Documentation
 
-    [OAK-3452] - Document possible migration options
+    [OAK-3515] - Document how to create diagnostic builds
+    [OAK-3521] - Improve migration documentation
 
 Improvement
 
-    [OAK-3166] - Apply adjustments for newly exported
-    JackrabbitSession#getItemOrNull
-    [OAK-3251] - speeding up the build time
-    [OAK-3290] - Revision gc blocks repository shutdown
-    [OAK-3329] - TarMK cleanup blocks writers
-    [OAK-3448] - Update jackrabbit version to 2.11.1
-    [OAK-3454] - Improve the logging capabilities of offline
-    compaction
-    [OAK-3455] - Improve conflict exception message
-    [OAK-3460] - Progress logging for RepositorySidegrade
-    [OAK-3465] - Move ContinuousRevisionGCTest to benchmark package
-    [OAK-3469] - Fix naming in oak-upgrade
-    [OAK-3471] - Avoid reflection in DocumentDiscoveryLiteServiceTest
-    [OAK-3475] - Confusing SNFE whith oak-run debug
-    [OAK-3484] - Oak Explorer: add property type to reference output
-    [OAK-3485] - FileStoreIT cleanup after tests
-    [OAK-3497] - Remove DocumentNodeStore.diff()
-    [OAK-3502] - Improve logging during cleanup
+    [OAK-1617] - Automatically convert "or" queries to "union" for
+    SQL-2
+    [OAK-3054] - IndexStatsMBean should provide some details if the
+    async indexing is failing
+    [OAK-3300] - Include parameter descriptions in test output when
+    running parameterised tests
+    [OAK-3330] - FileStore lock contention with concurrent writers
+    [OAK-3409] - CompositeRegistration.unregister diagnostics not
+    helpful
+    [OAK-3486] - Wrong evaluation of NOT NOT clause (see OAK-3371)
+    [OAK-3503] - Upgrade Maven Bundle Plugin to 3.0.0
+    [OAK-3504] - CopyOnRead directory should not schedule a copy task
+    for non existent file
+    [OAK-3505] - Provide an optionally stricter policy for missing
+    synchronous index editor providers
+    [OAK-3506] - Uniformization of compaction log messages
+    [OAK-3518] - Consistently add annotations to DefaultSync* classes
+    [OAK-3528] - Unchecked assignements in calls to performVoid()
+    [OAK-3531] - Oak Explorer: add segment GC roots report
+    [OAK-3533] - Make it possible to disable
+    LuceneIndexProviderService via OSGi configuration
+    [OAK-3539] - Document interface should have entrySet() in addition
+    to keySet()
+    [OAK-3544] - o.a.j.o.api should not depend on Guava
+    [OAK-3545] - Refactor tree type information into plugins/tree
+    package
+    [OAK-3546] - Improve ObservationManagerImpl timeout message
+    [OAK-3548] - Improve permission evaluation for version store items
 
 New Feature
 
-    [OAK-3457] - Multivalued restriction to limit effect of ACE to
-    items with a given name
-    [OAK-3472] - Run mode to identify blob garbage
+    [OAK-865] - Expose repository management data and statistics
+    [OAK-3543] - Add ReadOnlyVersionManager.getVersionable
 
 Task
 
-    [OAK-2623] - Add test for GC of previous docs of a deleted
-    document
+    [OAK-3520] - Increase test coverage
 
 Wish
 
-    [OAK-3467] - Tests slow after OAK-2171
+    [OAK-3415] - AccessControlValidator:
+    checkValidAccessControlledNode should mention node name in error
+    message
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.2.x release.
