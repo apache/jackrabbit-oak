@@ -16,6 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.oak.api.Type.BINARIES;
+import static org.apache.jackrabbit.oak.api.Type.BINARY;
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Supplier;
@@ -37,18 +49,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Maps.newHashMap;
-import static org.apache.jackrabbit.oak.api.Type.BINARIES;
-import static org.apache.jackrabbit.oak.api.Type.BINARY;
-import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
 /**
  * Tool for compacting segments.
@@ -115,7 +115,8 @@ public class Compactor {
     }
 
     public Compactor(FileStore store, CompactionStrategy compactionStrategy, Supplier<Boolean> cancel) {
-        this.writer = store.createSegmentWriter();
+        String wid = "c-" + store.getTracker().getCompactionMap().getGeneration() + 1;
+        this.writer = store.createSegmentWriter(wid);
         if (compactionStrategy.getPersistCompactionMap()) {
             this.map = new PersistedCompactionMap(store);
         } else {
