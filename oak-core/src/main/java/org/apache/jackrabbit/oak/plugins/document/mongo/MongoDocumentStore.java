@@ -77,8 +77,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Objects;
 import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Striped;
 import com.mongodb.BasicDBObject;
@@ -215,7 +213,7 @@ public class MongoDocumentStore implements DocumentStore {
         index.put(NodeDocument.MODIFIED_IN_SECS, -1L);
         DBObject options = new BasicDBObject();
         options.put("unique", Boolean.FALSE);
-        nodes.ensureIndex(index, options);
+        nodes.createIndex(index, options);
 
         // index on the _bin flag to faster access nodes with binaries for GC
         index = new BasicDBObject();
@@ -223,27 +221,27 @@ public class MongoDocumentStore implements DocumentStore {
         options = new BasicDBObject();
         options.put("unique", Boolean.FALSE);
         options.put("sparse", Boolean.TRUE);
-        this.nodes.ensureIndex(index, options);
+        this.nodes.createIndex(index, options);
 
         index = new BasicDBObject();
         index.put(NodeDocument.DELETED_ONCE, 1);
         options = new BasicDBObject();
         options.put("unique", Boolean.FALSE);
         options.put("sparse", Boolean.TRUE);
-        this.nodes.ensureIndex(index, options);
+        this.nodes.createIndex(index, options);
 
         index = new BasicDBObject();
         index.put(NodeDocument.SD_TYPE, 1);
         options = new BasicDBObject();
         options.put("unique", Boolean.FALSE);
         options.put("sparse", Boolean.TRUE);
-        this.nodes.ensureIndex(index, options);
+        this.nodes.createIndex(index, options);
 
         index = new BasicDBObject();
         index.put(JournalEntry.MODIFIED, 1);
         options = new BasicDBObject();
         options.put("unique", Boolean.FALSE);
-        this.journal.ensureIndex(index, options);
+        this.journal.createIndex(index, options);
 
 
         nodesCache = builder.buildDocumentCache(this);
@@ -892,10 +890,7 @@ public class MongoDocumentStore implements DocumentStore {
         final long start = PERFLOG.start();
         try {
             try {
-                WriteResult writeResult = dbCollection.insert(inserts);
-                if (writeResult.getError() != null) {
-                    return false;
-                }
+                dbCollection.insert(inserts);
                 if (collection == Collection.NODES) {
                     for (T doc : docs) {
                         TreeLock lock = acquire(doc.getId(), collection);
@@ -935,10 +930,7 @@ public class MongoDocumentStore implements DocumentStore {
                 }
             }
             try {
-                WriteResult writeResult = dbCollection.update(query.get(), update, false, true);
-                if (writeResult.getError() != null) {
-                    throw new DocumentStoreException("Update failed: " + writeResult.getError());
-                }
+                dbCollection.update(query.get(), update, false, true);
                 if (collection == Collection.NODES) {
                     // update cache
                     for (Entry<String, NodeDocument> entry : cachedDocs.entrySet()) {

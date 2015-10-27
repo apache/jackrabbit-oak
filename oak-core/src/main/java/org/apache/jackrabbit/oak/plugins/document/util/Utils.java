@@ -48,7 +48,6 @@ import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionContext;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
-import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -170,16 +169,6 @@ public class Utils {
             size += map.size() * 64;
         }
         return size;
-    }
-
-    /**
-     * Generate a unique cluster id, similar to the machine id field in MongoDB ObjectId objects.
-     *
-     * @return the unique machine id
-     */
-    public static int getUniqueClusterId() {
-        ObjectId objId = new ObjectId();
-        return objId._machine();
     }
 
     public static String escapePropertyName(String propertyName) {

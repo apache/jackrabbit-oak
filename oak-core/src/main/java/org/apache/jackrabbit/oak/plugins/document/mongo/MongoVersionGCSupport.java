@@ -33,7 +33,6 @@ import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
 import com.mongodb.ReadPreference;
-import com.mongodb.WriteResult;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.SplitDocumentCleanUp;
@@ -174,12 +173,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
                 logSplitDocIdsTobeDeleted(query);
             }
 
-            WriteResult writeResult = getNodeCollection().remove(query);
-            if (writeResult.getError() != null) {
-                //TODO This might be temporary error or we fail fast and let next cycle try again
-                LOG.warn("Error occurred while deleting old split documents from Mongo {}", writeResult.getError());
-            }
-            return writeResult.getN();
+            return getNodeCollection().remove(query).getN();
         }
     }
 }
