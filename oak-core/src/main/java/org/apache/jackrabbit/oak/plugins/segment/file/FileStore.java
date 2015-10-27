@@ -1357,6 +1357,19 @@ public class FileStore implements SegmentStore {
             super.setRevision(revision);
         }
 
+        /**
+         * Build the graph of segments reachable from an initial set of segments
+         * @param referencedIds  the initial set of segments
+         * @throws IOException
+         */
+        public Map<UUID, Set<UUID>> getSegmentGraph(Set<UUID> referencedIds) throws IOException {
+            Map<UUID, Set<UUID>> graph = newHashMap();
+            for (TarReader reader : super.readers) {
+                graph.putAll(reader.getReferenceGraph(referencedIds));
+            }
+            return graph;
+        }
+
         @Override
         public boolean setHead(SegmentNodeState base, SegmentNodeState head) {
             throw new UnsupportedOperationException("Read Only Store");
