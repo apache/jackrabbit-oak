@@ -245,21 +245,59 @@ public final class UpdateOp {
     }
 
     /**
+     * Checks if the property is equal to the given value.
+     *
+     * @param property the name of the property or map.
+     * @param value the value to compare to ({@code null} checks both for non-existence and the value being null)
+     */
+    void equals(@Nonnull String property, @Nullable Object value) {
+        equals(property, null, value);
+    }
+
+    /**
      * Checks if the property or map entry is equal to the given value.
+     *
+     * @param property the name of the property or map.
+     * @param revision the revision within the map or {@code null} if this check
+     *                 is for a property.
+     * @param value the value to compare to ({@code null} checks both for non-existence and the value being null)
+     */
+    void equals(@Nonnull String property,
+                @Nullable Revision revision,
+                @Nullable Object value) {
+        if (isNew) {
+            throw new IllegalStateException("Cannot perform equals check on new document");
+        }
+        getOrCreateConditions().put(new Key(property, revision),
+                Condition.newEqualsCondition(value));
+    }
+
+    /**
+     * Checks if the property does not exist or is not equal to the given value.
+     *
+     * @param property the name of the property or map.
+     * @param value the value to compare to.
+     */
+    void notEquals(@Nonnull String property, @Nullable Object value) {
+        notEquals(property, null, value);
+    }
+
+    /**
+     * Checks if the property or map entry does not exist or is not equal to the given value.
      *
      * @param property the name of the property or map.
      * @param revision the revision within the map or {@code null} if this check
      *                 is for a property.
      * @param value the value to compare to.
      */
-    void equals(@Nonnull String property,
-                @Nullable Revision revision,
-                @Nonnull Object value) {
+    void notEquals(@Nonnull String property,
+                   @Nullable Revision revision,
+                   @Nullable Object value) {
         if (isNew) {
-            throw new IllegalStateException("Cannot perform equals check on new document");
+            throw new IllegalStateException("Cannot perform notEquals check on new document");
         }
         getOrCreateConditions().put(new Key(property, revision),
-                Condition.newEqualsCondition(value));
+                Condition.newNotEqualsCondition(value));
     }
 
     /**
@@ -415,8 +453,12 @@ public final class UpdateOp {
             /**
              * Checks if a map entry equals a given value.
              */
-            EQUALS
+            EQUALS,
 
+            /**
+             * Checks if a map entry does not equal a given value.
+             */
+            NOTEQUALS
         }
 
         /**
@@ -440,8 +482,18 @@ public final class UpdateOp {
          * @param value the value to compare to.
          * @return the equals condition.
          */
-        public static Condition newEqualsCondition(@Nonnull Object value) {
-            return new Condition(Type.EQUALS, checkNotNull(value));
+        public static Condition newEqualsCondition(@Nullable Object value) {
+            return new Condition(Type.EQUALS, value);
+        }
+
+        /**
+         * Creates a new notEquals condition with the given value.
+         *
+         * @param value the value to compare to.
+         * @return the notEquals condition.
+         */
+        public static Condition newNotEqualsCondition(@Nullable Object value) {
+            return new Condition(Type.NOTEQUALS, value);
         }
 
         @Override

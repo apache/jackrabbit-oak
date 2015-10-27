@@ -1272,6 +1272,9 @@ public class MongoDocumentStore implements DocumentStore {
                 case EQUALS:
                     query.and(k.toString()).is(c.value);
                     break;
+                case NOTEQUALS:
+                    query.and(k.toString()).notEquals(c.value);
+                    break;
             }
         }
 
