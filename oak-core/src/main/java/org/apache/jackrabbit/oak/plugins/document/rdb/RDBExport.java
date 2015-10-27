@@ -293,7 +293,7 @@ public class RDBExport {
         System.err.println("Usage: " + RDBExport.class.getName()
                 + " -j/--jdbc-url JDBC-URL [-u/--username username] [-p/--password password] [-c/--collection table] [-q/--query query] [-o/--out file] [--jsonArray]");
         System.err.println(
-                "Usage: " + RDBExport.class.getName() + " --from-DB2-dump file [--lobdir lobdir] [-o/--out file] [--jsonArray]");
+                "Usage: " + RDBExport.class.getName() + " --from-db2-dump file [--lobdir lobdir] [-o/--out file] [--jsonArray]");
         System.err.println("Usage: " + RDBExport.class.getName() + " --version");
         System.err.println("Usage: " + RDBExport.class.getName() + " --help");
     }
@@ -313,7 +313,7 @@ public class RDBExport {
         System.err.println("  -q/--query query                   SQL where clause (minus 'where')");
         System.err.println("");
         System.err.println("Dump file options:");
-        System.err.println("  --from-DB2-dump file               name of DB2 DEL export file");
+        System.err.println("  --from-db2-dump file               name of DB2 DEL export file");
         System.err.println("  --lobdir dir                       name of DB2 DEL export file LOB directory");
         System.err.println("                                     (defaults to ./lobdir under the dump file)");
         System.err.println("");
