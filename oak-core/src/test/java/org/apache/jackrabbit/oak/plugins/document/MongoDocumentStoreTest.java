@@ -42,7 +42,6 @@ import org.slf4j.LoggerFactory;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
-import com.mongodb.WriteResult;
 
 /**
  * Tests the document store.
@@ -251,7 +250,7 @@ public class MongoDocumentStoreTest {
         index.put("_path", 1L);
         DBObject options = new BasicDBObject();
         options.put("unique", Boolean.TRUE);
-        collection.ensureIndex(index, options);
+        collection.createIndex(index, options);
 
         log("Inserting " + n + " batch? " + batch);
         long start = System.currentTimeMillis();
@@ -261,16 +260,10 @@ public class MongoDocumentStoreTest {
             for (int i = 0; i < n; i++) {
                 arr[i] = new BasicDBObject("_path", "/a" + i);
             }
-            WriteResult result = collection.insert(arr);
-            if (result.getError() != null) {
-                log("Error: " + result.getError());
-            }
+            collection.insert(arr);
         } else {
             for (int i = 0; i < n; i++) {
-                WriteResult result = collection.insert(new BasicDBObject("_path", "/a" + i));
-                if (result.getError() != null) {
-                    log("Error: " + result.getError());
-                }
+                collection.insert(new BasicDBObject("_path", "/a" + i));
             }
 
         }
