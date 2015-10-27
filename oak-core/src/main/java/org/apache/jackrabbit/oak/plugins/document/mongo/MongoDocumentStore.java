@@ -843,8 +843,19 @@ public class MongoDocumentStore implements DocumentStore {
                             throw new IllegalStateException(
                                     "SET_MAP_ENTRY must not have null revision");
                         }
-                        DBObject value = new RevisionEntry(r, op.value);
-                        inserts[i].put(k.getName(), value);
+                        DBObject value = (DBObject) inserts[i].get(k.getName());
+                        if (value == null) {
+                            value = new RevisionEntry(r, op.value);
+                            inserts[i].put(k.getName(), value);
+                        } else if (value.keySet().size() == 1) {
+                            String key = value.keySet().iterator().next();
+                            Object val = value.get(key);
+                            value = new BasicDBObject(key, val);
+                            value.put(r.toString(), op.value);
+                            inserts[i].put(k.getName(), value);
+                        } else {
+                            value.put(r.toString(), op.value);
+                        }
                         break;
                     }
                     case REMOVE_MAP_ENTRY:
