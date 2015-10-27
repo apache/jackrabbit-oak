@@ -21,7 +21,6 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -145,14 +144,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     //--------------------------------------------------------------------------
 
     private static boolean isVersionStorePath(@Nonnull String oakPath) {
-        if (oakPath.indexOf(JcrConstants.JCR_SYSTEM) == 1) {
-            for (String p : VersionConstants.SYSTEM_PATHS) {
-                if (oakPath.startsWith(p)) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return oakPath.startsWith(VersionConstants.VERSION_STORE_PATH);
     }
 
     private boolean isGranted(@Nonnull TreeLocation location, @Nonnull String oakPath, long permissions) {

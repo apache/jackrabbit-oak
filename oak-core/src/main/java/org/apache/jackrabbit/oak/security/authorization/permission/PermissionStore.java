@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.util.Collection;
-import java.util.Map;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -27,7 +26,7 @@ import javax.annotation.Nullable;
  * The permission store is used to store and provide access control permissions for principals. It is responsible to
  * load and store the permissions in an optimal form in the repository and must not cache them.
  */
-public interface PermissionStore {
+interface PermissionStore {
 
     long DYNAMIC_ALL_BITS = -1;
 
@@ -43,8 +42,6 @@ public interface PermissionStore {
      */
     @CheckForNull
     Collection<PermissionEntry> load(@Nullable Collection<PermissionEntry> entries, @Nonnull String principalName, @Nonnull String path);
-
-    void load(@Nonnull Map<String, Collection<PermissionEntry>> entries, @Nonnull String principalName);
 
     @Nonnull
     PrincipalPermissionEntries load(@Nonnull String principalName);

@@ -39,17 +39,16 @@ final class EntryPredicate implements Predicate<PermissionEntry> {
     private final Tree parent;
     private final boolean respectParent;
 
-    public EntryPredicate(@Nonnull Tree tree, @Nullable PropertyState property,
-                          boolean respectParent) {
+    EntryPredicate() {
+        this(null, null, null, false);
+    }
+
+    EntryPredicate(@Nonnull Tree tree, @Nullable PropertyState property, boolean respectParent) {
         this(tree, property, tree.getPath(), respectParent);
     }
 
-    public EntryPredicate(@Nonnull String path, boolean respectParent) {
+    EntryPredicate(@Nonnull String path, boolean respectParent) {
         this(null, null, path, respectParent);
-    }
-
-    public EntryPredicate() {
-        this(null, null, null, false);
     }
 
     private EntryPredicate(@Nullable Tree tree, @Nullable PropertyState property,
@@ -69,10 +68,11 @@ final class EntryPredicate implements Predicate<PermissionEntry> {
     }
 
     @CheckForNull
-    public String getPath() {
+    String getPath() {
         return path;
     }
 
+    //----------------------------------------------------------< Predicate >---
     @Override
     public boolean apply(@Nullable PermissionEntry entry) {
         return apply(entry, true);
@@ -92,5 +92,4 @@ final class EntryPredicate implements Predicate<PermissionEntry> {
             return entry.matches();
         }
     }
-
 }

@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-
 import javax.annotation.Nonnull;
 
 /**
@@ -37,12 +36,12 @@ import javax.annotation.Nonnull;
  *   fallback to the direct store.load() methods when providing the entries. if those principals with many entries
  *   are used often, they might get elected to live in the global cache; memory permitting.
  */
-public class PermissionEntryCache {
+class PermissionEntryCache {
 
     private final Map<String, PrincipalPermissionEntries> entries = new HashMap<String, PrincipalPermissionEntries>();
 
     @Nonnull
-    public PrincipalPermissionEntries getEntries(@Nonnull PermissionStore store,
+    PrincipalPermissionEntries getEntries(@Nonnull PermissionStore store,
                                                  @Nonnull String principalName) {
         PrincipalPermissionEntries ppe = entries.get(principalName);
         if (ppe == null) {
@@ -57,9 +56,9 @@ public class PermissionEntryCache {
         return ppe;
     }
 
-    public void load(@Nonnull PermissionStore store,
-                     @Nonnull Map<String, Collection<PermissionEntry>> pathEntryMap,
-                     @Nonnull String principalName) {
+    void load(@Nonnull PermissionStore store,
+              @Nonnull Map<String, Collection<PermissionEntry>> pathEntryMap,
+              @Nonnull String principalName) {
         // todo: conditionally load entries if too many
         PrincipalPermissionEntries ppe = getEntries(store, principalName);
         for (Map.Entry<String, Collection<PermissionEntry>> e: ppe.getEntries().entrySet()) {
@@ -73,13 +72,13 @@ public class PermissionEntryCache {
         }
     }
 
-    public void load(@Nonnull PermissionStore store,
-                     @Nonnull Collection<PermissionEntry> ret,
-                     @Nonnull String principalName,
-                     @Nonnull String path) {
+    void load(@Nonnull PermissionStore store,
+              @Nonnull Collection<PermissionEntry> ret,
+              @Nonnull String principalName,
+              @Nonnull String path) {
         PrincipalPermissionEntries ppe = entries.get(principalName);
         if (ppe == null) {
-            ppe = new PrincipalPermissionEntries(principalName);
+            ppe = new PrincipalPermissionEntries();
             entries.put(principalName, ppe);
         }
         Collection<PermissionEntry> pes = ppe.getEntries().get(path);
@@ -96,16 +95,16 @@ public class PermissionEntryCache {
         }
     }
 
-    public long getNumEntries(@Nonnull PermissionStore store,
-                              @Nonnull String principalName,
-                              long max) {
+    long getNumEntries(@Nonnull PermissionStore store,
+                       @Nonnull String principalName,
+                       long max) {
         PrincipalPermissionEntries ppe = entries.get(principalName);
         return ppe == null
                 ? store.getNumEntries(principalName, max)
                 : ppe.getEntries().size();
     }
 
-    public void flush(@Nonnull Set<String> principalNames) {
+    void flush(@Nonnull Set<String> principalNames) {
         entries.keySet().removeAll(principalNames);
     }
 }
