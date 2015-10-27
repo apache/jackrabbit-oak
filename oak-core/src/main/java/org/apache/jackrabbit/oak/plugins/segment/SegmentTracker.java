@@ -24,6 +24,7 @@ import java.security.SecureRandom;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.CheckForNull;
@@ -106,6 +107,11 @@ public class SegmentTracker {
      */
     private final CacheLIRS<SegmentId, Segment> segmentCache;
 
+    /**
+     * Number of segments
+     */
+    private final AtomicInteger segmentCounter = new AtomicInteger();
+
     public SegmentTracker(SegmentStore store, int cacheSizeMB,
             SegmentVersion version) {
         for (int i = 0; i < tables.length; i++) {
@@ -115,7 +121,7 @@ public class SegmentTracker {
         this.store = store;
         this.compactionMap = new AtomicReference<CompactionMap>(
                 CompactionMap.EMPTY);
-        this.writer = new SegmentWriter(store, this, version);
+        this.writer = new SegmentWriter(store, this, version, "sys");
         StringCache c;
         if (DISABLE_STRING_CACHE) {
             c = null;
@@ -144,6 +150,14 @@ public class SegmentTracker {
 
     public SegmentTracker(SegmentStore store) {
         this(store, DEFAULT_MEMORY_CACHE_SIZE, SegmentVersion.V_11);
+    }
+
+    /**
+     * Increment and get the number of segments
+     * @return
+     */
+    int getNextSegmentNo() {
+        return segmentCounter.incrementAndGet();
     }
 
     @Nonnull

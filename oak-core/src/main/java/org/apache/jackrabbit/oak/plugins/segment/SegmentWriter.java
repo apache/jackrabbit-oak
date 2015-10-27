@@ -28,6 +28,8 @@ import static com.google.common.collect.Lists.newArrayListWithExpectedSize;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Sets.newHashSet;
+import static java.lang.System.currentTimeMillis;
+import static java.lang.System.identityHashCode;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.nCopies;
@@ -54,6 +56,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.jcr.PropertyType;
 
@@ -87,6 +90,8 @@ public class SegmentWriter {
             LoggerFactory.getLogger(SegmentWriter.class);
 
     static final int BLOCK_SIZE = 1 << 12; // 4kB
+
+    private static final AtomicInteger SEGMENT_COUNTER = new AtomicInteger();
 
     static byte[] createNewBuffer(SegmentVersion v) {
         byte[] buffer = new byte[Segment.MAX_SEGMENT_SIZE];
@@ -162,12 +167,54 @@ public class SegmentWriter {
      */
     private final SegmentVersion version;
 
+    /**
+     * Id of this writer.
+     */
+    private final String wid;
+
     public SegmentWriter(SegmentStore store, SegmentTracker tracker, SegmentVersion version) {
+        this(store, tracker, version, null);
+    }
+
+    /**
+     * @param store     store to write to
+     * @param tracker   segment tracker for that {@code store}
+     * @param version   segment version to write
+     * @param wid       id of this writer
+     */
+    public SegmentWriter(SegmentStore store, SegmentTracker tracker, SegmentVersion version, String wid) {
         this.store = store;
         this.tracker = tracker;
         this.version = version;
         this.buffer = createNewBuffer(version);
+        this.wid = wid == null
+            ? "w-" + identityHashCode(this)
+            : wid;
+        newSegment(wid);
+    }
+
+    /**
+     * Allocate a new segment and write the segment meta data.
+     * The segment meta data is a string of the format {@code "{wid=W,sno=S,gc=G,t=T}"}
+     * where:
+     * <ul>
+     * <li>{@code W} is the writer id {@code wid}, </li>
+     * <li>{@code S} is a unique, increasing sequence number corresponding to the allocation order
+     * of the segments in this store, </li>
+     * <li>{@code G} is the garbage collection generation (i.e. the number of compaction cycles
+     * that have been run),</li>
+     * <li>{@code T} is a time stamp according to {@link System#currentTimeMillis()}.</li>
+     * </ul>
+     * The segment meta data is guaranteed to be the first string record in a segment.
+     * @param wid  the writer id
+     */
+    private void newSegment(String wid) {
         this.segment = new Segment(tracker, buffer);
+        writeString(
+            "{wid=" + wid +
+            ",sno=" + tracker.getNextSegmentNo() +
+            ",gc=" + tracker.getCompactionMap().getGeneration() +
+            ",t=" + currentTimeMillis() + "}");
     }
 
     /**
@@ -244,7 +291,7 @@ public class SegmentWriter {
                 blobrefs.clear();
                 length = 0;
                 position = buffer.length;
-                segment = new Segment(tracker, buffer);
+                newSegment(wid);
             }
         }
 

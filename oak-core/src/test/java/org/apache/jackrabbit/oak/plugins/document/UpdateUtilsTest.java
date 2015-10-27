@@ -111,32 +111,84 @@ public class UpdateUtilsTest {
         assertTrue(UpdateUtils.checkConditions(d, op.getConditions()));
 
         op = newUpdateOp(id);
+        op.notEquals("t", r, "value");
+        assertFalse(UpdateUtils.checkConditions(d, op.getConditions()));
+
+        op = newUpdateOp(id);
         op.equals("t", r, "foo");
         assertFalse(UpdateUtils.checkConditions(d, op.getConditions()));
+
+        op = newUpdateOp(id);
+        op.notEquals("t", r, "foo");
+        assertTrue(UpdateUtils.checkConditions(d, op.getConditions()));
 
         op = newUpdateOp(id);
         op.equals("t", Revision.newRevision(1), "value");
         assertFalse(UpdateUtils.checkConditions(d, op.getConditions()));
 
         op = newUpdateOp(id);
-        op.equals("t", null, "value");
+        op.notEquals("t", Revision.newRevision(1), "value");
+        assertTrue(UpdateUtils.checkConditions(d, op.getConditions()));
+
+        op = newUpdateOp(id);
+        op.equals("t", "value");
         assertFalse(UpdateUtils.checkConditions(d, op.getConditions()));
+
+        op = newUpdateOp(id);
+        op.notEquals("t", "value");
+        assertTrue(UpdateUtils.checkConditions(d, op.getConditions()));
 
         op = newUpdateOp(id);
         op.equals("p", r, 42L);
         assertFalse(UpdateUtils.checkConditions(d, op.getConditions()));
 
         op = newUpdateOp(id);
-        op.equals("p", null, 42L);
+        op.notEquals("p", r, 42L);
         assertTrue(UpdateUtils.checkConditions(d, op.getConditions()));
 
         op = newUpdateOp(id);
-        op.equals("p", null, 7L);
+        op.equals("p", 42L);
+        assertTrue(UpdateUtils.checkConditions(d, op.getConditions()));
+
+        op = newUpdateOp(id);
+        op.notEquals("p", 42L);
         assertFalse(UpdateUtils.checkConditions(d, op.getConditions()));
 
+        op = newUpdateOp(id);
+        op.equals("p", 7L);
+        assertFalse(UpdateUtils.checkConditions(d, op.getConditions()));
 
+        op = newUpdateOp(id);
+        op.notEquals("p", 7L);
+        assertTrue(UpdateUtils.checkConditions(d, op.getConditions()));
+
+        // check on non-existing property
+        op = newUpdateOp(id);
+        op.notEquals("other", 7L);
+        assertTrue(UpdateUtils.checkConditions(d, op.getConditions()));
+
+        op = newUpdateOp(id);
+        op.notEquals("other", r, 7L);
+        assertTrue(UpdateUtils.checkConditions(d, op.getConditions()));
+
+        op = newUpdateOp(id);
+        op.notEquals("other", r, null);
+        assertFalse(UpdateUtils.checkConditions(d, op.getConditions()));
+
+        op = newUpdateOp(id);
+        op.equals("other", r, null);
+        assertTrue(UpdateUtils.checkConditions(d, op.getConditions()));
+
+        // check null
+        op = newUpdateOp(id);
+        op.notEquals("p", null);
+        assertTrue(UpdateUtils.checkConditions(d, op.getConditions()));
+
+        op = newUpdateOp(id);
+        op.notEquals("other", r, null);
+        assertFalse(UpdateUtils.checkConditions(d, op.getConditions()));
     }
-    
+
     private static UpdateOp newUpdateOp(String id) {
         return new UpdateOp(id, false);
     }
