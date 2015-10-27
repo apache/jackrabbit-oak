@@ -14,6 +14,7 @@ The following runmodes are currently available:
     * server      : Run the Oak Server.
     * console     : Start an interactive console.
     * explore     : Starts a GUI browser based on java swing.
+    * graph       : Export the segment graph of a segment store to a file.
     * check       : Check the FileStore for inconsistencies
     * primary     : Run a TarMK Cold Standby primary instance
     * standby     : Run a TarMK Cold Standby standby instance
@@ -94,6 +95,29 @@ The 'explore' mode starts a desktop browser GUI based on java swing which allows
 browsing of an existing oak repository.
 
     $ java -jar oak-run-*.jar explore /path/to/oak/repository [skip-size-check]
+
+Graph
+-----
+
+The 'graph' mode export the segment graph of a file store to a text file in the
+[Guess GDF format](https://gephi.github.io/users/supported-graph-formats/gdf-format/),
+which is easily imported into [Gephi](https://gephi.github.io).
+
+As the GDF format only supports integer values but the segment time stamps are encoded as long
+values an optional 'epoch' argument can be specified. If no epoch is given on the command line
+the start of the day of the last modified date of the 'journal.log' is used. The epoch specifies
+a negative offset translating all timestamps into a valid int range.
+
+    $ java -jar oak-run-*.jar graph [File] <options>
+
+    [File] -- Path to segment store (required)
+
+    Option           Description
+    ------           -----------
+    --epoch <Long>   Epoch of the segment time stamps
+                       (derived from journal.log if not
+                       given)
+    --output <File>  Output file (default: segments.gdf)
 
 Check
 -----
