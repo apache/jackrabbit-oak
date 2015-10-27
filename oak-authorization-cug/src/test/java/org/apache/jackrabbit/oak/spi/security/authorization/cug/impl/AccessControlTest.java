@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
@@ -58,15 +59,23 @@ public class AccessControlTest extends AbstractCugTest {
 
         setupCugsAndAcls();
 
-        // cugs at
-        // - /content/a     : allow testGroup, deny everyone
-        // - /content/aa/bb : allow testGroup, deny everyone
-        // - /content/a/b/c : allow everyone,  deny testGroup (isolated)
-        // - /content2      : allow everyone,  deny testGroup (isolated)
-        // regular acl at
-        // - /content
+        /**
+         * regular acl at
+         *   - /content
+         *
+         * permission store (internal content)
+         *   - /jcr:system/rep:permissionStore
+         *
+         * cugs at
+         *   - /content/a     : allow testGroup, deny everyone
+         *   - /content/aa/bb : allow testGroup, deny everyone
+         *   - /content/a/b/c : allow everyone,  deny testGroup (isolated)
+         *   - /content2      : allow everyone,  deny testGroup (isolated)
+         *
+         */
         acPaths = ImmutableList.of(
                 "/content/rep:policy",
+                PermissionConstants.PERMISSIONS_STORE_PATH,
                 "/content/a/rep:cugPolicy",
                 "/content/aa/bb/rep:cugPolicy",
                 "/content/a/b/c/rep:cugPolicy",

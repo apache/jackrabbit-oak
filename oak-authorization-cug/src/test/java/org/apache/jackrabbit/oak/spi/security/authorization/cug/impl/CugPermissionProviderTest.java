@@ -23,11 +23,14 @@ import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
+import javax.jcr.GuestCredentials;
 import javax.jcr.Session;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
@@ -335,6 +338,31 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
         }
     }
 
+    /**
+     * @see org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider#isGranted(org.apache.jackrabbit.oak.plugins.tree.TreeLocation, long)
+     */
+    @Test
+    public void testIsGrantedNonExistingLocation() throws Exception {
+        ContentSession anonymous = login(new GuestCredentials());
+        try {
+            // additionally create a root that doesn't have access to the root node
+            Root anonymousRoot = anonymous.getLatestRoot();
+
+            for (Root r : new Root[] {anonymousRoot, root}) {
+                TreeLocation location = TreeLocation.create(r, "/path/to/non/existing/tree");
+                assertFalse(cugPermProvider.isGranted(location, Permissions.READ));
+                assertFalse(cugPermProvider.isGranted(location, Permissions.READ_NODE));
+                assertFalse(cugPermProvider.isGranted(location, Permissions.READ_PROPERTY));
+
+                assertFalse(cugPermProvider.isGranted(location, Permissions.ALL));
+                assertFalse(cugPermProvider.isGranted(location, Permissions.ADD_NODE));
+                assertFalse(cugPermProvider.isGranted(location, Permissions.READ_ACCESS_CONTROL));
+            }
+        } finally {
+            anonymous.close();
+        }
+    }
+
     //------------------------------------------------------< getPrivileges >---
     /**
      * @see PermissionProvider#getPrivileges(org.apache.jackrabbit.oak.api.Tree)
@@ -574,5 +602,18 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
             assertFalse(cugPermProvider.isGranted(p, Session.ACTION_ADD_NODE));
             assertFalse(cugPermProvider.isGranted(p, Session.ACTION_READ + ',' + Session.ACTION_ADD_NODE));
         }
+    }
+
+    /**
+     * @see PermissionProvider#isGranted(String, String)
+     */
+    @Test
+    public void testIsGrantedJcrActionsNonExistingPath() {
+        String p = "/path/to/non/existing/tree";
+        assertFalse(cugPermProvider.isGranted(p, Session.ACTION_READ));
+        assertFalse(cugPermProvider.isGranted(p, Permissions.getString(Permissions.READ_NODE)));
+        assertFalse(cugPermProvider.isGranted(p, Permissions.getString(Permissions.READ_PROPERTY)));
+        assertFalse(cugPermProvider.isGranted(p, Session.ACTION_ADD_NODE));
+        assertFalse(cugPermProvider.isGranted(p, Session.ACTION_READ + ',' + Session.ACTION_ADD_NODE));
     }
 }

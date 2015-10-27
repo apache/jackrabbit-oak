@@ -141,30 +141,7 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
         TreePermission tp;
         boolean parentIsCugPermission = (parentPermission instanceof CugTreePermission);
         if (TreeType.VERSION == type) {
-            if (ReadOnlyVersionManager.isVersionStoreTree(immutableTree)) {
-                tp = (parentIsCugPermission) ?
-                        createCugPermission(immutableTree, (CugTreePermission) parentPermission) :
-                        new EmptyCugTreePermission(immutableTree, this);
-            } else {
-                // TODO
-                Tree versionableTree = getVersionManager().getVersionable(immutableTree, workspaceName);
-                if (versionableTree == null) {
-                    tp = TreePermission.NO_RECOURSE;
-                } else if (!parentIsCugPermission &&
-                        !supportedPaths.includes(versionableTree.getPath()) &&
-                        !supportedPaths.mayContainCug(versionableTree.getPath())){
-                    tp = TreePermission.NO_RECOURSE;
-                } else {
-                    Tree cugRoot = getCugRoot(versionableTree, typeProvider.getType(versionableTree));
-                    if (cugRoot == null) {
-                        // there might be a cug in the live correspondent of any of the frozen subtrees
-                        tp = new EmptyCugTreePermission(immutableTree, this);
-                    } else {
-                        boolean canRead = createCugPermission(cugRoot, null).canRead();
-                        tp = new CugTreePermission(immutableTree, canRead, this);
-                    }
-                }
-            }
+            tp = createVersionStorePermission(immutableTree, parentPermission, parentIsCugPermission);
         } else {
             if (parentIsCugPermission) {
                 tp = createCugPermission(immutableTree, (CugTreePermission) parentPermission);
@@ -377,7 +354,7 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
             boolean allow = princNamesState != null && Iterables.any(princNamesState.getValue(Type.STRINGS), new Predicate<String>() {
                 @Override
                 public boolean apply(@Nullable String principalName) {
-                    return (principalName != null) && principalNames.contains(principalName);
+                    return principalNames.contains(principalName);
                 }
             });
             tp = new CugTreePermission(tree, allow, this);
@@ -388,6 +365,44 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
             tp = new EmptyCugTreePermission(tree, this);
         }
         return tp;
+    }
+
+    @Nonnull
+    private TreePermission createVersionStorePermission(@Nonnull Tree tree, @Nonnull TreePermission parent, boolean parentIsCugPermission) {
+        if (ReadOnlyVersionManager.isVersionStoreTree(tree)) {
+            return (parentIsCugPermission) ?
+                    createCugPermission(tree, (CugTreePermission) parent) :
+                    new EmptyCugTreePermission(tree, this);
+        } else {
+            Tree versionableTree = getVersionManager().getVersionable(tree, workspaceName);
+            if (versionableTree == null) {
+                return TreePermission.NO_RECOURSE;
+            }
+
+            TreePermission tp;
+            String path = versionableTree.getPath();
+            if (parentIsCugPermission) {
+                boolean canRead = (hasCug(versionableTree)) ? createCugPermission(versionableTree, null).canRead() : parent.canRead();
+                tp = new CugTreePermission(tree, canRead, this);
+            } else if (supportedPaths.includes(path)) {
+                // look for cug in the hierarchy
+                Tree cugRoot = getCugRoot(versionableTree, typeProvider.getType(versionableTree));
+                if (cugRoot == null) {
+                    // no cug present so far -> continue looking for cugs for frozen children
+                    tp = new EmptyCugTreePermission(tree, this);
+                } else {
+                    // retrieve read-access from the cug and apply it to the
+                    // tree permissions of the target tree located in the version storage
+                    boolean canRead = createCugPermission(cugRoot, null).canRead();
+                    tp = new CugTreePermission(tree, canRead, this);
+                }
+            } else  if (supportedPaths.mayContainCug(path)) {
+                tp = new EmptyCugTreePermission(tree, this);
+            } else {
+                tp = TreePermission.NO_RECOURSE;
+            }
+            return tp;
+        }
     }
 
     @Nonnull
