@@ -893,8 +893,8 @@ public class FileStore implements SegmentStore {
     /**
      * @return  a new {@link SegmentWriter} instance for writing to this store.
      */
-    public SegmentWriter createSegmentWriter() {
-        return new SegmentWriter(this, tracker, getVersion());
+    public SegmentWriter createSegmentWriter(String wid) {
+        return new SegmentWriter(this, tracker, getVersion(), wid);
     }
 
     /**
