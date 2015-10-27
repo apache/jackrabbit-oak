@@ -134,7 +134,7 @@ public class UpdateUtils {
                         return false;
                     }
                 }
-            } else if (c.type == Condition.Type.EQUALS) {
+            } else if (c.type == Condition.Type.EQUALS || c.type == Condition.Type.NOTEQUALS) {
                 if (r != null) {
                     if (value instanceof Map) {
                         value = ((Map) value).get(r);
@@ -142,7 +142,10 @@ public class UpdateUtils {
                         value = null;
                     }
                 }
-                if (!Objects.equal(value, c.value)) {
+                boolean equal = Objects.equal(value, c.value);
+                if (c.type == Condition.Type.EQUALS && !equal) {
+                    return false;
+                } else if (c.type == Condition.Type.NOTEQUALS && equal) {
                     return false;
                 }
             } else {

@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import com.google.common.collect.Lists;
-
 import org.junit.Test;
 
 import static com.google.common.collect.Lists.newArrayList;
@@ -44,15 +42,15 @@ public class UpdateOpTest {
         UpdateOp.Key k3 = new UpdateOp.Key("foo", null);
         assertTrue(k1.equals(k3));
         assertTrue(k3.equals(k1));
-        
+
         UpdateOp.Key k4 = new UpdateOp.Key("foo", r1);
         assertFalse(k4.equals(k3));
         assertFalse(k3.equals(k4));
-        
+
         UpdateOp.Key k5 = new UpdateOp.Key("foo", r2);
         assertFalse(k5.equals(k4));
         assertFalse(k4.equals(k5));
-        
+
         UpdateOp.Key k6 = new UpdateOp.Key("foo", r1);
         assertTrue(k6.equals(k4));
         assertTrue(k4.equals(k6));
@@ -141,6 +139,37 @@ public class UpdateOpTest {
         UpdateOp.Condition c = op.getConditions().get(key);
         assertEquals(UpdateOp.Condition.Type.EQUALS, c.type);
         assertEquals("v", c.value);
+    }
+
+    @Test
+    public void notEqualsTest() {
+        Revision r = Revision.newRevision(1);
+        UpdateOp op = new UpdateOp("id", true);
+        try {
+            op.notEquals("p", r, "v");
+            fail("expected " + IllegalStateException.class.getName());
+        } catch (IllegalStateException e) {
+            // expected
+        }
+        op = new UpdateOp("id", false);
+        op.notEquals("p", r, "v");
+        assertEquals(1, op.getConditions().size());
+        UpdateOp.Key key = op.getConditions().keySet().iterator().next();
+        assertEquals(r, key.getRevision());
+        assertEquals("p", key.getName());
+        UpdateOp.Condition c = op.getConditions().get(key);
+        assertEquals(UpdateOp.Condition.Type.NOTEQUALS, c.type);
+        assertEquals("v", c.value);
+
+        op = new UpdateOp("id", false);
+        op.notEquals("p", r, null);
+        assertEquals(1, op.getConditions().size());
+        key = op.getConditions().keySet().iterator().next();
+        assertEquals(r, key.getRevision());
+        assertEquals("p", key.getName());
+        c = op.getConditions().get(key);
+        assertEquals(UpdateOp.Condition.Type.NOTEQUALS, c.type);
+        assertEquals(null, c.value);
     }
 
     @Test
