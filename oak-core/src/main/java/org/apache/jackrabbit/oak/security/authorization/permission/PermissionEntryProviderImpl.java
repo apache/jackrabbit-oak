@@ -113,11 +113,14 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
         }
     }
 
+    //--------------------------------------------< PermissionEntryProvider >---
+    @Override
     public void flush() {
         cache.flush(principalNames);
         init();
     }
 
+    @Override
     @Nonnull
     public Iterator<PermissionEntry> getEntryIterator(@Nonnull EntryPredicate predicate) {
         if (existingNames.isEmpty()) {
@@ -127,6 +130,7 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
         }
     }
 
+    @Override
     @Nonnull
     public Collection<PermissionEntry> getEntries(@Nonnull Tree accessControlledTree) {
         if (existingNames.isEmpty()) {
@@ -141,8 +145,9 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
         }
     }
 
+    //------------------------------------------------------------< private >---
     @Nonnull
-    public Collection<PermissionEntry> getEntries(@Nonnull String path) {
+    private Collection<PermissionEntry> getEntries(@Nonnull String path) {
         if (existingNames.isEmpty()) {
             return Collections.emptyList();
         } else if (pathEntryMap != null) {

@@ -56,6 +56,8 @@ class VersionTreePermission implements TreePermission, VersionConstants {
         return new VersionTreePermission(versionTree, delegatee);
     }
 
+    //-----------------------------------------------------< TreePermission >---
+
     @Nonnull
     @Override
     public TreePermission getChildPermission(@Nonnull String childName, @Nonnull NodeState childState) {

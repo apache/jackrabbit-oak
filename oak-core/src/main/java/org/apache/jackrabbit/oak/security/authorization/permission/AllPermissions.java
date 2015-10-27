@@ -32,14 +32,14 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
  * Implementation of the {@code CompiledPermissions} interface that grants full
  * permission everywhere.
  */
-public final class AllPermissions implements CompiledPermissions {
+final class AllPermissions implements CompiledPermissions {
 
     private static final CompiledPermissions INSTANCE = new AllPermissions();
 
     private AllPermissions() {
     }
 
-    public static CompiledPermissions getInstance() {
+    static CompiledPermissions getInstance() {
         return INSTANCE;
     }
 

@@ -441,7 +441,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         private final TreePermissionImpl parent;
 
         private final TreeType type;
-        private final boolean readableTree;
+        private final boolean isReadableTree;
 
         private Collection<PermissionEntry> userEntries;
         private Collection<PermissionEntry> groupEntries;
@@ -457,7 +457,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
             } else {
                 parent = null;
             }
-            readableTree = readPolicy.isReadableTree(tree, parent);
+            isReadableTree = readPolicy.isReadableTree(tree, parent);
         }
 
         //-------------------------------------------------< TreePermission >---
@@ -471,7 +471,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         @Override
         public boolean canRead() {
             boolean isAcTree = isAcTree();
-            if (!isAcTree && readableTree) {
+            if (!isAcTree && isReadableTree) {
                 return true;
             }
             if (readStatus == null) {
@@ -498,7 +498,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         @Override
         public boolean canRead(@Nonnull PropertyState property) {
             boolean isAcTree = isAcTree();
-            if (!isAcTree && readableTree) {
+            if (!isAcTree && isReadableTree) {
                 return true;
             }
             if (readStatus != null && readStatus.allowsProperties()) {
@@ -626,6 +626,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
             return false;
         }
 
+        @Override
         public boolean isReadableTree(@Nonnull Tree tree, boolean exactMatch) {
             return false;
         }
@@ -654,9 +655,10 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
             isDefaultPaths = (readPaths.size() == DEFAULT_READ_PATHS.size()) && readPaths.containsAll(DEFAULT_READ_PATHS);
         }
 
+        @Override
         public boolean isReadableTree(@Nonnull Tree tree, @Nullable TreePermissionImpl parent) {
             if (parent != null) {
-                if (parent.readableTree) {
+                if (parent.isReadableTree) {
                     return true;
                 } else if (!isDefaultPaths || parent.tree.getName().equals(JcrConstants.JCR_SYSTEM)) {
                     return isReadableTree(tree, true);
@@ -668,6 +670,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
             }
         }
 
+        @Override
         public boolean isReadableTree(@Nonnull Tree tree, boolean exactMatch) {
             String targetPath = tree.getPath();
             for (String path : readPaths) {
@@ -685,6 +688,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
             return false;
         }
 
+        @Override
         public boolean isReadablePath(@Nullable String treePath, boolean exactMatch) {
             if (treePath != null) {
                 for (String path : readPaths) {
