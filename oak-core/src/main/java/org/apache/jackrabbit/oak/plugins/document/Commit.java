@@ -318,17 +318,17 @@ public class Commit {
         boolean commitRootHasChanges = operations.containsKey(commitRootPath);
         // create a "root of the commit" if there is none
         UpdateOp commitRoot = getUpdateOperationForNode(commitRootPath);
-        for (String p : operations.keySet()) {
-            UpdateOp op = operations.get(p);
+
+        if (!commitRoot.isNew() && commitRootHasChanges) {
+            // commit root already exists and this is an update
+            changedNodes.add(commitRoot);
+        }
+
+        for (UpdateOp op : operations.values()) {
             if (op.isNew()) {
                 NodeDocument.setDeleted(op, revision, false);
             }
-            if (op == commitRoot) {
-                if (!op.isNew() && commitRootHasChanges) {
-                    // commit root already exists and this is an update
-                    changedNodes.add(op);
-                }
-            } else {
+            if (op != commitRoot) {
                 NodeDocument.setCommitRoot(op, revision, commitRootDepth);
                 if (op.isNew()) {
                     newNodes.add(op);
@@ -337,7 +337,7 @@ public class Commit {
                 }
             }
         }
-        if (changedNodes.size() == 0 && commitRoot.isNew()) {
+        if (changedNodes.isEmpty() && commitRoot.isNew()) {
             // no updates and root of commit is also new. that is,
             // it is the root of a subtree added in a commit.
             // so we try to add the root like all other nodes
@@ -346,20 +346,17 @@ public class Commit {
         }
         boolean success = false;
         try {
-            if (newNodes.size() > 0) {
+            if (!newNodes.isEmpty()) {
                 // set commit root on new nodes
                 if (!store.create(NODES, newNodes)) {
                     // some of the documents already exist:
                     // try to apply all changes one by one
-                    for (UpdateOp op : newNodes) {
-                        if (op == commitRoot) {
-                            // don't write the commit root just yet
-                            // (because there might be a conflict)
-                            NodeDocument.unsetRevision(commitRoot, revision);
-                        }
-                        changedNodes.add(op);
-                    }
+                    changedNodes.addAll(newNodes);
                     newNodes.clear();
+
+                    // don't write the commit root just yet
+                    // (because there might be a conflict)
+                    NodeDocument.unsetRevision(commitRoot, revision);
                 }
             }
             for (UpdateOp op : changedNodes) {

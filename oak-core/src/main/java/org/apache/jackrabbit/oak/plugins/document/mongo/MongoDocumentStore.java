@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -80,7 +81,9 @@ import com.google.common.base.Objects;
 import com.google.common.cache.Cache;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Striped;
+import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
+import com.mongodb.BulkWriteOperation;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
@@ -838,6 +841,58 @@ public class MongoDocumentStore implements DocumentStore {
         T doc = findAndModify(collection, update, true, false);
         log("createOrUpdate returns ", doc);
         return doc;
+    }
+
+    @CheckForNull
+    public <T extends Document> List<T> createOrUpdate(Collection<T> collection, List<UpdateOp> updateOps)
+            throws DocumentStoreException {
+        log("createOrUpdate", updateOps);
+        DBCollection dbCollection = getDBCollection(collection);
+        BulkWriteOperation bulk = dbCollection.initializeOrderedBulkOperation();
+
+        final long start = PERFLOG.start();
+        List<TreeLock> locks = new ArrayList<TreeLock>(updateOps.size());
+        Map<String, T> docs = new HashMap<String, T>(updateOps.size());
+        try {
+            for (UpdateOp updateOp : updateOps) {
+                locks.add(acquire(updateOp.getId(), collection));
+            }
+
+            if (collection == Collection.NODES) {
+                for (UpdateOp updateOp : updateOps) {
+                    @SuppressWarnings("unchecked")
+                    T doc = (T) nodesCache.getIfPresent(new StringValue(updateOp.getId()));
+                    if (doc != null) {
+                        docs.put(updateOp.getId(), doc);
+                    }
+                }
+            }
+
+            List<DBObject> conditions = new ArrayList<DBObject>();
+            for (UpdateOp updateOp : updateOps) {
+                if (docs.containsKey(updateOp.getId())) {
+                    continue;
+                }
+                QueryBuilder query = createQueryForUpdate(updateOp.getId(), updateOp.getConditions());
+                conditions.add(query.get());
+            }
+            DBObject ref = new BasicDBObject("$or", conditions);
+            DBCursor cursor = dbCollection.find(ref);
+            while (cursor.hasNext()) {
+                T doc = convertFromDBObject(collection, cursor.next());
+                docs.put(doc.getId(), doc);
+            }
+
+            
+        } finally {
+            for (TreeLock l : locks) {
+                l.unlock();
+            }
+            PERFLOG.end(start, 1, "createOrUpdate [{}]");
+        }
+
+        log("createOrUpdate returns ", docs);
+        return docs;
     }
 
     @Override
