@@ -54,12 +54,16 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 /**
  * A set of simple cluster tests.
  */
 public class ClusterTest {
+
+    @Rule
+    public MongoConnectionFactory connectionFactory = new MongoConnectionFactory();
 
     private static final boolean MONGO_DB = false;
     // private static final boolean MONGO_DB = true;
@@ -404,7 +408,7 @@ public class ClusterTest {
         }
         mks.clear();
         if (MONGO_DB) {
-            DB db = MongoUtils.getConnection().getDB();
+            DB db = connectionFactory.getConnection().getDB();
             MongoUtils.dropCollections(db);
         }
     }
@@ -420,7 +424,7 @@ public class ClusterTest {
 
     private DocumentMK createMK(int clusterId, int asyncDelay) {
         if (MONGO_DB) {
-            DB db = MongoUtils.getConnection().getDB();
+            DB db = connectionFactory.getConnection().getDB();
             return register(new DocumentMK.Builder().setMongoDB(db)
                     .setClusterId(clusterId).setAsyncDelay(asyncDelay).open());
         } else {

@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.List;
+
 import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
@@ -27,6 +29,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Lists;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 
@@ -156,23 +159,12 @@ public abstract class DocumentStoreFixture {
         public DataSource getRDBDataSource() {
             return dataSource;
         }
-
-        @Override
-        public void dispose() {
-            if (this.store1 != null) {
-                this.store1.dispose();
-                this.store1 = null;
-            }
-            if (this.store2 != null) {
-                this.store2.dispose();
-                this.store2 = null;
-            }
-        }
     }
 
     public static class MongoFixture extends DocumentStoreFixture {
         public static final String DEFAULT_URI = "mongodb://localhost:27017/oak-test";
         private String uri;
+        private List<MongoConnection> connections = Lists.newArrayList();
 
         public MongoFixture() {
             this(DEFAULT_URI);
@@ -191,6 +183,7 @@ public abstract class DocumentStoreFixture {
         public DocumentStore createDocumentStore(int clusterId) {
             try {
                 MongoConnection connection = new MongoConnection(uri);
+                connections.add(connection);
                 DB db = connection.getDB();
                 MongoUtils.dropCollections(db);
                 return new MongoDocumentStore(db, new DocumentMK.Builder().setClusterId(clusterId));
@@ -203,7 +196,11 @@ public abstract class DocumentStoreFixture {
         public boolean isAvailable() {
             try {
                 MongoConnection connection = new MongoConnection(uri);
-                connection.getDB().command(new BasicDBObject("ping", 1));
+                try {
+                    connection.getDB().command(new BasicDBObject("ping", 1));
+                } finally {
+                    connection.close();
+                }
                 return true;
             } catch (Exception e) {
                 return false;
@@ -214,9 +211,17 @@ public abstract class DocumentStoreFixture {
         public void dispose() {
             try {
                 MongoConnection connection = new MongoConnection(uri);
-                connection.getDB().dropDatabase();
+                try {
+                    connection.getDB().dropDatabase();
+                } finally {
+                    connection.close();
+                }
             } catch (Exception ignore) {
             }
+            for (MongoConnection c : connections) {
+                c.close();
+            }
+            connections.clear();
         }
     }
 }

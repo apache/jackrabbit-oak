@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -257,8 +256,8 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
         }
     }
 
-    private static DocumentNodeStore createNS(int clusterId) throws Exception {
-        MongoConnection mc = MongoUtils.getConnection();
+    private DocumentNodeStore createNS(int clusterId) throws Exception {
+        MongoConnection mc = connectionFactory.getConnection();
         return new DocumentMK.Builder()
                           .setMongoDB(mc.getDB())
                           .setClusterId(clusterId)

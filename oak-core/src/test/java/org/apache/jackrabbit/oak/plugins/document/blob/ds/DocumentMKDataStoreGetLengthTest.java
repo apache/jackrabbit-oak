@@ -43,7 +43,7 @@ public class DocumentMKDataStoreGetLengthTest extends DocumentMKGetLengthTest {
     @Override
     @Before
     public void setUpConnection() throws Exception {
-        mongoConnection = MongoUtils.getConnection();
+        mongoConnection = connectionFactory.getConnection();
         MongoUtils.dropCollections(mongoConnection.getDB());
         mk = new DocumentMK.Builder().setMongoDB(mongoConnection.getDB())
                 .setBlobStore(DataStoreUtils.getBlobStore()).open();
@@ -54,10 +54,6 @@ public class DocumentMKDataStoreGetLengthTest extends DocumentMKGetLengthTest {
     public void tearDownConnection() throws Exception {
         FileUtils.deleteDirectory(new File(DataStoreUtils.PATH));
         mk.dispose();
-        // the db might already be closed
-        mongoConnection.close();
-        mongoConnection = MongoUtils.getConnection();
-        MongoUtils.dropCollections(mongoConnection.getDB());
-        mongoConnection.close();
+        MongoUtils.dropCollections(connectionFactory.getConnection().getDB());
     }
 }
