@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,6 +51,9 @@ public class MongoDocumentStoreTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentStoreTest.class);
 
+    @Rule
+    public MongoConnectionFactory connectionFactory = new MongoConnectionFactory();
+
 //    private static final boolean MONGO_DB = true;
 //    private static final int NODE_COUNT = 2000;
 
@@ -58,14 +62,14 @@ public class MongoDocumentStoreTest {
 
     DocumentStore openDocumentStore() {
         if (MONGO_DB) {
-            return new MongoDocumentStore(MongoUtils.getConnection().getDB(), new DocumentMK.Builder());
+            return new MongoDocumentStore(connectionFactory.getConnection().getDB(), new DocumentMK.Builder());
         }
         return new MemoryDocumentStore();
     }
 
     void dropCollections() {
         if (MONGO_DB) {
-            MongoUtils.dropCollections(MongoUtils.getConnection().getDB());
+            MongoUtils.dropCollections(connectionFactory.getConnection().getDB());
         }
     }
 
@@ -245,7 +249,7 @@ public class MongoDocumentStoreTest {
     private void doInsert(int n, boolean batch) throws Exception {
         dropCollections();
 
-        DBCollection collection = MongoUtils.getConnection().getDB().getCollection("batchInsertTest");
+        DBCollection collection = connectionFactory.getConnection().getDB().getCollection("batchInsertTest");
         DBObject index = new BasicDBObject();
         index.put("_path", 1L);
         DBObject options = new BasicDBObject();

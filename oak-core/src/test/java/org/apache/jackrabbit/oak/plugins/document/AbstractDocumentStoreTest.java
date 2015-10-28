@@ -68,6 +68,7 @@ public abstract class AbstractDocumentStoreTest {
                 LOG.info(removeMe.size() + " documents removed in " + elapsed + "ms (" + rate + "/ms)");
             }
         }
+        ds.dispose();
         dsf.dispose();
     }
 
