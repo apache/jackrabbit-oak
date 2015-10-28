@@ -27,7 +27,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
-import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.junit.After;
 import org.junit.Test;
@@ -45,7 +44,7 @@ public class DocumentMKConcurrentAddTest extends AbstractMongoConnectionTest {
     private List<DocumentMK> mks = new ArrayList<DocumentMK>();
 
     private DocumentMK createMicroKernel() throws Exception {
-        MongoConnection connection = MongoUtils.getConnection();
+        MongoConnection connection = connectionFactory.getConnection();
         DB mongoDB = connection.getDB();
         return new DocumentMK.Builder().memoryCacheSize(CACHE_SIZE).setMongoDB(mongoDB).open();
     }
