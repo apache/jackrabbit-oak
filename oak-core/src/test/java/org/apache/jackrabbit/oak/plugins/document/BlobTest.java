@@ -43,6 +43,9 @@ public class BlobTest {
 
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
+
+    @Rule
+    public MongoConnectionFactory connectionFactory = new MongoConnectionFactory();
     
     private static final Logger LOG = LoggerFactory.getLogger(RandomizedClusterTest.class);
 
@@ -55,12 +58,12 @@ public class BlobTest {
     private static final int DOCUMENT_COUNT = 10;
 
     DB openMongoConnection() {
-        return MONGO_DB ? MongoUtils.getConnection().getDB() : null;
+        return MONGO_DB ? connectionFactory.getConnection().getDB() : null;
     }
 
     void dropCollections() {
         if (MONGO_DB) {
-            MongoUtils.dropCollections(MongoUtils.getConnection().getDB());
+            MongoUtils.dropCollections(connectionFactory.getConnection().getDB());
         }
     }
 
