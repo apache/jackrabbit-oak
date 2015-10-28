@@ -24,6 +24,7 @@ import java.io.IOException;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
@@ -32,14 +33,18 @@ import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Assume;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 
 public class DocumentToExternalMigrationTest extends AbstractMigratorTest {
 
-    private DocumentNodeStore nodeStore;;
+    @Rule
+    public MongoConnectionFactory connectionFactory = new MongoConnectionFactory();
+
+    private DocumentNodeStore nodeStore;
 
     @Override
     protected NodeStore createNodeStore(BlobStore blobStore, File repository) throws IOException {
-        MongoConnection connection = MongoUtils.getConnection();
+        MongoConnection connection = connectionFactory.getConnection();
         Assume.assumeNotNull(connection);
         DocumentMK.Builder builder = new DocumentMK.Builder();
         if (blobStore != null) {
@@ -59,12 +64,12 @@ public class DocumentToExternalMigrationTest extends AbstractMigratorTest {
     
     @BeforeClass
     public static void checkMongoDbAvailable() {
-        Assume.assumeNotNull(MongoUtils.getConnection());
+        Assume.assumeTrue(MongoUtils.isAvailable());
     }
 
     @Override
     protected BlobStore createOldBlobStore(File repository) {
-        MongoConnection connection = MongoUtils.getConnection();
+        MongoConnection connection = connectionFactory.getConnection();
         return new MongoBlobStore(connection.getDB());
     }
 

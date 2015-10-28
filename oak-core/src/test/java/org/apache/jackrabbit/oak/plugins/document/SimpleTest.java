@@ -43,7 +43,10 @@ public class SimpleTest {
 
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
-    
+
+    @Rule
+    public MongoConnectionFactory connectionFactory = new MongoConnectionFactory();
+
     private static final boolean MONGO_DB = false;
     // private static final boolean MONGO_DB = true;
 
@@ -434,7 +437,7 @@ public class SimpleTest {
         DocumentMK.Builder builder = builderProvider.newBuilder();
 
         if (MONGO_DB) {
-            DB db = MongoUtils.getConnection().getDB();
+            DB db = connectionFactory.getConnection().getDB();
             MongoUtils.dropCollections(db);
             builder.setMongoDB(db);
         }

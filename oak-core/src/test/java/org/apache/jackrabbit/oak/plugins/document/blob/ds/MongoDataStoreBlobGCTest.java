@@ -51,7 +51,7 @@ public class MongoDataStoreBlobGCTest extends MongoBlobGCTest {
     @Override
     public void setUpConnection() throws Exception {
         startDate = new Date();
-        mongoConnection = MongoUtils.getConnection();
+        mongoConnection = connectionFactory.getConnection();
         MongoUtils.dropCollections(mongoConnection.getDB());
         blobStore = DataStoreUtils.getBlobStore();
         mk = new DocumentMK.Builder().clock(getTestClock()).setMongoDB(mongoConnection.getDB())
@@ -64,10 +64,6 @@ public class MongoDataStoreBlobGCTest extends MongoBlobGCTest {
         DataStoreUtils.cleanup(blobStore.getDataStore(), startDate);
         FileUtils.deleteDirectory(new File(DataStoreUtils.getHomeDir()));
         mk.dispose();
-        // the db might already be closed
-        mongoConnection.close();
-        mongoConnection = MongoUtils.getConnection();
-        MongoUtils.dropCollections(mongoConnection.getDB());
-        mongoConnection.close();
+        MongoUtils.dropCollections(connectionFactory.getConnection().getDB());
     }
 }
