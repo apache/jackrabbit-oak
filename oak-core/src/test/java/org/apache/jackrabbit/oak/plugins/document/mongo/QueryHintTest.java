@@ -27,23 +27,21 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
 import com.google.common.collect.Lists;
+
+import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
-import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
-import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class QueryHintTest {
+public class QueryHintTest extends AbstractMongoConnectionTest {
     final Logger TRACE_LOGGER = Logger.getLogger( "com.mongodb.TRACE" );
     final TestHandler testHandler = new TestHandler();
 
@@ -51,19 +49,13 @@ public class QueryHintTest {
 
     private Clock clock;
 
-    @BeforeClass
-    public static void checkMongoDbAvailable() {
-        Assume.assumeNotNull(MongoUtils.getConnection());
-    }
-
     @Before
     public void prepareStores() throws Exception {
         clock = new Clock.Virtual();
-        MongoConnection mc = MongoUtils.getConnection();
         //TODO Temp mode to change the default setting so as to test it
         //If we retain this feature then need to have better config support for it
         System.setProperty("oak.mongo.maxDeltaForModTimeIdxSecs", "120");
-        mongoDS = new MongoDocumentStore(mc.getDB(), new DocumentMK.Builder());
+        mongoDS = new MongoDocumentStore(mongoConnection.getDB(), new DocumentMK.Builder());
         mongoDS.setClock(clock);
         TRACE_LOGGER.addHandler(testHandler);
         TRACE_LOGGER.setLevel(Level.FINEST);

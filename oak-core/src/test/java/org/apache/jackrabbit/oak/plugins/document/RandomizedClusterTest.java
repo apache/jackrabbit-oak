@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.mongodb.DB;
@@ -46,6 +47,9 @@ public class RandomizedClusterTest {
     // private static final boolean MONGO_DB = true;
 
     private static final int MK_COUNT = 2;
+
+    @Rule
+    public MongoConnectionFactory connectionFactory = new MongoConnectionFactory();
 
     private MemoryDocumentStore ds;
     private MemoryBlobStore bs;
@@ -374,7 +378,7 @@ public class RandomizedClusterTest {
         DocumentMK.Builder builder = new DocumentMK.Builder();
         builder.setAsyncDelay(0);
         if (MONGO_DB) {
-            DB db = MongoUtils.getConnection().getDB();
+            DB db = connectionFactory.getConnection().getDB();
             MongoUtils.dropCollections(db);
             builder.setMongoDB(db);
         } else {

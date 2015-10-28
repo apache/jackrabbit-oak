@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.JournalGarbageCollector;
+import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
@@ -37,6 +38,7 @@ import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,17 +49,19 @@ public class JournalIT extends AbstractJournalTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(JournalIT.class);
 
+    @Rule
+    public MongoConnectionFactory connectionFactory = new MongoConnectionFactory();
+
     @BeforeClass
     public static void checkMongoDbAvailable() {
-        Assume.assumeNotNull(MongoUtils.getConnection());
+        Assume.assumeTrue(MongoUtils.isAvailable());
     }
 
     @Before
     @After
     public void dropCollections() throws Exception {
-        MongoConnection mongoConnection = MongoUtils.getConnection();
+        MongoConnection mongoConnection = connectionFactory.getConnection();
         MongoUtils.dropCollections(mongoConnection.getDB());
-        mongoConnection.close();
     }
 
     @Test
@@ -213,7 +217,7 @@ public class JournalIT extends AbstractJournalTest {
     }
 
     protected DocumentMK createMK(int clusterId, int asyncDelay) {
-        DB db = MongoUtils.getConnection().getDB();
+        DB db = connectionFactory.getConnection().getDB();
         builder = newDocumentMKBuilder();
         return register(builder.setMongoDB(db)
                 .setClusterId(clusterId).setAsyncDelay(asyncDelay).open());

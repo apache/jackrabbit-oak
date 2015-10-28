@@ -44,7 +44,7 @@ public class MongoDocumentStoreTest extends AbstractMongoConnectionTest {
 
     @Override
     public void setUpConnection() throws Exception {
-        mongoConnection = MongoUtils.getConnection();
+        mongoConnection = connectionFactory.getConnection();
         MongoUtils.dropCollections(mongoConnection.getDB());
         DocumentMK.Builder builder = new DocumentMK.Builder();
         store = new TestStore(mongoConnection.getDB(), builder);
