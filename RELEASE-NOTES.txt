@@ -1,5 +1,5 @@
 
-Release Notes -- Apache Jackrabbit Oak -- Version 1.0.22
+Release Notes -- Apache Jackrabbit Oak -- Version 1.0.23
 
 Introduction
 ------------
@@ -8,98 +8,55 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.0.22 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.0.23 is a patch release that contains fixes and
 improvements over Oak 1.0. Jackrabbit Oak 1.0.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-New configuration options in Oak 1.0.22
----------------------------------------
-
-This release of Oak includes an improvement to the DocumentNodeStore,
-which requires a new collection in the DocumentStore. The DocumentStore
-implementations in Oak will try to create the new collection if necessary.
-However, there may be deployments where the configured backend storage user
-for the DocumentStore implementation does not have the require privilege.
-In this case it is required to create the table for the RDB backend or 
-collection for MongoDB manually before Oak is upgraded to 1.0.22.
-See https://issues.apache.org/jira/browse/OAK-2829 for more details.
-
-Node name index support (OAK-1752) - With this queries involving
-node name constraint can make use of index and perform better. Refer to
-http://jackrabbit.apache.org/oak/docs/query/lucene.html#index-node-name
-for usage details.
- 
-
-Changes in Oak 1.0.22
+Changes in Oak 1.0.23
 ---------------------
-
-Sub-task
-
-    [OAK-3133] - Make compaction map more efficient for offline
-    compaction
-    [OAK-3359] - Compactor progress log
-    [OAK-3443] - Track the start time of mark in GC
 
 Technical task
 
-    [OAK-3394] - RDBDocumentStore startup: log more DDL information
-    (incl. index information)
-    [OAK-3413] - RDBDocumentStorePerformanceTest leaks
-    PreparedStatements
-    [OAK-3414] - RDBDocumentStore: improve DB2 diagnostics
-    [OAK-3422] - RDBDocumentStore: improve index diagnostics
-    [OAK-3438] - RDBDocumentStoreDB: leaking resultset
-    [OAK-3445] - RDBDocumentStore: when generating SQL for queries,
-    leave out unneeded constraints
-    [OAK-3446] - RDBDocumentStore: update PostgresQL and MySQL JDBC
-    drivers
+    [OAK-3532] - create RDB export tool
+    [OAK-3540] - DocumentStore tests: use named parametrization
 
 Bug
 
-    [OAK-2929] - Parent of unseen children must not be removable
-    [OAK-3201] - Use static references in SecurityProviderImpl for
-    composite services
-    [OAK-3311] - Potential NPE in syncAllExternalUsers() aborts the
-    process
-    [OAK-3318] - IndexRule not respecting inheritence based on mixins
-    [OAK-3367] - Boosting fields not working as expected
-    [OAK-3388] - Inconsistent read in cluster with clock differences
-    [OAK-3396] - NPE during syncAllExternalUsers in
-    LdapIdentityProvider.createUser
-    [OAK-3412] - Node name having non space whitspace chars should not
-    be allowed
-    [OAK-3417] - oak-run OakFixture might set incorrect clusterIDs
-    [OAK-3418] - ClusterNodeInfo uses irrelevant network interface IDs
-    on Windows
-    [OAK-3419] - ClusterNodeInfo.createInstance fails to clean up
-    random entries
-    [OAK-3420] - DocumentNodeStoreService fails to restart
-    DocumentNodeStore
-    [OAK-3423] - RandomAuthorizableNodeName should not be part of the
-    default configuration of SecurityProviderImpl
-    [OAK-3431] - SecurityProviderRegistration should not be part of an
-    exported package
-    [OAK-3433] - Background update may create journal entry with
-    incorrect id
-    [OAK-3434] - Revert backwards-incompatible changes to
-    SecurityProviderImpl
-    [OAK-3453] - Adapt the default configuration of
-    SecurityProviderRegistration for older versions of Oak
+    [OAK-3325] - MissingIndexProviderStrategy should warn when setting
+    the reindex flag
+    [OAK-3442] - Intermittent IllegalMonitorStateException seen while
+    releaseing IndexNode
+    [OAK-3476] - Memory leak caused by using marker names based on non
+    static session id
+    [OAK-3487] - NodeDocumentTest.getNewestRevisionTooExpensive()
+    fails occasionally
+    [OAK-3513] - Session save going through despite repository being
+    shutdown causing reindex flag to reset
+    [OAK-3526] - Segment cache not invalidated on cleanup
+    [OAK-3556] - MongoDocumentStore may create incomplete document
 
 Improvement
 
-    [OAK-2112] - DocumentNodeStore: Error calculating the machine id
-    [OAK-2948] - Expose DefaultSyncHandler
-    [OAK-3425] - Improve DocumentNodeStore startup/shutdown
-    diagnostics
-    [OAK-3435] - LastRevRecoveryAgent/MissingLastRevSeeker
-    improvements
-    [OAK-3441] - SecurityProviderImpl should not be an OSGi component
-    [OAK-3454] - Improve the logging capabilities of offline
-    compaction
+    [OAK-3054] - IndexStatsMBean should provide some details if the
+    async indexing is failing
+    [OAK-3300] - Include parameter descriptions in test output when
+    running parameterised tests
+    [OAK-3409] - CompositeRegistration.unregister diagnostics not
+    helpful
+    [OAK-3455] - Improve conflict exception message
+    [OAK-3495] - Query engine: disable or restrict built-in full-text
+    engine (backport to 1.0)
+    [OAK-3500] - Review padding for blobs collection (backport to 1.0)
+    [OAK-3504] - CopyOnRead directory should not schedule a copy task
+    for non existent file
+    [OAK-3505] - Provide an optionally stricter policy for missing
+    synchronous index editor providers
+    [OAK-3539] - Document interface should have entrySet() in addition
+    to keySet()
+    [OAK-3546] - Improve ObservationManagerImpl timeout message
 
 
 In addition to the above-mentioned changes, this release contains
