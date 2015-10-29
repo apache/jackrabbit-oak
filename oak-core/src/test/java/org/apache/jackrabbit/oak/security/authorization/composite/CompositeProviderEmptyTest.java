@@ -72,7 +72,7 @@ public class CompositeProviderEmptyTest extends AbstractCompositeProviderTest {
     @Test
     public void testGetPrivileges() throws Exception {
         for (String p : NODE_PATHS) {
-            assertTrue(cpp.getPrivileges(root.getTree(p)).isEmpty());
+            assertTrue(cpp.getPrivileges(readOnlyRoot.getTree(p)).isEmpty());
         }
     }
 
@@ -84,7 +84,7 @@ public class CompositeProviderEmptyTest extends AbstractCompositeProviderTest {
     @Test
     public void testHasPrivileges() throws Exception {
         for (String p : NODE_PATHS) {
-            Tree tree = root.getTree(p);
+            Tree tree = readOnlyRoot.getTree(p);
 
             assertFalse(cpp.hasPrivileges(tree, JCR_READ));
             assertFalse(cpp.hasPrivileges(tree, JCR_WRITE));
@@ -101,7 +101,7 @@ public class CompositeProviderEmptyTest extends AbstractCompositeProviderTest {
     @Test
     public void testIsGranted() throws Exception {
         for (String p : NODE_PATHS) {
-            Tree tree = root.getTree(p);
+            Tree tree = readOnlyRoot.getTree(p);
 
             assertFalse(cpp.isGranted(tree, null, Permissions.READ_NODE));
             assertFalse(cpp.isGranted(tree, null, Permissions.READ_NODE | Permissions.MODIFY_CHILD_NODE_COLLECTION));
@@ -112,7 +112,7 @@ public class CompositeProviderEmptyTest extends AbstractCompositeProviderTest {
     @Test
     public void testIsGrantedProperty() throws Exception {
         for (String p : NODE_PATHS) {
-            Tree tree = root.getTree(p);
+            Tree tree = readOnlyRoot.getTree(p);
 
             assertFalse(cpp.isGranted(tree, PROPERTY_STATE, Permissions.READ_PROPERTY));
             assertFalse(cpp.isGranted(tree, PROPERTY_STATE, Permissions.MODIFY_PROPERTY));
@@ -149,7 +149,7 @@ public class CompositeProviderEmptyTest extends AbstractCompositeProviderTest {
         TreePermission parentPermission = TreePermission.EMPTY;
 
         for (String path : TP_PATHS) {
-            TreePermission tp = cpp.getTreePermission(root.getTree(path), parentPermission);
+            TreePermission tp = cpp.getTreePermission(readOnlyRoot.getTree(path), parentPermission);
 
             assertFalse(tp.isGranted(Permissions.READ_NODE));
             assertFalse(tp.isGranted(Permissions.REMOVE_NODE));
@@ -165,7 +165,7 @@ public class CompositeProviderEmptyTest extends AbstractCompositeProviderTest {
         TreePermission parentPermission = TreePermission.EMPTY;
 
         for (String path : TP_PATHS) {
-            TreePermission tp = cpp.getTreePermission(root.getTree(path), parentPermission);
+            TreePermission tp = cpp.getTreePermission(readOnlyRoot.getTree(path), parentPermission);
 
             assertFalse(tp.isGranted(Permissions.READ_PROPERTY, PROPERTY_STATE));
             assertFalse(tp.isGranted(Permissions.REMOVE_PROPERTY, PROPERTY_STATE));
@@ -179,7 +179,7 @@ public class CompositeProviderEmptyTest extends AbstractCompositeProviderTest {
         TreePermission parentPermission = TreePermission.EMPTY;
 
         for (String path : TP_PATHS) {
-            Tree t = root.getTree(path);
+            Tree t = readOnlyRoot.getTree(path);
             TreePermission tp = cpp.getTreePermission(t, parentPermission);
             assertFalse(tp.canRead());
 
@@ -192,7 +192,7 @@ public class CompositeProviderEmptyTest extends AbstractCompositeProviderTest {
         TreePermission parentPermission = TreePermission.EMPTY;
 
         for (String path : TP_PATHS) {
-            Tree t = root.getTree(path);
+            Tree t = readOnlyRoot.getTree(path);
             TreePermission tp = cpp.getTreePermission(t, parentPermission);
             assertFalse(tp.canRead(PROPERTY_STATE));
 

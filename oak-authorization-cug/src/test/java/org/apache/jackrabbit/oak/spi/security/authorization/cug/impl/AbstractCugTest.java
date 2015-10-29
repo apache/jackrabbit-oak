@@ -27,7 +27,6 @@ import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -111,9 +110,7 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
-        return ConfigurationParameters.of(ImmutableMap.of(
-                AuthorizationConfiguration.NAME, CUG_CONFIG)
-        );
+        return ConfigurationParameters.of(AuthorizationConfiguration.NAME, CUG_CONFIG);
     }
 
     CugPermissionProvider createCugPermissionProvider(@Nonnull Set<String> supportedPaths, @Nonnull Principal... principals) {

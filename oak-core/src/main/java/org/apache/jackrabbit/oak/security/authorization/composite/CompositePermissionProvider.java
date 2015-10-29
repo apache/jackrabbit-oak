@@ -48,7 +48,7 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 class CompositePermissionProvider implements PermissionProvider {
 
     private final Root root;
-    private final List<AggregatedPermissionProvider> pps;
+    private final AggregatedPermissionProvider[] pps;
     private final Context ctx;
 
     private final RepositoryPermission repositoryPermission;
@@ -58,7 +58,7 @@ class CompositePermissionProvider implements PermissionProvider {
 
     CompositePermissionProvider(@Nonnull Root root, @Nonnull List<AggregatedPermissionProvider> pps, @Nonnull Context acContext) {
         this.root = root;
-        this.pps = pps;
+        this.pps = pps.toArray(new AggregatedPermissionProvider[pps.size()]);
         this.ctx = acContext;
 
         repositoryPermission = new CompositeRepositoryPermission();
@@ -142,12 +142,11 @@ class CompositePermissionProvider implements PermissionProvider {
     public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
         ImmutableTree immutableTree = (ImmutableTree) PermissionUtil.getImmutableTree(tree, immutableRoot);
         if (tree.isRoot()) {
-            return new CompositeTreePermission(immutableTree, new CompositeTreePermission(pps));
+            return CompositeTreePermission.create(immutableTree, pps);
+        } else if (parentPermission instanceof CompositeTreePermission) {
+            return CompositeTreePermission.create(immutableTree, ((CompositeTreePermission) parentPermission));
         } else {
-            if (!(parentPermission instanceof CompositeTreePermission)) {
-                throw new IllegalArgumentException("Illegal parent permission instance. Expected CompositeTreePermission.");
-            }
-            return new CompositeTreePermission(immutableTree, (CompositeTreePermission) parentPermission);
+            return parentPermission.getChildPermission(immutableTree.getName(), immutableTree.getNodeState());
         }
     }
 
