@@ -297,7 +297,7 @@ public class DefaultSyncContext implements SyncContext {
                 return new DefaultSyncResultImpl(new DefaultSyncedIdentity(id, null, false, -1), SyncResult.Status.FOREIGN);
             }
 
-            if (auth instanceof Group) {
+            if (auth.isGroup()) {
                 Group group = (Group) auth;
                 ExternalGroup external = idp.getGroup(id);
                 timer.mark("retrieve");
@@ -505,35 +505,32 @@ public class DefaultSyncContext implements SyncContext {
             // get group
             ExternalGroup extGroup;
             try {
-                extGroup = (ExternalGroup) idp.getIdentity(ref);
-            } catch (ClassCastException e) {
-                // this should really not be the case, so catching the CCE is ok here.
-                log.warn("External identity '{}' is not a group, but should be one.", ref.getString());
-                continue;
+                ExternalIdentity extId = idp.getIdentity(ref);
+                if (extId instanceof ExternalGroup) {
+                    extGroup = (ExternalGroup) extId;
+                } else {
+                    log.warn("No external group found for ref '{}'.", ref.getString());
+                    continue;
+                }
             } catch (ExternalIdentityException e) {
                 log.warn("Unable to retrieve external group '{}' from provider.", ref.getString(), e);
-                continue;
-            }
-            if (extGroup == null) {
-                log.warn("External group for ref '{}' could not be retrieved from provider.", ref);
                 continue;
             }
             log.debug("- idp returned '{}'", extGroup.getId());
 
             Group grp;
-            try {
-                grp = (Group) userManager.getAuthorizable(extGroup.getId());
-            } catch (ClassCastException e) {
-                // this should really not be the case, so catching the CCE is ok here.
+            Authorizable a = userManager.getAuthorizable(extGroup.getId());
+            if (a == null) {
+                grp = createGroup(extGroup);
+                log.debug("- created new group");
+            } else if (a.isGroup()) {
+                grp = (Group) a;
+            } else {
                 log.warn("Authorizable '{}' is not a group, but should be one.", extGroup.getId());
                 continue;
             }
             log.debug("- user manager returned '{}'", grp);
 
-            if (grp == null) {
-                grp = createGroup(extGroup);
-                log.debug("- created new group");
-            }
             syncGroup(extGroup, grp);
 
             // ensure membership
