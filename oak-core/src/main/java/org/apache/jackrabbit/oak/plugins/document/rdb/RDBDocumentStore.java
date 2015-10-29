@@ -1148,7 +1148,7 @@ public class RDBDocumentStore implements DocumentStore {
                     cachedDoc.markUpToDate(System.currentTimeMillis());
                     return castAsT(cachedDoc);
                 } else {
-                    return SR.fromRow(collection, row);
+                    return convertFromDBObject(collection, row);
                 }
             }
         } catch (Exception ex) {
@@ -1972,11 +1972,16 @@ public class RDBDocumentStore implements DocumentStore {
         }
     }
 
+    @CheckForNull
+    protected <T extends Document> T convertFromDBObject(@Nonnull Collection<T> collection, @Nonnull RDBRow row) {
+        return SR.fromRow(collection, row);
+    }
+
     private <T extends Document> T runThroughCache(Collection<T> collection, RDBRow row, long now) {
 
         if (collection != Collection.NODES) {
             // not in the cache anyway
-            return SR.fromRow(collection, row);
+            return convertFromDBObject(collection, row);
         }
 
         String id = row.getId();
@@ -1999,7 +2004,7 @@ public class RDBDocumentStore implements DocumentStore {
             }
         }
 
-        NodeDocument fresh = (NodeDocument) SR.fromRow(collection, row);
+        NodeDocument fresh = (NodeDocument) convertFromDBObject(collection, row);
         fresh.seal();
 
         Lock lock = getAndLock(id);
@@ -2039,5 +2044,8 @@ public class RDBDocumentStore implements DocumentStore {
         }
         return false;
     }
-    
+
+    protected Cache<CacheValue, NodeDocument> getNodeDocumentCache() {
+        return nodesCache;
+    }
 }
