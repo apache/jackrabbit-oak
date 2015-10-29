@@ -21,6 +21,7 @@ import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.security.authentication.AuthenticationConfigurationImpl;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenConfigurationImpl;
 import org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl;
+import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
 import org.apache.jackrabbit.oak.security.principal.PrincipalConfigurationImpl;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConfigurationImpl;
 import org.apache.jackrabbit.oak.security.user.UserConfigurationImpl;
@@ -56,13 +57,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
 
-    private volatile AuthorizationConfiguration authorizationConfiguration;
-
     private volatile AuthenticationConfiguration authenticationConfiguration;
 
     private volatile PrivilegeConfiguration privilegeConfiguration;
 
     private volatile UserConfiguration userConfiguration;
+
+    private final CompositeAuthorizationConfiguration authorizationConfiguration = new CompositeAuthorizationConfiguration(this);
 
     private final CompositePrincipalConfiguration principalConfiguration = new CompositePrincipalConfiguration(this);
 
@@ -95,10 +96,10 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
         this.configuration = configuration;
 
         authenticationConfiguration = new AuthenticationConfigurationImpl(this);
-        authorizationConfiguration = new AuthorizationConfigurationImpl(this);
         userConfiguration = new UserConfigurationImpl(this);
         privilegeConfiguration = new PrivilegeConfigurationImpl();
 
+        authorizationConfiguration.setDefaultConfig(new AuthorizationConfigurationImpl(this));
         principalConfiguration.setDefaultConfig(new PrincipalConfigurationImpl(this));
         tokenConfiguration.setDefaultConfig(new TokenConfigurationImpl(this));
     }
@@ -201,14 +202,12 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
 
     @SuppressWarnings("UnusedDeclaration")
     protected void bindAuthorizationConfiguration(@Nonnull AuthorizationConfiguration reference) {
-        authorizationConfiguration = initConfiguration(reference);
-        // TODO (OAK-1268): authorizationConfiguration.addConfiguration(initConfiguration(reference));
+        authorizationConfiguration.addConfiguration(initConfiguration(reference));
     }
 
     @SuppressWarnings("UnusedDeclaration")
     protected void unbindAuthorizationConfiguration(@Nonnull AuthorizationConfiguration reference) {
-        authorizationConfiguration = new AuthorizationConfigurationImpl(this);
-       // TODO (OAK-1268): authorizationConfiguration.removeConfiguration(reference);
+        authorizationConfiguration.removeConfiguration(reference);
     }
 
     //------------------------------------------------------------< private >---

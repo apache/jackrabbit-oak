@@ -34,6 +34,7 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -54,6 +55,7 @@ import org.apache.jackrabbit.util.Text;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest implements NodeTypeConstants, PrivilegeConstants {
@@ -93,6 +95,8 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
     Map<String, Long> defPermissions;
     Map<String, Set<String>> defPrivileges;
     Map<String, String[]> defActionsGranted;
+
+    Root readOnlyRoot;
 
     @Override
     public void before() throws Exception {
@@ -175,6 +179,8 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
                 put(TEST_A_B_C_PATH + "/jcr:primaryType",  new String[] {Session.ACTION_READ, JackrabbitSession.ACTION_VERSIONING}).
                 put(TEST_A_B_C_PATH,  new String[] {Session.ACTION_ADD_NODE, JackrabbitSession.ACTION_ADD_PROPERTY, JackrabbitSession.ACTION_VERSIONING}).
                 build();
+
+        readOnlyRoot = RootFactory.createReadOnlyRoot(root);
     }
 
     @Override
@@ -252,7 +258,7 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
     public void testHasPrivilegesJcrAll() throws Exception {
         PermissionProvider pp = createPermissionProvider();
         for (String p : NODE_PATHS) {
-            Tree tree = root.getTree(p);
+            Tree tree = readOnlyRoot.getTree(p);
 
             assertFalse(p, pp.hasPrivileges(tree, JCR_ALL));
         }
@@ -262,7 +268,7 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
     public void testHasPrivilegesNone() throws Exception {
         PermissionProvider pp = createPermissionProvider();
         for (String p : NODE_PATHS) {
-            Tree tree = root.getTree(p);
+            Tree tree = readOnlyRoot.getTree(p);
 
             assertTrue(p, pp.hasPrivileges(tree));
         }
@@ -285,7 +291,7 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
         PermissionProvider pp = createPermissionProvider();
 
         for (String p : NODE_PATHS) {
-            Tree tree = root.getTree(p);
+            Tree tree = readOnlyRoot.getTree(p);
             PropertyState ps = tree.getProperty(JcrConstants.JCR_PRIMARYTYPE);
 
             assertFalse(p, pp.isGranted(tree, null, Permissions.ALL));
@@ -298,7 +304,7 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
         PermissionProvider pp = createPermissionProvider();
 
         for (String p : NODE_PATHS) {
-            Tree tree = root.getTree(p);
+            Tree tree = readOnlyRoot.getTree(p);
             PropertyState ps = tree.getProperty(JcrConstants.JCR_PRIMARYTYPE);
 
             assertFalse(p, pp.isGranted(tree, null, Permissions.NO_PERMISSION));
@@ -311,7 +317,7 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
         PermissionProvider pp = createPermissionProvider();
 
         for (String p : NODE_PATHS) {
-            Tree tree = root.getTree(p);
+            Tree tree = readOnlyRoot.getTree(p);
             PropertyState ps = tree.getProperty(JcrConstants.JCR_PRIMARYTYPE);
 
             assertFalse(p, pp.isGranted(tree, null, Permissions.MODIFY_ACCESS_CONTROL));
@@ -353,20 +359,15 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
     }
 
     @Test
-    public void testGetTreePermissionInstance() throws Exception {
-        PermissionProvider pp = createPermissionProvider();
-        TreePermission parentPermission = TreePermission.EMPTY;
-
-        for (String path : TP_PATHS) {
-            TreePermission tp = pp.getTreePermission(root.getTree(path), parentPermission);
-            assertTrue(tp.getClass().getName().endsWith("CompositeTreePermission"));
-            parentPermission = tp;
-        }
+    public void testGetTreePermissionAllParent() throws Exception {
+        TreePermission tp = createPermissionProvider().getTreePermission(readOnlyRoot.getTree(TEST_PATH), TreePermission.ALL);
+        assertSame(TreePermission.ALL, tp);
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testGetTreePermissionInvalidParent() throws Exception {
-        TreePermission tp = createPermissionProvider().getTreePermission(root.getTree(TEST_PATH), TreePermission.ALL);
+    @Test
+    public void testGetTreePermissionEmptyParent() throws Exception {
+        TreePermission tp = createPermissionProvider().getTreePermission(readOnlyRoot.getTree(TEST_PATH), TreePermission.EMPTY);
+        assertSame(TreePermission.EMPTY, tp);
     }
 
     @Test
@@ -377,7 +378,7 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
         PropertyState ps = PropertyStates.createProperty("propName", "val");
 
         for (String path : TP_PATHS) {
-            Tree t = root.getTree(path);
+            Tree t = readOnlyRoot.getTree(path);
             TreePermission tp = pp.getTreePermission(t, parentPermission);
 
             assertFalse(tp.isGranted(Permissions.ALL));
@@ -395,7 +396,7 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
         PropertyState ps = PropertyStates.createProperty("propName", "val");
 
         for (String path : TP_PATHS) {
-            Tree t = root.getTree(path);
+            Tree t = readOnlyRoot.getTree(path);
             TreePermission tp = pp.getTreePermission(t, parentPermission);
 
             assertFalse(tp.isGranted(Permissions.NO_PERMISSION));
@@ -413,7 +414,7 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
         TreePermission parentPermission = TreePermission.EMPTY;
 
         for (String path : TP_PATHS) {
-            TreePermission tp = pp.getTreePermission(root.getTree(path), parentPermission);
+            TreePermission tp = pp.getTreePermission(readOnlyRoot.getTree(path), parentPermission);
             assertFalse(tp.canReadAll());
 
             parentPermission = tp;
@@ -426,9 +427,21 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
         TreePermission parentPermission = TreePermission.EMPTY;
 
         for (String path : TP_PATHS) {
-            TreePermission tp = pp.getTreePermission(root.getTree(path), parentPermission);
+            TreePermission tp = pp.getTreePermission(readOnlyRoot.getTree(path), parentPermission);
             assertFalse(tp.canReadProperties());
 
+            parentPermission = tp;
+        }
+    }
+
+    @Test
+    public void testGetTreePermissionInstance() throws Exception {
+        PermissionProvider pp = createPermissionProvider();
+        TreePermission parentPermission = TreePermission.EMPTY;
+
+        for (String path : TP_PATHS) {
+            TreePermission tp = pp.getTreePermission(readOnlyRoot.getTree(path), parentPermission);
+            assertTrue(tp instanceof CompositeTreePermission);
             parentPermission = tp;
         }
     }
@@ -437,13 +450,14 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
     public void testTreePermissionGetChild() throws Exception {
         List<String> childNames = ImmutableList.of("test", "a", "b", "c", "nonexisting");
 
-        NodeState ns = ((ImmutableTree) RootFactory.createReadOnlyRoot(root).getTree(ROOT_PATH)).getNodeState();
-        TreePermission tp = createPermissionProvider().getTreePermission(root.getTree(ROOT_PATH), TreePermission.EMPTY);
+        Tree rootTree = readOnlyRoot.getTree(ROOT_PATH);
+        NodeState ns = ((ImmutableTree) rootTree).getNodeState();
+        TreePermission tp = createPermissionProvider().getTreePermission(rootTree, TreePermission.EMPTY);
 
         for (String cName : childNames) {
             ns = ns.getChildNode(cName);
             tp = tp.getChildPermission(cName, ns);
-            assertTrue(tp.getClass().getName().endsWith("CompositeTreePermission"));
+            assertTrue(tp instanceof CompositeTreePermission);
         }
     }
 

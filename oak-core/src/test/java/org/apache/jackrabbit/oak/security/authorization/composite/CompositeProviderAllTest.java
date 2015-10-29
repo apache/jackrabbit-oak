@@ -111,7 +111,7 @@ public class CompositeProviderAllTest extends AbstractCompositeProviderTest {
     public void testIsGranted() throws Exception {
         for (String p : defPermissions.keySet()) {
             long expected = defPermissions.get(p);
-            Tree tree = root.getTree(p);
+            Tree tree = readOnlyRoot.getTree(p);
 
             assertTrue(p, cpp.isGranted(tree, null, expected));
         }
@@ -121,7 +121,7 @@ public class CompositeProviderAllTest extends AbstractCompositeProviderTest {
     public void testIsGrantedProperty() throws Exception {
         for (String p : defPermissions.keySet()) {
             long expected = defPermissions.get(p);
-            Tree tree = root.getTree(p);
+            Tree tree = readOnlyRoot.getTree(p);
 
             assertTrue(p, cpp.isGranted(tree, PROPERTY_STATE, expected));
         }
@@ -179,7 +179,7 @@ public class CompositeProviderAllTest extends AbstractCompositeProviderTest {
         TreePermission parentPermission = TreePermission.EMPTY;
 
         for (String path : TP_PATHS) {
-            TreePermission tp = cpp.getTreePermission(root.getTree(path), parentPermission);
+            TreePermission tp = cpp.getTreePermission(readOnlyRoot.getTree(path), parentPermission);
             Long toTest = (defPermissions.containsKey(path)) ? defPermissions.get(path) : defPermissions.get(PathUtils.getAncestorPath(path, 1));
             if (toTest != null) {
                 assertTrue(tp.isGranted(toTest, PROPERTY_STATE));
@@ -200,9 +200,8 @@ public class CompositeProviderAllTest extends AbstractCompositeProviderTest {
                 build();
 
         TreePermission parentPermission = TreePermission.EMPTY;
-        TreePermission parentPermission2 = TreePermission.EMPTY;
         for (String nodePath : readMap.keySet()) {
-            Tree tree = root.getTree(nodePath);
+            Tree tree = readOnlyRoot.getTree(nodePath);
             TreePermission tp = cpp.getTreePermission(tree, parentPermission);
 
             boolean expectedResult = readMap.get(nodePath);
@@ -224,9 +223,8 @@ public class CompositeProviderAllTest extends AbstractCompositeProviderTest {
                 build();
 
         TreePermission parentPermission = TreePermission.EMPTY;
-        TreePermission parentPermission2 = TreePermission.EMPTY;
         for (String nodePath : readMap.keySet()) {
-            Tree tree = root.getTree(nodePath);
+            Tree tree = readOnlyRoot.getTree(nodePath);
 
             TreePermission tp = cpp.getTreePermission(tree, parentPermission);
 
@@ -315,5 +313,5 @@ public class CompositeProviderAllTest extends AbstractCompositeProviderTest {
         public boolean isGranted(@Nonnull String oakPath, @Nonnull String jcrActions) {
             return BASE.isGranted(oakPath, jcrActions);
         }
-    };
+    }
 }

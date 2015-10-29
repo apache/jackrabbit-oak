@@ -17,11 +17,9 @@
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
 import java.lang.reflect.Field;
-import java.util.List;
-import java.util.Map;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
@@ -35,21 +33,28 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class CompositeTreePermissionTest extends AbstractSecurityTest {
 
+    private Root readOnlyRoot;
     private ImmutableTree rootTree;
+
+    private AggregatedPermissionProvider fullScopeProvider;
 
     @Override
     public void before() throws Exception {
         super.before();
 
         NodeUtil rootNode = new NodeUtil(root.getTree("/"));
-        NodeUtil test = rootNode.addChild("test", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        rootNode.addChild("test", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         root.commit();
 
-        rootTree = (ImmutableTree) RootFactory.createReadOnlyRoot(root).getTree("/");
+        readOnlyRoot = RootFactory.createReadOnlyRoot(root);
+        rootTree = (ImmutableTree) readOnlyRoot.getTree("/");
+
+        fullScopeProvider = new FullScopeProvider(readOnlyRoot);
     }
 
     @Override
@@ -63,40 +68,60 @@ public class CompositeTreePermissionTest extends AbstractSecurityTest {
         }
     }
 
-    private List<AggregatedPermissionProvider> getProviders() {
-        return ImmutableList.<AggregatedPermissionProvider>of(new FullScopeProvider(root));
+    private AggregatedPermissionProvider[] getProviders(AggregatedPermissionProvider... providers) {
+        return providers;
     }
 
     @Test
-    public void testEmptyProviderList() {
-        CompositeTreePermission parent = new CompositeTreePermission(ImmutableList.<AggregatedPermissionProvider>of());
-        assertFalse(parent.canRead());
-
-        CompositeTreePermission rootTp = new CompositeTreePermission(rootTree, parent);
+    public void testEmpty() {
+        TreePermission rootTp = CompositeTreePermission.create(rootTree, getProviders());
+        assertSame(TreePermission.EMPTY, rootTp);
         assertFalse(rootTp.canRead());
-
-        CompositeTreePermission testTp = new CompositeTreePermission(rootTree.getChild("test"), rootTp);
-        assertFalse(testTp.canRead());
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void testGetChildOnParent() {
-        NodeState childState = rootTree.getChild("test").getNodeState();
-        CompositeTreePermission parent = new CompositeTreePermission(getProviders());
-        parent.getChildPermission("illegal", childState);
     }
 
     @Test
-    public void testGetChildOnRoot() {
-        CompositeTreePermission rootTp = new CompositeTreePermission(rootTree,
-                new CompositeTreePermission(getProviders()));
+    public void testSingle() {
+        Class<? extends TreePermission> expected = fullScopeProvider.getTreePermission(rootTree, TreePermission.EMPTY).getClass();
+
+        TreePermission rootTp = CompositeTreePermission.create(rootTree, getProviders(fullScopeProvider));
+        assertFalse(rootTp instanceof CompositeTreePermission);
+        assertEquals(expected, rootTp.getClass());
+
         TreePermission testTp = rootTp.getChildPermission("test", rootTree.getChild("test").getNodeState());
+        assertEquals(expected, testTp.getClass());
+    }
+
+    @Test
+    public void testMultiple() {
+        TreePermission rootTp = CompositeTreePermission.create(rootTree, getProviders(fullScopeProvider, fullScopeProvider));
+        assertTrue(rootTp instanceof CompositeTreePermission);
+
+        TreePermission testTp = rootTp.getChildPermission("test", rootTree.getChild("test").getNodeState());
+        assertTrue(testTp instanceof CompositeTreePermission);
+    }
+
+    @Test
+    public void testMultipleNoRecurse() {
+        TreePermission rootTp = CompositeTreePermission.create(rootTree, getProviders(new NoScopeProvider(), new NoScopeProvider()));
+        assertTrue(rootTp instanceof CompositeTreePermission);
+
+        assertSame(TreePermission.EMPTY, rootTp.getChildPermission("test", rootTree.getChild("test").getNodeState()));
+    }
+
+    @Test
+    public void testMultipleToSingle() {
+        TreePermission rootTp = CompositeTreePermission.create(rootTree, getProviders(fullScopeProvider, new NoScopeProvider(), new NoScopeProvider()));
+        assertTrue(rootTp instanceof CompositeTreePermission);
+
+        NodeState childState = rootTree.getChild("test").getNodeState();
+        TreePermission testTp = rootTp.getChildPermission("test", childState);
+        TreePermission expected = fullScopeProvider.getTreePermission(rootTree, TreePermission.EMPTY).getChildPermission("test", childState);
+        assertEquals(expected.getClass(), testTp.getClass());
     }
 
     @Test
     public void testCanRead() throws Exception {
-        CompositeTreePermission rootTp = new CompositeTreePermission(rootTree,
-                new CompositeTreePermission(getProviders()));
+        TreePermission rootTp = CompositeTreePermission.create(rootTree, getProviders(fullScopeProvider, fullScopeProvider));
 
         Field f = CompositeTreePermission.class.getDeclaredField("canRead");
         f.setAccessible(true);
@@ -112,17 +137,10 @@ public class CompositeTreePermissionTest extends AbstractSecurityTest {
 
     @Test
     public void testParentNoRecourse() throws Exception {
-        Field f = CompositeTreePermission.class.getDeclaredField("map");
+        Field f = CompositeTreePermission.class.getDeclaredField("providers");
         f.setAccessible(true);
 
-        CompositeTreePermission rootTp = new CompositeTreePermission(rootTree,
-                new CompositeTreePermission(ImmutableList.<AggregatedPermissionProvider>of(new NoScopeProvider())));
-        assertFalse(rootTp.canRead());
-        assertEquals(1, ((Map) f.get(rootTp)).size());
-
-
-        TreePermission testTp = rootTp.getChildPermission("test", rootTree.getChild("test").getNodeState());
-        assertFalse(testTp.canRead());
-        assertTrue(((Map) f.get(testTp)).isEmpty());
+        TreePermission rootTp = CompositeTreePermission.create(rootTree, getProviders(new NoScopeProvider()));
+        assertSame(TreePermission.NO_RECOURSE, rootTp);
     }
 }

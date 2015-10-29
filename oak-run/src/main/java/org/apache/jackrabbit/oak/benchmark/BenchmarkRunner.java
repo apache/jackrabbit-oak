@@ -231,7 +231,7 @@ public class BenchmarkRunner {
                     runAsAdmin.value(options),
                     itemsToRead.value(options),
                     report.value(options)),
-            new CompositeAuthorizationReadTest(
+            new CompositeAuthorizationTest(
                         runAsAdmin.value(options),
                         itemsToRead.value(options)), // TODO: is currently the no of configurations (hack)
             new ConcurrentReadDeepTreeTest(

@@ -124,14 +124,7 @@ class LimitedScopeProvider implements AggregatedPermissionProvider, PrivilegeCon
     @Nonnull
     @Override
     public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
-        String path = tree.getPath();
-        if (isSupported(path)) {
-            return new TestTreePermission(path);
-        } else if (Text.isDescendant(path, AbstractCompositeProviderTest.TEST_A_PATH)) {
-            return TreePermission.EMPTY;
-        } else {
-            return TreePermission.NO_RECOURSE;
-        }
+        return createTreePermission(tree.getPath());
     }
 
     @Override
@@ -235,7 +228,62 @@ class LimitedScopeProvider implements AggregatedPermissionProvider, PrivilegeCon
         return Text.isDescendantOrEqual(AbstractCompositeProviderTest.TEST_A_PATH, path);
     }
 
-    private final class TestTreePermission implements TreePermission {
+    private static TreePermission createTreePermission(@Nonnull String path) {
+        if (isSupported(path)) {
+            return new TestTreePermission(path);
+        } else if (Text.isDescendant(path, AbstractCompositeProviderTest.TEST_A_PATH)) {
+            return new EmptyTestPermission(path);
+        } else {
+            return TreePermission.NO_RECOURSE;
+        }
+    }
+
+    private static final class EmptyTestPermission implements TreePermission {
+
+        private final String path;
+
+        private EmptyTestPermission(@Nonnull String path) {
+            this.path = path;
+        }
+
+        @Nonnull
+        @Override
+        public TreePermission getChildPermission(@Nonnull String childName, @Nonnull NodeState childState) {
+            return createTreePermission(PathUtils.concat(path, childName));
+        }
+
+        @Override
+        public boolean canRead() {
+            return false;
+        }
+
+        @Override
+        public boolean canRead(@Nonnull PropertyState property) {
+            return false;
+        }
+
+        @Override
+        public boolean canReadAll() {
+            return false;
+        }
+
+        @Override
+        public boolean canReadProperties() {
+            return false;
+        }
+
+        @Override
+        public boolean isGranted(long permissions) {
+            return false;
+        }
+
+        @Override
+        public boolean isGranted(long permissions, @Nonnull PropertyState property) {
+            return false;
+        }
+    }
+
+    private static final class TestTreePermission implements TreePermission {
 
         private final String path;
 
@@ -246,7 +294,7 @@ class LimitedScopeProvider implements AggregatedPermissionProvider, PrivilegeCon
         @Nonnull
         @Override
         public TreePermission getChildPermission(@Nonnull String childName, @Nonnull NodeState childState) {
-            return new TestTreePermission(PathUtils.concat(path, childName));
+            return createTreePermission(PathUtils.concat(path, childName));
         }
 
         @Override

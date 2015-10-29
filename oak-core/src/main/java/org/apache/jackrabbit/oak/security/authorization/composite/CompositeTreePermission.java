@@ -16,12 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
@@ -36,60 +33,89 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 final class CompositeTreePermission implements TreePermission {
 
     private final ImmutableTree tree;
-    private final Map<AggregatedPermissionProvider, TreePermission> map;
+    private final AggregatedPermissionProvider[] providers;
+    private final TreePermission[] treePermissions;
+    private final int childSize;
 
     private Boolean canRead;
+    private Boolean canReadProperties;
 
-    CompositeTreePermission(@Nonnull Iterable<AggregatedPermissionProvider> providers) {
-        tree = null;
-        ImmutableMap.Builder<AggregatedPermissionProvider, TreePermission> builder = ImmutableMap.builder();
-        for (AggregatedPermissionProvider app : providers) {
-            builder.put(app, TreePermission.EMPTY);
-        }
-        map = builder.build();
+    private CompositeTreePermission(@Nonnull ImmutableTree tree, @Nonnull AggregatedPermissionProvider[] providers, @Nonnull TreePermission[] treePermissions, int cnt) {
+        this.tree = tree;
+        this.providers = providers;
+        this.treePermissions = treePermissions;
+        this.childSize = providers.length - cnt;
     }
 
-    CompositeTreePermission(@Nonnull final ImmutableTree tree, @Nonnull CompositeTreePermission parentPermission) {
-        this.tree = tree;
-
-        TreePermission parent;
-        AggregatedPermissionProvider provider;
-
-        int size = parentPermission.map.size();
-        switch (size) {
-            case 0:
-                map = ImmutableMap.of();
-                break;
-            case 1:
-                provider = parentPermission.map.keySet().iterator().next();
-                parent = getParentPermission(parentPermission, provider);
-                if (NO_RECOURSE != parent) {
-                    map = ImmutableMap.of(provider, provider.getTreePermission(tree, parent));
-                } else {
-                    map = ImmutableMap.of();
+    static TreePermission create(@Nonnull ImmutableTree rootTree, @Nonnull AggregatedPermissionProvider[] providers) {
+        switch (providers.length) {
+            case 0 : return TreePermission.EMPTY;
+            case 1 : return providers[0].getTreePermission(rootTree, TreePermission.EMPTY);
+            default :
+                int cnt = 0;
+                TreePermission[] treePermissions = new TreePermission[providers.length];
+                for (int i = 0; i < providers.length; i++) {
+                    TreePermission tp = providers[i].getTreePermission(rootTree, TreePermission.EMPTY);
+                    if (!isValid(tp)) {
+                        cnt++;
+                    }
+                    treePermissions[i] = tp;
                 }
-                break;
+                return new CompositeTreePermission(rootTree, providers, treePermissions, cnt);
+        }
+    }
+
+    static TreePermission create(@Nonnull final ImmutableTree tree, @Nonnull CompositeTreePermission parentPermission) {
+        return create(new LazyTree() {
+            @Override
+            ImmutableTree get() {
+                return tree;
+            }
+        }, tree.getName(), tree.getNodeState(), parentPermission);
+    }
+
+    private static TreePermission create(@Nonnull LazyTree lazyTree, @Nonnull String childName, @Nonnull NodeState childState, @Nonnull CompositeTreePermission parentPermission) {
+        switch (parentPermission.childSize) {
+            case 0: return TreePermission.EMPTY;
+            case 1:
+                TreePermission parent = null;
+                for (TreePermission tp : parentPermission.treePermissions) {
+                        if (isValid(tp)) {
+                            parent = tp;
+                            break;
+                        }
+                    }
+                return (parent == null) ? TreePermission.EMPTY : parent.getChildPermission(childName, childState);
             default:
-                map = new LinkedHashMap<AggregatedPermissionProvider, TreePermission>(size);
-                for (AggregatedPermissionProvider app : parentPermission.map.keySet()) {
-                    parent = getParentPermission(parentPermission, app);
-                    if (NO_RECOURSE != parent) {
-                        TreePermission tp = app.getTreePermission(tree, parent);
-                        map.put(app, tp);
+                AggregatedPermissionProvider[] pvds = new AggregatedPermissionProvider[parentPermission.childSize];
+                TreePermission[] tps = new TreePermission[parentPermission.childSize];
+                int cnt = 0;
+                for (int i = 0, j = 0; i < parentPermission.providers.length; i++) {
+                    parent = parentPermission.treePermissions[i];
+                    if (isValid(parent)) {
+                        TreePermission tp = parent.getChildPermission(childName, childState);
+                        if (!isValid(tp)) {
+                            cnt++;
+                        }
+                        tps[j] = tp;
+                        pvds[j] = parentPermission.providers[i];
+                        j++;
                     }
                 }
+                return new CompositeTreePermission(lazyTree.get(), pvds, tps, cnt);
         }
     }
 
     //-----------------------------------------------------< TreePermission >---
     @Nonnull
     @Override
-    public TreePermission getChildPermission(@Nonnull String childName, @Nonnull NodeState childState) {
-        if (tree == null) {
-            throw new IllegalStateException();
-        }
-        ImmutableTree childTree = new ImmutableTree(tree, childName, childState);
-        return new CompositeTreePermission(childTree, this);
+    public TreePermission getChildPermission(final @Nonnull String childName, final @Nonnull NodeState childState) {
+        return create(new LazyTree() {
+            @Override
+            ImmutableTree get() {
+                return new ImmutableTree(tree, childName, childState);
+            }
+        }, childName, childState, this);
     }
 
     @Override
@@ -112,7 +138,21 @@ final class CompositeTreePermission implements TreePermission {
 
     @Override
     public boolean canReadProperties() {
-        return false;
+        if (canReadProperties == null) {
+            boolean readable = false;
+            for (int i = 0; i < providers.length; i++) {
+                TreePermission tp = treePermissions[i];
+                long supported = providers[i].supportedPermissions(tp, null, Permissions.READ_PROPERTY);
+                if (doEvaluate(supported)) {
+                    readable = tp.canReadProperties();
+                    if (!readable) {
+                        break;
+                    }
+                }
+            }
+            canReadProperties = readable;
+        }
+        return canReadProperties;
     }
 
     @Override
@@ -131,9 +171,9 @@ final class CompositeTreePermission implements TreePermission {
         boolean isGranted = false;
         long coveredPermissions = Permissions.NO_PERMISSION;
 
-        for (Map.Entry<AggregatedPermissionProvider, TreePermission> entry : map.entrySet()) {
-            TreePermission tp = entry.getValue();
-            long supported = entry.getKey().supportedPermissions(tp, property, permissions);
+        for (int i = 0; i < providers.length; i++) {
+            TreePermission tp = treePermissions[i];
+            long supported = providers[i].supportedPermissions(tp, property, permissions);
             if (doEvaluate(supported)) {
                 isGranted = (property == null) ? tp.isGranted(supported) : tp.isGranted(supported, property);
                 coveredPermissions |= supported;
@@ -148,9 +188,9 @@ final class CompositeTreePermission implements TreePermission {
 
     private boolean grantsRead(@Nullable PropertyState property) {
         boolean readable = false;
-        for (Map.Entry<AggregatedPermissionProvider, TreePermission> entry : map.entrySet()) {
-            TreePermission tp = entry.getValue();
-            long supported = entry.getKey().supportedPermissions(tp, property, (property == null) ? Permissions.READ_NODE : Permissions.READ_PROPERTY);
+        for (int i = 0; i < providers.length; i++) {
+            TreePermission tp = treePermissions[i];
+            long supported = providers[i].supportedPermissions(tp, property, (property == null) ? Permissions.READ_NODE : Permissions.READ_PROPERTY);
             if (doEvaluate(supported)) {
                 readable = (property == null) ? tp.canRead() : tp.canRead(property);
                 if (!readable) {
@@ -165,10 +205,11 @@ final class CompositeTreePermission implements TreePermission {
         return CompositePermissionProvider.doEvaluate(supportedPermissions);
     }
 
-    @Nonnull
-    private static TreePermission getParentPermission(@Nonnull CompositeTreePermission compositeParent,
-                                                      @Nonnull AggregatedPermissionProvider provider) {
-        TreePermission parent = compositeParent.map.get(provider);
-        return (parent == null) ? TreePermission.EMPTY : parent;
+    private static boolean isValid(@Nonnull TreePermission tp) {
+        return NO_RECOURSE != tp;
+    }
+
+    private abstract static class LazyTree {
+        abstract ImmutableTree get();
     }
 }

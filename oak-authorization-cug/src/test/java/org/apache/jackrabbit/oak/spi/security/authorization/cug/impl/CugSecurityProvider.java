@@ -23,22 +23,19 @@ import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAutho
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 final class CugSecurityProvider extends SecurityProviderImpl {
     public CugSecurityProvider(@Nonnull ConfigurationParameters configuration) {
         super(configuration);
 
         AuthorizationConfiguration authorizationConfiguration = getConfiguration(AuthorizationConfiguration.class);
         if (!(authorizationConfiguration instanceof CompositeAuthorizationConfiguration)) {
-            CompositeAuthorizationConfiguration composite = new CompositeAuthorizationConfiguration(this);
-            composite.setDefaultConfig(authorizationConfiguration);
-            composite.addConfiguration(new CugConfiguration(this));
-            composite.addConfiguration(authorizationConfiguration);
-            this.bindAuthorizationConfiguration(composite);
+            throw new IllegalStateException();
+        } else {
+            AuthorizationConfiguration defConfig = checkNotNull(((CompositeAuthorizationConfiguration) authorizationConfiguration).getDefaultConfig());
+            bindAuthorizationConfiguration(new CugConfiguration(this));
+            bindAuthorizationConfiguration(defConfig);
         }
-    }
-
-    @Override
-    protected void bindAuthorizationConfiguration(@Nonnull AuthorizationConfiguration reference) {
-        super.bindAuthorizationConfiguration(reference);
     }
 }
