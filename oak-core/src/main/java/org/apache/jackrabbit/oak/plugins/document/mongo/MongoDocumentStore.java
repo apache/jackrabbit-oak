@@ -30,6 +30,7 @@ import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.regex.Matcher;
@@ -138,6 +139,11 @@ public class MongoDocumentStore implements DocumentStore {
      * (exclusive) lock for the parent key. See OAK-1897.
      */
     private final Striped<ReadWriteLock> parentLocks = Striped.readWriteLock(64);
+
+    /**
+     * Counts how many times {@link TreeLock}s were acquired.
+     */
+    private final AtomicLong lockAcquisitionCounter = new AtomicLong();
 
     /**
      * Comparator for maps with {@link Revision} keys. The maps are ordered
@@ -625,7 +631,7 @@ public class MongoDocumentStore implements DocumentStore {
         String parentId = Utils.getParentIdFromLowerLimit(fromKey);
         long lockTime = -1;
         final long start = PERFLOG.start();
-        TreeLock lock = acquireExclusive(parentId != null ? parentId : "");
+        TreeLock lock = withLock ? acquireExclusive(parentId != null ? parentId : "") : null;
         try {
             if (start != -1) {
                 lockTime = System.currentTimeMillis() - start;
@@ -1400,6 +1406,7 @@ public class MongoDocumentStore implements DocumentStore {
      * @return the acquired lock for the given key.
      */
     private TreeLock acquire(String key) {
+        lockAcquisitionCounter.incrementAndGet();
         return TreeLock.shared(parentLocks.get(getParentId(key)), locks.get(key));
     }
 
@@ -1411,6 +1418,7 @@ public class MongoDocumentStore implements DocumentStore {
      * @return the acquired lock for the given parent key.
      */
     private TreeLock acquireExclusive(String parentKey) {
+        lockAcquisitionCounter.incrementAndGet();
         return TreeLock.exclusive(parentLocks.get(parentKey));
     }
 
@@ -1453,6 +1461,10 @@ public class MongoDocumentStore implements DocumentStore {
 
     void setMaxLockedQueryTimeMS(long maxLockedQueryTimeMS) {
         this.maxLockedQueryTimeMS = maxLockedQueryTimeMS;
+    }
+
+    long getLockAcquisitionCount() {
+        return lockAcquisitionCounter.get();
     }
 
     private final static class TreeLock {
