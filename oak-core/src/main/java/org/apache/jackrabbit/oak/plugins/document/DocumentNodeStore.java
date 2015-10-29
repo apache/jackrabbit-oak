@@ -1994,7 +1994,11 @@ public final class DocumentNodeStore
                 continue;
             }
             for (UpdateOp op : doc.split(this, head)) {
-                NodeDocument before = store.createOrUpdate(Collection.NODES, op);
+                NodeDocument before = null;
+                if (!op.isNew() ||
+                        !store.create(Collection.NODES, Collections.singletonList(op))) {
+                    before = store.createOrUpdate(Collection.NODES, op);
+                }
                 if (before != null) {
                     if (LOG.isDebugEnabled()) {
                         NodeDocument after = store.find(Collection.NODES, op.getId());
