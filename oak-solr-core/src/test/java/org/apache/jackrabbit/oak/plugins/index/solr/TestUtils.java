@@ -23,12 +23,12 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.CommitPolicy;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrConfiguration;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.server.EmbeddedSolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.solr.client.solrj.SolrServer;
-import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
-import org.apache.solr.core.CoreContainer;
 
 import static org.junit.Assert.assertTrue;
 
@@ -41,14 +41,14 @@ public class TestUtils
     static final String SOLR_HOME_PATH = "/solr";
 
     public static SolrServer createSolrServer() {
-        String homePath = SolrServerProvider.class.getResource(SOLR_HOME_PATH).getFile();
-        CoreContainer coreContainer = new CoreContainer(homePath);
+        EmbeddedSolrServerConfiguration configuration = new EmbeddedSolrServerConfiguration(
+                TestUtils.class.getResource(SOLR_HOME_PATH).getFile(), "", "oak");
+        EmbeddedSolrServerProvider provider = new EmbeddedSolrServerProvider(configuration);
         try {
-            coreContainer.load();
+            return provider.getSolrServer();
         } catch (Exception e) {
-            throw new IllegalStateException(e);
+            throw new RuntimeException(e);
         }
-        return new EmbeddedSolrServer(coreContainer, "oak");
     }
 
     public static void cleanDataDir() {
@@ -61,6 +61,7 @@ public class TestUtils
 
     public static OakSolrConfiguration getTestConfiguration() {
         return new DefaultSolrConfiguration() {
+            @Nonnull
             @Override
             public CommitPolicy getCommitPolicy() {
                 return CommitPolicy.HARD;
@@ -87,6 +88,7 @@ public class TestUtils
 
     private final OakSolrConfiguration configuration = getTestConfiguration();
 
+    @CheckForNull
     @Override
     public SolrServer getSolrServer() {
         return solrServer;
