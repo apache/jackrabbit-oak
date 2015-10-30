@@ -86,18 +86,25 @@ public class MissingLastRevSeeker {
         });
     }
 
+    /**
+     * Acquire a recovery lock for the given cluster node info document
+     * 
+     * @param clusterId
+     *            id of the cluster that is going to be recovered
+     * @param recoveredBy
+     *            id of cluster doing the recovery ({@code 0} when unknown)
+     * @return whether the lock has been acquired
+     */
     public boolean acquireRecoveryLock(int clusterId, int recoveredBy) {
         try {
-            // This approach has a race condition where two different cluster
-            // nodes
-            // can acquire the lock simultaneously.
-            UpdateOp update = new UpdateOp(Integer.toString(clusterId), true);
+            UpdateOp update = new UpdateOp(Integer.toString(clusterId), false);
+            update.notEquals(ClusterNodeInfo.REV_RECOVERY_LOCK, RecoverLockState.ACQUIRED.name());
             update.set(ClusterNodeInfo.REV_RECOVERY_LOCK, RecoverLockState.ACQUIRED.name());
             if (recoveredBy != 0) {
                 update.set(ClusterNodeInfo.REV_RECOVERY_BY, recoveredBy);
             }
-            store.createOrUpdate(Collection.CLUSTER_NODES, update);
-            return true;
+            ClusterNodeInfoDocument old = store.findAndUpdate(Collection.CLUSTER_NODES, update);
+            return old != null;
         } catch (RuntimeException ex) {
             LOG.error("Failed to acquire the recovery lock for clusterNodeId " + clusterId, ex);
             throw (ex);
@@ -106,11 +113,14 @@ public class MissingLastRevSeeker {
 
     public void releaseRecoveryLock(int clusterId) {
         try {
-            UpdateOp update = new UpdateOp(Integer.toString(clusterId), true);
-            update.set(ClusterNodeInfo.REV_RECOVERY_LOCK, null);
+            UpdateOp update = new UpdateOp(Integer.toString(clusterId), false);
+            update.set(ClusterNodeInfo.REV_RECOVERY_LOCK, RecoverLockState.NONE.name());
             update.set(ClusterNodeInfo.REV_RECOVERY_BY, null);
             update.set(ClusterNodeInfo.STATE, null);
-            store.createOrUpdate(Collection.CLUSTER_NODES, update);
+            ClusterNodeInfoDocument old = store.findAndUpdate(Collection.CLUSTER_NODES, update);
+            if (old == null) {
+                throw new RuntimeException("ClusterNodeInfo document for " + clusterId + " missing.");
+            }
         } catch (RuntimeException ex) {
             LOG.error("Failed to release the recovery lock for clusterNodeId " + clusterId, ex);
             throw (ex);
