@@ -24,10 +24,13 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -80,10 +83,15 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Objects;
 import com.google.common.cache.Cache;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Striped;
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
+import com.mongodb.BulkWriteError;
+import com.mongodb.BulkWriteException;
 import com.mongodb.BulkWriteOperation;
+import com.mongodb.BulkWriteResult;
+import com.mongodb.BulkWriteUpsert;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
@@ -95,6 +103,7 @@ import com.mongodb.WriteResult;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Sets.difference;
 
 /**
  * A document store that uses MongoDB as the backend.
@@ -844,55 +853,112 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     @CheckForNull
+    @Override
     public <T extends Document> List<T> createOrUpdate(Collection<T> collection, List<UpdateOp> updateOps)
             throws DocumentStoreException {
         log("createOrUpdate", updateOps);
         DBCollection dbCollection = getDBCollection(collection);
-        BulkWriteOperation bulk = dbCollection.initializeOrderedBulkOperation();
+
+        List<T> result = null;
 
         final long start = PERFLOG.start();
         List<TreeLock> locks = new ArrayList<TreeLock>(updateOps.size());
-        Map<String, T> docs = new HashMap<String, T>(updateOps.size());
+        Map<String, UpdateOp> operationsToCover = new LinkedHashMap<String, UpdateOp>();
+        Map<String, DBObject> updates = new HashMap<String, DBObject>();
+        for (UpdateOp op : updateOps) {
+            UpdateOp clone = op.copy();
+            operationsToCover.put(op.getId(), clone);
+            updates.put(op.getId(), createUpdate(clone));
+        }
+
         try {
             for (UpdateOp updateOp : updateOps) {
                 locks.add(acquire(updateOp.getId(), collection));
             }
 
+            Map<String, T> oldDocs = new HashMap<String, T>();
             if (collection == Collection.NODES) {
-                for (UpdateOp updateOp : updateOps) {
+                for (UpdateOp op : updateOps) {
                     @SuppressWarnings("unchecked")
-                    T doc = (T) nodesCache.getIfPresent(new StringValue(updateOp.getId()));
-                    if (doc != null) {
-                        docs.put(updateOp.getId(), doc);
+                    T cached = (T) nodesCache.getIfPresent(new StringValue(op.getId()));
+                    if (cached != null) {
+                        oldDocs.put(op.getId(), cached);
                     }
                 }
             }
 
-            List<DBObject> conditions = new ArrayList<DBObject>();
-            for (UpdateOp updateOp : updateOps) {
-                if (docs.containsKey(updateOp.getId())) {
-                    continue;
+            while (!operationsToCover.isEmpty()) {
+                QueryBuilder builder = new QueryBuilder();
+                Set<String> lackingDocs = Sets.difference(operationsToCover.keySet(), oldDocs.keySet());
+                DBObject[] conditions = new DBObject[lackingDocs.size()];
+                int i = 0;
+                for (String docId : lackingDocs) {
+                    UpdateOp op = operationsToCover.get(docId);
+                    QueryBuilder query = createQueryForUpdate(op.getId(), op.getConditions());
+                    conditions[i] = query.get();
                 }
-                QueryBuilder query = createQueryForUpdate(updateOp.getId(), updateOp.getConditions());
-                conditions.add(query.get());
-            }
-            DBObject ref = new BasicDBObject("$or", conditions);
-            DBCursor cursor = dbCollection.find(ref);
-            while (cursor.hasNext()) {
-                T doc = convertFromDBObject(collection, cursor.next());
-                docs.put(doc.getId(), doc);
+                builder.or(conditions);
+                DBCursor cursor = dbCollection.find(builder.get());
+                while (cursor.hasNext()) {
+                    T foundDoc = convertFromDBObject(collection, cursor.next());
+                    oldDocs.put(foundDoc.getId(), foundDoc);
+                }
+
+                BulkWriteOperation bulk = dbCollection.initializeOrderedBulkOperation();
+                String[] bulkIds = new String[operationsToCover.size()];
+                i = 0;
+                for (UpdateOp op : operationsToCover.values()) {
+                    String id = op.getId();
+                    QueryBuilder query = createQueryForUpdate(id, op.getConditions());
+                    query.and(Document.MOD_COUNT).is(oldDocs.get(id).getModCount());
+                    bulk.find(query.get()).upsert().update(updates.get(id));
+                    bulkIds[i++] = id;
+                }
+
+                BulkWriteResult bulkResult;
+                Set<String> failedUpdates = new HashSet<String>();
+                try {
+                    bulkResult = bulk.execute();
+                } catch (BulkWriteException e) {
+                    bulkResult = e.getWriteResult();
+                    for (BulkWriteError err : e.getWriteErrors()) {
+                        failedUpdates.add(bulkIds[err.getIndex()]);
+                    }
+                }
+
+                if (collection == Collection.NODES) {
+                    for (final BulkWriteUpsert upsert : bulkResult.getUpserts()) {
+                        UpdateOp op = operationsToCover.get(bulkIds[upsert.getIndex()]);
+                        NodeDocument doc = (NodeDocument) collection.newDocument(this);
+                        UpdateUtils.applyChanges(doc, op, comparator);
+                        addToCache(doc);
+                    }
+                }
+
+                Set<String> successfulIds = difference(operationsToCover.keySet(), failedUpdates);
+                for (String id : successfulIds) {
+                    T oldDoc = oldDocs.get(id);
+                    putToCache(collection, oldDoc, operationsToCover.get(id));
+                    oldDoc.seal();
+                }
+
+                operationsToCover.keySet().removeAll(successfulIds);
+                oldDocs.keySet().removeAll(failedUpdates);
             }
 
-            
+            result = new ArrayList<T>(oldDocs.size());
+            for (UpdateOp op : updateOps) {
+                result.add(oldDocs.get(op.getId()));
+            }
+
         } finally {
             for (TreeLock l : locks) {
                 l.unlock();
             }
             PERFLOG.end(start, 1, "createOrUpdate [{}]");
         }
-
-        log("createOrUpdate returns ", docs);
-        return docs;
+        log("createOrUpdate returns", result);
+        return result;
     }
 
     @Override

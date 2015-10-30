@@ -275,6 +275,15 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     @Override
+    public <T extends Document> List<T> createOrUpdate(Collection<T> collection, List<UpdateOp> updateOps) {
+        List<T> result = new ArrayList<T>(updateOps.size());
+        for (UpdateOp update : updateOps) {
+            result.add(internalCreateOrUpdate(collection, update, true, false));
+        }
+        return result;
+    }
+
+    @Override
     public <T extends Document> T findAndUpdate(Collection<T> collection, UpdateOp update) {
         return internalCreateOrUpdate(collection, update, false, true);
     }

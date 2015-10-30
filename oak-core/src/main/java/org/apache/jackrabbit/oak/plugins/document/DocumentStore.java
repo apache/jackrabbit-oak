@@ -211,6 +211,8 @@ public interface DocumentStore {
     @CheckForNull
     <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update);
 
+    <T extends Document> List<T> createOrUpdate(Collection<T> collection, List<UpdateOp> updateOps);
+
     /**
      * Performs a conditional update (e.g. using
      * {@link UpdateOp.Condition.Type#EXISTS} and only updates the

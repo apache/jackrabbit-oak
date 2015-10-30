@@ -127,6 +127,13 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
+    public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
+            List<UpdateOp> updateOps) {
+        performLeaseCheck();
+        return delegate.createOrUpdate(collection, updateOps);
+    }
+
+    @Override
     public final <T extends Document> T findAndUpdate(Collection<T> collection,
             UpdateOp update) {
         performLeaseCheck();
