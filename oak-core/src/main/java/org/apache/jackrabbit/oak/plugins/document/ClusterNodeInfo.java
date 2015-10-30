@@ -656,7 +656,7 @@ public class ClusterNodeInfo {
             now = getCurrentTime();
             leaseEndTime = now + leaseTime;
         }
-        UpdateOp update = new UpdateOp("" + id, true);
+        UpdateOp update = new UpdateOp("" + id, false);
         update.set(LEASE_END_KEY, leaseEndTime);
         update.set(STATE, ClusterNodeState.ACTIVE.name());
         ClusterNodeInfoDocument doc = null;
@@ -681,7 +681,7 @@ public class ClusterNodeInfo {
             // this is only for startup - then we 'just' overwrite
             // the lease - or create it - and don't care a lot about what the
             // status of the lease was
-            doc = store.createOrUpdate(Collection.CLUSTER_NODES, update);
+            doc = store.findAndUpdate(Collection.CLUSTER_NODES, update);
         }
         if (doc==null) { // should not occur when leaseCheckDisabled
             // OAK-3398 : someone else either started recovering or is already through with that.
@@ -745,7 +745,7 @@ public class ClusterNodeInfo {
         UpdateOp update = new UpdateOp("" + id, true);
         update.set(LEASE_END_KEY, null);
         update.set(STATE, null);
-        update.set(REV_RECOVERY_LOCK, null);
+        update.set(REV_RECOVERY_LOCK, RecoverLockState.NONE.name());
         store.createOrUpdate(Collection.CLUSTER_NODES, update);
     }
 
