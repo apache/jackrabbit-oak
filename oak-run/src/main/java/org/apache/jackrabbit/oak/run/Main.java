@@ -34,6 +34,7 @@ import java.io.RandomAccessFile;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -69,7 +70,6 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.time.DateUtils;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.benchmark.BenchmarkRunner;
@@ -813,11 +813,13 @@ public final class Main {
         if (options.has(epochArg)) {
             epoch = new Date(epochArg.value(options));
         } else {
-            epoch = new Date(new File(directory, "journal.log").lastModified());
-            epoch = DateUtils.setHours(epoch, 0);
-            epoch = DateUtils.setMinutes(epoch, 0);
-            epoch = DateUtils.setSeconds(epoch, 0);
-            epoch = DateUtils.setMilliseconds(epoch, 0);
+            Calendar c = Calendar.getInstance();
+            c.setTimeInMillis(new File(directory, "journal.log").lastModified());
+            c.set(Calendar.HOUR_OF_DAY, 0);
+            c.set(Calendar.MINUTE, 0);
+            c.set(Calendar.SECOND, 0);
+            c.set(Calendar.MILLISECOND, 0);
+            epoch = c.getTime();
         }
 
         System.out.println("Opening file store at " + directory);
