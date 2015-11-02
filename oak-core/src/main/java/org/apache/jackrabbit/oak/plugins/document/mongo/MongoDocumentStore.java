@@ -887,7 +887,13 @@ public class MongoDocumentStore implements DocumentStore {
                 }
             }
 
+            int iterations = 0;
             while (!operationsToCover.isEmpty()) {
+                if (++iterations > 3) {
+                    // this wil be caught and transformed into BulkUpdateException
+                    throw new DocumentStoreException("Too many iterations: " + iterations);
+                }
+
                 QueryBuilder builder = new QueryBuilder();
                 Set<String> lackingDocs = Sets.difference(operationsToCover.keySet(), oldDocs.keySet());
                 if (!lackingDocs.isEmpty()) {

@@ -371,12 +371,19 @@ public class Commit {
             try {
                 oldDocs = store.createOrUpdate(NODES, changedNodes);
                 opLog.addAll(changedNodes);
-            } catch(BulkUpdateException e) {
+                checkConflicts(oldDocs, changedNodes);
+                checkSplitCandidate(oldDocs);
+            } catch (BulkUpdateException e) {
                 opLog.addAll(e.getAppliedChanges());
-                throw e.getCause();
+
+                // try to apply changes one after another
+                for (UpdateOp op : changedNodes) {
+                    if (!e.getAppliedChanges().contains(op)) {
+                        opLog.add(op);
+                        createOrUpdateNode(store, op);
+                    }
+                }
             }
-            checkConflicts(oldDocs, changedNodes);
-            checkSplitCandidate(oldDocs);
 
             // finally write the commit root, unless it was already written
             // with added nodes (the commit root might be written twice,
