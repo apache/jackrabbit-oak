@@ -1118,7 +1118,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                 continue;
             }
             // was this property touched after baseRevision?
-            for (Revision rev : getValueMap(name).keySet()) {
+            for (Revision rev : getChanges(name, baseRevision, context)) {
                 if (rev.equals(commitRevision)) {
                     continue;
                 }
@@ -1533,6 +1533,59 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                 };
             }
         };
+    }
+
+    /**
+     * Returns all changes for the given property back to {@code min} revision
+     * (exclusive). The revisions include committed as well as uncommitted
+     * changes.
+     *
+     * @param property the name of the property.
+     * @param min the lower bound revision (exclusive).
+     * @param context the revision context.
+     * @return changes back to {@code min} revision.
+     */
+    @Nonnull
+    Iterable<Revision> getChanges(@Nonnull final String property,
+                                  @Nonnull final Revision min,
+                                  @Nonnull final RevisionContext context) {
+        return new Iterable<Revision>() {
+            @Override
+            public Iterator<Revision> iterator() {
+                final Set<Revision> changes = getValueMap(property).keySet();
+                final Set<Integer> clusterIds = Sets.newHashSet();
+                for (Revision r : getLocalMap(property).keySet()) {
+                    clusterIds.add(r.getClusterId());
+                }
+                for (Range r : getPreviousRanges().values()) {
+                    if (isRevisionNewer(context, r.high, min)) {
+                        clusterIds.add(r.high.getClusterId());
+                    }
+                }
+                final Iterator<Revision> unfiltered = changes.iterator();
+                return new AbstractIterator<Revision>() {
+                    @Override
+                    protected Revision computeNext() {
+                        while (unfiltered.hasNext()) {
+                            Revision next = unfiltered.next();
+                            if (isRevisionNewer(context, next, min)) {
+                                return next;
+                            } else {
+                                // further revisions with this clusterId
+                                // are older than min revision
+                                clusterIds.remove(next.getClusterId());
+                                // no more revisions to check
+                                if (clusterIds.isEmpty()) {
+                                    return endOfData();
+                                }
+                            }
+                        }
+                        return endOfData();
+                    }
+                };
+            }
+        };
+
     }
 
     /**
