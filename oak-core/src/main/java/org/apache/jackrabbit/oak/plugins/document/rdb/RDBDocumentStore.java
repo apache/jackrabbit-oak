@@ -55,6 +55,7 @@ import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
+import org.apache.jackrabbit.oak.plugins.document.BulkUpdateException;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
@@ -277,8 +278,14 @@ public class RDBDocumentStore implements DocumentStore {
     @Override
     public <T extends Document> List<T> createOrUpdate(Collection<T> collection, List<UpdateOp> updateOps) {
         List<T> result = new ArrayList<T>(updateOps.size());
+        int i = 0;
         for (UpdateOp update : updateOps) {
-            result.add(internalCreateOrUpdate(collection, update, true, false));
+            try {
+                result.add(internalCreateOrUpdate(collection, update, true, false));
+            } catch (DocumentStoreException e) {
+                throw new BulkUpdateException(e, updateOps.subList(0, i + 1));
+            }
+            i++;
         }
         return result;
     }
