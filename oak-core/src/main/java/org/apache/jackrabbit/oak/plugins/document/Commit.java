@@ -359,14 +359,25 @@ public class Commit {
                     NodeDocument.unsetRevision(commitRoot, revision);
                 }
             }
+
             for (UpdateOp op : changedNodes) {
                 // set commit root on changed nodes. this may even apply
                 // to the commit root. the _commitRoot entry is removed
                 // again when the _revisions entry is set at the end
                 NodeDocument.setCommitRoot(op, revision, commitRootDepth);
-                opLog.add(op);
-                createOrUpdateNode(store, op);
             }
+
+            List<NodeDocument> oldDocs;
+            try {
+                oldDocs = store.createOrUpdate(NODES, changedNodes);
+                opLog.addAll(changedNodes);
+            } catch(BulkUpdateException e) {
+                opLog.addAll(e.getAppliedChanges());
+                throw e.getCause();
+            }
+            checkConflicts(oldDocs, changedNodes);
+            checkSplitCandidate(oldDocs);
+
             // finally write the commit root, unless it was already written
             // with added nodes (the commit root might be written twice,
             // first to check if there was a conflict, and only then to commit
@@ -485,6 +496,12 @@ public class Commit {
         checkSplitCandidate(doc);
     }
 
+    private void checkSplitCandidate(List<NodeDocument> docs) {
+        for (NodeDocument doc : docs) {
+            checkSplitCandidate(doc);
+        }
+    }
+
     private void checkSplitCandidate(@Nullable NodeDocument doc) {
         if (doc != null && doc.getMemory() > SPLIT_CANDIDATE_THRESHOLD) {
             nodeStore.addSplitCandidate(doc.getId());
@@ -578,6 +595,22 @@ public class Commit {
                 }
                 throw new ConflictException(conflictMessage, conflictRevision);
             }
+        }
+    }
+
+    private void checkConflicts(List<NodeDocument> oldDocs, List<UpdateOp> changedNodes) {
+        int i = 0;
+        List<ConflictException> exceptions = new ArrayList<ConflictException>();
+        for (NodeDocument doc : oldDocs) {
+            UpdateOp op = changedNodes.get(i++);
+            try {
+                checkConflicts(op, doc);
+            } catch(ConflictException e) {
+                exceptions.add(e);
+            }
+        }
+        if (!exceptions.isEmpty()) {
+            throw new DocumentStoreException("Following exceptions occurred during the bulk update operations: " + exceptions);
         }
     }
 

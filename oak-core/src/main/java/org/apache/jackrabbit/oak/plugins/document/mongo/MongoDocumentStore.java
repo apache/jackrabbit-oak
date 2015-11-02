@@ -56,6 +56,7 @@ import com.mongodb.ReadPreference;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
+import org.apache.jackrabbit.oak.plugins.document.BulkUpdateException;
 import org.apache.jackrabbit.oak.plugins.document.CachedNodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -85,7 +86,6 @@ import com.google.common.cache.Cache;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Striped;
-import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.BulkWriteError;
 import com.mongodb.BulkWriteException;
@@ -855,7 +855,7 @@ public class MongoDocumentStore implements DocumentStore {
     @CheckForNull
     @Override
     public <T extends Document> List<T> createOrUpdate(Collection<T> collection, List<UpdateOp> updateOps)
-            throws DocumentStoreException {
+            throws BulkUpdateException {
         log("createOrUpdate", updateOps);
         DBCollection dbCollection = getDBCollection(collection);
 
@@ -890,23 +890,25 @@ public class MongoDocumentStore implements DocumentStore {
             while (!operationsToCover.isEmpty()) {
                 QueryBuilder builder = new QueryBuilder();
                 Set<String> lackingDocs = Sets.difference(operationsToCover.keySet(), oldDocs.keySet());
-                DBObject[] conditions = new DBObject[lackingDocs.size()];
-                int i = 0;
-                for (String docId : lackingDocs) {
-                    UpdateOp op = operationsToCover.get(docId);
-                    QueryBuilder query = createQueryForUpdate(op.getId(), op.getConditions());
-                    conditions[i] = query.get();
-                }
-                builder.or(conditions);
-                DBCursor cursor = dbCollection.find(builder.get());
-                while (cursor.hasNext()) {
-                    T foundDoc = convertFromDBObject(collection, cursor.next());
-                    oldDocs.put(foundDoc.getId(), foundDoc);
+                if (!lackingDocs.isEmpty()) {
+                    DBObject[] conditions = new DBObject[lackingDocs.size()];
+                    int i = 0;
+                    for (String docId : lackingDocs) {
+                        UpdateOp op = operationsToCover.get(docId);
+                        QueryBuilder query = createQueryForUpdate(op.getId(), op.getConditions());
+                        conditions[i] = query.get();
+                    }
+                    builder.or(conditions);
+                    DBCursor cursor = dbCollection.find(builder.get());
+                    while (cursor.hasNext()) {
+                        T foundDoc = convertFromDBObject(collection, cursor.next());
+                        oldDocs.put(foundDoc.getId(), foundDoc);
+                    }
                 }
 
                 BulkWriteOperation bulk = dbCollection.initializeOrderedBulkOperation();
                 String[] bulkIds = new String[operationsToCover.size()];
-                i = 0;
+                int i = 0;
                 for (UpdateOp op : operationsToCover.values()) {
                     String id = op.getId();
                     QueryBuilder query = createQueryForUpdate(id, op.getConditions());
@@ -951,6 +953,14 @@ public class MongoDocumentStore implements DocumentStore {
                 result.add(oldDocs.get(op.getId()));
             }
 
+        } catch (DocumentStoreException e) {
+            List<UpdateOp> appliedChanges = new ArrayList<UpdateOp>(updateOps.size() - operationsToCover.size());
+            for (UpdateOp op : updateOps) {
+                if (!operationsToCover.containsKey(op.getId())) {
+                    appliedChanges.add(op);
+                }
+            }
+            throw new BulkUpdateException(e, appliedChanges);
         } finally {
             for (TreeLock l : locks) {
                 l.unlock();
