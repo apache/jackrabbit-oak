@@ -608,16 +608,20 @@ public class Commit {
     private void checkConflicts(List<NodeDocument> oldDocs, List<UpdateOp> changedNodes) {
         int i = 0;
         List<ConflictException> exceptions = new ArrayList<ConflictException>();
+        List<Revision> revisions = new ArrayList<Revision>();
         for (NodeDocument doc : oldDocs) {
             UpdateOp op = changedNodes.get(i++);
             try {
                 checkConflicts(op, doc);
-            } catch(ConflictException e) {
+            } catch (ConflictException e) {
                 exceptions.add(e);
+                if (e.getConflictRevisions() != null) {
+                    revisions.addAll(e.getConflictRevisions());
+                }
             }
         }
         if (!exceptions.isEmpty()) {
-            throw new DocumentStoreException("Following exceptions occurred during the bulk update operations: " + exceptions);
+            throw new ConflictException("Following exceptions occurred during the bulk update operations: " + exceptions, revisions);
         }
     }
 
