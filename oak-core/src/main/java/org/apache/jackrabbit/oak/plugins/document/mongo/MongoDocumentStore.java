@@ -894,7 +894,6 @@ public class MongoDocumentStore implements DocumentStore {
                     throw new DocumentStoreException("Too many iterations: " + iterations);
                 }
 
-                QueryBuilder builder = new QueryBuilder();
                 Set<String> lackingDocs = Sets.difference(operationsToCover.keySet(), oldDocs.keySet());
                 if (!lackingDocs.isEmpty()) {
                     DBObject[] conditions = new DBObject[lackingDocs.size()];
@@ -902,8 +901,10 @@ public class MongoDocumentStore implements DocumentStore {
                     for (String docId : lackingDocs) {
                         UpdateOp op = operationsToCover.get(docId);
                         QueryBuilder query = createQueryForUpdate(op.getId(), op.getConditions());
-                        conditions[i] = query.get();
+                        conditions[i++] = query.get();
                     }
+
+                    QueryBuilder builder = new QueryBuilder();
                     builder.or(conditions);
                     DBCursor cursor = dbCollection.find(builder.get());
                     while (cursor.hasNext()) {
