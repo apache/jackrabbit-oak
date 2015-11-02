@@ -45,6 +45,7 @@ import java.util.UUID;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -138,15 +139,84 @@ public final class FileStoreHelper {
             }
 
             // Graph of segments containing the head state
-            Map<UUID, Set<UUID>> headGraph = newHashMap();
-            collectSegments(root, headGraph);
-
-            // All segments containing the head state
-            Set<UUID> headSegments = newHashSet();
-            for (Entry<UUID, Set<UUID>> entry : headGraph.entrySet()) {
-                headSegments.add(entry.getKey());
-                headSegments.addAll(entry.getValue());
-            }
+            final Map<UUID, Set<UUID>> headGraph = newHashMap();
+            final Set<UUID> headSegments = newHashSet();
+            new SegmentParser() {
+                private void addEdge(RecordId from, RecordId to) {
+                    UUID fromUUID = from.asUUID();
+                    UUID toUUID = to.asUUID();
+                    if (!fromUUID.equals(toUUID)) {
+                        Set<UUID> tos = headGraph.get(fromUUID);
+                        if (tos == null) {
+                            tos = newHashSet();
+                            headGraph.put(fromUUID, tos);
+                        }
+                        tos.add(toUUID);
+                        headSegments.add(fromUUID);
+                        headSegments.add(toUUID);
+                    }
+                }
+                @Override
+                protected void onNode(RecordId parentId, RecordId nodeId) {
+                    super.onNode(parentId, nodeId);
+                    addEdge(parentId, nodeId);
+                }
+                @Override
+                protected void onTemplate(RecordId parentId, RecordId templateId) {
+                    super.onTemplate(parentId, templateId);
+                    addEdge(parentId, templateId);
+                }
+                @Override
+                protected void onMap(RecordId parentId, RecordId mapId, MapRecord map) {
+                    super.onMap(parentId, mapId, map);
+                    addEdge(parentId, mapId);
+                }
+                @Override
+                protected void onMapDiff(RecordId parentId, RecordId mapId, MapRecord map) {
+                    super.onMapDiff(parentId, mapId, map);
+                    addEdge(parentId, mapId);
+                }
+                @Override
+                protected void onMapLeaf(RecordId parentId, RecordId mapId, MapRecord map) {
+                    super.onMapLeaf(parentId, mapId, map);
+                    addEdge(parentId, mapId);
+                }
+                @Override
+                protected void onMapBranch(RecordId parentId, RecordId mapId, MapRecord map) {
+                    super.onMapBranch(parentId, mapId, map);
+                    addEdge(parentId, mapId);
+                }
+                @Override
+                protected void onProperty(RecordId parentId, RecordId propertyId, PropertyTemplate template) {
+                    super.onProperty(parentId, propertyId, template);
+                    addEdge(parentId, propertyId);
+                }
+                @Override
+                protected void onValue(RecordId parentId, RecordId valueId, Type<?> type) {
+                    super.onValue(parentId, valueId, type);
+                    addEdge(parentId, valueId);
+                }
+                @Override
+                protected void onBlob(RecordId parentId, RecordId blobId) {
+                    super.onBlob(parentId, blobId);
+                    addEdge(parentId, blobId);
+                }
+                @Override
+                protected void onString(RecordId parentId, RecordId stringId) {
+                    super.onString(parentId, stringId);
+                    addEdge(parentId, stringId);
+                }
+                @Override
+                protected void onList(RecordId parentId, RecordId listId, int count) {
+                    super.onList(parentId, listId, count);
+                    addEdge(parentId, listId);
+                }
+                @Override
+                protected void onListBucket(RecordId parentId, RecordId listId, int index, int count, int capacity) {
+                    super.onListBucket(parentId, listId, index, count, capacity);
+                    addEdge(parentId, listId);
+                }
+            }.parseNode(root.getRecordId());
 
             writer.write("nodedef>name VARCHAR, label VARCHAR, type VARCHAR, wid VARCHAR, gc INT, t INT, head BOOLEAN\n");
             for (UUID segment : segments) {
