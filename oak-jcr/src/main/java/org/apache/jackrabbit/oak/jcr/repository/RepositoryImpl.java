@@ -43,6 +43,7 @@ import javax.jcr.Value;
 import javax.security.auth.login.LoginException;
 
 import com.google.common.collect.ImmutableMap;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
@@ -73,11 +74,6 @@ import org.slf4j.LoggerFactory;
 public class RepositoryImpl implements JackrabbitRepository {
 
     /**
-     * logger instance
-     */
-    private static final Logger log = LoggerFactory.getLogger(RepositoryImpl.class);
-
-    /**
      * Name of the session attribute value determining the session refresh
      * interval in seconds.
      *
@@ -92,13 +88,19 @@ public class RepositoryImpl implements JackrabbitRepository {
      */
     public static final String RELAXED_LOCKING = "oak.relaxed-locking";
 
+    /**
+     * logger instance
+     */
+    private static final Logger log = LoggerFactory.getLogger(RepositoryImpl.class);
+
+    protected final Whiteboard whiteboard;
+    protected final boolean fastQueryResultSize;
     private final GenericDescriptors descriptors;
     private final ContentRepository contentRepository;
-    protected final Whiteboard whiteboard;
     private final SecurityProvider securityProvider;
     private final int observationQueueLength;
     private final CommitRateLimiter commitRateLimiter;
-    private final Clock clock;
+    private final Clock.Fast clock;
     private final DelegatingGCMonitor gcMonitor = new DelegatingGCMonitor();
     private final Registration gcMonitorRegistration;
 
@@ -120,11 +122,24 @@ public class RepositoryImpl implements JackrabbitRepository {
 
     private final StatisticManager statisticManager;
 
+    /**
+     * Constructor used for backward compatibility.
+     */
     public RepositoryImpl(@Nonnull ContentRepository contentRepository,
                           @Nonnull Whiteboard whiteboard,
                           @Nonnull SecurityProvider securityProvider,
                           int observationQueueLength,
                           CommitRateLimiter commitRateLimiter) {
+        this(contentRepository, whiteboard, securityProvider, 
+                observationQueueLength, commitRateLimiter, false);
+    }
+    
+    public RepositoryImpl(@Nonnull ContentRepository contentRepository,
+                          @Nonnull Whiteboard whiteboard,
+                          @Nonnull SecurityProvider securityProvider,
+                          int observationQueueLength,
+                          CommitRateLimiter commitRateLimiter,
+                          boolean fastQueryResultSize) {
         this.contentRepository = checkNotNull(contentRepository);
         this.whiteboard = checkNotNull(whiteboard);
         this.securityProvider = checkNotNull(securityProvider);
@@ -134,6 +149,7 @@ public class RepositoryImpl implements JackrabbitRepository {
         this.statisticManager = new StatisticManager(whiteboard, scheduledExecutor);
         this.clock = new Clock.Fast(scheduledExecutor);
         this.gcMonitorRegistration = whiteboard.register(GCMonitor.class, gcMonitor, emptyMap());
+        this.fastQueryResultSize = fastQueryResultSize;
     }
 
     //---------------------------------------------------------< Repository >---
@@ -302,9 +318,25 @@ public class RepositoryImpl implements JackrabbitRepository {
     public void shutdown() {
         statisticManager.dispose();
         gcMonitorRegistration.unregister();
-        scheduledExecutor.shutdown();
+        clock.close();
+        closeExecutor();
         if (contentRepository instanceof Closeable) {
             IOUtils.closeQuietly((Closeable) contentRepository);
+        }
+    }
+
+    private void closeExecutor() {
+        try {
+            scheduledExecutor.shutdown();
+            scheduledExecutor.awaitTermination(5, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            log.error("Error while shutting down the executorService", e);
+            Thread.currentThread().interrupt();
+        } finally {
+            if (!scheduledExecutor.isTerminated()) {
+                log.warn("executorService didn't shutdown properly. Will be forced now.");
+            }
+            scheduledExecutor.shutdownNow();
         }
     }
 
@@ -322,7 +354,7 @@ public class RepositoryImpl implements JackrabbitRepository {
             Map<String, Object> attributes, SessionDelegate delegate, int observationQueueLength,
             CommitRateLimiter commitRateLimiter) {
         return new SessionContext(this, statisticManager, securityProvider, whiteboard, attributes,
-                delegate, observationQueueLength, commitRateLimiter);
+                delegate, observationQueueLength, commitRateLimiter, fastQueryResultSize);
     }
 
     /**

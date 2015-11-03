@@ -22,21 +22,16 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import java.util.concurrent.TimeUnit;
 
 import com.mongodb.ReadPreference;
+
+import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
-import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
-import org.junit.After;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -45,10 +40,7 @@ import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStor
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-public class ReadPreferenceIT {
-
-    private DocumentNodeStore documentNodeStore;
-    private NodeStore nodeStore;
+public class ReadPreferenceIT extends AbstractMongoConnectionTest {
 
     private MongoDocumentStore mongoDS;
 
@@ -56,28 +48,18 @@ public class ReadPreferenceIT {
 
     private long replicationLag;
 
-    @BeforeClass
-    public static void checkMongoDbAvailable() {
-        Assume.assumeNotNull(MongoUtils.getConnection());
-    }
-
-    @Before
-    public void prepareStores() throws Exception {
+    @Override
+    public void setUpConnection() throws Exception {
         clock = new Clock.Virtual();
         replicationLag = TimeUnit.SECONDS.toMillis(10);
-        MongoConnection mc = MongoUtils.getConnection();
-        documentNodeStore = new DocumentMK.Builder()
+        mongoConnection = connectionFactory.getConnection();
+        mk = new DocumentMK.Builder()
                 .setMaxReplicationLag(replicationLag, TimeUnit.MILLISECONDS)
-                .setMongoDB(mc.getDB())
+                .setMongoDB(mongoConnection.getDB())
                 .setClusterId(1)
-                .getNodeStore();
-        mongoDS = (MongoDocumentStore) documentNodeStore.getDocumentStore();
-        nodeStore = documentNodeStore;
-    }
-
-    @After
-    public void clearDB() {
-        MongoUtils.dropCollections(mongoDS.getDBCollection(NODES).getDB());
+                .setLeaseCheck(false)
+                .open();
+        mongoDS = (MongoDocumentStore) mk.getDocumentStore();
     }
 
     @Test
@@ -131,6 +113,7 @@ public class ReadPreferenceIT {
         ReadPreference testPref = ReadPreference.secondary();
         mongoDS.getDBCollection(NODES).getDB().setReadPreference(testPref);
 
+        NodeStore nodeStore = mk.getNodeStore();
         NodeBuilder b1 = nodeStore.getRoot().builder();
         b1.child("x").child("y");
         nodeStore.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);

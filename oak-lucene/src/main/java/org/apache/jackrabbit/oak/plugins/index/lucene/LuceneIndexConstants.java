@@ -26,6 +26,8 @@ public interface LuceneIndexConstants {
 
     String INDEX_DATA_CHILD_NAME = ":data";
 
+    String TRASH_CHILD_NAME = ":trash";
+
     Version VERSION = Version.LUCENE_47;
 
     Analyzer ANALYZER = new OakAnalyzer(VERSION);
@@ -79,6 +81,11 @@ public interface LuceneIndexConstants {
      * be performed with same property then it must be part of include list also
      */
     String ORDERED_PROP_NAMES = "orderedProps";
+
+    /**
+     * Actively the data store files after this many hours.
+     */
+    String ACTIVE_DELETE = "activeDelete";
 
     /**
      * Size in bytes used for splitting the index files when storing them in NodeStore
@@ -255,6 +262,12 @@ public interface LuceneIndexConstants {
      * 'IS NOT NULL' constraint
      */
     String PROP_NOT_NULL_CHECK_ENABLED = "notNullCheckEnabled";
+
+    /**
+     * IndexRule level config to indicate that Node name should also be index
+     * to support fn:name() queries
+     */
+    String INDEX_NODE_NAME = "indexNodeName";
 
     /**
      * Boolean property indicating that Lucene directory content

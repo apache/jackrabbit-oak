@@ -54,7 +54,7 @@ import java.io.IOException;
  */
 public class RepeatedRepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
 
-    private static boolean upgradeComplete;
+    protected static boolean upgradeComplete;
     private static FileStore fileStore;
 
     @Override
@@ -88,10 +88,12 @@ public class RepeatedRepositoryUpgradeTest extends AbstractRepositoryUpgradeTest
             sourceDir.mkdirs();
 
             RepositoryImpl source = createSourceRepository(sourceDir);
-
+            Session session = source.login(CREDENTIALS);
             try {
-                createSourceContent(source);
+                createSourceContent(session);
             } finally {
+                session.save();
+                session.logout();
                 source.shutdown();
             }
 
@@ -101,9 +103,12 @@ public class RepeatedRepositoryUpgradeTest extends AbstractRepositoryUpgradeTest
 
             // re-create source repo
             source = createSourceRepository(sourceDir);
+            session = source.login(CREDENTIALS);
             try {
-                modifySourceContent(source);
+                modifySourceContent(session);
             } finally {
+                session.save();
+                session.logout();
                 source.shutdown();
             }
 
@@ -115,7 +120,7 @@ public class RepeatedRepositoryUpgradeTest extends AbstractRepositoryUpgradeTest
     }
 
     @Override
-    protected void doUpgradeRepository(File source, NodeStore target) throws RepositoryException {
+    protected void doUpgradeRepository(File source, NodeStore target) throws RepositoryException, IOException {
         final RepositoryConfig config = RepositoryConfig.create(source);
         final RepositoryContext context = RepositoryContext.create(config);
         try {
@@ -132,44 +137,26 @@ public class RepeatedRepositoryUpgradeTest extends AbstractRepositoryUpgradeTest
     }
 
     @Override
-    protected void createSourceContent(Repository repository) throws RepositoryException {
-        Session session = null;
-        try {
-            session = repository.login(CREDENTIALS);
+    protected void createSourceContent(Session session) throws RepositoryException {
+        registerCustomPrivileges(session);
 
-            registerCustomPrivileges(session);
+        JcrUtils.getOrCreateByPath("/content/child1/grandchild1", "nt:unstructured", session);
+        JcrUtils.getOrCreateByPath("/content/child1/grandchild2", "nt:unstructured", session);
+        JcrUtils.getOrCreateByPath("/content/child1/grandchild3", "nt:unstructured", session);
+        JcrUtils.getOrCreateByPath("/content/child2/grandchild1", "nt:unstructured", session);
+        JcrUtils.getOrCreateByPath("/content/child2/grandchild2", "nt:unstructured", session);
 
-            JcrUtils.getOrCreateByPath("/content/child1/grandchild1", "nt:unstructured", session);
-            JcrUtils.getOrCreateByPath("/content/child1/grandchild2", "nt:unstructured", session);
-            JcrUtils.getOrCreateByPath("/content/child1/grandchild3", "nt:unstructured", session);
-            JcrUtils.getOrCreateByPath("/content/child2/grandchild1", "nt:unstructured", session);
-            JcrUtils.getOrCreateByPath("/content/child2/grandchild2", "nt:unstructured", session);
-
-            session.save();
-        } finally {
-            if (session != null && session.isLive()) {
-                session.logout();
-            }
-        }
+        session.save();
     }
 
-    private void modifySourceContent(Repository repository) throws RepositoryException {
-        Session session = null;
-        try {
-            session = repository.login(CREDENTIALS);
+    protected void modifySourceContent(Session session) throws RepositoryException {
+        JcrUtils.getOrCreateByPath("/content/child2/grandchild3", "nt:unstructured", session);
+        JcrUtils.getOrCreateByPath("/content/child3", "nt:unstructured", session);
 
-            JcrUtils.getOrCreateByPath("/content/child2/grandchild3", "nt:unstructured", session);
-            JcrUtils.getOrCreateByPath("/content/child3", "nt:unstructured", session);
+        final Node child1 = JcrUtils.getOrCreateByPath("/content/child1", "nt:unstructured", session);
+        child1.remove();
 
-            final Node child1 = JcrUtils.getOrCreateByPath("/content/child1", "nt:unstructured", session);
-            child1.remove();
-
-            session.save();
-        } finally {
-            if (session != null && session.isLive()) {
-                session.logout();
-            }
-        }
+        session.save();
     }
 
     private void registerCustomPrivileges(Session session) throws RepositoryException {

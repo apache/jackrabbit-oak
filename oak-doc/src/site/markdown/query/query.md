@@ -17,7 +17,7 @@
 
 ## The Query Engine
 
-Oak does not index content by default as does Jackrabbit 2. You need to create custom 
+Oak does not index as much content by default as does Jackrabbit 2. You need to create custom 
 indexes when necessary, much like in traditional RDBMSs. If there is no index for a 
 specific query, then the repository will be traversed. That is, the query will still 
 work but probably be very slow.
@@ -266,6 +266,14 @@ To define a property index on a subtree you have to add an index definition node
     This is a multi-valued property, and must not be empty.
     It usually contains only _one_ property name.
     All nodes that have _any_ of those properties are stored in this index.
+* `includedPaths` (String, multi-valued):
+    the paths that are included ('/' if not set).
+    The index is only used if the query has a path restriction that is not excluded,
+    and part of the included paths.
+* `excludedPaths` (String, multi-valued):
+    the paths where this index is excluded (none if not set).
+    The index is only used if the query has a path restriction that is not excluded,
+    and part of the included paths.
     
 It is recommended to index one property per index.
 (If multiple properties are indexed within one index, 
@@ -282,7 +290,8 @@ Optionally you can specify:
 * `entryCount` (Long): the estimated number of path entries in the index, 
   to override the cost estimation (a high entry count means a high cost).
 * `keyCount` (Long), the estimated number of keys in the index,
-  to override the cost estimation (a high key count means a lower cost,
+  to override the cost estimation (a high key count means a lower cost and
+  a low key count means a high cost
   when searching for specific keys; has no effect when searching for "is not null").
 * `reindex` (Boolean): if set to `true`, the full content is re-indexed.
   This can take a long time, and is run synchronously with storing the index
@@ -384,3 +393,11 @@ The structure of the index is specific to each implementation and is subject to 
 flavors store the content as unstructured nodes (clear readable text), the _Lucene_ index is stored as binaries, so one would need to export the
 entire Lucene directory to the local file system and browse it using a dedicated tool.
 
+### SQL2 Optimisation
+
+    @since 1.3.9 with -Doak.query.sql2optimisation
+
+if enabled by providing `-Doak.query.sql2optimisation` at start-up, it
+will perform a round of optimisation on the `Query` object obtained
+after parsing a SQL2 statement. It will for example attempt a
+conversion of OR conditions into UNION (OAK-1617).

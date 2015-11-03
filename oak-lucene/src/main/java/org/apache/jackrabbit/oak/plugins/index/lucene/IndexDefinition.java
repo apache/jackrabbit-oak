@@ -79,6 +79,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ENTRY_COUNT_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ACTIVE_DELETE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.BLOB_SIZE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.COMPAT_MODE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EVALUATE_PATH_RESTRICTION;
@@ -107,6 +108,12 @@ class IndexDefinition implements Aggregate.AggregateMapper{
     private static final String OAK_CHILD_ORDER = ":childOrder";
 
     private static final Logger log = LoggerFactory.getLogger(IndexDefinition.class);
+
+    /**
+     * Default number of seconds after which to delete actively. Default is -1, meaning disabled.
+     * The plan is to use 3600 (1 hour) in the future.
+     */
+    static final int DEFAULT_ACTIVE_DELETE = -1; // 60 * 60;
 
     /**
      * Blob size to use by default. To avoid issues in OAK-2105 the size should not
@@ -151,6 +158,8 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
     private final String funcName;
 
+    private final int activeDelete;
+    
     private final int blobSize;
 
     private final Codec codec;
@@ -227,6 +236,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         this.definition = defn;
         this.indexName = determineIndexName(defn, indexPath);
         this.blobSize = getOptionalValue(defn, BLOB_SIZE, DEFAULT_BLOB_SIZE);
+        this.activeDelete = getOptionalValue(defn, ACTIVE_DELETE, DEFAULT_ACTIVE_DELETE);
         this.testMode = getOptionalValue(defn, LuceneIndexConstants.TEST_MODE, false);
 
         this.aggregates = collectAggregates(defn);
@@ -624,7 +634,9 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         private final List<NamePattern> namePatterns;
         private final List<PropertyDefinition> nullCheckEnabledProperties;
         private final List<PropertyDefinition> notNullCheckEnabledProperties;
+        private final List<PropertyDefinition> nodeScopeAnalyzedProps;
         private final boolean indexesAllNodesOfMatchingType;
+        private final boolean nodeNameIndexed;
 
         final float boost;
         final boolean inherited;
@@ -646,17 +658,21 @@ class IndexDefinition implements Aggregate.AggregateMapper{
             List<NamePattern> namePatterns = newArrayList();
             List<PropertyDefinition> nonExistentProperties = newArrayList();
             List<PropertyDefinition> existentProperties = newArrayList();
+            List<PropertyDefinition> nodeScopeAnalyzedProps = newArrayList();
             List<Aggregate.Include> propIncludes = newArrayList();
-            this.propConfigs = collectPropConfigs(config, namePatterns, propIncludes, nonExistentProperties, existentProperties);
+            this.propConfigs = collectPropConfigs(config, namePatterns, propIncludes, nonExistentProperties,
+                    existentProperties, nodeScopeAnalyzedProps);
             this.propAggregate = new Aggregate(nodeTypeName, propIncludes);
             this.aggregate = combine(propAggregate, nodeTypeName);
 
             this.namePatterns = ImmutableList.copyOf(namePatterns);
+            this.nodeScopeAnalyzedProps = ImmutableList.copyOf(nodeScopeAnalyzedProps);
             this.nullCheckEnabledProperties = ImmutableList.copyOf(nonExistentProperties);
             this.notNullCheckEnabledProperties = ImmutableList.copyOf(existentProperties);
             this.fulltextEnabled = aggregate.hasNodeAggregates() || hasAnyFullTextEnabledProperty();
             this.propertyIndexEnabled = hasAnyPropertyIndexConfigured();
             this.indexesAllNodesOfMatchingType = allMatchingNodeByTypeIndexed();
+            this.nodeNameIndexed = getOptionalValue(config, LuceneIndexConstants.INDEX_NODE_NAME, false);
             validateRuleDefinition();
         }
 
@@ -679,9 +695,11 @@ class IndexDefinition implements Aggregate.AggregateMapper{
             this.propAggregate = original.propAggregate;
             this.nullCheckEnabledProperties = original.nullCheckEnabledProperties;
             this.notNullCheckEnabledProperties = original.notNullCheckEnabledProperties;
+            this.nodeScopeAnalyzedProps = original.nodeScopeAnalyzedProps;
             this.aggregate = combine(propAggregate, nodeTypeName);
             this.fulltextEnabled = aggregate.hasNodeAggregates() || original.fulltextEnabled;
             this.indexesAllNodesOfMatchingType = allMatchingNodeByTypeIndexed();
+            this.nodeNameIndexed = original.nodeNameIndexed;
         }
 
         /**
@@ -714,6 +732,10 @@ class IndexDefinition implements Aggregate.AggregateMapper{
             return notNullCheckEnabledProperties;
         }
 
+        public List<PropertyDefinition> getNodeScopeAnalyzedProps() {
+            return nodeScopeAnalyzedProps;
+        }
+
         @Override
         public String toString() {
             String str = "IndexRule: "+ nodeTypeName;
@@ -736,6 +758,12 @@ class IndexDefinition implements Aggregate.AggregateMapper{
          *         <code>false</code> otherwise.
          */
         public boolean appliesTo(Tree state) {
+            for (String mixinName : getMixinTypeNames(state)){
+                if (nodeTypeName.equals(mixinName)){
+                    return true;
+                }
+            }
+
             if (!nodeTypeName.equals(getPrimaryTypeName(state))) {
                 return false;
             }
@@ -753,6 +781,10 @@ class IndexDefinition implements Aggregate.AggregateMapper{
             //return condition == null || condition.evaluate(state);
             return true;
 
+        }
+
+        public boolean isNodeNameIndexed() {
+            return nodeNameIndexed;
         }
 
         public boolean isFulltextEnabled() {
@@ -808,7 +840,8 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         private Map<String, PropertyDefinition> collectPropConfigs(NodeState config, List<NamePattern> patterns,
                                                                    List<Aggregate.Include> propAggregate,
                                                                    List<PropertyDefinition> nonExistentProperties,
-                                                                   List<PropertyDefinition> existentProperties) {
+                                                                   List<PropertyDefinition> existentProperties,
+                                                                   List<PropertyDefinition> nodeScopeAnalyzedProps) {
             Map<String, PropertyDefinition> propDefns = newHashMap();
             NodeState propNode = config.getChildNode(LuceneIndexConstants.PROP_NODE);
 
@@ -844,6 +877,13 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
                     if (pd.notNullCheckEnabled){
                         existentProperties.add(pd);
+                    }
+
+                    //Include props with name, boosted and nodeScopeIndex
+                    if (pd.nodeScopeIndex
+                            && pd.analyzed
+                            && !pd.isRegexp){
+                        nodeScopeAnalyzedProps.add(pd);
                     }
                 }
             }
@@ -1218,7 +1258,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
     }
 
     private static Iterable<String> getMixinTypeNames(Tree tree) {
-        PropertyState property = tree.getProperty(JcrConstants.JCR_MIMETYPE);
+        PropertyState property = tree.getProperty(JcrConstants.JCR_MIXINTYPES);
         return property != null ? property.getValue(Type.NAMES) : Collections.<String>emptyList();
     }
 
@@ -1363,6 +1403,10 @@ class IndexDefinition implements Aggregate.AggregateMapper{
             return defn.getProperty(REINDEX_COUNT).getValue(Type.LONG);
         }
         return 0;
+    }
+
+    public boolean getActiveDeleteEnabled() {
+        return activeDelete >= 0;
     }
 
 }

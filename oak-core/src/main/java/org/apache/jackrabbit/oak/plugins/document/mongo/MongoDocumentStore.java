@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,7 @@ import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -66,9 +68,6 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
-import org.apache.jackrabbit.oak.plugins.document.cache.ForwardingListener;
-import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocOffHeapCache;
-import org.apache.jackrabbit.oak.plugins.document.cache.OffHeapCache;
 import org.apache.jackrabbit.oak.plugins.document.mongo.CacheInvalidator.InvalidationResult;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -79,8 +78,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Objects;
 import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Striped;
 import com.mongodb.BasicDBObject;
@@ -122,6 +119,8 @@ public class MongoDocumentStore implements DocumentStore {
     private final DBCollection settings;
     private final DBCollection journal;
 
+    private final DB db;
+
     private final Cache<CacheValue, NodeDocument> nodesCache;
     private final CacheStats cacheStats;
 
@@ -139,6 +138,11 @@ public class MongoDocumentStore implements DocumentStore {
      * (exclusive) lock for the parent key. See OAK-1897.
      */
     private final Striped<ReadWriteLock> parentLocks = Striped.readWriteLock(64);
+
+    /**
+     * Counts how many times {@link TreeLock}s were acquired.
+     */
+    private final AtomicLong lockAcquisitionCounter = new AtomicLong();
 
     /**
      * Comparator for maps with {@link Revision} keys. The maps are ordered
@@ -200,6 +204,7 @@ public class MongoDocumentStore implements DocumentStore {
                 .put("version", version)
                 .build();
 
+        this.db = db;
         nodes = db.getCollection(Collection.NODES.toString());
         clusterNodes = db.getCollection(Collection.CLUSTER_NODES.toString());
         settings = db.getCollection(Collection.SETTINGS.toString());
@@ -214,7 +219,7 @@ public class MongoDocumentStore implements DocumentStore {
         index.put(NodeDocument.MODIFIED_IN_SECS, -1L);
         DBObject options = new BasicDBObject();
         options.put("unique", Boolean.FALSE);
-        nodes.ensureIndex(index, options);
+        nodes.createIndex(index, options);
 
         // index on the _bin flag to faster access nodes with binaries for GC
         index = new BasicDBObject();
@@ -222,35 +227,30 @@ public class MongoDocumentStore implements DocumentStore {
         options = new BasicDBObject();
         options.put("unique", Boolean.FALSE);
         options.put("sparse", Boolean.TRUE);
-        this.nodes.ensureIndex(index, options);
+        this.nodes.createIndex(index, options);
 
         index = new BasicDBObject();
         index.put(NodeDocument.DELETED_ONCE, 1);
         options = new BasicDBObject();
         options.put("unique", Boolean.FALSE);
         options.put("sparse", Boolean.TRUE);
-        this.nodes.ensureIndex(index, options);
+        this.nodes.createIndex(index, options);
 
         index = new BasicDBObject();
         index.put(NodeDocument.SD_TYPE, 1);
         options = new BasicDBObject();
         options.put("unique", Boolean.FALSE);
         options.put("sparse", Boolean.TRUE);
-        this.nodes.ensureIndex(index, options);
+        this.nodes.createIndex(index, options);
 
         index = new BasicDBObject();
         index.put(JournalEntry.MODIFIED, 1);
         options = new BasicDBObject();
         options.put("unique", Boolean.FALSE);
-        this.journal.ensureIndex(index, options);
+        this.journal.createIndex(index, options);
 
-        // TODO expire entries if the parent was changed
-        if (builder.useOffHeapCache()) {
-            nodesCache = createOffHeapCache(builder);
-        } else {
-            nodesCache = builder.buildDocumentCache(this);
-        }
 
+        nodesCache = builder.buildDocumentCache(this);
         cacheStats = new CacheStats(nodesCache, "Document-Documents", builder.getWeigher(),
                 builder.getDocumentCacheSize());
         LOG.info("Configuration maxReplicationLagMillis {}, " +
@@ -276,20 +276,6 @@ public class MongoDocumentStore implements DocumentStore {
         }
 
         return version;
-    }
-
-    private Cache<CacheValue, NodeDocument> createOffHeapCache(
-            DocumentMK.Builder builder) {
-        ForwardingListener<CacheValue, NodeDocument> listener = ForwardingListener.newInstance();
-
-        Cache<CacheValue, NodeDocument> primaryCache = CacheBuilder.newBuilder()
-                .weigher(builder.getWeigher())
-                .maximumWeight(builder.getDocumentCacheSize())
-                .removalListener(listener)
-                .recordStats()
-                .build();
-
-        return new NodeDocOffHeapCache(primaryCache, listener, builder, this);
     }
 
     @Override
@@ -891,8 +877,19 @@ public class MongoDocumentStore implements DocumentStore {
                             throw new IllegalStateException(
                                     "SET_MAP_ENTRY must not have null revision");
                         }
-                        DBObject value = new RevisionEntry(r, op.value);
-                        inserts[i].put(k.getName(), value);
+                        DBObject value = (DBObject) inserts[i].get(k.getName());
+                        if (value == null) {
+                            value = new RevisionEntry(r, op.value);
+                            inserts[i].put(k.getName(), value);
+                        } else if (value.keySet().size() == 1) {
+                            String key = value.keySet().iterator().next();
+                            Object val = value.get(key);
+                            value = new BasicDBObject(key, val);
+                            value.put(r.toString(), op.value);
+                            inserts[i].put(k.getName(), value);
+                        } else {
+                            value.put(r.toString(), op.value);
+                        }
                         break;
                     }
                     case REMOVE_MAP_ENTRY:
@@ -910,10 +907,7 @@ public class MongoDocumentStore implements DocumentStore {
         final long start = PERFLOG.start();
         try {
             try {
-                WriteResult writeResult = dbCollection.insert(inserts);
-                if (writeResult.getError() != null) {
-                    return false;
-                }
+                dbCollection.insert(inserts);
                 if (collection == Collection.NODES) {
                     for (T doc : docs) {
                         TreeLock lock = acquire(doc.getId(), collection);
@@ -953,10 +947,7 @@ public class MongoDocumentStore implements DocumentStore {
                 }
             }
             try {
-                WriteResult writeResult = dbCollection.update(query.get(), update, false, true);
-                if (writeResult.getError() != null) {
-                    throw new DocumentStoreException("Update failed: " + writeResult.getError());
-                }
+                dbCollection.update(query.get(), update, false, true);
                 if (collection == Collection.NODES) {
                     // update cache
                     for (Entry<String, NodeDocument> entry : cachedDocs.entrySet()) {
@@ -1130,17 +1121,10 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     Iterable<? extends Map.Entry<CacheValue, ? extends CachedNodeDocument>> getCacheEntries() {
-        if (nodesCache instanceof OffHeapCache) {
-            return Iterables.concat(nodesCache.asMap().entrySet(), ((OffHeapCache) nodesCache).offHeapEntriesMap().entrySet());
-        }
         return nodesCache.asMap().entrySet();
     }
 
     CachedNodeDocument getCachedNodeDoc(String id) {
-        if (nodesCache instanceof OffHeapCache) {
-            return ((OffHeapCache) nodesCache).getCachedDocument(id);
-        }
-
         return nodesCache.getIfPresent(new StringValue(id));
     }
 
@@ -1297,6 +1281,9 @@ public class MongoDocumentStore implements DocumentStore {
                 case EQUALS:
                     query.and(k.toString()).is(c.value);
                     break;
+                case NOTEQUALS:
+                    query.and(k.toString()).notEquals(c.value);
+                    break;
             }
         }
 
@@ -1390,6 +1377,7 @@ public class MongoDocumentStore implements DocumentStore {
      * @return the acquired lock for the given key.
      */
     private TreeLock acquire(String key, Collection<?> collection) {
+        lockAcquisitionCounter.incrementAndGet();
         if (collection == Collection.NODES) {
             return TreeLock.shared(parentLocks.get(getParentId(key)), locks.get(key));
         } else {
@@ -1406,6 +1394,7 @@ public class MongoDocumentStore implements DocumentStore {
      * @return the acquired lock for the given parent key.
      */
     private TreeLock acquireExclusive(String parentKey) {
+        lockAcquisitionCounter.incrementAndGet();
         return TreeLock.exclusive(parentLocks.get(parentKey));
     }
 
@@ -1450,6 +1439,10 @@ public class MongoDocumentStore implements DocumentStore {
         this.maxLockedQueryTimeMS = maxLockedQueryTimeMS;
     }
 
+    long getLockAcquisitionCount() {
+        return lockAcquisitionCounter.get();
+    }
+
     private final static class TreeLock {
 
         private final Lock parentLock;
@@ -1482,5 +1475,35 @@ public class MongoDocumentStore implements DocumentStore {
             }
             parentLock.unlock();
         }
+    }
+
+    @Override
+    public long determineServerTimeDifferenceMillis() {
+        // the assumption is that the network delay from this instance
+        // to the server, and from the server back to this instance
+        // are (more or less) equal.
+        // taking this assumption into account allows to remove
+        // the network delays from the picture: the difference
+        // between end and start time is exactly this network
+        // delay (plus some server time, but that's neglected).
+        // so if the clocks are in perfect sync and the above
+        // mentioned assumption holds, then the server time should
+        // be exactly at the midPoint between start and end.
+        // this should allow a more accurate picture of the diff.
+        final long start = System.currentTimeMillis();
+        // assumption here: server returns UTC - ie the returned
+        // date object is correctly taking care of time zones.
+        final Date serverLocalTime = db.command("serverStatus").getDate("localTime");
+        final long end = System.currentTimeMillis();
+
+        final long midPoint = (start + end) / 2;
+        final long serverLocalTimeMillis = serverLocalTime.getTime();
+
+        // the difference should be
+        // * positive when local instance is ahead
+        // * and negative when the local instance is behind
+        final long diff = midPoint - serverLocalTimeMillis;
+
+        return diff;
     }
 }

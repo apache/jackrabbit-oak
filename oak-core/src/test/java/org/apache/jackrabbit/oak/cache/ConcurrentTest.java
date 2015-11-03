@@ -40,7 +40,8 @@ public class ConcurrentTest {
     public void testLoaderBlock() throws Exception {
         // access to the same segment should not be blocked while loading an entry
         // only access to this entry is blocked
-        final CacheLIRS<Integer, Integer> cache = new CacheLIRS.Builder().
+        final CacheLIRS<Integer, Integer> cache = 
+                new CacheLIRS.Builder<Integer, Integer>().
                 maximumWeight(100).averageWeight(10).build();
         final Exception[] ex = new Exception[1];
         int threadCount = 10;
@@ -54,7 +55,7 @@ public class ConcurrentTest {
                 public void run() {
                     while (!stop.get()) {
                         final int key = nextKey.getAndIncrement();
-                        final int wait = key;
+                        final int wait = Math.min(key, 100);
                         Callable<Integer> callable = new Callable<Integer>() {
                             @Override
                             public Integer call() throws ExecutionException {
@@ -104,10 +105,11 @@ public class ConcurrentTest {
     @Test
     public void testCacheAccessInLoaderDeadlock() throws Exception {
         final Random r = new Random(1);
-        final CacheLIRS<Integer, Integer> cache = new CacheLIRS.Builder().
+        final CacheLIRS<Integer, Integer> cache = 
+                new CacheLIRS.Builder<Integer, Integer>().
                 maximumWeight(100).averageWeight(10).build();
         final Exception[] ex = new Exception[1];
-        final int entryCount = 100;
+        final int entryCount = 10;
         int size = 3;
         Thread[] threads = new Thread[size];
         final AtomicBoolean stop = new AtomicBoolean();
@@ -118,7 +120,11 @@ public class ConcurrentTest {
                     Callable<Integer> callable = new Callable<Integer>() {
                         @Override
                         public Integer call() throws ExecutionException {
-                            cache.get(r.nextInt(entryCount));
+                            if (r.nextBoolean()) {
+                                cache.get(r.nextInt(entryCount), this);
+                            } else {
+                                cache.get(r.nextInt(entryCount));
+                            }
                             return 1;
                         }
                     };
@@ -156,7 +162,8 @@ public class ConcurrentTest {
     @Test
     public void testRandomOperations() throws Exception {
         Random r = new Random(1);
-        final CacheLIRS<Integer, Integer> cache = new CacheLIRS.Builder().
+        final CacheLIRS<Integer, Integer> cache = 
+                new CacheLIRS.Builder<Integer, Integer>().
                 maximumWeight(100).averageWeight(10).build();
         final Exception[] ex = new Exception[1];
         int size = 3;

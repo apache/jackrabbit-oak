@@ -16,7 +16,12 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -34,6 +39,16 @@ public abstract class ConstraintImpl extends AstElement {
      */
     public ConstraintImpl simplify() {
         return this;
+    }
+
+    /**
+     * Get the negative constraint, if it is simpler, or null. For example,
+     * "not x = 1" returns "x = 1", but "x = 1" returns null.
+     * 
+     * @return the negative constraint, or null
+     */
+    ConstraintImpl not() {
+        return null;
     }
 
     /**
@@ -125,5 +140,35 @@ public abstract class ConstraintImpl extends AstElement {
     public int hashCode() {
         return toString().hashCode();
     }
-
+    
+    /**
+     * 
+     * @return the list of {@link ConstraintImpl} that the current constraint could hold. Default
+     *         implementation returns {@code null}.
+     */
+    @Nullable
+    public List<ConstraintImpl> getConstraints() {
+        return null;
+    }
+    
+    /**
+     * <p>
+     * Compute a Set of sub-constraints that could be used for composing UNION statements. For
+     * example in case of {@code OR (c1, c2)} it will return to the caller {@code [c1, c2]}. Those
+     * can be later on used for re-composing conditions.
+     * </p>
+     * <p>
+     * If no union optimisations are possible it must return an empty set.
+     * </p>
+     * <p>
+     * Default implementation in {@link ConstraintImpl#simplifyForUnion()} always return an empty
+     * set.
+     * </p>
+     * 
+     * @return
+     */
+    @Nonnull
+    public Set<ConstraintImpl> simplifyForUnion() {
+        return Collections.emptySet();
+    }
 }

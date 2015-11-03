@@ -21,7 +21,6 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 
 import javax.jcr.Credentials;
-import javax.jcr.GuestCredentials;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
@@ -69,7 +68,7 @@ public class OakServlet extends HttpServlet {
             HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         try {
-            Credentials credentials = new GuestCredentials();
+            Credentials credentials = null;
 
             String authorization = request.getHeader("Authorization");
             if (authorization != null && authorization.startsWith("Basic ")) {

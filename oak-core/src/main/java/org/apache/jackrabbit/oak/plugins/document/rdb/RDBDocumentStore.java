@@ -38,9 +38,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Lock;
@@ -68,7 +70,9 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStoreDB.FETCHFIRSTSYNTAX;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
+import org.apache.jackrabbit.oak.util.OakVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -293,6 +297,53 @@ public class RDBDocumentStore implements DocumentStore {
         invalidateCache(collection, id, false);
     }
 
+    @Override
+    public long determineServerTimeDifferenceMillis() {
+        Connection connection = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        String tableName = getTable(Collection.NODES);
+        long result;
+        try {
+            connection = this.ch.getROConnection();
+            String t = "select ";
+            if (this.db.getFetchFirstSyntax() == FETCHFIRSTSYNTAX.TOP) {
+                t += "TOP 1 ";
+            }
+            t += this.db.getCurrentTimeStampInMsSyntax() + " from " + tableName;
+            switch (this.db.getFetchFirstSyntax()) {
+                case LIMIT:
+                    t += " LIMIT 1";
+                    break;
+                case FETCHFIRST:
+                    t += " FETCH FIRST 1 ROWS ONLY";
+                    break;
+                default:
+                    break;
+            }
+
+            stmt = connection.prepareStatement(t);
+            long start = System.currentTimeMillis();
+            rs = stmt.executeQuery();
+            if (rs.next()) {
+                long roundtrip = System.currentTimeMillis() - start;
+                long serverTime = rs.getTimestamp(1).getTime();
+                result = (start + roundtrip / 2) - serverTime;
+            } else {
+                throw new DocumentStoreException("failed to determine server timestamp");
+            }
+            connection.commit();
+            return result;
+        } catch (Exception ex) {
+            LOG.error("", ex);
+            throw new DocumentStoreException(ex);
+        } finally {
+            this.ch.closeResultSet(rs);
+            this.ch.closeStatement(stmt);
+            this.ch.closeConnection(connection);
+        }
+    }
+
     private <T extends Document> void invalidateCache(Collection<T> collection, String id, boolean remove) {
         if (collection == Collection.NODES) {
             invalidateNodesCache(id, remove);
@@ -400,373 +451,6 @@ public class RDBDocumentStore implements DocumentStore {
 
     // implementation
 
-    enum FETCHFIRSTSYNTAX { FETCHFIRST, LIMIT, TOP};
-
-
-    private static void versionCheck(DatabaseMetaData md, int xmaj, int xmin, String description) throws SQLException {
-        int maj = md.getDatabaseMajorVersion();
-        int min = md.getDatabaseMinorVersion();
-        if (maj < xmaj || (maj == xmaj && min < xmin)) {
-            LOG.info("Unsupported " + description + " version: " + maj + "." + min + ", expected at least " + xmaj + "." + xmin);
-        }
-    }
-
-    /**
-     * Defines variation in the capabilities of different RDBs.
-     */
-    protected enum DB {
-        DEFAULT("default") {
-        },
-
-        H2("H2") {
-            @Override
-            public void checkVersion(DatabaseMetaData md) throws SQLException {
-                versionCheck(md, 1, 4, description);
-            }
-        },
-
-        DERBY("Apache Derby") {
-            @Override
-            public void checkVersion(DatabaseMetaData md) throws SQLException {
-                versionCheck(md, 10, 11, description);
-            }
-
-            public boolean allowsCaseInSelect() {
-                return false;
-            }
-        },
-
-        POSTGRES("PostgreSQL") {
-            @Override
-            public void checkVersion(DatabaseMetaData md) throws SQLException {
-                versionCheck(md, 9, 3, description);
-            }
-
-            @Override
-            public String getTableCreationStatement(String tableName) {
-                return ("create table " + tableName + " (ID varchar(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA bytea)");
-            }
-
-            @Override
-            public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
-                Connection con = null;
-                PreparedStatement stmt = null;
-                ResultSet rs = null;
-                Map<String, String> result = new HashMap<String, String>();
-                try {
-                    con = ch.getROConnection();
-                    String cat = con.getCatalog();
-                    stmt = con.prepareStatement("SELECT pg_encoding_to_char(encoding), datcollate FROM pg_database WHERE datname=?");
-                    stmt.setString(1, cat);
-                    rs = stmt.executeQuery();
-                    while (rs.next()) {
-                        result.put("pg_encoding_to_char(encoding)", rs.getString(1));
-                        result.put("datcollate", rs.getString(2));
-                    }
-                    stmt.close();
-                    con.commit();
-                } catch (SQLException ex) {
-                    LOG.debug("while getting diagnostics", ex);
-                } finally {
-                    ch.closeResultSet(rs);
-                    ch.closeStatement(stmt);
-                    ch.closeConnection(con);
-                }
-                return result.toString();
-            }
-        },
-
-        DB2("DB2") {
-            @Override
-            public void checkVersion(DatabaseMetaData md) throws SQLException {
-                versionCheck(md, 10, 1, description);
-            }
-
-            @Override
-            public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
-                Connection con = null;
-                PreparedStatement stmt = null;
-                ResultSet rs = null;
-                Map<String, String> result = new HashMap<String, String>();
-                try {
-                    con = ch.getROConnection();
-                    // we can't look up by schema as con.getSchema is JDK 1.7
-                    stmt = con.prepareStatement("SELECT CODEPAGE, COLLATIONSCHEMA, COLLATIONNAME, TABSCHEMA FROM SYSCAT.COLUMNS WHERE COLNAME=? and COLNO=0 AND UPPER(TABNAME)=UPPER(?)");
-                    stmt.setString(1, "ID");
-                    stmt.setString(2, tableName);
-                    rs = stmt.executeQuery();
-                    while (rs.next() && result.size() < 20) {
-                        // thus including the schema name here
-                        String schema = rs.getString("TABSCHEMA").trim();
-                        result.put(schema + ".CODEPAGE", rs.getString("CODEPAGE").trim());
-                        result.put(schema + ".COLLATIONSCHEMA", rs.getString("COLLATIONSCHEMA").trim());
-                        result.put(schema + ".COLLATIONNAME", rs.getString("COLLATIONNAME").trim());
-                    }
-                    stmt.close();
-                    con.commit();
-                } catch (SQLException ex) {
-                    LOG.debug("while getting diagnostics", ex);
-                } finally {
-                    ch.closeResultSet(rs);
-                    ch.closeStatement(stmt);
-                    ch.closeConnection(con);
-                }
-                return result.toString();
-            }
-},
-
-        ORACLE("Oracle") {
-            @Override
-            public void checkVersion(DatabaseMetaData md) throws SQLException {
-                versionCheck(md, 12, 1, description);
-            }
-
-            @Override
-            public String getInitializationStatement() {
-                // see https://issues.apache.org/jira/browse/OAK-1914
-                // for some reason, the default for NLS_SORT is incorrect
-                return ("ALTER SESSION SET NLS_SORT='BINARY'");
-            }
-
-            @Override
-            public String getTableCreationStatement(String tableName) {
-                // see https://issues.apache.org/jira/browse/OAK-1914
-                return ("create table " + tableName + " (ID varchar(512) not null primary key, MODIFIED number, HASBINARY number, DELETEDONCE number, MODCOUNT number, CMODCOUNT number, DSIZE number, DATA varchar(4000), BDATA blob)");
-            }
-
-            @Override
-            public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
-                Connection con = null;
-                Statement stmt = null;
-                ResultSet rs = null;
-                Map<String, String> result = new HashMap<String, String>();
-                try {
-                    con = ch.getROConnection();
-                    stmt = con.createStatement();
-                    rs = stmt.executeQuery("SELECT PARAMETER, VALUE from NLS_DATABASE_PARAMETERS WHERE PARAMETER IN ('NLS_COMP', 'NLS_CHARACTERSET')");
-                    while (rs.next()) {
-                        result.put(rs.getString(1), rs.getString(2));
-                    }
-                    stmt.close();
-                    con.commit();
-                } catch (SQLException ex) {
-                    LOG.debug("while getting diagnostics", ex);
-                } finally {
-                    ch.closeResultSet(rs);
-                    ch.closeStatement(stmt);
-                    ch.closeConnection(con);
-                }
-                return result.toString();
-            }
-        },
-
-        MYSQL("MySQL") {
-            @Override
-            public void checkVersion(DatabaseMetaData md) throws SQLException {
-                versionCheck(md, 5, 5, description);
-            }
-
-            @Override
-            public String getTableCreationStatement(String tableName) {
-                // see https://issues.apache.org/jira/browse/OAK-1913
-                return ("create table " + tableName + " (ID varbinary(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16000), BDATA longblob)");
-            }
-
-            @Override
-            public FETCHFIRSTSYNTAX getFetchFirstSyntax() {
-                return FETCHFIRSTSYNTAX.LIMIT;
-            }
-
-            @Override
-            public String getConcatQueryString(int dataOctetLimit, int dataLength) {
-                return "CONCAT(DATA, ?)";
-            }
-
-            @Override
-            public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
-                Connection con = null;
-                PreparedStatement stmt = null;
-                ResultSet rs = null;
-                Map<String, String> result = new HashMap<String, String>();
-                try {
-                    con = ch.getROConnection();
-                    stmt = con.prepareStatement("SHOW TABLE STATUS LIKE ?");
-                    stmt.setString(1, tableName);
-                    rs = stmt.executeQuery();
-                    while (rs.next()) {
-                        result.put("collation", rs.getString("Collation"));
-                    }
-                    stmt.close();
-                    con.commit();
-                } catch (SQLException ex) {
-                    LOG.debug("while getting diagnostics", ex);
-                } finally {
-                    ch.closeResultSet(rs);
-                    ch.closeStatement(stmt);
-                    ch.closeConnection(con);
-                }
-                return result.toString();
-            }
-        },
-
-        MSSQL("Microsoft SQL Server") {
-            @Override
-            public void checkVersion(DatabaseMetaData md) throws SQLException {
-                versionCheck(md, 11, 0, description);
-            }
-
-            @Override
-            public String getTableCreationStatement(String tableName) {
-                // see https://issues.apache.org/jira/browse/OAK-2395
-                return ("create table " + tableName + " (ID varbinary(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA nvarchar(4000), BDATA varbinary(max))");
-            }
-
-            @Override
-            public FETCHFIRSTSYNTAX getFetchFirstSyntax() {
-                return FETCHFIRSTSYNTAX.TOP;
-            }
-
-            @Override
-            public String getConcatQueryString(int dataOctetLimit, int dataLength) {
-                /*
-                 * To avoid truncation when concatenating force an error when
-                 * limit is above the octet limit
-                 */
-                return "CASE WHEN LEN(DATA) <= " + (dataOctetLimit - dataLength) + " THEN (DATA + CAST(? AS nvarchar("
-                        + dataOctetLimit + "))) ELSE (DATA + CAST(DATA AS nvarchar(max))) END";
-
-            }
-
-            @Override
-            public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
-                Connection con = null;
-                PreparedStatement stmt = null;
-                ResultSet rs = null;
-                Map<String, String> result = new HashMap<String, String>();
-                try {
-                    con = ch.getROConnection();
-                    String cat = con.getCatalog();
-                    stmt = con.prepareStatement("SELECT collation_name FROM sys.databases WHERE name=?");
-                    stmt.setString(1, cat);
-                    rs = stmt.executeQuery();
-                    while (rs.next()) {
-                        result.put("collation_name", rs.getString(1));
-                    }
-                    stmt.close();
-                    con.commit();
-                } catch (SQLException ex) {
-                    LOG.debug("while getting diagnostics", ex);
-                } finally {
-                    ch.closeResultSet(rs);
-                    ch.closeStatement(stmt);
-                    ch.closeConnection(con);
-                }
-                return result.toString();
-            }
-        };
-
-        /**
-         * Check the database brand and version
-         */
-        public void checkVersion(DatabaseMetaData md) throws SQLException {
-            LOG.info("Unknown database type: " + md.getDatabaseProductName());
-        }
-
-        /**
-         * Allows case in select. Default true.
-         */
-        public boolean allowsCaseInSelect() {
-            return true;
-        }
-
-        /**
-         * Query syntax for "FETCH FIRST"
-         */
-        public FETCHFIRSTSYNTAX getFetchFirstSyntax() {
-            return FETCHFIRSTSYNTAX.FETCHFIRST;
-        }
-
-        /**
-         * Returns the CONCAT function or its equivalent function or sub-query.
-         * Note that the function MUST NOT cause a truncated value to be
-         * written!
-         *
-         * @param dataOctetLimit
-         *            expected capacity of data column
-         * @param dataLength
-         *            length of string to be inserted
-         * 
-         * @return the concat query string
-         */
-        public String getConcatQueryString(int dataOctetLimit, int dataLength) {
-            return "DATA || CAST(? AS varchar(" + dataOctetLimit + "))";
-        }
-
-        /**
-         * Query for any required initialization of the DB.
-         * 
-         * @return the DB initialization SQL string
-         */
-        public @Nonnull String getInitializationStatement() {
-            return "";
-        }
-
-        /**
-         * Table creation statement string
-         *
-         * @param tableName
-         * @return the table creation string
-         */
-        public String getTableCreationStatement(String tableName) {
-            return "create table "
-                    + tableName
-                    + " (ID varchar(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA blob("
-                    + 1024 * 1024 * 1024 + "))";
-        }
-
-        public List<String> getIndexCreationStatements(String tableName) {
-            if (CREATEINDEX.equals("modified-id")) {
-                return Collections.singletonList("create index " + tableName + "_MI on " + tableName + " (MODIFIED, ID)");
-            } else if (CREATEINDEX.equals("id-modified")) {
-                return Collections.singletonList("create index " + tableName + "_MI on " + tableName + " (ID, MODIFIED)");
-            } else if (CREATEINDEX.equals("modified")) {
-                return Collections.singletonList("create index " + tableName + "_MI on " + tableName + " (MODIFIED)");
-            } else {
-                return Collections.emptyList();
-            }
-        }
-
-        public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
-            return "";
-        }
-
-        protected String description;
-
-        private DB(String description) {
-            this.description = description;
-        }
-
-        @Override
-        public String toString() {
-            return this.description;
-        }
-
-        @Nonnull
-        public static DB getValue(String desc) {
-            for (DB db : DB.values()) {
-                if (db.description.equals(desc)) {
-                    return db;
-                } else if (db == DB2 && desc.startsWith("DB2/")) {
-                    return db;
-                }
-            }
-
-            LOG.error("DB type " + desc + " unknown, trying default settings");
-            DEFAULT.description = desc + " - using default settings";
-            return DEFAULT;
-        }
-    }
-
     private static final String MODIFIED = "_modified";
     private static final String MODCOUNT = "_modCount";
 
@@ -812,7 +496,7 @@ public class RDBDocumentStore implements DocumentStore {
     private static final Key MODIFIEDKEY = new Key(MODIFIED, null);
 
     // DB-specific information
-    private DB db;
+    private RDBDocumentStoreDB db;
 
     private Map<String, String> metadata;
 
@@ -852,18 +536,21 @@ public class RDBDocumentStore implements DocumentStore {
 
         DatabaseMetaData md = con.getMetaData();
         String dbDesc = String.format("%s %s (%d.%d)", md.getDatabaseProductName(), md.getDatabaseProductVersion(),
-                md.getDatabaseMajorVersion(), md.getDatabaseMinorVersion());
+                md.getDatabaseMajorVersion(), md.getDatabaseMinorVersion()).replaceAll("[\r\n\t]", " ").trim();
         String driverDesc = String.format("%s %s (%d.%d)", md.getDriverName(), md.getDriverVersion(), md.getDriverMajorVersion(),
-                md.getDriverMinorVersion());
+                md.getDriverMinorVersion()).replaceAll("[\r\n\t]", " ").trim();
         String dbUrl = md.getURL();
 
-        this.db = DB.getValue(md.getDatabaseProductName());
+        this.db = RDBDocumentStoreDB.getValue(md.getDatabaseProductName());
         this.metadata = ImmutableMap.<String,String>builder()
                 .put("type", "rdb")
                 .put("db", md.getDatabaseProductName())
                 .put("version", md.getDatabaseProductVersion())
                 .build();
-        db.checkVersion(md);
+        String versionDiags = db.checkVersion(md);
+        if (!versionDiags.isEmpty()) {
+            LOG.info(versionDiags);
+        }
 
         if (! "".equals(db.getInitializationStatement())) {
             Statement stmt = null;
@@ -901,9 +588,9 @@ public class RDBDocumentStore implements DocumentStore {
 
         String diag = db.getAdditionalDiagnostics(this.ch, this.tnNodes);
 
-        LOG.info("RDBDocumentStore instantiated for database " + dbDesc + ", using driver: " + driverDesc + ", connecting to: "
-                + dbUrl + (diag.isEmpty() ? "" : (", properties: " + diag)) + ", transaction isolation level: " + isolationDiags
-                + tableDiags);
+        LOG.info("RDBDocumentStore (" + OakVersion.getVersion() + ") instantiated for database " + dbDesc + ", using driver: "
+                + driverDesc + ", connecting to: " + dbUrl + (diag.isEmpty() ? "" : (", properties: " + diag))
+                + ", transaction isolation level: " + isolationDiags + tableDiags);
         if (!tablesPresent.isEmpty()) {
             LOG.info("Tables present upon startup: " + tablesPresent);
         }
@@ -917,12 +604,115 @@ public class RDBDocumentStore implements DocumentStore {
         return sqlType == Types.VARBINARY || sqlType == Types.BINARY || sqlType == Types.LONGVARBINARY;
     }
 
-    private static String dumpTableMeta(int idType, String idTypeName, int idPrecision, int dataType, String dataTypeName,
-            int dataPrecision, int bdataType, String bdataTypeName, int bdataPrecision) {
-        return String
-                .format("type of ID: %d (%s) precision %d (-> %s), type of DATA: %d (%s) precision %d, type of BDATA: %d (%s) precision %d",
-                        idType, idTypeName, idPrecision, isBinaryType(idType) ? "binary" : "character", dataType, dataTypeName,
-                        dataPrecision, bdataType, bdataTypeName, bdataPrecision);
+    private void obtainFlagsFromResultSetMeta(ResultSetMetaData met) throws SQLException {
+        for (int i = 1; i <= met.getColumnCount(); i++) {
+            String lcName = met.getColumnName(i).toLowerCase(Locale.ENGLISH);
+            if ("id".equals(lcName)) {
+                this.isIdBinary = isBinaryType(met.getColumnType(i));
+            }
+            if ("data".equals(lcName)) {
+                this.dataLimitInOctets = met.getPrecision(i);
+            }
+        }
+    }
+
+    private static String asQualifiedDbName(String one, String two) {
+        if (one == null && two == null) {
+            return null;
+        }
+        else {
+            one = one == null ? "" : one.trim();
+            two = two == null ? "" : two.trim();
+            return one.isEmpty() ? two : one + "." + two;
+        }
+    }
+
+    private static String indexTypeAsString(int type) {
+        switch (type) {
+            case DatabaseMetaData.tableIndexClustered:
+                return "clustered";
+            case DatabaseMetaData.tableIndexHashed:
+                return "hashed";
+            case DatabaseMetaData.tableIndexStatistic:
+                return "statistic";
+            case DatabaseMetaData.tableIndexOther:
+                return "other";
+            default:
+                return "indexType=" + type;
+        }
+    }
+
+    private String dumpIndexData(DatabaseMetaData met, ResultSetMetaData rmet, String tableName) {
+
+        ResultSet rs = null;
+        try {
+            // if the result set metadata provides a table name, use that (the other one
+            // might be inaccurate due to case insensitivity issues
+            String rmetTableName = rmet.getTableName(1);
+            if (rmetTableName != null && !rmetTableName.trim().isEmpty()) {
+                tableName = rmetTableName.trim();
+            }
+
+            String rmetSchemaName = rmet.getSchemaName(1);
+            rmetSchemaName = rmetSchemaName == null ? "" : rmetSchemaName.trim();
+
+            Map<String, Map<String, Object>> indices = new TreeMap<String, Map<String, Object>>();
+            StringBuilder sb = new StringBuilder();
+            rs = met.getIndexInfo(null, null, tableName, false, true);
+            while (rs.next()) {
+                String name = asQualifiedDbName(rs.getString(5), rs.getString(6));
+                if (name != null) {
+                    Map<String, Object> info = indices.get(name);
+                    if (info == null) {
+                        info = new HashMap<String, Object>();
+                        indices.put(name, info);
+                        info.put("fields", new TreeMap<Integer, String>());
+                    }
+                    info.put("nonunique", rs.getBoolean(4));
+                    info.put("type", indexTypeAsString(rs.getInt(7)));
+                    String inSchema = rs.getString(2);
+                    inSchema = inSchema == null ? "" : inSchema.trim();
+                    // skip indices on tables in other schemas in case we have that information
+                    if (rmetSchemaName.isEmpty() || inSchema.isEmpty() || rmetSchemaName.equals(inSchema)) {
+                        String tname = asQualifiedDbName(inSchema, rs.getString(3));
+                        info.put("tname", tname);
+                        String cname = rs.getString(9);
+                        if (cname != null) {
+                            String order = "A".equals(rs.getString(10)) ? " ASC" : ("D".equals(rs.getString(10)) ? " DESC" : "");
+                            ((Map<Integer, String>) info.get("fields")).put(rs.getInt(8), cname + order);
+                        }
+                    }
+                }
+            }
+            for (Entry<String, Map<String, Object>> index : indices.entrySet()) {
+                boolean nonUnique = ((Boolean) index.getValue().get("nonunique"));
+                Map<Integer, String> fields = (Map<Integer, String>) index.getValue().get("fields");
+                if (!fields.isEmpty()) {
+                    if (sb.length() != 0) {
+                        sb.append(", ");
+                    }
+                    sb.append(String.format("%sindex %s on %s (", nonUnique ? "" : "unique ", index.getKey(),
+                            index.getValue().get("tname")));
+                    String delim = "";
+                    for (String field : fields.values()) {
+                        sb.append(delim);
+                        delim = ", ";
+                        sb.append(field);
+                    }
+                    sb.append(")");
+                    sb.append(" ").append(index.getValue().get("type"));
+                }
+            }
+            if (sb.length() != 0) {
+                sb.insert(0, "/* ").append(" */");
+            }
+            return sb.toString();
+        } catch (SQLException ex) {
+            // well it was best-effort
+            return "";
+        } finally {
+            this.ch.closeResultSet(rs);
+        }
     }
 
     private void createTableFor(Connection con, Collection<? extends Document> col, List<String> tablesCreated,
@@ -937,18 +727,20 @@ public class RDBDocumentStore implements DocumentStore {
         ResultSet checkResultSet = null;
         Statement creatStatement = null;
         try {
-            checkStatement = con.prepareStatement("select ID, DATA, BDATA from " + tableName + " where ID = ?");
+            checkStatement = con.prepareStatement("select * from " + tableName + " where ID = ?");
             checkStatement.setString(1, "0:/");
             checkResultSet = checkStatement.executeQuery();
 
             if (col.equals(Collection.NODES)) {
                 // try to discover size of DATA column
                 ResultSetMetaData met = checkResultSet.getMetaData();
-                this.isIdBinary = isBinaryType(met.getColumnType(1));
-                this.dataLimitInOctets = met.getPrecision(2);
-                diagnostics.append(dumpTableMeta(met.getColumnType(1), met.getColumnTypeName(1), met.getPrecision(1),
-                        met.getColumnType(2), met.getColumnTypeName(2), met.getPrecision(2), met.getColumnType(3),
-                        met.getColumnTypeName(3), met.getPrecision(3)));
+                obtainFlagsFromResultSetMeta(met);
+                String tableInfo = RDBJDBCTools.dumpResultSetMeta(met);
+                diagnostics.append(tableInfo);
+                String indexInfo = dumpIndexData(con.getMetaData(), met, tableName);
+                if (!indexInfo.isEmpty()) {
+                    diagnostics.append(" ").append(indexInfo);
+                }
             }
             tablesPresent.add(tableName);
         } catch (SQLException ex) {
@@ -971,15 +763,17 @@ public class RDBDocumentStore implements DocumentStore {
                 tablesCreated.add(tableName);
 
                 if (col.equals(Collection.NODES)) {
-                    PreparedStatement pstmt = con.prepareStatement("select ID, DATA, BDATA from " + tableName + " where ID = ?");
+                    PreparedStatement pstmt = con.prepareStatement("select * from " + tableName + " where ID = ?");
                     pstmt.setString(1, "0:/");
                     ResultSet rs = pstmt.executeQuery();
                     ResultSetMetaData met = rs.getMetaData();
-                    this.isIdBinary = isBinaryType(met.getColumnType(1));
-                    this.dataLimitInOctets = met.getPrecision(2);
-                    diagnostics.append(dumpTableMeta(met.getColumnType(1), met.getColumnTypeName(1), met.getPrecision(1),
-                            met.getColumnType(2), met.getColumnTypeName(2), met.getPrecision(2), met.getColumnType(3),
-                            met.getColumnTypeName(3), met.getPrecision(3)));
+                    obtainFlagsFromResultSetMeta(met);
+                    String tableInfo = RDBJDBCTools.dumpResultSetMeta(met);
+                    diagnostics.append(tableInfo);
+                    String indexInfo = dumpIndexData(con.getMetaData(), met, tableName);
+                    if (!indexInfo.isEmpty()) {
+                        diagnostics.append(" ").append(indexInfo);
+                    }
                 }
             }
             catch (SQLException ex2) {
@@ -1292,7 +1086,6 @@ public class RDBDocumentStore implements DocumentStore {
             String indexedProperty, long startValue, int limit) {
         Connection connection = null;
         String tableName = getTable(collection);
-        List<T> result = Collections.emptyList();
         if (indexedProperty != null && (!INDEXEDPROPERTIES.contains(indexedProperty))) {
             String message = "indexed property " + indexedProperty + " not supported, query was '>= '" + startValue
                     + "'; supported properties are " + INDEXEDPROPERTIES;
@@ -1306,19 +1099,19 @@ public class RDBDocumentStore implements DocumentStore {
             connection.commit();
 
             int size = dbresult.size();
-            result = new ArrayList<T>(size);
+            List<T> result = new ArrayList<T>(size);
             for (int i = 0; i < size; i++) {
                 RDBRow row = dbresult.set(i, null); // free RDBRow ASAP
                 T doc = runThroughCache(collection, row, now);
                 result.add(doc);
             }
+            return result;
         } catch (Exception ex) {
             LOG.error("SQL exception on query", ex);
             throw new DocumentStoreException(ex);
         } finally {
             this.ch.closeConnection(connection);
         }
-        return result;
     }
 
     private <T extends Document> String getTable(Collection<T> collection) {
@@ -1355,7 +1148,7 @@ public class RDBDocumentStore implements DocumentStore {
                     cachedDoc.markUpToDate(System.currentTimeMillis());
                     return castAsT(cachedDoc);
                 } else {
-                    return SR.fromRow(collection, row);
+                    return convertFromDBObject(collection, row);
                 }
             }
         } catch (Exception ex) {
@@ -1580,9 +1373,6 @@ public class RDBDocumentStore implements DocumentStore {
     // Number of elapsed ms in a query above which a diagnostic warning is generated
     private static final int QUERYTIMELIMIT = Integer.getInteger(
             "org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QUERYTIMELIMIT", 10000);
-    // whether to create indices
-    private static final String CREATEINDEX = System.getProperty(
-            "org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.CREATEINDEX", "");
 
     private static byte[] asBytes(String data) {
         byte[] bytes;
@@ -1696,52 +1486,77 @@ public class RDBDocumentStore implements DocumentStore {
 
     private List<RDBRow> dbQuery(Connection connection, String tableName, String minId, String maxId, String indexedProperty,
             long startValue, int limit) throws SQLException {
+        boolean noLowerBound = tableName.equals(this.tnNodes) && minId.equals(NodeDocument.MIN_ID_VALUE);
+        boolean noUpperBound = tableName.equals(this.tnNodes) && maxId.equals(NodeDocument.MAX_ID_VALUE);
         long start = System.currentTimeMillis();
-        String t = "select ";
+        StringBuilder selectClause = new StringBuilder();
+        StringBuilder whereClause = new StringBuilder();
         if (limit != Integer.MAX_VALUE && this.db.getFetchFirstSyntax() == FETCHFIRSTSYNTAX.TOP) {
-            t += "TOP " + limit +  " ";
+            selectClause.append("TOP " + limit +  " ");
         }
-        t += "ID, MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, DATA, BDATA from " + tableName
-                + " where ID > ? and ID < ?";
+        selectClause.append("ID, MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, DATA, BDATA from ").append(tableName);
+
+        // dynamically build where clause
+        String whereSep = "";
+        if (!noLowerBound) {
+            whereClause.append("ID > ?");
+            whereSep = " and ";
+        }
+        if (!noUpperBound) {
+            whereClause.append(whereSep).append("ID < ?");
+            whereSep = " and ";
+        }
+
         if (indexedProperty != null) {
             if (MODIFIED.equals(indexedProperty)) {
-                t += " and MODIFIED >= ?";
+                whereClause.append(whereSep).append("MODIFIED >= ?");
             } else if (NodeDocument.HAS_BINARY_FLAG.equals(indexedProperty)) {
                 if (startValue != NodeDocument.HAS_BINARY_VAL) {
                     throw new DocumentStoreException("unsupported value for property " + NodeDocument.HAS_BINARY_FLAG);
                 }
-                t += " and HASBINARY = 1";
+                whereClause.append(whereSep).append("HASBINARY = 1");
             } else if (NodeDocument.DELETED_ONCE.equals(indexedProperty)) {
                 if (startValue != 1) {
                     throw new DocumentStoreException("unsupported value for property " + NodeDocument.DELETED_ONCE);
                 }
-                t += " and DELETEDONCE = 1";
+                whereClause.append(whereSep).append("DELETEDONCE = 1");
             } else {
                 throw new DocumentStoreException("unsupported indexed property: " + indexedProperty);
             }
         }
-        t += " order by ID";
+
+        StringBuilder query = new StringBuilder();
+        query.append("select ").append(selectClause);
+        if (whereClause.length() != 0) {
+            query.append(" where ").append(whereClause);
+        }
+
+        query.append(" order by ID");
 
         if (limit != Integer.MAX_VALUE) {
             switch (this.db.getFetchFirstSyntax()) {
                 case LIMIT:
-                    t += " LIMIT " + limit;
+                    query.append(" LIMIT " + limit);
                     break;
                 case FETCHFIRST:
-                    t += " FETCH FIRST " + limit + " ROWS ONLY";
+                    query.append(" FETCH FIRST " + limit + " ROWS ONLY");
                     break;
                 default:
                     break;
             }
         }
 
-        PreparedStatement stmt = connection.prepareStatement(t);
+        PreparedStatement stmt = connection.prepareStatement(query.toString());
         List<RDBRow> result = new ArrayList<RDBRow>();
         long dataTotal = 0, bdataTotal = 0;
         try {
             int si = 1;
-            setIdInStatement(stmt, si++, minId);
-            setIdInStatement(stmt, si++, maxId);
+            if (!noLowerBound) {
+                setIdInStatement(stmt, si++, minId);
+            }
+            if (!noUpperBound) {
+                setIdInStatement(stmt, si++, maxId);
+            }
 
             if (MODIFIED.equals(indexedProperty)) {
                 stmt.setLong(si++, startValue);
@@ -2157,11 +1972,16 @@ public class RDBDocumentStore implements DocumentStore {
         }
     }
 
+    @CheckForNull
+    protected <T extends Document> T convertFromDBObject(@Nonnull Collection<T> collection, @Nonnull RDBRow row) {
+        return SR.fromRow(collection, row);
+    }
+
     private <T extends Document> T runThroughCache(Collection<T> collection, RDBRow row, long now) {
 
         if (collection != Collection.NODES) {
             // not in the cache anyway
-            return SR.fromRow(collection, row);
+            return convertFromDBObject(collection, row);
         }
 
         String id = row.getId();
@@ -2184,7 +2004,7 @@ public class RDBDocumentStore implements DocumentStore {
             }
         }
 
-        NodeDocument fresh = (NodeDocument) SR.fromRow(collection, row);
+        NodeDocument fresh = (NodeDocument) convertFromDBObject(collection, row);
         fresh.seal();
 
         Lock lock = getAndLock(id);
@@ -2223,5 +2043,9 @@ public class RDBDocumentStore implements DocumentStore {
             }
         }
         return false;
+    }
+
+    protected Cache<CacheValue, NodeDocument> getNodeDocumentCache() {
+        return nodesCache;
     }
 }

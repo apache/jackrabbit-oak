@@ -201,7 +201,7 @@ public class ExternalSort {
                     // in bytes
                     long currentblocksize = 0;
                     while ((currentblocksize < blocksize)
-                            && ((line = fbr.readLine()) != null)) {
+                            && ((line = readLine(fbr)) != null)) {
                         // as long as you have enough memory
                         if (counter < numHeader) {
                             counter++;
@@ -295,8 +295,8 @@ public class ExternalSort {
         try {
             for (String r : tmplist) {
                 // Skip duplicate lines
-                if (!distinct || !r.equals(lastLine)) {
-                    fbw.write(r);
+                if (!distinct || (lastLine == null || (lastLine != null && cmp.compare(r, lastLine) != 0))) {
+                    writeLine(fbw, r);
                     fbw.newLine();
                     lastLine = r;
                 }
@@ -453,8 +453,8 @@ public class ExternalSort {
                 BinaryFileBuffer bfb = pq.poll();
                 String r = bfb.pop();
                 // Skip duplicate lines
-                if (!distinct || !r.equals(lastLine)) {
-                    fbw.write(r);
+                if (!distinct || (lastLine == null || (lastLine != null && cmp.compare(r, lastLine) != 0))) {
+                    writeLine(fbw, r);
                     fbw.newLine();
                     lastLine = r;
                 }
@@ -629,6 +629,14 @@ public class ExternalSort {
         }
     };
 
+    static String readLine(BufferedReader br) throws IOException {
+        return EscapeUtils.unescapeLineBreaks(br.readLine());
+    }
+
+    static void writeLine(BufferedWriter wr, String line) throws IOException {
+        wr.write(EscapeUtils.escapeLineBreak(line));
+    }
+
 }
 
 class BinaryFileBuffer {
@@ -648,7 +656,7 @@ class BinaryFileBuffer {
 
     private void reload() throws IOException {
         try {
-            if ((this.cache = this.fbr.readLine()) == null) {
+            if ((this.cache = ExternalSort.readLine(fbr)) == null) {
                 this.empty = true;
                 this.cache = null;
             } else {
@@ -668,7 +676,7 @@ class BinaryFileBuffer {
         if (empty()) {
             return null;
         }
-        return this.cache.toString();
+        return this.cache;
     }
 
     public String pop() throws IOException {

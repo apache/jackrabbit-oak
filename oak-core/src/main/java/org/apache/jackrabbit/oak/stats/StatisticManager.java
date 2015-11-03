@@ -54,7 +54,7 @@ public class StatisticManager {
     public StatisticManager(Whiteboard whiteboard, ScheduledExecutorService executor) {
         queryStat.setEnabled(true);
         repoStats = new RepositoryStatisticsImpl(executor);
-        maxQueueLength = new TimeSeriesMax();
+        maxQueueLength = new TimeSeriesMax(-1);
         registration = new CompositeRegistration(
             registerMBean(whiteboard, QueryStatManagerMBean.class, new QueryStatManager(queryStat),
                     "QueryStat", "Oak Query Statistics"),

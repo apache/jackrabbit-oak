@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -43,6 +44,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
@@ -162,6 +164,102 @@ public class VersionGCDeletionTest {
             assertNull(ts.find(Collection.NODES, "2:/a"+i+"/b"+i));
             assertNull(ts.find(Collection.NODES, "1:/a"+i));
         }
+    }
+
+    @Test
+    public void gcWithPathsHavingNewLine() throws Exception{
+        int noOfDocsToDelete = 200;
+        DocumentStore ts = new MemoryDocumentStore();
+        store = new DocumentMK.Builder()
+                .clock(clock)
+                .setDocumentStore(new MemoryDocumentStore())
+                .setAsyncDelay(0)
+                .getNodeStore();
+
+        //Baseline the clock
+        clock.waitUntil(Revision.getCurrentTimestamp());
+
+        NodeBuilder b1 = store.getRoot().builder();
+        NodeBuilder xb = b1.child("x");
+        for (int i = 0; i < noOfDocsToDelete - 1; i++){
+            xb.child("a"+i).child("b"+i);
+        }
+        xb.child("a-1").child("b\r");
+        store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        long maxAge = 1; //hours
+        long delta = TimeUnit.MINUTES.toMillis(10);
+
+        //Remove x/y
+        NodeBuilder b2 = store.getRoot().builder();
+        b2.child("x").remove();
+        store.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        store.runBackgroundOperations();
+
+        //3. Check that deleted doc does get collected post maxAge
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
+        VersionGarbageCollector gc = store.getVersionGarbageCollector();
+        gc.setOverflowToDiskThreshold(100);
+
+        VersionGCStats stats = gc.gc(maxAge * 2, HOURS);
+        assertEquals(noOfDocsToDelete * 2 + 1, stats.deletedDocGCCount);
+    }
+
+    @Test
+    public void gcForPreviousDocs() throws Exception{
+        DocumentStore ts = new MemoryDocumentStore();
+        store = new DocumentMK.Builder()
+                .clock(clock)
+                .setDocumentStore(ts)
+                .setAsyncDelay(0)
+                .getNodeStore();
+
+        //Baseline the clock
+        clock.waitUntil(Revision.getCurrentTimestamp());
+
+        NodeBuilder b1;
+        NodeBuilder xb;
+
+        //Create/remove "/x/split" sufficient times to split it
+        boolean create = true;
+        for (int i = 0; create || i < NodeDocument.NUM_REVS_THRESHOLD ; i++) {
+            b1 = store.getRoot().builder();
+            xb = b1.child("x").child("split");
+            if (!create) {
+                xb.remove();
+            }
+            store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            create = !create;
+        }
+        store.runBackgroundOperations();
+
+        //Count split docs
+        NodeDocument doc = ts.find(Collection.NODES, "2:/x/split");
+        int splitDocCount = Iterators.size(doc.getAllPreviousDocs());
+
+        long maxAge = 1; //hours
+        long delta = TimeUnit.MINUTES.toMillis(10);
+
+        //Remove "/x"
+        NodeBuilder b2 = store.getRoot().builder();
+        b2.child("x").remove();
+        store.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        store.runBackgroundOperations();
+
+        //Pass some time and run GC
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge * 2) + delta);
+        VersionGarbageCollector gc = store.getVersionGarbageCollector();
+        VersionGCStats stats = gc.gc(maxAge * 2, HOURS);
+
+        //Asset GC stats
+        assertEquals(2, stats.deletedDocGCCount);
+        assertEquals(splitDocCount, stats.splitDocGCCount);
+
+        //check if the deleted docs are really gone after GC
+        assertNull(ts.find(Collection.NODES, "1:/x"));
+        assertNull(ts.find(Collection.NODES, "2:/x/split"));
     }
 
     // OAK-2420

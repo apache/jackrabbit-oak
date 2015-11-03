@@ -49,17 +49,21 @@ public class ClusterInfoTest {
         DocumentNodeStore ns1 = new DocumentMK.Builder().
                 setDocumentStore(mem).
                 setAsyncDelay(0).
+                setLeaseCheck(false).
                 getNodeStore();
         DocumentNodeStore ns2 = new DocumentMK.Builder().
                 setDocumentStore(mem).
                 setAsyncDelay(0).
+                setLeaseCheck(false).
                 getNodeStore();
         // Bring the current time forward to after the leaseTime which would have been 
         // updated in the DocumentNodeStore initialization.
         clock.waitUntil(clock.getTime() + ns1.getClusterInfo().getLeaseTime());
 
         ns1.getClusterInfo().setLeaseTime(0);
+        ns1.getClusterInfo().setLeaseUpdateInterval(0);
         ns2.getClusterInfo().setLeaseTime(0);
+        ns2.getClusterInfo().setLeaseUpdateInterval(0);
 
         List<ClusterNodeInfoDocument> list = mem.query(
                 Collection.CLUSTER_NODES, "0", "a", Integer.MAX_VALUE);
@@ -102,6 +106,7 @@ public class ClusterInfoTest {
         DocumentNodeStore ns = new DocumentMK.Builder().
                 setDocumentStore(mem).
                 setAsyncDelay(0).
+                setLeaseCheck(false).
                 getNodeStore();
 
         ClusterNodeInfo info = ns.getClusterInfo();
@@ -110,8 +115,8 @@ public class ClusterInfoTest {
         // current lease end
         long leaseEnd = getLeaseEndTime(ns);
 
-        // wait a bit, but not more than half of the lease time
-        clock.waitUntil(clock.getTime() + (ns.getClusterInfo().getLeaseTime() / 2) - 1000);
+        // wait a bit, 1sec less than leaseUpdateTime (10sec-1sec by default)
+        clock.waitUntil(clock.getTime() + ClusterNodeInfo.DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS - 1000);
 
         // must not renew lease right now
         ns.renewClusterIdLease();

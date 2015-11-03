@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -53,8 +52,10 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
 
     @Before
     public void prepareStores() throws Exception {
-        c1 = createNS(1);
-        c2 = createNS(2);
+        // TODO start with clusterNodeId 2, because 1 has already been
+        // implicitly allocated in the base class
+        c1 = createNS(2);
+        c2 = createNS(3);
         initialCacheSizeC1 = getCurrentCacheSize(c1);
         initialCacheSizeC2 = getCurrentCacheSize(c2);
     }
@@ -247,8 +248,12 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
 
     @After
     public void closeStores() {
-        c1.dispose();
-        c2.dispose();
+        if (c2 != null) {
+            c2.dispose();
+        }
+        if (c1 != null) {
+            c1.dispose();
+        }
     }
 
     private static void runBgOps(DocumentNodeStore... stores) {
@@ -257,13 +262,14 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
         }
     }
 
-    private static DocumentNodeStore createNS(int clusterId) throws Exception {
-        MongoConnection mc = MongoUtils.getConnection();
+    private DocumentNodeStore createNS(int clusterId) throws Exception {
+        MongoConnection mc = connectionFactory.getConnection();
         return new DocumentMK.Builder()
                           .setMongoDB(mc.getDB())
                           .setClusterId(clusterId)
                           //Set delay to 0 so that effect of changes are immediately reflected
                           .setAsyncDelay(0) 
+                          .setLeaseCheck(false)
                           .getNodeStore();
     }
 

@@ -64,6 +64,23 @@ public class LogDumper extends TestWatcher {
 
     private CyclicBufferAppender<ILoggingEvent> appender;
 
+    private final int logBufferSize;
+
+    /**
+     * Creates a new LogDumper with default log buffer size (1000)
+     */
+    public LogDumper() {
+        this(LOG_BUFFER_SIZE);
+    }
+    
+    /**
+     * Creates a new LogDumper with the given log buffer size
+     * @param logBufferSize
+     */
+    public LogDumper(int logBufferSize) {
+        this.logBufferSize = logBufferSize;
+    }
+    
     @Override
     protected void finished(Description description) {
         deregisterAppender();
@@ -113,7 +130,7 @@ public class LogDumper extends TestWatcher {
 
     private void registerAppender() {
         appender = new CyclicBufferAppender<ILoggingEvent>();
-        appender.setMaxSize(LOG_BUFFER_SIZE);
+        appender.setMaxSize(logBufferSize);
         appender.setContext(getContext());
         appender.setName("TestLogCollector");
         appender.start();

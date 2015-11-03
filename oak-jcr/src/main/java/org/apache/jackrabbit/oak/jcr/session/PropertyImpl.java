@@ -37,6 +37,7 @@ import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.ValueFormatException;
 import javax.jcr.nodetype.PropertyDefinition;
+import javax.jcr.version.VersionException;
 
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.Type;
@@ -108,7 +109,16 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
 
     @Override
     public void remove() throws RepositoryException {
-        sessionDelegate.performVoid(new ItemWriteOperation("remove") {
+        sessionDelegate.performVoid(new ItemWriteOperation<Void>("remove") {
+            @Override
+            public void checkPreconditions() throws RepositoryException {
+                super.checkPreconditions();
+                if (!getParent().isCheckedOut()) {
+                    throw new VersionException(
+                            "Cannot set property. Node is checked in.");
+                }
+            }
+
             @Override
             public void performVoid() {
                 dlg.remove();
@@ -449,7 +459,16 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
 
     private void internalSetValue(@Nonnull final Value value)
             throws RepositoryException {
-        sessionDelegate.performVoid(new ItemWriteOperation("internalSetValue") {
+        sessionDelegate.performVoid(new ItemWriteOperation<Void>("internalSetValue") {
+            @Override
+            public void checkPreconditions() throws RepositoryException {
+                super.checkPreconditions();
+                if (!getParent().isCheckedOut()) {
+                    throw new VersionException(
+                            "Cannot set property. Node is checked in.");
+                }
+            }
+
             @Override
             public void performVoid() throws RepositoryException {
                 Type<?> type = dlg.getPropertyState().getType();
@@ -476,7 +495,16 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
             LOG.warn("Large multi valued property [{}] detected ({} values).",dlg.getPath(), values.length);
         }
 
-        sessionDelegate.performVoid(new ItemWriteOperation("internalSetValue") {
+        sessionDelegate.performVoid(new ItemWriteOperation<Void>("internalSetValue") {
+            @Override
+            public void checkPreconditions() throws RepositoryException {
+                super.checkPreconditions();
+                if (!getParent().isCheckedOut()) {
+                    throw new VersionException(
+                            "Cannot set property. Node is checked in.");
+                }
+            }
+
             @Override
             public void performVoid() throws RepositoryException {
                 Type<?> type = dlg.getPropertyState().getType();

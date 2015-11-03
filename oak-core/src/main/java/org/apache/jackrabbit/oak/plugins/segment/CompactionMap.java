@@ -40,12 +40,20 @@ public class CompactionMap {
      * An empty map.
      */
     public static final CompactionMap EMPTY =
-            new CompactionMap(Collections.<PartialCompactionMap>emptyList());
+            new CompactionMap(Collections.<PartialCompactionMap>emptyList(), 0);
 
     private final List<PartialCompactionMap> maps;
 
-    private CompactionMap(@Nonnull List<PartialCompactionMap> maps) {
+    /**
+     * Generation represents the number of compaction cycles since the system
+     * came online. This is not persisted so it will be reset to 0 on each
+     * restart
+     */
+    private final int generation;
+
+    private CompactionMap(@Nonnull List<PartialCompactionMap> maps, int generation) {
         this.maps = maps;
+        this.generation = generation;
     }
 
     /**
@@ -103,27 +111,26 @@ public class CompactionMap {
      * @param uuids  uuids of the keys to remove
      */
     public void remove(@Nonnull Set<UUID> uuids) {
-        List<PartialCompactionMap> remove = newArrayList();
         for (PartialCompactionMap map : maps) {
             map.remove(uuids);
-            if (map.getSegmentCount() == 0) {
-                remove.add(map);
-            }
         }
-        maps.removeAll(remove);
     }
 
     /**
      * Create a new {@code CompactionMap} containing all maps
-     * of this instances and additional the passed {@code map}.
-     * @param map
+     * of this instances and additional the passed map {@code head}.
+     * @param head
      * @return a new {@code CompactionMap} instance
      */
     @Nonnull
-    public CompactionMap cons(@Nonnull PartialCompactionMap map) {
-        List<PartialCompactionMap> maps = newArrayList(map);
-        maps.addAll(this.maps);
-        return new CompactionMap(maps);
+    public CompactionMap cons(@Nonnull PartialCompactionMap head) {
+        List<PartialCompactionMap> maps = newArrayList(head);
+        for (PartialCompactionMap map : this.maps) {
+            if (!map.isEmpty()) {
+                maps.add(map);
+            }
+        }
+        return new CompactionMap(maps, generation + 1);
     }
 
     /**
@@ -148,6 +155,10 @@ public class CompactionMap {
      */
     public int getDepth() {
         return maps.size();
+    }
+
+    public int getGeneration() {
+        return generation;
     }
 
     /**

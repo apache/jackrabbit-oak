@@ -219,4 +219,8 @@ public class CountingDocumentStore implements DocumentStore {
         return delegate.getMetadata();
     }
 
+    @Override
+    public long determineServerTimeDifferenceMillis() {
+        return delegate.determineServerTimeDifferenceMillis();
+    }
 }

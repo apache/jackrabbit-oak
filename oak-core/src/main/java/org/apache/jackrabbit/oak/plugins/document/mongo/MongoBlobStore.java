@@ -32,7 +32,7 @@ import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
-import com.mongodb.MongoException;
+import com.mongodb.DuplicateKeyException;
 import com.mongodb.QueryBuilder;
 import com.mongodb.ReadPreference;
 import com.mongodb.WriteResult;
@@ -87,7 +87,7 @@ public class MongoBlobStore extends CachingBlobStore {
         // TODO verify insert is fast if the entry already exists
         try {
             getBlobCollection().insert(mongoBlob);
-        } catch (MongoException.DuplicateKey e) {
+        } catch (DuplicateKeyException e) {
             // the same block was already stored before: ignore
         }
     }
@@ -138,20 +138,14 @@ public class MongoBlobStore extends CachingBlobStore {
         DBObject query = getBlobQuery(id, minLastModified);
         DBObject update = new BasicDBObject("$set",
                 new BasicDBObject(MongoBlob.KEY_LAST_MOD, System.currentTimeMillis()));
-        WriteResult writeResult = getBlobCollection().update(query, update);
-        if (writeResult.getError() != null) {
-            LOG.error("Mark failed for blob {}: {}", id, writeResult.getError());
-        }
+        getBlobCollection().update(query, update);
     }
 
     @Override
     public int sweep() throws IOException {
         DBObject query = getBlobQuery(null, minLastModified);
         long countBefore = getBlobCollection().count(query);
-        WriteResult writeResult = getBlobCollection().remove(query);
-        if (writeResult.getError() != null) {
-            LOG.error("Sweep failed: {}", writeResult.getError());
-        }
+        getBlobCollection().remove(query);
 
         long countAfter = getBlobCollection().count(query);
         minLastModified = 0;
@@ -173,7 +167,7 @@ public class MongoBlobStore extends CachingBlobStore {
         index.put(MongoBlob.KEY_ID, 1L);
         DBObject options = new BasicDBObject();
         options.put("unique", Boolean.TRUE);
-        collection.ensureIndex(index, options);
+        collection.createIndex(index, options);
     }
 
     private MongoBlob getBlob(String id, long lastMod) {
@@ -205,7 +199,7 @@ public class MongoBlobStore extends CachingBlobStore {
     }
 
     @Override
-    public boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
+    public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
         DBCollection collection = getBlobCollection();
         QueryBuilder queryBuilder = new QueryBuilder();
         if (chunkIds != null) {
@@ -217,11 +211,7 @@ public class MongoBlobStore extends CachingBlobStore {
         }
 
         WriteResult result = collection.remove(queryBuilder.get());
-        if (result.getN() == chunkIds.size()) {
-            return true;
-        }
-
-        return false;
+        return result.getN();
     }
 
     @Override

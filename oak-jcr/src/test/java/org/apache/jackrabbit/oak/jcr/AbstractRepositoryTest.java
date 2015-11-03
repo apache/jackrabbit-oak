@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.commons.FixturesHelper;
 import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Ignore;
@@ -67,7 +68,7 @@ public abstract class AbstractRepositoryTest {
         this.fixture = fixture;
     }
 
-    @Parameterized.Parameters
+    @Parameterized.Parameters(name="{0}")
     public static Collection<Object[]> fixtures() {
         Collection<Object[]> result = new ArrayList<Object[]>();
         if (FIXTURES.contains(Fixture.DOCUMENT_NS)) {
@@ -140,7 +141,7 @@ public abstract class AbstractRepositoryTest {
     }
 
     protected SimpleCredentials getAdminCredentials() {
-        return new SimpleCredentials("admin", "admin".toCharArray());
+        return new SimpleCredentials(UserConstants.DEFAULT_ADMIN_ID, UserConstants.DEFAULT_ADMIN_ID.toCharArray());
     }
 
     public static <R extends Repository> R dispose(R repository) {

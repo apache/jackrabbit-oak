@@ -19,23 +19,11 @@
 
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
-import static org.apache.jackrabbit.oak.api.Type.BINARY;
-import static org.apache.jackrabbit.oak.plugins.segment.ListRecord.LEVEL_SIZE;
-import static org.apache.jackrabbit.oak.plugins.segment.Segment.MEDIUM_LIMIT;
-import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ID_BYTES;
-import static org.apache.jackrabbit.oak.plugins.segment.Segment.SMALL_LIMIT;
-import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.V_11;
-import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
-import static org.apache.jackrabbit.oak.plugins.segment.Template.MANY_CHILD_NODES;
-import static org.apache.jackrabbit.oak.plugins.segment.Template.ZERO_CHILD_NODES;
 
 import java.util.Formatter;
-
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
+import java.util.Set;
 
 /**
  * This utility breaks down space usage per record type.
@@ -45,8 +33,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * space taken by the records is taken into account. Slack
  * space from aligning records is not accounted for.
  */
-public class RecordUsageAnalyser {
+public class RecordUsageAnalyser extends SegmentParser {
     private final RecordIdSet seenIds = new RecordIdSet();
+    private final Set<String> deadLinks = newHashSet();
 
     private long mapSize;       // leaf and branch
     private long listSize;      // list and bucket
@@ -196,57 +185,7 @@ public class RecordUsageAnalyser {
     }
 
     public void analyseNode(RecordId nodeId) {
-        if (seenIds.addIfNotPresent(nodeId)) {
-            nodeCount++;
-            Segment segment = nodeId.getSegment();
-            int offset = nodeId.getOffset();
-            RecordId templateId = segment.readRecordId(offset);
-            analyseTemplate(templateId);
-
-            Template template = segment.readTemplate(templateId);
-
-            // Recurses into child nodes in this segment
-            if (template.getChildName() == MANY_CHILD_NODES) {
-                RecordId childMapId = segment.readRecordId(offset + RECORD_ID_BYTES);
-                MapRecord childMap = segment.readMap(childMapId);
-                analyseMap(childMapId, childMap);
-                for (ChildNodeEntry childNodeEntry : childMap.getEntries()) {
-                    NodeState child = childNodeEntry.getNodeState();
-                    if (child instanceof SegmentNodeState) {
-                        RecordId childId = ((SegmentNodeState) child).getRecordId();
-                        analyseNode(childId);
-                    }
-                }
-            } else if (template.getChildName() != ZERO_CHILD_NODES) {
-                RecordId childId = segment.readRecordId(offset + RECORD_ID_BYTES);
-                analyseNode(childId);
-            }
-
-            // Recurse into properties
-            int ids = template.getChildName() == ZERO_CHILD_NODES ? 1 : 2;
-            nodeSize += ids * RECORD_ID_BYTES;
-            PropertyTemplate[] propertyTemplates = template.getPropertyTemplates();
-            if (segment.getSegmentVersion().onOrAfter(V_11)) {
-                if (propertyTemplates.length > 0) {
-                    nodeSize += RECORD_ID_BYTES;
-                    RecordId id = segment.readRecordId(offset + ids * RECORD_ID_BYTES);
-                    ListRecord pIds = new ListRecord(id,
-                            propertyTemplates.length);
-                    for (int i = 0; i < propertyTemplates.length; i++) {
-                        RecordId propertyId = pIds.getEntry(i);
-                        analyseProperty(propertyId, propertyTemplates[i]);
-                    }
-                    analyseList(id, propertyTemplates.length);
-                }
-            } else {
-                for (PropertyTemplate propertyTemplate : propertyTemplates) {
-                    nodeSize += RECORD_ID_BYTES;
-                    RecordId propertyId = segment.readRecordId(offset + ids++
-                            * RECORD_ID_BYTES);
-                    analyseProperty(propertyId, propertyTemplate);
-                }
-            }
-        }
+        onNode(null, nodeId);
     }
 
     @Override
@@ -272,224 +211,150 @@ public class RecordUsageAnalyser {
         formatter.format(
                 "%s in nodes (%s node records)%n",
                 byteCountToDisplaySize(nodeSize), nodeCount);
+        formatter.format("links to non existing segments: %s", deadLinks);
         return sb.toString();
     }
 
-    private void analyseTemplate(RecordId templateId) {
-        if (seenIds.addIfNotPresent(templateId)) {
-            templateCount++;
-            Segment segment = templateId.getSegment();
-            int size = 0;
-            int offset = templateId.getOffset();
-            int head = segment.readInt(offset + size);
-            boolean hasPrimaryType = (head & (1 << 31)) != 0;
-            boolean hasMixinTypes = (head & (1 << 30)) != 0;
-            boolean zeroChildNodes = (head & (1 << 29)) != 0;
-            boolean manyChildNodes = (head & (1 << 28)) != 0;
-            int mixinCount = (head >> 18) & ((1 << 10) - 1);
-            int propertyCount = head & ((1 << 18) - 1);
-            size += 4;
-
-            if (hasPrimaryType) {
-                RecordId primaryId = segment.readRecordId(offset + size);
-                analyseString(primaryId);
-                size += RECORD_ID_BYTES;
+    @Override
+    protected void onNode(RecordId parentId, RecordId nodeId) {
+        try {
+            if (seenIds.addIfNotPresent(nodeId)) {
+                NodeInfo info = parseNode(nodeId);
+                this.nodeCount++;
+                this.nodeSize += info.size;
             }
-
-            if (hasMixinTypes) {
-                for (int i = 0; i < mixinCount; i++) {
-                    RecordId mixinId = segment.readRecordId(offset + size);
-                    analyseString(mixinId);
-                    size += RECORD_ID_BYTES;
-                }
-            }
-
-            if (!zeroChildNodes && !manyChildNodes) {
-                RecordId childNameId = segment.readRecordId(offset + size);
-                analyseString(childNameId);
-                size += RECORD_ID_BYTES;
-            }
-
-            if (segment.getSegmentVersion().onOrAfter(V_11)) {
-                if (propertyCount > 0) {
-                    RecordId listId = segment.readRecordId(offset + size);
-                    size += RECORD_ID_BYTES;
-                    ListRecord propertyNames = new ListRecord(listId, propertyCount);
-                    for (int i = 0; i < propertyCount; i++) {
-                        RecordId propertyNameId = propertyNames.getEntry(i);
-                        size++; // type
-                        analyseString(propertyNameId);
-                    }
-                    analyseList(listId, propertyCount);
-                }
-            } else {
-                for (int i = 0; i < propertyCount; i++) {
-                    RecordId propertyNameId = segment.readRecordId(offset + size);
-                    size += RECORD_ID_BYTES;
-                    size++;  // type
-                    analyseString(propertyNameId);
-                }
-            }
-            templateSize += size;
+        } catch (SegmentNotFoundException snfe) {
+            deadLinks.add(snfe.getSegmentId());
         }
     }
 
-    private void analyseMap(RecordId mapId, MapRecord map) {
-        if (seenIds.addIfNotPresent(mapId)) {
-            mapCount++;
-            if (map.isDiff()) {
-                analyseDiff(mapId, map);
-            } else if (map.isLeaf()) {
-                analyseLeaf(map);
-            } else {
-                analyseBranch(map);
+    @Override
+    protected void onTemplate(RecordId parentId, RecordId templateId) {
+        try {
+            if (seenIds.addIfNotPresent(templateId)) {
+                TemplateInfo info = parseTemplate(templateId);
+                this.templateCount++;
+                this.templateSize += info.size;
             }
+        } catch (SegmentNotFoundException snfe) {
+            deadLinks.add(snfe.getSegmentId());
         }
     }
 
-    private void analyseDiff(RecordId mapId, MapRecord map) {
-        mapSize += 4;                                // -1
-        mapSize += 4;                                // hash of changed key
-        mapSize += RECORD_ID_BYTES;                  // key
-        mapSize += RECORD_ID_BYTES;                  // value
-        mapSize += RECORD_ID_BYTES;                  // base
-
-        RecordId baseId = mapId.getSegment().readRecordId(
-                mapId.getOffset() + 8 + 2 * RECORD_ID_BYTES);
-        analyseMap(baseId, new MapRecord(baseId));
-    }
-
-    private void analyseLeaf(MapRecord map) {
-        mapSize += 4;                                 // size
-        mapSize += map.size() * 4;                    // key hashes
-
-        for (MapEntry entry : map.getEntries()) {
-            mapSize += 2 * RECORD_ID_BYTES;           // key value pairs
-            analyseString(entry.getKey());
-        }
-    }
-
-    private void analyseBranch(MapRecord map) {
-        mapSize += 4;                                 // level/size
-        mapSize += 4;                                 // bitmap
-        for (MapRecord bucket : map.getBuckets()) {
-            if (bucket != null) {
-                mapSize += RECORD_ID_BYTES;
-                analyseMap(bucket.getRecordId(), bucket);
+    @Override
+    protected void onMapDiff(RecordId parentId, RecordId mapId, MapRecord map) {
+        try {
+            if (seenIds.addIfNotPresent(mapId)) {
+                MapInfo info = parseMapDiff(mapId, map);
+                this.mapCount++;
+                this.mapSize += info.size;
             }
+        } catch (SegmentNotFoundException snfe) {
+            deadLinks.add(snfe.getSegmentId());
         }
     }
 
-    private void analyseProperty(RecordId propertyId, PropertyTemplate template) {
-        if (!seenIds.contains(propertyId)) {
-            propertyCount++;
-            Segment segment = propertyId.getSegment();
-            int offset = propertyId.getOffset();
-            Type<?> type = template.getType();
+    @Override
+    protected void onMapLeaf(RecordId parentId, RecordId mapId, MapRecord map) {
+        try {
+            if (seenIds.addIfNotPresent(mapId)) {
+                MapInfo info = parseMapLeaf(mapId, map);
+                this.mapCount++;
+                this.mapSize += info.size;
+            }
+        } catch (SegmentNotFoundException snfe) {
+            deadLinks.add(snfe.getSegmentId());
+        }
+    }
 
-            if (type.isArray()) {
+    @Override
+    protected void onMapBranch(RecordId parentId, RecordId mapId, MapRecord map) {
+        try {
+            if (seenIds.addIfNotPresent(mapId)) {
+                MapInfo info = parseMapBranch(mapId, map);
+                this.mapCount++;
+                this.mapSize += info.size;
+            }
+        } catch (SegmentNotFoundException snfe) {
+            deadLinks.add(snfe.getSegmentId());
+        }
+    }
+
+    @Override
+    protected void onProperty(RecordId parentId, RecordId propertyId, PropertyTemplate template) {
+        try {
+            if (!seenIds.contains(propertyId)) {
+                PropertyInfo info = parseProperty(parentId, propertyId, template);
+                this.propertyCount++;
+                this.valueSize += info.size;
                 seenIds.addIfNotPresent(propertyId);
-                int size = segment.readInt(offset);
-                valueSize += 4;
+            }
+        } catch (SegmentNotFoundException snfe) {
+            deadLinks.add(snfe.getSegmentId());
+        }
+    }
 
-                if (size > 0) {
-                    RecordId listId = segment.readRecordId(offset + 4);
-                    valueSize += RECORD_ID_BYTES;
-                    for (RecordId valueId : new ListRecord(listId, size).getEntries()) {
-                        analyseValue(valueId, type.getBaseType());
-                    }
-                    analyseList(listId, size);
+    @Override
+    protected void onBlob(RecordId parentId, RecordId blobId) {
+        try {
+            if (seenIds.addIfNotPresent(blobId)) {
+                BlobInfo info = parseBlob(blobId);
+                this.valueSize += info.size;
+                switch (info.blobType) {
+                    case SMALL:
+                        this.smallBlobCount++;
+                        break;
+                    case MEDIUM:
+                        this.mediumBlobCount++;
+                        break;
+                    case LONG:
+                        this.longBlobCount++;
+                        break;
+                    case EXTERNAL:
+                        this.externalBlobCount++;
+                        break;
                 }
-            } else {
-                analyseValue(propertyId, type);
             }
+        } catch (SegmentNotFoundException snfe) {
+            deadLinks.add(snfe.getSegmentId());
         }
     }
 
-    private void analyseValue(RecordId valueId, Type<?> type) {
-        checkArgument(!type.isArray());
-        if (type == BINARY) {
-            analyseBlob(valueId);
-        } else {
-            analyseString(valueId);
-        }
-    }
-
-    private void analyseBlob(RecordId blobId) {
-        if (seenIds.addIfNotPresent(blobId)) {
-            Segment segment = blobId.getSegment();
-            int offset = blobId.getOffset();
-            byte head = segment.readByte(offset);
-            if ((head & 0x80) == 0x00) {
-                // 0xxx xxxx: small value
-                valueSize += (1 + head);
-                smallBlobCount++;
-            } else if ((head & 0xc0) == 0x80) {
-                // 10xx xxxx: medium value
-                int length = (segment.readShort(offset) & 0x3fff) + SMALL_LIMIT;
-                valueSize += (2 + length);
-                mediumBlobCount++;
-            } else if ((head & 0xe0) == 0xc0) {
-                // 110x xxxx: long value
-                long length = (segment.readLong(offset) & 0x1fffffffffffffffL) + MEDIUM_LIMIT;
-                int size = (int) ((length + BLOCK_SIZE - 1) / BLOCK_SIZE);
-                RecordId listId = segment.readRecordId(offset + 8);
-                analyseList(listId, size);
-                valueSize += (8 + RECORD_ID_BYTES + length);
-                longBlobCount++;
-            } else if ((head & 0xf0) == 0xe0) {
-                // 1110 xxxx: external value
-                int length = (head & 0x0f) << 8 | (segment.readByte(offset + 1) & 0xff);
-                valueSize += (2 + length);
-                externalBlobCount++;
-            } else {
-                throw new IllegalStateException(String.format(
-                        "Unexpected value record type: %02x", head & 0xff));
+    @Override
+    protected void onString(RecordId parentId, RecordId stringId) {
+        try {
+            if (seenIds.addIfNotPresent(stringId)) {
+                BlobInfo info = parseString(stringId);
+                this.valueSize += info.size;
+                switch (info.blobType) {
+                    case SMALL:
+                        this.smallStringCount++;
+                        break;
+                    case MEDIUM:
+                        this.mediumStringCount++;
+                        break;
+                    case LONG:
+                        this.longStringCount++;
+                        break;
+                    case EXTERNAL:
+                        throw new IllegalStateException("String is too long: " + info.size);
+                }
             }
+        } catch (SegmentNotFoundException snfe) {
+            deadLinks.add(snfe.getSegmentId());
         }
     }
 
-    private void analyseString(RecordId stringId) {
-        if (seenIds.addIfNotPresent(stringId)) {
-            Segment segment = stringId.getSegment();
-            int offset = stringId.getOffset();
-
-            long length = segment.readLength(offset);
-            if (length < Segment.SMALL_LIMIT) {
-                valueSize += (1 + length);
-                smallStringCount++;
-            } else if (length < Segment.MEDIUM_LIMIT) {
-                valueSize += (2 + length);
-                mediumStringCount++;
-            } else if (length < Integer.MAX_VALUE) {
-                int size = (int) ((length + BLOCK_SIZE - 1) / BLOCK_SIZE);
-                RecordId listId = segment.readRecordId(offset + 8);
-                analyseList(listId, size);
-                valueSize += (8 + RECORD_ID_BYTES + length);
-                longStringCount++;
-            } else {
-                throw new IllegalStateException("String is too long: " + length);
+    @Override
+    protected void onList(RecordId parentId, RecordId listId, int count) {
+        try {
+            if (seenIds.addIfNotPresent(listId)) {
+                ListInfo info = parseList(parentId, listId, count);
+                this.listCount++;
+                this.listSize += info.size;
             }
-        }
-    }
-
-    private void analyseList(RecordId listId, int size) {
-        if (seenIds.addIfNotPresent(listId)) {
-            listCount++;
-            listSize += noOfListSlots(size) * RECORD_ID_BYTES;
-        }
-    }
-
-    private static int noOfListSlots(int size) {
-        if (size <= LEVEL_SIZE) {
-            return size;
-        } else {
-            int fullBuckets = size / LEVEL_SIZE;
-            if (size % LEVEL_SIZE > 1) {
-                return size + noOfListSlots(fullBuckets + 1);
-            } else {
-                return size + noOfListSlots(fullBuckets);
-            }
+        } catch (SegmentNotFoundException snfe) {
+            deadLinks.add(snfe.getSegmentId());
         }
     }
 

@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Before;
-import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -40,6 +40,9 @@ import static org.junit.Assert.assertTrue;
 
 public class CheckpointsTest {
 
+    @Rule
+    public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
+    
     private Clock clock;
 
     private DocumentNodeStore store;
@@ -47,7 +50,7 @@ public class CheckpointsTest {
     @Before
     public void setUp() throws InterruptedException {
         clock = new Clock.Virtual();
-        store = new DocumentMK.Builder().clock(clock).getNodeStore();
+        store = builderProvider.newBuilder().clock(clock).getNodeStore();
     }
 
     @Test
@@ -81,7 +84,6 @@ public class CheckpointsTest {
         assertEquals(1, store.getCheckpoints().size());
     }
 
-    @Ignore("OAK-1648")
     @Test
     public void multipleCheckpointOnSameRevision() throws Exception{
         long e1 = TimeUnit.HOURS.toMillis(1);
@@ -92,14 +94,15 @@ public class CheckpointsTest {
         Revision r2 = Revision.fromString(store.checkpoint(e2));
         Revision r1 = Revision.fromString(store.checkpoint(e1));
 
-        //Head revision has not changed so revision must be same
-        assertEquals(r1,r2);
-
         clock.waitUntil(clock.getTime() + e1 + 1);
 
         //The older checkpoint was for greater duration so checkpoint
         //must not be GC
-        assertEquals(r1, store.getCheckpoints().getOldestRevisionToKeep());
+        assertEquals(r2, store.getCheckpoints().getOldestRevisionToKeep());
+        // after getOldestRevisionToKeep() only one must be remaining
+        assertEquals(1, store.getCheckpoints().size());
+        assertNull(store.retrieve(r1.toString()));
+        assertNotNull(store.retrieve(r2.toString()));
     }
 
     @Test

@@ -70,6 +70,25 @@ public class MongoUtils {
     }
 
     /**
+     * Drop all user defined collections in the given database. System
+     * collections are not dropped. This method returns silently if MongoDB is
+     * not available.
+     *
+     * @param dbName the database name.
+     */
+    public static void dropCollections(String dbName) {
+        MongoConnection c = getConnection(dbName);
+        if (c == null) {
+            return;
+        }
+        try {
+            dropCollections(c.getDB());
+        } finally {
+            c.close();
+        }
+    }
+
+    /**
      * Drop all user defined collections. System collections are not dropped.
      *
      * @param db the connection
@@ -78,6 +97,38 @@ public class MongoUtils {
         for (String name : db.getCollectionNames()) {
             if (!name.startsWith("system.")) {
                 db.getCollection(name).drop();
+            }
+        }
+    }
+
+    /**
+     * Drops the database with the given name. This method returns silently if
+     * MongoDB is not available.
+     *
+     * @param dbName the name of the database to drop.
+     */
+    public static void dropDatabase(String dbName) {
+        MongoConnection c = getConnection(dbName);
+        if (c == null) {
+            return;
+        }
+        try {
+            c.getDB().dropDatabase();
+        } finally {
+            c.close();
+        }
+    }
+
+    /**
+     * @return true if MongoDB is available, false otherwise.
+     */
+    public static boolean isAvailable() {
+        MongoConnection c = getConnection();
+        try {
+            return c != null;
+        } finally {
+            if (c != null) {
+                c.close();
             }
         }
     }

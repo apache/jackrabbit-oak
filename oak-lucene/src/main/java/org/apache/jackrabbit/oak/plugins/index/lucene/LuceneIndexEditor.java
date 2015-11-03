@@ -136,7 +136,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         this.root = root;
         this.isDeleted = false;
         this.matcherState = MatcherState.NONE;
-        this.pathFilterResult = context.getDefinition().getPathFilter().doFiler(getPath());
+        this.pathFilterResult = context.getDefinition().getPathFilter().filter(getPath());
     }
 
     private LuceneIndexEditor(LuceneIndexEditor parent, String name,
@@ -352,6 +352,12 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
             return null;
         }
 
+        String name = getName(path);
+        if (indexingRule.isNodeNameIndexed()){
+            addNodeNameField(fields, name);
+            dirty = true;
+        }
+
         //For property index no use making an empty document if
         //none of the properties are indexed
         if(!indexingRule.isFulltextEnabled() && !dirty){
@@ -360,9 +366,8 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
         Document document = new Document();
         document.add(newPathField(path));
-        String name = getName(path);
 
-        //TODO Possibly index nodeName without tokenization for node name based queries
+
         if (indexingRule.isFulltextEnabled()) {
             document.add(newFulltextField(name));
         }
@@ -429,7 +434,6 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
                     if (pd.nodeScopeIndex) {
                         Field field = newFulltextField(value);
-                        field.setBoost(pd.boost);
                         fields.add(field);
                     }
                     dirty = true;
@@ -834,7 +838,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
     }
 
     private PathFilter.Result getPathFilterResult(String childNodeName) {
-        return context.getDefinition().getPathFilter().doFiler(concat(getPath(), childNodeName));
+        return context.getDefinition().getPathFilter().filter(concat(getPath(), childNodeName));
     }
 
     private boolean isSupportedMediaType(String type) {
@@ -890,6 +894,23 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
     private String getIndexName() {
         return context.getDefinition().getIndexName();
+    }
+
+
+    /**
+     * Extracts the local name of the current node ignoring any namespace prefix
+     *
+     * @param name node name
+     */
+    private static void addNodeNameField(List<Field> fields, String name) {
+        //TODO Need to check if it covers all cases
+        int colon = name.indexOf(':');
+        String value = colon < 0 ? name : name.substring(colon + 1);
+
+        //For now just add a single term. Later we can look into using different analyzer
+        //to analyze the node name and add multiple terms. Like add multiple terms for a
+        //cameCase file name to allow faster like search
+        fields.add(new StringField(FieldNames.NODE_NAME, value, Field.Store.NO));
     }
 
 }

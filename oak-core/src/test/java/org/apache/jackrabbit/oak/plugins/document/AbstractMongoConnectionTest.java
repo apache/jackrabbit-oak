@@ -16,12 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import com.mongodb.DB;
+
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 
 /**
  * Base class for test cases that need a {@link MongoConnection}
@@ -30,20 +33,27 @@ import org.junit.BeforeClass;
  */
 public abstract class AbstractMongoConnectionTest extends DocumentMKTestBase {
 
+    @Rule
+    public MongoConnectionFactory connectionFactory = new MongoConnectionFactory();
+
     protected MongoConnection mongoConnection;
     protected DocumentMK mk;
 
     @BeforeClass
     public static void checkMongoDbAvailable() {
-        Assume.assumeNotNull(MongoUtils.getConnection());
+        Assume.assumeTrue(MongoUtils.isAvailable());
     }
 
     @Before
     public void setUpConnection() throws Exception {
-        mongoConnection = MongoUtils.getConnection();
+        mongoConnection = connectionFactory.getConnection();
         MongoUtils.dropCollections(mongoConnection.getDB());
         Revision.setClock(getTestClock());
-        mk = new DocumentMK.Builder().clock(getTestClock()).setMongoDB(mongoConnection.getDB()).open();
+        mk = newBuilder(mongoConnection.getDB()).open();
+    }
+
+    protected DocumentMK.Builder newBuilder(DB db) throws Exception {
+        return new DocumentMK.Builder().clock(getTestClock()).setMongoDB(db);
     }
 
     protected Clock getTestClock() throws InterruptedException {
@@ -53,11 +63,7 @@ public abstract class AbstractMongoConnectionTest extends DocumentMKTestBase {
     @After
     public void tearDownConnection() throws Exception {
         mk.dispose();
-        // the db might already be closed
-        mongoConnection.close();
-        mongoConnection = MongoUtils.getConnection();
-        MongoUtils.dropCollections(mongoConnection.getDB());
-        mongoConnection.close();
+        MongoUtils.dropCollections(connectionFactory.getConnection().getDB());
         Revision.resetClockToDefault();
     }
 

@@ -209,7 +209,7 @@ This login module implementations behaves as follows:
 
 Another flavor of the Oak authentication implementation is covered by
 `javax.jcr.Session#impersonate(Credentials)`, which allows to obtain an new
-`Session` for user identitified by the specified credentials. As of JSR 333
+`Session` for user identified by the specified credentials. As of JSR 333
 this method can also be used in order to clone the existing session (i.e.
 self-impersonation of the user that holds the session.
 

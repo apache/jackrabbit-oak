@@ -159,7 +159,7 @@ class UnsavedModifications {
         time = clock.getTime();
         Map<String, Revision> pending;
         try {
-            snapshot.acquiring();
+            snapshot.acquiring(getMostRecentRevision());
             pending = Maps.newTreeMap(PathComparator.INSTANCE);
             pending.putAll(map);
         } finally {
@@ -214,6 +214,17 @@ class UnsavedModifications {
                 lastRev = null;
             }
         }
+        Revision writtenRootRev = pending.get("/");
+        if (writtenRootRev != null) {
+            int cid = writtenRootRev.getClusterId();
+            if (store.getDocumentStore().find(org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES, String.valueOf(cid)) != null) {
+                UpdateOp update = new UpdateOp(String.valueOf(cid), false);
+                update.equals(Document.ID, null, String.valueOf(cid));
+                update.set(ClusterNodeInfo.LAST_WRITTEN_ROOT_REV_KEY, writtenRootRev.toString());
+                store.getDocumentStore().findAndUpdate(org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES, update);
+            }
+        }
+
         stats.write = clock.getTime() - time;
         return stats;
     }
@@ -223,14 +234,26 @@ class UnsavedModifications {
         return map.toString();
     }
 
+    private Revision getMostRecentRevision() {
+        // use revision of root document
+        Revision rev = map.get("/");
+        // otherwise find most recent
+        if (rev == null) {
+            for (Revision r : map.values()) {
+                rev = Utils.max(rev, r);
+            }
+        }
+        return rev;
+    }
+
     public interface Snapshot {
 
         Snapshot IGNORE = new Snapshot() {
             @Override
-            public void acquiring() {
+            public void acquiring(Revision mostRecent) {
             }
         };
 
-        void acquiring();
+        void acquiring(Revision mostRecent);
     }
 }

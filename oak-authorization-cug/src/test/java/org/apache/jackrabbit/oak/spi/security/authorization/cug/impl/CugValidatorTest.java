@@ -117,4 +117,20 @@ public class CugValidatorTest extends AbstractCugTest {
             root.refresh();
         }
     }
+
+    @Test
+    public void testCugPolicyWithDifferentName() throws Exception {
+        node.setNames(JcrConstants.JCR_MIXINTYPES, MIX_REP_CUG_MIXIN);
+        NodeUtil cug = node.addChild("anotherName", NT_REP_CUG_POLICY);
+        cug.setStrings(REP_PRINCIPAL_NAMES, EveryonePrincipal.NAME);
+        try {
+            root.commit();
+            fail();
+        }  catch (CommitFailedException e) {
+            assertTrue(e.isAccessControlViolation());
+            assertEquals(23, e.getCode());
+        } finally {
+            root.refresh();
+        }
+    }
 }

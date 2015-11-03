@@ -77,7 +77,7 @@ if the sub-tree rooted at the respective item does not contain all transient cha
 Query
 -----
 
-Oak does not index content by default as does Jackrabbit 2. You need to create custom indexes when
+Oak does not index as much content by default as does Jackrabbit 2. You need to create custom indexes when
 necessary, much like in traditional RDBMSs. If there is no index for a specific query then the
 repository will be traversed. That is, the query will still work but probably be very slow.
 See the [query overview page](query.html) for how to create a custom index.
@@ -85,6 +85,8 @@ See the [query overview page](query.html) for how to create a custom index.
 There were some smaller bugfixes in the query parser which might lead to incompatibility.
 See the [query overview page](query.html) for details.
 
+In Oak, the method `QueryManager.createQuery` does not 
+return an object of type `QueryObjectModel`.
 
 Observation
 -----------

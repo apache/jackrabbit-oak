@@ -185,6 +185,11 @@ public class InMemoryCompactionMap implements PartialCompactionMap {
         return afterOffsets.length;
     }
 
+    @Override
+    public boolean isEmpty() {
+        return afterOffsets.length == 0 && recent.isEmpty();
+    }
+
     private void compress(@Nonnull Set<UUID> removed) {
         if (recent.isEmpty() && removed.isEmpty()) {
             // no-op

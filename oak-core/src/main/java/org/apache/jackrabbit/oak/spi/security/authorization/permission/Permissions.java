@@ -362,7 +362,8 @@ public final class Permissions {
      * @throws IllegalArgumentException If the string contains unknown actions
      * or permission names.
      */
-    public static long getPermissions(String jcrActions, TreeLocation location,
+    public static long getPermissions(@Nonnull String jcrActions,
+                                      @Nonnull TreeLocation location,
                                       boolean isAccessControlContent) {
         Set<String> actions = Sets.newHashSet(Text.explode(jcrActions, ',', false));
         long permissions = NO_PERMISSION;
@@ -410,9 +411,9 @@ public final class Permissions {
         // map remaining actions and permission-names that have a simple 1:1
         // mapping between action and permission
         if (!actions.isEmpty()) {
-            for (String action : ACTIONS_MAP.keySet()) {
-                if (actions.remove(action)) {
-                    permissions |= ACTIONS_MAP.get(action);
+            for (Map.Entry<String, Long> actionEntry : ACTIONS_MAP.entrySet()) {
+                if (actions.remove(actionEntry.getKey())) {
+                    permissions |= actionEntry.getValue();
                 }
             }
             permissions |= getPermissions(actions);

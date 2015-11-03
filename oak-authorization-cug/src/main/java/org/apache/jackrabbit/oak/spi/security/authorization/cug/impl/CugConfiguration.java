@@ -130,7 +130,7 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
         if (!enabled || supportedPaths.isEmpty() || getExclude().isExcluded(principals)) {
             return EmptyPermissionProvider.getInstance();
         } else {
-            return new CugPermissionProvider(root, principals, supportedPaths, getSecurityProvider().getConfiguration(AuthorizationConfiguration.class).getContext());
+            return new CugPermissionProvider(root, workspaceName, principals, supportedPaths, getSecurityProvider().getConfiguration(AuthorizationConfiguration.class).getContext());
         }
     }
 

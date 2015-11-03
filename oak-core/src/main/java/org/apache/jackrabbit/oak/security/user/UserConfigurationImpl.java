@@ -25,6 +25,7 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Properties;
@@ -109,7 +110,13 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
         @Property(name = UserConstants.PARAM_PASSWORD_HISTORY_SIZE,
                 label = "Maximum Password History Size",
                 description = "Maximum number of passwords recorded for a user after changing her password (NOTE: upper limit is 1000). When changing the password the new password must not be present in the password history. A value of 0 indicates no password history is recorded.",
-                intValue = UserConstants.PASSWORD_HISTORY_DISABLED_SIZE)
+                intValue = UserConstants.PASSWORD_HISTORY_DISABLED_SIZE),
+        @Property(name = UserPrincipalProvider.PARAM_CACHE_EXPIRATION,
+                label = "Principal Cache Expiration",
+                description = "Optional configuration defining the number of milliseconds " +
+                        "until the principal cache expires (NOTE: currently only respected for principal resolution with the internal system session such as used for login). " +
+                        "If not set or equal/lower than zero no caches are created/evaluated.",
+                longValue = UserPrincipalProvider.EXPIRATION_NO_CACHE)
 })
 public class UserConfigurationImpl extends ConfigurationBase implements UserConfiguration, SecurityConfiguration {
 
@@ -162,7 +169,7 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
     @Nonnull
     @Override
     public List<? extends ValidatorProvider> getValidators(@Nonnull String workspaceName, @Nonnull Set<Principal> principals, @Nonnull MoveTracker moveTracker) {
-        return Collections.singletonList(new UserValidatorProvider(getParameters()));
+        return ImmutableList.of(new UserValidatorProvider(getParameters()), new CacheValidatorProvider(principals));
     }
 
     @Nonnull

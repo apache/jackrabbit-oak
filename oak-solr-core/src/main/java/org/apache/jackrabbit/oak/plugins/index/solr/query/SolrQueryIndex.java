@@ -45,6 +45,7 @@ import org.apache.jackrabbit.oak.spi.query.Cursors;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.FulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -76,6 +77,10 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
 
     static final String NATIVE_LUCENE_QUERY = "native*lucene";
 
+    private static double MIN_COST = 2.3;
+
+    private static double COST_FOR_SINGLE_RESTRICTION = 10;
+
     private final Logger log = LoggerFactory.getLogger(SolrQueryIndex.class);
 
     private final String name;
@@ -103,6 +108,11 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
     }
 
     @Override
+    public double getMinimumCost() {
+        return MIN_COST;
+    }
+
+    @Override
     public String getIndexName() {
         return name;
     }
@@ -110,7 +120,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
     @Override
     public double getCost(Filter filter, NodeState root) {
         // cost is inverse proportional to the number of matching restrictions, infinite if no restriction matches
-        double cost = 10d / getMatchingFilterRestrictions(filter);
+        double cost = COST_FOR_SINGLE_RESTRICTION / getMatchingFilterRestrictions(filter);
         if (log.isDebugEnabled()) {
             log.debug("Solr: cost for {} is {}", name, cost);
         }
@@ -127,9 +137,12 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
         }
 
         // property restriction OR native language property restriction defined AND property restriction handled
-        if (filter.getPropertyRestrictions() != null && filter.getPropertyRestrictions().size() > 0
-                && (filter.getPropertyRestriction(NATIVE_SOLR_QUERY) != null || filter.getPropertyRestriction(NATIVE_LUCENE_QUERY) != null
-                || configuration.useForPropertyRestrictions()) && !hasIgnoredProperties(filter.getPropertyRestrictions(), configuration)) {
+        if (filter.getPropertyRestrictions() != null 
+                && filter.getPropertyRestrictions().size() > 0
+                && (filter.getPropertyRestriction(NATIVE_SOLR_QUERY) != null 
+                || filter.getPropertyRestriction(NATIVE_LUCENE_QUERY) != null
+                || configuration.useForPropertyRestrictions()) 
+                && !hasIgnoredProperties(filter.getPropertyRestrictions(), configuration)) {
             match++;
         }
 
@@ -429,6 +442,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                         || (configuration.getUsedProperties().size() > 0 && !configuration.getUsedProperties().contains(propertyName)) // not explicitly contained in the used properties
                         || propertyName.contains("/") // no child-level property restrictions
                         || "rep:excerpt".equals(propertyName) // rep:excerpt is handled by the query engine
+                        || QueryConstants.RESTRICTION_LOCAL_NAME.equals(propertyName)
                         || configuration.getIgnoredProperties().contains(propertyName));
     }
 
@@ -539,6 +553,11 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
         public IndexRow next() {
             final IndexRow pathRow = pathCursor.next();
             return new IndexRow() {
+
+                @Override
+                public boolean isVirtualRow() {
+                    return false;
+                }
 
                 @Override
                 public String getPath() {

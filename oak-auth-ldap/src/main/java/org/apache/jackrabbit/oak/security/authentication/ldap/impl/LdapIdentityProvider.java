@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -701,18 +702,20 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
             throws LdapInvalidAttributeValueException {
         ExternalIdentityRef ref = new ExternalIdentityRef(entry.getDn().getName(), this.getName());
         if (id == null) {
-            id = entry.get(config.getUserConfig().getIdAttribute()).getString();
+            String idAttribute = config.getUserConfig().getIdAttribute();
+            Attribute attr = entry.get(idAttribute);
+            if (attr == null) {
+                throw new LdapInvalidAttributeValueException(ResultCodeEnum.CONSTRAINT_VIOLATION,
+                        "no value found for attribute '" + idAttribute + "' for entry " + entry);
+            }
+            id = attr.getString();
         }
         String path = config.getUserConfig().makeDnPath()
                 ? createDNPath(entry.getDn())
                 : null;
         LdapUser user = new LdapUser(this, ref, id, path);
         Map<String, Object> props = user.getProperties();
-        for (Attribute attr: entry.getAttributes()) {
-            if (attr.isHumanReadable()) {
-                props.put(attr.getId(), attr.getString());
-            }
-        }
+        applyAttributes(props, entry);
         return user;
     }
 
@@ -721,20 +724,42 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
             throws LdapInvalidAttributeValueException {
         ExternalIdentityRef ref = new ExternalIdentityRef(entry.getDn().getName(), this.getName());
         if (name == null) {
-            name = entry.get(config.getGroupConfig().getIdAttribute()).getString();
+            String idAttribute = config.getGroupConfig().getIdAttribute();
+            Attribute attr = entry.get(idAttribute);
+            if (attr == null) {
+                throw new LdapInvalidAttributeValueException(ResultCodeEnum.CONSTRAINT_VIOLATION,
+                        "no value found for attribute '" + idAttribute + "' for entry " + entry);
+            }
+            name = attr.getString();
         }
         String path = config.getGroupConfig().makeDnPath()
                 ? createDNPath(entry.getDn())
                 : null;
         LdapGroup group = new LdapGroup(this, ref, name, path);
         Map<String, Object> props = group.getProperties();
-        for (Attribute attr: entry.getAttributes()) {
-            if (attr.isHumanReadable()) {
-                props.put(attr.getId(), attr.getString());
-            }
-        }
+        applyAttributes(props, entry);
         return group;
 
+    }
+
+    private void applyAttributes(Map<String, Object> props, Entry entry)
+            throws LdapInvalidAttributeValueException {
+        for (Attribute attr: entry.getAttributes()) {
+            if (attr.isHumanReadable()) {
+                final Object propValue;
+                // for multivalue properties, store as collection
+                if (attr.size() > 1) {
+                    List<String> values = new ArrayList<String>();
+                    for (Value<?> value : attr) {
+                        values.add(value.getString());
+                    }
+                    propValue = values;
+                } else {
+                    propValue = attr.getString();
+                }
+                props.put(attr.getId(), propValue);
+            }
+        }
     }
 
     @Nonnull

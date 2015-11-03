@@ -67,8 +67,18 @@ public class SharedDataStoreUtilsTest {
         dataStore.addMetadataRecord(new ByteArrayInputStream(new byte[0]),
             SharedStoreRecordType.REPOSITORY.getNameFromId(repoId2));
         DataRecord repo2 = dataStore.getMetadataRecord(SharedStoreRecordType.REPOSITORY.getNameFromId(repoId2));
-
-            // Add reference records
+        
+        // Add reference marker record for repo1
+        dataStore.addMetadataRecord(new ByteArrayInputStream(new byte[0]),
+                                       SharedStoreRecordType.MARKED_START_MARKER.getNameFromId(repoId1));
+        DataRecord markerRec1 = dataStore.getMetadataRecord(SharedStoreRecordType.MARKED_START_MARKER.getNameFromId(repoId1));
+        Assert.assertEquals(
+               SharedStoreRecordType.MARKED_START_MARKER.getIdFromName(markerRec1.getIdentifier().toString()),
+               repoId1);
+        long lastModifiedMarkerRec1 = markerRec1.getLastModified();
+        TimeUnit.MILLISECONDS.sleep(100);
+        
+        // Add reference records
         dataStore.addMetadataRecord(new ByteArrayInputStream(new byte[0]),
             SharedStoreRecordType.REFERENCES.getNameFromId(repoId1));
         DataRecord rec1 = dataStore.getMetadataRecord(SharedStoreRecordType.REFERENCES.getNameFromId(repoId1));
@@ -97,14 +107,27 @@ public class SharedDataStoreUtilsTest {
 
         // Since, we don't care about which file specifically but only the earliest timestamped record
         // Earliest time should be the min timestamp from the 2 reference files
-        Assert.assertEquals(SharedDataStoreUtils
-            .getEarliestRecord(dataStore.getAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType()))
-            .getLastModified(), (lastModifiedRec1 <= lastModifiedRec2 ? lastModifiedRec1 : lastModifiedRec2));
-
+        long minRefTime = (lastModifiedRec1 <= lastModifiedRec2 ? lastModifiedRec1 : lastModifiedRec2);
+        Assert.assertEquals(
+               SharedDataStoreUtils.getEarliestRecord(
+                        dataStore.getAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType())).getLastModified(), 
+                        minRefTime);
+        
+        // the marker timestamp should be the minimum
+        long minMarkerTime = 
+            SharedDataStoreUtils.getEarliestRecord(
+                    dataStore.getAllMetadataRecords(SharedStoreRecordType.MARKED_START_MARKER.getType()))
+                        .getLastModified();
+        Assert.assertTrue(minRefTime >= minMarkerTime);
+        
         // Delete references and check back if deleted
         dataStore.deleteAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType());
         Assert.assertTrue(dataStore.getAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType()).isEmpty());
-
+        
+        // Delete markers and check back if deleted
+        dataStore.deleteAllMetadataRecords(SharedStoreRecordType.MARKED_START_MARKER.getType());
+        Assert.assertTrue(dataStore.getAllMetadataRecords(SharedStoreRecordType.MARKED_START_MARKER.getType()).isEmpty());
+    
         // Repository ids should still be available
         Assert.assertEquals(2,
             dataStore.getAllMetadataRecords(SharedStoreRecordType.REPOSITORY.getType()).size());

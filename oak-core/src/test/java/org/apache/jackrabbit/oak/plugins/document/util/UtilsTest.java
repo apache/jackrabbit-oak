@@ -16,7 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
+import java.util.List;
+
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -137,5 +140,43 @@ public class UtilsTest {
         } finally {
             store.dispose();
         }
+    }
+
+    @Test
+    public void getMaxExternalRevisionTime() {
+        int localClusterId = 1;
+        List<Revision> revs = ImmutableList.of();
+        long revTime = Utils.getMaxExternalTimestamp(revs, localClusterId);
+        assertEquals(Long.MIN_VALUE, revTime);
+
+        revs = ImmutableList.of(Revision.fromString("r1-0-1"));
+        revTime = Utils.getMaxExternalTimestamp(revs, localClusterId);
+        assertEquals(Long.MIN_VALUE, revTime);
+
+        revs = ImmutableList.of(
+                Revision.fromString("r1-0-1"),
+                Revision.fromString("r2-0-2"));
+        revTime = Utils.getMaxExternalTimestamp(revs, localClusterId);
+        assertEquals(2, revTime);
+
+        revs = ImmutableList.of(
+                Revision.fromString("r3-0-1"),
+                Revision.fromString("r2-0-2"));
+        revTime = Utils.getMaxExternalTimestamp(revs, localClusterId);
+        assertEquals(2, revTime);
+
+        revs = ImmutableList.of(
+                Revision.fromString("r1-0-1"),
+                Revision.fromString("r2-0-2"),
+                Revision.fromString("r2-0-3"));
+        revTime = Utils.getMaxExternalTimestamp(revs, localClusterId);
+        assertEquals(2, revTime);
+
+        revs = ImmutableList.of(
+                Revision.fromString("r1-0-1"),
+                Revision.fromString("r3-0-2"),
+                Revision.fromString("r2-0-3"));
+        revTime = Utils.getMaxExternalTimestamp(revs, localClusterId);
+        assertEquals(3, revTime);
     }
 }

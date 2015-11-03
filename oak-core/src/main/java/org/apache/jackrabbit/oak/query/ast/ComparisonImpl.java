@@ -30,12 +30,15 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.query.fulltext.LikePattern;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A comparison operation (including "like").
  */
 public class ComparisonImpl extends ConstraintImpl {
-
+    private static final Logger LOG = LoggerFactory.getLogger(ComparisonImpl.class);
+    
     private final DynamicOperandImpl operand1;
     private final Operator operator;
     private final StaticOperandImpl operand2;
@@ -195,4 +198,8 @@ public class ComparisonImpl extends ConstraintImpl {
         }
     }
 
+    @Override
+    public AstElement copyOf() {
+        return new ComparisonImpl(operand1.createCopy(), operator, operand2);
+    }
 }

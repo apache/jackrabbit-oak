@@ -32,6 +32,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.Set;
 
@@ -40,6 +41,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdate.MissingIndexProviderStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -50,6 +52,7 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -332,8 +335,7 @@ public class IndexUpdateTest {
                 .getValue(Type.BOOLEAN));
         assertTrue(ns1.getProperty(REINDEX_ASYNC_PROPERTY_NAME).getValue(
                 Type.BOOLEAN));
-        assertEquals(ASYNC_REINDEX_VALUE, ns1.getProperty(ASYNC_PROPERTY_NAME)
-                .getValue(Type.STRING));
+        assertEquals(ASYNC_REINDEX_VALUE, ns1.getString(ASYNC_PROPERTY_NAME));
 
         AsyncIndexUpdate async = new AsyncIndexUpdate(ASYNC_REINDEX_VALUE,
                 store, provider, true);
@@ -388,6 +390,47 @@ public class IndexUpdateTest {
                 "azerty");
         assertNull("Node should be ignored by reindexer",
                 azerty.getProperty(REINDEX_PROPERTY_NAME));
+    }
+
+    /**
+     * OAK-3505 Provide an optionally stricter policy for missing synchronous
+     * index editor providers
+     */
+    @Test
+    public void testMissingProviderFailsCommit() throws Exception {
+
+        final IndexUpdateCallback noop = new IndexUpdateCallback() {
+            @Override
+            public void indexUpdate() {
+            }
+        };
+        final MissingIndexProviderStrategy mips = new MissingIndexProviderStrategy();
+        mips.setFailOnMissingIndexProvider(true);
+
+        EditorHook hook = new EditorHook(new EditorProvider() {
+            @Override
+            public Editor getRootEditor(NodeState before, NodeState after,
+                    NodeBuilder builder, CommitInfo info)
+                    throws CommitFailedException {
+                return new IndexUpdate(emptyProvider(), null, after, builder,
+                        noop).withMissingProviderStrategy(mips);
+            }
+        });
+
+        NodeState before = builder.getNodeState();
+
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+        builder.child(INDEX_DEFINITIONS_NAME).child("azerty");
+        builder.child("testRoot").setProperty("foo", "abc");
+        NodeState after = builder.getNodeState();
+
+        try {
+            hook.processCommit(before, after, CommitInfo.EMPTY);
+            fail("commit should fail on missing index provider");
+        } catch (CommitFailedException ex) {
+            // expected
+        }
     }
 
     @Test

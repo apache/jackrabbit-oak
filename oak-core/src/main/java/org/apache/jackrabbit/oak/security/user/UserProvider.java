@@ -323,19 +323,21 @@ class UserProvider extends AuthorizableBaseProvider {
         return folder.getTree();
     }
 
+    @Nonnull
     private String getFolderPath(@Nonnull String nodeName,
                                  @Nullable String intermediatePath,
                                  @Nonnull String authRoot) throws ConstraintViolationException {
-        if (intermediatePath != null && intermediatePath.charAt(0) == '/') {
-            if (!intermediatePath.startsWith(authRoot)) {
-                throw new ConstraintViolationException("Attempt to create authorizable outside of configured tree");
-            } else {
-                intermediatePath = intermediatePath.substring(authRoot.length() + 1);
-            }
-        }
-
+        boolean emptyOrNull = (intermediatePath == null || intermediatePath.isEmpty() || authRoot.equals(intermediatePath));
         StringBuilder sb = new StringBuilder();
-        if (intermediatePath != null && !intermediatePath.isEmpty()) {
+        if (!emptyOrNull) {
+            // convert absolute paths into relative paths wrt the authRoot
+            if (intermediatePath.charAt(0) == '/') {
+                if (!intermediatePath.startsWith(authRoot)) {
+                    throw new ConstraintViolationException("Attempt to create authorizable at '" + intermediatePath +"' outside of the configured root '" + authRoot + '\'');
+                } else {
+                    intermediatePath = intermediatePath.substring(authRoot.length() + 1);
+                }
+            }
             sb.append(DELIMITER).append(intermediatePath);
         } else {
             String hint = Text.unescapeIllegalJcrChars(nodeName);

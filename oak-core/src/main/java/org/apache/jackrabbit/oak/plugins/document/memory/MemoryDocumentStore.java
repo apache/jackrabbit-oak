@@ -222,6 +222,32 @@ public class MemoryDocumentStore implements DocumentStore {
     }
 
     /**
+     * @return a copy of this document store.
+     */
+    @Nonnull
+    public MemoryDocumentStore copy() {
+        MemoryDocumentStore copy = new MemoryDocumentStore();
+        copyDocuments(Collection.NODES, copy);
+        copyDocuments(Collection.CLUSTER_NODES, copy);
+        copyDocuments(Collection.SETTINGS, copy);
+        copyDocuments(Collection.JOURNAL, copy);
+        return copy;
+    }
+
+    private <T extends Document> void copyDocuments(Collection<T> collection,
+                                                    MemoryDocumentStore target) {
+        ConcurrentSkipListMap<String, T> from = getMap(collection);
+        ConcurrentSkipListMap<String, T> to = target.getMap(collection);
+
+        for (Map.Entry<String, T> entry : from.entrySet()) {
+            T doc = collection.newDocument(target);
+            entry.getValue().deepCopy(doc);
+            doc.seal();
+            to.put(entry.getKey(), doc);
+        }
+    }
+
+    /**
      * Get the in-memory map for this collection.
      *
      * @param collection the collection
@@ -324,8 +350,8 @@ public class MemoryDocumentStore implements DocumentStore {
         for (String p : nodes.keySet()) {
             buff.append("Path: ").append(p).append('\n');
             NodeDocument doc = nodes.get(p);
-            for (String prop : doc.keySet()) {
-                buff.append(prop).append('=').append(doc.get(prop)).append('\n');
+            for (Map.Entry<String, Object> entry : doc.entrySet()) {
+                buff.append(entry.getKey()).append('=').append(entry.getValue()).append('\n');
             }
             buff.append("\n");
         }
@@ -402,4 +428,9 @@ public class MemoryDocumentStore implements DocumentStore {
         return metadata;
     }
 
+    @Override
+    public long determineServerTimeDifferenceMillis() {
+        // the MemoryDocumentStore has no delays, thus return 0
+        return 0;
+    }
 }

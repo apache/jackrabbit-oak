@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -88,7 +89,7 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
     //----------------------------------------------------------< Validator >---
     @Override
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
-        if (moveCtx.processAdd((ImmutableTree) getParentAfter().getChild(name), this)) {
+        if (moveCtx.processAdd(getParentAfter(), name, this)) {
             return null;
         } else {
             return super.childNodeAdded(name, after);
@@ -97,7 +98,7 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
 
     @Override
     public Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
-        if (moveCtx.processDelete((ImmutableTree) getParentBefore().getChild(name), this)) {
+        if (moveCtx.processDelete(getParentBefore(), name, this)) {
             return null;
         } else {
             return super.childNodeDeleted(name, before);
@@ -120,11 +121,15 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
             rootAfter = RootFactory.createReadOnlyRoot(after);
         }
 
-        private boolean containsMove(Tree parentBefore, Tree parentAfter) {
+        private boolean containsMove(@Nullable Tree parentBefore, @Nullable Tree parentAfter) {
             return moveTracker.containsMove(PermissionUtil.getPath(parentBefore, parentAfter));
         }
 
-        private boolean processAdd(ImmutableTree child, MoveAwarePermissionValidator validator) throws CommitFailedException {
+        private boolean processAdd(@CheckForNull Tree parent, @Nonnull String name , @Nonnull MoveAwarePermissionValidator validator) throws CommitFailedException {
+            if (parent == null) {
+                return false;
+            }
+            ImmutableTree child = (ImmutableTree) parent.getChild(name);
             String sourcePath = moveTracker.getSourcePath(child.getPath());
             if (sourcePath != null) {
                 ImmutableTree source = (ImmutableTree) rootBefore.getTree(sourcePath);
@@ -138,7 +143,11 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
             return false;
         }
 
-        private boolean processDelete(ImmutableTree child, MoveAwarePermissionValidator validator) throws CommitFailedException {
+        private boolean processDelete(@CheckForNull Tree parent, @Nonnull String name, @Nonnull MoveAwarePermissionValidator validator) throws CommitFailedException {
+            if (parent == null) {
+                return false;
+            }
+            ImmutableTree child = (ImmutableTree) parent.getChild(name);
             String destPath = moveTracker.getDestPath(child.getPath());
             if (destPath != null) {
                 ImmutableTree dest = (ImmutableTree) rootAfter.getTree(destPath);
@@ -153,8 +162,8 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
             return false;
         }
 
-        private boolean diff(ImmutableTree source, ImmutableTree dest,
-                             MoveAwarePermissionValidator validator) throws CommitFailedException {
+        private boolean diff(@Nonnull ImmutableTree source, @Nonnull ImmutableTree dest,
+                             @Nonnull MoveAwarePermissionValidator validator) throws CommitFailedException {
             Validator nextValidator = validator.visibleValidator(source, dest);
             CommitFailedException e = EditorDiff.process(nextValidator , source.getNodeState(), dest.getNodeState());
             if (e != null) {

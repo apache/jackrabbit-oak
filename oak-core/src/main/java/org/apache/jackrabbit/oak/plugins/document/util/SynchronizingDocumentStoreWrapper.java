@@ -137,6 +137,11 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
+    public synchronized long determineServerTimeDifferenceMillis() {
+        return store.determineServerTimeDifferenceMillis();
+    }
+
+    @Override
     public Map<String, String> getMetadata() {
         return store.getMetadata();
     }

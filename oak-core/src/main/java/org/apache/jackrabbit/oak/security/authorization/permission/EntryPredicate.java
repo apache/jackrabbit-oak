@@ -37,18 +37,18 @@ final class EntryPredicate implements Predicate<PermissionEntry> {
 
     private final String parentPath;
     private final Tree parent;
+    private final boolean respectParent;
 
-    public EntryPredicate(@Nonnull Tree tree, @Nullable PropertyState property,
-                          boolean respectParent) {
+    EntryPredicate() {
+        this(null, null, null, false);
+    }
+
+    EntryPredicate(@Nonnull Tree tree, @Nullable PropertyState property, boolean respectParent) {
         this(tree, property, tree.getPath(), respectParent);
     }
 
-    public EntryPredicate(@Nonnull String path, boolean respectParent) {
+    EntryPredicate(@Nonnull String path, boolean respectParent) {
         this(null, null, path, respectParent);
-    }
-
-    public EntryPredicate() {
-        this(null, null, null, false);
     }
 
     private EntryPredicate(@Nullable Tree tree, @Nullable PropertyState property,
@@ -64,34 +64,32 @@ final class EntryPredicate implements Predicate<PermissionEntry> {
             parentPath = null;
             parent = null;
         }
+        this.respectParent = parent != null || parentPath != null;
     }
 
     @CheckForNull
-    public String getPath() {
+    String getPath() {
         return path;
     }
 
+    //----------------------------------------------------------< Predicate >---
     @Override
     public boolean apply(@Nullable PermissionEntry entry) {
+        return apply(entry, true);
+    }
+
+    public boolean apply(@Nullable PermissionEntry entry, boolean respectParent) {
         if (entry == null) {
             return false;
         }
+        respectParent &= this.respectParent;
+
         if (tree != null) {
-            return entry.matches(tree, property) || applyToParent(entry);
+            return entry.matches(tree, property) || (respectParent && parent != null && entry.matches(parent, null));
         } else if (path != null) {
-            return entry.matches(path) || applyToParent(entry);
+            return entry.matches(path) || (respectParent && parentPath != null && entry.matches(parentPath));
         } else {
             return entry.matches();
-        }
-    }
-
-    private boolean applyToParent(@Nonnull PermissionEntry entry) {
-        if (parent != null) {
-            return entry.matches(parent, null);
-        } else if (parentPath != null) {
-            return entry.matches(parentPath);
-        } else {
-            return false;
         }
     }
 }

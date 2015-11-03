@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 
@@ -37,6 +38,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
+
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.api.Type;
@@ -62,6 +64,7 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -101,6 +104,7 @@ import org.apache.lucene.util.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
@@ -162,6 +166,8 @@ import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
  */
 public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, NativeQueryIndex,
         AdvanceFulltextQueryIndex {
+    
+    private static double MIN_COST = 2.1;
 
     private static final Logger LOG = LoggerFactory
             .getLogger(LucenePropertyIndex.class);
@@ -190,6 +196,11 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
     }
 
     @Override
+    public double getMinimumCost() {
+        return MIN_COST;
+    }
+
+    @Override
     public String getIndexName() {
         return "lucene-property";
     }
@@ -198,8 +209,8 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
     public List<IndexPlan> getPlans(Filter filter, List<OrderEntry> sortOrder, NodeState rootState) {
         Collection<String> indexPaths = new LuceneIndexLookup(rootState).collectIndexNodePaths(filter);
         List<IndexPlan> plans = Lists.newArrayListWithCapacity(indexPaths.size());
-        IndexNode indexNode = null;
         for (String path : indexPaths) {
+            IndexNode indexNode = null;
             try {
                 indexNode = tracker.acquireIndexNode(path);
 
@@ -410,9 +421,9 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
 
                         // ACL filter suggestions
                         Collection<String> suggestedWords = new ArrayList<String>(lookupResults.size());
-                        QueryParser qp = new QueryParser(Version.LUCENE_47, FieldNames.FULLTEXT, indexNode.getDefinition().getAnalyzer());
+                        QueryParser qp = new QueryParser(Version.LUCENE_47, FieldNames.SUGGEST, indexNode.getDefinition().getAnalyzer());
                         for (Lookup.LookupResult suggestion : lookupResults) {
-                            Query query = qp.createPhraseQuery(FieldNames.FULLTEXT, suggestion.key.toString());
+                            Query query = qp.createPhraseQuery(FieldNames.SUGGEST, suggestion.key.toString());
                             TopDocs topDocs = searcher.search(query, 100);
                             if (topDocs.totalHits > 0) {
                                 for (ScoreDoc doc : topDocs.scoreDocs) {
@@ -653,16 +664,73 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
 
             throw new IllegalStateException("No query created for filter " + filter);
         }
+        return performAdditionalWraps(qs);
+    }
+
+    /**
+     * Perform additional wraps on the list of queries to allow, for example, the NOT CONTAINS to
+     * play properly when sent to lucene.
+     * 
+     * @param qs the list of queries. Cannot be null.
+     * @return
+     */
+    @Nonnull
+    public static LuceneRequestFacade<Query> performAdditionalWraps(@Nonnull List<Query> qs) {
+        checkNotNull(qs);
         if (qs.size() == 1) {
+            Query q = qs.get(0);
+            if (q instanceof BooleanQuery) {
+                BooleanQuery ibq = (BooleanQuery) q;
+                boolean onlyNotClauses = true;
+                for (BooleanClause c : ibq.getClauses()) {
+                    if (c.getOccur() != BooleanClause.Occur.MUST_NOT) {
+                        onlyNotClauses = false;
+                        break;
+                    }
+                }
+                if (onlyNotClauses) {
+                    // if we have only NOT CLAUSES we have to add a match all docs (*.*) for the
+                    // query to work
+                    ibq.add(new MatchAllDocsQuery(), BooleanClause.Occur.SHOULD);
+                }
+            }
             return new LuceneRequestFacade<Query>(qs.get(0));
         }
         BooleanQuery bq = new BooleanQuery();
         for (Query q : qs) {
-            bq.add(q, MUST);
+            boolean unwrapped = false;
+            if (q instanceof BooleanQuery) {
+                unwrapped = unwrapMustNot((BooleanQuery) q, bq);
+            }
+
+            if (!unwrapped) {
+                bq.add(q, MUST);                
+            }
         }
         return new LuceneRequestFacade<Query>(bq);
     }
 
+    /**
+     * unwraps any NOT clauses from the provided boolean query into another boolean query.
+     * 
+     * @param input the query to be analysed for the existence of NOT clauses. Cannot be null.
+     * @param output the query where the unwrapped NOTs will be saved into. Cannot be null.
+     * @return true if there where at least one unwrapped NOT. false otherwise.
+     */
+    private static boolean unwrapMustNot(@Nonnull BooleanQuery input, @Nonnull BooleanQuery output) {
+        checkNotNull(input);
+        checkNotNull(output);
+        boolean unwrapped = false;
+        for (BooleanClause bc : input.getClauses()) {
+            if (bc.getOccur() == BooleanClause.Occur.MUST_NOT) {
+                output.add(bc);
+                unwrapped = true;
+            }
+        }
+        
+        return unwrapped;
+    }
+    
     private CustomScoreQuery getCustomScoreQuery(IndexPlan plan, Query subQuery) {
         PlanResult planResult = getPlanResult(plan);
         IndexDefinition idxDef = planResult.indexDefinition;
@@ -725,6 +793,16 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 continue;
             }
 
+            if (QueryConstants.RESTRICTION_LOCAL_NAME.equals(name)) {
+                if (planResult.evaluateNodeNameRestriction()) {
+                    Query q = createNodeNameQuery(pr);
+                    if (q != null) {
+                        qs.add(q);
+                    }
+                }
+                continue;
+            }
+
             if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding
                     && pr.lastIncluding) {
                 String first = pr.first.getValue(STRING);
@@ -739,7 +817,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                     continue;
                 }
             }
-
+            
             PropertyDefinition pd = planResult.getPropDefn(pr);
             if (pd == null) {
                 continue;
@@ -952,6 +1030,21 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         return -1;
     }
 
+    private static Query createNodeNameQuery(PropertyRestriction pr) {
+        String first = pr.first != null ? pr.first.getValue(STRING) : null;
+        if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding
+                && pr.lastIncluding) {
+            // [property]=[value]
+            return new TermQuery(new Term(FieldNames.NODE_NAME, first));
+        }
+
+        if (pr.isLike) {
+            return createLikeQuery(FieldNames.NODE_NAME, first);
+        }
+
+        throw new IllegalStateException("For nodeName queries only EQUALS and LIKE are supported "+pr);
+    }
+
     private static void addReferenceConstraint(String uuid, List<Query> qs,
             IndexReader reader) {
         if (reader == null) {
@@ -1002,7 +1095,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
 
             @Override
             public boolean visit(FullTextContains contains) {
-                visitTerm(contains.getPropertyName(), contains.getRawText(), null, false);
+                visitTerm(contains.getPropertyName(), contains.getRawText(), null, contains.isNot());
                 return true;
             }
 
@@ -1048,7 +1141,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
 
             private boolean visitTerm(String propertyName, String text, String boost, boolean not) {
                 String p = getLuceneFieldName(propertyName, pr);
-                Query q = tokenToQuery(text, p, analyzer);
+                Query q = tokenToQuery(text, p, pr.indexingRule,  analyzer);
                 if (q == null) {
                     return false;
                 }
@@ -1092,6 +1185,25 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             p = FieldNames.FULLTEXT;
         }
         return p;
+    }
+
+    private static Query tokenToQuery(String text, String fieldName, IndexingRule indexingRule, Analyzer analyzer) {
+        //Expand the query on fulltext field
+        if (FieldNames.FULLTEXT.equals(fieldName) &&
+                !indexingRule.getNodeScopeAnalyzedProps().isEmpty()) {
+            BooleanQuery in = new BooleanQuery();
+            for (PropertyDefinition pd : indexingRule.getNodeScopeAnalyzedProps()) {
+                Query q = tokenToQuery(text, FieldNames.createAnalyzedFieldName(pd.name), analyzer);
+                q.setBoost(pd.boost);
+                in.add(q, BooleanClause.Occur.SHOULD);
+            }
+
+            //Add the query for actual fulltext field also. That query would
+            //not be boosted
+            in.add(tokenToQuery(text, fieldName, analyzer), BooleanClause.Occur.SHOULD);
+            return in;
+        }
+        return tokenToQuery(text, fieldName, analyzer);
     }
 
     static Query tokenToQuery(String text, String fieldName, Analyzer analyzer) {
@@ -1168,14 +1280,17 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         final String path;
         final double score;
         final Iterable<String> suggestWords;
+        final boolean isVirutal;
 
         LuceneResultRow(String path, double score) {
+            this.isVirutal = false;
             this.path = path;
             this.score = score;
             this.suggestWords = Collections.emptySet();
         }
 
         LuceneResultRow(Iterable<String> suggestWords) {
+            this.isVirutal = true;
             this.path = "/";
             this.score = 1.0d;
             this.suggestWords = suggestWords;
@@ -1239,6 +1354,11 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         public IndexRow next() {
             final IndexRow pathRow = pathCursor.next();
             return new IndexRow() {
+
+                @Override
+                public boolean isVirtualRow() {
+                    return currentRow.isVirutal;
+                }
 
                 @Override
                 public String getPath() {

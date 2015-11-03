@@ -153,8 +153,8 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
             }
             state = STATUS_STARTING;
             executor = new DefaultEventExecutorGroup(4);
-            handler = new StandbyClientHandler(this.store, executor, observer,
-                    running, readTimeoutMs, autoClean);
+            handler = new StandbyClientHandler(this.store, observer, running,
+                    readTimeoutMs, autoClean);
             group = new NioEventLoopGroup();
 
             b = new Bootstrap();
@@ -186,13 +186,15 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
         }
 
         try {
-            syncStartTimestamp = System.currentTimeMillis();
+            long startTimestamp = System.currentTimeMillis();
             // Start the client.
             ChannelFuture f = b.connect(host, port).sync();
             // Wait until the connection is closed.
             f.channel().closeFuture().sync();
             this.failedRequests = 0;
-            this.lastSuccessfulRequest = System.currentTimeMillis() / 1000;
+            this.syncStartTimestamp = startTimestamp;
+            this.syncEndTimestamp = System.currentTimeMillis();
+            this.lastSuccessfulRequest = syncEndTimestamp / 1000;
         } catch (Exception e) {
             this.failedRequests++;
             log.error("Failed synchronizing state.", e);
@@ -201,7 +203,6 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
                 this.active = false;
                 shutdownNetty();
             }
-            syncEndTimestamp = System.currentTimeMillis();
         }
     }
 

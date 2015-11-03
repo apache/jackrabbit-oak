@@ -36,6 +36,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Charsets;
@@ -225,6 +226,7 @@ public class Segment {
         this.refids = new SegmentId[SEGMENT_REFERENCE_LIMIT + 1];
         this.refids[0] = id;
         this.version = SegmentVersion.fromByte(buffer[3]);
+        this.id.setSegment(this);
     }
 
     SegmentVersion getSegmentVersion() {
@@ -270,6 +272,30 @@ public class Segment {
         checkArgument(index < getRootCount());
         return (data.getShort(data.position() + refCount * 16 + index * 3 + 1) & 0xffff)
                 << RECORD_ALIGN_BITS;
+    }
+
+    /**
+     * Returns the segment meta data of this segment or {@code null} if none is present.
+     * <p>
+     * The segment meta data is a string of the format {@code "{wid=W,sno=S,gc=G,t=T}"}
+     * where:
+     * <ul>
+     * <li>{@code W} is the writer id {@code wid}, </li>
+     * <li>{@code S} is a unique, increasing sequence number corresponding to the allocation order
+     * of the segments in this store, </li>
+     * <li>{@code G} is the garbage collection generation (i.e. the number of compaction cycles
+     * that have been run),</li>
+     * <li>{@code T} is a time stamp according to {@link System#currentTimeMillis()}.</li>
+     * </ul>
+     * @return the segment meta data
+     */
+    @CheckForNull
+    public String getSegmentInfo() {
+        if (getRootCount() == 0) {
+            return null;
+        } else {
+            return readString(getRootOffset(0));
+        }
     }
 
     SegmentId getRefId(int index) {
@@ -348,7 +374,7 @@ public class Segment {
         for (int i = 0; i < blobrefcount; i++) {
             int offset = (data.getShort(blobrefpos + i * 2) & 0xffff) << 2;
             SegmentBlob blob = new SegmentBlob(new RecordId(id, offset));
-            collector.addReference(blob.getBlobId());
+            collector.addReference(blob.getBlobId(), null);
         }
     }
 
@@ -397,7 +423,21 @@ public class Segment {
     }
 
     static String readString(final RecordId id) {
-        return id.getSegmentId().getSegment().readString(id.getOffset());
+        final SegmentId segmentId = id.getSegmentId();
+        StringCache cache = segmentId.getTracker().getStringCache();
+        if (cache == null) {
+            return segmentId.getSegment().readString(id.getOffset());
+        } else {
+            long msb = segmentId.getMostSignificantBits();
+            long lsb = segmentId.getLeastSignificantBits();
+            return cache.getString(msb, lsb, id.getOffset(), new Function<Integer, String>() {
+                @Nullable
+                @Override
+                public String apply(Integer offset) {
+                    return segmentId.getSegment().loadString(offset);
+                }
+            });
+        }
     }
 
     private String readString(int offset) {

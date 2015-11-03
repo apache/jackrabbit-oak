@@ -19,25 +19,38 @@
 package org.apache.jackrabbit.oak.explorer;
 
 import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Maps.newHashMap;
+import static com.google.common.collect.Maps.newTreeMap;
 import static com.google.common.collect.Sets.intersection;
 import static com.google.common.collect.Sets.newHashSet;
+import static com.google.common.collect.Sets.newTreeSet;
 import static com.google.common.escape.Escapers.builder;
+import static java.util.Collections.sort;
+import static javax.jcr.PropertyType.BINARY;
+import static javax.jcr.PropertyType.STRING;
+import static javax.swing.tree.TreeSelectionModel.SINGLE_TREE_SELECTION;
+import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+import static org.apache.jackrabbit.oak.commons.json.JsopBuilder.prettyPrint;
+import static org.apache.jackrabbit.oak.json.JsopDiff.diffToJsop;
+import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.getGcRoots;
+import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.getTarFiles;
+import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.newline;
+import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.printGcRoots;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStateHelper.getTemplateId;
 
 import java.awt.GridLayout;
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.UUID;
 
-import javax.jcr.PropertyType;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
@@ -46,20 +59,14 @@ import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
-import javax.swing.tree.TreeSelectionModel;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
-import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStateHelper;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentPropertyState;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
@@ -67,54 +74,64 @@ import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-public class NodeStoreTree extends JPanel implements TreeSelectionListener {
+public class NodeStoreTree extends JPanel implements TreeSelectionListener,
+        Closeable {
 
-    private final ReadOnlyStore store;
+    private static final long serialVersionUID = 1L;
+
+    private final static int MAX_CHAR_DISPLAY = Integer.getInteger(
+            "max.char.display", 60);
+
+    private final String path;
+    private ReadOnlyStore store;
+    private Map<String, Set<UUID>> index;
 
     private DefaultTreeModel treeModel;
     private final JTree tree;
     private final JTextArea log;
 
-    private Map<String, Set<UUID>> index;
     private Map<RecordIdKey, Long[]> sizeCache;
     private final boolean skipSizeCheck;
-    // TODO make this configurable
-    private final boolean cacheNodeState = false;
 
-    public NodeStoreTree(ReadOnlyStore store, JTextArea log, boolean skipSizeCheck) {
+    public NodeStoreTree(String path, JTextArea log, boolean skipSizeCheck)
+            throws IOException {
         super(new GridLayout(1, 0));
-        this.store = store;
+        this.path = path;
         this.log = log;
-
-        this.index = store.getTarReaderIndex();
-        this.sizeCache = new HashMap<RecordIdKey, Long[]>();
         this.skipSizeCheck = skipSizeCheck;
 
-        DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode(
-                new NamePathModel("/", "/", store.getHead(), sizeCache,
-                        skipSizeCheck, store, cacheNodeState), true);
-        treeModel = new DefaultTreeModel(rootNode);
-        addChildren(rootNode);
-
-        tree = new JTree(treeModel);
-        tree.getSelectionModel().setSelectionMode(
-                TreeSelectionModel.SINGLE_TREE_SELECTION);
+        tree = new JTree();
+        tree.getSelectionModel().setSelectionMode(SINGLE_TREE_SELECTION);
         tree.setShowsRootHandles(true);
         tree.addTreeSelectionListener(this);
         tree.setExpandsSelectedPaths(true);
+
+        refreshStore();
+        refreshModel();
 
         JScrollPane scrollPane = new JScrollPane(tree);
         add(scrollPane);
     }
 
+    private void refreshStore() throws IOException {
+        this.store = new ReadOnlyStore(new File(path));
+    }
+
     private void refreshModel() {
         index = store.getTarReaderIndex();
-        sizeCache = new HashMap<RecordIdKey, Long[]>();
+        sizeCache = newHashMap();
         DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode(
                 new NamePathModel("/", "/", store.getHead(), sizeCache,
-                        skipSizeCheck, store, cacheNodeState), true);
+                        skipSizeCheck, store), true);
         treeModel = new DefaultTreeModel(rootNode);
         addChildren(rootNode);
+        tree.setModel(treeModel);
+    }
+
+    public void reopen() throws IOException {
+        close();
+        refreshStore();
+        refreshModel();
     }
 
     @Override
@@ -143,8 +160,13 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
                 sb.append(sns.getRecordId().toString());
                 sb.append(newline);
             }
-            log.setText(sb.toString());
+            setText(sb.toString());
         }
+    }
+
+    private void setText(String s) {
+        log.setText(s);
+        log.setCaretPosition(0);
     }
 
     private void addChildren(DefaultMutableTreeNode parent) {
@@ -155,12 +177,12 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
 
         List<NamePathModel> kids = newArrayList();
         for (ChildNodeEntry ce : model.getState().getChildNodeEntries()) {
-            NamePathModel c = new NamePathModel(ce.getName(), PathUtils.concat(
+            NamePathModel c = new NamePathModel(ce.getName(), concat(
                     model.getPath(), ce.getName()), ce.getNodeState(),
-                    sizeCache, skipSizeCheck, store, cacheNodeState);
+                    sizeCache, skipSizeCheck, store);
             kids.add(c);
         }
-        Collections.sort(kids);
+        sort(kids);
         for (NamePathModel c : kids) {
             DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(c,
                     true);
@@ -168,8 +190,6 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
         }
         model.loaded();
     }
-
-    private final static String newline = "\n";
 
     private void updateStats(DefaultMutableTreeNode parent) {
         NamePathModel model = (NamePathModel) parent.getUserObject();
@@ -191,7 +211,7 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
             }
             sb.append(newline);
 
-            RecordId templateId = SegmentNodeStateHelper.getTemplateId(s);
+            RecordId templateId = getTemplateId(s);
             String f = getFile(templateId);
             sb.append("TemplateId ");
             sb.append(templateId);
@@ -203,14 +223,14 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
 
         sb.append("Size: ");
         sb.append("  direct: ");
-        sb.append(FileUtils.byteCountToDisplaySize(model.getSize()[0]));
+        sb.append(byteCountToDisplaySize(model.getSize()[0]));
         sb.append(";  linked: ");
-        sb.append(FileUtils.byteCountToDisplaySize(model.getSize()[1]));
+        sb.append(byteCountToDisplaySize(model.getSize()[1]));
         sb.append(newline);
 
         sb.append("Properties (count: " + state.getPropertyCount() + ")");
         sb.append(newline);
-        Map<String, String> propLines = new TreeMap<String, String>();
+        Map<String, String> propLines = newTreeMap();
         for (PropertyState ps : state.getProperties()) {
             StringBuilder l = new StringBuilder();
             l.append("  - " + ps.getName() + " = {" + ps.getType() + "} ");
@@ -261,10 +281,10 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
             sb.append(newline);
         }
 
-        sb.append("Child nodes (count: " + state.getChildNodeCount(Long.MAX_VALUE)
-                + ")");
+        sb.append("Child nodes (count: "
+                + state.getChildNodeCount(Long.MAX_VALUE) + ")");
         sb.append(newline);
-        Map<String, String> childLines = new TreeMap<String, String>();
+        Map<String, String> childLines = newTreeMap();
         for (ChildNodeEntry ce : state.getChildNodeEntries()) {
             StringBuilder l = new StringBuilder();
             l.append("  + " + ce.getName());
@@ -291,22 +311,18 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
             sb.append("File Reader Index");
             sb.append(newline);
 
-            List<String> files = newArrayList(store.getTarReaderIndex()
-                    .keySet());
-            Collections.sort(files);
-
-            for (String path : files) {
+            for (String path : getTarFiles(store)) {
                 sb.append(path);
                 sb.append(newline);
             }
             sb.append("----------");
         }
 
-        log.setText(sb.toString());
+        setText(sb.toString());
     }
 
     private String toString(PropertyState ps, int index, String tarFile) {
-        if (ps.getType().tag() == PropertyType.BINARY) {
+        if (ps.getType().tag() == BINARY) {
             Blob b = ps.getValue(Type.BINARY, index);
             String info = "<";
             info += b.getClass().getSimpleName() + ";";
@@ -322,19 +338,22 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
             }
 
             return info;
-        } else if (ps.getType().tag() == PropertyType.STRING) {
-            String value = ps.getValue(Type.STRING, index);
-            if (value.length() > 60) {
-                value = value.substring(0, 57) + "... (" + value.length()
-                        + " chars)";
-            }
-            String escaped = builder().setSafeRange(' ', '~')
-                    .addEscape('"', "\\\"").addEscape('\\', "\\\\").build()
-                    .escape(value);
-            return '"' + escaped + '"';
+        } else if (ps.getType().tag() == STRING) {
+            return displayString(ps.getValue(Type.STRING, index));
         } else {
             return ps.getValue(Type.STRING, index);
         }
+    }
+
+    private static String displayString(String value) {
+        if (MAX_CHAR_DISPLAY > 0 && value.length() > MAX_CHAR_DISPLAY) {
+            value = value.substring(0, MAX_CHAR_DISPLAY) + "... ("
+                    + value.length() + " chars)";
+        }
+        String escaped = builder().setSafeRange(' ', '~')
+                .addEscape('"', "\\\"").addEscape('\\', "\\\\").build()
+                .escape(value);
+        return '"' + escaped + '"';
     }
 
     private String safeGetReference(Blob b) {
@@ -348,7 +367,7 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
 
     private String safeGetLength(Blob b) {
         try {
-            return FileUtils.byteCountToDisplaySize(b.length());
+            return byteCountToDisplaySize(b.length());
         } catch (IllegalStateException e) {
             // missing BlobStore probably
         }
@@ -362,10 +381,7 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
     private String getFile(SegmentId segmentId) {
         for (Entry<String, Set<UUID>> path2Uuid : index.entrySet()) {
             for (UUID uuid : path2Uuid.getValue()) {
-                if (uuid.getMostSignificantBits() == segmentId
-                        .getMostSignificantBits()
-                        && uuid.getLeastSignificantBits() == segmentId
-                                .getLeastSignificantBits()) {
+                if (uuid.equals(segmentId.asUUID())) {
                     return new File(path2Uuid.getKey()).getName();
                 }
             }
@@ -380,9 +396,10 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
         StringBuilder sb = new StringBuilder();
 
         Set<UUID> uuids = newHashSet();
-        for (Entry<String, Set<UUID>> e : store.getTarReaderIndex().entrySet()) {
+        for (Entry<String, Set<UUID>> e : index.entrySet()) {
             if (e.getKey().endsWith(file)) {
-                sb.append("SegmentNodeState references to " + e.getKey());
+                sb.append("SegmentNodeState references to "
+                        + new File(e.getKey()).getName());
                 sb.append(newline);
                 uuids = e.getValue();
                 break;
@@ -413,26 +430,26 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
             Map<UUID, List<UUID>> graph = store.getTarGraph(file);
             sb.append("Tar graph:").append(newline);
             for (Entry<UUID, List<UUID>> entry : graph.entrySet()) {
-                sb.append(entry.getKey()).append('=').append(entry.getValue()).append(newline);
+                sb.append(entry.getKey()).append('=').append(entry.getValue())
+                        .append(newline);
             }
             sb.append(newline);
         } catch (IOException e) {
             sb.append("Error getting tar graph:").append(e).append(newline);
         }
 
-        log.setText(sb.toString());
+        setText(sb.toString());
     }
 
     private static Set<UUID> getReferencedUUIDs(FileStore store) {
         Set<UUID> ids = newHashSet();
         for (SegmentId id : store.getTracker().getReferencedSegmentIds()) {
-            ids.add(new UUID(id.getMostSignificantBits(), id
-                    .getLeastSignificantBits()));
+            ids.add(id.asUUID());
         }
         return ids;
     }
 
-    public void printDependenciesToSegment(String sid) {
+    public void printSegmentReferences(String sid) {
         if (sid == null || sid.length() == 0) {
             return;
         }
@@ -440,15 +457,15 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
         try {
             id = UUID.fromString(sid.trim());
         } catch (IllegalArgumentException e) {
-            log.setText(e.getMessage());
+            setText(e.getMessage());
             return;
         }
         StringBuilder sb = new StringBuilder();
-        sb.append("SegmentNodeState references to " + id);
+        sb.append("References to segment " + id);
         sb.append(newline);
-        for (Entry<String, Set<UUID>> e : store.getTarReaderIndex().entrySet()) {
+        for (Entry<String, Set<UUID>> e : index.entrySet()) {
             if (e.getValue().contains(id)) {
-                sb.append("Tar file: " + e.getKey());
+                sb.append("Tar file: " + new File(e.getKey()).getName());
                 sb.append(newline);
                 break;
             }
@@ -464,33 +481,57 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
                 sb.append(newline);
             }
         }
-        log.setText(sb.toString());
+
+        Map<UUID, Set<Entry<UUID, String>>> links = newHashMap();
+        try {
+            getGcRoots(store, id, links);
+        } catch (IOException e) {
+            sb.append(newline);
+            sb.append(e.getMessage());
+        }
+        if (!links.isEmpty()) {
+            sb.append("Segment GC roots:");
+            sb.append(newline);
+            printGcRoots(sb, links, id, "  ", "  ");
+        }
+
+        setText(sb.toString());
     }
 
     public static void filterNodeStates(Set<UUID> uuids, List<String> paths,
             SegmentNodeState state, String path) {
-        Set<String> localPaths = new TreeSet<String>();
+        Set<String> localPaths = newTreeSet();
         for (PropertyState ps : state.getProperties()) {
             if (ps instanceof SegmentPropertyState) {
                 SegmentPropertyState sps = (SegmentPropertyState) ps;
                 RecordId recordId = sps.getRecordId();
-                SegmentId sid = recordId.getSegmentId();
-                UUID id = new UUID(sid.getMostSignificantBits(),
-                        sid.getLeastSignificantBits());
+                UUID id = recordId.getSegmentId().asUUID();
                 if (uuids.contains(id)) {
-                    localPaths.add(path + "@" + ps + " [SegmentPropertyState@"
-                            + recordId + "]");
+                    if (ps.getType().tag() == STRING) {
+                        String val = "";
+                        if (ps.count() > 0) {
+                            // only shows the first value, do we need more?
+                            val = displayString(ps.getValue(Type.STRING, 0));
+                        }
+                        localPaths.add(path + ps.getName() + " = " + val
+                                + " [SegmentPropertyState<" + ps.getType()
+                                + ">@" + recordId + "]");
+                    } else {
+                        localPaths.add(path + ps + " [SegmentPropertyState<"
+                                + ps.getType() + ">@" + recordId + "]");
+                    }
+
                 }
-                if (ps.getType().tag() == PropertyType.BINARY) {
+                if (ps.getType().tag() == BINARY) {
+                    // look for extra segment references
                     for (int i = 0; i < ps.count(); i++) {
                         Blob b = ps.getValue(Type.BINARY, i);
                         for (SegmentId sbid : SegmentBlob.getBulkSegmentIds(b)) {
-                            UUID bid = new UUID(sbid.getMostSignificantBits(),
-                                    sbid.getLeastSignificantBits());
+                            UUID bid = sbid.asUUID();
                             if (!bid.equals(id) && uuids.contains(bid)) {
-                                localPaths.add(path + "@" + ps
-                                        + " [SegmentPropertyState@" + recordId
-                                        + "]");
+                                localPaths.add(path + ps
+                                        + " [SegmentPropertyState<"
+                                        + ps.getType() + ">@" + recordId + "]");
                             }
                         }
                     }
@@ -499,16 +540,12 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
         }
 
         RecordId stateId = state.getRecordId();
-        SegmentId segmentId = stateId.getSegmentId();
-        if (uuids.contains(new UUID(segmentId.getMostSignificantBits(),
-                segmentId.getLeastSignificantBits()))) {
+        if (uuids.contains(stateId.getSegmentId().asUUID())) {
             localPaths.add(path + " [SegmentNodeState@" + stateId + "]");
         }
 
-        RecordId templateId = SegmentNodeStateHelper.getTemplateId(state);
-        SegmentId template = templateId.getSegmentId();
-        if (uuids.contains(new UUID(template.getMostSignificantBits(), template
-                .getLeastSignificantBits()))) {
+        RecordId templateId = getTemplateId(state);
+        if (uuids.contains(templateId.getSegmentId().asUUID())) {
             localPaths.add(path + "[Template@" + templateId + "]");
         }
         paths.addAll(localPaths);
@@ -527,7 +564,7 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
             sb.append("Unknown argument: ");
             sb.append(input);
             sb.append(newline);
-            log.setText("Usage <recordId> <recordId> [<path>]");
+            setText("Usage <recordId> <recordId> [<path>]");
             return;
         }
 
@@ -536,7 +573,7 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
             sb.append("Unknown argument: ");
             sb.append(input);
             sb.append(newline);
-            log.setText("Usage <recordId> <recordId> [<path>]");
+            setText("Usage <recordId> <recordId> [<path>]");
             return;
         }
         RecordId id1 = null;
@@ -551,7 +588,7 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
             sb.append("Error: ");
             sb.append(ex.getMessage());
             sb.append(newline);
-            log.setText(sb.toString());
+            setText(sb.toString());
             return;
         }
         String path = "/";
@@ -561,7 +598,7 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
 
         NodeState node1 = new SegmentNodeState(id1);
         NodeState node2 = new SegmentNodeState(id2);
-        for (String name : PathUtils.elements(path)) {
+        for (String name : elements(path)) {
             node1 = node1.getChildNode(name);
             node2 = node2.getChildNode(name);
         }
@@ -575,8 +612,8 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
         sb.append(newline);
         sb.append("--------");
         sb.append(newline);
-        sb.append(JsopBuilder.prettyPrint(JsopDiff.diffToJsop(node1, node2)));
-        log.setText(sb.toString());
+        sb.append(prettyPrint(diffToJsop(node1, node2)));
+        setText(sb.toString());
     }
 
     public boolean revert(String revision) {
@@ -589,7 +626,7 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
         try {
             refreshModel();
             if (!rollback) {
-                log.setText("Switched head revision to " + revision);
+                setText("Switched head revision to " + revision);
             }
         } catch (SegmentNotFoundException e) {
             StringBuilder sb = new StringBuilder();
@@ -601,7 +638,7 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
             sb.append(newline);
             sb.append("Will rollback to ");
             sb.append(head);
-            log.setText(sb.toString());
+            setText(sb.toString());
             return safeRevert(head, true);
         }
         if (rollback) {
@@ -621,22 +658,15 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
 
         private Long[] size = { -1l, -1l };
 
-        private final boolean cacheNodeState;
-        private NodeState state;
-
         public NamePathModel(String name, String path, NodeState state,
                 Map<RecordIdKey, Long[]> sizeCache, boolean skipSizeCheck,
-                FileStore store, boolean cacheNodeState) {
+                FileStore store) {
             this.store = store;
             this.name = name;
             this.path = path;
             this.skipSizeCheck = skipSizeCheck;
             if (!skipSizeCheck && state instanceof SegmentNodeState) {
                 this.size = exploreSize((SegmentNodeState) state, sizeCache);
-            }
-            this.cacheNodeState = cacheNodeState;
-            if (cacheNodeState) {
-                this.state = state;
             }
         }
 
@@ -654,12 +684,11 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
                 return name;
             }
             if (size[1] > 0) {
-                return name + " (" + FileUtils.byteCountToDisplaySize(size[0])
-                        + ";" + FileUtils.byteCountToDisplaySize(size[1]) + ")";
+                return name + " (" + byteCountToDisplaySize(size[0]) + ";"
+                        + byteCountToDisplaySize(size[1]) + ")";
             }
             if (size[0] > 0) {
-                return name + " (" + FileUtils.byteCountToDisplaySize(size[0])
-                        + ")";
+                return name + " (" + byteCountToDisplaySize(size[0]) + ")";
             }
             return name;
         }
@@ -669,19 +698,12 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
         }
 
         public NodeState getState() {
-            if (state != null) {
-                return state;
-            }
-            NodeState s = loadState();
-            if (cacheNodeState) {
-                state = s;
-            }
-            return s;
+            return loadState();
         }
 
         private NodeState loadState() {
             NodeState n = store.getHead();
-            for (String p : PathUtils.elements(path)) {
+            for (String p : elements(path)) {
                 n = n.getChildNode(p);
             }
             return n;
@@ -776,10 +798,8 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
 
         public RecordIdKey(RecordId rid) {
             this.offset = rid.getOffset();
-            this.msb = rid.getSegmentId()
-                    .getMostSignificantBits();
-            this.lsb = rid.getSegmentId()
-                    .getLeastSignificantBits();
+            this.msb = rid.getSegmentId().getMostSignificantBits();
+            this.lsb = rid.getSegmentId().getLeastSignificantBits();
         }
 
         @Override
@@ -800,6 +820,11 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
             return ((int) lsb) ^ offset;
         }
 
+    }
+
+    @Override
+    public void close() throws IOException {
+        store.close();
     }
 
 }

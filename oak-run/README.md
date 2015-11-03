@@ -14,6 +14,7 @@ The following runmodes are currently available:
     * server      : Run the Oak Server.
     * console     : Start an interactive console.
     * explore     : Starts a GUI browser based on java swing.
+    * graph       : Export the segment graph of a segment store to a file.
     * check       : Check the FileStore for inconsistencies
     * primary     : Run a TarMK Cold Standby primary instance
     * standby     : Run a TarMK Cold Standby standby instance
@@ -21,6 +22,7 @@ The following runmodes are currently available:
     * recovery    : Run a _lastRev recovery on a MongoMK repository
     * checkpoints : Manage checkpoints
     * tika        : Performs text extraction
+    * garbage     : Identifies blob garbage on a DocumentMK repository
     * help        : Print a list of available runmodes
     
 
@@ -93,6 +95,29 @@ The 'explore' mode starts a desktop browser GUI based on java swing which allows
 browsing of an existing oak repository.
 
     $ java -jar oak-run-*.jar explore /path/to/oak/repository [skip-size-check]
+
+Graph
+-----
+
+The 'graph' mode export the segment graph of a file store to a text file in the
+[Guess GDF format](https://gephi.github.io/users/supported-graph-formats/gdf-format/),
+which is easily imported into [Gephi](https://gephi.github.io).
+
+As the GDF format only supports integer values but the segment time stamps are encoded as long
+values an optional 'epoch' argument can be specified. If no epoch is given on the command line
+the start of the day of the last modified date of the 'journal.log' is used. The epoch specifies
+a negative offset translating all timestamps into a valid int range.
+
+    $ java -jar oak-run-*.jar graph [File] <options>
+
+    [File] -- Path to segment store (required)
+
+    Option           Description
+    ------           -----------
+    --epoch <Long>   Epoch of the segment time stamps
+                       (derived from journal.log if not
+                       given)
+    --output <File>  Output file (default: segments.gdf)
 
 Check
 -----
@@ -777,6 +802,22 @@ The following recovery options (with default values) are currently supported:
 The recovery tool will only perform the check and fix for the given clusterId.
 It is therefore recommended to explicitly specify a clusterId. The tool will
 fix the documents it identified, unless the `dryRun` keyword is specified.
+
+Garbage
+=======
+
+The garbage mode can the used to identify blob garbage still referenced by
+documents in a MongoMK repository. It can be invoked like this:
+
+    $ java -jar oak-run-*.jar garbage [options] mongodb://host:port/database
+
+The following recovery options (with default values) are currently supported:
+
+    --clusterId         - MongoMK clusterId (default: 0 -> automatic)
+
+The tool will scan the store for documents with blob references and print a
+report with the top 100 documents with blob references considered garbage. The
+rank is based on the size of the referenced blobs.
 
 <a name="jr2"></a>
 Oak Runnable Jar - JR 2

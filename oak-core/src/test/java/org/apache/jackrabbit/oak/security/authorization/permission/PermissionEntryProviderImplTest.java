@@ -157,16 +157,10 @@ public class PermissionEntryProviderImplTest {
             return null;
         }
 
-        @Override
-        public void load(@Nonnull Map<String, Collection<PermissionEntry>> entries,
-                @Nonnull String principalName) {
-            // ignore
-        }
-
         @Nonnull
         @Override
         public PrincipalPermissionEntries load(@Nonnull String principalName) {
-            return new PrincipalPermissionEntries(principalName);
+            return new PrincipalPermissionEntries();
         }
 
         @Override

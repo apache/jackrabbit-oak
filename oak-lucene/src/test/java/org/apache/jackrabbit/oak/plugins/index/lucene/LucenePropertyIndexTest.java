@@ -69,6 +69,7 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.util.ISO8601;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -371,6 +372,33 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     private static Tree setNodeType(Tree t, String typeName){
         t.setProperty(JcrConstants.JCR_PRIMARYTYPE, typeName, Type.NAME);
         return t;
+    }
+
+    @Test
+    public void nodeName() throws Exception{
+        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree rules = idx.addChild(LuceneIndexConstants.INDEX_RULES);
+        rules.setOrderableChildren(true);
+        Tree rule = rules.addChild("nt:base");
+        rule.setProperty(LuceneIndexConstants.INDEX_NODE_NAME, true);
+        root.commit();
+
+        Tree test = root.getTree("/");
+        test.addChild("foo");
+        test.addChild("camelCase");
+        test.addChild("test").addChild("bar");
+        root.commit();
+
+        String propabQuery = "select [jcr:path] from [nt:base] where LOCALNAME() = 'foo'";
+        assertThat(explain(propabQuery), containsString("lucene:test1(/oak:index/test1) :nodeName:foo"));
+        assertQuery(propabQuery, asList("/foo"));
+        assertQuery("select [jcr:path] from [nt:base] where LOCALNAME() = 'bar'", asList("/test/bar"));
+        assertQuery("select [jcr:path] from [nt:base] where LOCALNAME() LIKE 'foo'", asList("/foo"));
+        assertQuery("select [jcr:path] from [nt:base] where LOCALNAME() LIKE 'camel%'", asList("/camelCase"));
+
+        assertQuery("select [jcr:path] from [nt:base] where NAME() = 'bar'", asList("/test/bar"));
+        assertQuery("select [jcr:path] from [nt:base] where NAME() LIKE 'foo'", asList("/foo"));
+        assertQuery("select [jcr:path] from [nt:base] where NAME() LIKE 'camel%'", asList("/camelCase"));
     }
 
     @Test
@@ -1118,6 +1146,57 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
+    public void boostTitleOverDescription() throws Exception{
+        NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
+
+        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree props = TestUtil.newRulePropTree(idx, TestUtil.NT_TEST);
+
+        Tree title = props.addChild("title");
+        title.setProperty(LuceneIndexConstants.PROP_NAME, "jcr:content/jcr:title");
+        title.setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
+        title.setProperty(LuceneIndexConstants.FIELD_BOOST, 4.0);
+
+        Tree desc = props.addChild("desc");
+        desc.setProperty(LuceneIndexConstants.PROP_NAME, "jcr:content/jcr:description");
+        desc.setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
+        desc.setProperty(LuceneIndexConstants.FIELD_BOOST, 2.0);
+
+        Tree text = props.addChild("text");
+        text.setProperty(LuceneIndexConstants.PROP_NAME, "jcr:content/text");
+        text.setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
+
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        Tree a = createNodeWithType(test, "a", "oak:TestNode").addChild("jcr:content");
+        a.setProperty("jcr:title", "Batman");
+        a.setProperty("jcr:description", "Silent angel of Gotham");
+        a.setProperty("text", "once upon a time a long text phrase so as to add penalty to /test/a and nullifying boost");
+
+        Tree b = createNodeWithType(test, "b", "oak:TestNode").addChild("jcr:content");
+        b.setProperty("jcr:title", "Superman");
+        b.setProperty("jcr:description", "Tale of two heroes Superman and Batman");
+        b.setProperty("text", "some stuff");
+
+        Tree c = createNodeWithType(test, "c", "oak:TestNode").addChild("jcr:content");
+        c.setProperty("jcr:title", "Ironman");
+        c.setProperty("jcr:description", "New kid in the town");
+        c.setProperty("text", "Friend of batman?");
+        root.commit();
+
+        String queryString = "//element(*,oak:TestNode)[jcr:contains(., 'batman')]";
+        String explain = explainXpath(queryString);
+
+        //Assert that Lucene query generated has entries for all included boosted fields
+        assertThat(explain, containsString("full:jcr:content/jcr:title:batman^4.0"));
+        assertThat(explain, containsString("full:jcr:content/jcr:description:batman^2.0"));
+        assertThat(explain, containsString(":fulltext:batman"));
+
+        assertOrderedQuery(queryString, asList("/test/a", "/test/b", "/test/c"), XPATH, true);
+    }
+
+    @Test
     public void sortQueriesWithJcrScore() throws Exception {
         Tree idx = createIndex("test1", of("propa", "n0", "n1", "n2"));
         root.commit();
@@ -1544,6 +1623,52 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
             "/jcr:root//element(*, nt:base)[(@propa = 'a3' or @propb = 'b0' or @propc = 'c2')] order by @propd",
             XPATH,
             asList("/test/b0", "/test/c2", "/test/a3"));
+    }
+
+    @Test
+    public void indexingBasedOnMixin() throws Exception {
+        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree props = TestUtil.newRulePropTree(idx, "mix:title");
+        Tree prop = props.addChild(TestUtil.unique("prop"));
+        prop.setProperty(LuceneIndexConstants.PROP_NAME, "jcr:title");
+        prop.setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        createNodeWithMixinType(test, "a", "mix:title").setProperty("jcr:title", "a");
+        createNodeWithMixinType(test, "b", "mix:title").setProperty("jcr:title", "c");
+        test.addChild("c").setProperty("jcr:title", "a");
+        root.commit();
+
+        String propabQuery = "select [jcr:path] from [mix:title] where [jcr:title] = 'a'";
+        assertThat(explain(propabQuery), containsString("lucene:test1(/oak:index/test1)"));
+        assertQuery(propabQuery, asList("/test/a"));
+    }
+
+    @Test
+    public void indexingBasedOnMixinWithInheritence() throws Exception {
+        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree props = TestUtil.newRulePropTree(idx, "mix:mimeType");
+        Tree prop = props.addChild(TestUtil.unique("prop"));
+        prop.setProperty(LuceneIndexConstants.PROP_NAME, "jcr:mimeType");
+        prop.setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        createNodeWithType(test, "a", "nt:resource").setProperty("jcr:mimeType", "a");
+        createNodeWithType(test, "b", "nt:resource").setProperty("jcr:mimeType", "c");
+        test.addChild("c").setProperty("jcr:mimeType", "a");
+        root.commit();
+
+        String propabQuery = "select [jcr:path] from [mix:mimeType] where [jcr:mimeType] = 'a'";
+        assertThat(explain(propabQuery), containsString("lucene:test1(/oak:index/test1)"));
+        assertQuery(propabQuery, asList("/test/a"));
+    }
+
+    private static Tree createNodeWithMixinType(Tree t, String nodeName, String typeName){
+        t = t.addChild(nodeName);
+        t.setProperty(JcrConstants.JCR_MIXINTYPES, Collections.singleton(typeName), Type.NAMES);
+        return t;
     }
 
     private Tree createFileNode(Tree tree, String name, String content, String mimeType){

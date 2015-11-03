@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static com.google.common.collect.ImmutableList.of;
 import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -28,15 +29,19 @@ import java.util.Calendar;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.SimpleNodeAggregator;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newNodeAggregator;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.useV2;
 import static org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState.binaryProperty;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
@@ -412,4 +417,55 @@ public class LuceneIndexAggregationTest extends AbstractQueryTest {
                     "xpath", ImmutableList.of("/myFolder", "/myFolder/myFile", "/myFolder/myFile/jcr:content"));
     }
 
+    @Test
+    public void oak3371AggregateV2() throws CommitFailedException {
+        oak3371();
+    }
+
+    @Test
+    public void oak3371AggregateV1() throws CommitFailedException {
+        
+        Tree indexdef = root.getTree("/oak:index/" + TEST_INDEX_NAME);
+        assertNotNull(indexdef);
+        assertTrue(indexdef.exists());
+        indexdef.setProperty(LuceneIndexConstants.COMPAT_MODE, 1L);
+        indexdef.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+        root.commit();
+        
+        oak3371();
+    }
+
+    private void oak3371() throws CommitFailedException {
+        setTraversalEnabled(false);
+        Tree test, t;
+        
+        test = root.getTree("/").addChild("test");
+        t = test.addChild("a");
+        t.setProperty(JCR_PRIMARYTYPE, NT_FOLDER, Type.NAME);
+        t.setProperty("foo", "bar");
+        t = test.addChild("b");
+        t.setProperty(JCR_PRIMARYTYPE, NT_FOLDER, Type.NAME);
+        t.setProperty("foo", "cat");
+        t = test.addChild("c");
+        t.setProperty(JCR_PRIMARYTYPE, NT_FOLDER, Type.NAME);
+        t = test.addChild("d");
+        t.setProperty(JCR_PRIMARYTYPE, NT_FOLDER, Type.NAME);
+        t.setProperty("foo", "bar cat");
+        root.commit();
+        
+        assertQuery(
+            "SELECT * FROM [nt:folder] WHERE ISDESCENDANTNODE('/test') AND CONTAINS(foo, 'bar')",
+            of("/test/a", "/test/d"));
+        assertQuery(
+            "SELECT * FROM [nt:folder] WHERE ISDESCENDANTNODE('/test') AND NOT CONTAINS(foo, 'bar')",
+            of("/test/b", "/test/c"));
+        assertQuery(
+            "SELECT * FROM [nt:folder] WHERE ISDESCENDANTNODE('/test') AND CONTAINS(foo, 'bar cat')",
+            of("/test/d"));
+        assertQuery(
+            "SELECT * FROM [nt:folder] WHERE ISDESCENDANTNODE('/test') AND NOT CONTAINS(foo, 'bar cat')",
+            of("/test/c"));
+
+        setTraversalEnabled(true);
+    }
 }

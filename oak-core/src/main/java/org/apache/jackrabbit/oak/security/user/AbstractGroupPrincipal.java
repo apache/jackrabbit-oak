@@ -44,6 +44,10 @@ abstract class AbstractGroupPrincipal extends TreeBasedPrincipal implements java
         super(principalName, groupTree, namePathMapper);
     }
 
+    AbstractGroupPrincipal(@Nonnull String principalName, @Nonnull String groupPath, @Nonnull NamePathMapper namePathMapper) {
+        super(principalName, groupPath, namePathMapper);
+    }
+
     abstract UserManager getUserManager();
 
     abstract boolean isEveryone() throws RepositoryException;

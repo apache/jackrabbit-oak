@@ -74,12 +74,13 @@ public class RDBDocumentSerializer {
         StringBuilder sb = new StringBuilder(32768);
         sb.append("{");
         boolean needComma = false;
-        for (String key : doc.keySet()) {
+        for (Map.Entry<String, Object> entry : doc.entrySet()) {
+            String key = entry.getKey();
             if (!columnProperties.contains(key)) {
                 if (needComma) {
                     sb.append(",");
                 }
-                appendMember(sb, key, doc.get(key));
+                appendMember(sb, key, entry.getValue());
                 needComma = true;
             }
         }

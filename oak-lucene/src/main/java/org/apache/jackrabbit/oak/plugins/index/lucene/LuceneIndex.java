@@ -69,7 +69,7 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
-import org.apache.jackrabbit.oak.spi.query.QueryIndex;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.analysis.Analyzer;
@@ -153,6 +153,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
     private static final Logger LOG = LoggerFactory
             .getLogger(LuceneIndex.class);
     public static final String NATIVE_QUERY_FUNCTION = "native*lucene";
+    private static double MIN_COST = 2.2;
 
     /**
      * IndexPaln Attribute name which refers to the path of Lucene index to be used
@@ -174,6 +175,11 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
     public LuceneIndex(IndexTracker tracker, NodeAggregator aggregator) {
         this.tracker = tracker;
         this.aggregator = aggregator;
+    }
+
+    @Override
+    public double getMinimumCost() {
+        return MIN_COST;
     }
 
     @Override
@@ -377,9 +383,9 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
 
                         // ACL filter spellchecks
                         Collection<String> suggestedWords = new ArrayList<String>(suggestWords.length);
-                        QueryParser qp = new QueryParser(Version.LUCENE_47, FieldNames.FULLTEXT, indexNode.getDefinition().getAnalyzer());
+                        QueryParser qp = new QueryParser(Version.LUCENE_47, FieldNames.SUGGEST, indexNode.getDefinition().getAnalyzer());
                         for (SuggestWord suggestion : suggestWords) {
-                            Query query = qp.createPhraseQuery(FieldNames.FULLTEXT, suggestion.string);
+                            Query query = qp.createPhraseQuery(FieldNames.SUGGEST, suggestion.string);
                             TopDocs topDocs = searcher.search(query, 100);
                             if (topDocs.totalHits > 0) {
                                 for (ScoreDoc doc : topDocs.scoreDocs) {
@@ -587,14 +593,8 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
         if (qs.size() == 0) {
             return new LuceneRequestFacade<Query>(new MatchAllDocsQuery());
         }
-        if (qs.size() == 1) {
-            return new LuceneRequestFacade<Query>(qs.get(0));
-        }
-        BooleanQuery bq = new BooleanQuery();
-        for (Query q : qs) {
-            bq.add(q, MUST);
-        }
-        return new LuceneRequestFacade<Query>(bq);
+        
+        return LucenePropertyIndex.performAdditionalWraps(qs);
     }
 
     private static void addNonFullTextConstraints(List<Query> qs,
@@ -665,6 +665,9 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             if (JCR_PRIMARYTYPE.equals(name)) {
                 continue;
             }
+            if (QueryConstants.RESTRICTION_LOCAL_NAME.equals(name)) {
+                continue;
+            }              
 
             if (skipTokenization(name)) {
                 qs.add(new TermQuery(new Term(name, pr.first
@@ -1035,14 +1038,17 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
         final String path;
         final double score;
         final Iterable<String> suggestWords;
+        final boolean isVirtual;
 
         LuceneResultRow(String path, double score) {
+            this.isVirtual = false;
             this.path = path;
             this.score = score;
             this.suggestWords = Collections.emptySet();
         }
 
         LuceneResultRow(Iterable<String> suggestWords) {
+            this.isVirtual = true;
             this.path = "/";
             this.score = 1.0d;
             this.suggestWords = suggestWords;
@@ -1104,6 +1110,11 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
         public IndexRow next() {
             final IndexRow pathRow = pathCursor.next();
             return new IndexRow() {
+
+                @Override
+                public boolean isVirtualRow() {
+                    return currentRow.isVirtual;
+                }
 
                 @Override
                 public String getPath() {

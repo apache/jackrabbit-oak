@@ -374,7 +374,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         DocumentStore store = mk.getDocumentStore();
         DocumentNodeStore ns = mk.getNodeStore();
         NodeBuilder b1 = ns.getRoot().builder();
-        b1.child("test").child("foo").setProperty("binaryProp",ns.createBlob(randomStream(1, 4096)));;
+        b1.child("test").child("foo").setProperty("binaryProp",ns.createBlob(randomStream(1, 4096)));
         ns.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         //Commit on a node which has a child and where the commit root
@@ -670,7 +670,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         doc.put(NodeDocument.ID, Utils.getIdFromPath("/test"));
         doc.put(NodeDocument.SD_TYPE, NodeDocument.SplitDocType.DEFAULT.type);
         Revision head = mk.getNodeStore().getHeadRevision();
-        SplitOperations.forDocument(doc, DummyRevisionContext.INSTANCE, head);
+        SplitOperations.forDocument(doc, DummyRevisionContext.INSTANCE, head, NUM_REVS_THRESHOLD);
     }
 
     @Test
@@ -740,6 +740,40 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         assertTrue(doc.getLocalCommitRoot().size() < NUM_REVS_THRESHOLD);
     }
 
+    // OAK-3333
+    @Test
+    public void purgeAllButMostRecentCommitRoot() throws Exception {
+        DocumentStore store = mk.getDocumentStore();
+        DocumentNodeStore ns1 = mk.getNodeStore();
+        NodeBuilder builder1 = ns1.getRoot().builder();
+        builder1.child("test");
+        merge(ns1, builder1);
+        ns1.runBackgroundOperations();
+
+        DocumentNodeStore ns2 = new DocumentMK.Builder().setDocumentStore(store)
+                .setAsyncDelay(0).getNodeStore();
+        // prevent merge retries
+        ns2.setMaxBackOffMillis(0);
+        assertTrue(ns2.getRoot().hasChildNode("test"));
+        NodeBuilder builder2 = ns2.getRoot().builder();
+        builder2.child("test").remove();
+
+        for (int i = 0; i < NUM_REVS_THRESHOLD * 2; i++) {
+            builder1 = ns1.getRoot().builder();
+            builder1.child("test").child("child-" + i);
+            merge(ns1, builder1);
+        }
+        ns1.runBackgroundOperations();
+
+        try {
+            merge(ns2, builder2);
+            fail("merge must fail with CommitFailedException");
+        } catch (CommitFailedException e) {
+            // expected
+        }
+        ns2.dispose();
+    }
+
     // OAK-3081
     @Test
     public void removeGarbage() throws Exception {
@@ -779,7 +813,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
             for (String id : ns.getSplitCandidates()) {
                 Revision head = ns.getHeadRevision();
                 NodeDocument doc = store.find(NODES, id);
-                List<UpdateOp> ops = SplitOperations.forDocument(doc, rc, head);
+                List<UpdateOp> ops = SplitOperations.forDocument(doc, rc, head, NUM_REVS_THRESHOLD);
                 Set<Revision> removed = Sets.newHashSet();
                 Set<Revision> added = Sets.newHashSet();
                 for (UpdateOp op : ops) {
@@ -851,6 +885,12 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
                 // ignore
             }
             return rc.getHeadRevision();
+        }
+
+        @Nonnull
+        @Override
+        public Revision newRevision() {
+            return rc.newRevision();
         }
     }
 

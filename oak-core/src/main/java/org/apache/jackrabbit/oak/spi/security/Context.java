@@ -74,11 +74,14 @@ public interface Context {
      */
     boolean definesLocation(@Nonnull TreeLocation location);
 
+    Context DEFAULT = new Default();
+
     /**
      * Default implementation of the {@code Context} interface that always returns
      * {@code false}.
      */
     class Default implements Context {
+
         @Override
         public boolean definesProperty(@Nonnull Tree parent, @Nonnull PropertyState property) {
             return false;

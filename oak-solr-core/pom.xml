@@ -35,7 +35,6 @@
     <properties>
         <tika.version>1.5</tika.version>
         <known.issues>
-            org.apache.jackrabbit.core.query.FulltextQueryTest#testMultipleOrExpressions                   <!-- different ranking -->
             org.apache.jackrabbit.core.query.FulltextQueryTest#testMultiByte                               <!-- wildcards with multi byte support -->
             org.apache.jackrabbit.core.query.FnNameQueryTest#testLikeWithPrefix                            <!-- OAK-328 -->
             org.apache.jackrabbit.core.query.ShareableNodeTest#testName                                    <!-- OAK-118 -->

@@ -24,6 +24,7 @@ import java.security.SecureRandom;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.CheckForNull;
@@ -65,7 +66,7 @@ public class SegmentTracker {
 
     private static final long BULK = 0xBL << 60;
 
-    private static final int MB = 1024 * 1024;
+    private static final long MB = 1024 * 1024;
 
     private static final int DEFAULT_MEMORY_CACHE_SIZE = 256;
 
@@ -106,6 +107,11 @@ public class SegmentTracker {
      */
     private final CacheLIRS<SegmentId, Segment> segmentCache;
 
+    /**
+     * Number of segments
+     */
+    private final AtomicInteger segmentCounter = new AtomicInteger();
+
     public SegmentTracker(SegmentStore store, int cacheSizeMB,
             SegmentVersion version) {
         for (int i = 0; i < tables.length; i++) {
@@ -113,19 +119,19 @@ public class SegmentTracker {
         }
 
         this.store = store;
-        this.writer = new SegmentWriter(store, this, version);
         this.compactionMap = new AtomicReference<CompactionMap>(
                 CompactionMap.EMPTY);
+        this.writer = new SegmentWriter(store, this, version, "sys");
         StringCache c;
         if (DISABLE_STRING_CACHE) {
             c = null;
         } else {
-            int stringCacheSize = (int) Math.min(Integer.MAX_VALUE, (long) (cacheSizeMB * MB));
-            c = new StringCache(stringCacheSize);
+            c = new StringCache((long) cacheSizeMB * MB);
         }
         stringCache = c;
         segmentCache = CacheLIRS.<SegmentId, Segment>newBuilder()
-            .maximumSize((int) Math.min(Integer.MAX_VALUE, (long) (cacheSizeMB * MB)))
+            .module("SegmentTracker")
+            .maximumWeight((long) cacheSizeMB * MB)
             .averageWeight(Segment.MAX_SEGMENT_SIZE/2)
             .evictionCallback(new EvictionCallback<SegmentId, Segment>() {
                 @Override
@@ -144,6 +150,14 @@ public class SegmentTracker {
 
     public SegmentTracker(SegmentStore store) {
         this(store, DEFAULT_MEMORY_CACHE_SIZE, SegmentVersion.V_11);
+    }
+
+    /**
+     * Increment and get the number of segments
+     * @return
+     */
+    int getNextSegmentNo() {
+        return segmentCounter.incrementAndGet();
     }
 
     @Nonnull

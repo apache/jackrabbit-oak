@@ -29,10 +29,12 @@ import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.ReferenceStrategy;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
@@ -53,12 +55,14 @@ import org.osgi.framework.ServiceRegistration;
  * to be configured in a custom way
  */
 @Component(policy = ConfigurationPolicy.REQUIRE)
+@Reference(referenceInterface = IndexEditorProvider.class,
+        target = "(type=property)",
+        strategy = ReferenceStrategy.LOOKUP
+)
 public class RepositoryManager {
     private static final int DEFAULT_OBSERVATION_QUEUE_LENGTH = 1000;
     private static final boolean DEFAULT_COMMIT_RATE_LIMIT = false;
-
-    //TODO Exposed for testing purpose due to SLING-4472
-    static boolean ignoreFrameworkProperties = false;
+    private static final boolean DEFAULT_FAST_QUERY_RESULT_SIZE = false;
 
     private final WhiteboardEditorProvider editorProvider =
             new WhiteboardEditorProvider();
@@ -78,6 +82,8 @@ public class RepositoryManager {
     private int observationQueueLength;
 
     private CommitRateLimiter commitRateLimiter;
+    
+    private boolean fastQueryResultSize;
 
     @Reference
     private SecurityProvider securityProvider;
@@ -98,6 +104,14 @@ public class RepositoryManager {
                 "queue exceed 90% of its capacity.")
     private static final String COMMIT_RATE_LIMIT = "oak.observation.limit-commit-rate";
 
+    @Property(
+            boolValue = DEFAULT_FAST_QUERY_RESULT_SIZE,
+            name = "Fast query result size",
+            description = "Whether the query result size should return an estimation (or -1 if disabled) for large queries")
+    private static final String FAST_QUERY_RESULT_SIZE = "oak.query.fastResultSize";
+
+    private OsgiRepository repository;
+
     @Activate
     public void activate(BundleContext bundleContext, Map<String, ?> config) throws Exception {
         observationQueueLength = PropertiesUtil.toInteger(prop(
@@ -109,7 +123,10 @@ public class RepositoryManager {
         } else {
             commitRateLimiter = null;
         }
-
+        
+        fastQueryResultSize = PropertiesUtil.toBoolean(prop(
+                config, bundleContext, FAST_QUERY_RESULT_SIZE), DEFAULT_FAST_QUERY_RESULT_SIZE);
+        
         whiteboard = new OsgiWhiteboard(bundleContext);
         initializers = whiteboard.track(RepositoryInitializer.class);
         editorProvider.start(whiteboard);
@@ -119,12 +136,10 @@ public class RepositoryManager {
     }
 
     private static Object prop(Map<String, ?> config, BundleContext bundleContext, String name) {
-        if (!ignoreFrameworkProperties) {
-            //Prefer framework property first
-            Object value = bundleContext.getProperty(name);
-            if (value != null) {
-                return value;
-            }
+        //Prefer framework property first
+        Object value = bundleContext.getProperty(name);
+        if (value != null) {
+            return value;
         }
 
         //Fallback to one from config
@@ -136,6 +151,12 @@ public class RepositoryManager {
     public void deactivate() {
         if (registration != null) {
             registration.unregister();
+            registration = null;
+        }
+
+        if (repository != null) {
+            repository.shutdown();
+            repository = null;
         }
 
         initializers.stop();
@@ -163,10 +184,15 @@ public class RepositoryManager {
             oak.with(commitRateLimiter);
         }
 
-        return bundleContext.registerService(
-                Repository.class.getName(),
-                new OsgiRepository(oak.createContentRepository(), whiteboard, securityProvider,
-                        observationQueueLength, commitRateLimiter),
-                new Properties());
+        repository = new OsgiRepository(
+                oak.createContentRepository(),
+                whiteboard,
+                securityProvider,
+                observationQueueLength,
+                commitRateLimiter,
+                fastQueryResultSize
+        );
+
+        return bundleContext.registerService(Repository.class.getName(), repository, new Properties());
     }
 }

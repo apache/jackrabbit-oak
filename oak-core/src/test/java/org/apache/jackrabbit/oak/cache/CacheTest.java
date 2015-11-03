@@ -577,7 +577,7 @@ public class CacheTest {
     }
 
     private static <K, V> CacheLIRS<K, V> createCache(int maxSize, int averageSize) {
-        return new CacheLIRS<K, V>(null, maxSize, averageSize, 1, 0, null, null);
+        return new CacheLIRS<K, V>(null, maxSize, averageSize, 1, 0, null, null, null);
     }
     
     @Test

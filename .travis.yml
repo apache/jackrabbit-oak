@@ -13,17 +13,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+sudo: false
 install:  true
 script:   mvn --batch-mode verify -PintegrationTesting -Dnsfixtures=DOCUMENT_NS -pl :oak-lucene -am
 language: java
 jdk:
   - oraclejdk7
-# OAK-1822: use MongoDB 2.6.1 instead of version provided by travis (2.4.x)
-before_install:
-  - "sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 7F0CEB10"
-  - "echo 'deb http://downloads-distro.mongodb.org/repo/ubuntu-upstart dist 10gen' | sudo tee /etc/apt/sources.list.d/mongodb.list"
-  - "sudo apt-get update"
-  - "sudo apt-get install mongodb-org=2.6.1 mongodb-org-server=2.6.1 mongodb-org-shell=2.6.1 mongodb-org-mongos=2.6.1 mongodb-org-tools=2.6.1"
+cache:
+  directories:
+    - $HOME/.m2
+addons:
+  apt:
+    sources:
+      - mongodb-upstart
+    packages:
+      - mongodb-org-server
 notifications:
   email: false
   webhooks:

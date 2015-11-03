@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.lucene.index.IndexReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -145,13 +146,17 @@ class IndexPlanner {
         //for property index
         if (indexingRule.propertyIndexEnabled) {
             for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
+                String name = pr.propertyName;
+                if (QueryConstants.RESTRICTION_LOCAL_NAME.equals(name)) {
+                    continue;
+                }                
                 PropertyDefinition pd = indexingRule.getConfig(pr.propertyName);
                 if (pd != null && pd.propertyIndexEnabled()) {
                     if (pr.isNullRestriction() && !pd.nullCheckEnabled){
                         continue;
                     }
-                    indexedProps.add(pr.propertyName);
-                    result.propDefns.put(pr.propertyName, pd);
+                    indexedProps.add(name);
+                    result.propDefns.put(name, pd);
                 }
             }
         }
@@ -159,6 +164,7 @@ class IndexPlanner {
         boolean evalNodeTypeRestrictions = canEvalNodeTypeRestrictions(indexingRule);
         boolean evalPathRestrictions = canEvalPathRestrictions(indexingRule);
         boolean canEvalAlFullText = canEvalAllFullText(indexingRule, ft);
+        boolean canEvalNodeNameRestriction = canEvalNodeNameRestriction(indexingRule);
 
         if (ft != null && !canEvalAlFullText){
             return null;
@@ -168,7 +174,8 @@ class IndexPlanner {
 
         List<OrderEntry> sortOrder = createSortOrder(indexingRule);
         boolean canSort = canSortByProperty(sortOrder);
-        if (!indexedProps.isEmpty() || canSort || ft != null || evalPathRestrictions || evalNodeTypeRestrictions) {
+        if (!indexedProps.isEmpty() || canSort || ft != null
+                || evalPathRestrictions || evalNodeTypeRestrictions || canEvalNodeNameRestriction) {
             //TODO Need a way to have better cost estimate to indicate that
             //this index can evaluate more propertyRestrictions natively (if more props are indexed)
             //For now we reduce cost per entry
@@ -194,11 +201,14 @@ class IndexPlanner {
                 result.enableNodeTypeEvaluation();
             }
 
+            if (canEvalNodeNameRestriction){
+                result.enableNodeNameRestriction();
+            }
+
             return plan.setCostPerEntry(definition.getCostPerEntry() / costPerEntryFactor);
         }
 
         //TODO Support for property existence queries
-        //TODO support for nodeName queries
 
         return null;
     }
@@ -224,6 +234,14 @@ class IndexPlanner {
         }
 
         return false;
+    }
+
+    private boolean canEvalNodeNameRestriction(IndexingRule indexingRule) {
+        PropertyRestriction pr = filter.getPropertyRestriction(QueryConstants.RESTRICTION_LOCAL_NAME);
+        if (pr == null){
+            return false;
+        }
+        return indexingRule.isNodeNameIndexed();
     }
 
     private static boolean canSortByProperty(List<OrderEntry> sortOrder) {
@@ -433,7 +451,7 @@ class IndexPlanner {
     private boolean notSupportedFeature() {
         if(filter.getPathRestriction() == Filter.PathRestriction.NO_RESTRICTION
                 && filter.matchesAllTypes()
-                && filter.getPropertyRestrictions().isEmpty()){
+                && filter.getPropertyRestrictions().isEmpty()) { 
             //This mode includes name(), localname() queries
             //OrImpl [a/name] = 'Hello' or [b/name] = 'World'
             //Relative parent properties where [../foo1] is not null
@@ -456,6 +474,7 @@ class IndexPlanner {
         private String parentPathSegment;
         private boolean relativize;
         private boolean nodeTypeRestrictions;
+        private boolean nodeNameRestriction;
 
         public PlanResult(String indexPath, IndexDefinition defn, IndexingRule indexingRule) {
             this.indexPath = indexPath;
@@ -505,6 +524,8 @@ class IndexPlanner {
             return nodeTypeRestrictions;
         }
 
+        public boolean evaluateNodeNameRestriction() {return nodeNameRestriction;}
+
         private void setParentPath(String relativePath){
             parentPathSegment = "/" + relativePath;
             if (relativePath.isEmpty()){
@@ -523,6 +544,10 @@ class IndexPlanner {
 
         private void enableNodeTypeEvaluation() {
             nodeTypeRestrictions = true;
+        }
+
+        private void enableNodeNameRestriction(){
+            nodeNameRestriction = true;
         }
     }
 }

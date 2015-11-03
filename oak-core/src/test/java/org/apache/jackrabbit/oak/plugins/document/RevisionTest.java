@@ -129,6 +129,22 @@ public class RevisionTest {
     }
 
     @Test
+    public void compare2() {
+        RevisionComparator comp = new RevisionComparator(1);
+
+        Revision r2 = new Revision(7, 0, 2);
+        Revision r3 = new Revision(5, 0, 3);
+
+        Revision seenAt = new Revision(8, 0, 0);
+        comp.add(r2, seenAt);
+        comp.add(r3, seenAt);
+
+        // both revisions have same seenAt revision, must use
+        // revision timestamp for comparison
+        assertTrue(comp.compare(r2, r3) > 0);
+    }
+
+    @Test
     public void revisionComparatorSimple() {
         RevisionComparator comp = new RevisionComparator(0);
         Revision r1 = Revision.newRevision(0);
@@ -254,12 +270,12 @@ public class RevisionTest {
         comp.add(c1sync,  Revision.fromString("r2-0-0"));
         Revision c2sync = Revision.fromString("r4-1-2");
         comp.add(c2sync,  Revision.fromString("r2-1-0"));
-        Revision c3sync = Revision.fromString("r2-0-3");
+        Revision c3sync = Revision.fromString("r5-0-3");
         comp.add(c3sync, Revision.fromString("r2-1-0"));
 
         assertTrue(comp.compare(r1, r2) < 0);
         assertTrue(comp.compare(r2, c2sync) < 0);
-        // same seen-at revision, but clusterId 2 < 3
+        // same seen-at revision, but rev timestamp c2sync < c3sync
         assertTrue(comp.compare(c2sync, c3sync) < 0);
 
         // this means, c3sync must be after r1 and r2

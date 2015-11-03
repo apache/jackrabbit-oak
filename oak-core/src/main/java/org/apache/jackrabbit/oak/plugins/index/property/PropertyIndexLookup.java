@@ -63,7 +63,7 @@ public class PropertyIndexLookup {
     /**
      * The cost overhead to use the index in number of read operations.
      */
-    private static final double COST_OVERHEAD = 2;
+    public static final double COST_OVERHEAD = 2;
     
     /**
      * The maximum cost when the index can be used.

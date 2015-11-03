@@ -87,6 +87,11 @@ public final class FieldNames {
     public static final String NOT_NULL_PROPS = ":notNullProps";
 
     /**
+     * Name of the field that contains the node name
+     */
+    public static final String NODE_NAME = ":nodeName";
+
+    /**
      * Used to select only the PATH field from the lucene documents
      */
     public static final Set<String> PATH_SELECTOR = new HashSet<String>(

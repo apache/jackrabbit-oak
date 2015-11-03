@@ -50,6 +50,7 @@ public class DefaultSyncConfig {
      * @return {@code this}
      * @see #getName()
      */
+    @Nonnull
     public DefaultSyncConfig setName(@Nonnull String name) {
         this.name = name;
         return this;
@@ -123,7 +124,7 @@ public class DefaultSyncConfig {
          * @see #getAutoMembership()
          */
         @Nonnull
-        public Authorizable setAutoMembership(String ... autoMembership) {
+        public Authorizable setAutoMembership(@Nonnull String ... autoMembership) {
             this.autoMembership = new HashSet<String>();
             for (String groupName: autoMembership) {
                 if (!groupName.trim().isEmpty()) {
@@ -164,7 +165,7 @@ public class DefaultSyncConfig {
          * @see #getPropertyMapping()
          */
         @Nonnull
-        public Authorizable setPropertyMapping(Map<String, String> propertyMapping) {
+        public Authorizable setPropertyMapping(@Nonnull Map<String, String> propertyMapping) {
             this.propertyMapping = propertyMapping;
             return this;
         }
@@ -186,7 +187,7 @@ public class DefaultSyncConfig {
          * @see #getPathPrefix()
          */
         @Nonnull
-        public Authorizable setPathPrefix(String pathPrefix) {
+        public Authorizable setPathPrefix(@Nonnull String pathPrefix) {
             this.pathPrefix = pathPrefix;
             return this;
         }

@@ -29,11 +29,13 @@ import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.REF_COUNT_OFFSET;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentId.isDataSegmentId;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -51,7 +53,7 @@ import org.slf4j.LoggerFactory;
  * A writer for tar files. It is also used to read entries while the file is
  * still open.
  */
-class TarWriter {
+class TarWriter implements Closeable {
 
     /** Logger instance */
     private static final Logger log = LoggerFactory.getLogger(TarWriter.class);
@@ -122,6 +124,8 @@ class TarWriter {
      */
     private RandomAccessFile access = null;
 
+    private FileChannel channel = null;
+
     /**
      * Flag to indicate a closed writer. Accessing a closed writer is illegal.
      * Should only be accessed from synchronized code.
@@ -176,15 +180,18 @@ class TarWriter {
      * @param lsb the least significant bits of the segment id
      * @return the byte buffer, or null if not in this file
      */
-    synchronized ByteBuffer readEntry(long msb, long lsb) throws IOException {
+    ByteBuffer readEntry(long msb, long lsb) throws IOException {
         checkState(!closed);
-        TarEntry entry = index.get(new UUID(msb, lsb));
+        
+        TarEntry entry;
+        synchronized (this) {
+            entry = index.get(new UUID(msb, lsb));
+        }
         if (entry != null) {
-            checkState(access != null); // implied by entry != null
+            checkState(channel != null); // implied by entry != null
             ByteBuffer data = ByteBuffer.allocate(entry.size());
-            access.seek(entry.offset());
-            access.readFully(data.array());
-            access.seek(access.length());
+            channel.read(data, entry.offset());
+            data.rewind();
             return data;
         } else {
             return null;
@@ -213,6 +220,7 @@ class TarWriter {
         checkState(!closed);
         if (access == null) {
             access = new RandomAccessFile(file, "rw");
+            channel = access.getChannel();
         }
 
         access.write(header);
@@ -287,7 +295,8 @@ class TarWriter {
      *
      * @throws IOException if the tar file could not be closed
      */
-    void close() throws IOException {
+    @Override
+    public void close() throws IOException {
         // Mark this writer as closed. Note that we only need to synchronize
         // this part, as no other synchronized methods should get invoked
         // once close() has been initiated (see related checkState calls).

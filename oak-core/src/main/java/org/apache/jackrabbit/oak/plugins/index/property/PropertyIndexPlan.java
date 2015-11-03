@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.index.property;
 
 import static com.google.common.base.Predicates.in;
 import static com.google.common.collect.Iterables.any;
-import static com.google.common.collect.Iterables.isEmpty;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.newLinkedHashSet;
 import static java.util.Collections.emptySet;
@@ -31,6 +30,7 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.PathFilter;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.UniqueEntryStoreStrategy;
@@ -57,7 +57,7 @@ public class PropertyIndexPlan {
     /**
      * The cost overhead to use the index in number of read operations.
      */
-    private static final double COST_OVERHEAD = 2;
+    static final double COST_OVERHEAD = 2;
 
     /**
      * The maximum cost when the index can be used.
@@ -94,11 +94,14 @@ public class PropertyIndexPlan {
 
     private final int depth;
 
+    private final PathFilter pathFilter;
+
     PropertyIndexPlan(String name, NodeState root, NodeState definition, Filter filter) {
         this.name = name;
         this.root = root;
         this.definition = definition;
         this.properties = newHashSet(definition.getNames(PROPERTY_NAMES));
+        pathFilter = PathFilter.from(definition.builder());
 
         if (definition.getBoolean(UNIQUE_PROPERTY_NAME)) {
             this.strategy = UNIQUE;
@@ -118,7 +121,8 @@ public class PropertyIndexPlan {
         Set<String> bestValues = emptySet();
         int bestDepth = 1;
 
-        if (matchesNodeTypes) {
+        if (matchesNodeTypes && 
+                pathFilter.areAllDescendantsIncluded(filter.getPath())) {
             for (String property : properties) {
                 PropertyRestriction restriction =
                         filter.getPropertyRestriction(property);
@@ -253,6 +257,10 @@ public class PropertyIndexPlan {
             cursor = Cursors.newAncestorCursor(cursor, depth - 1, settings);
         }
         return cursor;
+    }
+
+    Filter getFilter() {
+        return filter;
     }
 
     //------------------------------------------------------------< Object >--

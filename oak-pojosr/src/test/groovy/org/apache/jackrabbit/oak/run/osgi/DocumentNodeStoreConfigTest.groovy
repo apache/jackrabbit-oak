@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore
 import org.h2.jdbcx.JdbcDataSource
 import org.junit.After
 import org.junit.Test
+import org.osgi.framework.ServiceRegistration
 
 import javax.sql.DataSource
 import java.sql.Connection
@@ -62,6 +63,32 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
 
         //4. Check that only one cluster node was instantiated
         assert getIdsOfClusterNodes(ds).size() == 1
+    }
+
+    @Test
+    public void testRDBDocumentStoreRestart() throws Exception {
+        registry = repositoryFactory.initializeServiceRegistry(config)
+
+        //1. Register the DataSource as a service
+        DataSource ds = createDS("jdbc:h2:mem:testRDBrestart;DB_CLOSE_DELAY=-1")
+        ServiceRegistration srds = registry.registerService(DataSource.class.name, ds, ['datasource.name': 'oak'] as Hashtable)
+
+        //2. Create config for DocumentNodeStore with RDB enabled
+        createConfig([
+                'org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService': [
+                        documentStoreType: 'RDB'
+                ]
+        ])
+
+        DocumentNodeStore ns = getServiceWithWait(NodeStore.class)
+
+        //3. Shut down ds
+        srds.unregister();
+        assertNoService(NodeStore.class)
+
+        //4. Restart ds, service should still be down
+        srds = registry.registerService(DataSource.class.name, ds, ['datasource.name': 'oak'] as Hashtable)
+        assertNoService(NodeStore.class)
     }
 
     @Test
@@ -132,10 +159,10 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
 
         //1. Register the DataSource as a service
         DataSource ds1 = createDS("jdbc:h2:mem:testRDB3;DB_CLOSE_DELAY=-1")
-        registry.registerService(DataSource.class.name, ds1, ['datasource.name': 'oak'] as Hashtable)
+        ServiceRegistration sdsds = registry.registerService(DataSource.class.name, ds1, ['datasource.name': 'oak'] as Hashtable)
 
         DataSource ds2 = createDS("jdbc:h2:mem:testRDB3b;DB_CLOSE_DELAY=-1")
-        registry.registerService(DataSource.class.name, ds2, ['datasource.name': 'oak-blob'] as Hashtable)
+        ServiceRegistration sdsbs = registry.registerService(DataSource.class.name, ds2, ['datasource.name': 'oak-blob'] as Hashtable)
 
         //2. Create config for DocumentNodeStore with RDB enabled
         // (supply blobDataSource which should be ignored because customBlob takes precedence)
@@ -165,6 +192,11 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
 
         //5. Check that only one cluster node was instantiated
         assert getIdsOfClusterNodes(ds1).size() == 1
+
+        //6. Unregister the data sources to test resilience wrt
+        //multiple deregistrations (OAK-3383)
+        sdsds.unregister();
+        sdsbs.unregister();
     }
 
     @Test

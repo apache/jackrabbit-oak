@@ -90,6 +90,46 @@ public class UserManagerImplTest extends AbstractSecurityTest {
         super.after();
     }
 
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-3191">OAK-3191</a>
+     */
+    @Test
+    public void testGetAuthorizableByEmptyId() throws Exception {
+        assertNull(userMgr.getAuthorizable(""));
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-3191">OAK-3191</a>
+     */
+    @Test
+    public void testGetTypedAuthorizableByEmptyId() throws Exception {
+        assertNull(userMgr.getAuthorizable("", User.class));
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-3191">OAK-3191</a>
+     */
+    @Test
+    public void testGetAuthorizableByNullId() throws Exception {
+        assertNull(userMgr.getAuthorizable((String) null));
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-3191">OAK-3191</a>
+     */
+    @Test
+    public void testGetTypedAuthorizableByNullId() throws Exception {
+        assertNull(userMgr.getAuthorizable(null, User.class));
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-3191">OAK-3191</a>
+     */
+    @Test
+    public void testGetTypedAuthorizableByNullPrincipal() throws Exception {
+        assertNull(userMgr.getAuthorizable((Principal) null));
+    }
+
     @Test
     public void testSetPassword() throws Exception {
         User user = userMgr.createUser(testUserId, "pw");

@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-import java.util.Collections;
-import java.util.Map;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.Repository;
@@ -27,7 +25,6 @@ import javax.jcr.SimpleCredentials;
 import javax.jcr.security.Privilege;
 import javax.security.auth.login.Configuration;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -54,20 +51,27 @@ abstract class AbstractLoginTest extends AbstractTest {
     public final static int COUNT = 1000;
     public final static String USER = "user";
     public final static int DEFAULT_ITERATIONS = -1;
+    public final static long NO_CACHE = -1;
 
     private String runAsUser;
     private boolean runWithToken;
     private int noIterations;
+    private long expiration;
 
     public AbstractLoginTest() {
         this("admin", false, DEFAULT_ITERATIONS);
     }
 
     public AbstractLoginTest(String runAsUser, boolean runWithToken, int noIterations) {
+        this(runAsUser, runWithToken, noIterations, NO_CACHE);
+    }
+
+    public AbstractLoginTest(String runAsUser, boolean runWithToken, int noIterations, long expiration) {
         super();
         this.runAsUser = runAsUser;
         this.runWithToken = runWithToken;
         this.noIterations = noIterations;
+        this.expiration = expiration;
     }
 
     @Override
@@ -102,15 +106,23 @@ abstract class AbstractLoginTest extends AbstractTest {
 
     @Override
     protected Repository[] createRepository(RepositoryFixture fixture) throws Exception {
-        if (noIterations != -1) {
+        if (noIterations != -1 || expiration > 0) {
             if (fixture instanceof OakRepositoryFixture) {
-                final String configName = (runWithToken) ? TokenConfiguration.NAME : UserConfiguration.NAME;
                 return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCreator() {
                     @Override
                     public Jcr customize(Oak oak) {
-                        Map<String, Integer> map = Collections.singletonMap(UserConstants.PARAM_PASSWORD_HASH_ITERATIONS, noIterations);
-                        ConfigurationParameters conf = ConfigurationParameters.of(map);
-                        SecurityProvider sp = new SecurityProviderImpl(ConfigurationParameters.of(ImmutableMap.of(configName, conf)));
+                        ConfigurationParameters conf;
+                        ConfigurationParameters iterations = ConfigurationParameters.of(UserConstants.PARAM_PASSWORD_HASH_ITERATIONS, noIterations);
+                        ConfigurationParameters cache = ConfigurationParameters.of("cacheExpiration", expiration);
+                        if (runWithToken) {
+                            conf = ConfigurationParameters.of(
+                                    TokenConfiguration.NAME, iterations,
+                                    UserConfiguration.NAME, cache);
+                        } else {
+                            conf = ConfigurationParameters.of(
+                                    UserConfiguration.NAME, ConfigurationParameters.of(iterations, cache));
+                        }
+                        SecurityProvider sp = new SecurityProviderImpl(conf);
                         return new Jcr(oak).with(sp);
                     }
                 });

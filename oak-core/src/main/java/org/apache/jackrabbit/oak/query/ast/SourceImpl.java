@@ -86,6 +86,14 @@ public abstract class SourceImpl extends AstElement {
     public abstract String getPlan(NodeState rootState);
 
     /**
+     * Get the index cost as a JSON string.
+     *
+     * @param rootState the root
+     * @return the cost
+     */
+    public abstract String getIndexCostInfo(NodeState rootState);
+
+    /**
      * Prepare executing the query (recursively). This will 'wire' the
      * selectors with the join constraints, and decide which index to use.
      * 
@@ -162,5 +170,4 @@ public abstract class SourceImpl extends AstElement {
      * @return the size, or -1 if unknown
      */
     public abstract long getSize(SizePrecision precision, long max);
-
 }

@@ -67,7 +67,7 @@ public class FileStoreRestore {
         long s = System.currentTimeMillis();
         NodeState current = store.getRoot();
         RestoreCompactor compactor = new RestoreCompactor(writer);
-        SegmentNodeBuilder builder = compactor.process(current, source);
+        SegmentNodeBuilder builder = compactor.process(current, source, current);
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         log.debug("Restore finished in {} ms.", System.currentTimeMillis() - s);
     }
@@ -79,8 +79,8 @@ public class FileStoreRestore {
         }
 
         @Override
-        protected SegmentNodeBuilder process(NodeState before, NodeState after) {
-            return super.process(before, after);
+        protected SegmentNodeBuilder process(NodeState before, NodeState after, NodeState onto) {
+            return super.process(before, after, onto);
         }
     }
 

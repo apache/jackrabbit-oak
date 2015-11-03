@@ -214,7 +214,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      */
     @Override
     public void remove() throws RepositoryException {
-        sessionDelegate.performVoid(new ItemWriteOperation("remove") {
+        sessionDelegate.performVoid(new ItemWriteOperation<Void>("remove") {
             @Override
             public void performVoid() throws RepositoryException {
                 if (dlg.isRoot()) {
@@ -290,7 +290,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 // modification of that property in the PermissionValidator
                 if (oakTypeName != null) {
                     PropertyState prop = PropertyStates.createProperty(JCR_PRIMARYTYPE, oakTypeName, NAME);
-                    sessionContext.getAccessManager().checkPermissions(dlg.getTree(), prop, Permissions.NODE_TYPE_MANAGEMENT);
+                    sessionContext.getAccessManager().checkPermissions(parent.getTree(), prop, Permissions.NODE_TYPE_MANAGEMENT);
                 }
 
                 NodeDelegate added = parent.addChild(oakName, oakTypeName);
@@ -309,7 +309,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     @Override
     public void orderBefore(final String srcChildRelPath, final String destChildRelPath) throws RepositoryException {
-        sessionDelegate.performVoid(new ItemWriteOperation("orderBefore") {
+        sessionDelegate.performVoid(new ItemWriteOperation<Void>("orderBefore") {
             @Override
             public void performVoid() throws RepositoryException {
                 getEffectiveNodeType().checkOrderableChildNodes();
@@ -944,7 +944,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     @Override
     public void setPrimaryType(final String nodeTypeName) throws RepositoryException {
-        sessionDelegate.performVoid(new ItemWriteOperation("setPrimaryType") {
+        sessionDelegate.performVoid(new ItemWriteOperation<Void>("setPrimaryType") {
             @Override
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
@@ -963,7 +963,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     public void addMixin(String mixinName) throws RepositoryException {
         final String oakTypeName = getOakName(checkNotNull(mixinName));
-        sessionDelegate.performVoid(new ItemWriteOperation("addMixin") {
+        sessionDelegate.performVoid(new ItemWriteOperation<Void>("addMixin") {
             @Override
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
@@ -982,7 +982,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     public void removeMixin(final String mixinName) throws RepositoryException {
         final String oakTypeName = getOakName(checkNotNull(mixinName));
-        sessionDelegate.performVoid(new ItemWriteOperation("removeMixin") {
+        sessionDelegate.performVoid(new ItemWriteOperation<Void>("removeMixin") {
             @Override
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
@@ -1063,7 +1063,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     @Override
     public void update(final String srcWorkspace) throws RepositoryException {
-        sessionDelegate.performVoid(new ItemWriteOperation("update") {
+        sessionDelegate.performVoid(new ItemWriteOperation<Void>("update") {
             @Override
             public void performVoid() throws RepositoryException {
                 checkValidWorkspace(srcWorkspace);
@@ -1245,7 +1245,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     @Override
     public void removeSharedSet() throws RepositoryException {
-        sessionDelegate.performVoid(new ItemWriteOperation("removeSharedSet") {
+        sessionDelegate.performVoid(new ItemWriteOperation<Void>("removeSharedSet") {
             @Override
             public void performVoid() throws RepositoryException {
                 // TODO: avoid nested calls
@@ -1424,6 +1424,14 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             throws RepositoryException {
         final String oakName = getOakName(checkNotNull(jcrName));
         return perform(new ItemWriteOperation<Property>("internalRemoveProperty") {
+            @Override
+            public void checkPreconditions() throws RepositoryException {
+                super.checkPreconditions();
+                if (!isCheckedOut()) {
+                    throw new VersionException(
+                            "Cannot remove property. Node is checked in.");
+                }
+            }
             @Nonnull
             @Override
             public Property perform() throws RepositoryException {
@@ -1474,7 +1482,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             return;
         }
 
-        sessionDelegate.performVoid(new ItemWriteOperation("rename") {
+        sessionDelegate.performVoid(new ItemWriteOperation<Void>("rename") {
             @Override
             public void performVoid() throws RepositoryException {
                 Node parent = getParent();
@@ -1541,7 +1549,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         for (String mixinName : mixinNames) {
             oakTypeNames.add(getOakName(checkNotNull(mixinName)));
         }
-        sessionDelegate.performVoid(new ItemWriteOperation("setMixins") {
+        sessionDelegate.performVoid(new ItemWriteOperation<Void>("setMixins") {
             @Override
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();

@@ -22,10 +22,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toBoolean;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toInteger;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
+import static org.apache.jackrabbit.oak.osgi.OsgiUtil.lookupFrameworkThenConfiguration;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_CHILDREN_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_DIFF_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_DOC_CHILDREN_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_NODE_CACHE_PERCENTAGE;
+import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 import java.io.ByteArrayInputStream;
@@ -69,6 +71,7 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.identifier.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobStoreWrapper;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.RevisionGC;
@@ -77,6 +80,8 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
+import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleException;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
@@ -98,8 +103,6 @@ import org.slf4j.LoggerFactory;
 public class DocumentNodeStoreService {
     private static final String DEFAULT_URI = "mongodb://localhost:27017/oak";
     private static final int DEFAULT_CACHE = 256;
-    private static final int DEFAULT_OFF_HEAP_CACHE = 0;
-    private static final int DEFAULT_CHANGES_SIZE = 256;
     private static final int DEFAULT_BLOB_CACHE_SIZE = 16;
     private static final String DEFAULT_DB = "oak";
     private static final String DEFAULT_PERSISTENT_CACHE = "";
@@ -181,15 +184,6 @@ public class DocumentNodeStoreService {
     )
     private static final String PROP_CACHE_STACK_MOVE_DISTANCE = "cacheStackMoveDistance";
 
-    private static final String PROP_OFF_HEAP_CACHE = "offHeapCache";
-
-    @Property(intValue =  DEFAULT_CHANGES_SIZE,
-            label = "Mongo Changes Collection Size (in MB)",
-            description = "With the MongoDB backend, the DocumentNodeStore uses a capped collection to cache the diff. " +
-                    "This value is used to determine the size of that capped collection"
-    )
-    private static final String PROP_CHANGES_SIZE = "changesSize";
-
     @Property(intValue =  DEFAULT_BLOB_CACHE_SIZE,
             label = "Blob Cache Size (in MB)",
             description = "Cache size to store blobs in memory. Used only with default BlobStore " +
@@ -248,7 +242,7 @@ public class DocumentNodeStoreService {
     private WhiteboardExecutor executor;
 
     @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY,
-            policy = ReferencePolicy.DYNAMIC)
+            policy = ReferencePolicy.DYNAMIC, target = ONLY_STANDALONE_TARGET)
     private volatile BlobStore blobStore;
 
     @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY,
@@ -267,6 +261,7 @@ public class DocumentNodeStoreService {
     private ObserverTracker observerTracker;
     private ComponentContext context;
     private Whiteboard whiteboard;
+    private long deactivationTimestamp = 0;
 
 
     /**
@@ -333,7 +328,10 @@ public class DocumentNodeStoreService {
     }
 
     private void registerNodeStoreIfPossible() throws IOException {
-        if (context == null) {
+        // disallow attempts to restart (OAK-3420)
+        if (deactivationTimestamp != 0) {
+            log.info("DocumentNodeStore was already unregistered ({}ms ago)", System.currentTimeMillis() - deactivationTimestamp);
+        } else if (context == null) {
             log.info("Component still not activated. Ignoring the initialization call");
         } else if (customBlobStore && blobStore == null) {
             log.info("Custom BlobStore use enabled. DocumentNodeStoreService would be initialized when "
@@ -350,13 +348,11 @@ public class DocumentNodeStoreService {
         String uri = PropertiesUtil.toString(prop(PROP_URI, FWK_PROP_URI), DEFAULT_URI);
         String db = PropertiesUtil.toString(prop(PROP_DB, FWK_PROP_DB), DEFAULT_DB);
 
-        int offHeapCache = toInteger(prop(PROP_OFF_HEAP_CACHE), DEFAULT_OFF_HEAP_CACHE);
         int cacheSize = toInteger(prop(PROP_CACHE), DEFAULT_CACHE);
         int nodeCachePercentage = toInteger(prop(PROP_NODE_CACHE_PERCENTAGE), DEFAULT_NODE_CACHE_PERCENTAGE);
         int childrenCachePercentage = toInteger(prop(PROP_CHILDREN_CACHE_PERCENTAGE), DEFAULT_CHILDREN_CACHE_PERCENTAGE);
         int docChildrenCachePercentage = toInteger(prop(PROP_DOC_CHILDREN_CACHE_PERCENTAGE), DEFAULT_DOC_CHILDREN_CACHE_PERCENTAGE);
         int diffCachePercentage = toInteger(prop(PROP_DIFF_CACHE_PERCENTAGE), DEFAULT_DIFF_CACHE_PERCENTAGE);
-        int changesSize = toInteger(prop(PROP_CHANGES_SIZE), DEFAULT_CHANGES_SIZE);
         int blobCacheSize = toInteger(prop(PROP_BLOB_CACHE_SIZE), DEFAULT_BLOB_CACHE_SIZE);
         String persistentCache = PropertiesUtil.toString(prop(PROP_PERSISTENT_CACHE), DEFAULT_PERSISTENT_CACHE);
         int cacheSegmentCount = toInteger(prop(PROP_CACHE_SEGMENT_COUNT), DEFAULT_CACHE_SEGMENT_COUNT);
@@ -372,14 +368,37 @@ public class DocumentNodeStoreService {
                         diffCachePercentage).
                 setCacheSegmentCount(cacheSegmentCount).
                 setCacheStackMoveDistance(cacheStackMoveDistance).
-                offHeapCacheSize(offHeapCache * MB);
+                setLeaseCheck(true /* OAK-2739: enabled by default */).
+                setLeaseFailureHandler(new LeaseFailureHandler() {
+                    
+                    @Override
+                    public void handleLeaseFailure() {
+                        try {
+                            // plan A: try stopping oak-core
+                            log.error("handleLeaseFailure: stopping oak-core...");
+                            Bundle bundle = context.getBundleContext().getBundle();
+                            bundle.stop();
+                            log.error("handleLeaseFailure: stopped oak-core.");
+                            // plan A worked, perfect!
+                        } catch (BundleException e) {
+                            log.error("handleLeaseFailure: exception while stopping oak-core: "+e, e);
+                            // plan B: stop only DocumentNodeStoreService (to stop the background threads)
+                            log.error("handleLeaseFailure: stopping DocumentNodeStoreService...");
+                            context.disableComponent(DocumentNodeStoreService.class.getName());
+                            log.error("handleLeaseFailure: stopped DocumentNodeStoreService");
+                            // plan B succeeded.
+                        }
+                    }
+                });
 
         if (persistentCache != null && persistentCache.length() > 0) {
             mkBuilder.setPersistentCache(persistentCache);
         }
 
+        boolean wrappingCustomBlobStore = customBlobStore && blobStore instanceof BlobStoreWrapper;
+
         //Set blobstore before setting the DB
-        if (customBlobStore) {
+        if (customBlobStore && !wrappingCustomBlobStore) {
             checkNotNull(blobStore, "Use of custom BlobStore enabled via  [%s] but blobStore reference not " +
                     "initialized", CUSTOM_BLOB_STORE);
             mkBuilder.setBlobStore(blobStore);
@@ -406,8 +425,8 @@ public class DocumentNodeStoreService {
                 // Take care around not logging the uri directly as it
                 // might contain passwords
                 log.info("Starting DocumentNodeStore with host={}, db={}, cache size (MB)={}, persistentCache={}, " +
-                                "'changes' collection size (MB)={}, blobCacheSize (MB)={}, maxReplicationLagInSecs={}",
-                        mongoURI.getHosts(), db, cacheSize, persistentCache, changesSize, blobCacheSize, maxReplicationLagInSecs);
+                                "blobCacheSize (MB)={}, maxReplicationLagInSecs={}",
+                        mongoURI.getHosts(), db, cacheSize, persistentCache, blobCacheSize, maxReplicationLagInSecs);
                 log.info("Mongo Connection details {}", MongoConnection.toString(mongoURI.getOptions()));
             }
 
@@ -415,9 +434,15 @@ public class DocumentNodeStoreService {
             DB mongoDB = client.getDB(db);
 
             mkBuilder.setMaxReplicationLag(maxReplicationLagInSecs, TimeUnit.SECONDS);
-            mkBuilder.setMongoDB(mongoDB, changesSize, blobCacheSize);
+            mkBuilder.setMongoDB(mongoDB, blobCacheSize);
 
             log.info("Connected to database {}", mongoDB);
+        }
+
+        //Set wrapping blob store after setting the DB
+        if (wrappingCustomBlobStore) {
+            ((BlobStoreWrapper) blobStore).setBlobStore(mkBuilder.getBlobStore());
+            mkBuilder.setBlobStore(blobStore);
         }
 
         mkBuilder.setExecutor(executor);
@@ -447,10 +472,30 @@ public class DocumentNodeStoreService {
 
         DocumentStore ds = mk.getDocumentStore();
 
+        // OAK-2682: time difference detection applied at startup with a default
+        // max time diff of 2000 millis (2sec)
+        final long maxDiff = Long.parseLong(System.getProperty("oak.documentMK.maxServerTimeDiffMillis", "2000"));
+        try {
+            if (maxDiff>=0) {
+                final long timeDiff = ds.determineServerTimeDifferenceMillis();
+                log.info("registerNodeStore: server time difference: {}ms (max allowed: {}ms)", timeDiff, maxDiff);
+                if (Math.abs(timeDiff) > maxDiff) {
+                    throw new AssertionError("Server clock seems off (" + timeDiff + "ms) by more than configured amount ("
+                            + maxDiff + "ms)");
+                }
+            }
+        } catch (RuntimeException e) { // no checked exception
+            // in case of a RuntimeException, just log but continue
+            log.warn("registerNodeStore: got RuntimeException while trying to determine time difference to server: " + e, e);
+        }
+
         Dictionary<String, Object> props = new Hashtable<String, Object>();
         props.put(Constants.SERVICE_PID, DocumentNodeStore.class.getName());
         props.put(DESCRIPTION, getMetadata(ds));
-        reg = context.getBundleContext().registerService(NodeStore.class.getName(), store, props);
+        // OAK-2844: in order to allow DocumentDiscoveryLiteService to directly
+        // require a service DocumentNodeStore (instead of having to do an 'instanceof')
+        // the registration is now done for both NodeStore and DocumentNodeStore here.
+        reg = context.getBundleContext().registerService(new String[]{NodeStore.class.getName(), DocumentNodeStore.class.getName()}, store, props);
     }
 
     @Deactivate
@@ -502,16 +547,21 @@ public class DocumentNodeStoreService {
     }
 
     private void unregisterNodeStore() {
+        deactivationTimestamp = System.currentTimeMillis();
+
         for (Registration r : registrations) {
             r.unregister();
         }
+        registrations.clear();
 
         if (reg != null) {
             reg.unregister();
+            reg = null;
         }
 
         if (mk != null) {
             mk.dispose();
+            mk = null;
         }
 
         if (executor != null) {
@@ -578,14 +628,8 @@ public class DocumentNodeStoreService {
         final long blobGcMaxAgeInSecs = toLong(prop(PROP_BLOB_GC_MAX_AGE), DEFAULT_BLOB_GC_MAX_AGE);
 
         if (store.getBlobStore() instanceof GarbageCollectableBlobStore) {
-            BlobGarbageCollector gc = new BlobGarbageCollector() {
-                @Override
-                public void collectGarbage(boolean sweep) throws Exception {
-                    store.createBlobGarbageCollector(blobGcMaxAgeInSecs,
-                            ClusterRepositoryInfo.getId(mk.getNodeStore()))
-                            .collectGarbage(sweep);
-                }
-            };
+            BlobGarbageCollector gc = store.createBlobGarbageCollector(blobGcMaxAgeInSecs, 
+                                                        ClusterRepositoryInfo.getId(mk.getNodeStore()));
             registrations.add(registerMBean(whiteboard, BlobGCMBean.class, new BlobGC(gc, executor),
                     BlobGCMBean.TYPE, "Document node store blob garbage collection"));
         }
@@ -641,14 +685,7 @@ public class DocumentNodeStoreService {
     }
 
     private Object prop(String propName, String fwkPropName) {
-        //Prefer framework property first
-        Object value = context.getBundleContext().getProperty(fwkPropName);
-        if (value != null) {
-            return value;
-        }
-
-        //Fallback to one from config
-        return context.getProperties().get(propName);
+        return lookupFrameworkThenConfiguration(context, propName, fwkPropName);
     }
 
     private static String[] getMetadata(DocumentStore ds) {

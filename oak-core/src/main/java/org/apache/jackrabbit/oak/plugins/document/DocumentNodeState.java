@@ -56,6 +56,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.StringUtils.estimateMemoryUsage;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
@@ -375,6 +376,8 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
         PropertyState prop = properties.get(propertyName);
         if (prop == null) {
             return null;
+        } else if (prop instanceof DocumentPropertyState) {
+            return ((DocumentPropertyState) prop).getValue();
         }
         JsopBuilder builder = new JsopBuilder();
         new JsonSerializer(builder, store.getBlobSerializer()).serialize(prop);
@@ -448,15 +451,14 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
 
     @Override
     public int getMemory() {
-        int size = 212 + path.length() * 2;
+        int size = 164 + estimateMemoryUsage(path);
         // rough approximation for properties
         for (Map.Entry<String, PropertyState> entry : properties.entrySet()) {
             // name
-            size += 48 + entry.getKey().length() * 2;
+            size += estimateMemoryUsage(entry.getKey());
             PropertyState propState = entry.getValue();
             if (propState.getType() != Type.BINARY
                     && propState.getType() != Type.BINARIES) {
-                // assume binaries go into blob store
                 for (int i = 0; i < propState.count(); i++) {
                     // size() returns length of string
                     // overhead:
@@ -464,6 +466,12 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
                     // - 48 bytes per string
                     size += 56 + propState.size(i) * 2;
                 }
+            } else {
+                // calculate size based on blobId value
+                // referencing the binary in the blob store
+                // double the size because the parsed PropertyState
+                // will have a similarly sized blobId as well
+                size += estimateMemoryUsage(getPropertyAsString(entry.getKey())) * 2;
             }
         }
         return size;
@@ -602,7 +610,7 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
                 if (!children.isEmpty()) {
                     size = 114;
                     for (String c : children) {
-                        size += c.length() * 2 + 56;
+                        size += estimateMemoryUsage(c) + 8;
                     }
                 }
                 cachedMemory = size;

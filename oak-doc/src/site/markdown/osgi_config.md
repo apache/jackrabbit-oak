@@ -204,6 +204,21 @@ cacheSizeInMB
 : Size in MB. In memory cache for storing small files whose size is less than `maxCachedBinarySize`. This
   helps in better performance when lots of small binaries are accessed frequently.
 
+#### Oak - SharedS3DataStore (Since Oak 1.2.0)
+
+Supports shared S3 DataStore
+
+_PID `org.apache.jackrabbit.oak.plugins.blob.datastore.SharedS3DataStore`_
+
+maxCachedBinarySize
+: Default - 17408 (17 KB)
+: Size in bytes. Binaries with size less than or equal to this size would be stored in in memory cache
+
+cacheSizeInMB
+: Default - 16
+: Size in MB. In memory cache for storing small files whose size is less than `maxCachedBinarySize`. This
+  helps in better performance when lots of small binaries are accessed frequently.
+
 ### System properties and Framework properties
 
 Following properties are supported by Oak. They are grouped in two parts _Stable_ and

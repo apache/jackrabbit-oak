@@ -55,4 +55,10 @@ public class DummyRevisionContext implements RevisionContext {
     public Revision getHeadRevision() {
         return Revision.newRevision(1);
     }
+
+    @Nonnull
+    @Override
+    public Revision newRevision() {
+        return Revision.newRevision(1);
+    }
 }

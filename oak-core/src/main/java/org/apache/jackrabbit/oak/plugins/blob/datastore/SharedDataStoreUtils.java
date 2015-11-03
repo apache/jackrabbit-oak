@@ -96,7 +96,7 @@ public class SharedDataStoreUtils {
      * Encapsulates the different type of records at the data store root.
      */
     public enum SharedStoreRecordType {
-        REFERENCES("references"), REPOSITORY("repository");
+        REFERENCES("references"), REPOSITORY("repository"), MARKED_START_MARKER("markedTimestamp");
 
         private final String type;
 

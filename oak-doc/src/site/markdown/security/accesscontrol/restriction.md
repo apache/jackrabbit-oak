@@ -95,7 +95,7 @@ as follows:
 - supports multi-valued restrictions
 - validation of the restrictions is delegated to a dedicated commit hook
 - restriction `rep:glob` limits the number of wildcard characters to 20
-- new restrictions `rep:ntNames` and `rep:prefixes`
+- new restrictions `rep:ntNames`, `rep:prefixes` and `rep:itemNames`
 
 #### Built-in Restrictions
 
@@ -105,6 +105,7 @@ Oak 1.0 access control management:
 * `rep:glob`: single name or path pattern with '*' wildcard(s).
 * `rep:ntNames`: multivalued restriction for primary node type names (no inheritence, since Oak 1.0)
 * `rep:prefixes`: multivalued restriction for namespace prefixes (session level remapping not respected, since Oak 1.0)
+* `rep:itemNames`: multivalued restriction for property or node names (since Oak 1.3.8)
 
 
 ### Pluggability

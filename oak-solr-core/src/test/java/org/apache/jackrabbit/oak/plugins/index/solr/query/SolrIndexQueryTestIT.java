@@ -16,6 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
+import static java.util.Arrays.asList;
+import static junit.framework.Assert.assertEquals;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
+
+import java.util.Iterator;
+
+import javax.jcr.query.Query;
+
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.Oak;
@@ -32,16 +43,6 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
-
-import javax.jcr.query.Query;
-import java.util.Iterator;
-
-import static java.util.Arrays.asList;
-import static junit.framework.Assert.assertEquals;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
 /**
  * General query extensive testcase for {@link SolrQueryIndex}

@@ -46,7 +46,7 @@ class IndexNode {
         IndexDefinition definition = new IndexDefinition(root, defnNodeState, indexPath);
         NodeState data = defnNodeState.getChildNode(INDEX_DATA_CHILD_NAME);
         if (data.exists()) {
-            directory = new OakDirectory(new ReadOnlyBuilder(data), definition, true);
+            directory = new OakDirectory(new ReadOnlyBuilder(defnNodeState), definition, true);
             if (cloner != null){
                 directory = cloner.wrapForRead(indexPath, definition, directory);
             }

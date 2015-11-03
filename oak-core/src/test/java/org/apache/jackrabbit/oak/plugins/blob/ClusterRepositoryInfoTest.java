@@ -20,7 +20,7 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import junit.framework.Assert;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 
 import java.io.File;
@@ -40,6 +41,9 @@ import java.io.IOException;
 public class ClusterRepositoryInfoTest {
     static BlobStore blobStore;
 
+    @Rule
+    public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
+    
     @BeforeClass
     public static void setup() {
         try {
@@ -52,14 +56,14 @@ public class ClusterRepositoryInfoTest {
 
     @Test
     public void differentCluster() throws Exception {
-        DocumentNodeStore ds1 = new DocumentMK.Builder()
+        DocumentNodeStore ds1 = builderProvider.newBuilder()
                 .setAsyncDelay(0)
                 .setDocumentStore(new MemoryDocumentStore())
                 .setBlobStore(blobStore)
                 .getNodeStore();
         String repoId1 = ClusterRepositoryInfo.createId(ds1);
 
-        DocumentNodeStore ds2 = new DocumentMK.Builder()
+        DocumentNodeStore ds2 = builderProvider.newBuilder()
                 .setAsyncDelay(0)
                 .setDocumentStore(new MemoryDocumentStore())
                 .setBlobStore(blobStore)
@@ -72,7 +76,7 @@ public class ClusterRepositoryInfoTest {
     @Test
     public void sameCluster() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
-        DocumentNodeStore ds1 = new DocumentMK.Builder()
+        DocumentNodeStore ds1 = builderProvider.newBuilder()
                 .setAsyncDelay(0)
                 .setDocumentStore(store)
                 .setClusterId(1)
@@ -81,7 +85,7 @@ public class ClusterRepositoryInfoTest {
         String repoId1 = ClusterRepositoryInfo.createId(ds1);
         ds1.runBackgroundOperations();
 
-        DocumentNodeStore ds2 = new DocumentMK.Builder()
+        DocumentNodeStore ds2 = builderProvider.newBuilder()
                 .setAsyncDelay(0)
                 .setDocumentStore(store)
                 .setClusterId(2)
@@ -96,7 +100,7 @@ public class ClusterRepositoryInfoTest {
     @Test
     public void checkGetIdWhenNotRegistered() {
         MemoryDocumentStore store = new MemoryDocumentStore();
-        DocumentNodeStore ds1 = new DocumentMK.Builder()
+        DocumentNodeStore ds1 = builderProvider.newBuilder()
             .setAsyncDelay(0)
             .setDocumentStore(store)
             .setClusterId(1)

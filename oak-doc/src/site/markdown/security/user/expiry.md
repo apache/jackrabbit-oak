@@ -159,3 +159,15 @@ This way the user can change the password while the expiry check succeeds
 This method of changing password via the normal login call only works if a
 user's password is in fact expired and cannot be used for regular password
 changes (attribute is ignored, use _User#changePassword_ directly instead).
+
+Should the [Password History feature](history.html) be enabled, and - for the
+above password change - a password already in the history be used, the change
+will fail and the login still throw a _CredentialExpiredException_. In order
+for consumers of the exception to become aware that the credentials are
+still considered expired, and that the password was not changed due to the 
+new password having been found in the password history, the credentials object
+is fitted with an additional attribute with name _PasswordHistoryException_.
+This attribute may contain the following two values:
+
+_"New password was found in password history."_ or 
+_""New password is identical to the current password."_

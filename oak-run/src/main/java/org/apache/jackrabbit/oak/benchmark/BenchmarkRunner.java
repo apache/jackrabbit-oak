@@ -32,11 +32,11 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.ContinuousRevisionGCTest;
 import org.apache.jackrabbit.oak.benchmark.wikipedia.WikipediaImport;
 import org.apache.jackrabbit.oak.fixture.JackrabbitRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
+import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 
 public class BenchmarkRunner {
 
@@ -91,10 +91,16 @@ public class BenchmarkRunner {
                 .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
         OptionSpec<Integer> noIterations = parser.accepts("noIterations", "Change default 'passwordHashIterations' parameter.")
                 .withOptionalArg().ofType(Integer.class).defaultsTo(AbstractLoginTest.DEFAULT_ITERATIONS);
+        OptionSpec<Long> expiration = parser.accepts("expiration", "Expiration time (e.g. principal cache.")
+                        .withOptionalArg().ofType(Long.class).defaultsTo(AbstractLoginTest.NO_CACHE);
         OptionSpec<Integer> numberOfGroups = parser.accepts("numberOfGroups", "Number of groups to create.")
                         .withOptionalArg().ofType(Integer.class).defaultsTo(LoginWithMembershipTest.NUMBER_OF_GROUPS_DEFAULT);
         OptionSpec<Boolean> nestedGroups = parser.accepts("nestedGroups", "Use nested groups.")
                         .withOptionalArg().ofType(Boolean.class).defaultsTo(false);
+        OptionSpec<Integer> batchSize = parser.accepts("batchSize", "Batch size before persisting operations.")
+                .withOptionalArg().ofType(Integer.class).defaultsTo(ManyGroupMembersTest.DEFAULT_BATCH_SIZE);
+        OptionSpec<String> importBehavior = parser.accepts("importBehavior", "Protected Item Import Behavior")
+                                .withOptionalArg().ofType(String.class).defaultsTo(ImportBehavior.NAME_BESTEFFORT);
         OptionSpec<Integer> itemsToRead = parser.accepts("itemsToRead", "Number of items to read")
                 .withRequiredArg().ofType(Integer.class).defaultsTo(1000);
         OptionSpec<Integer> concurrency = parser.accepts("concurrency", "Number of test threads.")
@@ -177,11 +183,13 @@ public class BenchmarkRunner {
                     runWithToken.value(options),
                     noIterations.value(options),
                     numberOfGroups.value(options),
-                    nestedGroups.value(options)),
+                    nestedGroups.value(options),
+                    expiration.value(options)),
             new LoginWithMembersTest(
                     runWithToken.value(options),
                     noIterations.value(options),
-                    numberOfGroups.value(options)),
+                    numberOfGroups.value(options),
+                    expiration.value(options)),
             new NamespaceTest(),
             new NamespaceRegistryTest(),
             new ReadPropertyTest(),
@@ -223,7 +231,7 @@ public class BenchmarkRunner {
                     runAsAdmin.value(options),
                     itemsToRead.value(options),
                     report.value(options)),
-            new CompositeAuthorizationReadTest(
+            new CompositeAuthorizationTest(
                         runAsAdmin.value(options),
                         itemsToRead.value(options)), // TODO: is currently the no of configurations (hack)
             new ConcurrentReadDeepTreeTest(
@@ -289,6 +297,10 @@ public class BenchmarkRunner {
             new GetGroupPrincipalsTest(
                     numberOfGroups.value(options),
                     nestedGroups.value(options)),
+            new ManyGroupMembersTest(
+                    numberOfUsers.value(options),
+                    batchSize.value(options),
+                    importBehavior.value(options)),
             new FullTextSearchTest(
                     wikipedia.value(options),
                     flatStructure.value(options),

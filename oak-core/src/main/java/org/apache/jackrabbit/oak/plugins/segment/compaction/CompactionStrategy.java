@@ -18,15 +18,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.compaction;
 
+import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
+
+import javax.annotation.Nonnull;
+import java.util.concurrent.Callable;
+
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.System.currentTimeMillis;
-
-import java.util.concurrent.Callable;
-
-import javax.annotation.Nonnull;
-
-import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 
 public abstract class CompactionStrategy {
 
@@ -129,6 +128,12 @@ public abstract class CompactionStrategy {
      */
     private byte gainThreshold = GAIN_THRESHOLD_DEFAULT;
 
+    /**
+     * Flag that allows turning on an optimized version of the compaction
+     * process in the case of offline compaction
+     */
+    private boolean offlineCompaction = false;
+
     protected CompactionStrategy(boolean paused,
             boolean cloneBinaries, @Nonnull CleanupType cleanupType, long olderThan, byte memoryThreshold) {
         checkArgument(olderThan >= 0);
@@ -197,6 +202,7 @@ public abstract class CompactionStrategy {
                 ", retryCount=" + retryCount +
                 ", forceAfterFail=" + forceAfterFail +
                 ", compactionStart=" + compactionStart +
+                ", offlineCompaction=" + offlineCompaction +
                 '}';
     }
 
@@ -277,5 +283,27 @@ public abstract class CompactionStrategy {
     }
 
     public abstract boolean compacted(@Nonnull Callable<Boolean> setHead) throws Exception;
+
+    public boolean isOfflineCompaction() {
+        return offlineCompaction;
+    }
+
+    public void setOfflineCompaction(boolean offlineCompaction) {
+        this.offlineCompaction = offlineCompaction;
+    }
+
+    /**
+     * Check if the approximate repository size is getting too big compared with
+     * the available space on disk.
+     *
+     * @param repositoryDiskSpace Approximate size of the disk space occupied by
+     *                            the repository.
+     * @param availableDiskSpace  Currently available disk space.
+     * @return {@code true} if the available disk space is considered enough for
+     * normal repository operations.
+     */
+    public boolean isDiskSpaceSufficient(long repositoryDiskSpace, long availableDiskSpace) {
+        return availableDiskSpace > 0.25 * repositoryDiskSpace;
+    }
 
 }

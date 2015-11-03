@@ -28,8 +28,10 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.JcrNameParser;
+import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.util.ISO9075;
 
 /**
@@ -86,11 +88,13 @@ public class NodeNameImpl extends DynamicOperandImpl {
         if (v == null) {
             return;
         }
-        String name = getName(v);
-        if (name == null) {
-            throw new IllegalArgumentException("Invalid name value: " + v.toString());
+        String name = getName(query, v);
+        if (name != null && f.getSelector().equals(selector)
+                && NodeNameImpl.supportedOperator(operator)) {
+            String localName = NodeLocalNameImpl.getLocalName(name);
+            f.restrictProperty(QueryConstants.RESTRICTION_LOCAL_NAME,
+                    operator, PropertyValues.newString(localName));
         }
-        // TODO support NAME(..) index conditions
     }
     
     @Override
@@ -110,7 +114,7 @@ public class NodeNameImpl extends DynamicOperandImpl {
      * @param v the value
      * @return name value, or {@code null} if the value can not be converted
      */
-    private String getName(PropertyValue v) {
+    static String getName(QueryImpl query, PropertyValue v) {
         // TODO correctly validate JCR names - see JCR 2.0 spec 3.2.4 Naming Restrictions
         switch (v.getType().tag()) {
         case PropertyType.DATE:
@@ -125,15 +129,24 @@ public class NodeNameImpl extends DynamicOperandImpl {
         name = ISO9075.decode(name);
         // normalize paths (./name > name)
         name = PropertyValues.getOakPath(name, query.getNamePathMapper());
-
-        if (name.startsWith("[") && !name.endsWith("]")) {
+        if (PathUtils.isAbsolute(name)) {
+            throw new IllegalArgumentException("Not a valid JCR name: "
+                    + name + " (absolute paths are not names)");
+        } else if (PathUtils.getDepth(name) > 1) {
+            throw new IllegalArgumentException("Not a valid JCR name: "
+                    + name + " (relative path with depth > 1 are not names)");
+        } else if (name.startsWith("[") && !name.endsWith("]")) {
             return null;
         } else if (!JcrNameParser.validate(name)) {
             return null;
         }
         return name;
     }
-    
+
+    static boolean supportedOperator(Operator o) {
+        return o == Operator.EQUAL || o == Operator.LIKE;
+    }
+
     @Override
     int getPropertyType() {
         return PropertyType.NAME;

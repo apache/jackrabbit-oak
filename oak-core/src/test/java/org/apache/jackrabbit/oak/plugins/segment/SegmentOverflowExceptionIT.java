@@ -24,6 +24,7 @@ import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType.CLEAN_OLD;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.MEMORY_THRESHOLD_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.segment.file.FileStore.newFileStore;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -45,18 +46,29 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Test for reproducing OAK-2662. This test will never terminate unless it fails,
- * thus it is marked as @Ignored for now.
+ * <p>Tests verifying if the repository gets corrupted or not: {@code OAK-2662 SegmentOverflowException in HeavyWriteIT on Jenkins}</p>
+ *
+ * <p><b>This test will run for one hour unless it fails</b>, thus it is disabled by default. On the
+ * command line specify {@code -DSegmentOverflowExceptionIT=true} to enable it. To specify a different
+ * time out {@code t} value use {@code -Dtimeout=t}
+ * </p>
+ *
+ *<p>If you only want to run this test:<br>
+ * {@code mvn verify -Dsurefire.skip.ut=true -PintegrationTesting -Dit.test=SegmentOverflowExceptionIT -DSegmentOverflowExceptionIT=true}
+ * </p>
  */
-@Ignore("long running")
 public class SegmentOverflowExceptionIT {
-    private static final Logger LOG = LoggerFactory.getLogger(SegmentOverflowExceptionIT.class);
+    private static final Logger LOG = LoggerFactory
+            .getLogger(SegmentOverflowExceptionIT.class);
+    private static final boolean ENABLED = Boolean
+            .getBoolean(SegmentOverflowExceptionIT.class.getSimpleName());
+    private static final long TIMEOUT = Long
+            .getLong("timeout", 60*60*1000);
 
     private final Random rnd = new Random();
 
@@ -64,6 +76,7 @@ public class SegmentOverflowExceptionIT {
 
     @Before
     public void setUp() throws IOException {
+        assumeTrue(ENABLED);
         directory = File.createTempFile(getClass().getSimpleName(), "dir", new File("target"));
         directory.delete();
         directory.mkdir();
@@ -72,7 +85,9 @@ public class SegmentOverflowExceptionIT {
     @After
     public void cleanDir() {
         try {
-            deleteDirectory(directory);
+            if (directory != null) {
+                deleteDirectory(directory);
+            }
         } catch (IOException e) {
             LOG.error("Error cleaning directory", e);
         }
@@ -104,16 +119,26 @@ public class SegmentOverflowExceptionIT {
                 }
             });
 
-            while (true) {
-                NodeBuilder root = nodeStore.getRoot().builder();
-                while (rnd.nextInt(100) != 0) {
-                    modify(nodeStore, root);
-                }
-                nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            long start = System.currentTimeMillis();
+            int snfeCount = 0;
+            while (System.currentTimeMillis() - start < TIMEOUT) {
+                try {
+                    NodeBuilder root = nodeStore.getRoot().builder();
+                    while (rnd.nextInt(100) != 0) {
+                        modify(nodeStore, root);
+                    }
+                    nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-                if (compact) {
-                    compact = false;
-                    fileStore.maybeCompact(true);
+                    if (compact) {
+                        compact = false;
+                        fileStore.maybeCompact(true);
+                    }
+                } catch (SegmentNotFoundException snfe) {
+                    // Usually this can be ignored as SNFEs are somewhat expected here
+                    // due the small retention value for segments.
+                    if (snfeCount++ > 100) {
+                        throw snfe;
+                    }
                 }
             }
         } finally {

@@ -17,11 +17,15 @@
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TreeMap;
 
 import javax.annotation.Nonnull;
 
@@ -123,6 +127,36 @@ public class RDBJDBCTools {
         return String.format("%s (%d)", name, isolationLevel);
     }
 
+    private static String dumpColumnMeta(String columnName, int type, String typeName, int precision) {
+        boolean skipPrecision = precision == 0 || (type == Types.SMALLINT && precision == 5)
+                || (type == Types.BIGINT && precision == 19);
+        return skipPrecision ? String.format("%s %s", columnName, typeName)
+                : String.format("%s %s(%d)", columnName, typeName, precision);
+    }
+
+    /**
+     * Return approximated string representation of table DDL.
+     */
+    protected static String dumpResultSetMeta(ResultSetMetaData met) {
+        try {
+            StringBuilder sb = new StringBuilder();
+            sb.append(String.format("%s.%s: ", met.getSchemaName(1).trim(), met.getTableName(1).trim()));
+            Map<String, Integer> types = new TreeMap<String, Integer>();
+            for (int i = 1; i <= met.getColumnCount(); i++) {
+                if (i > 1) {
+                    sb.append(", ");
+                }
+                sb.append(
+                        dumpColumnMeta(met.getColumnName(i), met.getColumnType(i), met.getColumnTypeName(i), met.getPrecision(i)));
+                types.put(met.getColumnTypeName(i), met.getColumnType(i));
+            }
+            sb.append(" /* " + types.toString() + " */");
+            return sb.toString();
+        } catch (SQLException ex) {
+            return "Column metadata unavailable: " + ex.getMessage();
+        }
+    }
+
     /**
      * Return a string containing additional messages from chained exceptions.
      */
@@ -153,5 +187,19 @@ public class RDBJDBCTools {
             }
         }
         return false;
+    }
+
+    /**
+     * Generate version diagnostics.
+     */
+    protected static String versionCheck(DatabaseMetaData md, int xmaj, int xmin, String description) throws SQLException {
+        int maj = md.getDatabaseMajorVersion();
+        int min = md.getDatabaseMinorVersion();
+        if (maj < xmaj || (maj == xmaj && min < xmin)) {
+            return "Unsupported " + description + " version: " + maj + "." + min + ", expected at least " + xmaj + "." + xmin;
+        }
+        else {
+            return "";
+        }
     }
 }

@@ -30,12 +30,14 @@ import javax.jcr.Value;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.commons.jackrabbit.user.AuthorizableQueryManager;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -974,6 +976,35 @@ public class UserQueryTest extends AbstractUserTest {
         assertSame(expected, result, count);
         assertFalse(result.hasNext());
     }
+
+    @Test
+    public void testQueryUserWithSpecialCharId() throws Exception {
+        List<String> ids = Lists.newArrayList("'", "]");
+        for (String id : ids) {
+            User user = null;
+            try {
+                user = userMgr.createUser(id, "pw");
+                superuser.save();
+
+                boolean found = false;
+                String query = "{\"condition\":[{\"named\":\"" + id + "\"}]}";
+                AuthorizableQueryManager queryManager = new AuthorizableQueryManager(userMgr, superuser.getValueFactory());
+                Iterator<Authorizable> it = queryManager.execute(query);
+                while (it.hasNext() && !found) {
+                    Authorizable a = it.next();
+                    found = id.equals(a.getID());
+                }
+                assertTrue(found);
+            } finally {
+                if (user != null) {
+                    user.remove();
+                    superuser.save();
+                }
+            }
+        }
+    }
+
+
 
     //------------------------------------------------------------< private >---
 

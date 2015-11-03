@@ -18,12 +18,8 @@ package org.apache.jackrabbit.oak.upgrade;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
-import org.apache.jackrabbit.commons.cnd.CompactNodeTypeDefReader;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.nodetype.NodeDefinition;
@@ -32,15 +28,13 @@ import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.PropertyDefinition;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.io.StringReader;
 
 import static org.junit.Assert.assertEquals;
 
 public class CopyNodeTypesUpgradeTest extends AbstractRepositoryUpgradeTest {
 
     @Override
-    protected void createSourceContent(Repository repository) throws Exception {
-        final Session session = repository.login(CREDENTIALS);
+    protected void createSourceContent(Session session) throws Exception {
         final Reader cnd = new InputStreamReader(getClass().getResourceAsStream("/test-nodetypes.cnd"));
         CndImporter.registerNodeTypes(cnd, session);
     }
@@ -55,5 +49,6 @@ public class CopyNodeTypesUpgradeTest extends AbstractRepositoryUpgradeTest {
         assertEquals("More than one child node definition", 1, cnd.length);
         assertEquals("Incorrect default primary type", "test:Folder", cnd[0].getDefaultPrimaryTypeName());
         assertEquals("More than two property definitions", 4, pd.length);
+        adminSession.logout();
     }
 }

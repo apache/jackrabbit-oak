@@ -25,12 +25,16 @@ import java.util.TreeMap;
 
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.junit.Rule;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class UnmergedBranchTest {
+
+    @Rule
+    public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
     @Test
     public void purgeUnmergedBranch() throws Exception {
@@ -89,8 +93,8 @@ public class UnmergedBranchTest {
         return mk.getNodeStore().getDocumentStore().find(Collection.NODES, Utils.getIdFromPath("/"));
     }
 
-    private static DocumentMK create(DocumentStore ds, int clusterId){
-        return new DocumentMK.Builder().setAsyncDelay(0)
+    private DocumentMK create(DocumentStore ds, int clusterId){
+        return builderProvider.newBuilder().setAsyncDelay(0)
                 .setDocumentStore(ds).setClusterId(clusterId).open();
     }
 }

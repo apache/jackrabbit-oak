@@ -40,7 +40,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
@@ -53,12 +52,16 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 /**
  * A set of simple cluster tests.
  */
 public class ClusterTest {
+
+    @Rule
+    public MongoConnectionFactory connectionFactory = new MongoConnectionFactory();
 
     private static final boolean MONGO_DB = false;
     // private static final boolean MONGO_DB = true;
@@ -127,6 +130,7 @@ public class ClusterTest {
         c1 = ClusterNodeInfo.getInstance(store, "m1", null);
         assertEquals(1, c1.getId());
         c1.setLeaseTime(1);
+        c1.setLeaseUpdateInterval(0);
         // this will quickly expire
         c1.renewLease();
         Thread.sleep(10);
@@ -403,7 +407,7 @@ public class ClusterTest {
         }
         mks.clear();
         if (MONGO_DB) {
-            DB db = MongoUtils.getConnection().getDB();
+            DB db = connectionFactory.getConnection().getDB();
             MongoUtils.dropCollections(db);
         }
     }
@@ -419,7 +423,7 @@ public class ClusterTest {
 
     private DocumentMK createMK(int clusterId, int asyncDelay) {
         if (MONGO_DB) {
-            DB db = MongoUtils.getConnection().getDB();
+            DB db = connectionFactory.getConnection().getDB();
             return register(new DocumentMK.Builder().setMongoDB(db)
                     .setClusterId(clusterId).setAsyncDelay(asyncDelay).open());
         } else {

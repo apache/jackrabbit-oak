@@ -68,6 +68,119 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     @Test
+    public void testConditionalUpdate() {
+        String id = this.getClass().getName() + ".testConditionalUpdate";
+
+        // remove if present
+        NodeDocument nd = super.ds.find(Collection.NODES, id);
+        if (nd != null) {
+            super.ds.remove(Collection.NODES, id);
+        }
+
+        String existingProp = "_recoverylock";
+        String existingRevisionProp = "recoverylock";
+        String nonExistingProp = "_qux";
+        String nonExistingRevisionProp = "qux";
+        Revision r = new Revision(1, 1, 1);
+
+        // add
+        UpdateOp up = new UpdateOp(id, true);
+        up.set("_id", id);
+        up.set(existingProp, "lock");
+        up.setMapEntry(existingRevisionProp, r, "lock");
+        assertTrue(super.ds.create(Collection.NODES, Collections.singletonList(up)));
+
+        // updates
+        up = new UpdateOp(id, false);
+        up.set("_id", id);
+        up.notEquals(nonExistingProp, "none");
+        NodeDocument result = super.ds.findAndUpdate(Collection.NODES, up);
+        assertNotNull(result);
+
+        up = new UpdateOp(id, false);
+        up.set("_id", id);
+        up.equals(nonExistingProp, null);
+        result = super.ds.findAndUpdate(Collection.NODES, up);
+        assertNotNull(result);
+
+        up = new UpdateOp(id, false);
+        up.set("_id", id);
+        up.notEquals(nonExistingRevisionProp, r, "none");
+        result = super.ds.findAndUpdate(Collection.NODES, up);
+        assertNotNull(result);
+
+        up = new UpdateOp(id, false);
+        up.set("_id", id);
+        up.equals(nonExistingRevisionProp, r, null);
+        result = super.ds.findAndUpdate(Collection.NODES, up);
+        assertNotNull(result);
+
+        up = new UpdateOp(id, false);
+        up.set("_id", id);
+        up.equals(existingProp, "none");
+        result = super.ds.findAndUpdate(Collection.NODES, up);
+        assertNull(result);
+
+        up = new UpdateOp(id, false);
+        up.set("_id", id);
+        up.equals(existingProp, null);
+        result = super.ds.findAndUpdate(Collection.NODES, up);
+        assertNull(result);
+
+        up = new UpdateOp(id, false);
+        up.set("_id", id);
+        up.equals(existingRevisionProp, r, "none");
+        result = super.ds.findAndUpdate(Collection.NODES, up);
+        assertNull(result);
+
+        up = new UpdateOp(id, false);
+        up.set("_id", id);
+        up.equals(existingRevisionProp, r, null);
+        result = super.ds.findAndUpdate(Collection.NODES, up);
+        assertNull(result);
+
+        up = new UpdateOp(id, false);
+        up.set("_id", id);
+        up.notEquals(existingProp, "lock");
+        result = super.ds.findAndUpdate(Collection.NODES, up);
+        assertNull(result);
+
+        up = new UpdateOp(id, false);
+        up.set("_id", id);
+        up.equals(existingProp, null);
+        result = super.ds.findAndUpdate(Collection.NODES, up);
+        assertNull(result);
+
+        up = new UpdateOp(id, false);
+        up.set("_id", id);
+        up.notEquals(existingRevisionProp, r, "lock");
+        result = super.ds.findAndUpdate(Collection.NODES, up);
+        assertNull(result);
+
+        up = new UpdateOp(id, false);
+        up.set("_id", id);
+        up.equals(existingRevisionProp, r, null);
+        result = super.ds.findAndUpdate(Collection.NODES, up);
+        assertNull(result);
+
+        up = new UpdateOp(id, false);
+        up.set("_id", id);
+        up.equals(existingProp, "lock");
+        up.set(existingProp, "none");
+        result = super.ds.findAndUpdate(Collection.NODES, up);
+        assertNotNull(result);
+
+        up = new UpdateOp(id, false);
+        up.set("_id", id);
+        up.equals(existingRevisionProp, r, "lock");
+        up.setMapEntry(existingRevisionProp, r, "none");
+        result = super.ds.findAndUpdate(Collection.NODES, up);
+        assertNotNull(result);
+
+        removeMe.add(id);
+    }
+
+    @Test
     public void testMaxIdAscii() {
         int result = testMaxId(true);
         assertTrue("needs to support keys of 512 bytes length, but only supports " + result, result >= 512);
@@ -115,7 +228,11 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         int last = 0;
 
         while (max - min >= 256) {
-            test = (max + min) / 2;
+            if (test == 0) {
+                test = max; // try largest first
+            } else {
+                test = (max + min) / 2;
+            }
             String id = this.getClass().getName() + ".testMaxProperty-" + test;
             String pval = generateString(test, true);
             UpdateOp up = new UpdateOp(id, true);
@@ -584,6 +701,16 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     public void description() throws Exception{
         Map<String, String> desc = ds.getMetadata();
         assertNotNull(desc.get("type"));
+    }
+
+    @Test
+    public void testServerTimeDiff() throws Exception {
+        UpdateOp up = new UpdateOp("0:/", true);
+        up.set("_id", "0:/");
+        super.ds.create(Collection.NODES, Collections.singletonList(up));
+        removeMe.add("0:/");
+        long td = super.ds.determineServerTimeDifferenceMillis();
+        LOG.info("Server time difference on " + super.dsname + ": " + td + "ms");
     }
 
     @Test

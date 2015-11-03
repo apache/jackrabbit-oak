@@ -19,13 +19,17 @@ package org.apache.jackrabbit.oak.security.authentication.ldap;
 
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.directory.server.constants.ServerDNConstants;
 import org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapIdentityProvider;
 import org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderConfig;
@@ -34,17 +38,21 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalId
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.apache.jackrabbit.util.Text;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.Ignore;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertNull;
 import static junit.framework.Assert.assertTrue;
 import static junit.framework.Assert.fail;
+
+import static org.junit.Assert.assertThat;
 
 public class LdapProviderTest {
 
@@ -54,6 +62,8 @@ public class LdapProviderTest {
     protected static final boolean USE_COMMON_LDAP_FIXTURE = false;
 
     private static final String TUTORIAL_LDIF = "apache-ds-tutorial.ldif";
+
+    private static final String ERRONEOUS_LDIF = "erroneous.ldif";
 
     public static final String IDP_NAME = "ldap";
 
@@ -157,12 +167,48 @@ public class LdapProviderTest {
         assertTrue("User instance", id instanceof ExternalUser);
         assertEquals("User ID", TEST_USER1_UID, id.getId());
     }
+    
+    /**
+     * Test case to reproduce OAK-3396 where an ldap user entry
+     * without a uid caused a NullpointerException in LdapIdentityProvider.createUser
+     */
+    @Test
+    public void testListUsersWithMissingUid() throws Exception {
+        // the ERRONEOUS_LDIF contains an entry without uid
+        InputStream erroneousDIF = LdapProviderTest.class.getResourceAsStream(ERRONEOUS_LDIF);
+        LDAP_SERVER.loadLdif(erroneousDIF);
+        Iterator<ExternalUser> users = idp.listUsers();
+        // without the LdapInvalidAttributeValueException a NPE would result here:
+        while(users.hasNext()) {
+            ExternalUser user = users.next();
+            // the 'Faulty Entry' of the ERRONEOUS_LDIF should be filtered out
+            // (by LdapIdentityProvider.listUsers.getNext())
+            assertTrue(!user.getPrincipalName().startsWith("cn=Faulty Entry"));
+        }
+    }
 
     @Test
     public void testGetUserByUserId() throws Exception {
         ExternalUser user = idp.getUser(TEST_USER1_UID);
         assertNotNull("User 1 must exist", user);
         assertEquals("User Ref", TEST_USER1_DN, user.getExternalId().getId());
+    }
+
+    @Test
+    public void testGetUserProperties() throws Exception {
+        ExternalUser user = idp.getUser(TEST_USER1_UID);
+        assertNotNull("User 1 must exist", user);
+
+        Map<String, ?> properties = user.getProperties();
+        assertThat((Map<String, Collection<String>>) properties,
+                Matchers.<String, Collection<String>>hasEntry(
+                        Matchers.equalTo("objectclass"),
+                        Matchers.containsInAnyOrder( "inetOrgPerson", "top", "person", "organizationalPerson")));
+        assertThat(properties, Matchers.<String, Object>hasEntry("uid", "hhornblo"));
+        assertThat(properties, Matchers.<String, Object>hasEntry("mail", "hhornblo@royalnavy.mod.uk"));
+        assertThat(properties, Matchers.<String, Object>hasEntry("givenname", "Horatio"));
+        assertThat(properties, Matchers.<String, Object>hasEntry("description", "Capt. Horatio Hornblower, R.N"));
+        assertThat(properties, Matchers.<String, Object>hasEntry("sn", "Hornblower"));
     }
 
     @Test

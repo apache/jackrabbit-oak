@@ -81,12 +81,12 @@ public final class TreeUtil {
     }
 
     @CheckForNull
-    public static String getPrimaryTypeName(Tree tree) {
+    public static String getPrimaryTypeName(@Nonnull Tree tree) {
         return getStringInternal(tree, JcrConstants.JCR_PRIMARYTYPE, Type.NAME);
     }
 
     @CheckForNull
-    public static Iterable<String> getStrings(Tree tree, String propertyName) {
+    public static Iterable<String> getStrings(@Nonnull Tree tree, @Nonnull String propertyName) {
         PropertyState property = tree.getProperty(propertyName);
         if (property == null) {
             return null;
@@ -96,14 +96,14 @@ public final class TreeUtil {
     }
 
     @CheckForNull
-    public static String getString(Tree tree, String propertyName) {
+    public static String getString(@Nonnull Tree tree, @Nonnull String propertyName) {
         return getStringInternal(tree, propertyName, Type.STRING);
     }
 
     @CheckForNull
-    private static String getStringInternal(Tree tree,
-                                            String propertyName,
-                                            Type<String> type) {
+    private static String getStringInternal(@Nonnull Tree tree,
+                                            @Nonnull String propertyName,
+                                            @Nonnull Type<String> type) {
         PropertyState property = tree.getProperty(propertyName);
         if (property != null && !property.isArray()) {
             return property.getValue(type);
@@ -124,13 +124,13 @@ public final class TreeUtil {
      *         name. This utility returns {@code false} if the property does not exist
      *         or is an multivalued property.
      */
-    public static boolean getBoolean(Tree tree, String propertyName) {
+    public static boolean getBoolean(@Nonnull Tree tree, @Nonnull String propertyName) {
         PropertyState property = tree.getProperty(propertyName);
         return property != null && !property.isArray() && property.getValue(BOOLEAN);
     }
 
     @CheckForNull
-    public static String getName(Tree tree, String name) {
+    public static String getName(@Nonnull Tree tree, @Nonnull String name) {
         PropertyState property = tree.getProperty(name);
         if (property != null && property.getType() == NAME) {
             return property.getValue(NAME);
@@ -140,7 +140,7 @@ public final class TreeUtil {
     }
 
     @Nonnull
-    public static Iterable<String> getNames(Tree tree, String name) {
+    public static Iterable<String> getNames(@Nonnull Tree tree, @Nonnull String name) {
         PropertyState property = tree.getProperty(name);
         if (property != null && property.getType() == NAMES) {
             return property.getValue(NAMES);
@@ -159,7 +159,7 @@ public final class TreeUtil {
      * @return  tree located at {@code path} from {@code start} or {@code null}
      */
     @CheckForNull
-    public static Tree getTree(Tree tree, String path) {
+    public static Tree getTree(@Nonnull Tree tree, @Nonnull String path) {
         for (String element : PathUtils.elements(path)) {
             if (PathUtils.denotesParent(element)) {
                 if (tree.isRoot()) {
@@ -210,7 +210,7 @@ public final class TreeUtil {
         return child;
     }
 
-    public static void addMixin(Tree tree, String mixinName, Tree typeRoot, String userID) throws RepositoryException {
+    public static void addMixin(@Nonnull Tree tree, @Nonnull String mixinName, @Nonnull Tree typeRoot, @CheckForNull String userID) throws RepositoryException {
         Tree type = typeRoot.getChild(mixinName);
         if (!type.exists()) {
             throw new NoSuchNodeTypeException(
@@ -244,7 +244,7 @@ public final class TreeUtil {
         autoCreateItems(tree, type, typeRoot, userID);
     }
 
-    public static void autoCreateItems(Tree tree, Tree type, Tree typeRoot, String userID)
+    public static void autoCreateItems(@Nonnull Tree tree, @Nonnull Tree type, @Nonnull Tree typeRoot, @CheckForNull String userID)
             throws RepositoryException {
         // TODO: use a separate rep:autoCreatePropertyDefinitions
         Tree properties = type.getChild(REP_NAMED_PROPERTY_DEFINITIONS);

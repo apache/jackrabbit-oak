@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.PathFilter;
 import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.OrderDirection;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.OrderedContentMirrorStoreStrategy;
@@ -101,8 +102,8 @@ public class OrderedPropertyIndexEditor extends PropertyIndexEditor {
         swl = new StopwatchLogger(OrderedPropertyIndexEditor.class);
     }
 
-    OrderedPropertyIndexEditor(OrderedPropertyIndexEditor parent, String name) {
-        super(parent, name);
+    OrderedPropertyIndexEditor(OrderedPropertyIndexEditor parent, String name, PathFilter.Result pathFilterResult) {
+        super(parent, name, pathFilterResult);
         this.propertyNames = parent.getPropertyNames();
         this.direction = parent.getDirection();
         this.swl = parent.swl;
@@ -133,8 +134,8 @@ public class OrderedPropertyIndexEditor extends PropertyIndexEditor {
 
     @Override
     PropertyIndexEditor getChildIndexEditor(@Nonnull PropertyIndexEditor parent, 
-                                            @Nonnull String name) {
-        return new OrderedPropertyIndexEditor(this, name);
+                                            @Nonnull String name, PathFilter.Result pathFilterResult) {
+        return new OrderedPropertyIndexEditor(this, name, pathFilterResult);
     }
 
     /**

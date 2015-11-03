@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.InputStream;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -41,10 +42,14 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.json.JsopDiff;
+import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState.Children;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobReferenceIterator;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoMissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoVersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.CacheType;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
@@ -122,7 +127,7 @@ public class DocumentMK {
     }
 
     void backgroundRead() {
-        nodeStore.backgroundRead(true);
+        nodeStore.backgroundRead();
     }
 
     void backgroundWrite() {
@@ -167,11 +172,21 @@ public class DocumentMK {
         if (path == null || path.equals("")) {
             path = "/";
         }
-        try {
-            return nodeStore.diff(fromRevisionId, toRevisionId, path);
-        } catch (DocumentStoreException e) {
-            throw new DocumentStoreException(e);
+        Revision fromRev = Revision.fromString(fromRevisionId);
+        Revision toRev = Revision.fromString(toRevisionId);
+        final DocumentNodeState before = nodeStore.getNode(path, fromRev);
+        final DocumentNodeState after = nodeStore.getNode(path, toRev);
+        if (before == null || after == null) {
+            // TODO implement correct behavior if the node doesn't/didn't exist
+            String msg = String.format("Diff is only supported if the node exists in both cases. " +
+                            "Node [%s], fromRev [%s] -> %s, toRev [%s] -> %s",
+                    path, fromRev, before != null, toRev, after != null);
+            throw new DocumentStoreException(msg);
         }
+
+        JsopDiff diff = new JsopDiff(path, depth);
+        after.compareAgainstBaseState(before, diff);
+        return diff.toString();
     }
 
     public boolean nodeExists(String path, String revisionId)
@@ -474,6 +489,7 @@ public class DocumentMK {
         private int asyncDelay = 1000;
         private boolean timing;
         private boolean logging;
+        private boolean leaseCheck = true; // OAK-2739 is enabled by default also for non-osgi
         private Weigher<CacheValue, CacheValue> weigher = new EmpiricalWeigher();
         private long memoryCacheSize = DEFAULT_MEMORY_CACHE_SIZE;
         private int nodeCachePercentage = DEFAULT_NODE_CACHE_PERCENTAGE;
@@ -483,14 +499,13 @@ public class DocumentMK {
         private int cacheSegmentCount = DEFAULT_CACHE_SEGMENT_COUNT;
         private int cacheStackMoveDistance = DEFAULT_CACHE_STACK_MOVE_DISTANCE;
         private boolean useSimpleRevision;
-        private long splitDocumentAgeMillis = 5 * 60 * 1000;
-        private long offHeapCacheSize = -1;
         private long maxReplicationLagMillis = TimeUnit.HOURS.toMillis(6);
         private boolean disableBranches;
         private Clock clock = Clock.SIMPLE;
         private Executor executor;
         private String persistentCacheURI = DEFAULT_PERSISTENT_CACHE_URI;
         private PersistentCache persistentCache;
+        private LeaseFailureHandler leaseFailureHandler;
 
         public Builder() {
         }
@@ -499,11 +514,9 @@ public class DocumentMK {
          * Use the given MongoDB as backend storage for the DocumentNodeStore.
          *
          * @param db the MongoDB connection
-         * @param changesSizeMB the size in MB of the capped collection backing
-         *                      the MongoDiffCache.
          * @return this
          */
-        public Builder setMongoDB(DB db, int changesSizeMB, int blobCacheSizeMB) {
+        public Builder setMongoDB(DB db, int blobCacheSizeMB) {
             if (db != null) {
                 if (this.documentStore == null) {
                     this.documentStore = new MongoDocumentStore(db, this);
@@ -528,7 +541,7 @@ public class DocumentMK {
          * @return this
          */
         public Builder setMongoDB(DB db) {
-            return setMongoDB(db, 8, 16);
+            return setMongoDB(db, 16);
         }
 
         /**
@@ -604,7 +617,25 @@ public class DocumentMK {
         public boolean getLogging() {
             return logging;
         }
+        
+        public Builder setLeaseCheck(boolean leaseCheck) {
+            this.leaseCheck = leaseCheck;
+            return this;
+        }
+        
+        public boolean getLeaseCheck() {
+            return leaseCheck;
+        }
 
+        public Builder setLeaseFailureHandler(LeaseFailureHandler leaseFailureHandler) {
+            this.leaseFailureHandler = leaseFailureHandler;
+            return this;
+        }
+        
+        public LeaseFailureHandler getLeaseFailureHandler() {
+            return leaseFailureHandler;
+        }
+        
         /**
          * Set the document store to use. By default an in-memory store is used.
          *
@@ -771,28 +802,6 @@ public class DocumentMK {
             return useSimpleRevision;
         }
 
-        public Builder setSplitDocumentAgeMillis(long splitDocumentAgeMillis) {
-            this.splitDocumentAgeMillis = splitDocumentAgeMillis;
-            return this;
-        }
-
-        public long getSplitDocumentAgeMillis() {
-            return splitDocumentAgeMillis;
-        }
-
-        public boolean useOffHeapCache() {
-            return this.offHeapCacheSize > 0;
-        }
-
-        public long getOffHeapCacheSize() {
-            return offHeapCacheSize;
-        }
-
-        public Builder offHeapCacheSize(long offHeapCacheSize) {
-            this.offHeapCacheSize = offHeapCacheSize;
-            return this;
-        }
-
         public Executor getExecutor() {
             if(executor == null){
                 return MoreExecutors.sameThreadExecutor();
@@ -841,6 +850,28 @@ public class DocumentMK {
             }
         }
 
+        Iterable<ReferencedBlob> createReferencedBlobs(final DocumentNodeStore ns) {
+            final DocumentStore store = getDocumentStore();
+            return new Iterable<ReferencedBlob>() {
+                @Override
+                public Iterator<ReferencedBlob> iterator() {
+                    if(store instanceof MongoDocumentStore){
+                        return new MongoBlobReferenceIterator(ns, (MongoDocumentStore) store);
+                    }
+                    return new BlobReferenceIterator(ns);
+                }
+            };
+        }
+
+        public MissingLastRevSeeker createMissingLastRevSeeker() {
+            final DocumentStore store = getDocumentStore();
+            if (store instanceof MongoDocumentStore) {
+                return new MongoMissingLastRevSeeker((MongoDocumentStore) store);
+            } else {
+                return new MissingLastRevSeeker(store);
+            }
+        }
+
         /**
          * Open the DocumentMK instance using the configured options.
          *
@@ -880,7 +911,7 @@ public class DocumentMK {
                 DocumentNodeStore docNodeStore,
                 DocumentStore docStore
                 ) {
-            Cache<K, V> cache = buildCache(maxWeight);
+            Cache<K, V> cache = buildCache(cacheType.name(), maxWeight);
             PersistentCache p = getPersistentCache();
             if (p != null) {
                 if (docNodeStore != null) {
@@ -907,6 +938,7 @@ public class DocumentMK {
         }
         
         private <K extends CacheValue, V extends CacheValue> Cache<K, V> buildCache(
+                String module,
                 long maxWeight) {
             // by default, use the LIRS cache when using the persistent cache,
             // but don't use it otherwise
@@ -917,6 +949,7 @@ public class DocumentMK {
             }
             if (useLirs) {
                 return CacheLIRS.<K, V>newBuilder().
+                        module(module).
                         weigher(new Weigher<K, V>() {
                             @Override
                             public int weigh(K key, V value) {

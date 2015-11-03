@@ -18,11 +18,11 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.toArray;
 import static com.google.common.collect.Iterables.transform;
 import static java.util.Collections.singletonList;
-import static org.apache.jackrabbit.oak.api.CommitFailedException.MERGE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -34,7 +34,6 @@ import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.asStringValueIterable;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.pathToId;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.unshareString;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -42,6 +41,7 @@ import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -75,16 +75,13 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
-import org.apache.jackrabbit.oak.commons.json.JsopReader;
-import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
+import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.Checkpoints.Info;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobReferenceIterator;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
@@ -96,6 +93,7 @@ import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.json.BlobSerializer;
 import org.apache.jackrabbit.oak.plugins.document.Branch.BranchCommit;
+import org.apache.jackrabbit.oak.plugins.document.util.LeaseCheckDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.LoggingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.plugins.document.util.TimingDocumentStoreWrapper;
@@ -203,6 +201,7 @@ public final class DocumentNodeStore
     /**
      * The cluster instance info.
      */
+    @Nonnull
     private final ClusterNodeInfo clusterNodeInfo;
 
     /**
@@ -286,8 +285,8 @@ public final class DocumentNodeStore
 
     /**
      * Background thread performing the clusterId lease renew.
-     * Will be {@code null} if {@link #clusterNodeInfo} is {@code null}.
      */
+    @Nonnull
     private Thread leaseUpdateThread;
 
     /**
@@ -347,6 +346,16 @@ public final class DocumentNodeStore
     private final BlobStore blobStore;
 
     /**
+     * The clusterStateChangeListener is invoked on any noticed change in the
+     * clusterNodes collection.
+     * <p>
+     * Note that there is no synchronization between setting this one and using
+     * it, but arguably that is not necessary since it will be set at startup
+     * time and then never be changed.
+     */
+    private ClusterStateChangeListener clusterStateChangeListener;
+
+    /**
      * The BlobSerializer.
      */
     private final BlobSerializer blobSerializer = new BlobSerializer() {
@@ -388,6 +397,8 @@ public final class DocumentNodeStore
     private final VersionGarbageCollector versionGarbageCollector;
 
     private final JournalGarbageCollector journalGarbageCollector;
+
+    private final Iterable<ReferencedBlob> referencedBlobs;
     
     private final Executor executor;
 
@@ -411,21 +422,23 @@ public final class DocumentNodeStore
         if (builder.getLogging()) {
             s = new LoggingDocumentStoreWrapper(s);
         }
-        this.store = s;
         this.changes = Collection.JOURNAL.newDocument(s);
         this.executor = builder.getExecutor();
         this.clock = builder.getClock();
+
         int cid = builder.getClusterId();
         cid = Integer.getInteger("oak.documentMK.clusterId", cid);
-        if (cid == 0) {
-            clusterNodeInfo = ClusterNodeInfo.getInstance(store);
-            // TODO we should ensure revisions generated from now on
-            // are never "older" than revisions already in the repository for
-            // this cluster id
-            cid = clusterNodeInfo.getId();
-        } else {
-            clusterNodeInfo = null;
+        clusterNodeInfo = ClusterNodeInfo.getInstance(s, cid);
+        // TODO we should ensure revisions generated from now on
+        // are never "older" than revisions already in the repository for
+        // this cluster id
+        cid = clusterNodeInfo.getId();
+
+        if (builder.getLeaseCheck()) {
+            s = new LeaseCheckDocumentStoreWrapper(s, clusterNodeInfo);
+            clusterNodeInfo.setLeaseFailureHandler(builder.getLeaseFailureHandler());
         }
+        this.store = s;
         this.clusterId = cid;
         this.revisionComparator = new Revision.RevisionComparator(clusterId);
         this.branches = new UnmergedBranches(getRevisionComparator());
@@ -433,7 +446,9 @@ public final class DocumentNodeStore
         this.versionGarbageCollector = new VersionGarbageCollector(
                 this, builder.createVersionGCSupport());
         this.journalGarbageCollector = new JournalGarbageCollector(this);
-        this.lastRevRecoveryAgent = new LastRevRecoveryAgent(this);
+        this.referencedBlobs = builder.createReferencedBlobs(this);
+        this.lastRevRecoveryAgent = new LastRevRecoveryAgent(this,
+                builder.createMissingLastRevSeeker());
         this.disableBranches = builder.isDisableBranches();
         this.missing = new DocumentNodeState(this, "MISSING", new Revision(0, 0, 0)) {
             @Override
@@ -473,30 +488,31 @@ public final class DocumentNodeStore
             setHeadRevision(commit.getRevision());
             // make sure _lastRev is written back to store
             backgroundWrite();
-        } else {
-            // initialize branchCommits
-            branches.init(store, this);
-            // initial reading of the revisions of other cluster nodes
-            backgroundRead(false);
-            if (headRevision == null) {
-                // no revision read from other cluster nodes
-                setHeadRevision(newRevision());
+            rootDoc = store.find(NODES, Utils.getIdFromPath("/"));
+            // at this point the root document must exist
+            if (rootDoc == null) {
+                throw new IllegalStateException("Root document does not exist");
             }
+        } else {
+            checkLastRevRecovery();
+            initializeHeadRevision(rootDoc);
             // check if _lastRev for our clusterId exists
             if (!rootDoc.getLastRev().containsKey(clusterId)) {
                 unsavedLastRevisions.put("/", headRevision);
                 backgroundWrite();
             }
         }
+
+        // Renew the lease because it may have been stale
+        renewClusterIdLease();
+
         getRevisionComparator().add(headRevision, Revision.newRevision(0));
 
+        // initialize branchCommits
+        branches.init(store, this);
+
         dispatcher = new ChangeDispatcher(getRoot());
-        commitQueue = new CommitQueue() {
-            @Override
-            protected Revision newRevision() {
-                return DocumentNodeStore.this.newRevision();
-            }
-        };
+        commitQueue = new CommitQueue(this);
         String threadNamePostfix = "(" + clusterId + ")";
         batchCommitQueue = new BatchCommitQueue(store, revisionComparator);
         backgroundReadThread = new Thread(
@@ -507,23 +523,22 @@ public final class DocumentNodeStore
                 new BackgroundOperation(this, isDisposed),
                 "DocumentNodeStore background update thread " + threadNamePostfix);
         backgroundUpdateThread.setDaemon(true);
-        checkLastRevRecovery();
-        // Renew the lease because it may have been stale
-        renewClusterIdLease();
 
         backgroundReadThread.start();
         backgroundUpdateThread.start();
 
-        if (clusterNodeInfo != null) {
-            leaseUpdateThread = new Thread(
-                    new BackgroundLeaseUpdate(this, isDisposed),
-                    "DocumentNodeStore lease update thread " + threadNamePostfix);
-            leaseUpdateThread.setDaemon(true);
-            leaseUpdateThread.start();
-        }
+        leaseUpdateThread = new Thread(new BackgroundLeaseUpdate(this, isDisposed),
+                "DocumentNodeStore lease update thread " + threadNamePostfix);
+        leaseUpdateThread.setDaemon(true);
+        // OAK-3398 : make lease updating more robust by ensuring it
+        // has higher likelihood of succeeding than other threads
+        // on a very busy machine - so as to prevent lease timeout.
+        leaseUpdateThread.setPriority(Thread.MAX_PRIORITY);
+        leaseUpdateThread.start();
 
         this.mbean = createMBean();
-        LOG.info("Initialized DocumentNodeStore with clusterNodeId: {}", clusterId);
+        LOG.info("Initialized DocumentNodeStore with clusterNodeId: {} ({})", clusterId,
+                getClusterNodeInfoDisplayString());
     }
 
     /**
@@ -534,6 +549,9 @@ public final class DocumentNodeStore
     }
 
     public void dispose() {
+        LOG.info("Starting disposal of DocumentNodeStore with clusterNodeId: {} ({})", clusterId,
+                getClusterNodeInfoDisplayString());
+
         if (isDisposed.getAndSet(true)) {
             // only dispose once
             return;
@@ -555,21 +573,27 @@ public final class DocumentNodeStore
 
         // do a final round of background operations after
         // the background thread stopped
-        internalRunBackgroundUpdateOperations();
+        try{
+            internalRunBackgroundUpdateOperations();
+        } catch(AssertionError ae) {
+            // OAK-3250 : when a lease check fails, subsequent modifying requests
+            // to the DocumentStore will throw an AssertionError. Since as a result
+            // of a failing lease check a bundle.stop is done and thus a dispose of the
+            // DocumentNodeStore happens, it is very likely that in that case 
+            // you run into an AssertionError. We should still continue with disposing
+            // though - thus catching and logging..
+            LOG.error("dispose: an AssertionError happened during dispose's last background ops: "+ae, ae);
+        }
 
-        if (leaseUpdateThread != null) {
-            try {
-                leaseUpdateThread.join();
-            } catch (InterruptedException e) {
-                // ignore
-            }
+        try {
+            leaseUpdateThread.join();
+        } catch (InterruptedException e) {
+            // ignore
         }
 
         // now mark this cluster node as inactive by
         // disposing the clusterNodeInfo
-        if (clusterNodeInfo != null) {
-            clusterNodeInfo.dispose();
-        }
+        clusterNodeInfo.dispose();
         store.dispose();
 
         if (blobStore instanceof Closeable) {
@@ -585,6 +609,10 @@ public final class DocumentNodeStore
         LOG.info("Disposed DocumentNodeStore with clusterNodeId: {}", clusterId);
     }
 
+    private String getClusterNodeInfoDisplayString() {
+        return clusterNodeInfo.toString().replaceAll("[\r\n\t]", " ").trim();
+    }
+
     Revision setHeadRevision(@Nonnull Revision newHead) {
         checkArgument(!newHead.isBranch());
         Revision previous = headRevision;
@@ -598,19 +626,6 @@ public final class DocumentNodeStore
     @Nonnull
     public DocumentStore getDocumentStore() {
         return store;
-    }
-
-    /**
-     * Create a new revision.
-     *
-     * @return the revision
-     */
-    @Nonnull
-    Revision newRevision() {
-        if (simpleRevisionCounter != null) {
-            return new Revision(simpleRevisionCounter.getAndIncrement(), 0, clusterId);
-        }
-        return Revision.newRevision(clusterId);
     }
 
     /**
@@ -684,6 +699,7 @@ public final class DocumentNodeStore
                         changes.modified(c.getModifiedPaths());
                         // update head revision
                         setHeadRevision(c.getRevision());
+                        commitQueue.headRevisionChanged();
                         dispatcher.contentChanged(getRoot(), info);
                     }
                 });
@@ -730,7 +746,7 @@ public final class DocumentNodeStore
         return enableConcurrentAddRemove;
     }
 
-    @CheckForNull
+    @Nonnull
     public ClusterNodeInfo getClusterInfo() {
         return clusterNodeInfo;
     }
@@ -1366,8 +1382,10 @@ public final class DocumentNodeStore
                     b.applyTo(getPendingModifications(), commit.getRevision());
                     getBranches().remove(b);
                 } else {
-                    throw new CommitFailedException(MERGE, 2,
-                            "Conflicting concurrent change. Update operation failed: " + op);
+                    NodeDocument root = Utils.getRootDocument(store);
+                    Revision conflictRev = root.getMostRecentConflictFor(b.getCommits(), this);
+                    String msg = "Conflicting concurrent change. Update operation failed: " + op;
+                    throw new ConflictException(msg, conflictRev).asCommitFailedException();
                 }
             } else {
                 // no commits in this branch -> do nothing
@@ -1413,58 +1431,6 @@ public final class DocumentNodeStore
                 }), node, base, diff);
     }
 
-    String diff(@Nonnull final String fromRevisionId,
-                @Nonnull final String toRevisionId,
-                @Nonnull final String path) throws DocumentStoreException {
-        if (fromRevisionId.equals(toRevisionId)) {
-            return "";
-        }
-        Revision fromRev = Revision.fromString(fromRevisionId);
-        Revision toRev = Revision.fromString(toRevisionId);
-        final DocumentNodeState from = getNode(path, fromRev);
-        final DocumentNodeState to = getNode(path, toRev);
-        if (from == null || to == null) {
-            // TODO implement correct behavior if the node doesn't/didn't exist
-            String msg = String.format("Diff is only supported if the node exists in both cases. " +
-                    "Node [%s], fromRev [%s] -> %s, toRev [%s] -> %s",
-                    path, fromRev, from != null, toRev, to != null);
-            throw new DocumentStoreException(msg);
-        }
-        String compactDiff = diffCache.getChanges(fromRev, toRev, path,
-                new DiffCache.Loader() {
-            @Override
-            public String call() {
-                // calculate the diff
-                return diffImpl(from, to);
-            }
-        });
-        JsopWriter writer = new JsopStream();
-        diffProperties(from, to, writer);
-        JsopTokenizer t = new JsopTokenizer(compactDiff);
-        int r;
-        do {
-            r = t.read();
-            switch (r) {
-                case '+':
-                case '^': {
-                    String name = t.readString();
-                    t.read(':');
-                    t.read('{');
-                    t.read('}');
-                    writer.tag((char) r).key(concat(path, name));
-                    writer.object().endObject().newline();
-                    break;
-                }
-                case '-': {
-                    String name = t.readString();
-                    writer.tag('-').value(concat(path, name));
-                    writer.newline();
-                }
-            }
-        } while (r != JsopReader.END);
-        return writer.toString();
-    }
-
     /**
      * Creates a tracker for the given commit revision.
      *
@@ -1485,6 +1451,24 @@ public final class DocumentNodeStore
                 }
             };
         }
+    }
+
+    /**
+     * Suspends until the given revision is visible from the current
+     * headRevision or the given revision is canceled from the commit queue.
+     *
+     * The thread will *not* be suspended if the given revision is from a
+     * foreign cluster node and async delay is set to zero.
+     *
+     * @param r the revision to become visible.
+     */
+    void suspendUntil(@Nonnull Revision r) {
+        // do not suspend if revision is from another cluster node
+        // and background read is disabled
+        if (r.getClusterId() != getClusterId() && getAsyncDelay() == 0) {
+            return;
+        }
+        commitQueue.suspendUntil(r);
     }
 
     //------------------------< Observable >------------------------------------
@@ -1583,7 +1567,13 @@ public final class DocumentNodeStore
     @CheckForNull
     @Override
     public NodeState retrieve(@Nonnull String checkpoint) {
-        Revision r = Revision.fromString(checkpoint);
+        Revision r;
+        try {
+            r = Revision.fromString(checkpoint);
+        } catch (IllegalArgumentException e) {
+            LOG.warn("Malformed checkpoint reference: {}", checkpoint);
+            return null;
+        }
         SortedMap<Revision, Info> checkpoints = this.checkpoints.getCheckpoints();
         if (checkpoints != null && checkpoints.containsKey(r)) {
             return getRoot(r);
@@ -1625,6 +1615,14 @@ public final class DocumentNodeStore
         return headRevision;
     }
 
+    @Nonnull
+    public Revision newRevision() {
+        if (simpleRevisionCounter != null) {
+            return new Revision(simpleRevisionCounter.getAndIncrement(), 0, clusterId);
+        }
+        return Revision.newRevision(clusterId);
+    }
+
     //----------------------< background operations >---------------------------
 
     /** Used for testing only */
@@ -1633,7 +1631,8 @@ public final class DocumentNodeStore
         runBackgroundReadOperations();
     }
 
-    private void runBackgroundUpdateOperations() {
+    /** Note: made package-protected for testing purpose, would otherwise be private **/
+    void runBackgroundUpdateOperations() {
         if (isDisposed.get()) {
             return;
         }
@@ -1676,7 +1675,8 @@ public final class DocumentNodeStore
 
     //----------------------< background read operations >----------------------
 
-    private void runBackgroundReadOperations() {
+    /** Note: made package-protected for testing purpose, would otherwise be private **/
+    void runBackgroundReadOperations() {
         if (isDisposed.get()) {
             return;
         }
@@ -1696,7 +1696,7 @@ public final class DocumentNodeStore
         synchronized (backgroundReadMonitor) {
             long start = clock.getTime();
             // pull in changes from other cluster nodes
-            BackgroundReadStats readStats = backgroundRead(true);
+            BackgroundReadStats readStats = backgroundRead();
             long readTime = clock.getTime() - start;
             String msg = "Background read operations stats (read:{} {})";
             if (clock.getTime() - start > TimeUnit.SECONDS.toMillis(10)) {
@@ -1714,14 +1714,17 @@ public final class DocumentNodeStore
      * @return {@code true} if the lease was renewed; {@code false} otherwise.
      */
     boolean renewClusterIdLease() {
-        return clusterNodeInfo != null && clusterNodeInfo.renewLease();
+        return clusterNodeInfo.renewLease();
     }
 
     /**
      * Updates the state about cluster nodes in {@link #activeClusterNodes}
      * and {@link #inactiveClusterNodes}.
+     * @return true if the cluster state has changed, false if the cluster state
+     * remained unchanged
      */
-    void updateClusterState() {
+    boolean updateClusterState() {
+        boolean hasChanged = false;
         long now = clock.getTime();
         Set<Integer> inactive = Sets.newHashSet();
         for (ClusterNodeInfoDocument doc : ClusterNodeInfoDocument.all(store)) {
@@ -1729,14 +1732,15 @@ public final class DocumentNodeStore
             if (cId != this.clusterId && !doc.isActive()) {
                 inactive.add(cId);
             } else {
-                activeClusterNodes.put(cId, doc.getLeaseEndTime());
+                hasChanged |= activeClusterNodes.put(cId, doc.getLeaseEndTime())==null;
             }
         }
-        activeClusterNodes.keySet().removeAll(inactive);
-        inactiveClusterNodes.keySet().retainAll(inactive);
+        hasChanged |= activeClusterNodes.keySet().removeAll(inactive);
+        hasChanged |= inactiveClusterNodes.keySet().retainAll(inactive);
         for (Integer clusterId : inactive) {
-            inactiveClusterNodes.putIfAbsent(clusterId, now);
+            hasChanged |= inactiveClusterNodes.putIfAbsent(clusterId, now)==null;
         }
+        return hasChanged;
     }
 
     /**
@@ -1761,11 +1765,8 @@ public final class DocumentNodeStore
 
     /**
      * Perform a background read and make external changes visible.
-     *
-     * @param dispatchChange whether to dispatch external changes
-     *                       to {@link #dispatcher}.
      */
-    BackgroundReadStats backgroundRead(boolean dispatchChange) {
+    BackgroundReadStats backgroundRead() {
         BackgroundReadStats stats = new BackgroundReadStats();
         long time = clock.getTime();
         String id = Utils.getIdFromPath("/");
@@ -1773,7 +1774,7 @@ public final class DocumentNodeStore
         if (doc == null) {
             return stats;
         }
-        Map<Integer, Revision> lastRevMap = doc.getLastRev();
+        alignWithExternalRevisions(doc);
 
         Revision.RevisionComparator revisionComparator = getRevisionComparator();
         // the (old) head occurred first
@@ -1782,98 +1783,101 @@ public final class DocumentNodeStore
         Revision otherSeen = Revision.newRevision(0);
 
         StringSort externalSort = JournalEntry.newSorter();
-        
-        Map<Revision, Revision> externalChanges = Maps.newHashMap();
-        for (Map.Entry<Integer, Revision> e : lastRevMap.entrySet()) {
-            int machineId = e.getKey();
-            if (machineId == clusterId) {
-                // ignore own lastRev
-                continue;
-            }
-            Revision r = e.getValue();
-            Revision last = lastKnownRevision.get(machineId);
-            if (last == null || r.compareRevisionTime(last) > 0) {
-                lastKnownRevision.put(machineId, r);
-                // OAK-2345
-                // only consider as external change if
-                // - the revision changed for the machineId
-                // or
-                // - the revision is within the time frame we remember revisions
-                if (last != null
-                        || r.getTimestamp() > revisionPurgeMillis()) {
-                    externalChanges.put(r, otherSeen);
+
+        Map<Integer, Revision> lastRevMap = doc.getLastRev();
+        try {
+            Map<Revision, Revision> externalChanges = Maps.newHashMap();
+            for (Map.Entry<Integer, Revision> e : lastRevMap.entrySet()) {
+                int machineId = e.getKey();
+                if (machineId == clusterId) {
+                    // ignore own lastRev
+                    continue;
                 }
-                // collect external changes
-                if (last != null && externalSort != null) {
-                    // add changes for this particular clusterId to the externalSort
-                    try {
-                        fillExternalChanges(externalSort, last, r, store);
-                    } catch (IOException e1) {
-                        LOG.error("backgroundRead: Exception while reading external changes from journal: "+e1, e1);
-                        externalSort = null;
+                Revision r = e.getValue();
+                Revision last = lastKnownRevision.get(machineId);
+                if (last == null || r.compareRevisionTime(last) > 0) {
+                    lastKnownRevision.put(machineId, r);
+                    // OAK-2345
+                    // only consider as external change if
+                    // - the revision changed for the machineId
+                    // or
+                    // - the revision is within the time frame we remember revisions
+                    if (last != null
+                            || r.getTimestamp() > revisionPurgeMillis()) {
+                        externalChanges.put(r, otherSeen);
+                    }
+                    // collect external changes
+                    if (last != null && externalSort != null) {
+                        // add changes for this particular clusterId to the externalSort
+                        try {
+                            fillExternalChanges(externalSort, last, r, store);
+                        } catch (IOException e1) {
+                            LOG.error("backgroundRead: Exception while reading external changes from journal: " + e1, e1);
+                            IOUtils.closeQuietly(externalSort);
+                            externalSort = null;
+                        }
                     }
                 }
             }
-        }
 
-        stats.readHead = clock.getTime() - time;
-        time = clock.getTime();
-
-        if (!externalChanges.isEmpty()) {
-            // invalidate caches
-            if (externalSort == null) {
-                // if no externalSort available, then invalidate the classic way: everything
-                stats.cacheStats = store.invalidateCache();
-                docChildrenCache.invalidateAll();
-            } else {
-                try {
-                    externalSort.sort();
-                    stats.cacheStats = store.invalidateCache(pathToId(externalSort));
-                    // OAK-3002: only invalidate affected items (using journal)
-                    long origSize = docChildrenCache.size();
-                    if (origSize == 0) {
-                        // if docChildrenCache is empty, don't bother
-                        // calling invalidateAll either way 
-                        // (esp calling invalidateAll(Iterable) will
-                        // potentially iterate over all keys even though
-                        // there's nothing to be deleted)
-                        LOG.trace("backgroundRead: docChildrenCache nothing to invalidate");
-                    } else {
-                        // however, if the docChildrenCache is not empty,
-                        // use the invalidateAll(Iterable) variant,
-                        // passing it a Iterable<StringValue>, as that's
-                        // what is contained in the cache
-                        docChildrenCache.invalidateAll(asStringValueIterable(externalSort));
-                        long newSize = docChildrenCache.size();
-                        LOG.trace("backgroundRead: docChildrenCache invalidation result: orig: {}, new: {} ", origSize, newSize);
-                    }
-                } catch (Exception ioe) {
-                    LOG.error("backgroundRead: got IOException during external sorting/cache invalidation (as a result, invalidating entire cache): "+ioe, ioe);
-                    stats.cacheStats = store.invalidateCache();
-                    docChildrenCache.invalidateAll();
-                }
-            }
-            stats.cacheInvalidationTime = clock.getTime() - time;
+            stats.readHead = clock.getTime() - time;
             time = clock.getTime();
 
-            // make sure update to revision comparator is atomic
-            // and no local commit is in progress
-            backgroundOperationLock.writeLock().lock();
-            try {
-                stats.lock = clock.getTime() - time;
-
-                // the latest revisions of the current cluster node
-                // happened before the latest revisions of other cluster nodes
-                revisionComparator.add(newRevision(), headSeen);
-                // then we saw other revisions
-                for (Map.Entry<Revision, Revision> e : externalChanges.entrySet()) {
-                    revisionComparator.add(e.getKey(), e.getValue());
+            if (!externalChanges.isEmpty()) {
+                // invalidate caches
+                if (externalSort == null) {
+                    // if no externalSort available, then invalidate the classic way: everything
+                    stats.cacheStats = store.invalidateCache();
+                    docChildrenCache.invalidateAll();
+                } else {
+                    try {
+                        externalSort.sort();
+                        stats.cacheStats = store.invalidateCache(pathToId(externalSort));
+                        // OAK-3002: only invalidate affected items (using journal)
+                        long origSize = docChildrenCache.size();
+                        if (origSize == 0) {
+                            // if docChildrenCache is empty, don't bother
+                            // calling invalidateAll either way
+                            // (esp calling invalidateAll(Iterable) will
+                            // potentially iterate over all keys even though
+                            // there's nothing to be deleted)
+                            LOG.trace("backgroundRead: docChildrenCache nothing to invalidate");
+                        } else {
+                            // however, if the docChildrenCache is not empty,
+                            // use the invalidateAll(Iterable) variant,
+                            // passing it a Iterable<StringValue>, as that's
+                            // what is contained in the cache
+                            docChildrenCache.invalidateAll(asStringValueIterable(externalSort));
+                            long newSize = docChildrenCache.size();
+                            LOG.trace("backgroundRead: docChildrenCache invalidation result: orig: {}, new: {} ", origSize, newSize);
+                        }
+                    } catch (Exception ioe) {
+                        LOG.error("backgroundRead: got IOException during external sorting/cache invalidation (as a result, invalidating entire cache): "+ioe, ioe);
+                        stats.cacheStats = store.invalidateCache();
+                        docChildrenCache.invalidateAll();
+                    }
                 }
+                stats.cacheInvalidationTime = clock.getTime() - time;
+                time = clock.getTime();
 
-                Revision oldHead = headRevision;
-                // the new head revision is after other revisions
-                setHeadRevision(newRevision());
-                if (dispatchChange) {
+                // make sure update to revision comparator is atomic
+                // and no local commit is in progress
+                backgroundOperationLock.writeLock().lock();
+                try {
+                    stats.lock = clock.getTime() - time;
+
+                    // the latest revisions of the current cluster node
+                    // happened before the latest revisions of other cluster nodes
+                    revisionComparator.add(newRevision(), headSeen);
+                    // then we saw other revisions
+                    for (Map.Entry<Revision, Revision> e : externalChanges.entrySet()) {
+                        revisionComparator.add(e.getKey(), e.getValue());
+                    }
+
+                    Revision oldHead = headRevision;
+                    // the new head revision is after other revisions
+                    setHeadRevision(newRevision());
+                    commitQueue.headRevisionChanged();
                     time = clock.getTime();
                     if (externalSort != null) {
                         // then there were external changes and reading them
@@ -1881,19 +1885,21 @@ public final class DocumentNodeStore
                         try {
                             JournalEntry.applyTo(externalSort, diffCache, oldHead, headRevision);
                         } catch (Exception e1) {
-                            LOG.error("backgroundRead: Exception while processing external changes from journal: "+e1, e1);
+                            LOG.error("backgroundRead: Exception while processing external changes from journal: {}", e1, e1);
                         }
                     }
                     stats.populateDiffCache = clock.getTime() - time;
                     time = clock.getTime();
 
                     dispatcher.contentChanged(getRoot().fromExternalChange(), null);
+                } finally {
+                    backgroundOperationLock.writeLock().unlock();
                 }
-            } finally {
-                backgroundOperationLock.writeLock().unlock();
+                stats.dispatchChanges = clock.getTime() - time;
+                time = clock.getTime();
             }
-            stats.dispatchChanges = clock.getTime() - time;
-            time = clock.getTime();
+        } finally {
+            IOUtils.closeQuietly(externalSort);
         }
         revisionComparator.purge(revisionPurgeMillis());
         stats.purge = clock.getTime() - time;
@@ -1988,7 +1994,11 @@ public final class DocumentNodeStore
                 continue;
             }
             for (UpdateOp op : doc.split(this, head)) {
-                NodeDocument before = store.createOrUpdate(Collection.NODES, op);
+                NodeDocument before = null;
+                if (!op.isNew() ||
+                        !store.create(Collection.NODES, Collections.singletonList(op))) {
+                    before = store.createOrUpdate(Collection.NODES, op);
+                }
                 if (before != null) {
                     if (LOG.isDebugEnabled()) {
                         NodeDocument after = store.find(Collection.NODES, op.getId());
@@ -2013,9 +2023,9 @@ public final class DocumentNodeStore
     BackgroundWriteStats backgroundWrite() {
         return unsavedLastRevisions.persist(this, new UnsavedModifications.Snapshot() {
             @Override
-            public void acquiring() {
+            public void acquiring(Revision mostRecent) {
                 if (store.create(JOURNAL,
-                        singletonList(changes.asUpdateOp(getHeadRevision())))) {
+                        singletonList(changes.asUpdateOp(mostRecent)))) {
                     changes = JOURNAL.newDocument(getDocumentStore());
                 }
             }
@@ -2023,6 +2033,68 @@ public final class DocumentNodeStore
     }
 
     //-----------------------------< internal >---------------------------------
+
+    /**
+     * Performs an initial read of the _lastRevs on the root document,
+     * initializes the {@link #revisionComparator} and sets the head revision.
+     *
+     * @param rootDoc the current root document.
+     */
+    private void initializeHeadRevision(NodeDocument rootDoc) {
+        checkState(headRevision == null);
+
+        alignWithExternalRevisions(rootDoc);
+        Map<Integer, Revision> lastRevMap = rootDoc.getLastRev();
+        Revision seenAt = Revision.newRevision(0);
+        long purgeMillis = revisionPurgeMillis();
+        for (Map.Entry<Integer, Revision> entry : lastRevMap.entrySet()) {
+            Revision r = entry.getValue();
+            if (r.getTimestamp() > purgeMillis) {
+                revisionComparator.add(r, seenAt);
+            }
+            if (entry.getKey() == clusterId) {
+                continue;
+            }
+            lastKnownRevision.put(entry.getKey(), entry.getValue());
+        }
+        revisionComparator.purge(purgeMillis);
+        setHeadRevision(newRevision());
+    }
+
+    /**
+     * Makes sure the current time is after the most recent external revision
+     * timestamp in the _lastRev map of the given root document. If necessary
+     * the current thread waits until {@link #clock} is after the external
+     * revision timestamp.
+     *
+     * @param rootDoc the root document.
+     */
+    private void alignWithExternalRevisions(@Nonnull NodeDocument rootDoc) {
+        Map<Integer, Revision> lastRevMap = checkNotNull(rootDoc).getLastRev();
+        try {
+            long externalTime = Utils.getMaxExternalTimestamp(lastRevMap.values(), clusterId);
+            long localTime = clock.getTime();
+            if (localTime < externalTime) {
+                LOG.warn("Detected clock differences. Local time is '{}', " +
+                                "while most recent external time is '{}'. " +
+                                "Current _lastRev entries: {}",
+                        new Date(localTime), new Date(externalTime), lastRevMap.values());
+                double delay = ((double) externalTime - localTime) / 1000d;
+                String msg = String.format("Background read will be delayed by %.1f seconds. " +
+                        "Please check system time on cluster nodes.", delay);
+                LOG.warn(msg);
+                clock.waitUntil(externalTime + 1);
+            } else if (localTime == externalTime) {
+                // make sure local time is past external time
+                // but only log at debug
+                LOG.debug("Local and external time are equal. Waiting until local" +
+                        "time is more recent than external reported time.");
+                clock.waitUntil(externalTime + 1);
+            }
+        } catch (InterruptedException e) {
+            throw new RuntimeException("Background read interrupted", e);
+        }
+    }
 
     @Nonnull
     private Commit newTrunkCommit(@Nonnull Revision base) {
@@ -2067,67 +2139,45 @@ public final class DocumentNodeStore
         }
     }
 
-    private boolean dispatch(@Nonnull String jsonDiff,
-                             @Nonnull DocumentNodeState node,
-                             @Nonnull DocumentNodeState base,
-                             @Nonnull NodeStateDiff diff) {
-        if (jsonDiff.trim().isEmpty()) {
-            return true;
-        }
-        JsopTokenizer t = new JsopTokenizer(jsonDiff);
-        boolean continueComparison = true;
-        while (continueComparison) {
-            int r = t.read();
-            if (r == JsopReader.END) {
-                break;
+    private boolean dispatch(@Nonnull final String jsonDiff,
+                             @Nonnull final DocumentNodeState node,
+                             @Nonnull final DocumentNodeState base,
+                             @Nonnull final NodeStateDiff diff) {
+        return DiffCache.parseJsopDiff(jsonDiff, new DiffCache.Diff() {
+            @Override
+            public boolean childNodeAdded(String name) {
+                return diff.childNodeAdded(name,
+                        node.getChildNode(name));
             }
-            switch (r) {
-                case '+': {
-                    String name = unshareString(t.readString());
-                    t.read(':');
-                    t.read('{');
-                    while (t.read() != '}') {
-                        // skip properties
-                    }
-                    continueComparison = diff.childNodeAdded(name,
-                            node.getChildNode(name));
-                    break;
-                }
-                case '-': {
-                    String name = unshareString(t.readString());
-                    continueComparison = diff.childNodeDeleted(name,
-                            base.getChildNode(name));
-                    break;
-                }
-                case '^': {
-                    String name = unshareString(t.readString());
-                    t.read(':');
-                    t.read('{');
-                    t.read('}');
-                    NodeState baseChild = base.getChildNode(name);
-                    NodeState nodeChild = node.getChildNode(name);
-                    if (baseChild.exists()) {
-                        if (nodeChild.exists()) {
-                            continueComparison = diff.childNodeChanged(name,
-                                    baseChild, nodeChild);
-                        } else {
-                            continueComparison = diff.childNodeDeleted(name,
-                                    baseChild);
-                        }
+
+            @Override
+            public boolean childNodeChanged(String name) {
+                boolean continueComparison = true;
+                NodeState baseChild = base.getChildNode(name);
+                NodeState nodeChild = node.getChildNode(name);
+                if (baseChild.exists()) {
+                    if (nodeChild.exists()) {
+                        continueComparison = diff.childNodeChanged(name,
+                                baseChild, nodeChild);
                     } else {
-                        if (nodeChild.exists()) {
-                            continueComparison = diff.childNodeAdded(name,
-                                    nodeChild);
-                        }
+                        continueComparison = diff.childNodeDeleted(name,
+                                baseChild);
                     }
-                    break;
+                } else {
+                    if (nodeChild.exists()) {
+                        continueComparison = diff.childNodeAdded(name,
+                                nodeChild);
+                    }
                 }
-                default:
-                    throw new IllegalArgumentException("jsonDiff: illegal token '"
-                            + t.getToken() + "' at pos: " + t.getLastPos() + ' ' + jsonDiff);
+                return continueComparison;
             }
-        }
-        return continueComparison;
+
+            @Override
+            public boolean childNodeDeleted(String name) {
+                return diff.childNodeDeleted(name,
+                        base.getChildNode(name));
+            }
+        });
     }
 
     /**
@@ -2167,31 +2217,6 @@ public final class DocumentNodeStore
         }
 
         return false;
-    }
-
-    private static void diffProperties(DocumentNodeState from,
-                                       DocumentNodeState to,
-                                       JsopWriter w) {
-        for (PropertyState fromValue : from.getProperties()) {
-            String name = fromValue.getName();
-            // changed or removed properties
-            PropertyState toValue = to.getProperty(name);
-            if (!fromValue.equals(toValue)) {
-                w.tag('^').key(concat(from.getPath(), name));
-                if (toValue == null) {
-                    w.value(null);
-                } else {
-                    w.encodedValue(to.getPropertyAsString(name)).newline();
-                }
-            }
-        }
-        for (String name : to.getPropertyNames()) {
-            // added properties
-            if (!from.hasProperty(name)) {
-                w.tag('^').key(concat(from.getPath(), name))
-                        .encodedValue(to.getPropertyAsString(name)).newline();
-            }
-        }
     }
 
     private String diffImpl(DocumentNodeState from, DocumentNodeState to)
@@ -2432,6 +2457,16 @@ public final class DocumentNodeStore
         return blobGC;
     }
 
+    void setClusterStateChangeListener(ClusterStateChangeListener clusterStateChangeListener) {
+        this.clusterStateChangeListener = clusterStateChangeListener;
+    }
+
+    void signalClusterStateChange() {
+        if (clusterStateChangeListener != null) {
+            clusterStateChangeListener.handleClusterStateChange();
+        }
+    }
+
     //-----------------------------< DocumentNodeStoreMBean >---------------------------------
 
     public DocumentNodeStoreMBean getMBean() {
@@ -2516,6 +2551,11 @@ public final class DocumentNodeStore
             }
             return sdf.format(r.getTimestamp());
         }
+
+        @Override
+        public long determineServerTimeDifferenceMillis() {
+            return store.determineServerTimeDifferenceMillis();
+        }
     }
 
     static abstract class NodeStoreTask implements Runnable {
@@ -2598,8 +2638,14 @@ public final class DocumentNodeStore
 
         @Override
         protected void execute(@Nonnull DocumentNodeStore nodeStore) {
-            if (nodeStore.renewClusterIdLease()) {
-                nodeStore.updateClusterState();
+            // first renew the clusterId lease
+            nodeStore.renewClusterIdLease();
+
+            // then, independently if the lease had to be updated or not, check
+            // the status:
+            if (nodeStore.updateClusterState()) {
+                // then inform the discovery lite listener - if it is registered
+                nodeStore.signalClusterStateChange();
             }
         }
     }
@@ -2621,11 +2667,8 @@ public final class DocumentNodeStore
      * @see org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobReferenceIterator
      * @return an iterator for all the blobs
      */
-    public Iterator<Blob> getReferencedBlobsIterator() {
-        if(store instanceof MongoDocumentStore){
-            return new MongoBlobReferenceIterator(this, (MongoDocumentStore) store);
-        }
-        return new BlobReferenceIterator(this);
+    public Iterator<ReferencedBlob> getReferencedBlobsIterator() {
+        return referencedBlobs.iterator();
     }
 
     public DiffCache getDiffCache() {

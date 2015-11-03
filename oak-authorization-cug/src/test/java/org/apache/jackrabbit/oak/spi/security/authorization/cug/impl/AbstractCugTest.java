@@ -17,21 +17,31 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
 import java.security.Principal;
+import java.util.Set;
+import java.util.UUID;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
+import javax.jcr.SimpleCredentials;
+import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
-import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugPolicy;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 
 /**
@@ -39,7 +49,7 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
  * to expose the CUG specific implementations of {@code AccessControlManager}
  * and {@code PermissionProvider}.
  */
-public class AbstractCugTest extends AbstractSecurityTest implements CugConstants {
+public class AbstractCugTest extends AbstractSecurityTest implements CugConstants, NodeTypeConstants {
 
     static final String SUPPORTED_PATH = "/content";
     static final String SUPPORTED_PATH2 = "/content2";
@@ -50,6 +60,9 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
             CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[] {SUPPORTED_PATH, SUPPORTED_PATH2},
             CugConstants.PARAM_CUG_ENABLED, true);
 
+    private static final String TEST_GROUP_ID = "testGroup" + UUID.randomUUID();
+    private static final String TEST_USER2_ID = "testUser2" + UUID.randomUUID();
+
     @Override
     public void before() throws Exception {
         super.before();
@@ -58,14 +71,28 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
         NodeUtil content = rootNode.addChild("content", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         content.addChild("subtree", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         rootNode.addChild("content2", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-        rootNode.addChild("testNode", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        NodeUtil testNode = rootNode.addChild("testNode", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        testNode.addChild("child", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         root.commit();
     }
 
     @Override
     public void after() throws Exception {
         try {
+            // revert transient pending changes (that might be invalid)
+            root.refresh();
+
+            // remove the test group and second test user
+            Authorizable testGroup = getUserManager(root).getAuthorizable(TEST_GROUP_ID);
+            if (testGroup != null) {
+                testGroup.remove();
+            }
+            Authorizable testUser2 = getUserManager(root).getAuthorizable(TEST_USER2_ID);
+            if (testUser2 != null) {
+                testUser2.remove();
+            }
             root.getTree(SUPPORTED_PATH).remove();
+            root.getTree(SUPPORTED_PATH2).remove();
             root.getTree(UNSUPPORTED_PATH).remove();
             root.commit();
         } finally {
@@ -77,23 +104,54 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
     protected SecurityProvider getSecurityProvider() {
         if (securityProvider == null) {
             securityProvider = new CugSecurityProvider(getSecurityConfigParameters());
-            AuthorizationConfiguration authorizationConfiguration = securityProvider.getConfiguration(AuthorizationConfiguration.class);
-            if (!(authorizationConfiguration instanceof CompositeAuthorizationConfiguration)) {
-                CompositeAuthorizationConfiguration composite = new CompositeAuthorizationConfiguration(securityProvider);
-                composite.setDefaultConfig(authorizationConfiguration);
-                composite.addConfiguration(new CugConfiguration(securityProvider));
-                composite.addConfiguration(authorizationConfiguration);
-                ((CugSecurityProvider) securityProvider).bindAuthorizationConfiguration(composite);
-            }
         }
         return securityProvider;
     }
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
-        return ConfigurationParameters.of(ImmutableMap.of(
-                AuthorizationConfiguration.NAME, CUG_CONFIG)
+        return ConfigurationParameters.of(AuthorizationConfiguration.NAME, CUG_CONFIG);
+    }
+
+    CugPermissionProvider createCugPermissionProvider(@Nonnull Set<String> supportedPaths, @Nonnull Principal... principals) {
+        return new CugPermissionProvider(root, root.getContentSession().getWorkspaceName(), ImmutableSet.copyOf(principals), supportedPaths, getConfig(AuthorizationConfiguration.class).getContext());
+    }
+
+    void setupCugsAndAcls() throws Exception {
+        UserManager uMgr = getUserManager(root);
+        Principal testGroupPrincipal = getTestGroupPrincipal();
+
+        User testUser2 = uMgr.createUser(TEST_USER2_ID, TEST_USER2_ID);
+        ((Group) uMgr.getAuthorizable(testGroupPrincipal)).addMember(testUser2);
+        root.commit();
+
+        // add more child nodes
+        NodeUtil n = new NodeUtil(root.getTree(SUPPORTED_PATH));
+        n.addChild("a", NT_OAK_UNSTRUCTURED).addChild("b", NT_OAK_UNSTRUCTURED).addChild("c", NT_OAK_UNSTRUCTURED);
+        n.addChild("aa", NT_OAK_UNSTRUCTURED).addChild("bb", NT_OAK_UNSTRUCTURED).addChild("cc", NT_OAK_UNSTRUCTURED);
+
+        // create cugs
+        // - /content/a     : allow testGroup, deny everyone
+        // - /content/aa/bb : allow testGroup, deny everyone
+        // - /content/a/b/c : allow everyone,  deny testGroup (isolated)
+        // - /content2      : allow everyone,  deny testGroup (isolated)
+        createCug("/content/a", testGroupPrincipal);
+        createCug("/content/aa/bb", testGroupPrincipal);
+        createCug("/content/a/b/c", EveryonePrincipal.getInstance());
+        createCug("/content2", EveryonePrincipal.getInstance());
+
+        // setup regular acl at /content:
+        // - testUser  ; allow ; jcr:read
+        // - testGroup ; allow ; jcr:read, jcr:write, jcr:readAccessControl
+        AccessControlManager acMgr = getAccessControlManager(root);
+        AccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/content");
+        acl.addAccessControlEntry(getTestUser().getPrincipal(), privilegesFromNames(
+                PrivilegeConstants.JCR_READ));
+        acl.addAccessControlEntry(testGroupPrincipal, privilegesFromNames(
+                        PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE, PrivilegeConstants.JCR_READ_ACCESS_CONTROL)
         );
+        acMgr.setPolicy("/content", acl);
+        root.commit();
     }
 
     void createCug(@Nonnull String absPath, @Nonnull Principal principal) throws RepositoryException {
@@ -110,14 +168,17 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
         throw new IllegalStateException("Unable to create CUG at " + absPath);
     }
 
-    final class CugSecurityProvider extends SecurityProviderImpl {
-        public CugSecurityProvider(@Nonnull ConfigurationParameters configuration) {
-            super(configuration);
+    Principal getTestGroupPrincipal() throws Exception {
+        UserManager uMgr = getUserManager(root);
+        Group g = uMgr.getAuthorizable(TEST_GROUP_ID, Group.class);
+        if (g == null) {
+            g = uMgr.createGroup(TEST_GROUP_ID);
+            root.commit();
         }
+        return g.getPrincipal();
+    }
 
-        @Override
-        protected void bindAuthorizationConfiguration(@Nonnull AuthorizationConfiguration reference) {
-            super.bindAuthorizationConfiguration(reference);
-        }
+    ContentSession createTestSession2() throws Exception {
+        return login(new SimpleCredentials(TEST_USER2_ID, TEST_USER2_ID.toCharArray()));
     }
 }

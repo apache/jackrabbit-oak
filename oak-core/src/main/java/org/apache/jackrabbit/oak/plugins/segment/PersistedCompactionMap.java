@@ -66,7 +66,6 @@ public class PersistedCompactionMap implements PartialCompactionMap {
 
     private final FileStore store;
 
-    private int recentCount;
     private long recordCount;
     private MapRecord entries;
 
@@ -144,8 +143,7 @@ public class PersistedCompactionMap implements PartialCompactionMap {
         }
         entry.put(encode(before.getOffset()), after);
 
-        if (++recentCount > COMPRESS_INTERVAL) {
-            recentCount = 0;
+        if (recent.size() > COMPRESS_INTERVAL) {
             compress();
         }
     }
@@ -170,12 +168,17 @@ public class PersistedCompactionMap implements PartialCompactionMap {
         return recordCount;
     }
 
+    @Override
+    public boolean isEmpty() {
+        return recent.size() + recordCount == 0;
+    }
+
     private void compress(@Nonnull Set<UUID> removed) {
         if (recent.isEmpty() && removed.isEmpty()) {
             return;
         }
 
-        SegmentWriter writer = store.createSegmentWriter();
+        SegmentWriter writer = null;
         Map<String, RecordId> segmentIdMap = newHashMap();
         for (Entry<UUID, RecordIdMap> recentEntry : recent.entrySet()) {
             UUID uuid = recentEntry.getKey();
@@ -188,6 +191,10 @@ public class PersistedCompactionMap implements PartialCompactionMap {
             MapRecord base;
             MapEntry baseEntry = entries == null ? null : entries.getEntry(uuid.toString());
             base = baseEntry == null ? null : new MapRecord(baseEntry.getValue());
+
+            if (writer == null) {
+                writer = store.createSegmentWriter(createWid());
+            }
 
             Map<String, RecordId> offsetMap = newHashMap();
             for (int k = 0; k < newSegment.size(); k++) {
@@ -209,15 +216,30 @@ public class PersistedCompactionMap implements PartialCompactionMap {
             }
         }
 
-        RecordId previousBaseId = entries == null ? null : entries.getRecordId();
-        entries = writer.writeMap(entries, segmentIdMap);
-        entries.getSegment().getSegmentId().pin();
-        String mapInfo = PERSISTED_COMPACTION_MAP + '{' +
-                "id=" + entries.getRecordId() +
-                ", baseId=" + previousBaseId + '}';
-        writer.writeString(mapInfo);
-        writer.flush();
+        if (!segmentIdMap.isEmpty()) {
+            if (writer == null) {
+                writer = store.createSegmentWriter(createWid());
+            }
+
+            RecordId previousBaseId = entries == null ? null : entries.getRecordId();
+            entries = writer.writeMap(entries, segmentIdMap);
+            entries.getSegment().getSegmentId().pin();
+            String mapInfo = PERSISTED_COMPACTION_MAP + '{' +
+                    "id=" + entries.getRecordId() +
+                    ", baseId=" + previousBaseId + '}';
+            writer.writeString(mapInfo);
+            writer.flush();
+        }
+
         recent.clear();
+        if (recordCount == 0) {
+            entries = null;
+        }
+    }
+
+    @Nonnull
+    private String createWid() {
+        return "cm-" + store.getTracker().getCompactionMap().getGeneration() + 1;
     }
 
     /**

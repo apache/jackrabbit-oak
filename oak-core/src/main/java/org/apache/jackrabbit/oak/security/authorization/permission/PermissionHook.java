@@ -80,6 +80,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         this.restrictionProvider = restrictionProvider;
     }
 
+    //---------------------------------------------------------< CommitHook >---
     @Nonnull
     @Override
     public NodeState processCommit(
@@ -100,10 +101,13 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         return rootAfter.getNodeState();
     }
 
+    //-------------------------------------------------------------< Object >---
     @Override
     public String toString() {
         return "PermissionHook";
     }
+
+    //------------------------------------------------------------< private >---
 
     private void apply() {
         for (Map.Entry<String, PermissionStoreEditor> entry : deleted.entrySet()) {
@@ -139,7 +143,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
             String path = parentPath + '/' + name;
             if (isACL.apply(after)) {
                 PermissionStoreEditor psEditor = createPermissionStoreEditor(name, after);
-                modified.put(psEditor.accessControlledPath, psEditor);
+                modified.put(psEditor.getPath(), psEditor);
             } else {
                 after.compareAgainstBaseState(EMPTY_NODE, new Diff(path));
             }
@@ -156,22 +160,22 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
             if (isACL.apply(before)) {
                 if (isACL.apply(after)) {
                     PermissionStoreEditor psEditor = createPermissionStoreEditor(name, after);
-                    modified.put(psEditor.accessControlledPath, psEditor);
+                    modified.put(psEditor.getPath(), psEditor);
 
                     // also consider to remove the ACL from removed entries of other principals
                     PermissionStoreEditor beforeEditor = createPermissionStoreEditor(name, before);
-                    beforeEditor.entries.keySet().removeAll(psEditor.entries.keySet());
-                    if (!beforeEditor.entries.isEmpty()) {
+                    beforeEditor.removePermissionEntries(psEditor);
+                    if (!beforeEditor.isEmpty()) {
                         deleted.put(parentPath, beforeEditor);
                     }
 
                 } else {
                     PermissionStoreEditor psEditor = createPermissionStoreEditor(name, before);
-                    deleted.put(psEditor.accessControlledPath, psEditor);
+                    deleted.put(psEditor.getPath(), psEditor);
                 }
             } else if (isACL.apply(after)) {
                 PermissionStoreEditor psEditor = createPermissionStoreEditor(name, after);
-                modified.put(psEditor.accessControlledPath, psEditor);
+                modified.put(psEditor.getPath(), psEditor);
             } else {
                 after.compareAgainstBaseState(before, new Diff(path));
             }
@@ -187,7 +191,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
             String path = parentPath + '/' + name;
             if (isACL.apply(before)) {
                 PermissionStoreEditor psEditor = createPermissionStoreEditor(name, before);
-                deleted.put(psEditor.accessControlledPath, psEditor);
+                deleted.put(psEditor.getPath(), psEditor);
             } else {
                 EMPTY_NODE.compareAgainstBaseState(before, new Diff(path));
             }

@@ -35,7 +35,6 @@ import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.SimpleNodeAggregator;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexFormatVersion;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
@@ -58,6 +57,7 @@ public class LuceneOakRepositoryStub extends OakTarMKRepositoryStub {
                 new LuceneCompatModeInitializer("luceneGlobal", (Set<String>) null))
                 .with((QueryIndexProvider)provider)
                 .with((Observer) provider)
+                .withFastQueryResultSize(true)
                 .with(new LuceneIndexEditorProvider());
     }
 
@@ -88,9 +88,12 @@ public class LuceneOakRepositoryStub extends OakTarMKRepositoryStub {
                         .setProperty(LuceneIndexConstants.EVALUATE_PATH_RESTRICTION, true)
                         .setProperty(LuceneIndexConstants.SUGGEST_UPDATE_FREQUENCY_MINUTES, 10);
 
-                NodeBuilder props = index.child(LuceneIndexConstants.INDEX_RULES)
-                        .child("nt:base")
-                        .child(LuceneIndexConstants.PROP_NODE);
+                NodeBuilder ntBase = index.child(LuceneIndexConstants.INDEX_RULES)
+                        .child("nt:base");
+
+                //Enable nodeName index support
+                ntBase.setProperty(LuceneIndexConstants.INDEX_NODE_NAME, true);
+                NodeBuilder props = ntBase.child(LuceneIndexConstants.PROP_NODE);
 
                 enableFulltextIndex(props.child("allProps"));
             }

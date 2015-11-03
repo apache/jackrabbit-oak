@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -72,12 +71,20 @@ public class OakTest {
 
     }
 
-    @Ignore("OAK-2736")
-    @Test(expected = IllegalStateException.class)
-    public void throwISEUponReuse() throws Exception{
+    @Test
+    public void testContentRepositoryReuse() throws Exception {
         Oak oak = new Oak().with(new OpenSecurityProvider());
-        oak.createContentRepository();
-        oak.createContentRepository();
+        ContentRepository r0 = null;
+        ContentRepository r1 = null;
+        try {
+            r0 = oak.createContentRepository();
+            r1 = oak.createContentRepository();
+            assertEquals(r0, r1);
+        } finally {
+            if (r0 != null) {
+                ((Closeable) r0).close();
+            }
+        }
     }
 
     @Test

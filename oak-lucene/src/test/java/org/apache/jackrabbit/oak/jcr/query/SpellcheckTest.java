@@ -66,6 +66,26 @@ public class SpellcheckTest extends AbstractQueryTest {
         assertEquals("[hello, hold]", result);
     }
 
+    public void testSpellcheckMultipleWords() throws Exception {
+        Session session = superuser;
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        Node n1 = testRootNode.addNode("node1");
+        n1.setProperty("jcr:title", "it is always a good idea to go visiting ontario");
+        Node n2 = testRootNode.addNode("node2");
+        n2.setProperty("jcr:title", "ontario is a nice place to live in");
+        Node n3 = testRootNode.addNode("node3");
+        n2.setProperty("jcr:title", "I flied to ontario for voting for the major polls");
+        Node n4 = testRootNode.addNode("node4");
+        n2.setProperty("jcr:title", "I will go voting in ontario, I always voted since I've been allowed to");
+        session.save();
+
+        String xpath = "/jcr:root[rep:spellcheck('votin in ontari')]/(rep:spellcheck())";
+        Query q = qm.createQuery(xpath, Query.XPATH);
+        String result = getResult(q.execute(), "rep:spellcheck()");
+        assertNotNull(result);
+        assertEquals("[voting in ontario]", result);
+    }
+
     static String getResult(QueryResult result, String propertyName) throws RepositoryException {
         StringBuilder buff = new StringBuilder();
         RowIterator it = result.getRows();

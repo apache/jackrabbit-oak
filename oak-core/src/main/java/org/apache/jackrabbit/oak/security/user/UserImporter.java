@@ -327,31 +327,36 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
 
     @Override
     public void propertiesCompleted(@Nonnull Tree protectedParent) throws RepositoryException {
-        Authorizable a = userManager.getAuthorizable(protectedParent);
-        if (a == null) {
-            // not an authorizable
-            return;
-        }
-
-        // make sure the authorizable ID property is always set even if the
-        // authorizable defined by the imported XML didn't provide rep:authorizableID
-        if (!protectedParent.hasProperty(REP_AUTHORIZABLE_ID)) {
-            protectedParent.setProperty(REP_AUTHORIZABLE_ID, a.getID(), Type.STRING);
-        }
-
-        /*
-        Execute authorizable actions for a NEW user at this point after
-        having set the password and the principal name (all protected properties
-        have been processed now).
-        */
-        if (protectedParent.getStatus() == Tree.Status.NEW) {
-            if (a.isGroup()) {
-                userManager.onCreate((Group) a);
-            } else {
-                userManager.onCreate((User) a, currentPw);
+        if (isCacheNode(protectedParent)) {
+            // remove the cache if present
+            protectedParent.remove();
+        } else {
+            Authorizable a = userManager.getAuthorizable(protectedParent);
+            if (a == null) {
+                // not an authorizable
+                return;
             }
+
+            // make sure the authorizable ID property is always set even if the
+            // authorizable defined by the imported XML didn't provide rep:authorizableID
+            if (!protectedParent.hasProperty(REP_AUTHORIZABLE_ID)) {
+                protectedParent.setProperty(REP_AUTHORIZABLE_ID, a.getID(), Type.STRING);
+            }
+
+            /*
+            Execute authorizable actions for a NEW user at this point after
+            having set the password and the principal name (all protected properties
+            have been processed now).
+            */
+            if (protectedParent.getStatus() == Tree.Status.NEW) {
+                if (a.isGroup()) {
+                    userManager.onCreate((Group) a);
+                } else {
+                    userManager.onCreate((User) a, currentPw);
+                }
+            }
+            currentPw = null;
         }
-        currentPw = null;
     }
 
     @Override
@@ -516,6 +521,10 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
         }
         parent.setProperty(property);
         return true;
+    }
+
+    private static boolean isCacheNode(@Nonnull Tree tree) {
+        return tree.exists() && CacheConstants.REP_CACHE.equals(tree.getName()) && CacheConstants.NT_REP_CACHE.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 
     /**

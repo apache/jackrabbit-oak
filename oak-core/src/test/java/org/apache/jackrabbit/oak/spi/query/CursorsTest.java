@@ -119,6 +119,11 @@ public class CursorsTest {
         }
 
         @Override
+        public boolean isVirtualRow() {
+            return false;
+        }
+
+        @Override
         public String getPath() {
             return path;
         }

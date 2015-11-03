@@ -125,10 +125,11 @@ public class SQL2Parser {
      * Parse the statement and return the query.
      *
      * @param query the query string
+     * @param initialise if performing the query init ({@code true}) or not ({@code false})
      * @return the query
      * @throws ParseException if parsing fails
      */
-    public Query parse(String query) throws ParseException {
+    public Query parse(final String query, final boolean initialise) throws ParseException {
         // TODO possibly support union,... as available at
         // http://docs.jboss.org/modeshape/latest/manuals/reference/html/jcr-query-and-search.html
 
@@ -140,7 +141,8 @@ public class SQL2Parser {
         boolean explain = false, measure = false;
         if (readIf("EXPLAIN")) {
             explain = true;
-        } else if (readIf("MEASURE")) {
+        }
+        if (readIf("MEASURE")) {
             measure = true;
         }
         Query q = parseSelect();
@@ -163,15 +165,30 @@ public class SQL2Parser {
         q.setOrderings(orderings);
         q.setExplain(explain);
         q.setMeasure(measure);
-        try {
-            q.init();
-        } catch (Exception e) {
-            ParseException e2 = new ParseException(query + ": " + e.getMessage(), 0);
-            e2.initCause(e);
-            throw e2;
-        }
         q.setInternal(isInternal(query));
+
+        if (initialise) {
+            try {
+                q.init();
+            } catch (Exception e) {
+                ParseException e2 = new ParseException(statement + ": " + e.getMessage(), 0);
+                e2.initCause(e);
+                throw e2;
+            }
+        }
+
         return q;
+    }
+    
+    /**
+     * as {@link #parse(String, boolean)} by providing {@code true} to the initialisation flag.
+     * 
+     * @param query
+     * @return
+     * @throws ParseException
+     */
+    public Query parse(final String query) throws ParseException {
+        return parse(query, true);
     }
     
     private QueryImpl parseSelect() throws ParseException {

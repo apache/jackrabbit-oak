@@ -36,7 +36,7 @@ import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
  * Also, manages any temporary files needed as well as external sorting.
  * 
  */
-class GarbageCollectorFileState implements Closeable{
+public class GarbageCollectorFileState implements Closeable{
     /** The root of the gc file state directory. */
     private final File home;
 
@@ -134,6 +134,20 @@ class GarbageCollectorFileState implements Closeable{
         merge(ExternalSort.sortInBatch(file, lexComparator, true), sorted);
         Files.move(sorted, file);
     }
+
+    /**
+     * Sorts the given file externally with the given comparator.
+     *
+     * @param file file whose contents needs to be sorted
+     * @param comparator to compare
+     * @throws IOException
+     */
+    public static void sort(File file, Comparator<String> comparator) throws IOException {
+        File sorted = createTempFile();
+        merge(ExternalSort.sortInBatch(file, comparator, true), sorted);
+        Files.move(sorted, file);
+    }
+    
     
     public static void merge(List<File> files, File output) throws IOException {
         ExternalSort.mergeSortedFiles(

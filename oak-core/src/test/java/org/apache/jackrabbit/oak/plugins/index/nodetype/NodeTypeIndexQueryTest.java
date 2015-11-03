@@ -20,8 +20,14 @@ import static com.google.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NT_UNSTRUCTURED;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.List;
+
+import javax.jcr.query.Query;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -48,8 +54,10 @@ public class NodeTypeIndexQueryTest extends AbstractQueryTest {
                 .createContentRepository();
     }
 
-    private static void child(Tree t, String n, String type) {
-        t.addChild(n).setProperty(JCR_PRIMARYTYPE, type, Type.NAME);
+    private static Tree child(Tree t, String n, String type) {
+        Tree t1 = t.addChild(n);
+        t1.setProperty(JCR_PRIMARYTYPE, type, Type.NAME);
+        return t1;
     }
 
     private static void mixLanguage(Tree t, String n) {
@@ -82,6 +90,66 @@ public class NodeTypeIndexQueryTest extends AbstractQueryTest {
         assertQuery("select [jcr:path] from [nt:folder] ", of("/c", "/d"));
         assertQuery("select [jcr:path] from [mix:language] ", of("/e", "/f"));
 
+        setTraversalEnabled(true);
+    }
+    
+    @Test
+    public void oak3371() throws Exception {
+        setTraversalEnabled(false);
+        Tree t, t1;
+
+        NodeUtil n = new NodeUtil(root.getTree("/oak:index"));
+        createIndexDefinition(n, "nodeType", false, new String[] {
+                JCR_PRIMARYTYPE }, new String[] { NT_UNSTRUCTURED });
+
+        root.commit();
+        
+        t = root.getTree("/");
+        t = child(t, "test", NT_UNSTRUCTURED);
+        t1 = child(t, "a", NT_UNSTRUCTURED);
+        t1.setProperty("foo", "bar");
+        child(t, "b", NT_UNSTRUCTURED);
+        
+        root.commit();
+        
+        List<String> plan;
+
+        plan = executeQuery(
+                "explain SELECT * FROM [nt:unstructured] " + 
+                "WHERE ISDESCENDANTNODE([/test]) " + 
+                "AND CONTAINS(foo, 'bar')", 
+                Query.JCR_SQL2, false);
+        assertEquals(1, plan.size());
+        assertTrue(plan.get(0).contains("no-index"));
+        assertEquals("[nt:unstructured] as [nt:unstructured] /* no-index\n" +
+                "  where (isdescendantnode([nt:unstructured], [/test]))\n" +
+                "  and (contains([nt:unstructured].[foo], 'bar')) */", 
+                plan.get(0));
+
+        plan = executeQuery(
+                "explain SELECT * FROM [nt:unstructured] " + 
+                "WHERE ISDESCENDANTNODE([/test]) " + 
+                "AND NOT CONTAINS(foo, 'bar')", 
+                Query.JCR_SQL2, false);
+        assertEquals(1, plan.size());
+        assertTrue(plan.get(0).contains("no-index"));
+        assertEquals("[nt:unstructured] as [nt:unstructured] /* no-index\n" +
+                "  where (isdescendantnode([nt:unstructured], [/test]))\n" +
+                "  and (not contains([nt:unstructured].[foo], 'bar')) */", 
+                plan.get(0));
+        
+        plan = executeQuery(
+                "explain SELECT * FROM [nt:unstructured] " + 
+                "WHERE ISDESCENDANTNODE([/test]) " + 
+                "AND NOT NOT CONTAINS(foo, 'bar')", 
+                Query.JCR_SQL2, false);
+        assertEquals(1, plan.size());
+        assertTrue(plan.get(0).contains("no-index"));
+        assertEquals("[nt:unstructured] as [nt:unstructured] /* no-index\n" +
+                "  where (isdescendantnode([nt:unstructured], [/test]))\n" +
+                "  and (contains([nt:unstructured].[foo], 'bar')) */", 
+                plan.get(0));
+        
         setTraversalEnabled(true);
     }
 }

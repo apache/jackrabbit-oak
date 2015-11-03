@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.query;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,15 +24,19 @@ import java.io.InputStreamReader;
 import java.io.LineNumberReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.RandomAccessFile;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+
+import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
 import com.google.common.collect.Lists;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -51,9 +56,11 @@ import org.apache.jackrabbit.oak.json.TypeCodes;
 import org.apache.jackrabbit.oak.plugins.memory.BooleanPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
+import org.apache.jackrabbit.oak.query.QueryEngineImpl.ForceOptimised;
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
 import org.junit.Before;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
@@ -112,17 +119,24 @@ public abstract class AbstractQueryTest {
 
     protected Result executeQuery(String statement, String language,
             Map<String, PropertyValue> sv) throws ParseException {
-        return qe.executeQuery(statement, language, Long.MAX_VALUE, 0, sv, NO_MAPPINGS);
+        return qe.executeQuery(statement, language, sv, NO_MAPPINGS);
     }
 
     protected void test(String file) throws Exception {
-        InputStream in = AbstractQueryTest.class.getResourceAsStream(file);
-        ContinueLineReader r = new ContinueLineReader(new LineNumberReader(new InputStreamReader(in)));
+
         String className = getClass().getName();
         String shortClassName = className.replaceAll("org.apache.jackrabbit.oak.plugins.index.", "oajopi.");
+
+        // OAK-3252 getting the input/output paths for better error reporting. Still using the
+        // stream for input as other projects uses dependencies on sql2.txt of oak-core and it fails
+        // resolving the whole path on disk
+        File input = new File(AbstractQueryTest.class.getResource(file).getPath());
+        File output = new File("target/" + shortClassName + "_" + file);
+        
+        InputStream in = AbstractQueryTest.class.getResourceAsStream(file);
+        ContinueLineReader r = new ContinueLineReader(new LineNumberReader(new InputStreamReader(in)));
         PrintWriter w = new PrintWriter(new OutputStreamWriter(
-                new FileOutputStream("target/" + shortClassName + "_"
-                        + file)));
+                new FileOutputStream(output)));
         HashSet<String> knownQueries = new HashSet<String>();
         boolean errors = false;
         try {
@@ -217,10 +231,15 @@ public abstract class AbstractQueryTest {
             r.close();
         }
         if (errors) {
-            throw new Exception("Results in target/" + file
+            RandomAccessFile f = new RandomAccessFile(output, "r");
+            byte[] data = new byte[(int) f.length()];
+            f.readFully(data);
+            f.close();
+            throw new Exception("Results in " + output.getPath()
                     + " don't match expected "
-                    + "results in src/test/resources/" + file
-                    + "; compare the files for details");
+                    + "results in " + input.getPath()
+                    + "; compare the files for details; got=\n" +
+                    new String(data, "UTF-8"));
         }
     }
 
@@ -292,17 +311,26 @@ public abstract class AbstractQueryTest {
     protected List<String> assertQuery(String sql, String language,
                                        List<String> expected, boolean skipSort) {
         List<String> paths = executeQuery(sql, language, true, skipSort);
-        for (String p : expected) {
-            assertTrue("Expected path " + p + " not found, got " + paths, paths.contains(p));
-        }
-        assertEquals("Result set size is different", expected.size(),
-                paths.size());
+        assertResult(expected, paths);
         return paths;
 
+    }
+    
+    protected static void assertResult(@Nonnull List<String> expected, @Nonnull List<String> actual) {
+        for (String p : checkNotNull(expected)) {
+            assertTrue("Expected path " + p + " not found, got " + actual, checkNotNull(actual)
+                .contains(p));
+        }
+        assertEquals("Result set size is different", expected.size(),
+                actual.size());
     }
 
     protected void setTraversalEnabled(boolean traversalEnabled) {
         ((QueryEngineImpl) qe).setTraversalEnabled(traversalEnabled);
+    }
+    
+    protected void setForceOptimised(@Nonnull ForceOptimised forceOptimised) {
+        ((QueryEngineImpl) qe).setForceOptimised(checkNotNull(forceOptimised));
     }
 
     protected static String readRow(ResultRow row, boolean pathOnly) {

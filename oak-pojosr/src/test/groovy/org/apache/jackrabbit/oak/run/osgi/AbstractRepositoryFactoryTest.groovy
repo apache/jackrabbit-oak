@@ -26,6 +26,7 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
+import org.osgi.framework.BundleContext
 import org.osgi.framework.ServiceReference
 import org.osgi.service.cm.ConfigurationAdmin
 import org.osgi.util.tracker.ServiceTracker
@@ -34,7 +35,8 @@ import javax.jcr.*
 import java.util.concurrent.TimeUnit
 
 import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_HOME
-import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_STARTUP_TIMEOUT
+import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_TIMEOUT_IN_SECS
+import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_BUNDLE_FILTER
 
 abstract class AbstractRepositoryFactoryTest{
     static final int SVC_WAIT_TIME = Integer.getInteger("pojosr.waitTime", 10)
@@ -51,7 +53,14 @@ abstract class AbstractRepositoryFactoryTest{
         workDir = tmpFolder.getRoot();
         config = [
                 (REPOSITORY_HOME): workDir.absolutePath,
-                (REPOSITORY_STARTUP_TIMEOUT) : 2
+                (REPOSITORY_TIMEOUT_IN_SECS) : 60,
+                (REPOSITORY_BUNDLE_FILTER) : '''
+                            (|
+                            (Bundle-SymbolicName=org.apache.jackrabbit*)
+                            (Bundle-SymbolicName=org.apache.sling*)
+                            (Bundle-SymbolicName=org.apache.felix*)
+                            (Bundle-SymbolicName=org.apache.aries*)
+                            )''',
         ]
     }
 
@@ -67,6 +76,11 @@ abstract class AbstractRepositoryFactoryTest{
         return ((ServiceRegistryProvider) repository).getServiceRegistry()
     }
 
+    protected <T> void assertNoService(Class<T> clazz) {
+        ServiceReference<T> sr = registry.getServiceReference(clazz.name)
+        assert sr == null: "Service of type $clazz was found"
+    }
+
     protected <T> T getService(Class<T> clazz) {
         ServiceReference<T> sr = registry.getServiceReference(clazz.name)
         assert sr: "Not able to found a service of type $clazz"
@@ -74,7 +88,11 @@ abstract class AbstractRepositoryFactoryTest{
     }
 
     protected <T> T getServiceWithWait(Class<T> clazz) {
-        ServiceTracker st = new ServiceTracker(getRegistry().bundleContext, clazz.name, null)
+        return getServiceWithWait(clazz, getRegistry().bundleContext)
+    }
+
+    protected static <T> T getServiceWithWait(Class<T> clazz, BundleContext bundleContext) {
+        ServiceTracker st = new ServiceTracker(bundleContext, clazz.name, null)
         st.open()
         T sr = (T) st.waitForService(TimeUnit.SECONDS.toMillis(SVC_WAIT_TIME))
         assert sr , "No service found for ${clazz.name}"

@@ -17,38 +17,47 @@
 package org.apache.jackrabbit.oak.plugins.blob;
 
 import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.LineNumberReader;
 import java.sql.Timestamp;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.io.Closeables;
 import com.google.common.io.Files;
-
+import com.google.common.util.concurrent.ListenableFutureTask;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.InMemoryDataRecord;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
@@ -56,6 +65,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+
+import static com.google.common.collect.Lists.newArrayList;
 
 /**
  * Mark and sweep garbage collector.
@@ -73,9 +84,9 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
     public static final String TEMP_DIR = StandardSystemProperty.JAVA_IO_TMPDIR.value();
 
     public static final int DEFAULT_BATCH_COUNT = 2048;
-
-    public static enum State {NOT_RUNNING, MARKING, SWEEPING}
-
+    
+    public static final String DELIM = ",";
+    
     /** The last modified time before current time of blobs to consider for garbage collection. */
     private final long maxLastModifiedInterval;
 
@@ -84,19 +95,15 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
     /** Helper class to mark blob references which **/
     private final BlobReferenceRetriever marker;
-    
-    /** The garbage collector file state */
-    private final GarbageCollectorFileState fs;
 
     private final Executor executor;
 
     /** The batch count. */
     private final int batchCount;
 
-    private String repoId;
+    private final String repoId;
 
-    /** Flag to indicate the state of the gc **/
-    private State state = State.NOT_RUNNING;
+    private final String root;
 
     /**
      * Creates an instance of MarkSweepGarbageCollector
@@ -127,7 +134,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         this.batchCount = batchCount;
         this.maxLastModifiedInterval = maxLastModifiedInterval;
         this.repoId = repositoryId;
-        fs = new GarbageCollectorFileState(root);
+        this.root = root;
     }
 
     /**
@@ -158,13 +165,68 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
     }
 
     /**
-     * Gets the state of the gc process.
-     *
-     * @return the state
+     * Returns the stats related to GC for all repos
+     * 
+     * @return a list of GarbageCollectionRepoStats objects
+     * @throws Exception
      */
-    public State getState() {
-        return state;
+    @Override
+    public List<GarbageCollectionRepoStats> getStats() throws Exception {
+        List<GarbageCollectionRepoStats> stats = newArrayList();
+        if (SharedDataStoreUtils.isShared(blobStore)) {
+            // Get all the references available
+            List<DataRecord> refFiles =
+                ((SharedDataStore) blobStore).getAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType());
+            Map<String, DataRecord> references = Maps.uniqueIndex(refFiles, new Function<DataRecord, String>() {
+                @Override 
+                public String apply(DataRecord input) {
+                    return SharedStoreRecordType.REFERENCES.getIdFromName(input.getIdentifier().toString());
+                }
+            });
+    
+            // Get all the markers available
+            List<DataRecord> markerFiles =
+                ((SharedDataStore) blobStore).getAllMetadataRecords(SharedStoreRecordType.MARKED_START_MARKER.getType());
+            Map<String, DataRecord> markers = Maps.uniqueIndex(markerFiles, new Function<DataRecord, String>() {
+                @Override
+                public String apply(DataRecord input) {
+                    return SharedStoreRecordType.MARKED_START_MARKER.getIdFromName(input.getIdentifier().toString());
+                }
+            });
+            
+            // Get all the repositories registered
+            List<DataRecord> repoFiles =
+                ((SharedDataStore) blobStore).getAllMetadataRecords(SharedStoreRecordType.REPOSITORY.getType());
+    
+            for (DataRecord repoRec : repoFiles) {
+                String repoId = SharedStoreRecordType.REFERENCES.getIdFromName(repoRec.getIdentifier().toString());
+                GarbageCollectionRepoStats stat = new GarbageCollectionRepoStats();
+                stat.setRepositoryId(repoId);
+                if (references.containsKey(repoId)) {
+                    DataRecord refRec = references.get(repoId);
+                    stat.setEndTime(refRec.getLastModified());
+                    stat.setLength(refRec.getLength());
+                    
+                    if (markers.containsKey(repoId)) {
+                        stat.setStartTime(markers.get(repoId).getLastModified());    
+                    }
+                    
+                    LineNumberReader reader = null;
+                    try {
+                        reader = new LineNumberReader(new InputStreamReader(refRec.getStream()));
+                        while (reader.readLine() != null) {
+                        }
+                        stat.setNumLines(reader.getLineNumber());
+                    } finally {
+                        Closeables.close(reader, true);
+                    }
+                }
+                stats.add(stat);
+            }
+        }
+        return stats;
     }
+
 
     /**
      * Mark and sweep. Main entry method for GC.
@@ -172,39 +234,41 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      * @param markOnly whether to mark only
      * @throws Exception the exception
      */
-    private void markAndSweep(boolean markOnly) throws Exception {
+    protected void markAndSweep(boolean markOnly) throws Exception {
         boolean threw = true;
+        GarbageCollectorFileState fs = new GarbageCollectorFileState(root);
         try {
             Stopwatch sw = Stopwatch.createStarted();
             LOG.info("Starting Blob garbage collection");
-
-            mark();
+            
+            long markStart = System.currentTimeMillis();
+            mark(fs);
             if (!markOnly) {
-                int deleteCount = sweep();
+                long deleteCount = sweep(fs, markStart);
                 threw = false;
 
-                LOG.info(
-                    "Blob garbage collection completed in {}. Number of blobs identified for deletion [{}] (This "
-                        + "includes blobs newer than configured interval [{}] which are ignored for deletion)",
-                    sw.toString(), deleteCount, maxLastModifiedInterval);
+                LOG.info("Blob garbage collection completed in {}. Number of blobs deleted [{}]", sw.toString(),
+                    deleteCount, maxLastModifiedInterval);
             }
         } finally {
             if (!LOG.isTraceEnabled()) {
                 Closeables.close(fs, threw);
             }
-            state = State.NOT_RUNNING;
         }
     }
 
     /**
      * Mark phase of the GC.
+     * @param fs the garbage collector file state
      */
-    private void mark() throws IOException, DataStoreException {
-        state = State.MARKING;
+    protected void mark(GarbageCollectorFileState fs) throws IOException, DataStoreException {
         LOG.debug("Starting mark phase of the garbage collector");
-
+        
+        // Create a time marker in the data store if applicable
+        GarbageCollectionType.get(blobStore).addMarkedStartMarker(blobStore, repoId);
+        
         // Mark all used references
-        iterateNodeTree();
+        iterateNodeTree(fs);
 
         // Move the marked references file to the data store meta area if applicable
         GarbageCollectionType.get(blobStore).addMarked(blobStore, fs, repoId);
@@ -215,22 +279,28 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
     /**
      * Difference phase where the GC candidates are identified.
      * 
+     * @param fs the garbage collector file state
      * @throws IOException
      *             Signals that an I/O exception has occurred.
      */
-    private void difference() throws IOException {
+    private void difference(GarbageCollectorFileState fs) throws IOException {
         LOG.debug("Starting difference phase of the garbage collector");
 
         FileLineDifferenceIterator iter = new FileLineDifferenceIterator(
                 fs.getMarkedRefs(),
                 fs.getAvailableRefs());
+        calculateDifference(fs, iter);
 
+        LOG.debug("Ending difference phase of the garbage collector");
+    }
+    
+    private long calculateDifference(GarbageCollectorFileState fs, FileLineDifferenceIterator iter) throws IOException {
+        long numCandidates = 0;
         BufferedWriter bufferWriter = null;
         try {
             bufferWriter = Files.newWriter(fs.getGcCandidates(), Charsets.UTF_8);
-            List<String> expiredSet = Lists.newArrayList();
+            List<String> expiredSet = newArrayList();
 
-            int numCandidates = 0;
             while (iter.hasNext()) {
                 expiredSet.add(iter.next());
                 if (expiredSet.size() > getBatchCount()) {
@@ -243,15 +313,14 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 numCandidates += expiredSet.size();
                 saveBatchToFile(expiredSet, bufferWriter);
             }
-            LOG.debug("Found GC candidates - " + numCandidates);
+            LOG.debug("Found candidates - " + numCandidates);
         } finally {
             IOUtils.closeQuietly(bufferWriter);
             IOUtils.closeQuietly(iter);
         }
-
-        LOG.debug("Ending difference phase of the garbage collector");
+        return numCandidates;
     }
-
+    
     /**
      * Sweep phase of gc candidate deletion.
      * <p>
@@ -281,8 +350,10 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      *
      * @return the number of blobs deleted
      * @throws Exception the exception
+     * @param fs the garbage collector file state
+     * @param markStart the start time of mark to take as reference for deletion
      */
-    private int sweep() throws Exception {
+    protected long sweep(GarbageCollectorFileState fs, long markStart) throws Exception {
         long earliestRefAvailTime;
         // Merge all the blob references available from all the reference files in the data store meta store
         // Only go ahead if merge succeeded
@@ -290,62 +361,71 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             earliestRefAvailTime =
                     GarbageCollectionType.get(blobStore).mergeAllMarkedReferences(blobStore, fs);
             LOG.debug("Earliest reference available for timestamp [{}]", earliestRefAvailTime);
+            earliestRefAvailTime = (earliestRefAvailTime < markStart ? earliestRefAvailTime : markStart);
         } catch (Exception e) {
             return 0;
         }
 
         // Find all blob references after iterating over the whole repository
-        (new BlobIdRetriever()).call();
+        (new BlobIdRetriever(fs)).call();
 
         // Calculate the references not used
-        difference();
-        int count = 0;
-        state = State.SWEEPING;
+        difference(fs);
+        long count = 0;
+        long deleted = 0;
+        
+        long lastMaxModifiedTime = getLastMaxModifiedTime(earliestRefAvailTime); 
         LOG.debug("Starting sweep phase of the garbage collector");
         LOG.debug("Sweeping blobs with modified time > than the configured max deleted time ({}). ",
-                timestampToString(getLastMaxModifiedTime(earliestRefAvailTime)));
+                timestampToString(lastMaxModifiedTime));
 
         ConcurrentLinkedQueue<String> exceptionQueue = new ConcurrentLinkedQueue<String>();
 
         LineIterator iterator =
                 FileUtils.lineIterator(fs.getGcCandidates(), Charsets.UTF_8.name());
-        List<String> ids = Lists.newArrayList();
+        List<String> ids = newArrayList();
 
         while (iterator.hasNext()) {
             ids.add(iterator.next());
 
-            if (ids.size() > getBatchCount()) {
+            if (ids.size() >= getBatchCount()) {
                 count += ids.size();
-                executor.execute(new Sweeper(ids, exceptionQueue, earliestRefAvailTime));
-                ids = Lists.newArrayList();
+                deleted += sweepInternal(ids, exceptionQueue, lastMaxModifiedTime);
+                ids = newArrayList();
             }
         }
         if (!ids.isEmpty()) {
             count += ids.size();
-            executor.execute(new Sweeper(ids, exceptionQueue, earliestRefAvailTime));
+            deleted += sweepInternal(ids, exceptionQueue, lastMaxModifiedTime);
         }
 
-        count -= exceptionQueue.size();
         BufferedWriter writer = null;
         try {
             if (!exceptionQueue.isEmpty()) {
                 writer = Files.newWriter(fs.getGarbage(), Charsets.UTF_8);
-                saveBatchToFile(Lists.newArrayList(exceptionQueue), writer);
+                saveBatchToFile(newArrayList(exceptionQueue), writer);
             }
         } finally {
             LineIterator.closeQuietly(iterator);
             IOUtils.closeQuietly(writer);
         }
+
         if(!exceptionQueue.isEmpty()) {
-            LOG.warn(
-                "Unable to delete some blobs entries from the blob store. This may happen if blob modified time is > "
-                    + "than the max deleted time ({}). Details around such blob entries can be found in [{}]",
-                timestampToString(getLastMaxModifiedTime(earliestRefAvailTime)), fs.getGarbage().getAbsolutePath());
+            LOG.warn("Unable to delete some blobs entries from the blob store. Details around such blob entries can " 
+                         + "be found in [{}]",
+                        fs.getGarbage().getAbsolutePath());
         }
+        if(count != deleted) {
+            LOG.warn("Deleted only [{}] blobs entries from the [{}] candidates identified. This may happen if blob " 
+                         + "modified time is > "
+                         + "than the max deleted time ({})", deleted, count,
+                        timestampToString(lastMaxModifiedTime));
+        }
+
         // Remove all the merged marked references
         GarbageCollectionType.get(blobStore).removeAllMarkedReferences(blobStore);
         LOG.debug("Ending sweep phase of the garbage collector");
-        return count;
+        return deleted;
     }
 
     private int getBatchCount() {
@@ -367,48 +447,36 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         ids.clear();
         writer.flush();
     }
-
+    
     /**
-     * Sweeper thread.
+     * Deletes a batch of blobs from blob store.
+     * 
+     * @param ids
+     * @param exceptionQueue
+     * @param maxModified
      */
-    class Sweeper implements Runnable {
-
-        /** The exception queue. */
-        private final ConcurrentLinkedQueue<String> exceptionQueue;
-
-        /** The ids to sweep. */
-        private final List<String> ids;
-
-        private final long maxModified;
-
-        public Sweeper(List<String> ids, ConcurrentLinkedQueue<String> exceptionQueue,
-                long maxModified) {
-            this.exceptionQueue = exceptionQueue;
-            this.ids = ids;
-            this.maxModified = maxModified;
-        }
-
-        @Override
-        public void run() {
-            try {
-                LOG.debug("Blob ids to be deleted {}", ids);
-                boolean deleted = blobStore.deleteChunks(ids, getLastMaxModifiedTime(maxModified));
-                if (!deleted) {
-                    // Only log and do not add to exception queue since some blobs may not match the
-                    // lastMaxModifiedTime criteria.
-                    LOG.debug("Some blobs were not deleted from the batch : [{}]", ids);
-                }
-            } catch (Exception e) {
-                LOG.warn("Error occurred while deleting blob with ids [{}]", ids, e);
-                exceptionQueue.addAll(ids);
+    private long sweepInternal(List<String> ids, ConcurrentLinkedQueue<String> exceptionQueue, long maxModified) {
+        long deleted = 0;
+        try {
+            LOG.trace("Blob ids to be deleted {}", ids);
+            deleted = blobStore.countDeleteChunks(ids, maxModified);
+            if (deleted != ids.size()) {
+                // Only log and do not add to exception queue since some blobs may not match the
+                // lastMaxModifiedTime criteria.
+                LOG.debug("Some [{}] blobs were not deleted from the batch : [{}]", ids.size() - deleted, ids);
             }
+        } catch (Exception e) {
+            LOG.warn("Error occurred while deleting blob with ids [{}]", ids, e);
+            exceptionQueue.addAll(ids);
         }
+        return deleted;
     }
 
     /**
      * Iterates the complete node tree and collect all blob references
+     * @param fs the garbage collector file state
      */
-    private void iterateNodeTree() throws IOException {
+    protected void iterateNodeTree(GarbageCollectorFileState fs) throws IOException {
         final BufferedWriter writer = Files.newWriter(fs.getMarkedRefs(), Charsets.UTF_8);
         final AtomicInteger count = new AtomicInteger();
         try {
@@ -419,16 +487,18 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                         private final boolean debugMode = LOG.isTraceEnabled();
 
                         @Override
-                        public void addReference(String blobId) {
+                        public void addReference(String blobId, String nodeId) {
                             if (debugMode) {
-                                LOG.trace("BlobId : {}", blobId);
+                                LOG.trace("BlobId : {}, NodeId : {}", blobId, nodeId);
                             }
 
                             try {
                                 Iterator<String> idIter = blobStore.resolveChunks(blobId);
+                                Joiner delimJoiner = Joiner.on(DELIM).skipNulls();
                                 while (idIter.hasNext()) {
                                     String id = idIter.next();
-                                    idBatch.add(id);
+                                    
+                                    idBatch.add(delimJoiner.join(id, nodeId));
 
                                     if (idBatch.size() >= getBatchCount()) {
                                         saveBatchToFile(idBatch, writer);
@@ -453,18 +523,77 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             );
             LOG.info("Number of valid blob references marked under mark phase of " +
                     "Blob garbage collection [{}]", count.get());
-            // sort the marked references
-            GarbageCollectorFileState.sort(fs.getMarkedRefs());
+            // sort the marked references with the first part of the key
+            GarbageCollectorFileState.sort(fs.getMarkedRefs(), 
+                                              new Comparator<String>() {
+                                                    @Override
+                                                    public int compare(String s1, String s2) {
+                                                        return s1.split(DELIM)[0].compareTo(s2.split(DELIM)[0]);
+                                                    }
+                                                });
         } finally {
             IOUtils.closeQuietly(writer);
         }
     }
-
-
+    
+    /**
+     * Checks for the DataStore consistency and reports the number of missing blobs still referenced.
+     * 
+     * @return the missing blobs
+     * @throws Exception
+     */
+    @Override
+    public long checkConsistency() throws Exception {
+        boolean threw = true;
+        GarbageCollectorFileState fs = new GarbageCollectorFileState(root);
+        long candidates = 0;
+        
+        try {
+            Stopwatch sw = Stopwatch.createStarted();
+            LOG.info("Starting blob consistency check");
+    
+            // Find all blobs available in the blob store
+            ListenableFutureTask<Integer> blobIdRetriever = ListenableFutureTask.create(new BlobIdRetriever(fs));
+            executor.execute(blobIdRetriever);
+    
+            // Mark all used blob references
+            iterateNodeTree(fs);
+            
+            try {
+                blobIdRetriever.get();
+            } catch (ExecutionException e) {
+                LOG.warn("Error occurred while fetching all the blobIds from the BlobStore");
+                threw = false;
+                throw e;
+            }
+            
+            LOG.trace("Starting difference phase of the consistency check");
+            FileLineDifferenceIterator iter = new FileLineDifferenceIterator(fs.getAvailableRefs(), fs.getMarkedRefs());
+            candidates = calculateDifference(fs, iter);
+            LOG.trace("Ending difference phase of the consistency check");
+            
+            LOG.info("Consistency check found [{}] missing blobs", candidates);
+            if (candidates > 0) {
+                LOG.warn("Consistency check failure in the the blob store : {}, check missing candidates in file {}",
+                            blobStore, fs.getGcCandidates().getAbsolutePath());
+            }
+        } finally {
+            if (!LOG.isTraceEnabled() && candidates == 0) {
+                Closeables.close(fs, threw);
+            }
+        }
+        return candidates;
+    }
     /**
      * BlobIdRetriever class to retrieve all blob ids.
      */
     private class BlobIdRetriever implements Callable<Integer> {
+        private final GarbageCollectorFileState fs;
+    
+        public BlobIdRetriever(GarbageCollectorFileState fs) {
+            this.fs = fs;
+        }
+    
         @Override
         public Integer call() throws Exception {
             LOG.debug("Starting retrieve of all blobs");
@@ -474,7 +603,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 bufferWriter = new BufferedWriter(
                         new FileWriter(fs.getAvailableRefs()));
                 Iterator<String> idsIter = blobStore.getAllChunkIds(0);
-                List<String> ids = Lists.newArrayList();
+                List<String> ids = newArrayList();
 
                 while (idsIter.hasNext()) {
                     ids.add(idsIter.next());
@@ -493,7 +622,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
                 // sort the file
                 GarbageCollectorFileState.sort(fs.getAvailableRefs());
-                LOG.debug("Number of blobs present in BlobStore : [{}] ", blobsCount);
+                LOG.info("Number of blobs present in BlobStore : [{}] ", blobsCount);
             } finally {
                 IOUtils.closeQuietly(bufferWriter);
             }
@@ -535,7 +664,11 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             LineIterator.closeQuietly(marked);
             LineIterator.closeQuietly(all);
         }
-
+        
+        private String getKey(String row) {
+            return row.split(DELIM)[0];
+        }
+        
         private String computeNextDiff() {
             if (!all.hasNext()) {
                 return null;
@@ -551,7 +684,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 diff = all.next();
                 while (peekMarked.hasNext()) {
                     String marked = peekMarked.peek();
-                    int comparisonResult = diff.compareTo(marked);
+                    int comparisonResult = getKey(diff).compareTo(getKey(marked));
                     if (comparisonResult > 0) {
                         //Extra entries in marked. Ignore them and move on
                         peekMarked.next();
@@ -564,7 +697,12 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                     } else {
                         //This entry is not found in marked entries
                         //hence part of diff
-                        return diff;
+                        if (!InMemoryDataRecord.isInstance(getKey(diff))) {
+                            return diff;
+                        } else {
+                            diff = null;
+                            break;
+                        }
                     }
                 }
             }
@@ -586,13 +724,14 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
     enum GarbageCollectionType {
         SHARED {
             /**
-             * Remove the maked references from the blob store root. Default NOOP.
+             * Remove the maked references and the marked markers from the blob store root. Default NOOP.
              * 
              * @param blobStore the blobStore instance
              */
             @Override
             void removeAllMarkedReferences(GarbageCollectableBlobStore blobStore) {
                 ((SharedDataStore) blobStore).deleteAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType());
+                ((SharedDataStore) blobStore).deleteAllMetadataRecords(SharedStoreRecordType.MARKED_START_MARKER.getType());
             }
 
             /**
@@ -621,15 +760,25 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                         SharedDataStoreUtils.refsNotAvailableFromRepos(repoFiles, refFiles);
                 if (unAvailRepos.isEmpty()) {
                     // List of files to be merged
-                    List<File> files = Lists.newArrayList();
+                    List<File> files = newArrayList();
                     for (DataRecord refFile : refFiles) {
                         File file = GarbageCollectorFileState.copy(refFile.getStream());
                         files.add(file);
                     }
 
                     GarbageCollectorFileState.merge(files, fs.getMarkedRefs());
+                    
+                    // Get the timestamp to indicate the earliest mark phase start
+                    List<DataRecord> markerFiles =
+                        ((SharedDataStore) blobStore).getAllMetadataRecords(
+                                                        SharedStoreRecordType.MARKED_START_MARKER.getType());
+                    long earliestMarker = SharedDataStoreUtils.getEarliestRecord(markerFiles).getLastModified();
+                    LOG.trace("Earliest marker timestamp {}", earliestMarker);
 
-                    return SharedDataStoreUtils.getEarliestRecord(refFiles).getLastModified();
+                    long earliestRef = SharedDataStoreUtils.getEarliestRecord(refFiles).getLastModified();
+                    LOG.trace("Earliest ref timestamp {}", earliestRef);
+
+                    return (earliestMarker < earliestRef ? earliestMarker : earliestRef);
                 } else {
                     LOG.error("Not all repositories have marked references available : {}", unAvailRepos);
                     throw new IOException("Not all repositories have marked references available");
@@ -656,6 +805,17 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                     Closeables.close(is, false);
                 }
             }
+            
+            @Override
+            public void addMarkedStartMarker(GarbageCollectableBlobStore blobStore, String repoId) {
+                try {
+                    ((SharedDataStore) blobStore).addMetadataRecord(new ByteArrayInputStream(new byte[0]),
+                                                                       SharedStoreRecordType.MARKED_START_MARKER
+                                                                           .getNameFromId(repoId));
+                } catch (DataStoreException e) {
+                    LOG.debug("Error creating marked time marker for repo : {}", repoId);
+                }
+            }
         },
         DEFAULT;
 
@@ -680,5 +840,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             }
             return DEFAULT;
         }
+    
+        public void addMarkedStartMarker(GarbageCollectableBlobStore blobStore, String repoId) {}
     }
 }

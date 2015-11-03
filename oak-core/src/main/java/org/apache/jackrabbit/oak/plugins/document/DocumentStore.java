@@ -308,4 +308,15 @@ public interface DocumentStore {
      * @return description of the underlying storage.
      */
     Map<String, String> getMetadata();
+
+    /**
+     * @return the estimated time difference in milliseconds between
+     * the local instance and the (typically common, shared) document server system.
+     * The value can be zero if the times are estimated to be equal,
+     * positive when the local instance is ahead of the remote server
+     * and negative when the local instance is behind the remote server. An invocation is not cached
+     * and typically requires a round-trip to the server (but that is not a requirement).
+     * @throws UnsupportedOperationException if this DocumentStore does not support this method
+     */
+    long determineServerTimeDifferenceMillis();
 }

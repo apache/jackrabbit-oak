@@ -48,9 +48,10 @@ public class StringCache {
      *
      * @param maxSize the maximum memory in bytes.
      */
-    StringCache(int maxSize) {
+    StringCache(long maxSize) {
         cache = CacheLIRS.<StringCacheEntry, String>newBuilder()
-                .maximumSize(maxSize)
+                .module("StringCache")
+                .maximumWeight(maxSize)
                 .averageWeight(100)
                 .build();
     }
@@ -206,6 +207,15 @@ public class StringCache {
             StringCacheEntry o = (StringCacheEntry) other;
             return o.hash == hash && o.msb == msb && o.lsb == lsb &&
                     o.offset == offset;
+        }
+        
+        @Override
+        public String toString() {
+            StringBuilder buff = new StringBuilder();
+            buff.append(Long.toHexString(msb)).
+                append(':').append(Long.toHexString(lsb)).
+                append('+').append(Integer.toHexString(offset));
+            return buff.toString();
         }
 
     }

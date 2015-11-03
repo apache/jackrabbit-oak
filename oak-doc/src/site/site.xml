@@ -41,7 +41,7 @@ under the License.
       <item href="nodestore/overview.html" name="Node Storage" />
       <item href="plugins/blobstore.html" name="Blob Storage" />
       <item href="nodestore/documentmk.html" name="DocumentNodeStore" />
-      <item href="nodestore/segmentmk.html" name="SegmentNodeStore" />
+      <item href="nodestore/segment/overview.html" name="Segment Node Store" />
       <item href="query/query.html" name="Query" />
       <item href="query/lucene.html" name="Index - Lucene" />
       <item href="query/solr.html" name="Index - Solr" />
@@ -54,6 +54,7 @@ under the License.
       <item href="construct.html" name="Repository Construction" />
       <item href="osgi_config.html" name="Configuring Oak" />
       <item href="command_line.html" name="Command Line Tools" />
+      <item href="migration.html" name="Migration" />
       <item href="differences.html" name="Differences to Jackrabbit 2" />
       <item href="known_issues.html" name="Known Issues" />
       <item href="dos_and_donts.html" name="Dos and Don'ts" />
@@ -63,6 +64,8 @@ under the License.
     <menu name="Developing Oak">
       <item href="dev_getting_started.html" name="Getting Started" />
       <item href="participating.html" name="Participating" />
+      <item href="developing-with-git.html" name="Developing with Git" />
+      <item href="diagnostic-builds.html" name="Cutting diagnostic builds" />
       <item href="attribution.html" name="Attribution" />
     </menu>
     <menu name="Links">

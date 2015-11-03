@@ -13,6 +13,10 @@
  */
 package org.apache.jackrabbit.oak.query;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.query.ast.AstElementFactory.copyElementAndCheckReference;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -24,9 +28,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
+
+import com.google.common.base.Strings;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Ordering;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -78,6 +86,7 @@ import org.apache.jackrabbit.oak.query.plan.ExecutionPlan;
 import org.apache.jackrabbit.oak.query.plan.SelectorExecutionPlan;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
@@ -122,8 +131,15 @@ public class QueryImpl implements Query {
 
     private static final Logger LOG = LoggerFactory.getLogger(QueryImpl.class);
 
+    private static final Ordering<QueryIndex> MINIMAL_COST_ORDERING = new Ordering<QueryIndex>() {
+        @Override
+        public int compare(QueryIndex left, QueryIndex right) {
+            return Double.compare(left.getMinimumCost(), right.getMinimumCost());
+        }
+    };
+
     SourceImpl source;
-    final String statement;
+    private String statement;
     final HashMap<String, PropertyValue> bindVariableMap = new HashMap<String, PropertyValue>();
     final HashMap<String, Integer> selectorIndexes = new HashMap<String, Integer>();
     final ArrayList<SelectorImpl> selectors = new ArrayList<SelectorImpl>();
@@ -152,6 +168,16 @@ public class QueryImpl implements Query {
     private long size = -1;
     private boolean prepared;
     private ExecutionContext context;
+    
+    /**
+     * whether the object has been initialised or not
+     */
+    private boolean init;
+    
+    /**
+     * whether the query is a result of optimisation or original one.
+     */
+    private boolean optimised;
 
     private boolean isSortedByIndex;
 
@@ -167,12 +193,19 @@ public class QueryImpl implements Query {
 
     QueryImpl(String statement, SourceImpl source, ConstraintImpl constraint,
             ColumnImpl[] columns, NamePathMapper mapper, QueryEngineSettings settings) {
+        this(statement, source, constraint, columns, mapper, settings, false);
+    }
+
+    QueryImpl(String statement, SourceImpl source, ConstraintImpl constraint,
+        ColumnImpl[] columns, NamePathMapper mapper, QueryEngineSettings settings, 
+        final boolean optimised) {
         this.statement = statement;
         this.source = source;
         this.constraint = constraint;
         this.columns = columns;
         this.namePathMapper = mapper;
         this.settings = settings;
+        this.optimised = optimised;
     }
 
     @Override
@@ -408,6 +441,8 @@ public class QueryImpl implements Query {
             }
             distinctColumns[i] = distinct;
         }
+        
+        init = true;
     }
 
     @Override
@@ -466,6 +501,9 @@ public class QueryImpl implements Query {
         prepare();
         if (explain) {
             String plan = getPlan();
+            if (measure) {
+                plan += " cost: { " + getIndexCostInfo() + " }";
+            }
             columns = new ColumnImpl[] { new ColumnImpl("explain", "plan", "plan")};
             ResultRowImpl r = new ResultRowImpl(this,
                     Tree.EMPTY_ARRAY,
@@ -486,6 +524,18 @@ public class QueryImpl implements Query {
         }
         Iterator<ResultRowImpl> it =
                 FilterIterators.newCombinedFilter(rowIt, distinct, limit, offset, orderBy, settings);
+        if (orderBy != null) {
+            // this will force the rows to be read, so that the size is known
+            it.hasNext();
+            // we need the size, and there is no other way to get it right now
+            // but we also have to take limit and offset into account
+            long read = rowIt.getReadCount();
+            // we will ignore whatever is behind 'limit+offset'
+            read = Math.min(saturatedAdd(limit, offset), read);
+            // and we will skip 'offset' entries
+            read = Math.max(0, read - offset);
+            size = read;
+        }
         if (measure) {
             // return the measuring iterator delegating the readCounts to the rowIterator
             it = new MeasuringIterator(this, it) {
@@ -560,6 +610,11 @@ public class QueryImpl implements Query {
         return source.getPlan(context.getBaseState());
     }
     
+    @Override
+    public String getIndexCostInfo() {
+        return source.getIndexCostInfo(context.getBaseState());
+    }
+
     @Override
     public double getEstimatedCost() {
         return estimatedCost;
@@ -908,7 +963,19 @@ public class QueryImpl implements Query {
 
         double bestCost = Double.POSITIVE_INFINITY;
         IndexPlan bestPlan = null;
-        for (QueryIndex index : indexProvider.getQueryIndexes(rootState)) {
+
+        // Sort the indexes according to their minimum cost to be able to skip the remaining indexes if the cost of the
+        // current index is below the minimum cost of the next index.
+        List<? extends QueryIndex> queryIndexes = MINIMAL_COST_ORDERING
+                .sortedCopy(indexProvider.getQueryIndexes(rootState));
+        for (int i = 0; i < queryIndexes.size(); i++) {
+            QueryIndex index = queryIndexes.get(i);
+            double minCost = index.getMinimumCost();
+            if (minCost > bestCost) {
+                // Stop looking if the minimum cost is higher than the current best cost
+                break;
+            }
+
             double cost;
             String indexName = index.getIndexName();
             IndexPlan indexPlan = null;
@@ -1091,11 +1158,16 @@ public class QueryImpl implements Query {
     @Override
     public long getSize(SizePrecision precision, long max) {
         // Note: DISTINCT is ignored
+        if (size != -1) {
+            // "order by" was used, so we know the size
+            return size;
+        }
         return Math.min(limit, source.getSize(precision, max));
     }
 
+    @Override
     public String getStatement() {
-        return statement;
+        return Strings.isNullOrEmpty(statement) ? toString() : statement;
     }
 
     public QueryEngineSettings getSettings() {
@@ -1126,4 +1198,171 @@ public class QueryImpl implements Query {
         return sum.min(max).max(min).longValue();
     }
 
+    @Override
+    public Query optimise() {
+        // optimising for UNION
+        Query optimised = this;
+        
+        if (constraint != null) {
+            Set<ConstraintImpl> unionList = constraint.simplifyForUnion();
+            if (unionList.size() > 1) {
+                // there are some cases where multiple ORs simplify into a single one. If we get a
+                // union list of just one we don't really have to UNION anything.
+                QueryImpl left = null;
+                Query right = null;
+                // we have something to do here.
+                for (ConstraintImpl c : unionList) {
+                    if (right != null) {
+                        right = newOptimisedUnionQuery(left, right);
+                    } else {
+                        // pulling left to the right
+                        if (left != null) {
+                            right = left;
+                        }
+                    }
+                    
+                    // cloning original query
+                    left = (QueryImpl) this.copyOf(true);
+                    
+                    // cloning the constraints and assigning to new query
+                    left.constraint = (ConstraintImpl) copyElementAndCheckReference(c);
+                    // re-composing the statement for better debug messages
+                    left.statement = recomposeStatement(left);
+                }
+                
+                optimised = newOptimisedUnionQuery(left, right);
+            }
+        }
+        
+        return optimised;
+    }
+    
+    private static String recomposeStatement(@Nonnull QueryImpl query) {
+        checkNotNull(query);
+        String original = query.getStatement();
+        String origUpper = original.toUpperCase();
+        StringBuilder recomputed = new StringBuilder();
+        final String where = " WHERE ";
+        final String orderBy = " ORDER BY ";
+        int whereOffset = where.length();
+        
+        if (query.getConstraint() == null) {
+            recomputed.append(original);
+        } else {
+            recomputed.append(original.substring(0, origUpper.indexOf(where) + whereOffset));
+            recomputed.append(query.getConstraint());
+            if (origUpper.indexOf(orderBy) > -1) {
+                recomputed.append(original.substring(origUpper.indexOf(orderBy)));
+            }
+        }
+        return recomputed.toString();
+    }
+    
+    /**
+     * convenience method for creating a UnionQueryImpl with proper settings.
+     * 
+     * @param left
+     * @param right
+     * @return
+     */
+    private UnionQueryImpl newOptimisedUnionQuery(@Nonnull Query left, @Nonnull Query right) {
+        UnionQueryImpl u = new UnionQueryImpl(
+            false, 
+            checkNotNull(left, "`left` cannot be null"), 
+            checkNotNull(right, "`right` cannot be null"),
+            this.settings, 
+            true);
+        u.setExplain(explain);
+        return u;
+    }
+    
+    @Override
+    public Query copyOf() throws IllegalStateException {
+        return copyOf(false);
+    }
+    
+    private Query copyOf(final boolean optimised) {
+        if (isInit()) {
+            throw new IllegalStateException("QueryImpl cannot be cloned once initialised.");
+        }
+        
+        List<ColumnImpl> cols = newArrayList();
+        for (ColumnImpl c : columns) {
+            cols.add((ColumnImpl) copyElementAndCheckReference(c));
+        }
+                
+        QueryImpl copy = new QueryImpl(
+            this.statement, 
+            (SourceImpl) copyElementAndCheckReference(this.source),
+            this.constraint,
+            cols.toArray(new ColumnImpl[0]),
+            this.namePathMapper,
+            this.settings,
+            optimised);
+        copy.explain = this.explain;
+        copy.distinct = this.distinct;
+        
+        return copy;        
+    }
+
+    @Override
+    public boolean isInit() {
+        return init;
+    }
+
+    @Override
+    public boolean isOptimised() {
+        return optimised;
+    }
+
+    @Override
+    public boolean isInternal() {
+        return isInternal;
+    }
+
+    @Override
+    public double getCostOverhead() {
+        return oak2660CostOverhead(getConstraint());
+    }
+
+    /**
+     * compute a cost overhead for the OAK-2660 use case. The query engine better perform/compute
+     * the use case `(a = 'v' OR CONTAINS(b, 'v1') OR CONTAINS(c, 'v2') AND (...)` as a UNION query
+     * to leverage different indexes. In this case we return an 'Infinity' overhead for make the
+     * query engine choose a union query instead.
+     * 
+     * @param constraint the constraint to analyse. Cannot be null.
+     * @return
+     */
+    private double oak2660CostOverhead(@Nonnull ConstraintImpl constraint) {
+        if (checkNotNull(constraint) instanceof OrImpl) {
+            boolean fulltext = false, plain = false;
+            for (ConstraintImpl c : constraint.getConstraints()) {
+                if (c instanceof FullTextSearchImpl) {
+                    fulltext = true;
+                } else {
+                    plain = true;
+                }
+                
+                if (fulltext && plain) {
+                    return Double.MAX_VALUE;
+                }
+            }
+        } else {
+            List<ConstraintImpl> cs = constraint.getConstraints();
+            if (cs == null) {
+                return 0;
+            } else {
+                double cost = 0;
+                for (ConstraintImpl c : cs) {
+                    cost += oak2660CostOverhead(c);
+                    if (cost == Double.MAX_VALUE) {
+                        return cost;
+                    }
+                }
+                return cost;
+            }
+        }
+        return 0;
+    }
 }

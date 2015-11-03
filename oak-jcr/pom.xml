@@ -51,19 +51,16 @@
       org.apache.jackrabbit.test.api.WorkspaceMoveTest#testMoveNodesLocked                             <!-- OAK-118 -->
 
       <!-- Locking : not fully implemented -->
-      org.apache.jackrabbit.test.api.lock.LockTest#testNodeLocked
-      org.apache.jackrabbit.test.api.lock.LockTest#testParentChildDeepLock
-      org.apache.jackrabbit.test.api.lock.LockTest#testAddRemoveLockToken
+      org.apache.jackrabbit.test.api.lock.LockTest#testNodeLocked <!-- OAK-3482 -->
+      org.apache.jackrabbit.test.api.lock.LockTest#testAddRemoveLockToken <!-- OAK-2149 -->
 
-      org.apache.jackrabbit.test.api.lock.SetValueLockExceptionTest#testSetValueLockException
+      org.apache.jackrabbit.test.api.lock.SetValueLockExceptionTest#testSetValueLockException  <!-- OAK-2149 -->
 
-      org.apache.jackrabbit.test.api.lock.DeepLockTest#testParentChildDeepLock
-      org.apache.jackrabbit.test.api.lock.DeepLockTest#testDeepLockAboveLockedChild
-      org.apache.jackrabbit.test.api.lock.DeepLockTest#testRemoveLockedChild
+      org.apache.jackrabbit.test.api.lock.DeepLockTest#testRemoveLockedChild <!-- OAK-2149 -->
 
-      org.apache.jackrabbit.test.api.lock.LockManagerTest#testLockTransfer2
-      org.apache.jackrabbit.test.api.lock.LockManagerTest#testRemoveLockToken3
-      org.apache.jackrabbit.test.api.lock.LockManagerTest#testAddLockTokenToAnotherSession
+      org.apache.jackrabbit.test.api.lock.LockManagerTest#testLockTransfer2 <!-- OAK-3262 -->
+      org.apache.jackrabbit.test.api.lock.LockManagerTest#testRemoveLockToken3 <!-- OAK-2149 -->
+      org.apache.jackrabbit.test.api.lock.LockManagerTest#testAddLockTokenToAnotherSession <!-- OAK-3262 -->
 
       org.apache.jackrabbit.test.api.lock.SessionScopedLockTest#testImplicitUnlock
       org.apache.jackrabbit.test.api.lock.SessionScopedLockTest#testImplicitUnlock2
@@ -108,6 +105,9 @@
       org.apache.jackrabbit.test.api.query.SQLJoinTest#testJoinNtBase                                <!-- OAK-474 -->
       org.apache.jackrabbit.test.api.query.SQLJoinTest#testJoinFilterPrimaryType                     <!-- OAK-474 -->
       org.apache.jackrabbit.test.api.query.SQLJoinTest#testJoinSNS                                   <!-- OAK-474 -->
+      org.apache.jackrabbit.test.api.query.qom.NodeLocalNameTest#testStringLiteralInvalidName        <!-- OAK-3265 -->
+      org.apache.jackrabbit.test.api.query.qom.NodeLocalNameTest#testPathLiteral                     <!-- OAK-3265 -->
+      org.apache.jackrabbit.test.api.query.qom.NodeLocalNameTest#testURILiteral                      <!-- OAK-3265 -->
 
       org.apache.jackrabbit.core.query.ExcerptTest#testMoreTextDotsAtEnd                             <!-- OAK-318 -->
       org.apache.jackrabbit.core.query.ExcerptTest#testMoreTextDotsAtStart                           <!-- OAK-318 -->
@@ -345,9 +345,9 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>commons-dbcp</groupId>
-      <artifactId>commons-dbcp</artifactId>
-      <version>1.4</version>
+      <groupId>org.apache.tomcat</groupId>
+      <artifactId>tomcat-jdbc</artifactId>
+      <version>7.0.64</version>
       <scope>test</scope>
     </dependency>
     <dependency>

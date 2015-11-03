@@ -444,6 +444,31 @@ public class JournalTest extends AbstractJournalTest {
         }
     }
 
+    // OAK-3433
+    @Test
+    public void journalEntryKey() throws Exception {
+        DocumentNodeStore ns1 = createMK(1, 0).getNodeStore();
+        DocumentNodeStore ns2 = createMK(2, 0).getNodeStore();
+
+        NodeBuilder b1 = ns1.getRoot().builder();
+        b1.child("foo");
+        ns1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        ns1.runBackgroundOperations();
+
+        NodeBuilder b2 = ns2.getRoot().builder();
+        b2.child("bar");
+        ns2.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        Revision h2 = ns2.getHeadRevision();
+
+        ns2.runBackgroundReadOperations();
+
+        ns2.runBackgroundOperations();
+
+        String id = JournalEntry.asId(h2);
+        assertTrue("Background update did not create a journal entry with id " + id,
+                ns1.getDocumentStore().find(Collection.JOURNAL, id) != null);
+    }
+
     private DocumentMK createMK(int clusterId, int asyncDelay) {
         if (ds == null) {
             ds = new MemoryDocumentStore();

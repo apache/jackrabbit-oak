@@ -16,24 +16,29 @@
  */
 package org.apache.jackrabbit.oak.upgrade.nodestate;
 
+import com.google.common.base.Charsets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
-import java.util.Collections;
 import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.ImmutableSet.copyOf;
+import static com.google.common.collect.ImmutableSet.of;
+import static java.util.Collections.emptySet;
 
 /**
  * The NodeStateCopier and NodeStateCopier.Builder classes allow
@@ -49,14 +54,46 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * The work for a traversal without any differences between
  * {@code source} and {@code target} is equivalent to the single
  * execution of a naive equals implementation.
+ * <br>
+ * <b>Usage:</b> For most use-cases the Builder API should be
+ * preferred. It allows setting {@code includePaths},
+ * {@code excludePaths} and {@code mergePaths}.
+ * <br>
+ * <b>Include paths:</b> if include paths are set, only these paths
+ * and their sub-trees are copied. Any nodes that are not within the
+ * scope of an include path are <i>implicitly excluded</i>.
+ * <br>
+ * <b>Exclude paths:</b> if exclude paths are set, any nodes matching
+ * or below the excluded path are not copied. If an excluded node does
+ * exist in the target, it is removed (see also merge paths).
+ * <b>Merge paths:</b> if merge paths are set, any nodes matching or
+ * below the merged path will not be deleted from target, even if they
+ * are missing in (or excluded from) the source.
  */
 public class NodeStateCopier {
 
     private static final Logger LOG = LoggerFactory.getLogger(NodeStateCopier.class);
 
+    private final Set<String> includePaths;
 
-    private NodeStateCopier() {
-        // no instances
+    private final Set<String> excludePaths;
+
+    private final Set<String> mergePaths;
+
+    private NodeStateCopier(Set<String> includePaths, Set<String> excludePaths, Set<String> mergePaths) {
+        this.includePaths = includePaths;
+        this.excludePaths = excludePaths;
+        this.mergePaths = mergePaths;
+    }
+
+    /**
+     * Create a NodeStateCopier.Builder.
+     *
+     * @return a NodeStateCopier.Builder
+     * @see org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier.Builder
+     */
+    public static Builder builder() {
+        return new Builder();
     }
 
     /**
@@ -66,15 +103,11 @@ public class NodeStateCopier {
      * @param source NodeStore to copy from.
      * @param target NodeStore to copy to.
      * @throws CommitFailedException
+     * @see org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier.Builder#copy(NodeStore, NodeStore)
      */
     public static boolean copyNodeStore(@Nonnull final NodeStore source, @Nonnull final NodeStore target)
             throws CommitFailedException {
-        final NodeBuilder builder = checkNotNull(target).getRoot().builder();
-        final boolean hasChanges = copyNodeState(checkNotNull(source).getRoot(), builder, "/", Collections.<String>emptySet());
-        if (hasChanges) {
-            source.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        }
-        return hasChanges;
+        return builder().copy(checkNotNull(source), checkNotNull(target));
     }
 
     /**
@@ -107,6 +140,20 @@ public class NodeStateCopier {
         return hasChanges;
     }
 
+    private boolean copyNodeState(@Nonnull final NodeState sourceRoot, @Nonnull final NodeBuilder targetRoot) {
+        final NodeState wrappedSource = FilteringNodeState.wrap("/", sourceRoot, this.includePaths, this.excludePaths);
+        boolean hasChanges = false;
+        for (String includePath : this.includePaths) {
+            hasChanges = copyMissingAncestors(sourceRoot, targetRoot, includePath) || hasChanges;
+            final NodeState sourceState = NodeStateUtils.getNode(wrappedSource, includePath);
+            if (sourceState.exists()) {
+                final NodeBuilder targetBuilder = getChildNodeBuilder(targetRoot, includePath);
+                hasChanges = copyNodeState(sourceState, targetBuilder, includePath, this.mergePaths) || hasChanges;
+            }
+        }
+        return hasChanges;
+    }
+
     /**
      * Recursively copies the source NodeState to the target NodeBuilder.
      * <br>
@@ -124,8 +171,8 @@ public class NodeStateCopier {
      *                   preserved, even if the do not exist in the source.
      * @return An indication of whether there were changes or not.
      */
-    public static boolean copyNodeState(@Nonnull final NodeState source, @Nonnull final NodeBuilder target,
-                                        @Nonnull final String currentPath, @Nonnull final Set<String> mergePaths) {
+    private static boolean copyNodeState(@Nonnull final NodeState source, @Nonnull final NodeBuilder target,
+                                         @Nonnull final String currentPath, @Nonnull final Set<String> mergePaths) {
 
 
         boolean hasChanges = false;
@@ -140,6 +187,12 @@ public class NodeStateCopier {
 
         for (ChildNodeEntry child : source.getChildNodeEntries()) {
             final String childName = child.getName();
+            // OAK-1589: maximum supported length of name for DocumentNodeStore
+            // is 150 bytes. Skip the sub tree if the the name is too long
+            if (childName.length() > 37 && childName.getBytes(Charsets.UTF_8).length > 150) {
+                LOG.warn("Node name too long. Skipping {}", source);
+                continue;
+            }
             final NodeState childSource = child.getNodeState();
             if (!target.hasChildNode(childName)) {
                 // add new children
@@ -169,5 +222,210 @@ public class NodeStateCopier {
             }
         }
         return false;
+    }
+
+    /**
+     * Ensure that all ancestors of {@code path} are present in {@code targetRoot}. Copies any
+     * missing ancestors from {@code sourceRoot}.
+     *
+     * @param sourceRoot NodeState to copy from
+     * @param targetRoot NodeBuilder to copy to
+     * @param path The path along which ancestors should be copied.
+     */
+    private static boolean copyMissingAncestors(
+            final NodeState sourceRoot, final NodeBuilder targetRoot, final String path) {
+        NodeState current = sourceRoot;
+        NodeBuilder currentBuilder = targetRoot;
+        boolean hasChanges = false;
+        for (String name : PathUtils.elements(path)) {
+            if (current.hasChildNode(name)) {
+                final boolean targetHasChild = currentBuilder.hasChildNode(name);
+                current = current.getChildNode(name);
+                currentBuilder = currentBuilder.child(name);
+                if (!targetHasChild) {
+                    hasChanges = copyProperties(current, currentBuilder) || hasChanges;
+                }
+            }
+        }
+        return hasChanges;
+    }
+
+    /**
+     * Allows retrieving a NodeBuilder by path relative to the given root NodeBuilder.
+     *
+     * All NodeBuilders are created via {@link NodeBuilder#child(String)} and are thus
+     * implicitly created.
+     *
+     * @param root The NodeBuilder to consider the root node.
+     * @param path An absolute or relative path, which is evaluated as a relative path under the root NodeBuilder.
+     * @return a NodeBuilder instance, never null
+     */
+    @Nonnull
+    private static NodeBuilder getChildNodeBuilder(@Nonnull final NodeBuilder root, @Nonnull final String path) {
+        NodeBuilder child = root;
+        for (String name : PathUtils.elements(path)) {
+            child = child.child(name);
+        }
+        return child;
+    }
+
+    /**
+     * The NodeStateCopier.Builder allows configuring a NodeState copy operation with
+     * {@code includePaths}, {@code excludePaths} and {@code mergePaths}.
+     * <br>
+     * <b>Include paths</b> can define which paths should be copied from the source to the
+     * target.
+     * <br>
+     * <b>Exclude paths</b> allow restricting which paths should be copied. This is
+     * especially useful when there are individual nodes in an included path that
+     * should not be copied.
+     * <br>
+     * By default copying will remove items that already exist in the target but do
+     * not exist in the source. If this behaviour is undesired that is where merge
+     * paths come in.
+     * <br>
+     * <b>Merge paths</b> dictate in which parts of the tree the copy operation should
+     * be <i>additive</i>, i.e. the content from source is merged with the content
+     * in the target. Nodes that are present in the target but not in the source are
+     * then not deleted. However, in the case where nodes are present in both the source
+     * and the target, the node from the source is copied with its properties and any
+     * properties previously present on the target's node are lost.
+     * <br>
+     * Finally, using one of the {@code copy} methods, NodeStores or NodeStates can
+     * be copied.
+     */
+    public static class Builder {
+
+        private Set<String> includePaths = of("/");
+
+        private Set<String> excludePaths = emptySet();
+
+        private Set<String> mergePaths = emptySet();
+
+        private Builder() {}
+
+
+        /**
+         * Set include paths.
+         *
+         * @param paths include paths
+         * @return this Builder instance
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set)
+         */
+        @Nonnull
+        public Builder include(@Nonnull Set<String> paths) {
+            if (!checkNotNull(paths).isEmpty()) {
+                this.includePaths = copyOf(paths);
+            }
+            return this;
+        }
+
+        /**
+         * Convenience wrapper for {@link #include(Set)}.
+         *
+         * @param paths include paths
+         * @return this Builder instance
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set)
+         */
+        @Nonnull
+        public Builder include(@Nonnull String... paths) {
+            return include(copyOf(checkNotNull(paths)));
+        }
+
+        /**
+         * Set exclude paths.
+         *
+         * @param paths exclude paths
+         * @return this Builder instance
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set)
+         */
+        @Nonnull
+        public Builder exclude(@Nonnull Set<String> paths) {
+            if (!checkNotNull(paths).isEmpty()) {
+                this.excludePaths = copyOf(paths);
+            }
+            return this;
+        }
+
+        /**
+         * Convenience wrapper for {@link #exclude(Set)}.
+         *
+         * @param paths exclude paths
+         * @return this Builder instance
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set)
+         */
+        @Nonnull
+        public Builder exclude(@Nonnull String... paths) {
+            return exclude(copyOf(checkNotNull(paths)));
+        }
+
+        /**
+         * Set merge paths.
+         *
+         * @param paths merge paths
+         * @return this Builder instance
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set)
+         */
+        @Nonnull
+        public Builder merge(@Nonnull Set<String> paths) {
+            if (!checkNotNull(paths).isEmpty()) {
+                this.mergePaths = copyOf(paths);
+            }
+            return this;
+        }
+
+        /**
+         * Convenience wrapper for {@link #merge(Set)}.
+         *
+         * @param paths merge paths
+         * @return this Builder instance
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set)
+         */
+        @Nonnull
+        public Builder merge(@Nonnull String... paths) {
+            return merge(copyOf(checkNotNull(paths)));
+        }
+
+        /**
+         * Creates a NodeStateCopier to copy the {@code sourceRoot} NodeState to the
+         * {@code targetRoot} NodeBuilder, using any include, exclude and merge paths
+         * set on this NodeStateCopier.Builder.
+         * <br>
+         * It is the responsibility of the caller to persist any changes using e.g.
+         * {@link NodeStore#merge(NodeBuilder, CommitHook, CommitInfo)}.
+         *
+         * @param sourceRoot NodeState to copy from
+         * @param targetRoot NodeBuilder to copy to
+         * @return true if there were any changes, false if sourceRoot and targetRoot represent
+         *         the same content
+         */
+        public boolean copy(@Nonnull final NodeState sourceRoot, @Nonnull final NodeBuilder targetRoot) {
+            final NodeStateCopier copier = new NodeStateCopier(includePaths, excludePaths, mergePaths);
+            return copier.copyNodeState(checkNotNull(sourceRoot), checkNotNull(targetRoot));
+        }
+
+        /**
+         * Creates a NodeStateCopier to copy the {@code source} NodeStore to the
+         * {@code target} NodeStore, using any include, exclude and merge paths
+         * set on this NodeStateCopier.Builder.
+         * <br>
+         * Changes are automatically persisted with empty CommitHooks and CommitInfo
+         * via {@link NodeStore#merge(NodeBuilder, CommitHook, CommitInfo)}.
+         *
+         * @param source NodeStore to copy from
+         * @param target NodeStore to copy to
+         * @return true if there were any changes, false if source and target represent
+         *         the same content
+         * @throws CommitFailedException
+         */
+        public boolean copy(@Nonnull final NodeStore source, @Nonnull final NodeStore target)
+                throws CommitFailedException {
+            final NodeBuilder targetRoot = checkNotNull(target).getRoot().builder();
+            if (copy(checkNotNull(source).getRoot(), targetRoot)) {
+                target.merge(targetRoot, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+                return true;
+            }
+            return false;
+        }
     }
 }

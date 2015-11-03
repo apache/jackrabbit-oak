@@ -30,14 +30,14 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermi
 /**
  * Implementation of the {@code CompiledPermission} interface that denies all permissions.
  */
-public final class NoPermissions implements CompiledPermissions {
+final class NoPermissions implements CompiledPermissions {
 
     private static final CompiledPermissions INSTANCE = new NoPermissions();
 
     private NoPermissions() {
     }
 
-    public static CompiledPermissions getInstance() {
+    static CompiledPermissions getInstance() {
         return INSTANCE;
     }
 

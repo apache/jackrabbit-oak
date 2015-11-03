@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder
 import org.junit.Before
+import org.junit.Ignore;
 import org.junit.Test
 
 import javax.jcr.Node

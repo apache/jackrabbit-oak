@@ -422,6 +422,22 @@ public abstract class AbstractBlobStoreTest {
 
         assertTrue(ret.toString(), ret.isEmpty());
     }
+    
+    @Test
+    public void deleteCount() throws Exception {
+        Set<String> ids = createArtifacts();
+
+        long count = store.countDeleteChunks(Lists.newArrayList(ids), 0);
+
+        Iterator<String> iter = store.getAllChunkIds(0);
+        Set<String> ret = Sets.newHashSet();
+        while (iter.hasNext()) {
+            ret.add(iter.next());
+        }
+
+        assertTrue(ret.toString(), ret.isEmpty());
+        assertEquals(ids.size(), count);
+    }
 
     private Set<String> createArtifacts() throws Exception {
         Set<String> ids = Sets.newHashSet();

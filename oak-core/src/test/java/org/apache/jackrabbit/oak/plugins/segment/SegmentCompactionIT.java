@@ -37,7 +37,6 @@ import static org.apache.commons.io.FileUtils.deleteDirectory;
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
 import static org.apache.jackrabbit.oak.plugins.segment.CompactionMap.sum;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType.CLEAN_OLD;
-import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.MEMORY_THRESHOLD_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.segment.file.FileStore.newFileStore;
 import static org.junit.Assume.assumeTrue;
 import static org.slf4j.helpers.MessageFormatter.arrayFormat;
@@ -57,8 +56,10 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import javax.annotation.Nonnull;
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanRegistrationException;
 import javax.management.MBeanServer;
@@ -76,12 +77,15 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
+import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
+import org.apache.jackrabbit.oak.plugins.commit.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.DefaultCompactionStrategyMBean;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStoreGCMonitor;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -96,14 +100,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This is a longeivity test for SegmentMK compaction. The test schedules a number
- * of readers, writers, a compactor and holds some references for a certain time.
+ * <p>This is a longevity test for SegmentMK compaction for {@code OAK-2849 Improve revision gc on SegmentMK}</p>
+ *
+ * <p>The test schedules a number of readers, writers, a compactor and holds some references for a certain time.
  * All of which can be interactively modified through the accompanying
  * {@link SegmentCompactionITMBean}, the
  * {@link org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategyMBean} and the
- * {@link org.apache.jackrabbit.oak.plugins.segment.file.GCMonitorMBean}.
+ * {@link org.apache.jackrabbit.oak.plugins.segment.file.GCMonitorMBean}.</p>
  *
- * TODO Leverage longeivity test support from OAK-2771 once we have it.
+ *<p>The test is <b>disabled</b> by default, to run it you need to set the {@code SegmentCompactionIT} system property:<br>
+ * {@code mvn test -Dtest=SegmentCompactionIT -Dtest.opts.memory=-Xmx4G}
+ * </p>
+ *
+ * <p>TODO Leverage longevity test support from OAK-2771 once we have it.</p>
  */
 public class SegmentCompactionIT {
     private static final boolean PERSIST_COMPACTION_MAP = !getBoolean("in-memory-compaction-map");
@@ -111,6 +120,7 @@ public class SegmentCompactionIT {
     /** Only run if explicitly asked to via -Dtest=SegmentCompactionIT */
     private static final boolean ENABLED =
             SegmentCompactionIT.class.getSimpleName().equals(getProperty("test"));
+
     private static final Logger LOG = LoggerFactory.getLogger(SegmentCompactionIT.class);
 
     private final MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
@@ -124,20 +134,15 @@ public class SegmentCompactionIT {
     private final Set<ListenableScheduledFuture<?>> readers = newConcurrentHashSet();
     private final Set<ListenableScheduledFuture<?>> references = newConcurrentHashSet();
     private final SegmentCompactionITMBean segmentCompactionMBean = new SegmentCompactionITMBean();
-    private final CompactionStrategy compactionStrategy = new CompactionStrategy(
-            false, false, CLEAN_OLD, 60000, MEMORY_THRESHOLD_DEFAULT) {
-        @Override
-        public boolean compacted(@Nonnull Callable<Boolean> setHead) throws Exception {
-            return nodeStore.locked(setHead, lockWaitTime, SECONDS);
-        }
-    };
 
     private File directory;
     private FileStore fileStore;
     private SegmentNodeStore nodeStore;
+    private CompactionStrategy compactionStrategy;
     private Registration mBeanRegistration;
 
     private volatile ListenableFuture<?> compactor = immediateCancelledFuture();
+    private volatile ReadWriteLock compactionLock = null;
     private volatile int lockWaitTime = 60;
     private volatile int maxReaders = 10;
     private volatile int maxWriters = 10;
@@ -230,8 +235,19 @@ public class SegmentCompactionIT {
                 .withMemoryMapping(true)
                 .withGCMonitor(gcMonitor)
                 .create();
-        nodeStore = new SegmentNodeStore(fileStore);
-        compactionStrategy.setPersistCompactionMap(PERSIST_COMPACTION_MAP);
+        SegmentNodeStoreBuilder nodeStoreBuilder = SegmentNodeStore
+                .newSegmentNodeStore(fileStore);
+        nodeStoreBuilder.withCompactionStrategy(false, false,
+                CLEAN_OLD.toString(), CompactionStrategy.TIMESTAMP_DEFAULT,
+                CompactionStrategy.MEMORY_THRESHOLD_DEFAULT, lockWaitTime,
+                CompactionStrategy.RETRY_COUNT_DEFAULT,
+                CompactionStrategy.FORCE_AFTER_FAIL_DEFAULT,
+                PERSIST_COMPACTION_MAP,
+                CompactionStrategy.GAIN_THRESHOLD_DEFAULT);
+        nodeStore = nodeStoreBuilder.create();
+
+        compactionStrategy = nodeStoreBuilder
+                .getCompactionStrategy();
         fileStore.setCompactionStrategy(compactionStrategy);
 
         CacheStats segmentCacheStats = fileStore.getTracker().getSegmentCacheStats();
@@ -416,16 +432,43 @@ public class SegmentCompactionIT {
             cancelled = true;
         }
 
+        private <T> T run(Callable<T> thunk) throws Exception {
+            ReadWriteLock lock = compactionLock;
+            if (lock != null) {
+                lock.readLock().lock();
+                try {
+                    return thunk.call();
+                } finally {
+                    lock.readLock().unlock();
+                }
+            } else {
+                return thunk.call();
+            }
+        }
+
         @Override
-        public Void call() throws IOException, CommitFailedException {
-            NodeBuilder root = nodeStore.getRoot().builder();
-            for (int k = 0; k < opCount && !cancelled; k++) {
-                modify(nodeStore, root);
-            }
-            if (!cancelled) {
-                nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-            }
-            return null;
+        public Void call() throws Exception {
+            return run(new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    NodeBuilder root = nodeStore.getRoot().builder();
+                    for (int k = 0; k < opCount && !cancelled; k++) {
+                        modify(nodeStore, root);
+                    }
+                    if (!cancelled) {
+                        try {
+                            CommitHook commitHook = rnd.nextBoolean()
+                                    ? new CompositeHook(new ConflictHook(DefaultConflictHandler.OURS))
+                                    : new CompositeHook(new ConflictHook(DefaultConflictHandler.THEIRS));
+                            nodeStore.merge(root, commitHook, CommitInfo.EMPTY);
+                            segmentCompactionMBean.committed();
+                        } catch (CommitFailedException e) {
+                            LOG.warn("Commit failed: {}", e.getMessage());
+                        }
+                    }
+                    return null;
+                }
+            });
         }
 
         private void modify(NodeStore nodeStore, NodeBuilder nodeBuilder) throws IOException {
@@ -602,7 +645,7 @@ public class SegmentCompactionIT {
         }
     }
 
-    private static class Compactor implements Runnable {
+    private class Compactor implements Runnable {
         private final FileStore fileStore;
         private final TestGCMonitor gcMonitor;
 
@@ -611,12 +654,36 @@ public class SegmentCompactionIT {
             this.gcMonitor = gcMonitor;
         }
 
+        private <T> T run(Callable<T> thunk) throws Exception {
+            ReadWriteLock lock = compactionLock;
+            if (lock != null) {
+                lock.writeLock().lock();
+                try {
+                    return thunk.call();
+                } finally {
+                    lock.writeLock().unlock();
+                }
+            } else {
+                return thunk.call();
+            }
+        }
+
         @Override
         public void run() {
             if (gcMonitor.isCleaned()) {
                 LOG.info("Running compaction");
-                gcMonitor.resetCleaned();
-                fileStore.maybeCompact(true);
+                try {
+                    run(new Callable<Void>() {
+                        @Override
+                        public Void call() throws Exception {
+                            gcMonitor.resetCleaned();
+                            fileStore.maybeCompact(true);
+                            return null;
+                        }
+                    });
+                } catch (Exception e) {
+                    LOG.error("Error while running compaction", e);
+                }
             } else {
                 LOG.info("Not running compaction as no cleanup has taken place");
             }
@@ -683,6 +750,8 @@ public class SegmentCompactionIT {
     }
 
     private class SegmentCompactionITMBean extends AnnotatedStandardMBean implements SegmentCompactionMBean {
+        private final AtomicLong commitCount = new AtomicLong();
+
         private String lastError;
 
         SegmentCompactionITMBean() {
@@ -720,6 +789,20 @@ public class SegmentCompactionIT {
         @Override
         public String getLastCompaction() {
             return valueOf(new Date(gcMonitor.getLastCompacted()));
+        }
+
+        @Override
+        public void setUseCompactionLock(boolean value) {
+            if (value && compactionLock == null) {
+                compactionLock = new ReentrantReadWriteLock();
+            } else {
+                compactionLock = null;
+            }
+        }
+
+        @Override
+        public boolean getUseCompactionLock() {
+            return compactionLock != null;
         }
 
         @Override
@@ -959,6 +1042,11 @@ public class SegmentCompactionIT {
             return lastError;
         }
 
+        @Override
+        public long getCommitCount() {
+            return commitCount.get();
+        }
+
         void error(String message, Throwable t) {
             if (!(t instanceof CancellationException)) {
                 StringWriter sw = new StringWriter();
@@ -968,6 +1056,10 @@ public class SegmentCompactionIT {
 
                 LOG.error(message, t);
             }
+        }
+
+        void committed() {
+            commitCount.incrementAndGet();
         }
     }
 }

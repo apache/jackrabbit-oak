@@ -51,8 +51,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 
-class NodeTypeTemplateImpl extends NamedTemplate
-        implements NodeTypeTemplate {
+class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
 
     private static final PropertyDefinition[] EMPTY_PROPERTY_DEFINITION_ARRAY =
             new PropertyDefinition[0];
@@ -77,11 +76,11 @@ class NodeTypeTemplateImpl extends NamedTemplate
 
     private List<NodeDefinitionTemplateImpl> nodeDefinitionTemplates = null;
 
-    NodeTypeTemplateImpl(NameMapper mapper) {
+    NodeTypeTemplateImpl(@Nonnull NameMapper mapper) {
         super(mapper);
     }
 
-    NodeTypeTemplateImpl(NameMapper mapper, NodeTypeDefinition definition)
+    NodeTypeTemplateImpl(@Nonnull NameMapper mapper, @Nonnull NodeTypeDefinition definition)
             throws ConstraintViolationException {
         super(mapper, definition.getName());
 
@@ -127,8 +126,11 @@ class NodeTypeTemplateImpl extends NamedTemplate
      * @return The node type tree.
      * @throws RepositoryException if this type could not be written
      */
-    Tree writeTo(Tree parent, boolean allowUpdate) throws RepositoryException {
+    Tree writeTo(@Nonnull Tree parent, boolean allowUpdate) throws RepositoryException {
         String oakName = getOakName();
+        if (oakName == null) {
+            throw new RepositoryException("Cannot register node type: name is missing.");
+        }
 
         Tree type = parent.getChild(oakName);
         if (!type.exists()) {

@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+  -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+<!-- ====================================================================== -->
+<!-- P R O J E C T  D E S C R I P T I O N                                   -->
+<!-- ====================================================================== -->
+  <parent>
+    <groupId>org.apache.jackrabbit</groupId>
+    <artifactId>oak-parent</artifactId>
+    <version>1.4-SNAPSHOT</version>
+    <relativePath>../../oak-parent/pom.xml</relativePath>
+  </parent>
+  <artifactId>oak-webapp</artifactId>
+  <packaging>war</packaging>
+  <name>Oak Web Application Example</name>
+  <description>Web application that hosts and serves a Jackrabbit Oak content repository</description>
+
+  <properties>
+    <oak.version>1.4-SNAPSHOT</oak.version>
+    <tomcat.version>7.0.40</tomcat.version>
+    <tika.version>1.7</tika.version>
+    <skip.deployment>true</skip.deployment>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>javax.jcr</groupId>
+      <artifactId>jcr</artifactId>
+      <version>2.0</version>
+    </dependency>
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>2.4</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.tika</groupId>
+      <artifactId>tika-parsers</artifactId>
+      <version>${tika.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>commons-logging</groupId>
+          <artifactId>commons-logging</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>jcl-over-slf4j</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>jackrabbit-jcr-server</artifactId>
+      <version>${jackrabbit.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>jackrabbit-jcr-servlet</artifactId>
+      <version>${jackrabbit.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>jackrabbit-jcr-rmi</artifactId>
+      <version>${jackrabbit.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-jcr</artifactId>
+      <version>${oak.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-pojosr</artifactId>
+      <version>${oak.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-lucene</artifactId>
+      <version>${oak.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.tomcat</groupId>
+      <artifactId>tomcat-servlet-api</artifactId>
+      <version>${tomcat.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.googlecode.json-simple</groupId>
+      <artifactId>json-simple</artifactId>
+      <version>1.1</version>
+    </dependency>
+
+    <!-- Required for Felix WebConsole -->
+    <dependency>
+      <groupId>org.apache.felix</groupId>
+      <artifactId>org.apache.felix.http.proxy</artifactId>
+      <version>2.3.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.felix</groupId>
+      <artifactId>org.apache.felix.http.bridge</artifactId>
+      <version>2.3.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.felix</groupId>
+      <artifactId>org.apache.felix.webconsole</artifactId>
+      <version>4.2.10</version>
+      <classifier>all</classifier>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.felix</groupId>
+      <artifactId>org.apache.felix.webconsole.plugins.scriptconsole</artifactId>
+      <version>1.0.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.codehaus.groovy</groupId>
+      <artifactId>groovy-all</artifactId>
+      <version>2.3.6</version>
+    </dependency>
+
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.tomcat</groupId>
+      <artifactId>tomcat-catalina</artifactId>
+      <version>${tomcat.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.tomcat</groupId>
+      <artifactId>tomcat-coyote</artifactId>
+      <version>${tomcat.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.tomcat</groupId>
+      <artifactId>tomcat-jasper</artifactId>
+      <version>${tomcat.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>net.sourceforge.htmlunit</groupId>
+      <artifactId>htmlunit</artifactId>
+      <version>2.8</version>
+      <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>commons-logging</groupId>
+          <artifactId>commons-logging</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>jul-to-slf4j</artifactId>
+      <version>${slf4j.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+         <groupId>org.eclipse.jetty</groupId>
+         <artifactId>jetty-maven-plugin</artifactId>
+         <version>9.2.8.v20150217</version>
+         <configuration>
+           <scanIntervalSeconds>0</scanIntervalSeconds>
+           <connectors>
+             <connector implementation="org.mortbay.jetty.nio.SelectChannelConnector">
+               <port>8080</port>
+               <maxIdleTime>60000</maxIdleTime>
+             </connector>
+           </connectors>
+           <webApp>
+             <!-- no need to scan anything as we're using servlet 2.5 and moreover, we're not using ServletContainerInitializer(s) -->
+             <!-- for more relevant information regarding scanning of classes refer to https://java.net/jira/browse/SERVLET_SPEC-36 -->
+             <webInfIncludeJarPattern>^$</webInfIncludeJarPattern>
+             <containerIncludeJarPattern>^$</containerIncludeJarPattern>
+           </webApp>
+         </configuration>
+      </plugin>
+      <plugin>
+        <!-- create a jar in addition to our war, to make our servlets reusable -->
+        <artifactId>maven-antrun-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <configuration>
+              <target>
+                <jar basedir="${project.build.outputDirectory}" destfile="${project.build.directory}/oak-webapp-${project.version}.jar" />
+              </target>
+            </configuration>
+            <goals>
+              <goal>run</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <!-- add the jar created by maven-antrun-plugin in our artifacts -->
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>1.9</version>
+        <executions>
+          <execution>
+            <id>attach-artifacts</id>
+            <phase>package</phase>
+            <goals>
+              <goal>attach-artifact</goal>
+            </goals>
+            <configuration>
+                <artifacts>
+                  <artifact>
+                    <file>${project.build.directory}/oak-webapp-${project.version}.jar</file>
+                    <type>jar</type>
+                  </artifact>
+                </artifacts>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.rat</groupId>
+        <artifactId>apache-rat-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>src/main/webapp/WEB-INF/log4j.dtd</exclude>
+            <exclude>src/main/webapp/WEB-INF/templates/repository-config.json</exclude>
+            <exclude>*.sh</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-clean-plugin</artifactId>
+        <version>2.5</version>
+        <configuration>
+          <filesets>
+            <fileset>
+              <directory>oak</directory>
+            </fileset>
+          </filesets>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <java.util.logging.config.file>
+              src/test/resources/logging.properties
+            </java.util.logging.config.file>
+          </systemPropertyVariables>
+        </configuration>
+        <executions>
+          <execution>
+            <id>failsafe-integration-tests</id>
+            <phase>integration-test</phase>
+            <goals>
+              <goal>integration-test</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>failsafe-verify</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>verify</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+</project>

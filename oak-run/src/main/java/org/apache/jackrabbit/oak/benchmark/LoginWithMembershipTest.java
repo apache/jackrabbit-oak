@@ -42,8 +42,8 @@ public class LoginWithMembershipTest extends AbstractLoginTest {
     private final int numberOfGroups;
     private final boolean nestedGroups;
 
-    public LoginWithMembershipTest(boolean runWithToken, int noIterations, int numberOfGroups, boolean nestedGroups) {
-        super(USER, runWithToken, noIterations);
+    public LoginWithMembershipTest(boolean runWithToken, int noIterations, int numberOfGroups, boolean nestedGroups, long expiration) {
+        super(USER, runWithToken, noIterations, expiration);
 
         this.numberOfGroups = numberOfGroups;
         this.nestedGroups = nestedGroups;

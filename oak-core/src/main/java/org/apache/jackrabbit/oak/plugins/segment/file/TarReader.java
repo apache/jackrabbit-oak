@@ -29,12 +29,14 @@ import static org.apache.jackrabbit.oak.plugins.segment.Segment.REF_COUNT_OFFSET
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentId.isDataSegmentId;
 import static org.apache.jackrabbit.oak.plugins.segment.file.TarWriter.GRAPH_MAGIC;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,12 +47,15 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.CRC32;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.segment.CompactionMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class TarReader {
+class TarReader implements Closeable {
 
     /** Logger instance */
     private static final Logger log = LoggerFactory.getLogger(TarReader.class);
@@ -117,23 +122,90 @@ class TarReader {
         log.warn("Could not find a valid tar index in {}, recovering...", list);
         LinkedHashMap<UUID, byte[]> entries = newLinkedHashMap();
         for (File file : sorted.values()) {
-            log.info("Recovering segments from tar file {}", file);
-            try {
-                RandomAccessFile access = new RandomAccessFile(file, "r");
-                try {
-                    recoverEntries(file, access, entries);
-                } finally {
-                    access.close();
-                }
-            } catch (IOException e) {
-                log.warn("Could not read tar file " + file + ", skipping...", e);
-            }
-
-            backupSafely(file);
+            collectFileEntries(file, entries, true);
         }
 
         // regenerate the first generation based on the recovered data
         File file = sorted.values().iterator().next();
+        generateTarFile(entries, file);
+
+        reader = openFirstFileWithValidIndex(singletonList(file), memoryMapping);
+        if (reader != null) {
+            return reader;
+        } else {
+            throw new IOException("Failed to open recovered tar file " + file);
+        }
+    }
+
+    static TarReader openRO(Map<Character, File> files, boolean memoryMapping,
+            boolean recover) throws IOException {
+        // for readonly store only try the latest generation of a given
+        // tar file to prevent any rollback or rewrite
+        File file = files.get(Collections.max(files.keySet()));
+
+        TarReader reader = openFirstFileWithValidIndex(singletonList(file),
+                memoryMapping);
+        if (reader != null) {
+            return reader;
+        }
+        if (recover) {
+            log.warn(
+                    "Could not find a valid tar index in {}, recovering read-only",
+                    file);
+            // collecting the entries (without touching the original file) and
+            // writing them into an artificial tar file '.ro.bak'
+            LinkedHashMap<UUID, byte[]> entries = newLinkedHashMap();
+            collectFileEntries(file, entries, false);
+            file = findAvailGen(file, ".ro.bak");
+            generateTarFile(entries, file);
+            reader = openFirstFileWithValidIndex(singletonList(file),
+                    memoryMapping);
+            if (reader != null) {
+                return reader;
+            }
+        }
+
+        throw new IOException("Failed to open tar file " + file);
+    }
+
+    /**
+     * Collects all entries from the given file and optionally backs-up the
+     * file, by renaming it to a ".bak" extension
+     * 
+     * @param file
+     * @param entries
+     * @param backup
+     * @throws IOException
+     */
+    private static void collectFileEntries(File file,
+            LinkedHashMap<UUID, byte[]> entries, boolean backup)
+            throws IOException {
+        log.info("Recovering segments from tar file {}", file);
+        try {
+            RandomAccessFile access = new RandomAccessFile(file, "r");
+            try {
+                recoverEntries(file, access, entries);
+            } finally {
+                access.close();
+            }
+        } catch (IOException e) {
+            log.warn("Could not read tar file " + file + ", skipping...", e);
+        }
+
+        if (backup) {
+            backupSafely(file);
+        }
+    }
+
+    /**
+     * Regenerates a tar file from a list of entries.
+     * 
+     * @param entries
+     * @param file
+     * @throws IOException
+     */
+    private static void generateTarFile(LinkedHashMap<UUID, byte[]> entries,
+            File file) throws IOException {
         log.info("Regenerating tar file " + file);
         TarWriter writer = new TarWriter(file);
         for (Map.Entry<UUID, byte[]> entry : entries.entrySet()) {
@@ -145,13 +217,6 @@ class TarReader {
                     data, 0, data.length);
         }
         writer.close();
-
-        reader = openFirstFileWithValidIndex(singletonList(file), memoryMapping);
-        if (reader != null) {
-            return reader;
-        } else {
-            throw new IOException("Failed to open recovered tar file " + file);
-        }
     }
 
     /**
@@ -163,14 +228,7 @@ class TarReader {
      * @throws IOException
      */
     private static void backupSafely(File file) throws IOException {
-        File parent = file.getParentFile();
-        String name = file.getName();
-
-        File backup = new File(parent, name + ".bak");
-        for (int i = 2; backup.exists(); i++) {
-            backup = new File(parent, name + "." + i + ".bak");
-        }
-
+        File backup = findAvailGen(file, ".bak");
         log.info("Backing up " + file + " to " + backup.getName());
         if (!file.renameTo(backup)) {
             log.warn("Renaming failed, so using copy to backup {}", file);
@@ -180,6 +238,23 @@ class TarReader {
                         "Could not remove broken tar file " + file);
             }
         }
+    }
+
+    /**
+     * Fine next available generation number so that a generated file doesn't
+     * overwrite another existing file.
+     * 
+     * @param file
+     * @throws IOException
+     */
+    private static File findAvailGen(File file, String ext) {
+        File parent = file.getParentFile();
+        String name = file.getName();
+        File backup = new File(parent, name + ext);
+        for (int i = 2; backup.exists(); i++) {
+            backup = new File(parent, name + "." + i + ext);
+        }
+        return backup;
     }
 
     private static TarReader openFirstFileWithValidIndex(List<File> files, boolean memoryMapping) {
@@ -559,6 +634,75 @@ class TarReader {
         return -1;
     }
 
+    @Nonnull
+    private TarEntry[] getEntries() {
+        TarEntry[] entries = new TarEntry[index.remaining() / 24];
+        int position = index.position();
+        for (int i = 0; position < index.limit(); i++) {
+            entries[i]  = new TarEntry(
+                    index.getLong(position),
+                    index.getLong(position + 8),
+                    index.getInt(position + 16),
+                    index.getInt(position + 20));
+            position += 24;
+        }
+        Arrays.sort(entries, TarEntry.OFFSET_ORDER);
+        return entries;
+    }
+
+    @CheckForNull
+    private List<UUID> getReferences(TarEntry entry, UUID id, Map<UUID, List<UUID>> graph) throws IOException {
+        if (graph != null) {
+            return graph.get(id);
+        } else {
+            // a pre-compiled graph is not available, so read the
+            // references directly from this segment
+            ByteBuffer segment = access.read(
+                    entry.offset(),
+                    Math.min(entry.size(), 16 * 256));
+            int pos = segment.position();
+            int refCount = segment.get(pos + REF_COUNT_OFFSET) & 0xff;
+            int refEnd = pos + 16 * (refCount + 1);
+            List<UUID> refIds = newArrayList();
+            for (int refPos = pos + 16; refPos < refEnd; refPos += 16) {
+                refIds.add(new UUID(
+                        segment.getLong(refPos),
+                        segment.getLong(refPos + 8)));
+            }
+            return refIds;
+        }
+    }
+
+    /**
+     * Build the graph of segments reachable from an initial set of segments
+     * @param referencedIds  the initial set of segments
+     * @throws IOException
+     */
+    Map<UUID, Set<UUID>> getReferenceGraph(Set<UUID> referencedIds) throws IOException {
+        Map<UUID, List<UUID>> graph = getGraph();
+        Map<UUID, Set<UUID>> refGraph = newHashMap();
+
+        TarEntry[] entries = getEntries();
+        for (int i = entries.length - 1; i >= 0; i--) {
+            TarEntry entry = entries[i];
+            UUID id = new UUID(entry.msb(), entry.lsb());
+            if (!referencedIds.remove(id)) {
+                // this segment is not referenced anywhere
+                entries[i] = null;
+            } else {
+                if (isDataSegmentId(entry.lsb())) {
+                    // this is a referenced data segment, so follow the graph
+                    List<UUID> refIds = getReferences(entry, id, graph);
+                    if (refIds != null) {
+                        refGraph.put(id, new HashSet<UUID>(refIds));
+                        referencedIds.addAll(refIds);
+                    }
+                }
+            }
+        }
+        return refGraph;
+    }
+
     /**
      * Garbage collects segments in this file. First it collects the set of
      * segments that are referenced / reachable, then (if more than 25% is
@@ -576,54 +720,30 @@ class TarReader {
      */
     synchronized TarReader cleanup(Set<UUID> referencedIds, CompactionMap cm, Set<UUID> removed)
             throws IOException {
+        String name = file.getName();
+        log.debug("Cleaning up {}", name);
+
         Set<UUID> cleaned = newHashSet();
         Map<UUID, List<UUID>> graph = getGraph();
-
-        TarEntry[] sorted = new TarEntry[index.remaining() / 24];
-        int position = index.position();
-        for (int i = 0; position < index.limit(); i++) {
-            sorted[i]  = new TarEntry(
-                    index.getLong(position),
-                    index.getLong(position + 8),
-                    index.getInt(position + 16),
-                    index.getInt(position + 20));
-            position += 24;
-        }
-        Arrays.sort(sorted, TarEntry.OFFSET_ORDER);
+        TarEntry[] entries = getEntries();
 
         int size = 0;
         int count = 0;
-        for (int i = sorted.length - 1; i >= 0; i--) {
-            TarEntry entry = sorted[i];
+        for (int i = entries.length - 1; i >= 0; i--) {
+            TarEntry entry = entries[i];
             UUID id = new UUID(entry.msb(), entry.lsb());
             if (!referencedIds.remove(id)) {
                 // this segment is not referenced anywhere
                 cleaned.add(id);
-                sorted[i] = null;
+                entries[i] = null;
             } else {
                 size += getEntrySize(entry.size());
                 count += 1;
                 if (isDataSegmentId(entry.lsb())) {
                     // this is a referenced data segment, so follow the graph
-                    if (graph != null) {
-                        List<UUID> refids = graph.get(id);
-                        if (refids != null) {
-                            referencedIds.addAll(refids);
-                        }
-                    } else {
-                        // a pre-compiled graph is not available, so read the
-                        // references directly from this segment
-                        ByteBuffer segment = access.read(
-                                entry.offset(),
-                                Math.min(entry.size(), 16 * 256));
-                        int pos = segment.position();
-                        int refcount = segment.get(pos + REF_COUNT_OFFSET) & 0xff;
-                        int refend = pos + 16 * (refcount + 1);
-                        for (int refpos = pos + 16; refpos < refend; refpos += 16) {
-                            referencedIds.add(new UUID(
-                                    segment.getLong(refpos),
-                                    segment.getLong(refpos + 8)));
-                        }
+                    List<UUID> refIds = getReferences(entry, id, graph);
+                    if (refIds != null) {
+                        referencedIds.addAll(refIds);
                     }
                 }
             }
@@ -632,7 +752,7 @@ class TarReader {
         size += 2 * BLOCK_SIZE;
 
         if (count == 0) {
-            // none of the entries within this tar file are referenceable
+            log.debug("None of the entries of {} are referenceable.", name);
             removed.addAll(cleaned);
             logCleanedSegments(cleaned);
             return null;
@@ -641,23 +761,25 @@ class TarReader {
             // unless this tar file lacks a pre-compiled segment graph
             // in which case we'll always generate a new tar file with
             // the graph to speed up future garbage collection runs.
+            log.debug("Not enough space savings. ({}/{}). Skipping clean up of {}",
+                    access.length() - size, access.length(), name);
             return this;
         }
 
-        String name = file.getName();
         int pos = name.length() - "a.tar".length();
         char generation = name.charAt(pos);
         if (generation == 'z') {
-            // no garbage collection after reaching generation z
+            log.debug("No garbage collection after reaching generation z: {}", name);
             return this;
         }
 
         File newFile = new File(
                 file.getParentFile(),
                 name.substring(0, pos) + (char) (generation + 1) + ".tar");
+
+        log.debug("Writing new generation {}", newFile.getName());
         TarWriter writer = new TarWriter(newFile);
-        for (int i = 0; i < sorted.length; i++) {
-            TarEntry entry = sorted[i];
+        for (TarEntry entry : entries) {
             if (entry != null) {
                 byte[] data = new byte[entry.size()];
                 access.read(entry.offset(), entry.size()).get(data);
@@ -705,10 +827,10 @@ class TarReader {
         return closed;
     }
 
-    File close() throws IOException {
+    @Override
+    public void close() throws IOException {
         closed = true;
         access.close();
-        return file;
     }
 
     //-----------------------------------------------------------< private >--

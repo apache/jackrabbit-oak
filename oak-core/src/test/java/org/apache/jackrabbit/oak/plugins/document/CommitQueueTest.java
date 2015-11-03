@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -31,17 +32,22 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.Collections.synchronizedList;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 /**
  * Tests for {@link CommitQueue}.
  */
 public class CommitQueueTest {
+
+    @Rule
+    public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
     private static final Logger LOG = LoggerFactory.getLogger(CommitQueueTest.class);
 
@@ -53,7 +59,7 @@ public class CommitQueueTest {
 
     @Test
     public void concurrentCommits() throws Exception {
-        final DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
+        final DocumentNodeStore store = builderProvider.newBuilder().getNodeStore();
         AtomicBoolean running = new AtomicBoolean(true);
 
         Closeable observer = store.addObserver(new Observer() {
@@ -116,12 +122,7 @@ public class CommitQueueTest {
 
     @Test
     public void concurrentCommits2() throws Exception {
-        final CommitQueue queue = new CommitQueue() {
-            @Override
-            protected Revision newRevision() {
-                return Revision.newRevision(1);
-            }
-        };
+        final CommitQueue queue = new CommitQueue(DummyRevisionContext.INSTANCE);
 
         final CommitQueue.Callback c = new CommitQueue.Callback() {
             private Revision before = Revision.newRevision(1);
@@ -178,7 +179,7 @@ public class CommitQueueTest {
     // OAK-2868
     @Test
     public void branchCommitMustNotBlockTrunkCommit() throws Exception {
-        final DocumentNodeStore ds = new DocumentMK.Builder().getNodeStore();
+        final DocumentNodeStore ds = builderProvider.newBuilder().getNodeStore();
 
         // simulate start of a branch commit
         Commit c = ds.newCommit(ds.getHeadRevision().asBranchRevision(), null);
@@ -201,8 +202,75 @@ public class CommitQueueTest {
         assertFalse("Commit did not succeed within 3 seconds", t.isAlive());
 
         ds.canceled(c);
-        ds.dispose();
         assertNoExceptions();
+    }
+
+    @Test
+    public void suspendUntil() throws Exception {
+        final AtomicReference<Revision> headRevision = new AtomicReference<Revision>();
+        RevisionContext context = new DummyRevisionContext() {
+            @Nonnull
+            @Override
+            public Revision getHeadRevision() {
+                return headRevision.get();
+            }
+        };
+        headRevision.set(context.newRevision());
+        final CommitQueue queue = new CommitQueue(context);
+
+        final Revision r = context.newRevision();
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                queue.suspendUntil(r);
+            }
+        });
+        t.start();
+
+        // wait until t is suspended
+        for (int i = 0; i < 100; i++) {
+            if (queue.numSuspendedThreads() > 0) {
+                break;
+            }
+            Thread.sleep(10);
+        }
+        assertEquals(1, queue.numSuspendedThreads());
+
+        queue.headRevisionChanged();
+        // must still be suspended
+        assertEquals(1, queue.numSuspendedThreads());
+
+        headRevision.set(r);
+        queue.headRevisionChanged();
+        // must not be suspended anymore
+        assertEquals(0, queue.numSuspendedThreads());
+    }
+
+    @Test
+    public void suspendUntilTimeout() throws Exception {
+        final AtomicReference<Revision> headRevision = new AtomicReference<Revision>();
+        RevisionContext context = new DummyRevisionContext() {
+            @Nonnull
+            @Override
+            public Revision getHeadRevision() {
+                return headRevision.get();
+            }
+        };
+        headRevision.set(context.newRevision());
+        final CommitQueue queue = new CommitQueue(context);
+        queue.setSuspendTimeoutMillis(0);
+
+        final Revision r = context.newRevision();
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                queue.suspendUntil(r);
+            }
+        });
+        t.start();
+
+        t.join(1000);
+        assertFalse(t.isAlive());
     }
 
     private void assertNoExceptions() throws Exception {

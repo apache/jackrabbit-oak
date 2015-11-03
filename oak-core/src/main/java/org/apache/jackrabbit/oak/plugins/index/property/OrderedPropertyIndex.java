@@ -44,13 +44,29 @@ public class OrderedPropertyIndex implements QueryIndex, AdvancedQueryIndex {
 
     private static final Logger LOG = LoggerFactory.getLogger(OrderedPropertyIndex.class);
 
+    /**
+     * We're local. Low-cost
+     */
+    private static final double COST_PER_EXECUTION = 3;
+
+    private final OrderedPropertyIndexProvider indexProvider;
+
+    public OrderedPropertyIndex(OrderedPropertyIndexProvider indexProvider) {
+        this.indexProvider = indexProvider;
+    }
+
+    @Override
+    public double getMinimumCost() {
+        return COST_PER_EXECUTION;
+    }
+
     @Override
     public String getIndexName() {
         return TYPE;
     }
 
     OrderedPropertyIndexLookup getLookup(NodeState root) {
-        return new OrderedPropertyIndexLookup(root);
+        return new OrderedPropertyIndexLookup(indexProvider, root);
     }
 
     /**
@@ -68,7 +84,7 @@ public class OrderedPropertyIndex implements QueryIndex, AdvancedQueryIndex {
      */
     static IndexPlan.Builder getIndexPlanBuilder(final Filter filter) {
         IndexPlan.Builder b = new IndexPlan.Builder();
-        b.setCostPerExecution(1); // we're local. Low-cost
+        b.setCostPerExecution(COST_PER_EXECUTION);
         // we're local but slightly more expensive than a standard PropertyIndex
         b.setCostPerEntry(1.3);
         b.setFulltextIndex(false); // we're never full-text

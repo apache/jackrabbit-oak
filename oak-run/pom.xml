@@ -247,11 +247,6 @@
       </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-upgrade</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-lucene</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -280,6 +275,11 @@
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-tarmk-standby</artifactId>
       <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.tomcat</groupId>
+      <artifactId>tomcat-jdbc</artifactId>
+      <version>7.0.64</version>
     </dependency>
     <dependency>
       <groupId>com.h2database</groupId>
@@ -360,6 +360,11 @@
       <artifactId>mapdb</artifactId>
       <version>1.0.6</version>
       <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.google.code.gson</groupId>
+      <artifactId>gson</artifactId>
+      <version>2.2.4</version>
     </dependency>
 
     <dependency>

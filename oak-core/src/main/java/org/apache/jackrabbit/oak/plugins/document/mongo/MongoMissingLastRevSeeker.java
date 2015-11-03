@@ -33,7 +33,6 @@ import com.mongodb.ReadPreference;
 
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
-import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
@@ -70,30 +69,6 @@ public class MongoMissingLastRevSeeker extends MissingLastRevSeeker {
                 return store.convertFromDBObject(Collection.NODES, input);
             }
         }), cursor);
-    }
-
-    @Override
-    public boolean acquireRecoveryLock(int clusterId) {
-        QueryBuilder query =
-                start().and(
-                        start(Document.ID).is(Integer.toString(clusterId)).get(),
-                        start(ClusterNodeInfo.REV_RECOVERY_LOCK).notEquals(RecoverLockState.ACQUIRED.name()).get()
-                );
-
-        DBObject returnFields = new BasicDBObject();
-        returnFields.put("_id", 1);
-
-        BasicDBObject setUpdates = new BasicDBObject();
-        setUpdates.append(ClusterNodeInfo.REV_RECOVERY_LOCK, RecoverLockState.ACQUIRED.name());
-
-        BasicDBObject update = new BasicDBObject();
-        update.append("$set", setUpdates);
-
-        DBObject oldNode = getClusterNodeCollection().findAndModify(query.get(), returnFields,
-                null /*sort*/, false /*remove*/, update, false /*returnNew*/,
-                false /*upsert*/);
-
-        return oldNode != null;
     }
 
     @Override

@@ -23,13 +23,14 @@ import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
+import javax.jcr.GuestCredentials;
 import javax.jcr.Session;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
@@ -50,16 +51,15 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class CugPermissionProviderTest extends AbstractCugTest implements NodeTypeConstants {
-
-    private static final String TEST_GROUP_ID = "testGroupForCugTest";
 
     private static final Map<String, Boolean> PATH_INCUG_MAP = new HashMap<String, Boolean>();
     static {
         PATH_INCUG_MAP.put(SUPPORTED_PATH, false);
         PATH_INCUG_MAP.put("/content/a", true);
-        PATH_INCUG_MAP.put("/content/a/rep:cugPolicy", true);
+        PATH_INCUG_MAP.put("/content/a/rep:cugPolicy", false);
         PATH_INCUG_MAP.put("/content/a/b", true);
         PATH_INCUG_MAP.put("/content/a/b/c/jcr:primaryType", true);
         PATH_INCUG_MAP.put("/content/aa", false);
@@ -96,42 +96,20 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
     public void before() throws Exception {
         super.before();
 
-        Group testGroup = getUserManager(root).createGroup(TEST_GROUP_ID);
-        root.commit();
+        testGroupPrincipal = getTestGroupPrincipal();
 
         // add more child nodes
         NodeUtil n = new NodeUtil(root.getTree(SUPPORTED_PATH));
         n.addChild("a", NT_OAK_UNSTRUCTURED).addChild("b", NT_OAK_UNSTRUCTURED).addChild("c", NT_OAK_UNSTRUCTURED);
         n.addChild("aa", NT_OAK_UNSTRUCTURED).addChild("bb", NT_OAK_UNSTRUCTURED).addChild("cc", NT_OAK_UNSTRUCTURED);
 
-        testGroupPrincipal = testGroup.getPrincipal();
         createCug("/content/a", testGroupPrincipal);
         createCug("/content/a/b/c", EveryonePrincipal.getInstance());
         createCug("/content/aa/bb", testGroupPrincipal);
 
         root.commit();
 
-        Set<Principal> principals = ImmutableSet.of(getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
-        Set<String> supportedPaths = ImmutableSet.of(SUPPORTED_PATH);
-
-        cugPermProvider = new CugPermissionProvider(root, principals, supportedPaths, CugContext.INSTANCE);
-    }
-
-    @Override
-    public void after() throws Exception {
-        try {
-            // revert transient pending changes (that might be invalid)
-            root.refresh();
-
-            // remove the test group
-            Authorizable testGroup = getUserManager(root).getAuthorizable(TEST_GROUP_ID);
-            if (testGroup != null) {
-                testGroup.remove();
-            }
-            root.commit();
-        } finally {
-            super.after();
-        }
+        cugPermProvider = createCugPermissionProvider(ImmutableSet.of(SUPPORTED_PATH), getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
     }
 
     //---------------------------------------< AggregatedPermissionProvider >---
@@ -225,7 +203,7 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
             }
 
             assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(tree, null, Permissions.WRITE));
-            assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(tree, null, Permissions.ADD_NODE|Permissions.REMOVE));
+            assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(tree, null, Permissions.ADD_NODE | Permissions.REMOVE));
             assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(tree, null, Permissions.READ_ACCESS_CONTROL));
         }
     }
@@ -235,16 +213,16 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
      */
     @Test
     public void testSupportedPermissionsByNullTree() {
-        assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(null, null, Permissions.READ));
-        assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(null, null, Permissions.READ_NODE));
-        assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(null, null, Permissions.READ_PROPERTY));
+        assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions((Tree) null, null, Permissions.READ));
+        assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions((Tree) null, null, Permissions.READ_NODE));
+        assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions((Tree) null, null, Permissions.READ_PROPERTY));
 
-        assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(null, null, Permissions.ALL));
-        assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(null, null, Permissions.READ_NODE | Permissions.READ_ACCESS_CONTROL));
+        assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions((Tree) null, null, Permissions.ALL));
+        assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions((Tree) null, null, Permissions.READ_NODE | Permissions.READ_ACCESS_CONTROL));
 
-        assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(null, null, Permissions.WRITE));
-        assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(null, null, Permissions.ADD_NODE|Permissions.REMOVE));
-        assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(null, null, Permissions.READ_ACCESS_CONTROL));
+        assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions((Tree) null, null, Permissions.WRITE));
+        assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions((Tree) null, null, Permissions.ADD_NODE | Permissions.REMOVE));
+        assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions((Tree) null, null, Permissions.READ_ACCESS_CONTROL));
     }
 
     /**
@@ -276,11 +254,13 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
             assertEquals(path, Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(location, Permissions.MODIFY_ACCESS_CONTROL));
             assertEquals(path, Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(location, Permissions.ADD_NODE));
             assertEquals(path, Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(location, Permissions.WRITE));
+
+            assertEquals(path, Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(TreeLocation.create(root, "/path/to/no-existing/tree"), Permissions.READ));
         }
     }
 
     /**
-     * @see org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider#supportedPermissions(org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission, long)
+     * @see org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider#supportedPermissions(org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission, org.apache.jackrabbit.oak.api.PropertyState, long)
      */
     @Test
     public void testSupportedPermissionsByTreePermission() {
@@ -314,19 +294,19 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
             boolean isInCug = tpMap.get(tp);
 
             if (isInCug) {
-                assertEquals(Permissions.READ, cugPermProvider.supportedPermissions(tp, Permissions.READ));
-                assertEquals(Permissions.READ_NODE, cugPermProvider.supportedPermissions(tp, Permissions.READ_NODE));
-                assertEquals(Permissions.READ_PROPERTY, cugPermProvider.supportedPermissions(tp, Permissions.READ_PROPERTY));
-                assertEquals(Permissions.READ, cugPermProvider.supportedPermissions(tp, Permissions.ALL));
-                assertEquals(Permissions.READ_NODE, cugPermProvider.supportedPermissions(tp, Permissions.READ_NODE | Permissions.READ_ACCESS_CONTROL));
+                assertEquals(Permissions.READ, cugPermProvider.supportedPermissions(tp, null, Permissions.READ));
+                assertEquals(Permissions.READ_NODE, cugPermProvider.supportedPermissions(tp, null, Permissions.READ_NODE));
+                assertEquals(Permissions.READ_PROPERTY, cugPermProvider.supportedPermissions(tp, null, Permissions.READ_PROPERTY));
+                assertEquals(Permissions.READ, cugPermProvider.supportedPermissions(tp, null, Permissions.ALL));
+                assertEquals(Permissions.READ_NODE, cugPermProvider.supportedPermissions(tp, null, Permissions.READ_NODE | Permissions.READ_ACCESS_CONTROL));
             } else {
-                assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(tp, Permissions.READ));
-                assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(tp, Permissions.READ_NODE));
-                assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(tp, Permissions.READ_PROPERTY));
-                assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(tp, Permissions.ALL));
-                assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(tp, Permissions.READ_NODE | Permissions.READ_ACCESS_CONTROL));
+                assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(tp, null, Permissions.READ));
+                assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(tp, null, Permissions.READ_NODE));
+                assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(tp, null, Permissions.READ_PROPERTY));
+                assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(tp, null, Permissions.ALL));
+                assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(tp, null, Permissions.READ_NODE | Permissions.READ_ACCESS_CONTROL));
             }
-            assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(tp, Permissions.ADD_NODE | Permissions.REMOVE));
+            assertEquals(Permissions.NO_PERMISSION, cugPermProvider.supportedPermissions(tp, null, Permissions.ADD_NODE | Permissions.REMOVE));
         }
     }
 
@@ -355,6 +335,31 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
             assertFalse(cugPermProvider.isGranted(location, Permissions.ALL));
             assertFalse(cugPermProvider.isGranted(location, Permissions.ADD_NODE));
             assertFalse(cugPermProvider.isGranted(location, Permissions.READ_ACCESS_CONTROL));
+        }
+    }
+
+    /**
+     * @see org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider#isGranted(org.apache.jackrabbit.oak.plugins.tree.TreeLocation, long)
+     */
+    @Test
+    public void testIsGrantedNonExistingLocation() throws Exception {
+        ContentSession anonymous = login(new GuestCredentials());
+        try {
+            // additionally create a root that doesn't have access to the root node
+            Root anonymousRoot = anonymous.getLatestRoot();
+
+            for (Root r : new Root[] {anonymousRoot, root}) {
+                TreeLocation location = TreeLocation.create(r, "/path/to/non/existing/tree");
+                assertFalse(cugPermProvider.isGranted(location, Permissions.READ));
+                assertFalse(cugPermProvider.isGranted(location, Permissions.READ_NODE));
+                assertFalse(cugPermProvider.isGranted(location, Permissions.READ_PROPERTY));
+
+                assertFalse(cugPermProvider.isGranted(location, Permissions.ALL));
+                assertFalse(cugPermProvider.isGranted(location, Permissions.ADD_NODE));
+                assertFalse(cugPermProvider.isGranted(location, Permissions.READ_ACCESS_CONTROL));
+            }
+        } finally {
+            anonymous.close();
         }
     }
 
@@ -395,7 +400,7 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
      */
     @Test
     public void testGetPrivilegesAtCug2() {
-        PermissionProvider pp = new CugPermissionProvider(root, ImmutableSet.of(testGroupPrincipal), ImmutableSet.of(SUPPORTED_PATH), CugContext.INSTANCE);
+        PermissionProvider pp = createCugPermissionProvider(ImmutableSet.of(SUPPORTED_PATH), testGroupPrincipal);
 
         Set<String> expected = ImmutableSet.of(
                 PrivilegeConstants.JCR_READ,
@@ -405,6 +410,14 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
         assertEquals(expected, pp.getPrivileges(root.getTree("/content/aa/bb")));
 
         assertTrue(pp.getPrivileges(root.getTree("/content/a/b/c")).isEmpty());
+    }
+
+    /**
+     * @see PermissionProvider#getPrivileges(org.apache.jackrabbit.oak.api.Tree)
+     */
+    @Test
+    public void testGetPrivilegesNullPath() {
+        assertTrue(cugPermProvider.getPrivileges(null).isEmpty());
     }
 
     //------------------------------------------------------< hasPrivileges >---
@@ -444,7 +457,7 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
      * @see PermissionProvider#hasPrivileges(org.apache.jackrabbit.oak.api.Tree, String...)
      */
     @Test
-    public void hasNonReadPrivileges() {
+    public void testHasNonReadPrivileges() {
         for (String p : Iterables.concat(READABLE_PATHS, NOT_READABLE_PATHS)) {
             Tree tree = root.getTree(p);
             if (tree.exists()) {
@@ -455,6 +468,14 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
                 assertFalse(cugPermProvider.hasPrivileges(tree, PrivilegeConstants.JCR_ALL));
             }
         }
+    }
+
+    /**
+     * @see PermissionProvider#hasPrivileges(org.apache.jackrabbit.oak.api.Tree, String...)
+     */
+    @Test
+    public void testHasPrivilegesNullPath() {
+        assertFalse(cugPermProvider.hasPrivileges(null, PrivilegeConstants.JCR_READ));
     }
 
     //--------------------------------------------< getRepositoryPermission >---
@@ -507,11 +528,22 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
 
         // cug content
         TreePermission cugTp = cugPermProvider.getTreePermission(root.getTree("/content/a/rep:cugPolicy"), aTp);
-        assertSame(TreePermission.EMPTY, cugTp);
+        assertSame(TreePermission.NO_RECOURSE, cugTp);
+
+        // jcr:system special case
+        TreePermission jcrSystemTp = cugPermProvider.getTreePermission(root.getTree("/jcr:system"), rootTp);
+        assertTrue(jcrSystemTp instanceof EmptyCugTreePermission);
 
         // paths that may not contain cugs anyway
-        assertSame(TreePermission.EMPTY, cugPermProvider.getTreePermission(root.getTree("/jcr:system"), rootTp));
-        assertSame(TreePermission.EMPTY, cugPermProvider.getTreePermission(root.getTree(UNSUPPORTED_PATH), rootTp));
+        assertSame(TreePermission.NO_RECOURSE, cugPermProvider.getTreePermission(root.getTree(NodeTypeConstants.NODE_TYPES_PATH), jcrSystemTp));
+        TreePermission unsupportedPathTp = cugPermProvider.getTreePermission(root.getTree(UNSUPPORTED_PATH), rootTp);
+        assertSame(TreePermission.NO_RECOURSE, unsupportedPathTp);
+        try {
+            cugPermProvider.getTreePermission(root.getTree(UNSUPPORTED_PATH + "/child"), unsupportedPathTp);
+            fail();
+        } catch (IllegalStateException e) {
+            // success
+        }
     }
 
     //-------------------------------< isGranted(Tree, PropertyState, long) >---
@@ -524,7 +556,7 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
             Tree tree = root.getTree(p);
             if (tree.exists()) {
                 assertFalse(cugPermProvider.isGranted(tree, null, Permissions.ALL));
-                assertFalse(cugPermProvider.isGranted(tree, null, Permissions.READ|Permissions.READ_ACCESS_CONTROL));
+                assertFalse(cugPermProvider.isGranted(tree, null, Permissions.READ | Permissions.READ_ACCESS_CONTROL));
                 assertFalse(cugPermProvider.isGranted(tree, null, Permissions.REMOVE_NODE));
             }
         }
@@ -570,5 +602,18 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
             assertFalse(cugPermProvider.isGranted(p, Session.ACTION_ADD_NODE));
             assertFalse(cugPermProvider.isGranted(p, Session.ACTION_READ + ',' + Session.ACTION_ADD_NODE));
         }
+    }
+
+    /**
+     * @see PermissionProvider#isGranted(String, String)
+     */
+    @Test
+    public void testIsGrantedJcrActionsNonExistingPath() {
+        String p = "/path/to/non/existing/tree";
+        assertFalse(cugPermProvider.isGranted(p, Session.ACTION_READ));
+        assertFalse(cugPermProvider.isGranted(p, Permissions.getString(Permissions.READ_NODE)));
+        assertFalse(cugPermProvider.isGranted(p, Permissions.getString(Permissions.READ_PROPERTY)));
+        assertFalse(cugPermProvider.isGranted(p, Session.ACTION_ADD_NODE));
+        assertFalse(cugPermProvider.isGranted(p, Session.ACTION_READ + ',' + Session.ACTION_ADD_NODE));
     }
 }

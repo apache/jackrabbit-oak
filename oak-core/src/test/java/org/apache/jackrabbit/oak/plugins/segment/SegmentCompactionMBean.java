@@ -60,6 +60,17 @@ public interface SegmentCompactionMBean {
     String getLastCompaction();
 
     /**
+     * Determine whether to compaction should run exclusively wrt. concurrent writers.
+     * @param value  run compaction exclusively iff {@code true}
+     */
+    void setUseCompactionLock(boolean value);
+
+    /**
+     * @return  Compaction runs exclusively wrt. concurrent writers iff {@code true}
+     */
+    boolean getUseCompactionLock();
+
+    /**
      * Time to wait for the commit lock for committing the compacted head.
      * @param seconds  number of seconds to wait
      * @see SegmentNodeStore#locked(java.util.concurrent.Callable, long, java.util.concurrent.TimeUnit)
@@ -288,4 +299,9 @@ public interface SegmentCompactionMBean {
      * @return  last error
      */
     String getLastError();
+
+    /**
+     * @return  Number of commits
+     */
+    long getCommitCount();
 }

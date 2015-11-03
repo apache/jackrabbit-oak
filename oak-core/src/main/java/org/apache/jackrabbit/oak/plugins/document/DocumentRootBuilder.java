@@ -169,33 +169,7 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
         return reset();
     }
 
-    /**
-     * Applied all pending changes to the underlying branch and then
-     * move the node as a separate operation on the underlying store.
-     * This allows stores to optimise move operations instead of
-     * seeing them as an added node followed by a deleted node.
-     */
-    boolean move(String source, String target) {
-        purge();
-        boolean success = branch.move(source, target);
-        super.reset(branch.getHead());
-        return success;
-    }
-
-    /**
-     * Applied all pending changes to the underlying branch and then
-     * copy the node as a separate operation on the underlying store.
-     * This allows stores to optimise copy operations instead of
-     * seeing them as an added node.
-     */
-    boolean copy(String source, String target) {
-        purge();
-        boolean success = branch.copy(source, target);
-        super.reset(branch.getHead());
-        return success;
-    }
-
-    private void purge() {
+    void purge() {
         branch.setRoot(super.getNodeState());
         super.reset(branch.getHead());
         updates = 0;

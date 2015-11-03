@@ -206,6 +206,7 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
 
     @Override
     public void close() {
+        ctx.close();
     }
 
     @Override
