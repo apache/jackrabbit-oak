@@ -211,6 +211,17 @@ public interface DocumentStore {
     @CheckForNull
     <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update);
 
+    /**
+     * Create or update a number of documents.
+     * 
+     * @param <T> the document type
+     * @param collection the collection
+     * @param updateOps the update operation list
+     * @return the list containing old documents or <code>null</code> values if they didn't exist
+     *         before.
+     * @throws BulkUpdateException in case of failure, this exception will be thrown. It contains
+     *         a list of successfully updated documents and the failure cause. 
+     */
     <T extends Document> List<T> createOrUpdate(Collection<T> collection, List<UpdateOp> updateOps);
 
     /**
