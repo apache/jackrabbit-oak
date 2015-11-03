@@ -203,6 +203,9 @@ public class Commit {
             } else {
                 b.addCommit(rev);
             }
+            b.addAffectedPaths(addedNodes);
+            b.addAffectedPaths(modifiedNodes);
+            b.addAffectedPaths(removedNodes);
             try {
                 // prepare commit
                 prepare(baseRev);

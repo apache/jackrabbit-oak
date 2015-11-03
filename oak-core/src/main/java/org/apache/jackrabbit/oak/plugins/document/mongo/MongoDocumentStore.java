@@ -62,6 +62,8 @@ import org.apache.jackrabbit.oak.plugins.document.JournalEntry;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
+import org.apache.jackrabbit.oak.plugins.document.UnmergedBranches;
+import org.apache.jackrabbit.oak.plugins.document.UnmergedBranchesAware;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
@@ -96,7 +98,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /**
  * A document store that uses MongoDB as the backend.
  */
-public class MongoDocumentStore implements DocumentStore {
+public class MongoDocumentStore implements DocumentStore, UnmergedBranchesAware {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentStore.class);
     private static final PerfLogger PERFLOG = new PerfLogger(
@@ -151,6 +153,8 @@ public class MongoDocumentStore implements DocumentStore {
     private final Comparator<Revision> comparator = StableRevisionComparator.REVERSE;
 
     private Clock clock = Clock.SIMPLE;
+
+    private UnmergedBranches unmergedBranches;
 
     private final ReplicaSetInfo replicaInfo;
 
@@ -511,7 +515,7 @@ public class MongoDocumentStore implements DocumentStore {
         final long start = PERFLOG.start();
         boolean isSlaveOk = false;
         try {
-            ReadPreference readPreference = getMongoReadPreference(collection, Utils.getParentId(key), docReadPref);
+            ReadPreference readPreference = getMongoReadPreference(collection, key, Utils.getParentId(key), docReadPref);
 
             if(readPreference.isSlaveOk()){
                 LOG.trace("Routing call to secondary for fetching [{}]", key);
@@ -637,7 +641,7 @@ public class MongoDocumentStore implements DocumentStore {
                 cursor.maxTime(maxQueryTime, TimeUnit.MILLISECONDS);
             }
             ReadPreference readPreference =
-                    getMongoReadPreference(collection, parentId, getDefaultReadPreference(collection));
+                    getMongoReadPreference(collection, null, parentId, getDefaultReadPreference(collection));
 
             if(readPreference.isSlaveOk()){
                 LOG.trace("Routing call to secondary for fetching children from [{}] to [{}]", fromKey, toKey);
@@ -999,6 +1003,7 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     <T extends Document> ReadPreference getMongoReadPreference(Collection<T> collection,
+                                                               String documentId,
                                                                String parentId,
                                                                DocumentReadPreference preference) {
         switch(preference){
@@ -1017,7 +1022,7 @@ public class MongoDocumentStore implements DocumentStore {
                 // within replication lag period
                 ReadPreference readPreference = ReadPreference.primary();
 
-                if (parentId != null) {
+                if (!belongsToBranch(documentId) && parentId != null) {
                     NodeDocument cachedDoc = (NodeDocument) getIfCached(collection, parentId);
                     if (replicaInfo.isSecondarySafe(cachedDoc, getTime())) {
                         readPreference = getConfiguredReadPreference(collection);
@@ -1510,5 +1515,24 @@ public class MongoDocumentStore implements DocumentStore {
         final long diff = midPoint - serverLocalTimeMillis;
 
         return diff;
+    }
+
+    /**
+     * @param documentId
+     * @return {@code true} if it's possible that this document belongs to a branch
+     */
+    boolean belongsToBranch(@CheckForNull String documentId) {
+        if (unmergedBranches == null) {
+            return true;
+        }
+        if (documentId == null) {
+            return false;
+        }
+        return unmergedBranches.mightAffectPath(Utils.getPathFromId(documentId));
+    }
+
+    @Override
+    public void setUnmergedBranches(UnmergedBranches unmergedBranches) {
+        this.unmergedBranches = unmergedBranches;
     }
 }

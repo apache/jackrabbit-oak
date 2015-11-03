@@ -41,8 +41,8 @@ import org.junit.Test;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class ReadPreferenceIT extends AbstractMongoConnectionTest {
 
@@ -89,27 +89,27 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
     @Test
     public void testMongoReadPreferencesDefault() throws Exception{
         assertEquals(ReadPreference.primary(),
-                mongoDS.getMongoReadPreference(NODES,"foo", DocumentReadPreference.PRIMARY));
+                mongoDS.getMongoReadPreference(NODES, "/foo", "/foo/bar", DocumentReadPreference.PRIMARY));
 
         assertEquals(ReadPreference.primaryPreferred(),
-                mongoDS.getMongoReadPreference(NODES,"foo", DocumentReadPreference.PREFER_PRIMARY));
+                mongoDS.getMongoReadPreference(NODES, "/foo", "/foo/bar", DocumentReadPreference.PREFER_PRIMARY));
 
         //By default Mongo read preference is primary
         assertEquals(ReadPreference.primary(),
-                mongoDS.getMongoReadPreference(NODES,"foo", DocumentReadPreference.PREFER_SECONDARY));
+                mongoDS.getMongoReadPreference(NODES, "/foo", "/foo/bar", DocumentReadPreference.PREFER_SECONDARY));
 
         //Change the default and assert again
         mongoDS.getDBCollection(NODES).getDB().setReadPreference(ReadPreference.secondary());
         assertEquals(ReadPreference.secondary(),
-                mongoDS.getMongoReadPreference(NODES,"foo", DocumentReadPreference.PREFER_SECONDARY));
+                mongoDS.getMongoReadPreference(NODES, "/foo", "/foo/bar", DocumentReadPreference.PREFER_SECONDARY));
 
         //for case where parent age cannot be determined the preference should be primary
         assertEquals(ReadPreference.primary(),
-                mongoDS.getMongoReadPreference(NODES,"foo", DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
+                mongoDS.getMongoReadPreference(NODES, "/foo", "/foo/bar", DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
 
         //For collection other than NODES always primary
         assertEquals(ReadPreference.primary(),
-                mongoDS.getMongoReadPreference(SETTINGS,"foo", DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
+                mongoDS.getMongoReadPreference(SETTINGS, "/foo", "/foo/bar", DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
 
     }
 
@@ -130,7 +130,7 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
 
         //For modifiedTime < replicationLag primary must be used
         assertEquals(ReadPreference.primary(),
-                mongoDS.getMongoReadPreference(NODES,parentId, DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
+                mongoDS.getMongoReadPreference(NODES, id, parentId, DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
 
         //Going into future to make parent /x old enough
         clock.waitUntil(Revision.getCurrentTimestamp() + replicationLag);
@@ -138,7 +138,7 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
 
         //For old modified nodes secondaries should be preferred
         assertEquals(testPref,
-                mongoDS.getMongoReadPreference(NODES, parentId, DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
+                mongoDS.getMongoReadPreference(NODES, id, parentId, DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
     }
 
     @Test
@@ -158,54 +158,20 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
         }
         String id = Utils.getIdFromPath("/x/y_0");
         String parentId = Utils.getParentId(id);
-        waitUntilPendingModificationIsSaved(parentId);
 
         //Going into future to make parent /x old enough
         clock.waitUntil(Revision.getCurrentTimestamp() + replicationLag);
         mongoDS.setClock(clock);
 
         //The node /x/y_1 belongs to branch. Primary should be used.
+        assertTrue(mongoDS.belongsToBranch(id));
         assertEquals(ReadPreference.primary(),
-                mongoDS.getMongoReadPreference(NODES, parentId, DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
+                mongoDS.getMongoReadPreference(NODES, id, parentId, DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
 
         mk.getNodeStore().merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        waitUntilPendingModificationIsSaved(parentId);
-
+        assertFalse(mongoDS.belongsToBranch(id));
         assertEquals(ReadPreference.secondary(),
-                mongoDS.getMongoReadPreference(NODES, parentId, DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
-    }
-
-    @Test
-    public void testMongoReadPreferencesWhenAncestorsAreUnmodified() throws Exception{
-        //Change the default
-        ReadPreference testPref = ReadPreference.secondary();
-        mongoDS.getDBCollection(NODES).getDB().setReadPreference(testPref);
-
-        NodeBuilder b1 = mk.getNodeStore().getRoot().builder();
-        b1.child("x");
-        mk.getNodeStore().merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        waitUntilPendingModificationIsSaved("0:/");
-
-        b1.getChildNode("x").child("y");
-        mk.getNodeStore().merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-        String id = Utils.getIdFromPath("/x/y");
-        String parentId = Utils.getParentId(id);
-
-        //Going into future to make parent /x old enough
-        clock.waitUntil(Revision.getCurrentTimestamp() + replicationLag);
-        mongoDS.setClock(clock);
-
-        //The lastRev for /x hasn't been updated yet. Primary instance should be used.
-        assertEquals(ReadPreference.primary(),
-                mongoDS.getMongoReadPreference(NODES, parentId, DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
-
-        //Let's wait until the lastRev for /x is updated.
-        waitUntilPendingModificationIsSaved(parentId);
-
-        //The background update thread update the last rev for /x. Secondary should be used.
-        assertEquals(ReadPreference.secondary(),
-                mongoDS.getMongoReadPreference(NODES, parentId, DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
+                mongoDS.getMongoReadPreference(NODES, id, parentId, DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
     }
 
     @Test
@@ -219,15 +185,5 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
         assertTrue(mongoDS.getDBCollection(NODES).getWriteConcern().getJ());
 
         assertEquals(ReadPreference.secondary(), mongoDS.getConfiguredReadPreference(NODES));
-    }
-
-    private void waitUntilPendingModificationIsSaved(String id) throws InterruptedException {
-        long start = System.currentTimeMillis();
-        while (mk.getNodeStore().getPendingWriteCount() > 0) {
-            Thread.sleep(100);
-            if (System.currentTimeMillis() - start > TimeUnit.SECONDS.toMillis(10)) {
-                fail("Pending modification hasn't been saved in 10 seconds");
-            }
-        }
     }
 }

@@ -457,6 +457,9 @@ public final class DocumentNodeStore
             }
         };
 
+        if (store instanceof UnmergedBranchesAware) {
+            ((UnmergedBranchesAware) store).setUnmergedBranches(branches);
+        }
         //TODO Make stats collection configurable as it add slight overhead
 
         nodeCache = builder.buildNodeCache(this);

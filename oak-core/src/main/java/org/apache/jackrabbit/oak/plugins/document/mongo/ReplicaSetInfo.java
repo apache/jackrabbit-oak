@@ -197,6 +197,10 @@ public class ReplicaSetInfo implements Runnable {
             }
         }
 
+        if (secondaries.isEmpty()) {
+            unknownState = true;
+        }
+
         if (!unknownState) {
             Map<Integer, Revision> minRevisions = getMinimumRootRevisions(secondaries);
             if (minRevisions == null) {
