@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import static com.google.common.collect.Sets.difference;
 import static java.lang.Math.min;
-import static java.util.Arrays.asList;
 
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -48,9 +47,8 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientException;
-import com.mongodb.MongoCredential;
+import com.mongodb.MongoClientURI;
 import com.mongodb.ReadPreference;
-import com.mongodb.ServerAddress;
 
 public class ReplicaSetInfo implements Runnable {
 
@@ -68,7 +66,7 @@ public class ReplicaSetInfo implements Runnable {
 
     private final RevisionComparator comparator;
 
-    private final MongoCredentialProvider credentialProvider;
+    private final String credentials;
 
     Map<Integer, Revision> rootRevisions;
 
@@ -76,18 +74,13 @@ public class ReplicaSetInfo implements Runnable {
 
     private volatile boolean stop;
 
-    public ReplicaSetInfo(DB db, int localClusterId, long maxReplicationLagMillis, long pullFrequencyMillis) {
+    public ReplicaSetInfo(DB db, String credentials, int localClusterId, long maxReplicationLagMillis, long pullFrequencyMillis) {
         this.adminDb = db.getSisterDB("admin");
         this.dbName = db.getName();
         this.pullFrequencyMillis = pullFrequencyMillis;
         this.maxReplicationLagMillis = maxReplicationLagMillis;
         this.comparator = new RevisionComparator(localClusterId);
-        this.credentialProvider = new MongoCredentialProvider() {
-            @Override
-            public MongoCredential getCredential(String hostName) {
-                return null;
-            }
-        };
+        this.credentials = credentials;
     }
 
     public synchronized boolean isSecondarySafe(long maxDocumentAge, long currentTime) {
@@ -282,21 +275,14 @@ public class ReplicaSetInfo implements Runnable {
             return collections.get(hostName);
         }
 
-        ServerAddress address;
-        if (hostName.contains(":")) {
-            String[] split = hostName.split(":", 2);
-            address = new ServerAddress(split[0], Integer.valueOf(split[1]));
-        } else {
-            address = new ServerAddress(hostName);
+        StringBuilder uriBuilder = new StringBuilder("mongodb://");
+        if (credentials != null) {
+            uriBuilder.append(credentials).append('@');
         }
+        uriBuilder.append(hostName);
 
-        MongoCredential credential = credentialProvider.getCredential(hostName);
-        MongoClient client;
-        if (credential == null) {
-            client = new MongoClient(address);
-        } else {
-            client = new MongoClient(address, asList(credential));
-        }
+        MongoClientURI uri = new MongoClientURI(uriBuilder.toString());
+        MongoClient client = new MongoClient(uri);
         DB db = client.getDB(dbName);
         DBCollection collection = db.getCollection(Collection.NODES.toString());
         collections.put(hostName, collection);

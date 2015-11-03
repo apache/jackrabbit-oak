@@ -224,7 +224,7 @@ public class MongoDocumentStore implements DocumentStore, UnmergedBranchesAware 
         journal = db.getCollection(Collection.JOURNAL.toString());
 
         long maxReplicationLagMillis = builder.getMaxReplicationLagMillis();
-        replicaInfo = new ReplicaSetInfo(db, builder.getClusterId(), maxReplicationLagMillis, estimationPullFrequencyMS);
+        replicaInfo = new ReplicaSetInfo(db, builder.getMongoSecondaryCredentials(), builder.getClusterId(), maxReplicationLagMillis, estimationPullFrequencyMS);
         new Thread(replicaInfo, "MongoDocumentStore lag estimator (" + builder.getClusterId() + ")").start();
 
         // indexes:
