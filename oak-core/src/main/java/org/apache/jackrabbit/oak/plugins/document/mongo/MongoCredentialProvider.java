@@ -14,15 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.document;
+package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-/**
- * DocumentStores implementing this interface will get the
- * {@link UnmergedBranches} reference during the DocumentNodeStore
- * initialization.
- */
-public interface UnmergedBranchesAware extends DocumentStore {
+import com.mongodb.MongoCredential;
 
-    void setUnmergedBranches(UnmergedBranches unmergedBranches);
+public interface MongoCredentialProvider {
+
+    MongoCredential getCredential(String hostName);
 
 }

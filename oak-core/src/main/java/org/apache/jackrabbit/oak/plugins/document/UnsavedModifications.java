@@ -47,7 +47,7 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
  * Keeps track of when nodes where last modified. To be persisted later by
  * a background thread.
  */
-public class UnsavedModifications {
+class UnsavedModifications {
 
     private static final Logger LOG = LoggerFactory.getLogger(UnsavedModifications.class);
 
@@ -69,7 +69,7 @@ public class UnsavedModifications {
      *          was none or the current revision is newer.
      */
     @CheckForNull
-    Revision put(@Nonnull String path, @Nonnull Revision revision) {
+    public Revision put(@Nonnull String path, @Nonnull Revision revision) {
         checkNotNull(path);
         checkNotNull(revision);
         for (;;) {
@@ -91,17 +91,13 @@ public class UnsavedModifications {
         }
     }
 
-    public boolean containsPath(String path) {
-        return map.containsKey(path);
-    }
-
     @CheckForNull
-    Revision get(String path) {
+    public Revision get(String path) {
         return map.get(path);
     }
 
     @Nonnull
-    Collection<String> getPaths() {
+    public Collection<String> getPaths() {
         return map.keySet();
     }
 
@@ -113,7 +109,7 @@ public class UnsavedModifications {
      * @return matching paths with pending modifications.
      */
     @Nonnull
-    Iterable<String> getPaths(@Nonnull final Revision start) {
+    public Iterable<String> getPaths(@Nonnull final Revision start) {
         if (map.isEmpty()) {
             return Collections.emptyList();
         } else {
@@ -144,7 +140,7 @@ public class UnsavedModifications {
      *             revisions to write back.
      * @return stats about the write operation.
      */
-    BackgroundWriteStats persist(@Nonnull DocumentNodeStore store,
+    public BackgroundWriteStats persist(@Nonnull DocumentNodeStore store,
                                         @Nonnull Snapshot snapshot,
                                         @Nonnull Lock lock) {
         BackgroundWriteStats stats = new BackgroundWriteStats();
@@ -250,7 +246,7 @@ public class UnsavedModifications {
         return rev;
     }
 
-    interface Snapshot {
+    public interface Snapshot {
 
         Snapshot IGNORE = new Snapshot() {
             @Override
