@@ -27,11 +27,15 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifiedInSecs;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadInfo;
+import java.lang.management.ThreadMXBean;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -40,6 +44,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -1619,6 +1624,47 @@ public class DocumentNodeStoreTest {
             assertTrue(e.getCause().getMessage().contains("not yet visible"));
         }
 
+    }
+
+    // OAK-3579
+    @Test
+    public void backgroundLeaseUpdateThread() throws Exception {
+        int clusterId = -1;
+        Random random = new Random();
+        // pick a random clusterId between 1000 and 2000
+        // and make sure it is not in use (give up after 10 tries)
+        for (int i = 0; i < 10; i++) {
+            int id = random.nextInt(1000) + 1000;
+            if (!backgroundLeaseUpdateThreadRunning(id)) {
+                clusterId = id;
+                break;
+            }
+        }
+        assertNotEquals(-1, clusterId);
+        DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0)
+                .setClusterId(clusterId).getNodeStore();
+        for (int i = 0; i < 10; i++) {
+            if (!backgroundLeaseUpdateThreadRunning(clusterId)) {
+                Thread.sleep(100);
+            }
+        }
+        assertTrue(backgroundLeaseUpdateThreadRunning(clusterId));
+        // access DocumentNodeStore to make sure it is not
+        // garbage collected prematurely
+        assertEquals(clusterId, ns.getClusterId());
+    }
+
+    private static boolean backgroundLeaseUpdateThreadRunning(int clusterId) {
+        String threadName = "DocumentNodeStore lease update thread (" + clusterId + ")";
+        ThreadMXBean threadBean = ManagementFactory.getThreadMXBean();
+        for (ThreadInfo ti : threadBean.getThreadInfo(threadBean.getAllThreadIds())) {
+            if (ti != null) {
+                if (threadName.equals(ti.getThreadName())) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
