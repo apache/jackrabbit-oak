@@ -98,6 +98,11 @@ public final class S3Constants {
     public static final String S3_ENCRYPTION_SSE_S3 = "SSE_S3";
 
     /**
+     * Path style access flag true/false
+     */
+    public static final String S3_PATH_STYLE_ACCESS = "pathStyleAccess";
+
+    /**
      * private constructor so that class cannot initialized from outside.
      */
     private S3Constants() {
