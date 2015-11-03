@@ -495,6 +495,12 @@ public class RDBDocumentStore implements DocumentStore {
 
     private static final Key MODIFIEDKEY = new Key(MODIFIED, null);
 
+    // value for modcount used to indicate that the cache entry isn't valid and
+    // needs to be refetched
+    private static final long NEEDSCACHERELOAD = Long.MAX_VALUE;
+    private static final boolean NOCACHERELOADMARKERS = Boolean
+            .getBoolean("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.NOCACHERELOADMARKERS");
+
     // DB-specific information
     private RDBDocumentStoreDB db;
 
@@ -804,7 +810,7 @@ public class RDBDocumentStore implements DocumentStore {
             if (maxCacheAge > 0) {
                 // first try without lock
                 doc = nodesCache.getIfPresent(cacheKey);
-                if (doc != null) {
+                if (doc != null && modcountOf(doc) != NEEDSCACHERELOAD) {
                     long lastCheckTime = doc.getLastCheckTime();
                     if (lastCheckTime != 0) {
                         if (maxCacheAge == Integer.MAX_VALUE || System.currentTimeMillis() - lastCheckTime < maxCacheAge) {
@@ -816,6 +822,11 @@ public class RDBDocumentStore implements DocumentStore {
             try {
                 Lock lock = getAndLock(id);
                 try {
+                    if (doc != null && modcountOf(doc) == NEEDSCACHERELOAD) {
+                        LOG.debug("removing needs-reload cache entry for " + id);
+                        invalidateNodesCache(id, true);
+                        doc = null;
+                    }
                     // caller really wants the cache to be cleared
                     if (maxCacheAge == 0) {
                         invalidateNodesCache(id, true);
@@ -960,12 +971,18 @@ public class RDBDocumentStore implements DocumentStore {
                 int retries = maxRetries;
                 while (!success && retries > 0) {
                     long lastmodcount = modcountOf(oldDoc);
+                    if (lastmodcount == NEEDSCACHERELOAD) {
+                        throw new IllegalStateException("illegal modcount value for id " + update.getId());
+                    }
                     success = updateDocument(collection, doc, update, lastmodcount);
                     if (!success) {
                         retries -= 1;
                         oldDoc = readDocumentCached(collection, update.getId(), Integer.MAX_VALUE);
                         if (oldDoc != null) {
                             long newmodcount = modcountOf(oldDoc);
+                            if (lastmodcount == NEEDSCACHERELOAD) {
+                                throw new IllegalStateException("illegal modcount value for id " + update.getId());
+                            }
                             if (lastmodcount == newmodcount) {
                                 // cached copy did not change so it probably was
                                 // updated by a different instance, get a fresh one
@@ -1058,6 +1075,13 @@ public class RDBDocumentStore implements DocumentStore {
                             // make sure concurrently loaded document is
                             // invalidated
                             nodesCache.invalidate(new StringValue(entry.getKey()));
+                            if (!NOCACHERELOADMARKERS) {
+                                T newDoc = collection.newDocument(this);
+                                newDoc.put(ID, entry.getKey());
+                                newDoc.put(MODCOUNT, NEEDSCACHERELOAD);
+                                addToCache(collection, newDoc);
+                                LOG.debug("needs-reload-marker set for " + entry.getKey());
+                            }
                         } else {
                             T newDoc = applyChanges(collection, oldDoc, update, true);
                             if (newDoc != null) {
@@ -2018,7 +2042,7 @@ public class RDBDocumentStore implements DocumentStore {
                 }
                 if (modCount.longValue() > cachedModCount.longValue()) {
                     nodesCache.put(cacheKey, fresh);
-                } else {
+                } else if (cachedModCount.longValue() != NEEDSCACHERELOAD) {
                     fresh = inCache;
                 }
             } else {
