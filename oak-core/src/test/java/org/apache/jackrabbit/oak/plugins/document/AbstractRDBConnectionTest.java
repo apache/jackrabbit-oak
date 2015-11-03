@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.io.File;
 import java.util.UUID;
 
 import javax.sql.DataSource;
@@ -37,9 +38,11 @@ public class AbstractRDBConnectionTest extends DocumentMKTestBase {
     protected DataSource dataSource;
     protected DocumentMK mk;
 
-    protected static final String URL = System.getProperty("rdb.jdbc-url", "jdbc:h2:file:./target/h2test-" + UUID.randomUUID());
+    private static final String fname = (new File("target")).isDirectory() ? "target/" : "";
+    private static final String RAWURL = System.getProperty("rdb.jdbc-url", "jdbc:h2:file:./target/h2test");
     protected static final String USERNAME = System.getProperty("rdb.jdbc-user", "");
     protected static final String PASSWD = System.getProperty("rdb.jdbc-passwd", "");
+    protected static final String URL = RAWURL.replace("{fname}", fname);
 
     @BeforeClass
     public static void checkRDBAvailable() {
@@ -53,7 +56,7 @@ public class AbstractRDBConnectionTest extends DocumentMKTestBase {
     }
 
     protected DocumentMK.Builder newBuilder(DataSource db) throws Exception {
-        RDBOptions opt = new RDBOptions().dropTablesOnClose(true);
+        RDBOptions opt = new RDBOptions().tablePrefix("T" + UUID.randomUUID().toString().replace("-", "")).dropTablesOnClose(true);
         return new DocumentMK.Builder().clock(getTestClock()).setRDBConnection(dataSource, opt);
     }
 
@@ -63,7 +66,9 @@ public class AbstractRDBConnectionTest extends DocumentMKTestBase {
 
     @After
     public void tearDownConnection() throws Exception {
-        mk.dispose();
+        if (mk != null) {
+            mk.dispose();
+        }
         Revision.resetClockToDefault();
     }
 
