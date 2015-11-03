@@ -156,18 +156,19 @@ public class BlobCache implements BlobStore, GarbageCollectableBlobStore, Genera
     }
 
     @Override
-    public boolean deleteChunks(List<String> arg0, long arg1) throws Exception {
-        return base.deleteChunks(arg0, arg1);
+    @Deprecated
+    public boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
+        return base.deleteChunks(chunkIds, maxLastModifiedTime);
     }
 
     @Override
-    public long countDeleteChunks(List<String> arg0, long arg1) throws Exception {
-        return base.countDeleteChunks(arg0, arg1);
+    public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
+        return base.countDeleteChunks(chunkIds, maxLastModifiedTime);
     }
     
     @Override
-    public Iterator<String> getAllChunkIds(long arg0) throws Exception {
-        return base.getAllChunkIds(arg0);
+    public Iterator<String> getAllChunkIds(long maxLastModifiedTime) throws Exception {
+        return base.getAllChunkIds(maxLastModifiedTime);
     }
 
     @Override
@@ -176,13 +177,13 @@ public class BlobCache implements BlobStore, GarbageCollectableBlobStore, Genera
     }
 
     @Override
-    public Iterator<String> resolveChunks(String arg0) throws IOException {
-        return base.resolveChunks(arg0);
+    public Iterator<String> resolveChunks(String blobId) throws IOException {
+        return base.resolveChunks(blobId);
     }
 
     @Override
-    public void setBlockSize(int arg0) {
-        base.setBlockSize(arg0);
+    public void setBlockSize(int x) {
+        base.setBlockSize(x);
     }
 
     @Override
@@ -196,8 +197,8 @@ public class BlobCache implements BlobStore, GarbageCollectableBlobStore, Genera
     }
 
     @Override
-    public String writeBlob(String arg0) throws IOException {
-        return base.writeBlob(arg0);
+    public String writeBlob(String tempFileName) throws IOException {
+        return base.writeBlob(tempFileName);
     }
     
 }

@@ -45,7 +45,7 @@ public class MongoDbTest {
         index.put("_id", 1L);
         DBObject options = new BasicDBObject();
         // options.put("unique", Boolean.TRUE);
-        nodes.ensureIndex(index, options);
+        nodes.createIndex(index, options);
 
         // index on (_id, _mod):
         // Query plan: { "cursor" : "BtreeCursor _id_1__mod_-1" ,
@@ -120,7 +120,7 @@ public class MongoDbTest {
         index.put("_id", 1L);
         DBObject options = new BasicDBObject();
         // options.put("unique", Boolean.TRUE);
-        nodes.ensureIndex(index, options);
+        nodes.createIndex(index, options);
 
         long time;
         time = System.currentTimeMillis();

@@ -68,10 +68,11 @@ public abstract class AbstractDocumentStoreTest {
                 LOG.info(removeMe.size() + " documents removed in " + elapsed + "ms (" + rate + "/ms)");
             }
         }
+        ds.dispose();
         dsf.dispose();
     }
 
-    @Parameterized.Parameters
+    @Parameterized.Parameters(name="{0}")
     public static Collection<Object[]> fixtures() {
         return fixtures(false);
     }

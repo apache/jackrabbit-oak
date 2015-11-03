@@ -22,8 +22,6 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.google.common.base.Function;
-
 /**
  * A tree instance represents a snapshot of the {@link ContentRepository}
  * tree at the time the instance was acquired from a {@link ContentSession}.
@@ -348,20 +346,5 @@ public interface Tree {
      * Empty array of trees.
      */
     Tree[] EMPTY_ARRAY = new Tree[0];
-
-    /**
-     * Mapping from a Tree instance to its name.
-     */
-    Function<Tree, String> GET_NAME =
-            new Function<Tree, String>() {
-                @Override @Nullable
-                public String apply(@Nullable Tree input) {
-                    if (input != null) {
-                        return input.getName();
-                    } else {
-                        return null;
-                    }
-                }
-            };
 
 }

@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import com.mongodb.DB;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
@@ -23,7 +25,6 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
-import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -47,9 +48,9 @@ public class CollisionMarkerTest extends AbstractMongoConnectionTest {
 
     @Override
     public void setUpConnection() throws Exception {
-        mongoConnection = MongoUtils.getConnection();
+        mongoConnection = connectionFactory.getConnection();
         MongoUtils.dropCollections(mongoConnection.getDB());
-        mk = newDocumentMK(mongoConnection);
+        mk = newDocumentMK(mongoConnection.getDB());
         ns1 = mk.getNodeStore();
     }
 
@@ -68,7 +69,7 @@ public class CollisionMarkerTest extends AbstractMongoConnectionTest {
         ns1.runBackgroundOperations();
         // initialize second node store after background ops
         // on ns1. this makes sure ns2 sees all changes done so far
-        ns2 = newDocumentMK(MongoUtils.getConnection()).getNodeStore();
+        ns2 = newDocumentMK(connectionFactory.getConnection().getDB()).getNodeStore();
 
         b1 = ns1.getRoot().builder();
         b1.child("node").child("foo");
@@ -92,10 +93,10 @@ public class CollisionMarkerTest extends AbstractMongoConnectionTest {
                 " committed revision", root.getValueMap(COLLISIONS).containsKey(head));
     }
 
-    private static DocumentMK newDocumentMK(MongoConnection c) {
+    private static DocumentMK newDocumentMK(DB db) {
         DocumentMK mk = new DocumentMK.Builder().setAsyncDelay(0)
                 .setLeaseCheck(false)
-                .setMongoDB(c.getDB()).open();
+                .setMongoDB(db).open();
         // do not retry on conflicts
         mk.getNodeStore().setMaxBackOffMillis(0);
         return mk;

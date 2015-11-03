@@ -170,5 +170,4 @@ public abstract class SourceImpl extends AstElement {
      * @return the size, or -1 if unknown
      */
     public abstract long getSize(SizePrecision precision, long max);
-
 }

@@ -19,16 +19,11 @@
 package org.apache.jackrabbit.oak.api;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
-
-import com.google.common.base.Objects;
-import com.google.common.collect.ComparisonChain;
-
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Maps.newHashMap;
 
 /**
  * Instances of this class map Java types to {@link PropertyType property types}.
@@ -38,7 +33,7 @@ import static com.google.common.collect.Maps.newHashMap;
  */
 public final class Type<T> implements Comparable<Type<?>> {
 
-    private static final Map<String, Type<?>> TYPES = newHashMap();
+    private static final Map<String, Type<?>> TYPES = new HashMap<String, Type<?>>();
 
     private static <T> Type<T> create(int tag, boolean array, String string) {
         Type<T> type = new Type<T>(tag, array, string);
@@ -242,10 +237,23 @@ public final class Type<T> implements Comparable<Type<?>> {
 
     @Override
     public int compareTo(@Nonnull Type<?> that) {
-        return ComparisonChain.start()
-                .compare(tag, that.tag)
-                .compareFalseFirst(array, that.array)
-                .result();
+        if (tag < that.tag) {
+            return -1;
+        }
+
+        if (tag > that.tag) {
+            return 1;
+        }
+
+        if (!array && that.array) {
+            return -1;
+        }
+
+        if (array && !that.array) {
+            return 1;
+        }
+
+        return 0;
     }
 
     //------------------------------------------------------------< Object >--
@@ -257,7 +265,22 @@ public final class Type<T> implements Comparable<Type<?>> {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(tag, array);
+        int result = 1;
+
+        result = result + 31 * tag;
+        result = result + 31 * hashCode(array);
+
+        return result;
+    }
+
+    private int hashCode(boolean value) {
+        return value ? 1231 : 1237;
+    }
+
+    private void checkState(boolean condition, String message) {
+        if (!condition) {
+            throw new IllegalStateException(message);
+        }
     }
 
     @Override

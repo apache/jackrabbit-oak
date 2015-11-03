@@ -93,8 +93,6 @@ public class MongoConnection {
                 .add("connectTimeout", opts.getConnectTimeout())
                 .add("socketTimeout", opts.getSocketTimeout())
                 .add("socketKeepAlive", opts.isSocketKeepAlive())
-                .add("autoConnectRetry", opts.isAutoConnectRetry())
-                .add("maxAutoConnectRetryTime", opts.getMaxAutoConnectRetryTime())
                 .add("maxWaitTime", opts.getMaxWaitTime())
                 .add("threadsAllowedToBlockForConnectionMultiplier",
                         opts.getThreadsAllowedToBlockForConnectionMultiplier())

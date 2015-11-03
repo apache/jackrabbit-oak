@@ -119,4 +119,18 @@ public class MongoUtils {
         }
     }
 
+    /**
+     * @return true if MongoDB is available, false otherwise.
+     */
+    public static boolean isAvailable() {
+        MongoConnection c = getConnection();
+        try {
+            return c != null;
+        } finally {
+            if (c != null) {
+                c.close();
+            }
+        }
+    }
+
 }

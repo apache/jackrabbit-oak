@@ -457,11 +457,15 @@ public class ClusterNodeInfo {
             String mId = "" + doc.get(MACHINE_ID_KEY);
             String iId = "" + doc.get(INSTANCE_ID_KEY);
 
-            if (mId.startsWith(RANDOM_PREFIX)) {
-                // remove expired entries with random keys
+            // remove entries with "random:" keys if not in use (no lease at all) 
+            if (mId.startsWith(RANDOM_PREFIX) && leaseEnd == null) {
                 store.remove(Collection.CLUSTER_NODES, key);
                 LOG.debug("Cleaned up cluster node info for clusterNodeId {} [machineId: {}, leaseEnd: {}]", id, mId,
                         leaseEnd == null ? "n/a" : Utils.timestampToString(leaseEnd));
+                if (alreadyExistingConfigured == doc) {
+                    // we removed it, so we can't re-use it after all
+                    alreadyExistingConfigured = null;
+                }
                 continue;
             }
 
@@ -652,7 +656,7 @@ public class ClusterNodeInfo {
             now = getCurrentTime();
             leaseEndTime = now + leaseTime;
         }
-        UpdateOp update = new UpdateOp("" + id, true);
+        UpdateOp update = new UpdateOp("" + id, false);
         update.set(LEASE_END_KEY, leaseEndTime);
         update.set(STATE, ClusterNodeState.ACTIVE.name());
         ClusterNodeInfoDocument doc = null;
@@ -677,7 +681,7 @@ public class ClusterNodeInfo {
             // this is only for startup - then we 'just' overwrite
             // the lease - or create it - and don't care a lot about what the
             // status of the lease was
-            doc = store.createOrUpdate(Collection.CLUSTER_NODES, update);
+            doc = store.findAndUpdate(Collection.CLUSTER_NODES, update);
         }
         if (doc==null) { // should not occur when leaseCheckDisabled
             // OAK-3398 : someone else either started recovering or is already through with that.
@@ -741,7 +745,7 @@ public class ClusterNodeInfo {
         UpdateOp update = new UpdateOp("" + id, true);
         update.set(LEASE_END_KEY, null);
         update.set(STATE, null);
-        update.set(REV_RECOVERY_LOCK, null);
+        update.set(REV_RECOVERY_LOCK, RecoverLockState.NONE.name());
         store.createOrUpdate(Collection.CLUSTER_NODES, update);
     }
 
@@ -786,6 +790,20 @@ public class ClusterNodeInfo {
         }
     }
 
+    /*
+     * Allow external override of hardware address. The special value "(none)"
+     * indicates that a situation where no hardware address is available is to
+     * be simulated.
+     */
+    private static String getHWAFromSystemProperty() {
+        String pname = ClusterNodeInfo.class.getName() + ".HWADDRESS";
+        String hwa = System.getProperty(pname, "");
+        if (!"".equals(hwa)) {
+            LOG.debug("obtaining hardware address from system variable " + pname + ": " + hwa);
+        }
+        return hwa;
+    }
+
     /**
      * Calculate the unique machine id. This usually is the lowest MAC address
      * if available. As an alternative, a randomly generated UUID is used.
@@ -797,24 +815,37 @@ public class ClusterNodeInfo {
         try {
             ArrayList<String> macAddresses = new ArrayList<String>();
             ArrayList<String> otherAddresses = new ArrayList<String>();
-            Enumeration<NetworkInterface> e = NetworkInterface
-                    .getNetworkInterfaces();
-            while (e.hasMoreElements()) {
-                NetworkInterface ni = e.nextElement();
-                try {
-                    byte[] hwa = ni.getHardwareAddress();
-                    // empty addresses have been seen on loopback devices
-                    if (hwa != null && hwa.length != 0) {
-                        String str = StringUtils.convertBytesToHex(hwa);
-                        if (hwa.length == 6) {
-                            // likely a MAC address
-                            macAddresses.add(str);
-                        } else {
-                            otherAddresses.add(str);
+            String hwaFromSysProp = getHWAFromSystemProperty();
+            if ("".equals(hwaFromSysProp)) {
+                Enumeration<NetworkInterface> e = NetworkInterface
+                        .getNetworkInterfaces();
+                while (e.hasMoreElements()) {
+                    NetworkInterface ni = e.nextElement();
+                    try {
+                        byte[] hwa = ni.getHardwareAddress();
+                        // empty addresses have been seen on loopback devices
+                        if (hwa != null && hwa.length != 0) {
+                            String str = StringUtils.convertBytesToHex(hwa);
+                            if (hwa.length == 6) {
+                                // likely a MAC address
+                                macAddresses.add(str);
+                            } else {
+                                otherAddresses.add(str);
+                            }
                         }
+                    } catch (Exception e2) {
+                        exception = e2;
                     }
-                } catch (Exception e2) {
-                    exception = e2;
+                }
+            }
+            else {
+                if (!"(none)".equals(hwaFromSysProp)) {
+                    if (hwaFromSysProp.length() == 12) {
+                        // assume 12 hex digits are a mac address
+                        macAddresses.add(hwaFromSysProp);
+                    } else {
+                        otherAddresses.add(hwaFromSysProp);
+                    }
                 }
             }
 

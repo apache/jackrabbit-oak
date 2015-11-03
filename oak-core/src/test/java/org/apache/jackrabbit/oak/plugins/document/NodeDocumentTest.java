@@ -21,6 +21,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
@@ -496,6 +497,92 @@ public class NodeDocumentTest {
             // expected
         }
 
+        ns.dispose();
+    }
+
+    @Test
+    public void getChanges() throws Exception {
+        final int numChanges = 200;
+        Random random = new Random();
+        DocumentNodeStore ns = createTestStore(numChanges);
+        DocumentStore store = ns.getDocumentStore();
+        NodeDocument doc = getRootDocument(store);
+        for (int i = 0; i < 10; i++) {
+            int idx = random.nextInt(numChanges);
+            Revision r = Iterables.get(doc.getValueMap("p").keySet(), idx);
+            Iterable<Revision> revs = doc.getChanges("p", r, ns);
+            assertEquals(idx, Iterables.size(revs));
+        }
+        ns.dispose();
+    }
+
+    @Test
+    public void getChangesMixedClusterIds() throws Exception {
+        final int numChanges = 200;
+        Random random = new Random();
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ns1 = createTestStore(store, 0);
+        DocumentNodeStore ns2 = createTestStore(store, 0);
+        List<DocumentNodeStore> nodeStores = Lists.newArrayList(ns1, ns2);
+
+        for (int i = 0; i < numChanges; i++) {
+            DocumentNodeStore ns = nodeStores.get(random.nextInt(nodeStores.size()));
+            ns.runBackgroundOperations();
+            NodeBuilder builder = ns.getRoot().builder();
+            builder.setProperty("p", i);
+            merge(ns, builder);
+            ns.runBackgroundOperations();
+            if (random.nextDouble() < 0.2) {
+                Revision head = ns.getHeadRevision();
+                for (UpdateOp op : SplitOperations.forDocument(
+                        getRootDocument(store), ns, head, 2)) {
+                    store.createOrUpdate(NODES, op);
+                }
+            }
+        }
+
+        NodeDocument doc = getRootDocument(store);
+        for (int i = 0; i < 10; i++) {
+            int idx = random.nextInt(numChanges);
+            Revision r = Iterables.get(doc.getValueMap("p").keySet(), idx);
+            Iterable<Revision> revs1 = doc.getChanges("p", r, ns1);
+            Iterable<Revision> revs2 = doc.getChanges("p", r, ns2);
+            assertEquals(Iterables.size(revs1), Iterables.size(revs2));
+            assertEquals(idx, Iterables.size(revs1));
+        }
+
+        ns1.dispose();
+        ns2.dispose();
+    }
+
+    // OAK-3557
+    @Test
+    public void isConflicting() throws Exception {
+        final int numChanges = 200;
+        final Set<String> prevDocCalls = Sets.newHashSet();
+        MemoryDocumentStore store = new MemoryDocumentStore() {
+            @Override
+            public <T extends Document> T find(Collection<T> collection,
+                                               String key) {
+                if (Utils.getPathFromId(key).startsWith("p")) {
+                    prevDocCalls.add(key);
+                }
+                return super.find(collection, key);
+            }
+        };
+        DocumentNodeStore ns = createTestStore(store, numChanges);
+        NodeDocument doc = getRootDocument(store);
+        Map<Revision, String> valueMap = doc.getValueMap("p");
+        assertEquals(200, valueMap.size());
+        Revision baseRev = valueMap.keySet().iterator().next();
+        Revision commitRev = ns.newRevision();
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/"), false);
+        op.setMapEntry("p", commitRev, "v");
+
+        prevDocCalls.clear();
+        assertFalse(doc.isConflicting(op, baseRev, commitRev, ns, false));
+        assertTrue("too many calls for previous documents: " + prevDocCalls,
+                prevDocCalls.size() <= 6);
         ns.dispose();
     }
 

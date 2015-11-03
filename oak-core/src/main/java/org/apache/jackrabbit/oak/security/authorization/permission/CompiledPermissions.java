@@ -33,7 +33,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermi
  * be may able to simplify the evaluation. See e.g. {@link org.apache.jackrabbit.oak.security.authorization.permission.AllPermissions}
  * and {@link org.apache.jackrabbit.oak.security.authorization.permission.NoPermissions}
  */
-public interface CompiledPermissions {
+interface CompiledPermissions {
 
     /**
      * Refresh this instance to reflect the permissions as present with the
@@ -104,7 +104,7 @@ public interface CompiledPermissions {
     Set<String> getPrivileges(@Nullable Tree tree);
 
     /**
-     * Retruns true if all privileges identified by the given {@code privilegeNames}
+     * Returns {@code true} if all privileges identified by the given {@code privilegeNames}
      * are granted at the given {@code tree}.
      *
      *

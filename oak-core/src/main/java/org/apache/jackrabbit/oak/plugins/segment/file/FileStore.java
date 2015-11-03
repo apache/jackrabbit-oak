@@ -881,7 +881,7 @@ public class FileStore implements SegmentStore {
         approximateSize.set(finalSize);
         gcMonitor.cleaned(initialSize - finalSize, finalSize);
         gcMonitor.info("TarMK GC #{}: cleanup completed in {} ({} ms). Post cleanup size is {} ({} bytes)" +
-                "and space reclaimed {} ({} bytes). Compaction map weight/depth is {}/{} ({} bytes/{}).",
+                " and space reclaimed {} ({} bytes). Compaction map weight/depth is {}/{} ({} bytes/{}).",
                 gcCount, watch, watch.elapsed(MILLISECONDS),
                 humanReadableByteCount(finalSize), finalSize,
                 humanReadableByteCount(initialSize - finalSize), initialSize - finalSize,
@@ -893,8 +893,8 @@ public class FileStore implements SegmentStore {
     /**
      * @return  a new {@link SegmentWriter} instance for writing to this store.
      */
-    public SegmentWriter createSegmentWriter() {
-        return new SegmentWriter(this, tracker, getVersion());
+    public SegmentWriter createSegmentWriter(String wid) {
+        return new SegmentWriter(this, tracker, getVersion(), wid);
     }
 
     /**
@@ -1355,6 +1355,19 @@ public class FileStore implements SegmentStore {
          */
         public void setRevision(String revision) {
             super.setRevision(revision);
+        }
+
+        /**
+         * Build the graph of segments reachable from an initial set of segments
+         * @param referencedIds  the initial set of segments
+         * @throws IOException
+         */
+        public Map<UUID, Set<UUID>> getSegmentGraph(Set<UUID> referencedIds) throws IOException {
+            Map<UUID, Set<UUID>> graph = newHashMap();
+            for (TarReader reader : super.readers) {
+                graph.putAll(reader.getReferenceGraph(referencedIds));
+            }
+            return graph;
         }
 
         @Override

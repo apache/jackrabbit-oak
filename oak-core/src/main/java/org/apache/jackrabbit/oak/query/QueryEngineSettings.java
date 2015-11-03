@@ -41,6 +41,8 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean {
     private boolean fullTextComparisonWithoutIndex = 
             DEFAULT_FULL_TEXT_COMPARISON_WITHOUT_INDEX;
     
+    private boolean sql2Optimisation = Boolean.getBoolean("oak.query.sql2optimisation");
+    
     /**
      * Get the limit on how many nodes a query may read at most into memory, for
      * "order by" and "distinct" queries. If this limit is exceeded, the query
@@ -93,4 +95,7 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean {
         return fullTextComparisonWithoutIndex;
     }
     
+    public boolean isSql2Optimisation() {
+        return sql2Optimisation;
+    }
 }

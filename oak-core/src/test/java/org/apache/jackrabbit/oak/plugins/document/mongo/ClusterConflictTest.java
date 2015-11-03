@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -44,7 +43,7 @@ public class ClusterConflictTest extends AbstractMongoConnectionTest {
     @Override
     public void setUpConnection() throws Exception {
         super.setUpConnection();
-        ns2 = newBuilder(MongoUtils.getConnection().getDB()).getNodeStore();
+        ns2 = newBuilder(connectionFactory.getConnection().getDB()).getNodeStore();
     }
 
     @Override

@@ -27,13 +27,16 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -95,6 +98,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
 import org.apache.jackrabbit.oak.plugins.document.util.MapDBMapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.RecordUsageAnalyser;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
@@ -105,6 +109,7 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.plugins.segment.standby.client.StandbyClient;
 import org.apache.jackrabbit.oak.plugins.segment.standby.server.StandbyServer;
@@ -164,6 +169,9 @@ public final class Main {
                 break;
             case DEBUG:
                 debug(args);
+                break;
+            case GRAPH:
+                graph(args);
                 break;
             case CHECK:
                 check(args);
@@ -777,6 +785,55 @@ public final class Main {
         }
     }
 
+    private static void graph(String[] args) throws Exception {
+        OptionParser parser = new OptionParser();
+        OptionSpec<File> directoryArg = parser.nonOptions(
+                "Path to segment store (required)").ofType(File.class);
+        OptionSpec<File> outFileArg = parser.accepts(
+                "output", "Output file").withRequiredArg().ofType(File.class)
+                .defaultsTo(new File("segments.gdf"));
+        OptionSpec<Long> epochArg = parser.accepts(
+                "epoch", "Epoch of the segment time stamps (derived from journal.log if not given)")
+                .withRequiredArg().ofType(Long.class);
+        OptionSet options = parser.parse(args);
+
+        File directory = directoryArg.value(options);
+        if (directory == null) {
+            System.err.println("Dump the segment graph to a file. Usage: graph [File] <options>");
+            parser.printHelpOn(System.err);
+            System.exit(-1);
+        }
+        if (!isValidFileStore(directory.getPath())) {
+            System.err.println("Invalid FileStore directory " + directory);
+            System.exit(1);
+        }
+
+        File outFile = outFileArg.value(options);
+        Date epoch;
+        if (options.has(epochArg)) {
+            epoch = new Date(epochArg.value(options));
+        } else {
+            Calendar c = Calendar.getInstance();
+            c.setTimeInMillis(new File(directory, "journal.log").lastModified());
+            c.set(Calendar.HOUR_OF_DAY, 0);
+            c.set(Calendar.MINUTE, 0);
+            c.set(Calendar.SECOND, 0);
+            c.set(Calendar.MILLISECOND, 0);
+            epoch = c.getTime();
+        }
+
+        System.out.println("Opening file store at " + directory);
+        ReadOnlyStore fileStore = new ReadOnlyStore(directory);
+
+        if (outFile.exists()) {
+            outFile.delete();
+        }
+
+        System.out.println("Setting epoch to " + epoch);
+        System.out.println("Writing graph to " + outFile);
+        FileStoreHelper.writeSegmentGraph(fileStore, new FileOutputStream(outFile), epoch);
+    }
+
     private static void check(String[] args) throws IOException {
         OptionParser parser = new OptionParser();
         ArgumentAcceptingOptionSpec<String> path = parser.accepts(
@@ -1191,6 +1248,7 @@ public final class Main {
         BENCHMARK("benchmark"),
         CONSOLE("console"),
         DEBUG("debug"),
+        GRAPH("graph"),
         CHECK("check"),
         COMPACT("compact"),
         SERVER("server"),

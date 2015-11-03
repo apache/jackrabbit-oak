@@ -31,6 +31,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
+import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
+import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
@@ -222,5 +224,14 @@ public class PermissionProviderImplTest extends AbstractSecurityTest implements 
         } finally {
             testSession.close();
         }
+    }
+
+    @Test
+    public void testIsGrantedNonExistingVersionStoreLocation() {
+        TreeLocation location = TreeLocation.create(root, VersionConstants.VERSION_STORE_PATH + "/non/existing/tree");
+        PermissionProvider pp = createPermissionProvider(adminSession);
+
+        assertTrue(pp instanceof PermissionProviderImpl);
+        assertFalse(((PermissionProviderImpl) pp).isGranted(location, Permissions.ALL));
     }
 }

@@ -84,6 +84,9 @@ import junitx.util.PrivateAccessor;
  */
 public class DocumentDiscoveryLiteServiceTest {
 
+    @Rule
+    public MongoConnectionFactory connectionFactory = new MongoConnectionFactory();
+
     /**
      * container for what should represent an instance, but is not a complete
      * one, hence 'simplified'. it contains most importantly the
@@ -1060,7 +1063,7 @@ public class DocumentDiscoveryLiteServiceTest {
         }
         mks.clear();
         if (MONGO_DB) {
-            MongoConnection connection = MongoUtils.getConnection();
+            MongoConnection connection = connectionFactory.getConnection();
             if (connection != null) {
                 DB db = connection.getDB();
                 if (db != null) {
@@ -1072,7 +1075,7 @@ public class DocumentDiscoveryLiteServiceTest {
 
     private DocumentMK createMK(int clusterId, int asyncDelay) {
         if (MONGO_DB) {
-            DB db = MongoUtils.getConnection().getDB();
+            DB db = connectionFactory.getConnection().getDB();
             return register(new DocumentMK.Builder().setMongoDB(db).setLeaseCheck(false).setClusterId(clusterId)
                     .setAsyncDelay(asyncDelay).open());
         } else {

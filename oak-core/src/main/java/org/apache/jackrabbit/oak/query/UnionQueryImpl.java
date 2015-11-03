@@ -56,11 +56,22 @@ public class UnionQueryImpl implements Query {
     private final QueryEngineSettings settings;
     private boolean isInternal;
     
+    /**
+     * whether the query is a result of optimisation or not
+     */
+    private boolean optimised;
+    
     UnionQueryImpl(boolean unionAll, Query left, Query right, QueryEngineSettings settings) {
+        this(unionAll, left, right, settings, false);
+    }
+
+    UnionQueryImpl(final boolean unionAll, final Query left, final Query right,
+                   final QueryEngineSettings settings, final boolean optimised) {
         this.unionAll = unionAll;
         this.left = left;
         this.right = right;
         this.settings = settings;
+        this.optimised = optimised;
     }
 
     @Override
@@ -354,5 +365,41 @@ public class UnionQueryImpl implements Query {
     @Override
     public boolean isSortedByIndex() {
         return left.isSortedByIndex() && right.isSortedByIndex();
+    }
+
+    @Override
+    public Query optimise() {
+        return this;
+    }
+
+    @Override
+    public Query copyOf() throws IllegalStateException {
+        return null;
+    }
+
+    @Override
+    public boolean isInit() {
+        return left.isInit() || right.isInit();
+    }
+
+    @Override
+    public boolean isOptimised() {
+        return optimised;
+    }
+
+    @Override
+    public String getStatement() {
+        return toString();
+    }
+
+    @Override
+    public boolean isInternal() {
+        return left.isInternal() || right.isInternal();
+    }
+
+    @Override
+    public double getCostOverhead() {
+        // for now we don't really have any case where a union query should suffer from overheads.
+        return 0;
     }
 }

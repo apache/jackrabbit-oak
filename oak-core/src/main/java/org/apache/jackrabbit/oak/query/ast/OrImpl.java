@@ -23,6 +23,7 @@ import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.newLinkedHashSet;
+import static org.apache.jackrabbit.oak.query.ast.AstElementFactory.copyElementAndCheckReference;
 import static org.apache.jackrabbit.oak.query.ast.Operator.EQUAL;
 
 import java.util.Arrays;
@@ -36,6 +37,8 @@ import java.util.Set;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextOr;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+
+import com.google.common.collect.Sets;
 
 /**
  * An "or" condition.
@@ -53,6 +56,7 @@ public class OrImpl extends ConstraintImpl {
         this(Arrays.asList(constraint1, constraint2));
     }
 
+    @Override
     public List<ConstraintImpl> getConstraints() {
         return constraints;
     }
@@ -345,4 +349,26 @@ public class OrImpl extends ConstraintImpl {
         return constraints.hashCode();
     }
 
+    @Override
+    public AstElement copyOf() {
+        List<ConstraintImpl> clone = newArrayList();
+        for (ConstraintImpl c : constraints) {
+            clone.add((ConstraintImpl) copyElementAndCheckReference(c));
+        }
+        return new OrImpl(clone);
+    }
+
+    @Override
+    public Set<ConstraintImpl> simplifyForUnion() {
+        Set<ConstraintImpl> cc = Sets.newHashSet();
+        for (ConstraintImpl c : getConstraints()) {
+            Set<ConstraintImpl> ccc = c.simplifyForUnion(); 
+            if (ccc.isEmpty()) {
+                cc.add(c);
+            } else {
+                cc.addAll(ccc);
+            }
+        }
+        return cc;
+    }
 }

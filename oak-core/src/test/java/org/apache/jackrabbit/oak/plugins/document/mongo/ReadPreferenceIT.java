@@ -21,24 +21,22 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.util.concurrent.TimeUnit;
 
+import com.mongodb.DB;
 import com.mongodb.ReadPreference;
+
+import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
+
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore.DocumentReadPreference;
-import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
-import org.junit.After;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -48,43 +46,28 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class ReadPreferenceIT {
+public class ReadPreferenceIT extends AbstractMongoConnectionTest {
 
     private static final int BRANCH_LIMIT = 10000;
-    private DocumentNodeStore documentNodeStore;
-    private NodeStore nodeStore;
 
     private MongoDocumentStore mongoDS;
 
     private Clock clock;
 
-    private long maxReplicationLag;
+    private long replicationLag;
 
-    @BeforeClass
-    public static void checkMongoDbAvailable() {
-        Assume.assumeNotNull(MongoUtils.getConnection());
-    }
-
-    @Before
-    public void prepareStores() throws Exception {
+    @Override
+    public void setUpConnection() throws Exception {
         clock = new Clock.Virtual();
-        maxReplicationLag = TimeUnit.SECONDS.toMillis(10);
-        MongoConnection mc = MongoUtils.getConnection();
-        documentNodeStore = new DocumentMK.Builder()
-                .setMaxReplicationLag(maxReplicationLag, TimeUnit.MILLISECONDS)
-                .setMongoDB(mc.getDB())
+        replicationLag = TimeUnit.SECONDS.toMillis(10);
+        mongoConnection = connectionFactory.getConnection();
+        mk = new DocumentMK.Builder()
+                .setMaxReplicationLag(replicationLag, TimeUnit.MILLISECONDS)
+                .setMongoDB(mongoConnection.getDB())
                 .setClusterId(1)
                 .setLeaseCheck(false)
-                .getNodeStore();
-        mongoDS = (MongoDocumentStore) documentNodeStore.getDocumentStore();
-        nodeStore = documentNodeStore;
-    }
-
-    @After
-    public void clearDB() {
-        if (mongoDS != null) {
-            MongoUtils.dropCollections(mongoDS.getDBCollection(NODES).getDB());
-        }
+                .open();
+        mongoDS = (MongoDocumentStore) mk.getDocumentStore();
     }
 
     @Test
@@ -92,7 +75,7 @@ public class ReadPreferenceIT {
         //For cacheAge < replicationLag result should be primary
         assertEquals(DocumentReadPreference.PRIMARY, mongoDS.getReadPreference(0));
         assertEquals(DocumentReadPreference.PRIMARY,
-                mongoDS.getReadPreference((int) (maxReplicationLag - 100)));
+                mongoDS.getReadPreference((int) (replicationLag - 100)));
 
         //For Integer.MAX_VALUE it should be secondary as caller intends that value is stable
         assertEquals(DocumentReadPreference.PREFER_SECONDARY,
@@ -102,7 +85,7 @@ public class ReadPreferenceIT {
         assertEquals(DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH,
                 mongoDS.getReadPreference(-1));
         assertEquals(DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH,
-                mongoDS.getReadPreference((int) (maxReplicationLag + 100)));
+                mongoDS.getReadPreference((int) (replicationLag + 100)));
     }
 
     @Test
@@ -138,6 +121,7 @@ public class ReadPreferenceIT {
         ReadPreference testPref = ReadPreference.secondary();
         mongoDS.getDBCollection(NODES).getDB().setReadPreference(testPref);
 
+        NodeStore nodeStore = mk.getNodeStore();
         NodeBuilder b1 = nodeStore.getRoot().builder();
         b1.child("x").child("y");
         nodeStore.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -150,7 +134,7 @@ public class ReadPreferenceIT {
                 mongoDS.getMongoReadPreference(NODES, id, parentId, DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
 
         //Going into future to make parent /x old enough
-        clock.waitUntil(Revision.getCurrentTimestamp() + maxReplicationLag);
+        clock.waitUntil(Revision.getCurrentTimestamp() + replicationLag);
         mongoDS.setClock(clock);
 
         //For old modified nodes secondaries should be preferred
@@ -164,9 +148,9 @@ public class ReadPreferenceIT {
         ReadPreference testPref = ReadPreference.secondary();
         mongoDS.getDBCollection(NODES).getDB().setReadPreference(testPref);
 
-        NodeBuilder b1 = nodeStore.getRoot().builder();
+        NodeBuilder b1 = mk.getNodeStore().getRoot().builder();
         NodeBuilder x = b1.child("x");
-        nodeStore.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        mk.getNodeStore().merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         for (int i = 0; i <= BRANCH_LIMIT; i++) {
             NodeBuilder y = x.child("y_" + i);
@@ -178,7 +162,7 @@ public class ReadPreferenceIT {
         waitUntilPendingModificationIsSaved(parentId);
 
         //Going into future to make parent /x old enough
-        clock.waitUntil(Revision.getCurrentTimestamp() + maxReplicationLag);
+        clock.waitUntil(Revision.getCurrentTimestamp() + replicationLag);
         mongoDS.setClock(clock);
 
         //The node /x/y_1 belongs to branch. Primary should be used.
@@ -186,7 +170,7 @@ public class ReadPreferenceIT {
         assertEquals(ReadPreference.primary(),
                 mongoDS.getMongoReadPreference(NODES, id, parentId, DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
 
-        nodeStore.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        mk.getNodeStore().merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         waitUntilPendingModificationIsSaved(parentId);
 
         assertFalse(mongoDS.belongsToBranch(id));
@@ -200,19 +184,19 @@ public class ReadPreferenceIT {
         ReadPreference testPref = ReadPreference.secondary();
         mongoDS.getDBCollection(NODES).getDB().setReadPreference(testPref);
 
-        NodeBuilder b1 = nodeStore.getRoot().builder();
+        NodeBuilder b1 = mk.getNodeStore().getRoot().builder();
         b1.child("x");
-        nodeStore.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        mk.getNodeStore().merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         waitUntilPendingModificationIsSaved("0:/");
 
         b1.getChildNode("x").child("y");
-        nodeStore.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        mk.getNodeStore().merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         String id = Utils.getIdFromPath("/x/y");
         String parentId = Utils.getParentId(id);
 
         //Going into future to make parent /x old enough
-        clock.waitUntil(Revision.getCurrentTimestamp() + maxReplicationLag);
+        clock.waitUntil(Revision.getCurrentTimestamp() + replicationLag);
         mongoDS.setClock(clock);
 
         //The lastRev for /x hasn't been updated yet. Primary instance should be used.

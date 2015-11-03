@@ -127,4 +127,9 @@ public class SimilarImpl extends ConstraintImpl {
         return pathExpression;
     }
 
+    @Override
+    public AstElement copyOf() {
+        return new SimilarImpl(selectorName, propertyName, pathExpression);
+    }
+
 }

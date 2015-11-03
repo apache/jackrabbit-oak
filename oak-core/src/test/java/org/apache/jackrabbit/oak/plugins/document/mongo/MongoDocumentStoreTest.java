@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -44,7 +45,7 @@ public class MongoDocumentStoreTest extends AbstractMongoConnectionTest {
 
     @Override
     public void setUpConnection() throws Exception {
-        mongoConnection = MongoUtils.getConnection();
+        mongoConnection = connectionFactory.getConnection();
         MongoUtils.dropCollections(mongoConnection.getDB());
         DocumentMK.Builder builder = new DocumentMK.Builder();
         store = new TestStore(mongoConnection.getDB(), builder);
@@ -66,10 +67,12 @@ public class MongoDocumentStoreTest extends AbstractMongoConnectionTest {
             }
             mk.commit("/", sb.toString(), null, null);
             store.queriesWithoutLock.set(0);
+            long lockCount = store.getLockAcquisitionCount();
             List<NodeDocument> docs = store.query(Collection.NODES, fromId, toId,
                     "foo", System.currentTimeMillis(), Integer.MAX_VALUE);
             assertTrue(docs.isEmpty());
             if (store.queriesWithoutLock.get() > 0) {
+                assertEquals(lockCount + 1, store.getLockAcquisitionCount());
                 return;
             }
         }

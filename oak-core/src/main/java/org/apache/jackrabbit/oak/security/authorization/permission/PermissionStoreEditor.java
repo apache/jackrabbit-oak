@@ -53,10 +53,9 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
 
     private static final Logger log = LoggerFactory.getLogger(PermissionStoreEditor.class);
 
-    final String accessControlledPath;
-    final String nodeName;
-    final Map<String, List<AcEntry>> entries = Maps.<String, List<AcEntry>>newHashMap();
-
+    private final String accessControlledPath;
+    private final String nodeName;
+    private final Map<String, List<AcEntry>> entries = Maps.newHashMap();
     private final NodeBuilder permissionRoot;
 
     PermissionStoreEditor(@Nonnull String aclPath, @Nonnull String name,
@@ -99,6 +98,18 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
                 index++;
             }
         }
+    }
+
+    String getPath() {
+        return accessControlledPath;
+    }
+
+    boolean isEmpty() {
+        return entries.isEmpty();
+    }
+
+    void removePermissionEntries(PermissionStoreEditor otherEditor) {
+        entries.keySet().removeAll(otherEditor.entries.keySet());
     }
 
     void removePermissionEntries() {

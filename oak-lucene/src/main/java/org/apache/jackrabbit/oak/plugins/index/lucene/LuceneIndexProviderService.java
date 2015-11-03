@@ -86,6 +86,15 @@ public class LuceneIndexProviderService {
     )
     private NodeAggregator nodeAggregator;
 
+    private static final boolean PROP_DISABLED_DEFAULT = false;
+
+    @Property(
+            boolValue = PROP_DISABLED_DEFAULT,
+            label = "Disable this component",
+            description = "If true, this component is disabled."
+    )
+    private static final String PROP_DISABLED = "disabled";
+
     @Property(
             boolValue = false,
             label = "Enable Debug Logging",
@@ -164,6 +173,13 @@ public class LuceneIndexProviderService {
     @Activate
     private void activate(BundleContext bundleContext, Map<String, ?> config)
             throws NotCompliantMBeanException, IOException {
+        boolean disabled = PropertiesUtil.toBoolean(config.get(PROP_DISABLED), PROP_DISABLED_DEFAULT);
+
+        if (disabled) {
+            log.info("Component disabled by configuration");
+            return;
+        }
+
         initializeFactoryClassLoaders(getClass().getClassLoader());
         whiteboard = new OsgiWhiteboard(bundleContext);
         threadPoolSize = PropertiesUtil.toInteger(config.get(PROP_THREAD_POOL_SIZE), PROP_THREAD_POOL_SIZE_DEFAULT);

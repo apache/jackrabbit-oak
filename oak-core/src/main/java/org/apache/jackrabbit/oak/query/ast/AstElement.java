@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.QueryImpl;
@@ -27,7 +29,6 @@ import org.apache.jackrabbit.oak.spi.query.PropertyValues;
  * The base class for all abstract syntax tree nodes.
  */
 abstract class AstElement {
-
     protected QueryImpl query;
 
     abstract boolean accept(AstVisitor v);
@@ -147,5 +148,13 @@ abstract class AstElement {
         return path;
     }
 
+    /**
+     * @return a clone of self. Default implementation in {@link AstElement} returns same reference
+     *         to {@code this}.
+     */
+    @Nonnull
+    public AstElement copyOf() {
+        return this;
+    }    
 }
 

@@ -32,7 +32,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
+import com.google.common.base.Function;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -47,6 +49,21 @@ import com.google.common.base.Predicates;
  * Immutable snapshot of a mutable node state.
  */
 public class ModifiedNodeState extends AbstractNodeState {
+
+    /**
+     * Mapping from a PropertyState instance to its name.
+     */
+    private static final Function<PropertyState, String> GET_NAME =
+            new Function<PropertyState, String>() {
+                @Override @Nullable
+                public String apply(@Nullable PropertyState input) {
+                    if (input != null) {
+                        return input.getName();
+                    } else {
+                        return null;
+                    }
+                }
+            };
 
     /**
      * Unwraps the given {@code NodeState} instance into the given internals
@@ -164,7 +181,7 @@ public class ModifiedNodeState extends AbstractNodeState {
                 properties = newHashMap(properties);
             }
             Predicate<PropertyState> predicate = Predicates.compose(
-                    not(in(properties.keySet())), PropertyState.GET_NAME);
+                    not(in(properties.keySet())), GET_NAME);
             return concat(
                     filter(base.getProperties(), predicate),
                     filter(properties.values(), notNull()));

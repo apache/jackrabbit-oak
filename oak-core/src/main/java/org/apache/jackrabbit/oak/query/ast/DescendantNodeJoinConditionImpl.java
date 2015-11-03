@@ -97,4 +97,9 @@ public class DescendantNodeJoinConditionImpl extends JoinConditionImpl {
         return available.contains(descendantSelector) && available.contains(ancestorSelector);
     }
 
+    @Override
+    public AstElement copyOf() {
+        return new DescendantNodeJoinConditionImpl(descendantSelectorName, ancestorSelectorName);
+    }
+
 }

@@ -13,6 +13,8 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import static org.apache.jackrabbit.oak.query.ast.AstElementFactory.copyElementAndCheckReference;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,7 +29,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * source, the join type, and the join condition.
  */
 public class JoinImpl extends SourceImpl {
-
     private final JoinConditionImpl joinCondition;
     private JoinType joinType;
     private SourceImpl left;
@@ -285,4 +286,13 @@ public class JoinImpl extends SourceImpl {
         return -1;
     }
 
+    @Override
+    public AstElement copyOf() {
+        return new JoinImpl(
+            (SourceImpl) copyElementAndCheckReference(left),
+            (SourceImpl) copyElementAndCheckReference(right),
+            joinType,
+            (JoinConditionImpl) copyElementAndCheckReference(joinCondition)
+            );
+    }
 }

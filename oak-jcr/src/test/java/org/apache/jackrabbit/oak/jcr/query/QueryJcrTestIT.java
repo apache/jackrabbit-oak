@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
+import junit.extensions.TestSetup;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 import org.apache.jackrabbit.core.query.ChildAxisQueryTest;
@@ -56,7 +57,16 @@ public class QueryJcrTestIT extends TCKBase {
     }
 
     public static Test suite() {
-        return new QueryJcrTestIT();
+        return new TestSetup(new QueryJcrTestIT()) {
+            @Override
+            protected void setUp() throws Exception {
+                System.setProperty("oak.queryMinPrefetch", "1000");
+            }
+            @Override
+            protected void tearDown() throws Exception {
+                System.clearProperty("oak.queryMinPrefetch");
+            }
+        };
     }
 
     @Override
