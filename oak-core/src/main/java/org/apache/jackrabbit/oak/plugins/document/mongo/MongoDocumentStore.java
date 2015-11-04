@@ -920,8 +920,10 @@ public class MongoDocumentStore implements DocumentStore {
 
                 for (String key : difference(operationsToCover.keySet(), bulkResult.failedUpdates)) {
                     T oldDoc = oldDocs.get(key);
-                    putToCache(collection, oldDoc, operationsToCover.get(key));
-                    oldDoc.seal();
+                    if (oldDoc != null) {
+                        putToCache(collection, oldDoc, operationsToCover.get(key));
+                        oldDoc.seal();
+                    }
                 }
 
                 operationsToCover.keySet().retainAll(bulkResult.failedUpdates);
@@ -967,7 +969,10 @@ public class MongoDocumentStore implements DocumentStore {
         for (UpdateOp updateOp : updateOps) {
             String id = updateOp.getId();
             QueryBuilder query = createQueryForUpdate(id, updateOp.getConditions());
-            query.and(Document.MOD_COUNT).is(oldDocs.get(id).getModCount());
+            T oldDoc = oldDocs.get(id);
+            if (oldDoc != null) {
+                query.and(Document.MOD_COUNT).is(oldDoc.getModCount());
+            }
             bulk.find(query.get()).upsert().update(createUpdate(updateOp));
             bulkIds[i++] = id;
         }
