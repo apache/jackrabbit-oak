@@ -257,12 +257,13 @@ public class ReplicaSetInfo implements Runnable {
     }
 
     private void closeConnections(Set<String> hostNames) {
-        Iterator<String> it = collections.keySet().iterator();
+        Iterator<Entry<String, DBCollection>> it = collections.entrySet().iterator();
         while (it.hasNext()) {
-            String hostName = it.next();
-            if (!hostNames.contains(hostName)) {
+            Entry<String, DBCollection> entry = it.next();
+            if (hostNames.contains(entry.getKey())) {
                 try {
-                    collections.remove(hostName).getDB().getMongo().close();
+                    entry.getValue().getDB().getMongo().close();
+                    it.remove();
                 } catch (MongoClientException e) {
                     LOG.error("Can't close Mongo client", e);
                 }
