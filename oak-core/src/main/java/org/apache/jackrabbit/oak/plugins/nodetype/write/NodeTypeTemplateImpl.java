@@ -34,6 +34,7 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_I
 import java.util.Arrays;
 import java.util.List;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
@@ -167,48 +168,36 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
             type.removeProperty(JCR_PRIMARYITEMNAME);
         }
 
-        Tree tree;
         // TODO fail (in validator?) on invalid item definitions
         // See 3.7.6.8 Item Definitions in Subtypes (OAK-411)
-        int pdn = 1;
-        if (propertyDefinitionTemplates != null) {
-            for (PropertyDefinitionTemplateImpl pdt : propertyDefinitionTemplates) {
-                String name = JCR_PROPERTYDEFINITION + "[" + pdn++ + "]";
-                tree = type.getChild(name);
-                if (!tree.exists()) {
-                    tree = type.addChild(name);
-                    tree.setProperty(
-                            JCR_PRIMARYTYPE, NT_PROPERTYDEFINITION, NAME);
-                }
-                pdt.writeTo(tree);
-            }
-        }
-        tree = type.getChild(JCR_PROPERTYDEFINITION + "[" + pdn++ + "]");
-        while (tree.exists()) {
-            tree.remove();
-            tree = type.getChild(JCR_PROPERTYDEFINITION + "[" + pdn++ + "]");
-        }
-
-        int ndn = 1;
-        if (nodeDefinitionTemplates != null) {
-            for (NodeDefinitionTemplateImpl ndt : nodeDefinitionTemplates) {
-                String name = JCR_CHILDNODEDEFINITION + "[" + ndn++ + "]";
-                tree = type.getChild(name);
-                if (!tree.exists()) {
-                    tree = type.addChild(name);
-                    tree.setProperty(
-                            JCR_PRIMARYTYPE, NT_CHILDNODEDEFINITION, NAME);
-                }
-                ndt.writeTo(tree);
-            }
-        }
-        tree = type.getChild(JCR_CHILDNODEDEFINITION + "[" + ndn++ + "]");
-        while (tree.exists()) {
-            tree.remove();
-            tree = type.getChild(JCR_CHILDNODEDEFINITION + "[" + ndn++ + "]");
-        }
+        writeItemDefinitions(type, propertyDefinitionTemplates, JCR_PROPERTYDEFINITION, NT_PROPERTYDEFINITION);
+        writeItemDefinitions(type, nodeDefinitionTemplates, JCR_CHILDNODEDEFINITION, NT_CHILDNODEDEFINITION);
 
         return type;
+    }
+
+    private static void writeItemDefinitions(@Nonnull Tree nodeTypeTree, @CheckForNull List<? extends ItemDefinitionTemplate> itemDefTemplates,
+                                             @Nonnull String nodeName, @Nonnull String primaryTypeName) throws RepositoryException {
+        Tree tree;
+        int index = 1;
+        if (itemDefTemplates != null) {
+            for (ItemDefinitionTemplate template : itemDefTemplates) {
+                String name = (index == 1) ? nodeName : nodeName + '[' + index + ']';
+                tree = nodeTypeTree.getChild(name);
+                if (!tree.exists()) {
+                    tree = nodeTypeTree.addChild(name);
+                    tree.setProperty(
+                            JCR_PRIMARYTYPE, primaryTypeName, NAME);
+                }
+                template.writeTo(tree);
+                index++;
+            }
+        }
+        tree = nodeTypeTree.getChild(nodeName + '[' + index++ + ']');
+        while (tree.exists()) {
+            tree.remove();
+            tree = nodeTypeTree.getChild(nodeName + '[' + index++ + ']');
+        }
     }
 
     //------------------------------------------------------------< public >--
