@@ -37,6 +37,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.synchronizedList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -222,7 +223,7 @@ public class CommitQueueTest {
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
-                queue.suspendUntil(r);
+                queue.suspendUntilAll(asList(r));
             }
         });
         t.start();
@@ -264,7 +265,7 @@ public class CommitQueueTest {
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
-                queue.suspendUntil(r);
+                queue.suspendUntilAll(asList(r));
             }
         });
         t.start();

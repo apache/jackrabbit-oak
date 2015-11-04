@@ -19,9 +19,10 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
-import java.util.Map;
+import java.util.List;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -31,8 +32,6 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
-
-import com.google.common.collect.Maps;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +54,7 @@ final class CommitQueue {
     /**
      * Map of currently suspended commits until a given Revision is visible.
      */
-    private final Map<Semaphore, Revision> suspendedCommits = Maps.newIdentityHashMap();
+    private final List<SuspendedCommit> suspendedCommits = new ArrayList<SuspendedCommit>();
 
     private final RevisionContext context;
 
@@ -103,7 +102,7 @@ final class CommitQueue {
     }
 
     /**
-     * Suspends until one of the following happens:
+     * Suspends for each of given revisions one of the following happens:
      * <ul>
      *     <li>the given revision is visible from the current headRevision</li>
      *     <li>the given revision is canceled from the commit queue</li>
@@ -111,24 +110,36 @@ final class CommitQueue {
      *     <li>the thread is interrupted</li>
      * </ul>
      *
-     * @param r the revision to become visible.
+     * @param conflictRevisions the revisions to become visible.
      */
-    void suspendUntil(@Nonnull Revision r) {
+    void suspendUntilAll(@Nonnull List<Revision> conflictRevisions) {
         Comparator<Revision> comparator = context.getRevisionComparator();
         Semaphore s = null;
         synchronized (suspendedCommits) {
             Revision headRevision = context.getHeadRevision();
-            if (comparator.compare(r, headRevision) > 0) {
-                s = new Semaphore(0);
-                suspendedCommits.put(s, r);
+            List<Revision> afterHead = new ArrayList<Revision>(conflictRevisions.size());
+            for (Revision r : conflictRevisions) {
+                if (comparator.compare(r, headRevision) > 0) {
+                    afterHead.add(r);
+                }
+            }
+
+            s = new Semaphore(0);
+            for (Revision r : afterHead) {
+                suspendedCommits.add(new SuspendedCommit(r, s));
             }
         }
         if (s != null) {
             try {
-                s.tryAcquire(suspendTimeout, TimeUnit.MILLISECONDS);
+                s.tryAcquire(suspendedCommits.size(), suspendTimeout, TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
                 synchronized (suspendedCommits) {
-                    suspendedCommits.remove(s);
+                    Iterator<SuspendedCommit> it = suspendedCommits.iterator();
+                    while (it.hasNext()) {
+                        if (it.next().semaphore == s) {
+                            it.remove();
+                        }
+                    }
                 }
             }
         }
@@ -153,7 +164,7 @@ final class CommitQueue {
 
     /**
      * Sets the suspend timeout in milliseconds.
-     * See also {@link #suspendUntil(Revision)}.
+     * See also {@link #suspendUntilAll(Revision)}.
      *
      * @param timeout the timeout to set.
      */
@@ -175,11 +186,11 @@ final class CommitQueue {
             }
             Comparator<Revision> comparator = context.getRevisionComparator();
             Revision headRevision = context.getHeadRevision();
-            Iterator<Map.Entry<Semaphore, Revision>> it = suspendedCommits.entrySet().iterator();
+            Iterator<SuspendedCommit> it = suspendedCommits.iterator();
             while (it.hasNext()) {
-                Map.Entry<Semaphore, Revision> entry = it.next();
-                if (comparator.compare(entry.getValue(), headRevision) <= 0) {
-                    Semaphore s = entry.getKey();
+                SuspendedCommit entry = it.next();
+                if (comparator.compare(entry.revision, headRevision) <= 0) {
+                    Semaphore s = entry.semaphore;
                     it.remove();
                     s.release();
                 }
@@ -193,11 +204,11 @@ final class CommitQueue {
             if (suspendedCommits.isEmpty()) {
                 return;
             }
-            Iterator<Map.Entry<Semaphore, Revision>> it = suspendedCommits.entrySet().iterator();
+            Iterator<SuspendedCommit> it = suspendedCommits.iterator();
             while (it.hasNext()) {
-                Map.Entry<Semaphore, Revision> entry = it.next();
-                if (revision.equals(entry.getValue())) {
-                    Semaphore s = entry.getKey();
+                SuspendedCommit entry = it.next();
+                if (revision.equals(entry.revision)) {
+                    Semaphore s = entry.semaphore;
                     it.remove();
                     s.release();
                 }
@@ -290,6 +301,18 @@ final class CommitQueue {
                     // retry
                 }
             }
+        }
+    }
+
+    private static class SuspendedCommit {
+
+        private final Revision revision;
+
+        private final Semaphore semaphore;
+
+        private SuspendedCommit(Revision revision, Semaphore semaphore) {
+            this.revision = revision;
+            this.semaphore = semaphore;
         }
     }
 }

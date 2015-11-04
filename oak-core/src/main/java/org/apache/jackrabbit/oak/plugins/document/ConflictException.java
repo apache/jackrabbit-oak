@@ -24,6 +24,9 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.MERGE;
 
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * A document store exception with an optional conflict revision. The
  * DocumentNodeStore implementation will throw this exception when a commit
@@ -34,18 +37,36 @@ class ConflictException extends DocumentStoreException {
     private static final long serialVersionUID = 1418838561903727231L;
 
     /**
-     * Optional conflict revision.
+     * Optional conflict revisions list.
      */
-    private final Revision conflictRevision;
+    private final List<Revision> conflictRevisions;
 
     /**
      * @param message the exception / conflict message.
      * @param conflictRevision the conflict revision or {@code null} if unknown.
      */
     ConflictException(@Nonnull String message,
-                      @Nullable Revision conflictRevision) {
+                      @Nonnull Revision conflictRevisions) {
         super(checkNotNull(message));
-        this.conflictRevision = conflictRevision;
+        this.conflictRevisions = Arrays.asList(checkNotNull(conflictRevisions));
+    }
+
+    /**
+     * @param message the exception / conflict message.
+     * @param conflictRevision the conflict revision list
+     */
+    ConflictException(@Nonnull String message,
+                      @Nonnull List<Revision> conflictRevisions) {
+        super(checkNotNull(message));
+        this.conflictRevisions = checkNotNull(conflictRevisions);
+    }
+
+    /**
+     * @param message the exception / conflict message.
+     */
+    ConflictException(@Nonnull String message) {
+        super(checkNotNull(message));
+        this.conflictRevisions = null;
     }
 
     /**
@@ -55,11 +76,20 @@ class ConflictException extends DocumentStoreException {
      * @return a {@link CommitFailedException}.
      */
     CommitFailedException asCommitFailedException() {
-        if (conflictRevision != null) {
-            return new FailedWithConflictException(conflictRevision, getMessage(), this);
+        if (conflictRevisions != null) {
+            return new FailedWithConflictException(conflictRevisions, getMessage(), this);
         } else {
             return new CommitFailedException(MERGE, 1,
                     "Failed to merge changes to the underlying store", this);
         }
+    }
+
+    /**
+     * List of conflict revisions.
+     * 
+     * @return a list of conflict revisions or null if there are no set.
+     */
+    @Nullable List<Revision> getConflictRevisions() {
+        return conflictRevisions;
     }
 }
