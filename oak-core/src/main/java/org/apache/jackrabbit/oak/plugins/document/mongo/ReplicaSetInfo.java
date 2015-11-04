@@ -270,6 +270,7 @@ public class ReplicaSetInfo implements Runnable {
         }
     }
 
+    @SuppressWarnings("deprecation")
     private DBCollection getNodeCollection(String hostName) throws UnknownHostException {
         if (collections.containsKey(hostName)) {
             return collections.get(hostName);
@@ -283,7 +284,9 @@ public class ReplicaSetInfo implements Runnable {
 
         MongoClientURI uri = new MongoClientURI(uriBuilder.toString());
         MongoClient client = new MongoClient(uri);
+
         DB db = client.getDB(dbName);
+        db.getMongo().slaveOk();
         DBCollection collection = db.getCollection(Collection.NODES.toString());
         collections.put(hostName, collection);
         return collection;
