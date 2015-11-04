@@ -225,7 +225,7 @@ public class MongoDocumentStore implements DocumentStore, UnmergedBranchesAware 
 
         long maxReplicationLagMillis = builder.getMaxReplicationLagMillis();
         replicaInfo = new ReplicaSetInfo(db, builder.getMongoSecondaryCredentials(), builder.getClusterId(), maxReplicationLagMillis, estimationPullFrequencyMS);
-        new Thread(replicaInfo, "MongoDocumentStore lag estimator (" + builder.getClusterId() + ")").start();
+        new Thread(replicaInfo, "MongoDocumentStore replica set info provider (" + builder.getClusterId() + ")").start();
 
         // indexes:
         // the _id field is the primary key, so we don't need to define it
