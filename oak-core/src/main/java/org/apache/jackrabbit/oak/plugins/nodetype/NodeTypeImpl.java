@@ -20,16 +20,16 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newTreeMap;
 import static java.util.Collections.emptyList;
-import static org.apache.jackrabbit.JcrConstants.JCR_CHILDNODEDEFINITION;
 import static org.apache.jackrabbit.JcrConstants.JCR_HASORDERABLECHILDNODES;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_NODETYPENAME;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYITEMNAME;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_PROPERTYDEFINITION;
 import static org.apache.jackrabbit.JcrConstants.JCR_SUPERTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
+import static org.apache.jackrabbit.JcrConstants.NT_CHILDNODEDEFINITION;
+import static org.apache.jackrabbit.JcrConstants.NT_PROPERTYDEFINITION;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_QUERYABLE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_DECLARING_NODE_TYPE;
@@ -52,8 +52,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -68,6 +66,9 @@ import javax.jcr.nodetype.NodeTypeDefinition;
 import javax.jcr.nodetype.NodeTypeIterator;
 import javax.jcr.nodetype.PropertyDefinition;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -102,16 +103,6 @@ import org.slf4j.LoggerFactory;
 class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
 
     private static final Logger log = LoggerFactory.getLogger(NodeTypeImpl.class);
-
-    /**
-     * Name pattern for the property and child node definition nodes.
-     * Used to pick out the SNS indices from the names so the definitions
-     * can be sorted in the same order they were created. This in turn
-     * makes accessing node type information more deterministic.
-     */
-    private static final Pattern DEFINITION_PATTERN = Pattern.compile(
-            "(" + JCR_PROPERTYDEFINITION + "|" + JCR_CHILDNODEDEFINITION
-            + ")\\[([1-9][0-9]*)\\]");
 
     private static final PropertyDefinition[] NO_PROPERTY_DEFINITIONS =
             new PropertyDefinition[0];
@@ -198,14 +189,8 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
     @Override @Nonnull
     public PropertyDefinition[] getDeclaredPropertyDefinitions() {
         Map<Integer, PropertyDefinition> definitions = newTreeMap();
-        for (Tree child : definition.getChildren()) {
-            Matcher matcher = DEFINITION_PATTERN.matcher(child.getName());
-            if (matcher.matches()
-                    && JCR_PROPERTYDEFINITION.equals(matcher.group(1))) {
-                definitions.put(
-                        Integer.valueOf(matcher.group(2)),
-                        new PropertyDefinitionImpl(child, this, mapper));
-            }
+        for (Tree child : Iterables.filter(definition.getChildren(), PrimaryTypePredicate.PROPERTY_DEF_PREDICATE)) {
+            definitions.put(getIndex(child), new PropertyDefinitionImpl(child, this, mapper));
         }
         return definitions.values().toArray(NO_PROPERTY_DEFINITIONS);
     }
@@ -218,14 +203,8 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
     @Override @Nonnull
     public NodeDefinition[] getDeclaredChildNodeDefinitions() {
         Map<Integer, NodeDefinition> definitions = newTreeMap();
-        for (Tree child : definition.getChildren()) {
-            Matcher matcher = DEFINITION_PATTERN.matcher(child.getName());
-            if (matcher.matches()
-                    && JCR_CHILDNODEDEFINITION.equals(matcher.group(1))) {
-                definitions.put(
-                        Integer.valueOf(matcher.group(2)),
-                        new NodeDefinitionImpl(child, this, mapper));
-            }
+        for (Tree child : Iterables.filter(definition.getChildren(), PrimaryTypePredicate.CHILDNODE_DEF_PREDICATE)) {
+            definitions.put(getIndex(child), new NodeDefinitionImpl(child, this, mapper));
         }
         return definitions.values().toArray(NO_NODE_DEFINITIONS);
     }
@@ -709,6 +688,12 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
         return true;
     }
 
+    private static int getIndex(@Nonnull Tree tree) {
+        String name = tree.getName();
+        int i = name.lastIndexOf('[');
+        return (i == -1) ? 1 : Integer.valueOf(name.substring(i+1, name.lastIndexOf(']')));
+    }
+
     private boolean matches(String childNodeName, String name) {
         String oakChildName = mapper.getOakNameOrNull(childNodeName);
         String oakName = mapper.getOakNameOrNull(name);
@@ -716,4 +701,20 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
         return oakChildName != null && oakChildName.startsWith(oakName);
     }
 
+    private static final class PrimaryTypePredicate implements Predicate<Tree> {
+
+        private static final PrimaryTypePredicate PROPERTY_DEF_PREDICATE = new PrimaryTypePredicate(NT_PROPERTYDEFINITION);
+        private static final PrimaryTypePredicate CHILDNODE_DEF_PREDICATE = new PrimaryTypePredicate(NT_CHILDNODEDEFINITION);
+
+        private final String primaryTypeName;
+
+        private PrimaryTypePredicate(@Nonnull String primaryTypeName) {
+            this.primaryTypeName = primaryTypeName;
+        }
+
+        @Override
+        public boolean apply(Tree tree) {
+            return primaryTypeName.equals(TreeUtil.getPrimaryTypeName(tree));
+        }
+    }
 }
