@@ -46,14 +46,14 @@ class ConflictException extends DocumentStoreException {
      * @param conflictRevision the conflict revision or {@code null} if unknown.
      */
     ConflictException(@Nonnull String message,
-                      @Nonnull Revision conflictRevisions) {
+                      @Nonnull Revision conflictRevision) {
         super(checkNotNull(message));
-        this.conflictRevisions = Collections.singleton(checkNotNull(conflictRevisions));
+        this.conflictRevisions = Collections.singleton(checkNotNull(conflictRevision));
     }
 
     /**
      * @param message the exception / conflict message.
-     * @param conflictRevision the conflict revision list
+     * @param conflictRevisions the conflict revision list
      */
     ConflictException(@Nonnull String message,
                       @Nonnull Set<Revision> conflictRevisions) {
