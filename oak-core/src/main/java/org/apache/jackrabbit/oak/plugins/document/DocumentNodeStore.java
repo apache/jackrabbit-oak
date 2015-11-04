@@ -40,10 +40,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -1464,11 +1464,11 @@ public final class DocumentNodeStore
      * @param conflictRevisions the revision to become visible.
      * @returns a list of visible or canceled revisions
      */
-    void suspendUntilAll(@Nonnull List<Revision> conflictRevisions) {
+    void suspendUntilAll(@Nonnull Set<Revision> conflictRevisions) {
         // do not suspend if revision is from another cluster node
         // and background read is disabled
         if (getAsyncDelay() == 0) {
-            List<Revision> onlyLocal = new ArrayList<Revision>(conflictRevisions.size());
+            Set<Revision> onlyLocal = new HashSet<Revision>(conflictRevisions.size());
             for (Revision r : conflictRevisions) {
                 if (r.getClusterId() == getClusterId()) {
                     onlyLocal.add(r);

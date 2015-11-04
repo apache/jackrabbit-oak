@@ -24,8 +24,8 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.MERGE;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.Collections;
+import java.util.Set;
 
 /**
  * A document store exception with an optional conflict revision. The
@@ -39,7 +39,7 @@ class ConflictException extends DocumentStoreException {
     /**
      * Optional conflict revisions list.
      */
-    private final List<Revision> conflictRevisions;
+    private final Set<Revision> conflictRevisions;
 
     /**
      * @param message the exception / conflict message.
@@ -48,7 +48,7 @@ class ConflictException extends DocumentStoreException {
     ConflictException(@Nonnull String message,
                       @Nonnull Revision conflictRevisions) {
         super(checkNotNull(message));
-        this.conflictRevisions = Arrays.asList(checkNotNull(conflictRevisions));
+        this.conflictRevisions = Collections.singleton(checkNotNull(conflictRevisions));
     }
 
     /**
@@ -56,7 +56,7 @@ class ConflictException extends DocumentStoreException {
      * @param conflictRevision the conflict revision list
      */
     ConflictException(@Nonnull String message,
-                      @Nonnull List<Revision> conflictRevisions) {
+                      @Nonnull Set<Revision> conflictRevisions) {
         super(checkNotNull(message));
         this.conflictRevisions = checkNotNull(conflictRevisions);
     }
@@ -89,7 +89,7 @@ class ConflictException extends DocumentStoreException {
      * 
      * @return a list of conflict revisions or null if there are no set.
      */
-    @Nullable List<Revision> getConflictRevisions() {
+    @Nullable Set<Revision> getConflictRevisions() {
         return conflictRevisions;
     }
 }

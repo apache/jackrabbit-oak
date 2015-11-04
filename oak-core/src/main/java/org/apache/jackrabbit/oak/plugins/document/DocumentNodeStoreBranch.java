@@ -23,8 +23,7 @@ import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.STATE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COLLISIONS;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -151,7 +150,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                              boolean exclusive)
             throws CommitFailedException {
         CommitFailedException ex = null;
-        List<Revision> conflictRevisions = new ArrayList<Revision>();
+        Set<Revision> conflictRevisions = new HashSet<Revision>();
         long time = System.currentTimeMillis();
         int numRetries = 0;
         for (long backoff = MIN_BACKOFF; backoff <= maximumBackoff; backoff *= 2) {

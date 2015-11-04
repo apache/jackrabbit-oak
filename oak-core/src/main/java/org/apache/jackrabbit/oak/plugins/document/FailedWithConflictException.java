@@ -22,7 +22,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.List;
+import java.util.Set;
 
 /**
  * A {@link CommitFailedException} with a conflict revision.
@@ -31,9 +31,9 @@ class FailedWithConflictException extends CommitFailedException {
 
     private static final long serialVersionUID = 2716279884065949789L;
 
-    private final List<Revision> conflictRevisions;
+    private final Set<Revision> conflictRevisions;
 
-    FailedWithConflictException(@Nonnull List<Revision> conflictRevisions,
+    FailedWithConflictException(@Nonnull Set<Revision> conflictRevisions,
                                 @Nonnull String message,
                                 @Nonnull Throwable cause) {
         super(OAK, MERGE, 4, checkNotNull(message), checkNotNull(cause));
@@ -44,7 +44,7 @@ class FailedWithConflictException extends CommitFailedException {
      * @return the revision of another commit which caused a conflict.
      */
     @Nonnull
-    List<Revision> getConflictRevisions() {
+    Set<Revision> getConflictRevisions() {
         return conflictRevisions;
     }
 }
