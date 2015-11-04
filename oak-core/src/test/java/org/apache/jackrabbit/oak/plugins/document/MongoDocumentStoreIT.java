@@ -185,4 +185,26 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
         Map<Revision, String> valueMap = doc.getValueMap("p");
         assertEquals(3, valueMap.size());
     }
+
+    // OAK-3582
+    @Test
+    public void createWithNull() throws Exception {
+        DocumentStore store = mk.getDocumentStore();
+        String id = Utils.getIdFromPath("/test");
+        UpdateOp updateOp = new UpdateOp(id, true);
+        updateOp.set(Document.ID, id);
+        Revision r1 = Revision.newRevision(1);
+        updateOp.setMapEntry("p", r1, "a");
+        Revision r2 = Revision.newRevision(1);
+        updateOp.setMapEntry("p", r2, null);
+        Revision r3 = Revision.newRevision(1);
+        updateOp.setMapEntry("p", r3, "c");
+        assertTrue(store.create(NODES, Collections.singletonList(updateOp)));
+
+        // maxCacheAge=0 forces loading from storage
+        NodeDocument doc = store.find(NODES, id, 0);
+        assertNotNull(doc);
+        Map<Revision, String> valueMap = doc.getValueMap("p");
+        assertEquals(3, valueMap.size());
+    }
 }
