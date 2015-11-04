@@ -18,9 +18,9 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.Closeable;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -38,6 +38,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.collect.ImmutableSet.of;
+import static com.google.common.collect.Sets.union;
 import static java.util.Collections.synchronizedList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -217,13 +219,15 @@ public class CommitQueueTest {
             }
         };
         headRevision.set(context.newRevision());
-        final CommitQueue queue = new CommitQueue(context);
 
-        final Revision r = context.newRevision();
+        final CommitQueue queue = new CommitQueue(context);
+        final Set<Revision> revisions = queue.createRevisions(10);
+
+        final Revision newHeadRev = context.newRevision();
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
-                queue.suspendUntilAll(Collections.singleton(r));
+                queue.suspendUntilAll(union(of(newHeadRev), revisions));
             }
         });
         t.start();
@@ -241,8 +245,14 @@ public class CommitQueueTest {
         // must still be suspended
         assertEquals(1, queue.numSuspendedThreads());
 
-        headRevision.set(r);
+        headRevision.set(newHeadRev);
         queue.headRevisionChanged();
+        // must still be suspended
+        assertEquals(1, queue.numSuspendedThreads());
+
+        for (Revision rev : revisions) {
+            queue.canceled(rev);
+        }
         // must not be suspended anymore
         assertEquals(0, queue.numSuspendedThreads());
     }
@@ -265,7 +275,7 @@ public class CommitQueueTest {
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
-                queue.suspendUntilAll(Collections.singleton(r));
+                queue.suspendUntilAll(of(r));
             }
         });
         t.start();
