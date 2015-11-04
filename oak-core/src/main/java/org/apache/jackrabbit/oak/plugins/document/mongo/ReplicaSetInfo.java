@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -191,6 +192,7 @@ public class ReplicaSetInfo implements Runnable {
         }
 
         if (secondaries.isEmpty()) {
+            LOG.debug("No secondaries found");
             unknownState = true;
         }
 
@@ -210,6 +212,8 @@ public class ReplicaSetInfo implements Runnable {
                     rootRevisions = minRevisions;
                     minRootTimestamp = minTimestamp;
                 }
+                LOG.debug("Minimum revisions: {}", minRevisions);
+                LOG.debug("Minimum root timestamp: {}", minTimestamp);
             }
         }
         if (unknownState) {
@@ -253,6 +257,7 @@ public class ReplicaSetInfo implements Runnable {
             String rev = (String) lastRev.get(clusterId);
             revisions.add(Revision.fromString(rev));
         }
+        LOG.debug("Got /_lastRev from {}: {}", hostName, lastRev);
         return revisions;
     }
 
