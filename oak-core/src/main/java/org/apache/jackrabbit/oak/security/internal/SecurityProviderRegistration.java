@@ -82,7 +82,7 @@ import static com.google.common.collect.Lists.newCopyOnWriteArrayList;
                         "registered first. Only the PIDs of implementations of " +
                         "the following interfaces are checked: " +
                         "PrincipalConfiguration, TokenConfiguration, " +
-                        "AuthorizableNodeName, AuthorizableActionProvider, " +
+                        "AuthorizableActionProvider, " +
                         "RestrictionProvider and UserAuthenticationFactory.",
                 value = {
                         "org.apache.jackrabbit.oak.security.principal.PrincipalConfigurationImpl",
