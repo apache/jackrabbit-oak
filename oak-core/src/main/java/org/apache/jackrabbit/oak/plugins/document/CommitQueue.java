@@ -21,6 +21,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -31,11 +32,14 @@ import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nonnull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.mongodb.util.IdentitySet;
 
 /**
  * <code>CommitQueue</code> ensures a sequence of commits consistent with the
@@ -56,6 +60,8 @@ final class CommitQueue {
      * Map of currently suspended commits until a given Revision is visible.
      */
     private final List<SuspendedCommit> suspendedCommits = new ArrayList<SuspendedCommit>();
+
+    private final AtomicInteger suspendedThreadCount = new AtomicInteger();
 
     private final RevisionContext context;
 
@@ -132,6 +138,7 @@ final class CommitQueue {
         }
         if (s != null) {
             try {
+                suspendedThreadCount.incrementAndGet();
                 s.tryAcquire(suspendedCommits.size(), suspendTimeout, TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
                 synchronized (suspendedCommits) {
@@ -142,6 +149,8 @@ final class CommitQueue {
                         }
                     }
                 }
+            } finally {
+                suspendedThreadCount.decrementAndGet();
             }
         }
     }
@@ -158,9 +167,7 @@ final class CommitQueue {
      * @return the number of suspended threads on this commit queue.
      */
     int numSuspendedThreads() {
-        synchronized (suspendedCommits) {
-            return suspendedCommits.size();
-        }
+        return suspendedThreadCount.get();
     }
 
     /**
