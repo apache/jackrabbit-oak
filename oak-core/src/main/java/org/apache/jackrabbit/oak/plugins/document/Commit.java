@@ -375,14 +375,7 @@ public class Commit {
                 checkSplitCandidate(oldDocs);
             } catch (BulkUpdateException e) {
                 opLog.addAll(e.getAppliedChanges());
-
-                // try to apply changes one after another
-                for (UpdateOp op : changedNodes) {
-                    if (!e.getAppliedChanges().contains(op)) {
-                        opLog.add(op);
-                        createOrUpdateNode(store, op);
-                    }
-                }
+                throw e.getCause();
             }
 
             // finally write the commit root, unless it was already written

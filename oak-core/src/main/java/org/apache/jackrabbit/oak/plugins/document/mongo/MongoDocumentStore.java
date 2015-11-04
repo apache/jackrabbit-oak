@@ -82,10 +82,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Objects;
-import com.google.common.base.Predicates;
 import com.google.common.cache.Cache;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Striped;
 import com.mongodb.BasicDBObject;
 import com.mongodb.BulkWriteError;
@@ -902,13 +900,7 @@ public class MongoDocumentStore implements DocumentStore {
                 oldDocs.putAll((Map<String, T>) getCachedNodes(operationsToCover.keySet()));
             }
 
-            int iterations = 0;
-            while (!operationsToCover.isEmpty()) {
-                if (++iterations > 3) {
-                    // this wil be caught and transformed into BulkUpdateException
-                    throw new DocumentStoreException("Too many iterations: " + iterations);
-                }
-
+            for (int i = 0; i < 3 && !operationsToCover.isEmpty(); i++) {
                 Set<String> lackingDocs = difference(operationsToCover.keySet(), oldDocs.keySet());
                 oldDocs.putAll(findDocuments(collection, lackingDocs));
 
@@ -930,7 +922,18 @@ public class MongoDocumentStore implements DocumentStore {
                 oldDocs.keySet().removeAll(bulkResult.failedUpdates);
             }
 
-            result = new ArrayList<T>(oldDocs.size());
+            // if there are some changes left, we'll apply them one after another
+            Iterator<UpdateOp> it = operationsToCover.values().iterator();
+            while (it.hasNext()) {
+                UpdateOp op = it.next();
+                it.remove();
+                T oldDoc = createOrUpdate(collection, op);
+                if (oldDoc != null) {
+                    oldDocs.put(oldDoc.getId(), oldDoc);
+                }
+            }
+
+            result = new ArrayList<T>(updateOps.size());
             for (UpdateOp op : updateOps) {
                 result.add(oldDocs.get(op.getId()));
             }
