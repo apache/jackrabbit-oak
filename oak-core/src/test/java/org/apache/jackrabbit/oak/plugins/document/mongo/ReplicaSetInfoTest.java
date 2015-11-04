@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import static org.apache.jackrabbit.oak.plugins.document.mongo.ReplicaSetInfo.ReplicaSetMemberState.PRIMARY;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.ReplicaSetInfo.ReplicaSetMemberState.RECOVERING;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.ReplicaSetInfo.ReplicaSetMemberState.SECONDARY;
 import static org.junit.Assert.assertEquals;
@@ -56,7 +57,7 @@ public class ReplicaSetInfoTest {
         DB db = mock(DB.class);
         when(db.getName()).thenReturn("oak-db");
         when(db.getSisterDB(Mockito.anyString())).thenReturn(db);
-        replica = new ReplicaSetInfo(db, 0, MAX_REPLICATION_LAG, 0l) {
+        replica = new ReplicaSetInfo(db, null, 0, MAX_REPLICATION_LAG, 0l) {
             @Override
             protected List<Revision> getRootRevisions(String hostName) throws UnknownHostException {
                 return replicationSet.revisions(hostName);
@@ -118,6 +119,17 @@ public class ReplicaSetInfoTest {
     public void testUnknownStateIsNotSafe() {
         addInstance(SECONDARY, "m1").addRevisions(10, 21, 11);
         addInstance(RECOVERING, "m2");
+        updateRevisions();
+
+        assertNull(replica.minRootTimestamp);
+        assertNull(replica.rootRevisions);
+        assertFalse(replica.isSecondarySafe(lastRev(1, 1, 1)));
+        assertFalse(replica.isSecondarySafe(30, 30));
+    }
+
+    @Test
+    public void testEmptyIsNotSafe() {
+        addInstance(PRIMARY, "m1");
         updateRevisions();
 
         assertNull(replica.minRootTimestamp);
