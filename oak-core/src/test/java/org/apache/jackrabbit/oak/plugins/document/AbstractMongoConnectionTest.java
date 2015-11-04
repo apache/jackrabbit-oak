@@ -64,7 +64,9 @@ public abstract class AbstractMongoConnectionTest extends DocumentMKTestBase {
     @After
     public void tearDownConnection() throws Exception {
         mk.dispose();
-        MongoUtils.dropCollections(connectionFactory.getConnection().getDB());
+        DB db = connectionFactory.getConnection().getDB();
+        MongoUtils.dropCollections(db);
+        db.getMongo().close();
         Revision.resetClockToDefault();
     }
 
