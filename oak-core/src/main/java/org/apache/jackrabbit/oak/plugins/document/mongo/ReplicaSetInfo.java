@@ -75,6 +75,8 @@ public class ReplicaSetInfo implements Runnable {
 
     private volatile boolean stop;
 
+    private final Object stopMonitor = new Object();
+
     public ReplicaSetInfo(DB db, String credentials, int localClusterId, long maxReplicationLagMillis, long pullFrequencyMillis) {
         this.adminDb = db.getSisterDB("admin");
         this.dbName = db.getName();
@@ -137,40 +139,52 @@ public class ReplicaSetInfo implements Runnable {
         return rootRevisions;
     }
 
-    public synchronized void stop() {
-        stop = true;
-        notify();
+    public void stop() {
+        synchronized (stopMonitor) {
+            stop = true;
+            stopMonitor.notify();
+        }
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public void run() {
-        while (!stop) {
-            CommandResult result = adminDb.command("replSetGetStatus", ReadPreference.primary());
-            Iterable<BasicBSONObject> members = (Iterable<BasicBSONObject>) result.get("members");
-            if (members == null) {
-                members = Collections.emptyList();
-            }
-            updateRevisions(members);
-            synchronized (this) {
-                try {
-                    if (!stop) {
-                        wait(pullFrequencyMillis);
+        try {
+            while (!stop) {
+                CommandResult result = adminDb.command("replSetGetStatus", ReadPreference.primary());
+                Iterable<BasicBSONObject> members = (Iterable<BasicBSONObject>) result.get("members");
+                if (members == null) {
+                    members = Collections.emptyList();
+                }
+                updateRevisions(members);
+                synchronized (stopMonitor) {
+                    try {
+                        if (!stop) {
+                            stopMonitor.wait(pullFrequencyMillis);
+                        }
+                    } catch (InterruptedException e) {
+                        break;
                     }
-                } catch (InterruptedException e) {
-                    break;
                 }
             }
+            LOG.debug("Stopping the replica set info");
+            closeConnections(collections.keySet());
+            collections.clear();
+        } catch (Exception e) {
+            LOG.error("Exception in the ReplicaSetInfo thread", e);
         }
-        closeConnections(collections.keySet());
-        collections.clear();
     }
 
     void updateRevisions(Iterable<BasicBSONObject> members) {
         Set<String> secondaries = new HashSet<String>();
         boolean unknownState = false;
         for (BasicBSONObject member : members) {
-            ReplicaSetMemberState state = ReplicaSetMemberState.valueOf(member.getString("stateStr"));
+            ReplicaSetMemberState state;
+            try {
+                state = ReplicaSetMemberState.valueOf(member.getString("stateStr"));
+            } catch (IllegalArgumentException e) {
+                state = ReplicaSetMemberState.UNKNOWN;
+            }
             String name = member.getString("name");
 
             switch (state) {
