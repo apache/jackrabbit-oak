@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 
@@ -66,7 +65,7 @@ class ConflictException extends DocumentStoreException {
      */
     ConflictException(@Nonnull String message) {
         super(checkNotNull(message));
-        this.conflictRevisions = null;
+        this.conflictRevisions = Collections.emptySet();
     }
 
     /**
@@ -87,9 +86,9 @@ class ConflictException extends DocumentStoreException {
     /**
      * List of conflict revisions.
      * 
-     * @return a list of conflict revisions or null if there are no set.
+     * @return a list of conflict revisions (may be empty)
      */
-    @Nullable Set<Revision> getConflictRevisions() {
+    @Nonnull Iterable<Revision> getConflictRevisions() {
         return conflictRevisions;
     }
 }
