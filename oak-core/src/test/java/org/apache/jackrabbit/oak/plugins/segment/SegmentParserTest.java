@@ -40,6 +40,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 import java.io.IOException;
 import java.util.List;
@@ -151,7 +152,7 @@ public class SegmentParserTest {
 
     @Before
     public void setup() {
-        SegmentStore store = mock(SegmentStore.class);
+        SegmentStore store = mock(SegmentStore.class, withSettings().stubOnly());
         SegmentTracker tracker = new SegmentTracker(store);
         when(store.getTracker()).thenReturn(tracker);
         writer = new SegmentWriter(store, store.getTracker(), segmentVersion);
