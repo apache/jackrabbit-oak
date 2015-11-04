@@ -918,14 +918,13 @@ public class MongoDocumentStore implements DocumentStore {
                     createNodeCacheEntries(filterKeys(operationsToCover, in(bulkResult.upserts)).values());
                 }
 
-                Set<String> successfulOperations = difference(operationsToCover.keySet(), bulkResult.failedUpdates);
-                for (String key : successfulOperations) {
+                for (String key : difference(operationsToCover.keySet(), bulkResult.failedUpdates)) {
                     T oldDoc = oldDocs.get(key);
                     putToCache(collection, oldDoc, operationsToCover.get(key));
                     oldDoc.seal();
                 }
 
-                operationsToCover.keySet().removeAll(successfulOperations);
+                operationsToCover.keySet().retainAll(bulkResult.failedUpdates);
                 oldDocs.keySet().removeAll(bulkResult.failedUpdates);
             }
 
