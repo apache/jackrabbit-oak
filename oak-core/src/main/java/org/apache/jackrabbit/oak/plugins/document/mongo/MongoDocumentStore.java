@@ -880,7 +880,7 @@ public class MongoDocumentStore implements DocumentStore {
      * </li>
      * <li>Execute the bulk update.</li>
      * </ol>
-     * 
+     *
      * If some other process modifies the target documents between points 2 and 3, the mod_count will
      * be increased as well and the bulk update will fail for the concurrently modified docs. The
      * method will then remove the failed documents from the {@code oldDocs} and restart the process
@@ -916,7 +916,6 @@ public class MongoDocumentStore implements DocumentStore {
                 }
             }
 
-            
             // if there are some changes left, we'll apply them one after another
             Iterator<UpdateOp> it = operationsToCover.values().iterator();
             while (it.hasNext()) {
@@ -1721,7 +1720,7 @@ public class MongoDocumentStore implements DocumentStore {
 
         return diff;
     }
-    
+
     private static class BulkUpdateResult {
 
         private final Set<String> failedUpdates;
