@@ -18,10 +18,13 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Maps.newHashMap;
 import static java.lang.System.currentTimeMillis;
+import static java.lang.Thread.currentThread;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.segment.Record.fastEquals;
 
@@ -41,11 +44,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
@@ -92,6 +93,13 @@ public class SegmentNodeStore implements NodeStore, Observable {
     private final Semaphore commitSemaphore = new Semaphore(1);
 
     private long maximumBackoff = MILLISECONDS.convert(10, SECONDS);
+
+    /**
+     * Sets the number of seconds to wait for the attempt to grab the lock to
+     * create a checkpoint
+     */
+    private int checkpointsLockWaitTime = Integer.getInteger(
+            "oak.checkpoints.lockWaitTime", 10);
 
     @Nonnull
     public static SegmentNodeStoreBuilder newSegmentNodeStore(
@@ -212,6 +220,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
                 commitSemaphore.release();
             }
         } catch (InterruptedException e) {
+            currentThread().interrupt();
             throw new CommitFailedException(
                     "Segment", 2, "Merge interrupted", e);
         } catch (SegmentOverflowException e) {
@@ -279,57 +288,71 @@ public class SegmentNodeStore implements NodeStore, Observable {
         checkArgument(lifetime > 0);
         checkNotNull(properties);
         String name = UUID.randomUUID().toString();
-        long now = System.currentTimeMillis();
-
-        // try 5 times
-        for (int i = 0; i < 5; i++) {
-            if (commitSemaphore.tryAcquire()) {
-                try {
-                    refreshHead();
-
-                    SegmentNodeState state = head.get();
-                    SegmentNodeBuilder builder = state.builder();
-
-                    NodeBuilder checkpoints = builder.child("checkpoints");
-                    for (String n : checkpoints.getChildNodeNames()) {
-                        NodeBuilder cp = checkpoints.getChildNode(n);
-                        PropertyState ts = cp.getProperty("timestamp");
-                        if (ts == null
-                                || ts.getType() != Type.LONG
-                                || now > ts.getValue(Type.LONG)) {
-                            cp.remove();
-                        }
-                    }
-
-                    NodeBuilder cp = checkpoints.child(name);
-                    cp.setProperty("timestamp",  now + lifetime);
-                    cp.setProperty("created", now);
-
-                    NodeBuilder props = cp.setChildNode("properties");
-                    for (Entry<String, String> p : properties.entrySet()) {
-                        props.setProperty(p.getKey(), p.getValue());
-                    }
-
-                    cp.setChildNode(ROOT, state.getChildNode(ROOT));
-
-                    SegmentNodeState newState = builder.getNodeState();
-                    if (store.setHead(state, newState)) {
-                        refreshHead();
-                        return name;
-                    } else {
-                        log.debug(
-                                "Unable to update the head state for checkpoint {} ({}/5)",
-                                new Object[] { name, i + 1 });
-                    }
-
-                } finally {
-                    commitSemaphore.release();
-                }
+        try {
+            CPCreator cpc = new CPCreator(name, lifetime, properties);
+            if (locked(cpc, checkpointsLockWaitTime, TimeUnit.SECONDS)) {
+                return name;
             }
+            log.warn("Failed to create checkpoint {} in {} seconds.", name,
+                    checkpointsLockWaitTime);
+        } catch (InterruptedException e) {
+            currentThread().interrupt();
+            log.error("Failed to create checkpoint {}.", name, e);
+        } catch (Exception e) {
+            log.error("Failed to create checkpoint {}.", name, e);
+        }
+        return name;
+    }
+
+    private final class CPCreator implements Callable<Boolean> {
+
+        private final String name;
+        private final long lifetime;
+        private final Map<String, String> properties;
+
+        CPCreator(String name, long lifetime, Map<String, String> properties) {
+            this.name = name;
+            this.lifetime = lifetime;
+            this.properties = properties;
         }
 
-        log.debug("Failed to create checkpoint {}", name);
-        return name;
+        @Override
+        public Boolean call() {
+            long now = System.currentTimeMillis();
+
+            refreshHead();
+
+            SegmentNodeState state = head.get();
+            SegmentNodeBuilder builder = state.builder();
+
+            NodeBuilder checkpoints = builder.child("checkpoints");
+            for (String n : checkpoints.getChildNodeNames()) {
+                NodeBuilder cp = checkpoints.getChildNode(n);
+                PropertyState ts = cp.getProperty("timestamp");
+                if (ts == null || ts.getType() != LONG
+                        || now > ts.getValue(LONG)) {
+                    cp.remove();
+                }
+            }
+
+            NodeBuilder cp = checkpoints.child(name);
+            cp.setProperty("timestamp", now + lifetime);
+            cp.setProperty("created", now);
+
+            NodeBuilder props = cp.setChildNode("properties");
+            for (Entry<String, String> p : properties.entrySet()) {
+                props.setProperty(p.getKey(), p.getValue());
+            }
+            cp.setChildNode(ROOT, state.getChildNode(ROOT));
+
+            SegmentNodeState newState = builder.getNodeState();
+            if (store.setHead(state, newState)) {
+                refreshHead();
+                return true;
+            } else {
+                return false;
+            }
+        }
     }
 
     @Override @Nonnull
@@ -340,7 +363,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
     @Nonnull
     @Override
     public Map<String, String> checkpointInfo(@Nonnull String checkpoint) {
-        Map<String, String> properties = Maps.newHashMap();
+        Map<String, String> properties = newHashMap();
         checkNotNull(checkpoint);
         NodeState cp = head.get()
                 .getChildNode("checkpoints")
@@ -537,4 +560,11 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
     }
 
+    /**
+     * Sets the number of seconds to wait for the attempt to grab the lock to
+     * create a checkpoint
+     */
+    void setCheckpointsLockWaitTime(int checkpointsLockWaitTime) {
+        this.checkpointsLockWaitTime = checkpointsLockWaitTime;
+    }
 }
