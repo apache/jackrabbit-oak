@@ -90,7 +90,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
      * Only a single local commit is allowed at a time. When such
      * a commit is in progress, no external updates will be seen.
      */
-    private final Semaphore commitSemaphore = new Semaphore(1);
+    private final Semaphore commitSemaphore;
 
     private long maximumBackoff = MILLISECONDS.convert(10, SECONDS);
 
@@ -100,6 +100,12 @@ public class SegmentNodeStore implements NodeStore, Observable {
      */
     private int checkpointsLockWaitTime = Integer.getInteger(
             "oak.checkpoints.lockWaitTime", 10);
+
+    /**
+     * Flag controlling the commit lock fairness
+     */
+    private boolean commitFairLock = Boolean
+            .getBoolean("oak.segmentNodeStore.commitFairLock");
 
     @Nonnull
     public static SegmentNodeStoreBuilder newSegmentNodeStore(
@@ -117,6 +123,10 @@ public class SegmentNodeStore implements NodeStore, Observable {
     }
 
     SegmentNodeStore(SegmentStore store, boolean internal) {
+        if (commitFairLock) {
+            log.info("initializing SegmentNodeStore with the commitFairLock option enabled.");
+        }
+        this.commitSemaphore = new Semaphore(1, commitFairLock);
         this.store = store;
         this.head = new AtomicReference<SegmentNodeState>(store.getHead());
         this.changeDispatcher = new ChangeDispatcher(getRoot());
