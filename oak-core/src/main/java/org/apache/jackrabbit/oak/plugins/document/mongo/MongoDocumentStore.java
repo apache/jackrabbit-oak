@@ -47,7 +47,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.mongodb.MongoClientURI;
@@ -83,7 +82,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.google.common.base.Objects;
 import com.google.common.cache.Cache;
 import com.google.common.collect.Maps;
@@ -107,7 +105,6 @@ import com.mongodb.WriteResult;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.in;
-import static com.google.common.collect.Iterables.partition;
 import static com.google.common.collect.Maps.filterKeys;
 import static com.google.common.collect.Sets.difference;
 
@@ -913,7 +910,7 @@ public class MongoDocumentStore implements DocumentStore {
             }
 
             for (int i = 0; i < 3 && operationsToCover.size() > 2; i++) {
-                for (List<UpdateOp> partition : partition(operationsToCover.values(), bulkSize)) {
+                for (List<UpdateOp> partition : Lists.partition(Lists.newArrayList(operationsToCover.values()), bulkSize)) {
                     Set<String> successfulUpdates = bulkUpdate(collection, partition, oldDocs);
                     operationsToCover.keySet().removeAll(successfulUpdates);
                 }
