@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
+import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
@@ -27,8 +28,10 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache.GenerationCache;
 import org.h2.mvstore.MVMap;
+import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.type.DataType;
 
+import com.google.common.base.Function;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheStats;
 import com.google.common.collect.ImmutableMap;
@@ -39,8 +42,8 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache {
     private final Cache<K, V> memCache;
     private final MultiGenerationMap<K, V> map;
     private final CacheType type;
-    private final DocumentNodeStore docNodeStore;
-    private final DocumentStore docStore;
+    private final DataType keyType;
+    private final DataType valueType;
     
     NodeCache(
             PersistentCache cache,
@@ -50,16 +53,19 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache {
         this.cache = cache;
         this.memCache = memCache;
         this.type = type;
-        this.docNodeStore = docNodeStore;
-        this.docStore = docStore;
         PersistentCache.LOG.info("wrapping map " + this.type);
         map = new MultiGenerationMap<K, V>();
+        keyType = new KeyDataType(type);
+        valueType = new ValueDataType(docNodeStore, docStore, type);
+    }
+    
+    @Override
+    public CacheType getType() {
+        return type;
     }
     
     @Override
     public void addGeneration(int generation, boolean readOnly) {
-        DataType keyType = new KeyDataType(type);
-        DataType valueType = new ValueDataType(docNodeStore, docStore, type);
         MVMap.Builder<K, V> b = new MVMap.Builder<K, V>().
                 keyType(keyType).valueType(valueType);
         String mapName = type.name();
@@ -81,8 +87,32 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache {
         return v;
     }
     
-    public void write(K key, V value) {
+    private void write(final K key, final V value) {
+        write(key, value, true);
+    }
+
+    private void writeWithoutBroadcast(final K key, final V value) {
+        write(key, value, false);
+    }
+
+    private void write(final K key, final V value, boolean broadcast) {
         cache.switchGenerationIfNeeded();
+        if (broadcast) {
+            cache.broadcast(type, new Function<WriteBuffer, Void>() {
+                @Override
+                @Nullable
+                public Void apply(@Nullable WriteBuffer buffer) {
+                    keyType.write(buffer, key);
+                    if (value == null) {
+                        buffer.put((byte) 0);
+                    } else {
+                        buffer.put((byte) 1);
+                        valueType.write(buffer, value);
+                    }
+                    return null;
+                }
+            });
+        }
         if (value == null) {
             map.remove(key);
         } else {
@@ -171,6 +201,21 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache {
     @Override
     public void cleanUp() {
         memCache.cleanUp();
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public void receive(ByteBuffer buff) {
+        K key = (K) keyType.read(buff);
+        V value;
+        if (buff.get() == 0) {
+            value = null;
+            memCache.invalidate(key);
+        } else {
+            value = (V) valueType.read(buff);
+            memCache.put(key, value);
+        }
+        writeWithoutBroadcast(key, value);
     }
 
 }
