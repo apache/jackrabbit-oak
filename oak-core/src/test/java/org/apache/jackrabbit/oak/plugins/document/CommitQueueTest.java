@@ -222,9 +222,9 @@ public class CommitQueueTest {
         headRevision.set(context.newRevision());
 
         final CommitQueue queue = new CommitQueue(context);
-        final Set<Revision> revisions = queue.createRevisions(10);
 
         final Revision newHeadRev = context.newRevision();
+        final Set<Revision> revisions = queue.createRevisions(10);
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {

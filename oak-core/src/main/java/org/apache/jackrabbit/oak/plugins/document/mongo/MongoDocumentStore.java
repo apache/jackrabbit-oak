@@ -47,6 +47,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.mongodb.MongoClientURI;
@@ -81,6 +82,8 @@ import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.base.Objects;
 import com.google.common.cache.Cache;
 import com.google.common.collect.Maps;
@@ -104,6 +107,7 @@ import com.mongodb.WriteResult;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.in;
+import static com.google.common.collect.Iterables.partition;
 import static com.google.common.collect.Maps.filterKeys;
 import static com.google.common.collect.Sets.difference;
 
@@ -206,6 +210,14 @@ public class MongoDocumentStore implements DocumentStore {
      */
     private long maxLockedQueryTimeMS =
             Long.getLong("oak.mongo.maxLockedQueryTimeMS", TimeUnit.SECONDS.toMillis(3));
+
+    /**
+     * The number of documents to put into one bulk update.
+     * <p>
+     * Default is 30.
+     */
+    private int bulkSize =
+            Integer.getInteger("oak.mongo.bulkSize", 30);
 
     private String lastReadWriteMode;
 
@@ -892,8 +904,7 @@ public class MongoDocumentStore implements DocumentStore {
         try {
             for (UpdateOp updateOp : updateOps) {
                 locks.add(acquire(updateOp.getId(), collection));
-                UpdateOp clone = updateOp.copy();
-                operationsToCover.put(updateOp.getId(), clone);
+                operationsToCover.put(updateOp.getId(), updateOp.copy());
             }
 
             Map<String, T> oldDocs = new HashMap<String, T>();
@@ -901,34 +912,14 @@ public class MongoDocumentStore implements DocumentStore {
                 oldDocs.putAll((Map<String, T>) getCachedNodes(operationsToCover.keySet()));
             }
 
-            for (int i = 0; i < 3 && !operationsToCover.isEmpty(); i++) {
-                System.out.println(String.format("%d Iteration %d Operations to cover %d", System.currentTimeMillis(), i, operationsToCover.size()));
-                for (List<UpdateOp> partition : createPartitions(operationsToCover.values(), 10)) {
-                    Map<String, UpdateOp> bulkOperations = createMap(partition);
-                    Set<String> lackingDocs = difference(bulkOperations.keySet(), oldDocs.keySet());
-                    oldDocs.putAll(findDocuments(collection, lackingDocs));
-
-                    BulkUpdateResult bulkResult = bulkUpdate(collection, bulkOperations.values(), oldDocs);
-
-                    if (collection == Collection.NODES) {
-                        createNodeCacheEntries(filterKeys(bulkOperations, in(bulkResult.upserts)).values());
-                    }
-
-                    for (String key : difference(bulkOperations.keySet(), bulkResult.failedUpdates)) {
-                        T oldDoc = oldDocs.get(key);
-                        if (oldDoc != null) {
-                            putToCache(collection, oldDoc, bulkOperations.get(key));
-                            oldDoc.seal();
-                        }
-                    }
-
-                    Set<String> successfullUpdates = Sets.difference(bulkOperations.keySet(), bulkResult.failedUpdates);
-                    operationsToCover.keySet().removeAll(successfullUpdates);
-                    oldDocs.keySet().removeAll(bulkResult.failedUpdates);
+            for (int i = 0; i < 3 && operationsToCover.size() > 2; i++) {
+                for (List<UpdateOp> partition : partition(operationsToCover.values(), bulkSize)) {
+                    Set<String> successfulUpdates = bulkUpdate(collection, partition, oldDocs);
+                    operationsToCover.keySet().removeAll(successfulUpdates);
                 }
             }
 
-            System.out.println(String.format("%d Operations left to cover %d", System.currentTimeMillis(), operationsToCover.size()));
+            
             // if there are some changes left, we'll apply them one after another
             Iterator<UpdateOp> it = operationsToCover.values().iterator();
             while (it.hasNext()) {
@@ -962,39 +953,70 @@ public class MongoDocumentStore implements DocumentStore {
         return result;
     }
 
-    private Map<String, UpdateOp> createMap(List<UpdateOp> updateOps) {
-        Map<String, UpdateOp> map = new HashMap<String, UpdateOp>();
-        for (UpdateOp op : updateOps) {
-            map.put(op.getId(), op);
-        }
-        return map;
-    }
-
-    private <T> List<List<T>> createPartitions(java.util.Collection<T> values, int partitionSize) {
-        List<List<T>> partitions = new ArrayList<List<T>>();
-        List<T> currentPartition = null;
-        for (T v : values) {
-            if (currentPartition == null) {
-                currentPartition = new ArrayList<T>();
-                partitions.add(currentPartition);
-            }
-            currentPartition.add(v);
-            if (currentPartition.size() == partitionSize) {
-                currentPartition = null;
+    private Map<String, NodeDocument> getCachedNodes(Set<String> keys) {
+        Map<String, NodeDocument> nodes = new HashMap<String, NodeDocument>();
+        for (String key : keys) {
+            NodeDocument cached = nodesCache.getIfPresent(new StringValue(key));
+            if (cached != null) {
+                nodes.put(key, cached);
             }
         }
-        return partitions;
+        return nodes;
     }
 
-    private void createNodeCacheEntries(Iterable<UpdateOp> updates) {
-        for (UpdateOp op : updates) {
-            NodeDocument doc = Collection.NODES.newDocument(this);
-            UpdateUtils.applyChanges(doc, op, comparator);
-            addToCache(doc);
+    private <T extends Document> Set<String> bulkUpdate(Collection<T> collection, List<UpdateOp> updateOperations, Map<String, T> oldDocs) {
+        Map<String, UpdateOp> bulkOperations = createMap(updateOperations);
+        Set<String> lackingDocs = difference(bulkOperations.keySet(), oldDocs.keySet());
+        oldDocs.putAll(findDocuments(collection, lackingDocs));
+
+        BulkUpdateResult bulkResult = sendBulkUpdate(collection, bulkOperations.values(), oldDocs);
+
+        if (collection == Collection.NODES) {
+            createNodeCacheEntries(filterKeys(bulkOperations, in(bulkResult.upserts)).values());
         }
+
+        for (String key : difference(bulkOperations.keySet(), bulkResult.failedUpdates)) {
+            T oldDoc = oldDocs.get(key);
+            if (oldDoc != null) {
+                putToCache(collection, oldDoc, bulkOperations.get(key));
+                oldDoc.seal();
+            }
+        }
+
+        oldDocs.keySet().removeAll(bulkResult.failedUpdates);
+        return Sets.difference(bulkOperations.keySet(), bulkResult.failedUpdates);
     }
 
-    private <T extends Document> BulkUpdateResult bulkUpdate(Collection<T> collection,
+    private static Map<String, UpdateOp> createMap(List<UpdateOp> updateOps) {
+        return Maps.uniqueIndex(updateOps, new Function<UpdateOp, String>() {
+            @Override
+            public String apply(UpdateOp input) {
+                return input.getId();
+            }
+        });
+    }
+
+    private <T extends Document> Map<String, T> findDocuments(Collection<T> collection, Set<String> keys) {
+        Map<String, T> docs = new HashMap<String, T>();
+        if (!keys.isEmpty()) {
+            DBObject[] conditions = new DBObject[keys.size()];
+            int i = 0;
+            for (String key : keys) {
+                conditions[i++] = getByKeyQuery(key).get();
+            }
+
+            QueryBuilder builder = new QueryBuilder();
+            builder.or(conditions);
+            DBCursor cursor = getDBCollection(collection).find(builder.get());
+            while (cursor.hasNext()) {
+                T foundDoc = convertFromDBObject(collection, cursor.next());
+                docs.put(foundDoc.getId(), foundDoc);
+            }
+        }
+        return docs;
+    }
+
+    private <T extends Document> BulkUpdateResult sendBulkUpdate(Collection<T> collection,
             java.util.Collection<UpdateOp> updateOps, Map<String, T> oldDocs) {
         DBCollection dbCollection = getDBCollection(collection);
         BulkWriteOperation bulk = dbCollection.initializeUnorderedBulkOperation();
@@ -1028,35 +1050,12 @@ public class MongoDocumentStore implements DocumentStore {
         return new BulkUpdateResult(failedUpdates, upserts);
     }
 
-    private Map<String, NodeDocument> getCachedNodes(Set<String> keys) {
-        Map<String, NodeDocument> nodes = new HashMap<String, NodeDocument>();
-        for (String key : keys) {
-            NodeDocument cached = nodesCache.getIfPresent(new StringValue(key));
-            if (cached != null) {
-                nodes.put(key, cached);
-            }
+    private void createNodeCacheEntries(Iterable<UpdateOp> updates) {
+        for (UpdateOp op : updates) {
+            NodeDocument doc = Collection.NODES.newDocument(this);
+            UpdateUtils.applyChanges(doc, op, comparator);
+            addToCache(doc);
         }
-        return nodes;
-    }
-
-    private <T extends Document> Map<String, T> findDocuments(Collection<T> collection, Set<String> keys) {
-        Map<String, T> docs = new HashMap<String, T>();
-        if (!keys.isEmpty()) {
-            DBObject[] conditions = new DBObject[keys.size()];
-            int i = 0;
-            for (String key : keys) {
-                conditions[i++] = getByKeyQuery(key).get();
-            }
-
-            QueryBuilder builder = new QueryBuilder();
-            builder.or(conditions);
-            DBCursor cursor = getDBCollection(collection).find(builder.get());
-            while (cursor.hasNext()) {
-                T foundDoc = convertFromDBObject(collection, cursor.next());
-                docs.put(foundDoc.getId(), foundDoc);
-            }
-        }
-        return docs;
     }
 
     @Override
