@@ -84,6 +84,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Objects;
 import com.google.common.cache.Cache;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Striped;
 import com.mongodb.BasicDBObject;
 import com.mongodb.BulkWriteError;
@@ -901,27 +902,33 @@ public class MongoDocumentStore implements DocumentStore {
             }
 
             for (int i = 0; i < 3 && !operationsToCover.isEmpty(); i++) {
-                Set<String> lackingDocs = difference(operationsToCover.keySet(), oldDocs.keySet());
-                oldDocs.putAll(findDocuments(collection, lackingDocs));
+                System.out.println(String.format("%d Iteration %d Operations to cover %d", System.currentTimeMillis(), i, operationsToCover.size()));
+                for (List<UpdateOp> partition : createPartitions(operationsToCover.values(), 10)) {
+                    Map<String, UpdateOp> bulkOperations = createMap(partition);
+                    Set<String> lackingDocs = difference(bulkOperations.keySet(), oldDocs.keySet());
+                    oldDocs.putAll(findDocuments(collection, lackingDocs));
 
-                BulkUpdateResult bulkResult = bulkUpdate(collection, operationsToCover.values(), oldDocs);
+                    BulkUpdateResult bulkResult = bulkUpdate(collection, bulkOperations.values(), oldDocs);
 
-                if (collection == Collection.NODES) {
-                    createNodeCacheEntries(filterKeys(operationsToCover, in(bulkResult.upserts)).values());
-                }
-
-                for (String key : difference(operationsToCover.keySet(), bulkResult.failedUpdates)) {
-                    T oldDoc = oldDocs.get(key);
-                    if (oldDoc != null) {
-                        putToCache(collection, oldDoc, operationsToCover.get(key));
-                        oldDoc.seal();
+                    if (collection == Collection.NODES) {
+                        createNodeCacheEntries(filterKeys(bulkOperations, in(bulkResult.upserts)).values());
                     }
-                }
 
-                operationsToCover.keySet().retainAll(bulkResult.failedUpdates);
-                oldDocs.keySet().removeAll(bulkResult.failedUpdates);
+                    for (String key : difference(bulkOperations.keySet(), bulkResult.failedUpdates)) {
+                        T oldDoc = oldDocs.get(key);
+                        if (oldDoc != null) {
+                            putToCache(collection, oldDoc, bulkOperations.get(key));
+                            oldDoc.seal();
+                        }
+                    }
+
+                    Set<String> successfullUpdates = Sets.difference(bulkOperations.keySet(), bulkResult.failedUpdates);
+                    operationsToCover.keySet().removeAll(successfullUpdates);
+                    oldDocs.keySet().removeAll(bulkResult.failedUpdates);
+                }
             }
 
+            System.out.println(String.format("%d Operations left to cover %d", System.currentTimeMillis(), operationsToCover.size()));
             // if there are some changes left, we'll apply them one after another
             Iterator<UpdateOp> it = operationsToCover.values().iterator();
             while (it.hasNext()) {
@@ -953,6 +960,30 @@ public class MongoDocumentStore implements DocumentStore {
         }
         log("createOrUpdate returns", result);
         return result;
+    }
+
+    private Map<String, UpdateOp> createMap(List<UpdateOp> updateOps) {
+        Map<String, UpdateOp> map = new HashMap<String, UpdateOp>();
+        for (UpdateOp op : updateOps) {
+            map.put(op.getId(), op);
+        }
+        return map;
+    }
+
+    private <T> List<List<T>> createPartitions(java.util.Collection<T> values, int partitionSize) {
+        List<List<T>> partitions = new ArrayList<List<T>>();
+        List<T> currentPartition = null;
+        for (T v : values) {
+            if (currentPartition == null) {
+                currentPartition = new ArrayList<T>();
+                partitions.add(currentPartition);
+            }
+            currentPartition.add(v);
+            if (currentPartition.size() == partitionSize) {
+                currentPartition = null;
+            }
+        }
+        return partitions;
     }
 
     private void createNodeCacheEntries(Iterable<UpdateOp> updates) {
