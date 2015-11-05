@@ -87,6 +87,9 @@ public class MigrationFactory {
         if (options.getExcludePaths() != null) {
             upgrade.setExcludes(options.getExcludePaths());
         }
+        if (options.getMergePaths() != null) {
+            upgrade.setMerges(options.getMergePaths());
+        }
         upgrade.setSkipOnError(!options.isFailOnError());
         upgrade.setEarlyShutdown(options.isEarlyShutdown());
         ServiceLoader<CommitHook> loader = ServiceLoader.load(CommitHook.class);
