@@ -19,10 +19,11 @@ package org.apache.jackrabbit.oak.plugins.document;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.junit.Test;
 
-import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+
+import java.util.Collections;
 
 public class ConflictExceptionTest {
 
@@ -48,6 +49,6 @@ public class ConflictExceptionTest {
         assertTrue(cfe instanceof FailedWithConflictException);
         FailedWithConflictException fwce = (FailedWithConflictException) cfe;
         assertEquals(CommitFailedException.MERGE, fwce.getType());
-        assertEquals(asList(r), fwce.getConflictRevisions());
+        assertEquals(Collections.singleton(r), fwce.getConflictRevisions());
     }
 }

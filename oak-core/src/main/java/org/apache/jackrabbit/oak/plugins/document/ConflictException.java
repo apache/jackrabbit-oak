@@ -18,15 +18,14 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.MERGE;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.Collections;
+import java.util.Set;
 
 /**
  * A document store exception with an optional conflict revision. The
@@ -40,24 +39,24 @@ class ConflictException extends DocumentStoreException {
     /**
      * Optional conflict revisions list.
      */
-    private final List<Revision> conflictRevisions;
+    private final Set<Revision> conflictRevisions;
 
     /**
      * @param message the exception / conflict message.
      * @param conflictRevision the conflict revision or {@code null} if unknown.
      */
     ConflictException(@Nonnull String message,
-                      @Nonnull Revision conflictRevisions) {
+                      @Nonnull Revision conflictRevision) {
         super(checkNotNull(message));
-        this.conflictRevisions = Arrays.asList(checkNotNull(conflictRevisions));
+        this.conflictRevisions = Collections.singleton(checkNotNull(conflictRevision));
     }
 
     /**
      * @param message the exception / conflict message.
-     * @param conflictRevision the conflict revision list
+     * @param conflictRevisions the conflict revision list
      */
     ConflictException(@Nonnull String message,
-                      @Nonnull List<Revision> conflictRevisions) {
+                      @Nonnull Set<Revision> conflictRevisions) {
         super(checkNotNull(message));
         this.conflictRevisions = checkNotNull(conflictRevisions);
     }
@@ -67,7 +66,7 @@ class ConflictException extends DocumentStoreException {
      */
     ConflictException(@Nonnull String message) {
         super(checkNotNull(message));
-        this.conflictRevisions = null;
+        this.conflictRevisions = Collections.emptySet();
     }
 
     /**
@@ -88,9 +87,9 @@ class ConflictException extends DocumentStoreException {
     /**
      * List of conflict revisions.
      * 
-     * @return a list of conflict revisions or null if there are no set.
+     * @return a list of conflict revisions (may be empty)
      */
-    @Nullable List<Revision> getConflictRevisions() {
+    @Nonnull Iterable<Revision> getConflictRevisions() {
         return conflictRevisions;
     }
 }

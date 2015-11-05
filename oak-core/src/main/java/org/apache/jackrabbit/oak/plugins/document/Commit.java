@@ -601,7 +601,7 @@ public class Commit {
     private void checkConflicts(List<NodeDocument> oldDocs, List<UpdateOp> changedNodes) {
         int i = 0;
         List<ConflictException> exceptions = new ArrayList<ConflictException>();
-        List<Revision> revisions = new ArrayList<Revision>();
+        Set<Revision> revisions = new HashSet<Revision>();
         for (NodeDocument doc : oldDocs) {
             UpdateOp op = changedNodes.get(i++);
             try {
@@ -609,7 +609,9 @@ public class Commit {
             } catch (ConflictException e) {
                 exceptions.add(e);
                 if (e.getConflictRevisions() != null) {
-                    revisions.addAll(e.getConflictRevisions());
+                    for (Revision r : e.getConflictRevisions()) {
+                        revisions.add(r);
+                    }
                 }
             }
         }
