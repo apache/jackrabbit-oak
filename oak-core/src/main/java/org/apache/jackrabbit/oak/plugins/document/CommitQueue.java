@@ -39,7 +39,7 @@ import javax.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.mongodb.util.IdentitySet;
+import com.google.common.collect.Sets;
 
 /**
  * <code>CommitQueue</code> ensures a sequence of commits consistent with the
@@ -60,8 +60,6 @@ final class CommitQueue {
      * Map of currently suspended commits until a given Revision is visible.
      */
     private final List<SuspendedCommit> suspendedCommits = new ArrayList<SuspendedCommit>();
-
-    private final AtomicInteger suspendedThreadCount = new AtomicInteger();
 
     private final RevisionContext context;
 
@@ -138,9 +136,10 @@ final class CommitQueue {
         }
         if (s != null) {
             try {
-                suspendedThreadCount.incrementAndGet();
                 s.tryAcquire(suspendedCommits.size(), suspendTimeout, TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
+                LOG.debug("The suspended thread has been interrupted", e);
+            } finally {
                 synchronized (suspendedCommits) {
                     Iterator<SuspendedCommit> it = suspendedCommits.iterator();
                     while (it.hasNext()) {
@@ -149,8 +148,6 @@ final class CommitQueue {
                         }
                     }
                 }
-            } finally {
-                suspendedThreadCount.decrementAndGet();
             }
         }
     }
@@ -167,7 +164,13 @@ final class CommitQueue {
      * @return the number of suspended threads on this commit queue.
      */
     int numSuspendedThreads() {
-        return suspendedThreadCount.get();
+        synchronized (suspendedCommits) {
+            Set<Semaphore> semaphores = Sets.newIdentityHashSet();
+            for (SuspendedCommit c : suspendedCommits) {
+                semaphores.add(c.semaphore);
+            }
+            return semaphores.size();
+        }
     }
 
     /**
@@ -198,9 +201,8 @@ final class CommitQueue {
             while (it.hasNext()) {
                 SuspendedCommit entry = it.next();
                 if (comparator.compare(entry.revision, headRevision) <= 0) {
-                    Semaphore s = entry.semaphore;
                     it.remove();
-                    s.release();
+                    entry.semaphore.release();
                 }
             }
         }
@@ -216,9 +218,8 @@ final class CommitQueue {
             while (it.hasNext()) {
                 SuspendedCommit entry = it.next();
                 if (revision.equals(entry.revision)) {
-                    Semaphore s = entry.semaphore;
                     it.remove();
-                    s.release();
+                    entry.semaphore.release();
                 }
             }
         }
