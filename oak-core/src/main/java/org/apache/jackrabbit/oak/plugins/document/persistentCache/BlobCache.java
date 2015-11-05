@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.List;
 
@@ -55,6 +56,11 @@ public class BlobCache implements BlobStore, GarbageCollectableBlobStore, Genera
         data = new MultiGenerationMap<Long, byte[]>();
         meta = new MultiGenerationMap<String, byte[]>();
         maxEntrySize = cache.getMaxBinaryEntrySize();
+    }
+    
+    @Override
+    public CacheType getType() {
+        return CacheType.BLOB;
     }
     
     @Override
@@ -199,6 +205,11 @@ public class BlobCache implements BlobStore, GarbageCollectableBlobStore, Genera
     @Override
     public String writeBlob(String tempFileName) throws IOException {
         return base.writeBlob(tempFileName);
+    }
+
+    @Override
+    public void receive(ByteBuffer buff) {
+        throw new UnsupportedOperationException();
     }
     
 }
