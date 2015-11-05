@@ -201,7 +201,7 @@ public class GlobPatternTest {
             assertMatch(gp, testPath, tests.get(testPath));
         }
 
-        // restriction "*e/*" matches all descendants of /foo that have an intermediate segment ending with 'e'
+        // restriction "*cat/*" matches all siblings and descendants of /foo that have an intermediate segment ending with 'cat'
         gp = GlobPattern.create("/a/b/c", "*e/*");
         tests = new HashMap<String,Boolean>();
         // matching
@@ -210,8 +210,31 @@ public class GlobPatternTest {
         tests.put("/a/b/c/d/e/f", true);
         tests.put("/a/b/ced/d/e/f", true);
         // not-matching
+        tests.put("/a/b/cde", false);      // sibling ending with e
         tests.put("/a/b/ce/", false);      // ignore trailing / in test path
         tests.put("/a/b/c/d/e/", false);   // ignore trailing / in test path
+        tests.put("/a/b/c/d", false);      // missing *e/*
+        tests.put("/a/b/c/d/e", false);    // missing /*
+        tests.put("/a/b/c/d/f/f", false);  // missing *e
+        tests.put("/a/b/c/ed/f/f", false); // missing e/
+
+        for (String testPath : tests.keySet()) {
+            assertMatch(gp, testPath, tests.get(testPath));
+        }
+
+        //  restriction /*cat/*  matches all descendants of /foo that have an intermediate segment ending with 'cat'
+        gp = GlobPattern.create("/a/b/c", "/*e/*");
+        tests = new HashMap<String,Boolean>();
+        // matching
+        tests.put("/a/b/c/d/e/f", true);
+        tests.put("/a/b/c/de/f", true);
+        // not-matching
+        tests.put("/a/b/cde", false);      // sibling ending with e
+        tests.put("/a/b/ced/d/e/f", false);// sibling containing intermediate segment
+        tests.put("/a/b/cde/d/e/f", false);// sibling containing intermediate segment
+        tests.put("/a/b/ce/", false);      // ignore trailing / in test path
+        tests.put("/a/b/c/d/e/", false);   // ignore trailing / in test path
+        tests.put("/a/b/c/d/e", false);    // no intermediate segment
         tests.put("/a/b/c/d", false);      // missing *e/*
         tests.put("/a/b/c/d/e", false);    // missing /*
         tests.put("/a/b/c/d/f/f", false);  // missing *e
@@ -324,6 +347,42 @@ public class GlobPatternTest {
         tests.put("/a/b/c/d/e/f", false);
         tests.put("/", false);
         tests.put("/a", false);
+        tests.put("/a/b/cde", false);
+
+        for (String toTest : tests.keySet()) {
+            assertTrue(gp + " : " + toTest, tests.get(toTest) == gp.matches(toTest));
+        }
+    }
+
+    @Test
+    public void testPathRestriction() {
+        GlobPattern gp = GlobPattern.create("/a/b/c", "d");
+        Map<String,Boolean> tests = new HashMap<String,Boolean>();
+        tests.put("/", false);
+        tests.put("/a", false);
+        tests.put("/a/b/c", false);
+        tests.put("/a/b/c/d", false);
+        tests.put("/a/b/c/d/e/f", false);
+        tests.put("/a/b/cd", true);
+        tests.put("/a/b/cd/e", true);
+        tests.put("/a/b/cd/e/f", true);
+        tests.put("/a/b/cde", false);
+
+        for (String toTest : tests.keySet()) {
+            assertTrue(gp + " : " + toTest, tests.get(toTest) == gp.matches(toTest));
+        }
+
+        gp = GlobPattern.create("/a/b/c", "/d");
+
+        tests = new HashMap<String,Boolean>();
+        tests.put("/", false);
+        tests.put("/a", false);
+        tests.put("/a/b/c", false);
+        tests.put("/a/b/c/d", true);
+        tests.put("/a/b/c/d/e/f", true);
+        tests.put("/a/b/cd", false);
+        tests.put("/a/b/cd/e", false);
+        tests.put("/a/b/cd/e/f", false);
         tests.put("/a/b/cde", false);
 
         for (String toTest : tests.keySet()) {

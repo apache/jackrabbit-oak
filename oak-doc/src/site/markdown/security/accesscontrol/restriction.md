@@ -102,10 +102,34 @@ as follows:
 The default implementations of the `Restriction` interface are present with
 Oak 1.0 access control management:
 
-* `rep:glob`: single name or path pattern with '*' wildcard(s).
+* `rep:glob`: single name, path or path pattern with '*' wildcard(s).
 * `rep:ntNames`: multivalued restriction for primary node type names (no inheritence, since Oak 1.0)
 * `rep:prefixes`: multivalued restriction for namespace prefixes (session level remapping not respected, since Oak 1.0)
 * `rep:itemNames`: multivalued restriction for property or node names (since Oak 1.3.8)
+
+##### Examples
+
+###### Using rep:glob
+
+For a nodePath `/foo` the following results can be expected for the different
+values of `rep:glob`.
+
+| rep:glob          | Result                                                   |
+|-------------------|----------------------------------------------------------|
+| ""                | matches node /foo only                                   |
+| /cat              | the node /foo/cat and all it's children                  |
+| /cat/             | the descendants of the node /foo/cat                     |
+| cat               | the node /foocat and all it's children                   |
+| cat/              | all descendants of the node /foocat                      |
+| \*                | foo, siblings of foo and their descendants               |
+| /\*cat            | all children of /foo whose path ends with 'cat'          |
+| /\*/cat           | all non-direct descendants of /foo named 'cat'           |
+| /cat\*            | all descendant path of /foo that have the direct foo-descendant segment starting with 'cat' |
+| \*cat             | all siblings and descendants of foo that have a name ending with 'cat' |
+| \*/cat            | all descendants of /foo and foo's siblings that have a name segment 'cat' |
+| cat/\*            | all descendants of '/foocat'                             |
+| /cat/\*           | all descendants of '/foo/cat'                            |
+| \*cat/\*          | all descendants of /foo that have an intermediate segment ending with 'cat' |
 
 
 ### Pluggability
