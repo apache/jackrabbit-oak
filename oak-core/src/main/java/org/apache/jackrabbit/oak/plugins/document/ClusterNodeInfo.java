@@ -245,10 +245,11 @@ public class ClusterNodeInfo {
      * Create a cluster node info instance for the store, with the
      *
      * @param store the document store (for the lease)
+     * @param configuredClusterId the configured cluster id (or 0 for dynamic assignment)
      * @return the cluster node info
      */
-    public static ClusterNodeInfo getInstance(DocumentStore store) {
-        return getInstance(store, MACHINE_ID, WORKING_DIR, false);
+    public static ClusterNodeInfo getInstance(DocumentStore store, int configuredClusterId) {
+        return getInstance(store, MACHINE_ID, WORKING_DIR, configuredClusterId, false);
     }
 
     /**
@@ -261,7 +262,7 @@ public class ClusterNodeInfo {
      */
     public static ClusterNodeInfo getInstance(DocumentStore store, String machineId,
             String instanceId) {
-        return getInstance(store, machineId, instanceId, true);
+        return getInstance(store, machineId, instanceId, 0, true);
     }
 
     /**
@@ -270,21 +271,27 @@ public class ClusterNodeInfo {
      * @param store the document store (for the lease)
      * @param machineId the machine id (null for MAC address)
      * @param instanceId the instance id (null for current working directory)
+     * @param configuredClusterId the configured cluster id (or 0 for dynamic assignment)
      * @param updateLease whether to update the lease
      * @return the cluster node info
      */
     public static ClusterNodeInfo getInstance(DocumentStore store, String machineId,
-            String instanceId, boolean updateLease) {
+            String instanceId, int configuredClusterId, boolean updateLease) {
+
+        // defaults for machineId and instanceID
         if (machineId == null) {
             machineId = MACHINE_ID;
         }
         if (instanceId == null) {
             instanceId = WORKING_DIR;
         }
-        for (int i = 0; i < 10; i++) {
-            ClusterNodeInfo clusterNode = createInstance(store, machineId, instanceId);
-            UpdateOp update = new UpdateOp("" + clusterNode.id, true);
-            update.set(ID, String.valueOf(clusterNode.id));
+
+        int retries = 10;
+        for (int i = 0; i < retries; i++) {
+            ClusterNodeInfo clusterNode = createInstance(store, machineId, instanceId, configuredClusterId);
+            String key = String.valueOf(clusterNode.id);
+            UpdateOp update = new UpdateOp(key, true);
+            update.set(ID, key);
             update.set(MACHINE_ID_KEY, clusterNode.machineId);
             update.set(INSTANCE_ID_KEY, clusterNode.instanceId);
             if (updateLease) {
@@ -299,8 +306,8 @@ public class ClusterNodeInfo {
 
             final boolean success;
             if (clusterNode.newEntry) {
-                //For new entry do a create. This ensures that if two nodes create
-                //entry with same id then only one would succeed
+                // For new entry do a create. This ensures that if two nodes
+                // create entry with same id then only one would succeed
                 success = store.create(Collection.CLUSTER_NODES, Collections.singletonList(update));
             } else {
                 // No expiration of earlier cluster info, so update
@@ -312,34 +319,58 @@ public class ClusterNodeInfo {
                 return clusterNode;
             }
         }
-        throw new DocumentStoreException("Could not get cluster node info");
+        throw new DocumentStoreException("Could not get cluster node info (retried " + retries + " times)");
     }
 
     private static ClusterNodeInfo createInstance(DocumentStore store, String machineId,
-            String instanceId) {
+            String instanceId, int configuredClusterId) {
+
         long now = getCurrentTime();
-        List<ClusterNodeInfoDocument> list = ClusterNodeInfoDocument.all(store);
         int clusterNodeId = 0;
         int maxId = 0;
         ClusterNodeState state = ClusterNodeState.NONE;
         Long prevLeaseEnd = null;
         boolean newEntry = false;
-        for (Document doc : list) {
+
+        ClusterNodeInfoDocument alreadyExistingConfigured = null;
+        String reuseFailureReason = "";
+        List<ClusterNodeInfoDocument> list = ClusterNodeInfoDocument.all(store);
+
+        for (ClusterNodeInfoDocument doc : list) {
+
             String key = doc.getId();
+
             int id;
             try {
-                id = Integer.parseInt(key);
+                id = doc.getClusterId();
             } catch (Exception e) {
-                // not an integer - ignore
+                LOG.debug("Skipping cluster node info document {} because ID is invalid", key);
                 continue;
             }
+
             maxId = Math.max(maxId, id);
+
+            // if a cluster id was configured: check that and abort if it does
+            // not match
+            if (configuredClusterId != 0) {
+                if (configuredClusterId != id) {
+                    continue;
+                } else {
+                    alreadyExistingConfigured = doc;
+                }
+            }
+
             Long leaseEnd = (Long) doc.get(LEASE_END_KEY);
+
             if (leaseEnd != null && leaseEnd > now) {
+                // TODO wait for lease end, see OAK-3449
+                reuseFailureReason = "leaseEnd " + leaseEnd + " > " + now + " - " + (leaseEnd - now) + "ms in the future";
                 continue;
             }
+
             String mId = "" + doc.get(MACHINE_ID_KEY);
             String iId = "" + doc.get(INSTANCE_ID_KEY);
+
             if (mId.startsWith(RANDOM_PREFIX)) {
                 // remove expired entries with random keys
                 store.remove(Collection.CLUSTER_NODES, key);
@@ -347,14 +378,15 @@ public class ClusterNodeInfo {
                         leaseEnd == null ? "n/a" : Utils.timestampToString(leaseEnd));
                 continue;
             }
-            if (!mId.equals(machineId) ||
-                    !iId.equals(instanceId)) {
+
+            if (!mId.equals(machineId) || !iId.equals(instanceId)) {
                 // a different machine or instance
+                reuseFailureReason = "machineId/instanceId do not match: " + mId + "/" + iId + " != " + machineId + "/" + instanceId;
                 continue;
             }
 
-            //and cluster node which matches current machine identity but
-            //not being used
+            // a cluster node which matches current machine identity but
+            // not being used
             if (clusterNodeId == 0 || id < clusterNodeId) {
                 // if there are multiple, use the smallest value
                 clusterNodeId = id;
@@ -363,11 +395,19 @@ public class ClusterNodeInfo {
             }
         }
 
-        //No existing entry with matching signature found so
-        //create a new entry
+        // No usable existing entry with matching signature found so
+        // create a new entry
         if (clusterNodeId == 0) {
-            clusterNodeId = maxId + 1;
             newEntry = true;
+            if (configuredClusterId != 0) {
+                if (alreadyExistingConfigured != null) {
+                    throw new DocumentStoreException(
+                            "Configured cluster node id " + configuredClusterId + " already in use: " + reuseFailureReason);
+                }
+                clusterNodeId = configuredClusterId;
+            } else {
+                clusterNodeId = maxId + 1;
+            }
         }
 
         // Do not expire entries and stick on the earlier state, and leaseEnd so,
@@ -517,5 +557,4 @@ public class ClusterNodeInfo {
     private static long getCurrentTime() {
         return clock.getTime();
     }
-
 }

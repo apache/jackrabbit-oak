@@ -25,6 +25,7 @@ import com.mongodb.ReadPreference;
 
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -32,6 +33,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.junit.After;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -59,6 +61,13 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
                 .setClusterId(1)
                 .open();
         mongoDS = (MongoDocumentStore) mk.getDocumentStore();
+    }
+
+    @After
+    public void clearDB() {
+        if (mongoDS != null) {
+            MongoUtils.dropCollections(mongoDS.getDBCollection(NODES).getDB());
+        }
     }
 
     @Test

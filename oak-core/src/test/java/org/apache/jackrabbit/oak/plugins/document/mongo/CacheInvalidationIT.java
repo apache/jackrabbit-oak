@@ -52,8 +52,10 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
 
     @Before
     public void prepareStores() throws Exception {
-        c1 = createNS(1);
-        c2 = createNS(2);
+        // TODO start with clusterNodeId 2, because 1 has already been
+        // implicitly allocated in the base class
+        c1 = createNS(2);
+        c2 = createNS(3);
         initialCacheSizeC1 = getCurrentCacheSize(c1);
         initialCacheSizeC2 = getCurrentCacheSize(c2);
     }
@@ -246,8 +248,12 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
 
     @After
     public void closeStores() {
-        c1.dispose();
-        c2.dispose();
+        if (c2 != null) {
+            c2.dispose();
+        }
+        if (c1 != null) {
+            c1.dispose();
+        }
     }
 
     private static void runBgOps(DocumentNodeStore... stores) {
