@@ -371,11 +371,15 @@ public class ClusterNodeInfo {
             String mId = "" + doc.get(MACHINE_ID_KEY);
             String iId = "" + doc.get(INSTANCE_ID_KEY);
 
-            if (mId.startsWith(RANDOM_PREFIX)) {
-                // remove expired entries with random keys
+            // remove entries with "random:" keys if not in use (no lease at all) 
+            if (mId.startsWith(RANDOM_PREFIX) && leaseEnd == null) {
                 store.remove(Collection.CLUSTER_NODES, key);
                 LOG.debug("Cleaned up cluster node info for clusterNodeId {} [machineId: {}, leaseEnd: {}]", id, mId,
                         leaseEnd == null ? "n/a" : Utils.timestampToString(leaseEnd));
+                if (alreadyExistingConfigured == doc) {
+                    // we removed it, so we can't re-use it after all
+                    alreadyExistingConfigured = null;
+                }
                 continue;
             }
 
@@ -499,6 +503,20 @@ public class ClusterNodeInfo {
         }
     }
 
+    /*
+     * Allow external override of hardware address. The special value "(none)"
+     * indicates that a situation where no hardware address is available is to
+     * be simulated.
+     */
+    private static String getHWAFromSystemProperty() {
+        String pname = ClusterNodeInfo.class.getName() + ".HWADDRESS";
+        String hwa = System.getProperty(pname, "");
+        if (!"".equals(hwa)) {
+            LOG.debug("obtaining hardware address from system variable " + pname + ": " + hwa);
+        }
+        return hwa;
+    }
+
     /**
      * Calculate the unique machine id. This usually is the lowest MAC address
      * if available. As an alternative, a randomly generated UUID is used.
@@ -510,24 +528,37 @@ public class ClusterNodeInfo {
         try {
             ArrayList<String> macAddresses = new ArrayList<String>();
             ArrayList<String> otherAddresses = new ArrayList<String>();
-            Enumeration<NetworkInterface> e = NetworkInterface
-                    .getNetworkInterfaces();
-            while (e.hasMoreElements()) {
-                NetworkInterface ni = e.nextElement();
-                try {
-                    byte[] hwa = ni.getHardwareAddress();
-                    // empty addresses have been seen on loopback devices
-                    if (hwa != null && hwa.length != 0) {
-                        String str = StringUtils.convertBytesToHex(hwa);
-                        if (hwa.length == 6) {
-                            // likely a MAC address
-                            macAddresses.add(str);
-                        } else {
-                            otherAddresses.add(str);
+            String hwaFromSysProp = getHWAFromSystemProperty();
+            if ("".equals(hwaFromSysProp)) {
+                Enumeration<NetworkInterface> e = NetworkInterface
+                        .getNetworkInterfaces();
+                while (e.hasMoreElements()) {
+                    NetworkInterface ni = e.nextElement();
+                    try {
+                        byte[] hwa = ni.getHardwareAddress();
+                        // empty addresses have been seen on loopback devices
+                        if (hwa != null && hwa.length != 0) {
+                            String str = StringUtils.convertBytesToHex(hwa);
+                            if (hwa.length == 6) {
+                                // likely a MAC address
+                                macAddresses.add(str);
+                            } else {
+                                otherAddresses.add(str);
+                            }
                         }
+                    } catch (Exception e2) {
+                        exception = e2;
                     }
-                } catch (Exception e2) {
-                    exception = e2;
+                }
+            }
+            else {
+                if (!"(none)".equals(hwaFromSysProp)) {
+                    if (hwaFromSysProp.length() == 12) {
+                        // assume 12 hex digits are a mac address
+                        macAddresses.add(hwaFromSysProp);
+                    } else {
+                        otherAddresses.add(hwaFromSysProp);
+                    }
                 }
             }
 
