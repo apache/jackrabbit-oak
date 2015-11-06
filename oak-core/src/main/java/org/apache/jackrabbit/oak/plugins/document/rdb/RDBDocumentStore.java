@@ -44,6 +44,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Lock;
 import java.util.zip.Deflater;
@@ -81,6 +82,9 @@ import com.google.common.cache.Cache;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.hash.BloomFilter;
+import com.google.common.hash.Funnel;
+import com.google.common.hash.PrimitiveSink;
 import com.google.common.util.concurrent.Striped;
 
 /**
@@ -495,12 +499,6 @@ public class RDBDocumentStore implements DocumentStore {
 
     private static final Key MODIFIEDKEY = new Key(MODIFIED, null);
 
-    // value for modcount used to indicate that the cache entry isn't valid and
-    // needs to be refetched
-    private static final long NEEDSCACHERELOAD = Long.MAX_VALUE;
-    private static final boolean NOCACHERELOADMARKERS = Boolean
-            .getBoolean("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.NOCACHERELOADMARKERS");
-
     // DB-specific information
     private RDBDocumentStoreDB db;
 
@@ -810,7 +808,7 @@ public class RDBDocumentStore implements DocumentStore {
             if (maxCacheAge > 0) {
                 // first try without lock
                 doc = nodesCache.getIfPresent(cacheKey);
-                if (doc != null && modcountOf(doc) != NEEDSCACHERELOAD) {
+                if (doc != null) {
                     long lastCheckTime = doc.getLastCheckTime();
                     if (lastCheckTime != 0) {
                         if (maxCacheAge == Integer.MAX_VALUE || System.currentTimeMillis() - lastCheckTime < maxCacheAge) {
@@ -822,11 +820,6 @@ public class RDBDocumentStore implements DocumentStore {
             try {
                 Lock lock = getAndLock(id);
                 try {
-                    if (doc != null && modcountOf(doc) == NEEDSCACHERELOAD) {
-                        LOG.debug("removing needs-reload cache entry for " + id);
-                        invalidateNodesCache(id, true);
-                        doc = null;
-                    }
                     // caller really wants the cache to be cleared
                     if (maxCacheAge == 0) {
                         invalidateNodesCache(id, true);
@@ -971,18 +964,12 @@ public class RDBDocumentStore implements DocumentStore {
                 int retries = maxRetries;
                 while (!success && retries > 0) {
                     long lastmodcount = modcountOf(oldDoc);
-                    if (lastmodcount == NEEDSCACHERELOAD) {
-                        throw new IllegalStateException("illegal modcount value for id " + update.getId());
-                    }
                     success = updateDocument(collection, doc, update, lastmodcount);
                     if (!success) {
                         retries -= 1;
                         oldDoc = readDocumentCached(collection, update.getId(), Integer.MAX_VALUE);
                         if (oldDoc != null) {
                             long newmodcount = modcountOf(oldDoc);
-                            if (lastmodcount == NEEDSCACHERELOAD) {
-                                throw new IllegalStateException("illegal modcount value for id " + update.getId());
-                            }
                             if (lastmodcount == newmodcount) {
                                 // cached copy did not change so it probably was
                                 // updated by a different instance, get a fresh one
@@ -1072,16 +1059,15 @@ public class RDBDocumentStore implements DocumentStore {
                     for (Entry<String, NodeDocument> entry : cachedDocs.entrySet()) {
                         T oldDoc = castAsT(entry.getValue());
                         if (oldDoc == null) {
+                            String id = entry.getKey();
+                            // keep concurrently running queries from updating
+                            // the cache entry for this key
+                            for (QueryContext qp : qmap.values()) {
+                                qp.addKey(id);
+                            }
                             // make sure concurrently loaded document is
                             // invalidated
-                            nodesCache.invalidate(new StringValue(entry.getKey()));
-                            if (!NOCACHERELOADMARKERS) {
-                                T newDoc = collection.newDocument(this);
-                                newDoc.put(ID, entry.getKey());
-                                newDoc.put(MODCOUNT, NEEDSCACHERELOAD);
-                                addToCache(collection, newDoc);
-                                LOG.debug("needs-reload-marker set for " + entry.getKey());
-                            }
+                            nodesCache.invalidate(new StringValue(id));
                         } else {
                             T newDoc = applyChanges(collection, oldDoc, update, true);
                             if (newDoc != null) {
@@ -1106,6 +1092,66 @@ public class RDBDocumentStore implements DocumentStore {
         }
     }
 
+    /**
+     * Class used to track which documents may have been updated since the start
+     * of the query and thus may not put into the cache.
+     */
+    private class QueryContext {
+
+        private static final double FPP = 0.01d;
+        private static final int ENTRIES_SCOPED = 1000;
+        private static final int ENTRIES_OPEN = 10000;
+
+        private final String fromKey, toKey;
+        private volatile BloomFilter<String> filter = null;
+
+        private BloomFilter<String> getFilter() {
+            if (filter == null) {
+                synchronized (this) {
+                    if (filter == null) {
+                        filter = BloomFilter.create(new Funnel<String>() {
+                            private static final long serialVersionUID = -7114267990225941161L;
+
+                            @Override
+                            public void funnel(String from, PrimitiveSink into) {
+                                into.putUnencodedChars(from);
+                            }
+                        }, toKey.equals(NodeDocument.MAX_ID_VALUE) ? ENTRIES_OPEN : ENTRIES_SCOPED, FPP);
+                    }
+                }
+            }
+            return filter;
+        }
+
+        public QueryContext(String fromKey, String toKey) {
+            this.fromKey = fromKey;
+            this.toKey = toKey;
+        }
+
+        public void addKey(String key) {
+            if (fromKey.compareTo(key) < 0 && toKey.compareTo(key) > 0) {
+                getFilter().put(key);
+            }
+        }
+
+        public boolean mayUpdate(String key) {
+            return filter == null ? true : !getFilter().mightContain(key);
+        }
+
+        synchronized public void dispose() {
+            if (LOG.isDebugEnabled()) {
+                if (filter != null) {
+                    LOG.debug("Disposing QueryContext for range " + fromKey + "..." + toKey + " - filter fpp was: "
+                            + filter.expectedFpp());
+                } else {
+                    LOG.debug("Disposing QueryContext for range " + fromKey + "..." + toKey + " - no filter was needed");
+                }
+            }
+        }
+    }
+
+    private Map<Thread, QueryContext> qmap = new ConcurrentHashMap<Thread, QueryContext>();
+
     private <T extends Document> List<T> internalQuery(Collection<T> collection, String fromKey, String toKey,
             String indexedProperty, long startValue, int limit) {
         Connection connection = null;
@@ -1118,6 +1164,8 @@ public class RDBDocumentStore implements DocumentStore {
         }
         try {
             long now = System.currentTimeMillis();
+            QueryContext qp = new QueryContext(fromKey, toKey);
+            qmap.put(Thread.currentThread(), qp);
             connection = this.ch.getROConnection();
             List<RDBRow> dbresult = dbQuery(connection, tableName, fromKey, toKey, indexedProperty, startValue, limit);
             connection.commit();
@@ -1126,14 +1174,16 @@ public class RDBDocumentStore implements DocumentStore {
             List<T> result = new ArrayList<T>(size);
             for (int i = 0; i < size; i++) {
                 RDBRow row = dbresult.set(i, null); // free RDBRow ASAP
-                T doc = runThroughCache(collection, row, now);
+                T doc = runThroughCache(collection, row, now, qp);
                 result.add(doc);
             }
+            qp.dispose();
             return result;
         } catch (Exception ex) {
             LOG.error("SQL exception on query", ex);
             throw new DocumentStoreException(ex);
         } finally {
+            qmap.remove(Thread.currentThread());
             this.ch.closeConnection(connection);
         }
     }
@@ -2001,7 +2051,7 @@ public class RDBDocumentStore implements DocumentStore {
         return SR.fromRow(collection, row);
     }
 
-    private <T extends Document> T runThroughCache(Collection<T> collection, RDBRow row, long now) {
+    private <T extends Document> T runThroughCache(Collection<T> collection, RDBRow row, long now, QueryContext qp) {
 
         if (collection != Collection.NODES) {
             // not in the cache anyway
@@ -2031,6 +2081,10 @@ public class RDBDocumentStore implements DocumentStore {
         NodeDocument fresh = (NodeDocument) convertFromDBObject(collection, row);
         fresh.seal();
 
+        if (!qp.mayUpdate(id)) {
+            return castAsT(fresh);
+        }
+
         Lock lock = getAndLock(id);
         try {
             inCache = nodesCache.getIfPresent(cacheKey);
@@ -2042,7 +2096,7 @@ public class RDBDocumentStore implements DocumentStore {
                 }
                 if (modCount.longValue() > cachedModCount.longValue()) {
                     nodesCache.put(cacheKey, fresh);
-                } else if (cachedModCount.longValue() != NEEDSCACHERELOAD) {
+                } else {
                     fresh = inCache;
                 }
             } else {
