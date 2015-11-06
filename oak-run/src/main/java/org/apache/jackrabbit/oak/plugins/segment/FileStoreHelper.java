@@ -42,10 +42,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.json.JsonObject;
+import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -263,31 +263,41 @@ public final class FileStoreHelper {
     }
 
     private static void writeNode(UUID node, PrintWriter writer, boolean inHead, Date epoch, SegmentTracker tracker) {
-        JsonObject sInfo = getSegmentInfo(node, tracker);
+        Map<String, String> sInfo = getSegmentInfo(node, tracker);
         if (sInfo == null) {
             writer.write(node + ",b,bulk,b,-1,-1," + inHead + "\n");
         } else {
-            long t = sInfo.get("t").getAsLong();
+            long t = asLong(sInfo.get("t"));
             long ts = t - epoch.getTime();
             checkArgument(ts >= Integer.MIN_VALUE && ts <= Integer.MAX_VALUE,
                     "Time stamp (" + new Date(t) + ") not in epoch (" +
                     new Date(epoch.getTime() + Integer.MIN_VALUE) + " - " +
                     new Date(epoch.getTime() + Integer.MAX_VALUE) + ")");
             writer.write(node +
-                    "," + sInfo.get("sno").getAsString() +
+                    "," + sInfo.get("sno") +
                     ",data" +
-                    "," + sInfo.get("wid").getAsString() +
-                    "," + sInfo.get("gc").getAsString() +
+                    "," + sInfo.get("wid") +
+                    "," + sInfo.get("gc") +
                     "," + ts +
                     "," + inHead + "\n");
         }
     }
 
-    private static JsonObject getSegmentInfo(UUID node, SegmentTracker tracker) {
+    private static long asLong(String string) {
+        return Long.valueOf(string);
+    }
+
+    private static Map<String, String> getSegmentInfo(UUID node, SegmentTracker tracker) {
         if (isDataSegmentId(node.getLeastSignificantBits())) {
             SegmentId id = tracker.getSegmentId(node.getMostSignificantBits(), node.getLeastSignificantBits());
             String info = id.getSegment().getSegmentInfo();
-            return info == null ? null : new JsonParser().parse(info).getAsJsonObject();
+            if (info != null) {
+                JsopTokenizer tokenizer = new JsopTokenizer(info);
+                tokenizer.read('{');
+                return JsonObject.create(tokenizer).getProperties();
+            } else {
+                return null;
+            }
         } else {
             return null;
         }
