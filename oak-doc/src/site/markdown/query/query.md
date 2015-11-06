@@ -257,9 +257,10 @@ Is useful whenever there is a query with a property constraint that is not full-
 
     SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id
 
-To define a property index on a subtree you have to add an index definition node that:
+To define a property index, you have to add an index definition node that:
 
-* must be of type `oak:QueryIndexDefinition`
+* Must be a child node of `/oak:index`.
+* Must be of type `oak:QueryIndexDefinition`.
 * `type` (String) must have the  property set to "property".
 * `propertyNames` (Name, multi-valued):
     the  property to be indexed.
