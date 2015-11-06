@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
@@ -30,6 +31,7 @@ import java.util.Calendar;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.commons.io.IOUtils;
@@ -173,6 +175,37 @@ public class LuceneIndexEditorContext {
         return writer;
     }
 
+    private static void trackIndexSizeInfo(@Nonnull IndexWriter writer,
+                                           @Nonnull IndexDefinition definition,
+                                           @Nonnull Directory directory) throws IOException {
+        checkNotNull(writer);
+        checkNotNull(definition);
+        checkNotNull(directory);
+        
+        int docs = writer.numDocs();
+        int ram = writer.numRamDocs();
+
+        log.trace("Writer for direcory {} - docs: {}, ramDocs: {}", definition, docs, ram);
+        
+        String[] files = directory.listAll();
+        long overallSize = 0;
+        StringBuilder sb = new StringBuilder();
+        for (String f : files) {
+            sb.append(f).append(":");
+            if (directory.fileExists(f)) {
+                long size = directory.fileLength(f);
+                overallSize += size;
+                sb.append(size);
+            } else {
+                sb.append("--");
+            }
+            sb.append(", ");
+        }
+        log.trace("Directory overall size: {}, files: {}",
+            org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount(overallSize),
+            sb.toString());
+    }
+
     /**
      * close writer if it's not null
      */
@@ -186,21 +219,29 @@ public class LuceneIndexEditorContext {
         }
 
         if (writer != null) {
+            if (log.isTraceEnabled()) {
+                trackIndexSizeInfo(writer, definition, directory);
+            }
+            
             final long start = PERF_LOGGER.start();
+            
             updateSuggester();
-
+            PERF_LOGGER.end(start, -1, "Completed suggester for directory {}", definition);
+            
             writer.close();
-
+            PERF_LOGGER.end(start, -1, "Closed writer for directory {}", definition);
+            
             directory.close();
-
+            PERF_LOGGER.end(start, -1, "Closed directory for directory {}", definition);
+            
             //OAK-2029 Record the last updated status so
             //as to make IndexTracker detect changes when index
             //is stored in file system
             NodeBuilder status = definitionBuilder.child(":status");
             status.setProperty("lastUpdated", ISO8601.format(Calendar.getInstance()), Type.DATE);
             status.setProperty("indexedNodes",indexedNodes);
-            PERF_LOGGER.end(start, -1, "Closed IndexWriter for directory {}", definition);
-
+            PERF_LOGGER.end(start, -1, "Overall Closed IndexWriter for directory {}", definition);
+            
             textExtractionStats.log(reindex);
             textExtractionStats.collectStats(extractedTextCache);
         }

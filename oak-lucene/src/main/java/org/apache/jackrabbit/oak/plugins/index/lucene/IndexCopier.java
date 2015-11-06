@@ -57,7 +57,9 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.hash.Hashing;
+
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.NotifyingFutureTask;
 import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.apache.lucene.store.Directory;
@@ -827,7 +829,8 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
                     local.copy(remote, name, name, IOContext.DEFAULT);
 
                     doneCopy(file, start);
-                    PERF_LOGGER.end(perfStart, 0, "[COW][{}] Copied to remote {} ",indexPathForLogging, name);
+                    PERF_LOGGER.end(perfStart, 0, "[COW][{}] Copied to remote {} -- size: {}",
+                        indexPathForLogging, name, IOUtils.humanReadableByteCount(fileSize));
                     return null;
                 }
 
