@@ -48,12 +48,25 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * </p>
  *
  * <p>
+ * Examples without wildcard char:
+ * <pre>
+ * NodePath = "/foo"
+ * Restriction   |   Matches
+ * -----------------------------------------------------------------------------
+ * /cat          |   the node /foo/cat and all it's children
+ * /cat/         |   the descendants of the node /foo/cat
+ * cat           |   the node /foocat and all it's children
+ * cat/          |   all descendants of the node /foocat
+ * </pre>
+ * </p>
+ *
+ * <p>
  * Examples including wildcard char:
  * <pre>
  * NodePath = "/foo"
  * Restriction   |   Matches
  * -----------------------------------------------------------------------------
- * &#42;         |   all siblings of foo and foo's and the siblings' descendants
+ * &#42;         |   foo, all siblings of foo and their descendants
  * /&#42;cat     |   all children of /foo whose path ends with "cat"
  * /&#42;/cat    |   all non-direct descendants of /foo named "cat"
  * /cat&#42;     |   all descendant path of /foo that have the direct foo-descendant segment starting with "cat"
@@ -61,7 +74,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * &#42;/cat     |   all descendants of /foo and foo's siblings that have a name segment "cat"
  * cat/&#42;     |   all descendants of '/foocat'
  * /cat/&#42;    |   all descendants of '/foo/cat'
- * &#42;cat/&#42;    |   all descendants of /foo that have an intermediate segment ending with 'cat'
+ * &#42;cat/&#42;    |   all siblings and descendants of foo that have an intermediate segment ending with 'cat'
+ * /&#42;cat/&#42;   |   all descendants of /foo that have an intermediate segment ending with 'cat'
  * </pre>
  * </p>
  */
@@ -79,7 +93,7 @@ final class GlobPattern implements RestrictionPattern {
         this.path = checkNotNull(path);
         this.restriction = restriction;
 
-        if (restriction.length() > 0) {
+        if (!restriction.isEmpty()) {
             StringBuilder b = new StringBuilder(path);
             b.append(restriction);
 

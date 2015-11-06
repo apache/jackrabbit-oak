@@ -181,7 +181,39 @@ public enum CacheType {
                 DocumentNodeStore store, DocumentStore docStore, String value) {
             return (V) LocalDiffCache.Diff.fromString(value);
         }
+    },
+    
+    BLOB {
+
+        @Override
+        public <K> String keyToString(K key) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public <K> K keyFromString(String key) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public <K> int compareKeys(K a, K b) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public <V> String valueToString(V value) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public <V> V valueFromString(DocumentNodeStore store,
+                DocumentStore docStore, String value) {
+            throw new UnsupportedOperationException();
+        }
+        
     };
+    
+    public static final CacheType[] VALUES = CacheType.values();
 
     public abstract <K> String keyToString(K key);
     public abstract <K> K keyFromString(String key);
