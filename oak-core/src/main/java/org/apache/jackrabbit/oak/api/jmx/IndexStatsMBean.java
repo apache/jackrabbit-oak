@@ -58,6 +58,11 @@ public interface IndexStatsMBean {
     String getLastIndexedTime();
 
     /**
+     * @return the start time of the last successful indexed operation
+     */
+    String getStartLastSuccessIndexedTime();
+
+    /**
      * Pauses the background indexing process. Future changes are not indexed
      * until the {@link #resume()} method is called.
      * 

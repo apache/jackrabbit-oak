@@ -58,17 +58,13 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Descriptors;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.jmx.AllIndexStatsMBean;
 import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
 import org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.management.RepositoryManager;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
-import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
-import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.IndexMBeanRegistration;
-import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
+import org.apache.jackrabbit.oak.plugins.index.*;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounterMBean;
 import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncReindex;
@@ -593,6 +589,11 @@ public class Oak {
             regs.add(registerMBean(whiteboard,
                     PropertyIndexAsyncReindexMBean.class, asyncPI,
                     PropertyIndexAsyncReindexMBean.TYPE, "async"));
+            // register our new mbean to get consolidated info from all "IndexStats" mbeans
+            AllIndexStatsMBeanService allIndexStatsMBean = new AllIndexStatsMBeanService();
+            regs.add(registerMBean(whiteboard,
+                    AllIndexStatsMBean.class, allIndexStatsMBean,
+                    AllIndexStatsMBean.TYPE, "AllIndexStats"));
         }
 
         regs.add(registerMBean(whiteboard, NodeCounterMBean.class,

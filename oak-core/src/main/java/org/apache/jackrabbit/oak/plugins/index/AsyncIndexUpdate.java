@@ -515,6 +515,7 @@ public class AsyncIndexUpdate implements Runnable {
             super(IndexStatsMBean.class);
         }
 
+        private String startLastSuccessful = "";
         private String start = "";
         private String done = "";
         private String status = STATUS_INIT;
@@ -553,6 +554,7 @@ public class AsyncIndexUpdate implements Runnable {
             if (watch.isRunning()) {
                 watch.stop();
             }
+            startLastSuccessful = start;
             execStats.incrementCounter();
             execStats.recordExecution(watch.elapsed(TimeUnit.MILLISECONDS), updates);
             watch.reset();
@@ -614,6 +616,11 @@ public class AsyncIndexUpdate implements Runnable {
         public String getLastIndexedTime() {
             PropertyState ps = store.getRoot().getChildNode(ASYNC).getProperty(lastIndexedTo);
             return ps != null ? ps.getValue(Type.STRING) : null;
+        }
+
+        @Override
+        public String getStartLastSuccessIndexedTime() {
+            return startLastSuccessful;
         }
 
         @Override
