@@ -70,12 +70,12 @@ public class VersionableEditor extends DefaultEditor {
 
     private String path;
 
-    private VersionableEditor(Provider provider, NodeBuilder builder) {
+    private VersionableEditor(Provider provider, NodeBuilder builder, boolean skipLongNames) {
         this.provider = provider;
         this.rootBuilder = builder;
         this.isVersionable = new TypePredicate(builder.getNodeState(), MIX_VERSIONABLE);
         this.isReferenceable = new TypePredicate(builder.getNodeState(), MIX_REFERENCEABLE);
-        this.versionCopier = new VersionCopier(provider.sourceRoot, builder);
+        this.versionCopier = new VersionCopier(provider.sourceRoot, builder, skipLongNames);
         this.path = "/";
     }
 
@@ -87,15 +87,18 @@ public class VersionableEditor extends DefaultEditor {
 
         private final VersionCopyConfiguration config;
 
-        public Provider(NodeState sourceRoot, String workspaceName, VersionCopyConfiguration config) {
+        private final boolean skipLongNames;
+
+        public Provider(NodeState sourceRoot, String workspaceName, VersionCopyConfiguration config, boolean skipLongNames) {
             this.sourceRoot = sourceRoot;
             this.workspaceName = workspaceName;
             this.config = config;
+            this.skipLongNames = skipLongNames;
         }
 
         @Override
         public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder, CommitInfo info) throws CommitFailedException {
-            return new VersionableEditor(this, builder);
+            return new VersionableEditor(this, builder, skipLongNames);
         }
     }
 

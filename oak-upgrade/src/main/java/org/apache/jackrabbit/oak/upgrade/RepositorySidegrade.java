@@ -79,6 +79,8 @@ public class RepositorySidegrade {
      */
     private Set<String> mergePaths = DEFAULT_MERGE_PATHS;
 
+    private boolean skipLongNames = true;
+
     private List<CommitHook> customCommitHooks = null;
 
     VersionCopyConfiguration versionCopyConfiguration = new VersionCopyConfiguration();
@@ -182,6 +184,14 @@ public class RepositorySidegrade {
         this.mergePaths = copyOf(checkNotNull(merges));
     }
 
+    public boolean isSkipLongNames() {
+        return skipLongNames;
+    }
+
+    public void setSkipLongNames(boolean skipLongNames) {
+        this.skipLongNames = skipLongNames;
+    }
+
     /**
      * Same as {@link #copy(RepositoryInitializer)}, but with no custom initializer. 
      */
@@ -233,12 +243,12 @@ public class RepositorySidegrade {
         copyWorkspace(sourceRoot, targetRoot);
         removeCheckpointReferences(targetRoot);
         if (!versionCopyConfiguration.skipOrphanedVersionsCopy()) {
-            copyVersionStorage(sourceRoot, targetRoot, versionCopyConfiguration);
+            copyVersionStorage(sourceRoot, targetRoot, versionCopyConfiguration, skipLongNames);
         }
 
         final List<CommitHook> hooks = new ArrayList<CommitHook>();
         hooks.add(new EditorHook(
-                new VersionableEditor.Provider(sourceRoot, Oak.DEFAULT_WORKSPACE_NAME, versionCopyConfiguration)));
+                new VersionableEditor.Provider(sourceRoot, Oak.DEFAULT_WORKSPACE_NAME, versionCopyConfiguration, skipLongNames)));
 
         if (customCommitHooks != null) {
             hooks.addAll(customCommitHooks);

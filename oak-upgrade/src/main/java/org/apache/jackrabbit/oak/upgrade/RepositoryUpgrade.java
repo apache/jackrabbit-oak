@@ -175,6 +175,8 @@ public class RepositoryUpgrade {
 
     private List<CommitHook> customCommitHooks = null;
 
+    private boolean skipLongNames = true;
+
     VersionCopyConfiguration versionCopyConfiguration = new VersionCopyConfiguration();
 
     /**
@@ -243,6 +245,14 @@ public class RepositoryUpgrade {
 
     public void setEarlyShutdown(boolean earlyShutdown) {
         this.earlyShutdown = earlyShutdown;
+    }
+
+    public boolean isSkipLongNames() {
+        return skipLongNames;
+    }
+
+    public void setSkipLongNames(boolean skipLongNames) {
+        this.skipLongNames = skipLongNames;
     }
 
     /**
@@ -425,7 +435,7 @@ public class RepositoryUpgrade {
             if (!versionCopyConfiguration.skipOrphanedVersionsCopy()) {
                 logger.info("Copying version storage");
                 watch.reset().start();
-                copyVersionStorage(sourceRoot, targetBuilder, versionCopyConfiguration);
+                copyVersionStorage(sourceRoot, targetBuilder, versionCopyConfiguration, skipLongNames);
                 targetBuilder.getNodeState(); // on TarMK this does call triggers the actual copy
                 logger.info("Version storage copied in {}s ({})", watch.elapsed(TimeUnit.SECONDS), watch);
             } else {
@@ -448,7 +458,7 @@ public class RepositoryUpgrade {
                     new RestrictionEditorProvider(),
                     new GroupEditorProvider(groupsPath),
                     // copy referenced version histories
-                    new VersionableEditor.Provider(sourceRoot, workspaceName, versionCopyConfiguration)
+                    new VersionableEditor.Provider(sourceRoot, workspaceName, versionCopyConfiguration, skipLongNames)
             )));
 
             // security-related hooks
@@ -850,6 +860,7 @@ public class RepositoryUpgrade {
                 .include(includes)
                 .exclude(excludes)
                 .merge(merges)
+                .skipLongNames(skipLongNames)
                 .copy(sourceRoot, targetRoot);
 
         return workspaceName;
