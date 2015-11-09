@@ -467,7 +467,7 @@
         <dependency>
           <groupId>org.apache.derby</groupId>
           <artifactId>derby</artifactId>
-          <version>10.11.1.1</version>
+          <version>10.12.1.1</version>
         </dependency>
       </dependencies>
     </profile>
@@ -477,7 +477,7 @@
         <dependency>
           <groupId>mysql</groupId>
           <artifactId>mysql-connector-java</artifactId>
-          <version>5.1.36</version>
+          <version>5.1.37</version>
         </dependency>
       </dependencies>
     </profile>
@@ -487,7 +487,7 @@
         <dependency>
           <groupId>org.postgresql</groupId>
           <artifactId>postgresql</artifactId>
-          <version>9.4-1203-jdbc4</version>
+          <version>9.4-1205-jdbc4</version>
         </dependency>
       </dependencies>
     </profile>
