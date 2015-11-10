@@ -69,7 +69,7 @@ public class LuceneIndexProviderServiceTest {
 
         LuceneIndexEditorProvider editorProvider =
                 (LuceneIndexEditorProvider) context.getService(IndexEditorProvider.class);
-        assertNull(editorProvider.getIndexCopier());
+        assertNotNull(editorProvider.getIndexCopier());
 
         IndexCopier indexCopier = service.getIndexCopier();
         assertNotNull("IndexCopier should be initialized as CopyOnRead is enabled by default", indexCopier);
