@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeResultSet;
+import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeStatement;
+
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -96,8 +99,8 @@ public enum RDBDocumentStoreDB {
             } catch (SQLException ex) {
                 LOG.debug("while getting diagnostics", ex);
             } finally {
-                ch.closeResultSet(rs);
-                ch.closeStatement(stmt);
+                closeResultSet(rs);
+                closeStatement(stmt);
                 ch.closeConnection(con);
             }
             return result.toString();
@@ -162,8 +165,8 @@ public enum RDBDocumentStoreDB {
             } catch (SQLException ex) {
                 LOG.debug("while getting diagnostics", ex);
             } finally {
-                ch.closeResultSet(rs);
-                ch.closeStatement(stmt);
+                closeResultSet(rs);
+                closeStatement(stmt);
                 ch.closeConnection(con);
             }
             return result.toString();
@@ -208,8 +211,8 @@ public enum RDBDocumentStoreDB {
             } catch (SQLException ex) {
                 LOG.debug("while getting diagnostics", ex);
             } finally {
-                ch.closeResultSet(rs);
-                ch.closeStatement(stmt);
+                closeResultSet(rs);
+                closeStatement(stmt);
                 ch.closeConnection(con);
             }
             return result.toString();
@@ -264,8 +267,8 @@ public enum RDBDocumentStoreDB {
             } catch (SQLException ex) {
                 LOG.debug("while getting diagnostics", ex);
             } finally {
-                ch.closeResultSet(rs);
-                ch.closeStatement(stmt);
+                closeResultSet(rs);
+                closeStatement(stmt);
                 ch.closeConnection(con);
             }
             return result.toString();
@@ -325,8 +328,8 @@ public enum RDBDocumentStoreDB {
             } catch (SQLException ex) {
                 LOG.debug("while getting diagnostics", ex);
             } finally {
-                ch.closeResultSet(rs);
-                ch.closeStatement(stmt);
+                closeResultSet(rs);
+                closeStatement(stmt);
                 ch.closeConnection(con);
             }
             return result.toString();

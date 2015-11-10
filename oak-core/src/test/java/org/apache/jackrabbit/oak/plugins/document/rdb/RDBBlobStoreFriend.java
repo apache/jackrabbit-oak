@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeStatement;
+
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -40,10 +42,8 @@ public class RDBBlobStoreFriend {
             prepDelMeta = con.prepareStatement("delete from " + ds.tnMeta + " where ID = ?");
             prepDelMeta.setString(1, id);
             prepDelMeta.execute();
-            prepDelMeta.close();
-            prepDelMeta = null;
         } finally {
-            ds.ch.closeStatement(prepDelMeta);
+            closeStatement(prepDelMeta);
             con.commit();
             ds.ch.closeConnection(con);
         }
