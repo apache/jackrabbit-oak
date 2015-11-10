@@ -215,7 +215,6 @@ public class RepositorySidegrade {
      */
     public void copy(RepositoryInitializer initializer) throws RepositoryException {
         try {
-            NodeState sourceRoot = source.getRoot();
             NodeBuilder targetRoot = target.getRoot().builder();
 
             new InitialContent().initialize(targetRoot);
@@ -223,10 +222,14 @@ public class RepositorySidegrade {
                 initializer.initialize(targetRoot);
             }
 
-            copyState(
-                    ReportingNodeState.wrap(sourceRoot, new LoggingReporter(LOG, "Copying", 10000, -1)),
-                    targetRoot
-            );
+            final NodeState reportingSourceRoot = ReportingNodeState.wrap(source.getRoot(), new LoggingReporter(LOG, "Copying", 10000, -1));
+            final NodeState sourceRoot;
+            if (skipLongNames) {
+                sourceRoot = NameFilteringNodeState.wrap(reportingSourceRoot);
+            } else {
+                sourceRoot = reportingSourceRoot;
+            }
+            copyState(sourceRoot, targetRoot);
 
         } catch (Exception e) {
             throw new RepositoryException("Failed to copy content", e);
@@ -243,12 +246,12 @@ public class RepositorySidegrade {
         copyWorkspace(sourceRoot, targetRoot);
         removeCheckpointReferences(targetRoot);
         if (!versionCopyConfiguration.skipOrphanedVersionsCopy()) {
-            copyVersionStorage(sourceRoot, targetRoot, versionCopyConfiguration, skipLongNames);
+            copyVersionStorage(sourceRoot, targetRoot, versionCopyConfiguration);
         }
 
         final List<CommitHook> hooks = new ArrayList<CommitHook>();
         hooks.add(new EditorHook(
-                new VersionableEditor.Provider(sourceRoot, Oak.DEFAULT_WORKSPACE_NAME, versionCopyConfiguration, skipLongNames)));
+                new VersionableEditor.Provider(sourceRoot, Oak.DEFAULT_WORKSPACE_NAME, versionCopyConfiguration)));
 
         if (customCommitHooks != null) {
             hooks.addAll(customCommitHooks);

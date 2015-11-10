@@ -1,3 +1,21 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package org.apache.jackrabbit.oak.upgrade;
 
 import static com.google.common.collect.Iterables.cycle;
@@ -17,6 +35,7 @@ import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.RepositoryImpl;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
@@ -81,7 +100,11 @@ public class LongNameTest {
 
             NodeState parent = getParent(nodeStore.getRoot());
             Assert.assertTrue(parent.hasChildNode(NOT_TOO_LONG_NAME));
-            Assert.assertFalse(parent.hasChildNode(TOO_LONG_NAME));
+            try {
+                Assert.assertFalse(parent.hasChildNode(TOO_LONG_NAME));
+            } catch (DocumentStoreException e) {
+                // ...
+            }
         } finally {
             nodeStore.dispose();
         }

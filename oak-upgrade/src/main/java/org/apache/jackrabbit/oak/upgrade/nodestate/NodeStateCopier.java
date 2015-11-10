@@ -16,11 +16,9 @@
  */
 package org.apache.jackrabbit.oak.upgrade.nodestate;
 
-import com.google.common.base.Charsets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -34,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+
 import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -188,12 +187,6 @@ public class NodeStateCopier {
 
         for (ChildNodeEntry child : source.getChildNodeEntries()) {
             final String childName = child.getName();
-            // OAK-1589: maximum supported length of name for DocumentNodeStore
-            // is 150 bytes. Skip the sub tree if the the name is too long
-            if (childName.length() > 37 && childName.getBytes(Charsets.UTF_8).length > 150) {
-                LOG.warn("Node name too long. Skipping {}", source);
-                continue;
-            }
             final NodeState childSource = child.getNodeState();
             if (!target.hasChildNode(childName)) {
                 // add new children

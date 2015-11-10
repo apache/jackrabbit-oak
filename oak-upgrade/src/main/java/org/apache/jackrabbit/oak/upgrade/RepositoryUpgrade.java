@@ -417,13 +417,19 @@ public class RepositoryUpgrade {
             new TypeEditorProvider(false).getRootEditor(
                     targetBuilder.getBaseState(), targetBuilder.getNodeState(), targetBuilder, null);
 
-            final NodeState sourceRoot = ReportingNodeState.wrap(
+            final NodeState reportingSourceRoot = ReportingNodeState.wrap(
                     JackrabbitNodeState.createRootNodeState(
                             source, workspaceName, targetBuilder.getNodeState(), 
                             uriToPrefix, copyBinariesByReference, skipOnError
                     ),
                     new LoggingReporter(logger, "Migrating", 10000, -1)
             );
+            final NodeState sourceRoot;
+            if (skipLongNames) {
+                sourceRoot = NameFilteringNodeState.wrap(reportingSourceRoot);
+            } else {
+                sourceRoot = reportingSourceRoot;
+            }
 
             final Stopwatch watch = Stopwatch.createStarted();
 
@@ -435,7 +441,7 @@ public class RepositoryUpgrade {
             if (!versionCopyConfiguration.skipOrphanedVersionsCopy()) {
                 logger.info("Copying version storage");
                 watch.reset().start();
-                copyVersionStorage(sourceRoot, targetBuilder, versionCopyConfiguration, skipLongNames);
+                copyVersionStorage(sourceRoot, targetBuilder, versionCopyConfiguration);
                 targetBuilder.getNodeState(); // on TarMK this does call triggers the actual copy
                 logger.info("Version storage copied in {}s ({})", watch.elapsed(TimeUnit.SECONDS), watch);
             } else {
@@ -458,7 +464,7 @@ public class RepositoryUpgrade {
                     new RestrictionEditorProvider(),
                     new GroupEditorProvider(groupsPath),
                     // copy referenced version histories
-                    new VersionableEditor.Provider(sourceRoot, workspaceName, versionCopyConfiguration, skipLongNames)
+                    new VersionableEditor.Provider(sourceRoot, workspaceName, versionCopyConfiguration)
             )));
 
             // security-related hooks
@@ -860,7 +866,6 @@ public class RepositoryUpgrade {
                 .include(includes)
                 .exclude(excludes)
                 .merge(merges)
-                .skipLongNames(skipLongNames)
                 .copy(sourceRoot, targetRoot);
 
         return workspaceName;
