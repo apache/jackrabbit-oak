@@ -40,7 +40,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableSet.copyOf;
 import static com.google.common.collect.ImmutableSet.of;
 import static java.util.Collections.emptySet;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.NODE_NAME_LIMIT;
 
 /**
  * The NodeStateCopier and NodeStateCopier.Builder classes allow
@@ -76,22 +75,16 @@ public class NodeStateCopier {
 
     private static final Logger LOG = LoggerFactory.getLogger(NodeStateCopier.class);
 
-    // max 4 bytes per one UTF8 character
-    private static final int SAFE_NODE_NAME_LENGTH = NODE_NAME_LIMIT / 4;
-
     private final Set<String> includePaths;
 
     private final Set<String> excludePaths;
 
     private final Set<String> mergePaths;
 
-    private final boolean skipLongNames;
-
-    private NodeStateCopier(Builder builder) {
-        this.includePaths = builder.includePaths;
-        this.excludePaths = builder.excludePaths;
-        this.mergePaths = builder.mergePaths;
-        this.skipLongNames = builder.skipLongNames;
+    private NodeStateCopier(Set<String> includePaths, Set<String> excludePaths, Set<String> mergePaths) {
+        this.includePaths = includePaths;
+        this.excludePaths = excludePaths;
+        this.mergePaths = mergePaths;
     }
 
     /**
@@ -179,7 +172,7 @@ public class NodeStateCopier {
      *                   preserved, even if the do not exist in the source.
      * @return An indication of whether there were changes or not.
      */
-    private boolean copyNodeState(@Nonnull final NodeState source, @Nonnull final NodeBuilder target,
+    private static boolean copyNodeState(@Nonnull final NodeState source, @Nonnull final NodeBuilder target,
                                          @Nonnull final String currentPath, @Nonnull final Set<String> mergePaths) {
 
 
@@ -197,8 +190,7 @@ public class NodeStateCopier {
             final String childName = child.getName();
             // OAK-1589: maximum supported length of name for DocumentNodeStore
             // is 150 bytes. Skip the sub tree if the the name is too long
-            if (skipLongNames && childName.length() > SAFE_NODE_NAME_LENGTH
-                    && childName.getBytes(Charsets.UTF_8).length > NODE_NAME_LIMIT) {
+            if (childName.length() > 37 && childName.getBytes(Charsets.UTF_8).length > 150) {
                 LOG.warn("Node name too long. Skipping {}", source);
                 continue;
             }
@@ -311,8 +303,6 @@ public class NodeStateCopier {
 
         private Set<String> mergePaths = emptySet();
 
-        private boolean skipLongNames = true;
-
         private Builder() {}
 
 
@@ -398,18 +388,6 @@ public class NodeStateCopier {
         }
 
         /**
-         * Skip all nodes with names longer than {@link Utils#NODE_NAME_LIMIT}.
-         * By default set to true.
-         * 
-         * @param skipLongNames whether to omit all nodes with long names
-         * @return this Builder instance
-         */
-        public Builder skipLongNames(boolean skipLongNames) {
-            this.skipLongNames = skipLongNames;
-            return this;
-        }
-
-        /**
          * Creates a NodeStateCopier to copy the {@code sourceRoot} NodeState to the
          * {@code targetRoot} NodeBuilder, using any include, exclude and merge paths
          * set on this NodeStateCopier.Builder.
@@ -423,7 +401,7 @@ public class NodeStateCopier {
          *         the same content
          */
         public boolean copy(@Nonnull final NodeState sourceRoot, @Nonnull final NodeBuilder targetRoot) {
-            final NodeStateCopier copier = new NodeStateCopier(this);
+            final NodeStateCopier copier = new NodeStateCopier(includePaths, excludePaths, mergePaths);
             return copier.copyNodeState(checkNotNull(sourceRoot), checkNotNull(targetRoot));
         }
 

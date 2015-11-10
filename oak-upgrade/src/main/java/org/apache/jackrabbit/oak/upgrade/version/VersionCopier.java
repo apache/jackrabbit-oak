@@ -50,19 +50,16 @@ public class VersionCopier {
 
     private final NodeBuilder targetRoot;
 
-    private final boolean skipLongNames;
-
-    public VersionCopier(NodeState sourceRoot, NodeBuilder targetRoot, boolean skipLongNames) {
+    public VersionCopier(NodeState sourceRoot, NodeBuilder targetRoot) {
         this.isVersion = new TypePredicate(targetRoot.getNodeState(), NT_VERSION);
         this.sourceRoot = sourceRoot;
         this.targetRoot = targetRoot;
-        this.skipLongNames = skipLongNames;
     }
 
-    public static void copyVersionStorage(NodeState sourceRoot, NodeBuilder targetRoot, VersionCopyConfiguration config, boolean skipLongNames) {
+    public static void copyVersionStorage(NodeState sourceRoot, NodeBuilder targetRoot, VersionCopyConfiguration config) {
         final NodeState versionStorage = sourceRoot.getChildNode(JCR_SYSTEM).getChildNode(JCR_VERSIONSTORAGE);
         final Iterator<NodeState> versionStorageIterator = new DescendantsIterator(versionStorage, 3);
-        final VersionCopier versionCopier = new VersionCopier(sourceRoot, targetRoot, skipLongNames);
+        final VersionCopier versionCopier = new VersionCopier(sourceRoot, targetRoot);
 
         while (versionStorageIterator.hasNext()) {
             final NodeState versionHistoryBucket = versionStorageIterator.next();
@@ -91,7 +88,6 @@ public class VersionCopier {
             NodeStateCopier.builder()
                     .include(versionHistoryPath)
                     .merge(VERSION_STORE_PATH)
-                    .skipLongNames(skipLongNames)
                     .copy(sourceRoot, targetRoot);
             return true;
         }
