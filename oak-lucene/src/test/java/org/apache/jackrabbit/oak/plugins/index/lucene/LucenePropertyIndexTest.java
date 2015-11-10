@@ -41,6 +41,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.CountingInputStream;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.Oak;
@@ -123,7 +124,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Override
     protected ContentRepository createRepository() {
-        editorProvider = new LuceneIndexEditorProvider(createIndexCopier());
+        editorProvider = new LuceneIndexEditorProvider(createIndexCopier(), new ExtractedTextCache(10* FileUtils.ONE_MB, 100));
         LuceneIndexProvider provider = new LuceneIndexProvider();
         return new Oak()
                 .with(new InitialContent())
@@ -1413,6 +1414,59 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
+    public void preExtractedTextCache() throws Exception{
+        Tree idx = createFulltextIndex(root.getTree("/"), "test");
+        TestUtil.useV2(idx);
+        root.commit();
+
+        AccessStateProvidingBlob testBlob =
+                new AccessStateProvidingBlob("fox is jumping", "id1");
+
+        //1. Check by adding blobs in diff commit and reset
+        //cache each time. In such case blob stream would be
+        //accessed as many times
+        Tree test = root.getTree("/").addChild("test");
+        createFileNode(test, "text", testBlob, "text/plain");
+        root.commit();
+
+        editorProvider.getExtractedTextCache().resetCache();
+
+        test = root.getTree("/").addChild("test");
+        createFileNode(test, "text2", testBlob, "text/plain");
+        root.commit();
+
+        assertTrue(testBlob.isStreamAccessed());
+        assertEquals(2, testBlob.accessCount);
+
+        //Reset all test state
+        testBlob.resetState();
+        editorProvider.getExtractedTextCache().resetCache();
+
+        //2. Now add 2 nodes with same blob in same commit
+        //This time cache effect would come and blob would
+        //be accessed only once
+        test = root.getTree("/").addChild("test");
+        createFileNode(test, "text3", testBlob, "text/plain");
+        createFileNode(test, "text4", testBlob, "text/plain");
+        root.commit();
+
+        assertTrue(testBlob.isStreamAccessed());
+        assertEquals(1, testBlob.accessCount);
+
+        //Reset
+        testBlob.resetState();
+
+        //3. Now just add another node with same blob with no cache
+        //reset. This time blob stream would not be accessed at all
+        test = root.getTree("/").addChild("test");
+        createFileNode(test, "text5", testBlob, "text/plain");
+        root.commit();
+
+        assertFalse(testBlob.isStreamAccessed());
+        assertEquals(0, testBlob.accessCount);
+    }
+
+    @Test
     public void maxFieldLengthCheck() throws Exception{
         Tree idx = createFulltextIndex(root.getTree("/"), "test");
         TestUtil.useV2(idx);
@@ -1749,6 +1803,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     private static class AccessStateProvidingBlob extends ArrayBasedBlob {
         private CountingInputStream stream;
         private String id;
+        private int accessCount;
 
         public AccessStateProvidingBlob(byte[] value) {
             super(value);
@@ -1766,6 +1821,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         @Nonnull
         @Override
         public InputStream getNewStream() {
+            accessCount++;
             stream = new CountingInputStream(super.getNewStream());
             return stream;
         }
@@ -1776,6 +1832,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         public void resetState(){
             stream = null;
+            accessCount = 0;
         }
 
         public long readByteCount(){
