@@ -2048,8 +2048,9 @@ public class RDBDocumentStore implements DocumentStore {
         }
     }
 
-    @CheckForNull
+    @Nonnull
     protected <T extends Document> T convertFromDBObject(@Nonnull Collection<T> collection, @Nonnull RDBRow row) {
+        // this method is present here in order to facilitate unit testing for OAK-3566
         return SR.fromRow(collection, row);
     }
 
