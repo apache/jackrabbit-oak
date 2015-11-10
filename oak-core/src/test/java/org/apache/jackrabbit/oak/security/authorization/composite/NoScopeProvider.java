@@ -21,9 +21,9 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
@@ -33,7 +33,11 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
  * {@code AggregatedPermissionProvider} that doesn't supported anything anywhere
  * and which consequently must be completely ignored from the permission evaluation.
  */
-final class NoScopeProvider implements AggregatedPermissionProvider {
+final class NoScopeProvider extends AbstractAggrProvider {
+
+    NoScopeProvider(Root root) {
+        super(root);
+    }
 
     @Nonnull
     @Override
@@ -59,11 +63,6 @@ final class NoScopeProvider implements AggregatedPermissionProvider {
     @Override
     public boolean isGranted(@Nonnull TreeLocation location, long permissions) {
         throw new UnsupportedOperationException("should never get here");
-    }
-
-    @Override
-    public void refresh() {
-        // nop
     }
 
     @Nonnull

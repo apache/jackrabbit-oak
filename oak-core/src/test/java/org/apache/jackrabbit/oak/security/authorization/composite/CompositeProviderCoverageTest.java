@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
@@ -73,7 +74,7 @@ public class CompositeProviderCoverageTest extends AbstractCompositeProviderTest
 
     @Override
     AggregatedPermissionProvider getTestPermissionProvider() {
-        return new LimitCoverageProvider();
+        return new LimitCoverageProvider(root);
     }
 
     @Override
@@ -252,7 +253,11 @@ public class CompositeProviderCoverageTest extends AbstractCompositeProviderTest
         }
     }
 
-    private static final class LimitCoverageProvider implements AggregatedPermissionProvider {
+    private final class LimitCoverageProvider extends AbstractAggrProvider {
+
+        LimitCoverageProvider(Root root) {
+            super(root);
+        }
 
         @Nonnull
         @Override
@@ -289,10 +294,6 @@ public class CompositeProviderCoverageTest extends AbstractCompositeProviderTest
         @Override
         public boolean isGranted(@Nonnull TreeLocation location, long permissions) {
             return permissions == Permissions.READ_NODE;
-        }
-
-        @Override
-        public void refresh() {
         }
 
         @Nonnull

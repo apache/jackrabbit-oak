@@ -20,38 +20,27 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
+import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * {@code TreePermission} implementation for all items located with a CUG.
  */
-final class CugTreePermission implements TreePermission {
+final class CugTreePermission extends AbstractTreePermission {
 
-    private final Tree tree;
     private final boolean allow;
-    private final PermissionProvider permissionProvider;
 
-    CugTreePermission(@Nonnull Tree tree, boolean allow, @Nonnull PermissionProvider permissionProvider) {
-        this.tree = tree;
+    CugTreePermission(@Nonnull Tree tree, @Nonnull TreeType type, boolean allow, @Nonnull CugPermissionProvider permissionProvider) {
+        super(tree, type, permissionProvider);
         this.allow = allow;
-        this.permissionProvider = permissionProvider;
     }
 
-    CugTreePermission(@Nonnull Tree tree, @Nonnull CugTreePermission parent) {
-        this.tree = tree;
+    CugTreePermission(@Nonnull Tree tree, @Nonnull TreeType type, @Nonnull CugTreePermission parent) {
+        super(tree, type, parent);
         this.allow = parent.allow;
-        this.permissionProvider = parent.permissionProvider;
     }
 
     //-----------------------------------------------------< TreePermission >---
-    @Nonnull
-    @Override
-    public TreePermission getChildPermission(@Nonnull String childName, @Nonnull NodeState childState) {
-        return permissionProvider.getTreePermission(tree.getChild(childName), this);
-    }
 
     @Override
     public boolean canRead() {
@@ -70,7 +59,7 @@ final class CugTreePermission implements TreePermission {
 
     @Override
     public boolean canReadProperties() {
-        return false;
+        return allow;
     }
 
     @Override
