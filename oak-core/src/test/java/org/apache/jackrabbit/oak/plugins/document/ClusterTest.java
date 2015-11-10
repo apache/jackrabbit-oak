@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -26,7 +24,6 @@ import static org.junit.Assert.fail;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -44,7 +41,6 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
-import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -461,54 +457,6 @@ public class ClusterTest {
     private void traverse(NodeState node, String path) {
         for (ChildNodeEntry child : node.getChildNodeEntries()) {
             traverse(child.getNodeState(), PathUtils.concat(path, child.getName()));
-        }
-    }
-
-    static class TrackingDiff extends DefaultNodeStateDiff {
-
-        final String path;
-        final Set<String> added;
-        final Set<String> deleted;
-        final Set<String> modified;
-
-        TrackingDiff() {
-            this("/", new HashSet<String>(),
-                    new HashSet<String>(), new HashSet<String>());
-        }
-
-        private TrackingDiff(String path,
-                             Set<String> added,
-                             Set<String> deleted,
-                             Set<String> modified) {
-            this.path = path;
-            this.added = added;
-            this.deleted = deleted;
-            this.modified = modified;
-        }
-
-        @Override
-        public boolean childNodeAdded(String name, NodeState after) {
-            String p = PathUtils.concat(path, name);
-            added.add(p);
-            return after.compareAgainstBaseState(EMPTY_NODE,
-                    new TrackingDiff(p, added, deleted, modified));
-        }
-
-        @Override
-        public boolean childNodeChanged(String name,
-                                        NodeState before,
-                                        NodeState after) {
-            String p = PathUtils.concat(path, name);
-            modified.add(p);
-            return after.compareAgainstBaseState(before,
-                    new TrackingDiff(p, added, deleted, modified));
-        }
-
-        @Override
-        public boolean childNodeDeleted(String name, NodeState before) {
-            String p = PathUtils.concat(path, name);
-            deleted.add(p);
-            return MISSING_NODE.compareAgainstBaseState(before, new TrackingDiff(p, added, deleted, modified));
         }
     }
 }
