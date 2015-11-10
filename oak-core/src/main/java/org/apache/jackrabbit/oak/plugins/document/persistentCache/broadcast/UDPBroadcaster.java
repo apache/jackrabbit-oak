@@ -48,6 +48,7 @@ public class UDPBroadcaster implements Broadcaster, Runnable {
     private final MulticastSocket socket;
     private final int port;
     private final InetAddress group;
+    private final InetAddress sendTo;
     private final Thread thread;
     private final int messageLength = 32 * 1024;
     private final Cipher encryptCipher;
@@ -59,23 +60,26 @@ public class UDPBroadcaster implements Broadcaster, Runnable {
         MessageDigest messageDigest;
         try {
             String[] parts = config.split(";");
-            String group = "228.6.7.8";
+            String group = "FF7E:230::1234";
             int port = 9876;
             String key = "";
             boolean aes = false;
+            String sendTo = null;
             for (String p : parts) {
-                if (p.startsWith("port:")) {
-                    port = Integer.parseInt(p.split(":")[1]);
-                } else if (p.startsWith("group:")) {
-                    group = p.split(":")[1];
-                } else if (p.startsWith("key:")) {
-                    key = p.split(":")[1];
+                if (p.startsWith("port ")) {
+                    port = Integer.parseInt(p.split(" ")[1]);
+                } else if (p.startsWith("group ")) {
+                    group = p.split(" ")[1];
+                } else if (p.startsWith("key ")) {
+                    key = p.split(" ")[1];
                 } else if (p.equals("aes")) {
                     aes = true;
+                } else if (p.startsWith("sendTo ")) {
+                    sendTo = p.split(" ")[1];
                 }
             }                    
             messageDigest = MessageDigest.getInstance("SHA-256");
-            this.key = messageDigest.digest(key.getBytes()); 
+            this.key = messageDigest.digest(key.getBytes());
             if (aes) {
                 KeyGenerator kgen = KeyGenerator.getInstance("AES");
                 kgen.init(128);
@@ -91,6 +95,7 @@ public class UDPBroadcaster implements Broadcaster, Runnable {
             }
             socket = new MulticastSocket(port);
             this.group = InetAddress.getByName(group);
+            this.sendTo = sendTo == null ? this.group : InetAddress.getByName(sendTo);
             this.port = port;
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -170,7 +175,7 @@ public class UDPBroadcaster implements Broadcaster, Runnable {
             System.arraycopy(key, 0, sendData, 0, key.length);
             buff.get(sendData, key.length, buff.limit());
             DatagramPacket sendPacket = new DatagramPacket(sendData,
-                sendData.length, group, port);
+                sendData.length, sendTo, port);
             socket.send(sendPacket);
         } catch (IOException e) {
             if (!stop) {
