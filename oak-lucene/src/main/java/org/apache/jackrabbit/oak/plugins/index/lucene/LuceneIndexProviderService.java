@@ -44,6 +44,8 @@ import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.ReferencePolicyOption;
+import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
@@ -62,6 +64,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.commons.io.FileUtils.ONE_MB;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 @SuppressWarnings("UnusedDeclaration")
@@ -134,6 +137,23 @@ public class LuceneIndexProviderService {
     )
     private static final String PROP_PREFETCH_INDEX_FILES = "prefetchIndexFiles";
 
+    private static final int PROP_EXTRACTED_TEXT_CACHE_SIZE_DEFAULT = 0;
+    @Property(
+            intValue = PROP_EXTRACTED_TEXT_CACHE_SIZE_DEFAULT,
+            label = "Extracted text cache size (MB)",
+            description = "Cache size in MB for caching extracted text for some time. When set to 0 then " +
+                    "cache would be disabled"
+    )
+    private static final String PROP_EXTRACTED_TEXT_CACHE_SIZE = "extractedTextCacheSizeInMB";
+
+    private static final int PROP_EXTRACTED_TEXT_CACHE_EXPIRY_DEFAULT = 300;
+    @Property(
+            intValue = PROP_EXTRACTED_TEXT_CACHE_EXPIRY_DEFAULT,
+            label = "Extracted text cache expiry (secs)",
+            description = "Time in seconds for which the extracted text would be cached in memory"
+    )
+    private static final String PROP_EXTRACTED_TEXT_CACHE_EXPIRY = "extractedTextCacheExpiryInSecs";
+
     private Whiteboard whiteboard;
 
     private BackgroundObserver backgroundObserver;
@@ -153,14 +173,14 @@ public class LuceneIndexProviderService {
 
     private int threadPoolSize;
 
-    private ExtractedTextCache extractedTextCache = new ExtractedTextCache();
+    private ExtractedTextCache extractedTextCache;
 
     @Activate
     private void activate(BundleContext bundleContext, Map<String, ?> config)
             throws NotCompliantMBeanException, IOException {
         whiteboard = new OsgiWhiteboard(bundleContext);
         threadPoolSize = PropertiesUtil.toInteger(config.get(PROP_THREAD_POOL_SIZE), PROP_THREAD_POOL_SIZE_DEFAULT);
-
+        initializeExtractedTextCache(bundleContext, config);
         indexProvider = new LuceneIndexProvider(createTracker(bundleContext, config));
         initializeLogging(config);
         initialize();
@@ -210,6 +230,10 @@ public class LuceneIndexProviderService {
 
     IndexCopier getIndexCopier() {
         return indexCopier;
+    }
+
+    ExtractedTextCache getExtractedTextCache() {
+        return extractedTextCache;
     }
 
     private void initialize(){
@@ -343,6 +367,24 @@ public class LuceneIndexProviderService {
             log.info("Registering the LuceneIndexProvider as a BackgroundObserver");
         }
         regs.add(bundleContext.registerService(Observer.class.getName(), observer, null));
+    }
+
+    private void initializeExtractedTextCache(BundleContext bundleContext, Map<String, ?> config) {
+        int cacheSizeInMB = PropertiesUtil.toInteger(config.get(PROP_EXTRACTED_TEXT_CACHE_SIZE),
+                PROP_EXTRACTED_TEXT_CACHE_SIZE_DEFAULT);
+        int cacheExpiryInSecs = PropertiesUtil.toInteger(config.get(PROP_EXTRACTED_TEXT_CACHE_EXPIRY),
+                PROP_EXTRACTED_TEXT_CACHE_EXPIRY_DEFAULT);
+
+        extractedTextCache = new ExtractedTextCache(cacheSizeInMB * ONE_MB, cacheExpiryInSecs);
+
+        CacheStats stats = extractedTextCache.getCacheStats();
+        if (stats != null){
+            oakRegs.add(registerMBean(whiteboard,
+                    CacheStatsMBean.class, stats,
+                    CacheStatsMBean.TYPE, stats.getName()));
+            log.info("Extracted text caching enabled with maxSize {} MB, expiry time {} secs",
+                    cacheSizeInMB, cacheExpiryInSecs);
+        }
     }
 
     private void registerExtractedTextProvider(PreExtractedTextProvider provider){
