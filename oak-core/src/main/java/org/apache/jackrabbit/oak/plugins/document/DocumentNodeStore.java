@@ -2238,9 +2238,9 @@ public final class DocumentNodeStore
         addPathsForDiff(path, paths, getPendingModifications().getPaths(minRev));
         for (Revision r : new Revision[]{fromRev, toRev}) {
             if (r.isBranch()) {
-                BranchCommit c = getBranches().getBranchCommit(r);
-                if (c != null) {
-                    addPathsForDiff(path, paths, c.getModifiedPaths());
+                Branch b = branches.getBranch(r);
+                if (b != null) {
+                    addPathsForDiff(path, paths, b.getModifiedPathsUntil(r));
                 }
             }
         }

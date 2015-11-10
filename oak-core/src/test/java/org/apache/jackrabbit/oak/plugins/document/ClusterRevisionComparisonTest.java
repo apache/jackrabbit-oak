@@ -104,7 +104,7 @@ public class ClusterRevisionComparisonTest {
 
         //Trigger a diff. With OAK-2144 an exception would be thrown as diff traverses
         //the /a children
-        c1ns1.compareAgainstBaseState(c1ns2, new ClusterTest.TrackingDiff());
+        c1ns1.compareAgainstBaseState(c1ns2, new TrackingDiff());
     }
 
     @Test
