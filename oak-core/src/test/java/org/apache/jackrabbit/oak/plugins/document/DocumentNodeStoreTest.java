@@ -98,7 +98,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -2364,7 +2363,6 @@ public class DocumentNodeStoreTest {
     }
 
     // OAK-3608
-    @Ignore("OAK-3608")
     @Test
     public void compareOnBranch() throws Exception {
         long modifiedResMillis = SECONDS.toMillis(MODIFIED_IN_SECS_RESOLUTION);
