@@ -35,7 +35,6 @@ import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.RepositoryImpl;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
@@ -100,11 +99,10 @@ public class LongNameTest {
 
             NodeState parent = getParent(nodeStore.getRoot());
             Assert.assertTrue(parent.hasChildNode(NOT_TOO_LONG_NAME));
-            try {
-                Assert.assertFalse(parent.hasChildNode(TOO_LONG_NAME));
-            } catch (DocumentStoreException e) {
-                // ...
-            }
+            Assert.assertEquals(1, parent.getChildNodeCount(10));
+
+            // The following throws an DocumentStoreException:
+            // Assert.assertFalse(parent.hasChildNode(TOO_LONG_NAME));
         } finally {
             nodeStore.dispose();
         }
