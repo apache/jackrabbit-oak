@@ -42,12 +42,12 @@ public class BroadcastTest {
     
     @Test
     public void broadcastUDP() throws Exception {
-        broadcast("udp:", 50);
+        broadcast("udp:sendTo localhost", 50);
     }
     
     @Test
     public void broadcastEncryptedUDP() throws Exception {
-        broadcast("udp:group:228.6.7.9;key:test;port:9876;aes", 50);
+        broadcast("udp:group FF7E:230::1234;key test;port 9876;sendTo localhost;aes", 50);
     }
     
     private static void broadcast(String type, int minPercentCorrect) throws Exception {
