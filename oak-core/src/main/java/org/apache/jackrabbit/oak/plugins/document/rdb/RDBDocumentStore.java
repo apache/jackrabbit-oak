@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateUtils.checkConditions;
+import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeResultSet;
+import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeStatement;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -342,8 +344,8 @@ public class RDBDocumentStore implements DocumentStore {
             LOG.error("", ex);
             throw new DocumentStoreException(ex);
         } finally {
-            this.ch.closeResultSet(rs);
-            this.ch.closeStatement(stmt);
+            closeResultSet(rs);
+            closeStatement(stmt);
             this.ch.closeConnection(connection);
         }
     }
@@ -416,7 +418,7 @@ public class RDBDocumentStore implements DocumentStore {
                     } catch (SQLException ex) {
                         LOG.debug("attempting to drop: " + tname, ex);
                     } finally {
-                        this.ch.closeStatement(stmt);
+                        closeStatement(stmt);
                     }
                 } catch (SQLException ex) {
                     LOG.debug("attempting to drop: " + tname, ex);
@@ -565,7 +567,7 @@ public class RDBDocumentStore implements DocumentStore {
                 con.commit();
             }
             finally {
-                this.ch.closeStatement(stmt);
+                closeStatement(stmt);
             }
         }
 
@@ -715,7 +717,7 @@ public class RDBDocumentStore implements DocumentStore {
             // well it was best-effort
             return "";
         } finally {
-            this.ch.closeResultSet(rs);
+            closeResultSet(rs);
         }
     }
 
@@ -786,9 +788,9 @@ public class RDBDocumentStore implements DocumentStore {
             }
         }
         finally {
-            this.ch.closeResultSet(checkResultSet);
-            this.ch.closeStatement(checkStatement);
-            this.ch.closeStatement(creatStatement);
+            closeResultSet(checkResultSet);
+            closeStatement(checkStatement);
+            closeStatement(creatStatement);
         }
     }
 
