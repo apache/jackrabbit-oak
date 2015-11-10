@@ -151,7 +151,7 @@ public class LuceneIndexProviderService {
     )
     private static final String PROP_PREFETCH_INDEX_FILES = "prefetchIndexFiles";
 
-    private static final int PROP_EXTRACTED_TEXT_CACHE_SIZE_DEFAULT = 0;
+    private static final int PROP_EXTRACTED_TEXT_CACHE_SIZE_DEFAULT = 20;
     @Property(
             intValue = PROP_EXTRACTED_TEXT_CACHE_SIZE_DEFAULT,
             label = "Extracted text cache size (MB)",
