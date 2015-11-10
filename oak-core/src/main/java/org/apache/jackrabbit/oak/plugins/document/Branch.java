@@ -18,10 +18,12 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.transform;
 
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
+import java.util.Collections;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
@@ -34,6 +36,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
@@ -254,6 +257,36 @@ class Branch {
         checkArgument(checkNotNull(rev).isBranch(),
                 "Not a branch revision: %s", rev);
         return checkNotNull(rev).equals(commits.lastKey());
+    }
+
+    /**
+     * Returns the modified paths since the base revision of this branch until
+     * the given branch revision {@code r} (inclusive).
+     *
+     * @param r a commit on this branch.
+     * @return modified paths until {@code r}.
+     * @throws IllegalArgumentException if r is not a branch revision.
+     */
+    Iterable<String> getModifiedPathsUntil(@Nonnull final Revision r) {
+        checkArgument(checkNotNull(r).isBranch(),
+                "Not a branch revision: %s", r);
+        if (!commits.containsKey(r)) {
+            return Collections.emptyList();
+        }
+        Iterable<Iterable<String>> paths = transform(filter(commits.entrySet(),
+                new Predicate<Map.Entry<Revision, BranchCommit>>() {
+            @Override
+            public boolean apply(Map.Entry<Revision, BranchCommit> input) {
+                return !input.getValue().isRebase()
+                        && input.getKey().compareRevisionTime(r) <= 0;
+            }
+        }), new Function<Map.Entry<Revision, BranchCommit>, Iterable<String>>() {
+            @Override
+            public Iterable<String> apply(Map.Entry<Revision, BranchCommit> input) {
+                return input.getValue().getModifiedPaths();
+            }
+        });
+        return Iterables.concat(paths);
     }
 
     /**
