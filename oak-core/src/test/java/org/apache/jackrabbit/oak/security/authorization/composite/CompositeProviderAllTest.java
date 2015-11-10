@@ -37,8 +37,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -239,36 +237,15 @@ public class CompositeProviderAllTest extends AbstractCompositeProviderTest {
      * Custom permission provider that supports all permissions and grants
      * full access for everyone.
      */
-    private static final class OpenAggregateProvider implements AggregatedPermissionProvider {
+    private static final class OpenAggregateProvider extends AbstractAggrProvider {
 
         private static final PermissionProvider BASE = OpenPermissionProvider.getInstance();
-        private final Root root;
 
         private OpenAggregateProvider(@Nonnull Root root) {
-            this.root = root;
-        }
-
-        @Nonnull
-        @Override
-        public PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits) {
-            return new PrivilegeBitsProvider(root).getBits(JCR_ALL);
+            super(root);
         }
 
         //-----------------------------------< AggregatedPermissionProvider >---
-        @Override
-        public long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property, long permissions) {
-            return permissions;
-        }
-
-        @Override
-        public long supportedPermissions(@Nonnull TreeLocation location, long permissions) {
-            return permissions;
-        }
-
-        @Override
-        public long supportedPermissions(@Nonnull TreePermission treePermission, @Nullable PropertyState propertyState, long permissions) {
-            return permissions;
-        }
 
         @Override
         public boolean isGranted(@Nonnull TreeLocation location, long permissions) {
@@ -276,11 +253,6 @@ public class CompositeProviderAllTest extends AbstractCompositeProviderTest {
         }
 
         //---------------------------------------------< PermissionProvider >---
-        @Override
-        public void refresh() {
-            root.refresh();
-        }
-
         @Nonnull
         @Override
         public Set<String> getPrivileges(@Nullable Tree tree) {

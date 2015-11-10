@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
@@ -58,7 +57,7 @@ import org.apache.jackrabbit.util.Text;
  * Consequently any path outside of the scope of this provider is not affected
  * by the permission setup.
  */
-class LimitedScopeProvider implements AggregatedPermissionProvider, PrivilegeConstants {
+class LimitedScopeProvider extends AbstractAggrProvider implements PrivilegeConstants {
 
     private static final Set<String> GRANTED_PRIVS = ImmutableSet.of(JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES);
     private static final Set<String> DENIED_PRIVS = ImmutableSet.of(JCR_ADD_CHILD_NODES, REP_ADD_PROPERTIES);
@@ -66,18 +65,11 @@ class LimitedScopeProvider implements AggregatedPermissionProvider, PrivilegeCon
     private static final long GRANTED_PERMS = Permissions.REMOVE_NODE | Permissions.REMOVE_PROPERTY | Permissions.MODIFY_PROPERTY;
     private static final long DENIED_PERMS = Permissions.ADD_NODE | Permissions.ADD_PROPERTY;
 
-    private final Root root;
-
     LimitedScopeProvider(@Nonnull Root root) {
-        this.root = root;
+        super(root);
     }
 
     //-------------------------------------------------< PermissionProvider >---
-    @Override
-    public void refresh() {
-        //nop
-    }
-
     @Nonnull
     @Override
     public Set<String> getPrivileges(@Nullable Tree tree) {

@@ -16,24 +16,36 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
+import javax.annotation.Nonnull;
+
 import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
+import org.apache.jackrabbit.oak.plugins.tree.TreeType;
+import org.apache.jackrabbit.oak.plugins.tree.impl.AbstractTree;
+import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.util.Text;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class EmptyCugTreePermissionTest extends AbstractCugTest {
 
+    private CugPermissionProvider pp;
     private EmptyCugTreePermission tp;
+    private NodeState rootState;
 
     @Override
     public void before() throws Exception {
@@ -42,22 +54,63 @@ public class EmptyCugTreePermissionTest extends AbstractCugTest {
         createCug(SUPPORTED_PATH, EveryonePrincipal.getInstance());
         root.commit();
 
-        PermissionProvider pp = createCugPermissionProvider(
+        pp = createCugPermissionProvider(
                 ImmutableSet.of(SUPPORTED_PATH, SUPPORTED_PATH2),
                 getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
-        tp = new EmptyCugTreePermission(root.getTree("/"), pp);
+        Root readOnlyRoot = RootFactory.createReadOnlyRoot(root);
+        Tree t = readOnlyRoot.getTree("/");
+        tp = new EmptyCugTreePermission(t, TreeType.DEFAULT, pp, false);
+        rootState = ((AbstractTree) t).getNodeState();
+    }
+
+    private static void assertEmptyCugPermission(@Nonnull TreePermission tp, boolean isSupportedPath, @Nonnull String path) {
+        assertTrue(tp instanceof EmptyCugTreePermission);
+
+        EmptyCugTreePermission etp = (EmptyCugTreePermission) tp;
+        assertEquals(isSupportedPath, etp.isSupportedPath());
+    }
+
+    @Test
+    public void testRootPermission() throws Exception {
+        assertEmptyCugPermission(tp, false, "/");
+
+        TreePermission rootTp = pp.getTreePermission(root.getTree("/"), TreePermission.EMPTY);
+        assertEmptyCugPermission(rootTp, false, "/");
+    }
+
+    @Test
+    public void testJcrSystemPermissions() throws Exception {
+        NodeState system = rootState.getChildNode(JcrConstants.JCR_SYSTEM);
+        TreePermission systemTp = tp.getChildPermission(JcrConstants.JCR_SYSTEM, system);
+        assertEmptyCugPermission(systemTp, false, "/jcr:system");
+        assertEmptyCugPermission(pp.getTreePermission(root.getTree("/jcr:system"), tp), false, "/jcr:system");
+
+        NodeState versionStore = system.getChildNode(VersionConstants.JCR_VERSIONSTORAGE);
+        TreePermission versionStoreTp = systemTp.getChildPermission(VersionConstants.JCR_VERSIONSTORAGE, versionStore);
+        assertEmptyCugPermission(versionStoreTp, false, VersionConstants.VERSION_STORE_PATH);
+        assertEmptyCugPermission(pp.getTreePermission(root.getTree(VersionConstants.VERSION_STORE_PATH), systemTp), false, VersionConstants.VERSION_STORE_PATH);
+
+        NodeState nodeTypes = system.getChildNode(NodeTypeConstants.JCR_NODE_TYPES);
+        TreePermission nodeTypesTp = systemTp.getChildPermission(NodeTypeConstants.JCR_NODE_TYPES, nodeTypes);
+        assertSame(TreePermission.NO_RECOURSE, nodeTypesTp);
     }
 
     @Test
     public void testGetChildPermission() throws Exception {
-        TreePermission child = tp.getChildPermission(Text.getName(SUPPORTED_PATH2), EmptyNodeState.EMPTY_NODE);
-        assertTrue(child instanceof EmptyCugTreePermission);
+        String name = Text.getName(SUPPORTED_PATH2);
+        NodeState ns = rootState.getChildNode(name);
+        TreePermission child = tp.getChildPermission(name, ns);
+        assertEmptyCugPermission(child, true, SUPPORTED_PATH2);
 
-        child = tp.getChildPermission(Text.getName(SUPPORTED_PATH), EmptyNodeState.EMPTY_NODE);
+        name = Text.getName(SUPPORTED_PATH);
+        ns = rootState.getChildNode(name);
+        child = tp.getChildPermission(name, ns);
         assertFalse(child instanceof EmptyCugTreePermission);
         assertTrue(child instanceof CugTreePermission);
 
-        TreePermission child2 = tp.getChildPermission(Text.getName(UNSUPPORTED_PATH), EmptyNodeState.EMPTY_NODE);
+        name = Text.getName(UNSUPPORTED_PATH);
+        ns = rootState.getChildNode(name);
+        TreePermission child2 = tp.getChildPermission(name, ns);
         assertFalse(child2 instanceof EmptyCugTreePermission);
         assertSame(child2, TreePermission.NO_RECOURSE);
     }

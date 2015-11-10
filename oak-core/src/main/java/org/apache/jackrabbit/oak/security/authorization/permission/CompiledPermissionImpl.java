@@ -154,14 +154,18 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
     @Nonnull
     @Override
     public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
+        return getTreePermission(tree, typeProvider.getType(tree, getParentType(parentPermission)), parentPermission);
+    }
+
+    @Nonnull
+    @Override
+    public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreeType type, @Nonnull TreePermission parentPermission) {
         if (tree.isRoot()) {
             return createRootPermission(tree);
         }
         if (parentPermission instanceof VersionTreePermission) {
             return ((VersionTreePermission) parentPermission).createChildPermission(tree);
         }
-
-        TreeType type = typeProvider.getType(tree, getParentType(parentPermission));
         switch (type) {
             case HIDDEN:
                 return ALL;
@@ -426,6 +430,8 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
             return ((TreePermissionImpl) parentPermission).type;
         } else if (parentPermission == TreePermission.EMPTY) {
             return TreeType.DEFAULT;
+        } else if (parentPermission instanceof VersionTreePermission) {
+            return TreeType.VERSION;
         } else {
             throw new IllegalArgumentException("Illegal TreePermission implementation.");
         }
@@ -465,7 +471,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         @Override
         public TreePermission getChildPermission(@Nonnull String childName, @Nonnull NodeState childState) {
             Tree childTree = new ImmutableTree((ImmutableTree) tree, childName, childState);
-            return getTreePermission(childTree, this);
+            return getTreePermission(childTree, typeProvider.getType(childTree, type), this);
         }
 
         @Override

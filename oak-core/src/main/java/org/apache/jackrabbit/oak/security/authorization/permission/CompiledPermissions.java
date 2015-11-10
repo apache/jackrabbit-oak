@@ -23,6 +23,7 @@ import javax.annotation.Nullable;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 
@@ -67,6 +68,18 @@ interface CompiledPermissions {
      */
     @Nonnull
     TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission);
+
+    /**
+     * Returns the tree permissions for the specified {@code tree}.
+     *
+     *
+     * @param tree The tree for which to obtain the permissions.
+     * @param parentPermission The permissions as present with the parent.
+     * @return The permissions for the specified tree.
+     * @see {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission#getChildPermission(String, org.apache.jackrabbit.oak.spi.state.NodeState)}
+     */
+    @Nonnull
+    TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreeType type, @Nonnull TreePermission parentPermission);
 
     /**
      * Returns {@code true} if the given {@code permissions} are granted on the
