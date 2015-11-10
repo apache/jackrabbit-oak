@@ -120,8 +120,10 @@ public class LuceneIndexProviderService {
     )
     private static final String PROP_LOCAL_INDEX_DIR = "localIndexDir";
 
+
+    private static final boolean PROP_COPY_ON_WRITE_DEFAULT = true;
     @Property(
-            boolValue = false,
+            boolValue = PROP_COPY_ON_WRITE_DEFAULT,
             label = "Enable CopyOnWrite",
             description = "Enable copying of Lucene index to local file system to improve index writer performance"
     )
@@ -282,7 +284,7 @@ public class LuceneIndexProviderService {
     }
 
     private void registerIndexEditor(BundleContext bundleContext, Map<String, ?> config) throws IOException {
-        boolean enableCopyOnWrite = PropertiesUtil.toBoolean(config.get(PROP_COPY_ON_WRITE), false);
+        boolean enableCopyOnWrite = PropertiesUtil.toBoolean(config.get(PROP_COPY_ON_WRITE), PROP_COPY_ON_WRITE_DEFAULT);
         LuceneIndexEditorProvider editorProvider;
         if (enableCopyOnWrite){
             initializeIndexCopier(bundleContext, config);
