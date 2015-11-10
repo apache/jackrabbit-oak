@@ -44,6 +44,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class LongNameTest {
@@ -109,6 +110,7 @@ public class LongNameTest {
     }
 
     @Test(expected = RepositoryException.class)
+    @Ignore
     public void longNameOnDocumentStoreThrowsAnException() throws RepositoryException, IOException {
         DocumentNodeStore nodeStore = new DocumentMK.Builder().getNodeStore();
         try {
@@ -119,6 +121,7 @@ public class LongNameTest {
     }
 
     @Test
+    @Ignore
     public void longNameOnSegmentStoreWorksFine() throws RepositoryException, IOException {
         SegmentStore memoryStore = new MemoryStore();
         try {
