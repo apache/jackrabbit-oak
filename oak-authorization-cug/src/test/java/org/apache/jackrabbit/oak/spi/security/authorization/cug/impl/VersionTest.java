@@ -303,7 +303,7 @@ public class VersionTest extends AbstractCugTest implements NodeTypeConstants, V
             if (JCR_SYSTEM.equals(segm) || ReadOnlyVersionManager.isVersionStoreTree(t)) {
                 assertTrue(t.getPath(), tp instanceof EmptyCugTreePermission);
             } else {
-                assertTrue(t.getPath(), tp instanceof EmptyCugTreePermission);
+                assertTrue(t.getPath(), tp instanceof CugTreePermission);
             }
         }
     }

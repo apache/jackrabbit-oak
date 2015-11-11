@@ -22,34 +22,70 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 
 /**
- * {@code TreePermission} implementation for all items located with a CUG.
+ * {@code TreePermission} implementation for all tree located within one of the
+ * supported paths which may or may not contain a CUG.
  */
-final class CugTreePermission extends AbstractTreePermission {
+final class CugTreePermission extends AbstractTreePermission implements CugConstants {
 
-    private final boolean allow;
+    private final TreePermission parent;
+    private Boolean inCug;
+    private Boolean allow;
 
-    CugTreePermission(@Nonnull Tree tree, @Nonnull TreeType type, boolean allow, @Nonnull CugPermissionProvider permissionProvider) {
+    CugTreePermission(@Nonnull Tree tree, @Nonnull TreeType type, @Nonnull TreePermission parent,
+                      @Nonnull CugPermissionProvider permissionProvider) {
         super(tree, type, permissionProvider);
-        this.allow = allow;
+        this.parent = parent;
     }
 
-    CugTreePermission(@Nonnull Tree tree, @Nonnull TreeType type, @Nonnull CugTreePermission parent) {
-        super(tree, type, parent);
-        this.allow = parent.allow;
+    CugTreePermission(@Nonnull Tree tree, @Nonnull TreeType type, @Nonnull TreePermission parent,
+                      @Nonnull CugPermissionProvider permissionProvider, boolean inCug, boolean canRead) {
+        super(tree, type, permissionProvider);
+        this.parent = parent;
+        this.inCug = inCug;
+        this.allow = canRead;
+    }
+
+    boolean isInCug() {
+        if (inCug == null) {
+            loadCug();
+        }
+        return inCug;
+    }
+
+    boolean isAllow() {
+        if (allow == null) {
+            loadCug();
+        }
+        return allow;
+    }
+
+    private void loadCug() {
+        Tree cugTree = CugUtil.getCug(tree);
+        if (cugTree != null) {
+            inCug = true;
+            allow = permissionProvider.isAllow(cugTree);
+        } else if (parent instanceof CugTreePermission) {
+            inCug = ((CugTreePermission) parent).isInCug();
+            allow = ((CugTreePermission) parent).isAllow();
+        } else {
+            inCug = false;
+            allow = false;
+        }
     }
 
     //-----------------------------------------------------< TreePermission >---
 
     @Override
     public boolean canRead() {
-        return allow;
+        return isAllow();
     }
 
     @Override
     public boolean canRead(@Nonnull PropertyState property) {
-        return allow;
+        return isAllow();
     }
 
     @Override
@@ -59,16 +95,16 @@ final class CugTreePermission extends AbstractTreePermission {
 
     @Override
     public boolean canReadProperties() {
-        return allow;
+        return isAllow();
     }
 
     @Override
     public boolean isGranted(long permissions) {
-        return allow && permissions == Permissions.READ_NODE;
+        return permissions == Permissions.READ_NODE && isAllow();
     }
 
     @Override
     public boolean isGranted(long permissions, @Nonnull PropertyState property) {
-        return allow && permissions == Permissions.READ_PROPERTY;
+        return permissions == Permissions.READ_PROPERTY && isAllow();
     }
 }

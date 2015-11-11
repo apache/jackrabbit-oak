@@ -32,20 +32,8 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeType;
  */
 final class EmptyCugTreePermission extends AbstractTreePermission {
 
-    private final boolean isSupportedPath;
-
-    EmptyCugTreePermission(@Nonnull Tree tree, @Nonnull TreeType type, @Nonnull CugPermissionProvider permissionProvider, boolean isSupportedPath) {
+    EmptyCugTreePermission(@Nonnull Tree tree, @Nonnull TreeType type, @Nonnull CugPermissionProvider permissionProvider) {
         super(tree, type, permissionProvider);
-        this.isSupportedPath = isSupportedPath;
-    }
-
-    EmptyCugTreePermission(@Nonnull Tree tree, @Nonnull TreeType type, @Nonnull EmptyCugTreePermission parent, boolean isSupportedPath) {
-        super(tree, type, parent);
-        this.isSupportedPath = isSupportedPath;
-    }
-
-    boolean isSupportedPath() {
-        return isSupportedPath;
     }
 
     //-----------------------------------------------------< TreePermission >---

@@ -25,20 +25,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 abstract class AbstractTreePermission implements TreePermission {
 
-    private final Tree tree;
-    private final TreeType type;
-    private final CugPermissionProvider permissionProvider;
+    final Tree tree;
+    final TreeType type;
+    final CugPermissionProvider permissionProvider;
 
     AbstractTreePermission(@Nonnull Tree tree, @Nonnull TreeType type, @Nonnull CugPermissionProvider permissionProvider) {
         this.tree = tree;
         this.type = type;
         this.permissionProvider = permissionProvider;
-    }
-
-    AbstractTreePermission(@Nonnull Tree tree, @Nonnull TreeType type, @Nonnull AbstractTreePermission parent) {
-        this.tree = tree;
-        this.type = type;
-        this.permissionProvider = parent.permissionProvider;
     }
 
     @Nonnull

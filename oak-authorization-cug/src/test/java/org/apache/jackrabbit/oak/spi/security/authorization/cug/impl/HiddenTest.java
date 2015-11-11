@@ -86,7 +86,7 @@ public class HiddenTest extends AbstractCugTest {
         Tree t = readOnlyRoot.getTree("/");
         TreePermission tp = pp.getTreePermission(t, TreePermission.EMPTY);
         for (String name : PathUtils.elements(hiddenTree.getPath())) {
-            assertTrue(tp instanceof EmptyCugTreePermission);
+            assertCugPermission(tp, true);
             t = t.getChild(name);
             tp = pp.getTreePermission(t, tp);
         }

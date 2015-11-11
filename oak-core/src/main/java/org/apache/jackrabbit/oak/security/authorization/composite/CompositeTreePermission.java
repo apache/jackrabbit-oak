@@ -105,12 +105,13 @@ final class CompositeTreePermission implements TreePermission {
                 for (int i = 0, j = 0; i < parentPermission.providers.length; i++) {
                     parent = parentPermission.treePermissions[i];
                     if (isValid(parent)) {
-                        TreePermission tp = parent.getChildPermission(childName, childState);
+                        AggregatedPermissionProvider provider = parentPermission.providers[i];
+                        TreePermission tp = provider.getTreePermission(tree, type, parent);
                         if (!isValid(tp)) {
                             cnt++;
                         }
                         tps[j] = tp;
-                        pvds[j] = parentPermission.providers[i];
+                        pvds[j] = provider;
                         j++;
                     }
                 }
