@@ -16,9 +16,15 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
+import java.util.Map;
+import java.util.UUID;
+
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.nodetype.NodeTypeManager;
+
+import com.google.common.collect.Maps;
 
 /**
  * Test for measuring the performance of setting a single property and
@@ -26,27 +32,35 @@ import javax.jcr.Session;
  */
 public class SetPropertyTest extends AbstractTest {
 
-    private Session session;
-
-    private Node node;
+    private Map<Thread, Node> nodes = Maps.newIdentityHashMap();
     
     String testNodeName = "test" + TEST_ID;
 
     @Override
     public void beforeSuite() throws RepositoryException {
-        session = getRepository().login(getCredentials());
-        node = session.getRootNode().addNode(testNodeName, "nt:unstructured");
+        Session session = getRepository().login(getCredentials());
+        session.getRootNode().addNode(testNodeName, getUnstructuredNodeType(session));
         session.save();
+        session.logout();
     }
 
     @Override
     public void beforeTest() throws RepositoryException {
-        node.setProperty("count", -1);
-        session.save();
+        Thread t = Thread.currentThread();
+        Node node = nodes.get(t);
+        if (node == null) {
+            Session s = getRepository().login(getCredentials());
+            node = s.getRootNode().getNode(testNodeName).addNode(UUID.randomUUID().toString());
+            node.setProperty("count", -1);
+            s.save();
+            nodes.put(t, node);
+        }
     }
 
     @Override
     public void runTest() throws Exception {
+        Node node = nodes.get(Thread.currentThread());
+        Session session = node.getSession();
         for (int i = 0; i < 1000; i++) {
             node.setProperty("count", i);
             session.save();
@@ -54,14 +68,21 @@ public class SetPropertyTest extends AbstractTest {
     }
 
     @Override
-    public void afterTest() throws RepositoryException {
-    }
-
-    @Override
     public void afterSuite() throws RepositoryException {
+        Session session = getRepository().login(getCredentials());
         session.getRootNode().getNode(testNodeName).remove();
         session.save();
         session.logout();
+    }
+
+    private String getUnstructuredNodeType(Session s)
+            throws RepositoryException {
+        NodeTypeManager ntMgr = s.getWorkspace().getNodeTypeManager();
+        if (ntMgr.hasNodeType("oak:Unstructured")) {
+            return "oak:Unstructured";
+        } else {
+            return "nt:unstructured";
+        }
     }
 
 }

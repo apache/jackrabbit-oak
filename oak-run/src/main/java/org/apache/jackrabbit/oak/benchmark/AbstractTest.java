@@ -32,8 +32,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
-import jline.internal.Log;
-
 import org.apache.commons.math.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math.stat.descriptive.SynchronizedDescriptiveStatistics;
 import org.apache.jackrabbit.oak.benchmark.util.Profiler;
@@ -272,16 +270,17 @@ abstract class AbstractTest<T> extends Benchmark implements CSVResultGenerator {
 
         @Override
         public void run() {
-            T context = null;
             try {
-                context = prepareThreadExecutionContext();
-                while (running) {
-                    statistics.addValue(execute(context));
+                T context = prepareThreadExecutionContext();
+                try {
+                    while (running) {
+                        statistics.addValue(execute(context));
+                    }
+                } finally {
+                    disposeThreadExecutionContext(context);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-            } finally {
-                disposeThreadExecutionContext(context);
             }
         }
     }
