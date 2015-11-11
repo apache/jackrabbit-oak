@@ -254,8 +254,9 @@ public class MongoDocumentStore implements DocumentStore {
         cacheStats = new CacheStats(nodesCache, "Document-Documents", builder.getWeigher(),
                 builder.getDocumentCacheSize());
         LOG.info("Configuration maxReplicationLagMillis {}, " +
-                "maxDeltaForModTimeIdxSecs {}, disableIndexHint {}",
-                maxReplicationLagMillis, maxDeltaForModTimeIdxSecs, disableIndexHint);
+                "maxDeltaForModTimeIdxSecs {}, disableIndexHint {}, {}",
+                maxReplicationLagMillis, maxDeltaForModTimeIdxSecs,
+                disableIndexHint, db.getWriteConcern());
     }
 
     private static String checkVersion(DB db) {
