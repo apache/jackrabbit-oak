@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.InputStream;
+import java.net.UnknownHostException;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.Executor;
@@ -56,6 +57,7 @@ import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCach
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.document.util.RevisionsKey;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -511,36 +513,67 @@ public class DocumentMK {
         }
 
         /**
+         * Uses the given information to connect to to MongoDB as backend
+         * storage for the DocumentNodeStore. The write concern is either
+         * taken from the URI or determined automatically based on the MongoDB
+         * setup. When running on a replica set without explicit write concern
+         * in the URI, the write concern will be {@code MAJORITY}, otherwise
+         * {@code ACKNOWLEDGED}.
+         *
+         * @param uri a MongoDB URI.
+         * @param name the name of the database to connect to. This overrides
+         *             any database name given in the {@code uri}.
+         * @param blobCacheSizeMB the blob cache size in MB.
+         * @return this
+         * @throws UnknownHostException if one of the hosts given in the URI
+         *          is unknown.
+         */
+        public Builder setMongoDB(@Nonnull String uri,
+                                  @Nonnull String name,
+                                  int blobCacheSizeMB)
+                throws UnknownHostException {
+            DB db = new MongoConnection(uri).getDB(name);
+            if (!MongoConnection.hasWriteConcern(uri)) {
+                db.setWriteConcern(MongoConnection.getDefaultWriteConcern(db));
+            }
+            setMongoDB(db, blobCacheSizeMB);
+            return this;
+        }
+
+        /**
          * Use the given MongoDB as backend storage for the DocumentNodeStore.
          *
          * @param db the MongoDB connection
          * @return this
          */
-        public Builder setMongoDB(DB db, int blobCacheSizeMB) {
-            if (db != null) {
-                if (this.documentStore == null) {
-                    this.documentStore = new MongoDocumentStore(db, this);
-                }
+        public Builder setMongoDB(@Nonnull DB db,
+                                  int blobCacheSizeMB) {
+            if (!MongoConnection.hasSufficientWriteConcern(db)) {
+                LOG.warn("Insufficient write concern: " + db.getWriteConcern()
+                        + " At least " + MongoConnection.getDefaultWriteConcern(db) + " is recommended.");
+            }
+            if (this.documentStore == null) {
+                this.documentStore = new MongoDocumentStore(db, this);
+            }
 
-                if (this.blobStore == null) {
-                    GarbageCollectableBlobStore s = new MongoBlobStore(db, blobCacheSizeMB * 1024 * 1024L);
-                    PersistentCache p = getPersistentCache();
-                    if (p != null) {
-                        s = p.wrapBlobStore(s);
-                    }
-                    this.blobStore = s;
+            if (this.blobStore == null) {
+                GarbageCollectableBlobStore s = new MongoBlobStore(db, blobCacheSizeMB * 1024 * 1024L);
+                PersistentCache p = getPersistentCache();
+                if (p != null) {
+                    s = p.wrapBlobStore(s);
                 }
+                this.blobStore = s;
             }
             return this;
         }
 
         /**
-         * Set the MongoDB connection to use. By default an in-memory store is used.
+         * Use the given MongoDB as backend storage for the DocumentNodeStore.
          *
          * @param db the MongoDB connection
          * @return this
          */
-        public Builder setMongoDB(DB db) {
+        public Builder setMongoDB(@Nonnull DB db) {
             return setMongoDB(db, 16);
         }
 

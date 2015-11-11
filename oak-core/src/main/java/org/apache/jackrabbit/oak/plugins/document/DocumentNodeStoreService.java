@@ -43,9 +43,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.sql.DataSource;
 
-import com.mongodb.DB;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoClientURI;
 
 import org.apache.felix.scr.annotations.Activate;
@@ -418,8 +415,7 @@ public class DocumentNodeStoreService {
                 log.info("Connected to datasource {}", dataSource);
             }
         } else {
-            MongoClientOptions.Builder builder = MongoConnection.getDefaultBuilder();
-            MongoClientURI mongoURI = new MongoClientURI(uri, builder);
+            MongoClientURI mongoURI = new MongoClientURI(uri);
 
             if (log.isInfoEnabled()) {
                 // Take care around not logging the uri directly as it
@@ -430,13 +426,10 @@ public class DocumentNodeStoreService {
                 log.info("Mongo Connection details {}", MongoConnection.toString(mongoURI.getOptions()));
             }
 
-            MongoClient client = new MongoClient(mongoURI);
-            DB mongoDB = client.getDB(db);
-
             mkBuilder.setMaxReplicationLag(maxReplicationLagInSecs, TimeUnit.SECONDS);
-            mkBuilder.setMongoDB(mongoDB, blobCacheSize);
+            mkBuilder.setMongoDB(uri, db, blobCacheSize);
 
-            log.info("Connected to database {}", mongoDB);
+            log.info("Connected to database '{}'", db);
         }
 
         //Set wrapping blob store after setting the DB
