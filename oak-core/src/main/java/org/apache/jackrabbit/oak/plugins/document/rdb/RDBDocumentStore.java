@@ -1073,7 +1073,14 @@ public class RDBDocumentStore implements DocumentStore {
 
             for (List<String> chunkedIds : Lists.partition(ids, CHUNKSIZE)) {
                 // remember what we already have in the cache
+                Set<QueryContext> seenQueryContext = new HashSet<QueryContext>();
                 Map<String, NodeDocument> cachedDocs = Collections.emptyMap();
+                // keep concurrently running queries from updating
+                // the cache entry for this key
+                for (QueryContext qc : qmap.values()) {
+                    qc.addKeys(chunkedIds);
+                    seenQueryContext.add(qc);
+                }
                 if (collection == Collection.NODES) {
                     cachedDocs = new HashMap<String, NodeDocument>();
                     for (String key : chunkedIds) {
@@ -1095,15 +1102,17 @@ public class RDBDocumentStore implements DocumentStore {
                     this.ch.closeConnection(connection);
                 }
                 if (success) {
+                    // keep concurrently running queries from updating
+                    // the cache entry for this key
+                    for (QueryContext qc : qmap.values()) {
+                        if (!seenQueryContext.contains(qc)) {
+                            qc.addKeys(chunkedIds);
+                        }
+                    }
                     for (Entry<String, NodeDocument> entry : cachedDocs.entrySet()) {
                         T oldDoc = castAsT(entry.getValue());
                         if (oldDoc == null) {
                             String id = entry.getKey();
-                            // keep concurrently running queries from updating
-                            // the cache entry for this key
-                            for (QueryContext qp : qmap.values()) {
-                                qp.addKey(id);
-                            }
                             // make sure concurrently loaded document is
                             // invalidated
                             nodesCache.invalidate(new StringValue(id));
@@ -1170,6 +1179,12 @@ public class RDBDocumentStore implements DocumentStore {
         public void addKey(String key) {
             if (fromKey.compareTo(key) < 0 && toKey.compareTo(key) > 0) {
                 getFilter().put(key);
+            }
+        }
+
+        public void addKeys(List<String> keys) {
+            for (String key: keys) {
+                addKey(key);
             }
         }
 
