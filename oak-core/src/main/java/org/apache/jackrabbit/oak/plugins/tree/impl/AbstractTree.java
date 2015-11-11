@@ -193,7 +193,7 @@ public abstract class AbstractTree implements Tree {
         if (isRoot()) {
             return PathUtils.ROOT_PATH;
         } else {
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new StringBuilder(128);
             buildPath(sb);
             return sb.toString();
         }
