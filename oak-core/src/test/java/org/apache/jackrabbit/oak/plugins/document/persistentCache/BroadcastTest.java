@@ -42,14 +42,40 @@ public class BroadcastTest {
     
     @Test
     public void broadcastUDP() throws Exception {
-        broadcast("udp:sendTo localhost", 50);
+        try {
+            broadcast("udp:sendTo localhost", 50);
+        } catch (AssertionError e) {
+            // IPv6 didn't work, so try with IPv4
+            try {
+                broadcast("udp:group 228.6.7.9", 50);                
+            } catch (AssertionError e2) {
+                throwBoth(e, e2);
+            }                
+        }
     }
     
     @Test
     public void broadcastEncryptedUDP() throws Exception {
-        broadcast("udp:group FF7E:230::1234;key test;port 9876;sendTo localhost;aes", 50);
+        try {
+            broadcast("udp:group FF78:230::1234;key test;port 9876;sendTo localhost;aes", 50);
+        } catch (AssertionError e) {
+            try {
+                broadcast("udp:group 228.6.7.9;key test;port 9876;aes", 50);                
+            } catch (AssertionError e2) {
+                throwBoth(e, e2);
+            }                
+        }
     }
     
+    private static void throwBoth(AssertionError e, AssertionError e2) throws AssertionError {
+        Throwable ex = e;
+        while (ex.getCause() != null) {
+            ex = ex.getCause();
+        }
+        ex.initCause(e2);
+        throw e;
+    }
+
     private static void broadcast(String type, int minPercentCorrect) throws Exception {
         FileUtils.deleteDirectory(new File("target/broadcastTest"));
         new File("target/broadcastTest").mkdirs();        
@@ -75,10 +101,10 @@ public class BroadcastTest {
                 correct++;
             }
         }
-        Assert.assertTrue("min: " + minPercentCorrect + " got: " + correct, 
-                correct >= minPercentCorrect);
         p1.close();
         p2.close();
+        Assert.assertTrue("min: " + minPercentCorrect + " got: " + correct, 
+                correct >= minPercentCorrect);
     }
     
     private static boolean waitFor(Callable<Boolean> call, int timeout) {
