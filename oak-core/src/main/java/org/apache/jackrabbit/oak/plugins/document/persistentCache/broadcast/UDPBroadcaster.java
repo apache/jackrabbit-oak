@@ -60,7 +60,7 @@ public class UDPBroadcaster implements Broadcaster, Runnable {
         MessageDigest messageDigest;
         try {
             String[] parts = config.split(";");
-            String group = "FF7E:230::1234";
+            String group = "FF78:230::1234";
             int port = 9876;
             String key = "";
             boolean aes = false;
