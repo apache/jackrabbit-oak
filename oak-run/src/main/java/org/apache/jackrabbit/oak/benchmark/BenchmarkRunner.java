@@ -119,7 +119,12 @@ public class BenchmarkRunner {
                 .withOptionalArg().ofType(Integer.class).defaultsTo(10000);
         OptionSpec<Boolean> setScope = parser.accepts("setScope", "Whether to use include setScope in the user query.")
                         .withOptionalArg().ofType(Boolean.class)
-                        .defaultsTo(Boolean.FALSE);
+                .defaultsTo(Boolean.FALSE);
+        OptionSpec<Boolean> reverseOrder = parser.accepts("reverseOrder", "Invert order of configurations in composite setup.")
+                .withOptionalArg().ofType(Boolean.class)
+                .defaultsTo(Boolean.FALSE);
+        OptionSpec<String> supportedPaths = parser.accepts("supportedPaths", "Supported paths in composite setup.")
+                .withOptionalArg().ofType(String.class).withValuesSeparatedBy(',');
         OptionSpec<String> nonOption = parser.nonOptions();
         OptionSpec help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
         OptionSet options = parser.parse(args);
@@ -233,7 +238,17 @@ public class BenchmarkRunner {
                     report.value(options)),
             new CompositeAuthorizationTest(
                         runAsAdmin.value(options),
-                        itemsToRead.value(options)), // TODO: is currently the no of configurations (hack)
+                        itemsToRead.value(options)), // NOTE: this is currently the no of configurations
+            new CugTest(runAsAdmin.value(options),
+                        itemsToRead.value(options),
+                        randomUser.value(options),
+                        supportedPaths.values(options),
+                        reverseOrder.value(options)),
+            new CugOakTest(runAsAdmin.value(options),
+                        itemsToRead.value(options),
+                        randomUser.value(options),
+                        supportedPaths.values(options),
+                        reverseOrder.value(options)),
             new ConcurrentReadDeepTreeTest(
                     runAsAdmin.value(options),
                     itemsToRead.value(options),

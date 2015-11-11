@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import javax.annotation.Nonnull;
@@ -70,14 +71,19 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
     @Nonnull
     @Override
     public RestrictionProvider getRestrictionProvider() {
-        return CompositeRestrictionProvider.newInstance(
-                Lists.transform(getConfigurations(),
-                        new Function<AuthorizationConfiguration, RestrictionProvider>() {
-                            @Override
-                            public RestrictionProvider apply(AuthorizationConfiguration authorizationConfiguration) {
-                                return authorizationConfiguration.getRestrictionProvider();
-                            }
-                        }));
+        List<AuthorizationConfiguration> configurations = getConfigurations();
+        switch (configurations.size()) {
+            case 0: return RestrictionProvider.EMPTY;
+            case 1: return configurations.get(0).getRestrictionProvider();
+            default:
+                List<RestrictionProvider> rps = new ArrayList<RestrictionProvider>(configurations.size());
+                for (AuthorizationConfiguration c : configurations) {
+                    if (RestrictionProvider.EMPTY != c) {
+                        rps.add(c.getRestrictionProvider());
+                    }
+                }
+                return CompositeRestrictionProvider.newInstance(rps);
+        }
     }
 
     @Nonnull
@@ -90,7 +96,7 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
             case 0: throw new IllegalStateException();
             case 1: return configurations.get(0).getPermissionProvider(root, workspaceName, principals);
             default:
-                List<AggregatedPermissionProvider> aggrPermissionProviders = Lists.newArrayListWithCapacity(configurations.size());
+                List<AggregatedPermissionProvider> aggrPermissionProviders = new ArrayList(configurations.size());
                 for (AuthorizationConfiguration conf : configurations) {
                     PermissionProvider pProvider = conf.getPermissionProvider(root, workspaceName, principals);
                     if (pProvider instanceof AggregatedPermissionProvider) {

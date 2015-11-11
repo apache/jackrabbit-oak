@@ -240,11 +240,16 @@
       <artifactId>oak-http</artifactId>
       <version>${project.version}</version>
     </dependency>
-      <dependency>
+    <dependency>
         <groupId>org.apache.jackrabbit</groupId>
         <artifactId>oak-remote</artifactId>
         <version>${project.version}</version>
-      </dependency>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-authorization-cug</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-lucene</artifactId>

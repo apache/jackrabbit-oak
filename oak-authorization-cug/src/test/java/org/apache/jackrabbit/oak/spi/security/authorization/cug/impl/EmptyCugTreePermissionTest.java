@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -36,7 +34,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.util.Text;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -59,36 +56,29 @@ public class EmptyCugTreePermissionTest extends AbstractCugTest {
                 getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
         Root readOnlyRoot = RootFactory.createReadOnlyRoot(root);
         Tree t = readOnlyRoot.getTree("/");
-        tp = new EmptyCugTreePermission(t, TreeType.DEFAULT, pp, false);
+        tp = new EmptyCugTreePermission(t, TreeType.DEFAULT, pp);
         rootState = ((AbstractTree) t).getNodeState();
-    }
-
-    private static void assertEmptyCugPermission(@Nonnull TreePermission tp, boolean isSupportedPath, @Nonnull String path) {
-        assertTrue(tp instanceof EmptyCugTreePermission);
-
-        EmptyCugTreePermission etp = (EmptyCugTreePermission) tp;
-        assertEquals(isSupportedPath, etp.isSupportedPath());
     }
 
     @Test
     public void testRootPermission() throws Exception {
-        assertEmptyCugPermission(tp, false, "/");
+        assertCugPermission(tp, false);
 
         TreePermission rootTp = pp.getTreePermission(root.getTree("/"), TreePermission.EMPTY);
-        assertEmptyCugPermission(rootTp, false, "/");
+        assertCugPermission(rootTp, false);
     }
 
     @Test
     public void testJcrSystemPermissions() throws Exception {
         NodeState system = rootState.getChildNode(JcrConstants.JCR_SYSTEM);
         TreePermission systemTp = tp.getChildPermission(JcrConstants.JCR_SYSTEM, system);
-        assertEmptyCugPermission(systemTp, false, "/jcr:system");
-        assertEmptyCugPermission(pp.getTreePermission(root.getTree("/jcr:system"), tp), false, "/jcr:system");
+        assertCugPermission(systemTp, false);
+        assertCugPermission(pp.getTreePermission(root.getTree("/jcr:system"), tp), false);
 
         NodeState versionStore = system.getChildNode(VersionConstants.JCR_VERSIONSTORAGE);
         TreePermission versionStoreTp = systemTp.getChildPermission(VersionConstants.JCR_VERSIONSTORAGE, versionStore);
-        assertEmptyCugPermission(versionStoreTp, false, VersionConstants.VERSION_STORE_PATH);
-        assertEmptyCugPermission(pp.getTreePermission(root.getTree(VersionConstants.VERSION_STORE_PATH), systemTp), false, VersionConstants.VERSION_STORE_PATH);
+        assertCugPermission(versionStoreTp, false);
+        assertCugPermission(pp.getTreePermission(root.getTree(VersionConstants.VERSION_STORE_PATH), systemTp), false);
 
         NodeState nodeTypes = system.getChildNode(NodeTypeConstants.JCR_NODE_TYPES);
         TreePermission nodeTypesTp = systemTp.getChildPermission(NodeTypeConstants.JCR_NODE_TYPES, nodeTypes);
@@ -100,13 +90,17 @@ public class EmptyCugTreePermissionTest extends AbstractCugTest {
         String name = Text.getName(SUPPORTED_PATH2);
         NodeState ns = rootState.getChildNode(name);
         TreePermission child = tp.getChildPermission(name, ns);
-        assertEmptyCugPermission(child, true, SUPPORTED_PATH2);
+        assertCugPermission(child, true);
+        assertFalse(((CugTreePermission) child).isInCug());
 
         name = Text.getName(SUPPORTED_PATH);
         ns = rootState.getChildNode(name);
         child = tp.getChildPermission(name, ns);
-        assertFalse(child instanceof EmptyCugTreePermission);
-        assertTrue(child instanceof CugTreePermission);
+        assertCugPermission(child, true);
+        assertTrue(((CugTreePermission) child).isInCug());
+        TreePermission subtree = child.getChildPermission("subtree", ns.getChildNode("subtree"));
+        assertCugPermission(subtree, true);
+        assertTrue(((CugTreePermission) subtree).isInCug());
 
         name = Text.getName(UNSUPPORTED_PATH);
         ns = rootState.getChildNode(name);
