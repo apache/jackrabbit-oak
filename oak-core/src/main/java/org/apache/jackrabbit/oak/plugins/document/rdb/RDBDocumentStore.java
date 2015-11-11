@@ -766,7 +766,8 @@ public class RDBDocumentStore implements DocumentStore {
         }
         String tableName = tmd.getName();
 
-        PreparedStatement checkStatement = null;
+        PreparedStatement checkStatement = null, checkStatement2 = null;
+
         ResultSet checkResultSet = null;
         Statement creatStatement = null;
         try {
@@ -774,11 +775,11 @@ public class RDBDocumentStore implements DocumentStore {
             checkStatement.setString(1, "0:/");
             checkResultSet = checkStatement.executeQuery();
 
-            // try to discover size of DATA column
+            // try to discover size of DATA column and binary-ness of ID
             ResultSetMetaData met = checkResultSet.getMetaData();
             obtainFlagsFromResultSetMeta(met, tmd);
 
-            if (col.equals(Collection.NODES)) {
+            if (col == Collection.NODES) {
                 String tableInfo = RDBJDBCTools.dumpResultSetMeta(met);
                 diagnostics.append(tableInfo);
                 String indexInfo = dumpIndexData(con.getMetaData(), met, tableName);
@@ -806,12 +807,14 @@ public class RDBDocumentStore implements DocumentStore {
 
                 tablesCreated.add(tableName);
 
-                if (col.equals(Collection.NODES)) {
-                    PreparedStatement pstmt = con.prepareStatement("select * from " + tableName + " where ID = ?");
-                    pstmt.setString(1, "0:/");
-                    ResultSet rs = pstmt.executeQuery();
-                    ResultSetMetaData met = rs.getMetaData();
-                    obtainFlagsFromResultSetMeta(met, tmd);
+                checkStatement2 = con.prepareStatement("select * from " + tableName + " where ID = ?");
+                checkStatement2.setString(1, "0:/");
+                ResultSet rs = checkStatement2.executeQuery();
+                // try to discover size of DATA column and binary-ness of ID
+                ResultSetMetaData met = rs.getMetaData();
+                obtainFlagsFromResultSetMeta(met, tmd);
+
+                if (col == Collection.NODES) {
                     String tableInfo = RDBJDBCTools.dumpResultSetMeta(met);
                     diagnostics.append(tableInfo);
                     String indexInfo = dumpIndexData(con.getMetaData(), met, tableName);
@@ -828,6 +831,7 @@ public class RDBDocumentStore implements DocumentStore {
         finally {
             closeResultSet(checkResultSet);
             closeStatement(checkStatement);
+            closeStatement(checkStatement2);
             closeStatement(creatStatement);
         }
     }
