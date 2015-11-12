@@ -53,6 +53,12 @@ public enum RDBDocumentStoreDB {
             return RDBJDBCTools.versionCheck(md, 10, 11, description);
         }
 
+        @Override
+        public String getCurrentTimeStampInMsSyntax() {
+            return "CURRENT_TIMESTAMP";
+        }
+
+        @Override
         public boolean allowsCaseInSelect() {
             return false;
         }
@@ -295,6 +301,11 @@ public enum RDBDocumentStoreDB {
         }
 
         @Override
+        public String getCurrentTimeStampInMsSyntax() {
+            return "CURRENT_TIMESTAMP";
+        }
+
+        @Override
         public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
             Connection con = null;
             PreparedStatement stmt = null;
@@ -351,6 +362,13 @@ public enum RDBDocumentStoreDB {
      */
     public FETCHFIRSTSYNTAX getFetchFirstSyntax() {
         return FETCHFIRSTSYNTAX.FETCHFIRST;
+    }
+
+    /**
+     * Query syntax for current time in ms
+     */
+    public String getCurrentTimeStampInMsSyntax() {
+        return "CURRENT_TIMESTAMP(4)";
     }
 
     /**
