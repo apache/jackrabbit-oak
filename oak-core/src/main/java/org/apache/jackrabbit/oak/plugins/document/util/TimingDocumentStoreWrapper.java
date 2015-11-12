@@ -357,6 +357,18 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
     public Map<String, String> getMetadata() {
         return base.getMetadata();
     }
+    
+    @Override
+    public long determineServerTimeDifferenceMillis() {
+        try {
+            long start = now();
+            long result = base.determineServerTimeDifferenceMillis();
+            updateAndLogTimes("determineServerTimeDifferenceMillis", start, 0, 0);
+            return result;
+        } catch (Exception e) {
+            throw convert(e);
+        }
+    }
 
     private void logCommonCall(long start, String key) {
         int time = (int) (System.currentTimeMillis() - start);
