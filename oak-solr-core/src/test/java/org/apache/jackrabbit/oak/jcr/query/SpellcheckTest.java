@@ -83,7 +83,7 @@ public class SpellcheckTest extends AbstractQueryTest {
         Query q = qm.createQuery(xpath, Query.XPATH);
         String result = getResult(q.execute(), "rep:spellcheck()");
         assertNotNull(result);
-        assertEquals("[voting in ontario]", result);
+        assertEquals("voting in ontario", result);
     }
 
     static String getResult(QueryResult result, String propertyName) throws RepositoryException {
