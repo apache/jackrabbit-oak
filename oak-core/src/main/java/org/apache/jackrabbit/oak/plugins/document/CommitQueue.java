@@ -19,10 +19,11 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -36,8 +37,6 @@ import javax.annotation.Nonnull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Sets;
 
 /**
  * <code>CommitQueue</code> ensures a sequence of commits consistent with the
@@ -57,7 +56,7 @@ final class CommitQueue {
     /**
      * Map of currently suspended commits until a given Revision is visible.
      */
-    private final List<SuspendedCommit> suspendedCommits = new ArrayList<SuspendedCommit>();
+    private final Map<Semaphore, SuspendedCommit> suspendedCommits = new HashMap<Semaphore, SuspendedCommit>();
 
     private final RevisionContext context;
 
@@ -121,7 +120,7 @@ final class CommitQueue {
         int addedRevisions;
         synchronized (suspendedCommits) {
             Revision headRevision = context.getHeadRevision();
-            List<Revision> afterHead = new ArrayList<Revision>(conflictRevisions.size());
+            Set<Revision> afterHead = new HashSet<Revision>(conflictRevisions.size());
             for (Revision r : conflictRevisions) {
                 if (comparator.compare(r, headRevision) > 0) {
                     afterHead.add(r);
@@ -129,25 +128,16 @@ final class CommitQueue {
             }
 
             s = new Semaphore(0);
-            for (Revision r : afterHead) {
-                suspendedCommits.add(new SuspendedCommit(r, s));
-            }
+            suspendedCommits.put(s, new SuspendedCommit(s, afterHead));
             addedRevisions = afterHead.size();
         }
-        if (s != null) {
-            try {
-                s.tryAcquire(addedRevisions, suspendTimeout, TimeUnit.MILLISECONDS);
-            } catch (InterruptedException e) {
-                LOG.debug("The suspended thread has been interrupted", e);
-            } finally {
-                synchronized (suspendedCommits) {
-                    Iterator<SuspendedCommit> it = suspendedCommits.iterator();
-                    while (it.hasNext()) {
-                        if (it.next().semaphore == s) {
-                            it.remove();
-                        }
-                    }
-                }
+        try {
+            s.tryAcquire(addedRevisions, suspendTimeout, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            LOG.debug("The suspended thread has been interrupted", e);
+        } finally {
+            synchronized (suspendedCommits) {
+                suspendedCommits.remove(s);
             }
         }
     }
@@ -165,11 +155,7 @@ final class CommitQueue {
      */
     int numSuspendedThreads() {
         synchronized (suspendedCommits) {
-            Set<Semaphore> semaphores = Sets.newIdentityHashSet();
-            for (SuspendedCommit c : suspendedCommits) {
-                semaphores.add(c.semaphore);
-            }
-            return semaphores.size();
+            return suspendedCommits.size();
         }
     }
 
@@ -195,14 +181,12 @@ final class CommitQueue {
             if (suspendedCommits.isEmpty()) {
                 return;
             }
-            Comparator<Revision> comparator = context.getRevisionComparator();
             Revision headRevision = context.getHeadRevision();
-            Iterator<SuspendedCommit> it = suspendedCommits.iterator();
+            Iterator<SuspendedCommit> it = suspendedCommits.values().iterator();
             while (it.hasNext()) {
-                SuspendedCommit entry = it.next();
-                if (comparator.compare(entry.revision, headRevision) <= 0) {
+                SuspendedCommit suspended = it.next();
+                if (suspended.removeRevisionsYoungerThan(headRevision) && suspended.revisions.isEmpty()) {
                     it.remove();
-                    entry.semaphore.release();
                 }
             }
         }
@@ -214,12 +198,11 @@ final class CommitQueue {
             if (suspendedCommits.isEmpty()) {
                 return;
             }
-            Iterator<SuspendedCommit> it = suspendedCommits.iterator();
+            Iterator<SuspendedCommit> it = suspendedCommits.values().iterator();
             while (it.hasNext()) {
-                SuspendedCommit entry = it.next();
-                if (revision.equals(entry.revision)) {
+                SuspendedCommit suspended = it.next();
+                if (suspended.removeRevision(revision) && suspended.revisions.isEmpty()) {
                     it.remove();
-                    entry.semaphore.release();
                 }
             }
         }
@@ -313,15 +296,38 @@ final class CommitQueue {
         }
     }
 
-    private static class SuspendedCommit {
-
-        private final Revision revision;
+    private class SuspendedCommit {
 
         private final Semaphore semaphore;
 
-        private SuspendedCommit(Revision revision, Semaphore semaphore) {
-            this.revision = revision;
+        private final Set<Revision> revisions;
+
+        private SuspendedCommit(Semaphore semaphore, Set<Revision> revisions) {
             this.semaphore = semaphore;
+            this.revisions = revisions;
+        }
+
+        private boolean removeRevisionsYoungerThan(Revision revision) {
+            Comparator<Revision> comparator = context.getRevisionComparator();
+            Iterator<Revision> it = revisions.iterator();
+            boolean removed = false;
+            while (it.hasNext()) {
+                if (comparator.compare(it.next(), revision) <= 0) {
+                    it.remove();
+                    semaphore.release();
+                    removed = true;
+                }
+            }
+            return removed;
+        }
+
+        private boolean removeRevision(Revision r) {
+            if (revisions.remove(r)) {
+                semaphore.release();
+                return true;
+            } else {
+                return false;
+            }
         }
     }
 }
