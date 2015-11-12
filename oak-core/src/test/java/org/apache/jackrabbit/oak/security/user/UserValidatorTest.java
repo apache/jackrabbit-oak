@@ -371,7 +371,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
         root.commit();
 
         try {
-            nested.setString(JcrConstants.JCR_PRIMARYTYPE, UserConstants.NT_REP_USER);
+            nested.setName(JcrConstants.JCR_PRIMARYTYPE, UserConstants.NT_REP_USER);
             root.commit();
             fail("Creating nested users must be detected.");
         } catch (CommitFailedException e) {
