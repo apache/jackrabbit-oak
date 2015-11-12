@@ -1464,7 +1464,6 @@ public final class DocumentNodeStore
      * delay is set to 0.
      *
      * @param conflictRevisions the revision to become visible.
-     * @returns a list of visible or canceled revisions
      */
     void suspendUntilAll(@Nonnull Set<Revision> conflictRevisions) {
         // do not suspend if revision is from another cluster node

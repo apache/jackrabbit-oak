@@ -42,7 +42,7 @@ class ConflictException extends DocumentStoreException {
 
     /**
      * @param message the exception / conflict message.
-     * @param conflictRevision the conflict revision or {@code null} if unknown.
+     * @param conflictRevision the conflict revision
      */
     ConflictException(@Nonnull String message,
                       @Nonnull Revision conflictRevision) {
