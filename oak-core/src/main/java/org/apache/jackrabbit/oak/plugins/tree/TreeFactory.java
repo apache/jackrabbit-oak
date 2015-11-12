@@ -24,6 +24,8 @@ import org.apache.jackrabbit.oak.plugins.tree.impl.NodeBuilderTree;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 /**
  * Factory to obtain {@code Tree} objects from {@code NodeState}s
  * and {@code NodeBuilder}s.
@@ -38,5 +40,10 @@ public final class TreeFactory {
 
     public static Tree createReadOnlyTree(@Nonnull NodeState rootState) {
         return new ImmutableTree(rootState);
+    }
+
+    public static Tree createReadOnlyTree(@Nonnull Tree readOnlyParent, @Nonnull String childName, @Nonnull NodeState childState) {
+        checkArgument(readOnlyParent instanceof ImmutableTree);
+        return new ImmutableTree((ImmutableTree) readOnlyParent, childName, childState);
     }
 }

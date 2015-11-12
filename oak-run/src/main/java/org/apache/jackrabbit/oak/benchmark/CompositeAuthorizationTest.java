@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
+import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -263,6 +264,12 @@ public class CompositeAuthorizationTest extends ReadDeepTreeTest {
         @Override
         public boolean isGranted(@Nonnull TreeLocation location, long permissions) {
             return true;
+        }
+
+        @Nonnull
+        @Override
+        public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreeType type, @Nonnull TreePermission parentPermission) {
+            return getTreePermission(tree, parentPermission);
         }
     }
 }

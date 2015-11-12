@@ -211,10 +211,10 @@ public class SegmentWriter {
     private void newSegment(String wid) {
         this.segment = new Segment(tracker, buffer);
         writeString(
-            "{wid=" + wid +
-            ",sno=" + tracker.getNextSegmentNo() +
-            ",gc=" + tracker.getCompactionMap().getGeneration() +
-            ",t=" + currentTimeMillis() + "}");
+            "{\"wid\":\"" + wid + '"' +
+            ",\"sno\":" + tracker.getNextSegmentNo() +
+            ",\"gc\":" + tracker.getCompactionMap().getGeneration() +
+            ",\"t\":" + currentTimeMillis() + "}");
     }
 
     /**

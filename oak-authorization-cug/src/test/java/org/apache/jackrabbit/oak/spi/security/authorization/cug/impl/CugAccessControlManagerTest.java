@@ -39,6 +39,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugPolicy;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
@@ -211,6 +213,24 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
     public void testGetEffectivePoliciesNullPath() throws Exception {
         AccessControlPolicy[] policies = cugAccessControlManager.getEffectivePolicies((String) null);
         assertEquals(0, policies.length);
+    }
+
+    @Test
+    public void testGetEffectivePoliciesNotEnabled() throws Exception {
+        cugAccessControlManager.setPolicy(SUPPORTED_PATH, createCug(SUPPORTED_PATH));
+        root.commit();
+
+        ConfigurationParameters config = ConfigurationParameters.of(AuthorizationConfiguration.NAME, ConfigurationParameters.of(
+                    CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[] {SUPPORTED_PATH, SUPPORTED_PATH2},
+                    CugConstants.PARAM_CUG_ENABLED, false));
+        CugAccessControlManager acMgr = new CugAccessControlManager(root, NamePathMapper.DEFAULT, new CugSecurityProvider(config));
+        AccessControlPolicy[] policies = acMgr.getEffectivePolicies(SUPPORTED_PATH);
+        assertEquals(0, policies.length);
+
+        AccessControlPolicy[] effectiveOnChild = acMgr.getEffectivePolicies(SUPPORTED_PATH + "/subtree");
+        assertEquals(0, policies.length);
+
+        assertEquals(policies.length, effectiveOnChild.length);
     }
 
     @Test

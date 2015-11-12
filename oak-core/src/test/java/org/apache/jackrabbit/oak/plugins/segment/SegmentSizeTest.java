@@ -134,7 +134,7 @@ public class SegmentSizeTest {
         allow.setProperty("rep:principalName", "administrators");
         allow.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:all"), Type.NAMES));
-        assertEquals(352, getSize(builder));
+        assertEquals(368, getSize(builder));
         assertEquals(84, getAmortizedSize(builder));
 
         NodeBuilder deny0 = builder.child("deny0");
@@ -168,7 +168,7 @@ public class SegmentSizeTest {
         SegmentNodeState state = writer.writeNode(builder.getNodeState());
         writer.flush();
         Segment segment = store.readSegment(state.getRecordId().getSegmentId());
-        assertEquals(27568, segment.size());
+        assertEquals(27584, segment.size());
 
         writer.flush(); // force flushing of the previous segment
 
@@ -177,7 +177,7 @@ public class SegmentSizeTest {
         state = writer.writeNode(builder.getNodeState());
         writer.flush();
         segment = store.readSegment(state.getRecordId().getSegmentId());
-        assertEquals(544, segment.size());
+        assertEquals(560, segment.size());
     }
 
     private int getSize(NodeBuilder builder) {

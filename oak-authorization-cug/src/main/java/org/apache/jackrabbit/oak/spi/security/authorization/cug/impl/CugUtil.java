@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
 import java.io.IOException;
 import java.io.InputStream;
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
@@ -40,6 +41,20 @@ import org.apache.jackrabbit.util.Text;
 final class CugUtil implements CugConstants {
 
     private CugUtil(){}
+
+    public static boolean hasCug(@Nonnull Tree tree) {
+        return tree.exists() && tree.hasChild(REP_CUG_POLICY);
+    }
+
+    @CheckForNull
+    public static Tree getCug(@Nonnull Tree tree) {
+        Tree cugTree = (CugUtil.hasCug(tree)) ? tree.getChild(REP_CUG_POLICY) : null;
+        if (cugTree != null && NT_REP_CUG_POLICY.equals(TreeUtil.getPrimaryTypeName(cugTree))) {
+            return cugTree;
+        } else {
+            return null;
+        }
+    }
 
     public static boolean definesCug(@Nonnull Tree tree) {
         return tree.exists() && REP_CUG_POLICY.equals(tree.getName()) && NT_REP_CUG_POLICY.equals(TreeUtil.getPrimaryTypeName(tree));

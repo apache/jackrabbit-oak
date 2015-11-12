@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
@@ -28,6 +26,8 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 
 /**
  * Service that provides Lucene based {@link IndexEditor}s
@@ -45,7 +45,8 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
     }
 
     public LuceneIndexEditorProvider(@Nullable IndexCopier indexCopier) {
-        this(indexCopier, new ExtractedTextCache());
+        //Disable the cache by default in ExtractedTextCache
+        this(indexCopier, new ExtractedTextCache(0, 0));
     }
 
     public LuceneIndexEditorProvider(@Nullable IndexCopier indexCopier,

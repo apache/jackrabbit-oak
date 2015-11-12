@@ -90,6 +90,7 @@ public class CacheConsistencyRDBTest extends AbstractRDBConnectionTest {
 
         // wait at most one second for background thread
         done.tryAcquire(1, TimeUnit.SECONDS);
+        store.invalidateNodeDocument(Utils.getIdFromPath("/node"));
 
         // release thread
         store.semaphores.get(t).release();

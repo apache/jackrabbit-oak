@@ -54,13 +54,14 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest implements NodeTypeConstants, PrivilegeConstants {
 
-    static final String ROOT_PATH = "/";
+    static final String ROOT_PATH = PathUtils.ROOT_PATH;
     static final String TEST_PATH = "/test";
     static final String TEST_CHILD_PATH = "/test/child";
     static final String TEST_A_PATH = "/test/a";
@@ -215,6 +216,14 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
     @Nonnull
     static String getActionString(@Nonnull String... actions) {
         return Text.implode(actions, ",");
+    }
+
+    static void assertCompositeTreePermission(@Nonnull TreePermission tp) {
+        assertTrue(tp instanceof CompositeTreePermission);
+    }
+
+    static void assertCompositeTreePermission(boolean expected, @Nonnull TreePermission tp) {
+        assertEquals(expected, tp instanceof CompositeTreePermission);
     }
 
     abstract AggregatedPermissionProvider getTestPermissionProvider();
@@ -441,7 +450,7 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
 
         for (String path : TP_PATHS) {
             TreePermission tp = pp.getTreePermission(readOnlyRoot.getTree(path), parentPermission);
-            assertTrue(tp instanceof CompositeTreePermission);
+            assertCompositeTreePermission(tp);
             parentPermission = tp;
         }
     }
@@ -457,7 +466,7 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
         for (String cName : childNames) {
             ns = ns.getChildNode(cName);
             tp = tp.getChildPermission(cName, ns);
-            assertTrue(tp instanceof CompositeTreePermission);
+            assertCompositeTreePermission(tp);
         }
     }
 

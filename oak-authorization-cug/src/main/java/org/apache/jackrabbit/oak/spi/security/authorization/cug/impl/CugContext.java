@@ -50,9 +50,9 @@ final class CugContext implements Context, CugConstants {
 
     @Override
     public boolean definesLocation(@Nonnull TreeLocation location) {
-        Tree tree = location.getTree();
-        if (tree != null && location.exists()) {
-            PropertyState p = location.getProperty();
+        PropertyState p = location.getProperty();
+        Tree tree = (p == null) ? location.getTree() : location.getParent().getTree();
+        if (tree != null) {
             return (p == null) ? definesTree(tree) : definesProperty(tree, p);
         } else {
             String path = location.getPath();

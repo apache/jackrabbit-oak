@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree.impl;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -26,6 +24,7 @@ import com.google.common.base.Objects;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -98,7 +97,7 @@ public final class ImmutableTree extends AbstractTree {
     private TreeType type;
 
     public ImmutableTree(@Nonnull NodeState rootState) {
-        this(ParentProvider.ROOT_PROVIDER, "", rootState);
+        this(ParentProvider.ROOT_PROVIDER, PathUtils.ROOT_NAME, rootState);
     }
 
     public ImmutableTree(@Nonnull ImmutableTree parent, @Nonnull String name, @Nonnull NodeState state) {
@@ -108,7 +107,7 @@ public final class ImmutableTree extends AbstractTree {
     public ImmutableTree(@Nonnull ParentProvider parentProvider, @Nonnull String name, @Nonnull NodeState state) {
         this.nodeBuilder = new ReadOnlyBuilder(state);
         this.name = name;
-        this.parentProvider = checkNotNull(parentProvider);
+        this.parentProvider = parentProvider;
     }
 
     public TreeType getType() {
@@ -127,6 +126,11 @@ public final class ImmutableTree extends AbstractTree {
     }
 
     @Override
+    public boolean isRoot() {
+        return PathUtils.ROOT_NAME.equals(name);
+    }
+
+    @Override
     @CheckForNull
     protected AbstractTree getParentOrNull() {
         return parentProvider.getParent();
@@ -139,7 +143,7 @@ public final class ImmutableTree extends AbstractTree {
     }
 
     @Override
-    protected boolean isHidden(String name) {
+    protected boolean isHidden(@Nonnull String name) {
         return false;
     }
 
@@ -259,7 +263,7 @@ public final class ImmutableTree extends AbstractTree {
         private final ImmutableTree parent;
 
         DefaultParentProvider(@Nonnull ImmutableTree parent) {
-            this.parent = checkNotNull(parent);
+            this.parent = parent;
         }
 
         @Override
