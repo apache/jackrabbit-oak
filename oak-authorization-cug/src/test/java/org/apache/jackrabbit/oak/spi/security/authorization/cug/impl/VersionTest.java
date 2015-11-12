@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 import org.apache.jackrabbit.oak.plugins.version.ReadOnlyVersionManager;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
@@ -335,13 +336,7 @@ public class VersionTest extends AbstractCugTest implements NodeTypeConstants, V
         Tree vh = checkNotNull(versionManager.getVersionHistory(root.getTree(SUPPORTED_PATH)));
 
         CugPermissionProvider pp = createCugPermissionProvider(ImmutableSet.of(SUPPORTED_PATH + "/a"));
-
-        Tree t = root.getTree("/");
-        TreePermission tp = pp.getTreePermission(t, TreePermission.EMPTY);
-        for (String segm : PathUtils.elements(vh.getPath())) {
-            t = t.getChild(segm);
-            tp = pp.getTreePermission(t, tp);
-        }
+        TreePermission tp = getTreePermission(root, vh.getPath(), pp);
         assertTrue(tp instanceof EmptyCugTreePermission);
     }
 
@@ -365,7 +360,6 @@ public class VersionTest extends AbstractCugTest implements NodeTypeConstants, V
             for (String segm : PathUtils.elements(vhPath)) {
                 t = t.getChild(segm);
                 tp = pp.getTreePermission(t, tp);
-
                 assertTrue(tp instanceof CugTreePermission);
             }
         } finally {
@@ -376,5 +370,40 @@ public class VersionTest extends AbstractCugTest implements NodeTypeConstants, V
             }
             root.commit();
         }
+    }
+
+    @Test
+    public void testVersionableWithUnsupportedType() throws Exception {
+        Tree versionable = root.getTree("/content");
+        Tree vh = checkNotNull(versionManager.getVersionHistory(versionable));
+        Tree frozen = vh.getChild("1.0").getChild(JCR_FROZENNODE).getChild("a").getChild("b").getChild("c");
+
+        Tree invalidFrozen = frozen.addChild(REP_CUG_POLICY);
+        invalidFrozen.setProperty(JCR_PRIMARYTYPE, NT_REP_CUG_POLICY);
+
+        CugPermissionProvider pp = createCugPermissionProvider(ImmutableSet.of(SUPPORTED_PATH, SUPPORTED_PATH2));
+        TreePermission tp = getTreePermission(root, PathUtils.concat(vh.getPath(), "1.0", JCR_FROZENNODE, "a/b/c"), pp);
+
+        TreePermission tpForUnsupportedType = pp.getTreePermission(invalidFrozen, TreeType.VERSION, tp);
+        assertEquals(TreePermission.NO_RECOURSE, tpForUnsupportedType);
+    }
+
+    @Test
+    public void testVersionableWithCugParent() throws Exception {
+        addVersionContent("/content/aa/bb/cc");
+
+        Tree cc = root.getTree("/content/aa/bb/cc");
+        assertFalse(CugUtil.hasCug(cc));
+
+        Tree vh = checkNotNull(versionManager.getVersionHistory(cc));
+        Tree t = root.getTree("/");
+        CugPermissionProvider pp = createCugPermissionProvider(
+                ImmutableSet.of(SUPPORTED_PATH, SUPPORTED_PATH2), getTestGroupPrincipal());
+
+        TreePermission tp = getTreePermission(root, vh.getPath(), pp);
+
+        assertTrue(tp instanceof CugTreePermission);
+        assertTrue(((CugTreePermission) tp).isInCug());
+        assertTrue(((CugTreePermission) tp).isAllow());
     }
 }

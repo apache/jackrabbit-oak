@@ -254,7 +254,7 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
         TreePermission tp;
         boolean parentIsCugPermission = (parentPermission instanceof CugTreePermission);
         if (TreeType.VERSION == type) {
-            tp = createVersionStorePermission(immutableTree, type, parentPermission, parentIsCugPermission);
+            tp = createVersionPermission(immutableTree, type, parentPermission, parentIsCugPermission);
         } else {
             if (parentIsCugPermission) {
                 tp = new CugTreePermission(immutableTree, type, parentPermission, this);
@@ -369,7 +369,7 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
     }
 
     @Nonnull
-    private TreePermission createVersionStorePermission(@Nonnull Tree tree, @Nonnull TreeType type, @Nonnull TreePermission parent, boolean parentIsCugPermission) {
+    private TreePermission createVersionPermission(@Nonnull Tree tree, @Nonnull TreeType type, @Nonnull TreePermission parent, boolean parentIsCugPermission) {
         if (ReadOnlyVersionManager.isVersionStoreTree(tree)) {
             if (parentIsCugPermission) {
                 return new CugTreePermission(tree, type, parent, this);
@@ -381,29 +381,37 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
             if (versionableTree == null) {
                 return TreePermission.NO_RECOURSE;
             }
+            TreeType versionableType = typeProvider.getType(versionableTree);
+            if (!isSupportedType(versionableType)) {
+                return TreePermission.NO_RECOURSE;
+            }
+
+            String path = versionableTree.getPath();
+            boolean isSupportedPath = false;
+
+            // test if the versionable node holds a cug
+            Tree cug = null;
+            if (parentIsCugPermission) {
+                cug = CugUtil.getCug(versionableTree);
+            } else if (supportedPaths.includes(path)) {
+                isSupportedPath = true;
+                // the versionable tree might be included in a cug defined by
+                // a parent node -> need to search for inherited cugs as well.
+                Tree cugRoot = getCugRoot(versionableTree, versionableType);
+                if (cugRoot != null) {
+                    cug = CugUtil.getCug(cugRoot);
+                }
+            }
 
             TreePermission tp;
-            String path = versionableTree.getPath();
-            if (parentIsCugPermission) {
-                CugTreePermission delegatee;
-                if (CugUtil.hasCug(versionableTree)) {
-                    delegatee = new CugTreePermission(versionableTree, type, parent, this);
-                } else {
-                    delegatee = (CugTreePermission) parent;
-                };
-                tp = new CugTreePermission(tree, type, parent, this, delegatee.isInCug(), delegatee.isAllow());
-            } else if (supportedPaths.includes(path)) {
-                // look for cug in the hierarchy
-                Tree cugRoot = getCugRoot(versionableTree, typeProvider.getType(versionableTree));
-                if (cugRoot == null) {
-                    // no cug present so far -> continue looking for cugs for frozen children
-                    tp = new CugTreePermission(tree, type, parent, this, false, false);
-                } else {
-                    // retrieve read-access from the cug and apply it to the
-                    // tree permissions of the target tree located in the version storage
-                    CugTreePermission delegatee = new CugTreePermission(cugRoot, type, parent, this);
-                    tp = new CugTreePermission(tree, type, parent, this, delegatee.isInCug(), delegatee.isAllow());
-                }
+            if (cug != null) {
+                // backing versionable tree holds a cug
+                tp = new CugTreePermission(tree, type, parent, this, true, isAllow(cug));
+            } else if (parentIsCugPermission) {
+                CugTreePermission ctp = (CugTreePermission) parent;
+                tp = new CugTreePermission(tree, type, parent, this, ctp.isInCug(), ctp.isAllow());
+            } else if (isSupportedPath) {
+                tp = new CugTreePermission(tree, type, parent, this, false, false);
             } else  if (supportedPaths.mayContainCug(path)) {
                 tp = new EmptyCugTreePermission(tree, type, this);
             } else {

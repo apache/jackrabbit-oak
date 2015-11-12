@@ -35,11 +35,15 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugPolicy;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
@@ -191,5 +195,17 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
         } else {
             assertTrue(tp instanceof EmptyCugTreePermission);
         }
+    }
+
+    static TreePermission getTreePermission(@Nonnull Root root,
+                                            @Nonnull String path,
+                                            @Nonnull PermissionProvider pp) {
+        Tree t = root.getTree("/");
+        TreePermission tp = pp.getTreePermission(t, TreePermission.EMPTY);
+        for (String segm : PathUtils.elements(path)) {
+            t = t.getChild(segm);
+            tp = pp.getTreePermission(t, tp);
+        }
+        return tp;
     }
 }
