@@ -21,7 +21,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -32,7 +31,6 @@ import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nonnull;
 
@@ -120,6 +118,7 @@ final class CommitQueue {
     void suspendUntilAll(@Nonnull Set<Revision> conflictRevisions) {
         Comparator<Revision> comparator = context.getRevisionComparator();
         Semaphore s = null;
+        int addedRevisions;
         synchronized (suspendedCommits) {
             Revision headRevision = context.getHeadRevision();
             List<Revision> afterHead = new ArrayList<Revision>(conflictRevisions.size());
@@ -133,10 +132,11 @@ final class CommitQueue {
             for (Revision r : afterHead) {
                 suspendedCommits.add(new SuspendedCommit(r, s));
             }
+            addedRevisions = afterHead.size();
         }
         if (s != null) {
             try {
-                s.tryAcquire(suspendedCommits.size(), suspendTimeout, TimeUnit.MILLISECONDS);
+                s.tryAcquire(addedRevisions, suspendTimeout, TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
                 LOG.debug("The suspended thread has been interrupted", e);
             } finally {

@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.Closeable;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
@@ -282,6 +284,66 @@ public class CommitQueueTest {
 
         t.join(1000);
         assertFalse(t.isAlive());
+    }
+
+    @Test
+    public void concurrentSuspendUntil() throws Exception {
+        final AtomicReference<Revision> headRevision = new AtomicReference<Revision>();
+        RevisionContext context = new DummyRevisionContext() {
+            @Nonnull
+            @Override
+            public Revision getHeadRevision() {
+                return headRevision.get();
+            }
+        };
+        headRevision.set(context.newRevision());
+
+        List<Thread> threads = new ArrayList<Thread>();
+        List<Revision> allRevisions = new ArrayList<Revision>();
+
+        final CommitQueue queue = new CommitQueue(context);
+        for (int i = 0; i < 10; i++) { // threads count
+            final Set<Revision> revisions = new HashSet<Revision>();
+            for (int j = 0; j < 10; j++) { // revisions per thread
+                Revision r = queue.createRevision();
+                revisions.add(r);
+                allRevisions.add(r);
+            }
+            Thread t = new Thread(new Runnable() {
+                public void run() {
+                    queue.suspendUntilAll(revisions);
+                }
+            });
+            threads.add(t);
+            t.start();
+        }
+
+        for (int i = 0; i < 100; i++) {
+            if (queue.numSuspendedThreads() == 10) {
+                break;
+            }
+            Thread.sleep(10);
+        }
+        assertEquals(10, queue.numSuspendedThreads());
+
+        Collections.shuffle(allRevisions);
+        for (Revision r : allRevisions) {
+            queue.canceled(r);
+            Thread.sleep(10);
+        }
+
+        for (int i = 0; i < 100; i++) {
+            if (queue.numSuspendedThreads() == 0) {
+                break;
+            }
+            Thread.sleep(10);
+        }
+        assertEquals(0, queue.numSuspendedThreads());
+
+        for (Thread t : threads) {
+            t.join(10);
+            assertFalse(t.isAlive());
+        }
     }
 
     private void assertNoExceptions() throws Exception {
