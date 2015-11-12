@@ -153,4 +153,9 @@ public class DocumentStoreWrapper implements DocumentStore {
     public Map<String, String> getMetadata() {
         return store.getMetadata();
     }
+
+    @Override
+    public long determineServerTimeDifferenceMillis() {
+        return store.determineServerTimeDifferenceMillis();
+    }
 }

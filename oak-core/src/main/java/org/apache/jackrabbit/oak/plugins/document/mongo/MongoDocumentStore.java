@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -122,7 +123,9 @@ public class MongoDocumentStore implements DocumentStore {
     private final DBCollection settings;
     private final DBCollection journal;
 
-    private final Cache<CacheValue, NodeDocument> nodesCache;
+	private final DB db;
+
+	private final Cache<CacheValue, NodeDocument> nodesCache;
     private final CacheStats cacheStats;
 
     /**
@@ -205,6 +208,7 @@ public class MongoDocumentStore implements DocumentStore {
                 .put("version", version)
                 .build();
 
+        this.db = db;
         nodes = db.getCollection(Collection.NODES.toString());
         clusterNodes = db.getCollection(Collection.CLUSTER_NODES.toString());
         settings = db.getCollection(Collection.SETTINGS.toString());
@@ -1502,5 +1506,35 @@ public class MongoDocumentStore implements DocumentStore {
             }
             parentLock.unlock();
         }
+    }
+
+    @Override
+    public long determineServerTimeDifferenceMillis() {
+        // the assumption is that the network delay from this instance
+        // to the server, and from the server back to this instance
+        // are (more or less) equal.
+        // taking this assumption into account allows to remove
+        // the network delays from the picture: the difference
+        // between end and start time is exactly this network
+        // delay (plus some server time, but that's neglected).
+        // so if the clocks are in perfect sync and the above
+        // mentioned assumption holds, then the server time should
+        // be exactly at the midPoint between start and end.
+        // this should allow a more accurate picture of the diff.
+        final long start = System.currentTimeMillis();
+        // assumption here: server returns UTC - ie the returned
+        // date object is correctly taking care of time zones.
+        final Date serverLocalTime = db.command("serverStatus").getDate("localTime");
+        final long end = System.currentTimeMillis();
+
+        final long midPoint = (start + end) / 2;
+        final long serverLocalTimeMillis = serverLocalTime.getTime();
+
+        // the difference should be
+        // * positive when local instance is ahead
+        // * and negative when the local instance is behind
+        final long diff = midPoint - serverLocalTimeMillis;
+
+        return diff;
     }
 }

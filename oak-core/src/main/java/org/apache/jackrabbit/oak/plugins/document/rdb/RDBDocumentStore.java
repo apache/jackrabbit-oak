@@ -297,6 +297,53 @@ public class RDBDocumentStore implements DocumentStore {
         invalidateCache(collection, id, false);
     }
 
+    @Override
+    public long determineServerTimeDifferenceMillis() {
+        Connection connection = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        String tableName = getTable(Collection.NODES);
+        long result;
+        try {
+            connection = this.ch.getROConnection();
+            String t = "select ";
+            if (this.db.getFetchFirstSyntax() == FETCHFIRSTSYNTAX.TOP) {
+                t += "TOP 1 ";
+            }
+            t += this.db.getCurrentTimeStampInMsSyntax() + " from " + tableName;
+            switch (this.db.getFetchFirstSyntax()) {
+                case LIMIT:
+                    t += " LIMIT 1";
+                    break;
+                case FETCHFIRST:
+                    t += " FETCH FIRST 1 ROWS ONLY";
+                    break;
+                default:
+                    break;
+            }
+
+            stmt = connection.prepareStatement(t);
+            long start = System.currentTimeMillis();
+            rs = stmt.executeQuery();
+            if (rs.next()) {
+                long roundtrip = System.currentTimeMillis() - start;
+                long serverTime = rs.getTimestamp(1).getTime();
+                result = (start + roundtrip / 2) - serverTime;
+            } else {
+                throw new DocumentStoreException("failed to determine server timestamp");
+            }
+            connection.commit();
+            return result;
+        } catch (Exception ex) {
+            LOG.error("", ex);
+            throw new DocumentStoreException(ex);
+        } finally {
+            this.ch.closeResultSet(rs);
+            this.ch.closeStatement(stmt);
+            this.ch.closeConnection(connection);
+        }
+    }
+
     private <T extends Document> void invalidateCache(Collection<T> collection, String id, boolean remove) {
         if (collection == Collection.NODES) {
             invalidateNodesCache(id, remove);
@@ -1992,4 +2039,5 @@ public class RDBDocumentStore implements DocumentStore {
         }
         return false;
     }
+    
 }
