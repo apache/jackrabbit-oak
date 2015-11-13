@@ -67,18 +67,18 @@ import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.util.ISO8601;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import static com.google.common.collect.ImmutableSet.of;
+import static com.google.common.collect.Lists.newArrayList;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
+import static org.apache.jackrabbit.JcrConstants.NT_FILE;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
@@ -95,6 +95,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NODE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TIKA;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorTest.createCal;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newNodeAggregator;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.useV2;
 import static org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.OrderDirection;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
@@ -1680,6 +1681,39 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
+    public void aggregationAndExcludeProperty() throws Exception {
+        NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
+        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree props = TestUtil.newRulePropTree(idx, TestUtil.NT_TEST);
+        Tree prop = props.addChild(TestUtil.unique("prop"));
+        prop.setProperty(LuceneIndexConstants.PROP_NAME, "jcr:title");
+        prop.setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true);
+
+        Tree prop1 = props.addChild(TestUtil.unique("prop"));
+        prop1.setProperty(LuceneIndexConstants.PROP_NAME, "original/jcr:content/type");
+        prop1.setProperty(LuceneIndexConstants.PROP_INDEX, false);
+
+        newNodeAggregator(idx)
+                .newRuleWithName(NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"))
+                .newRuleWithName(TestUtil.NT_TEST, newArrayList("/*"));
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        Tree a = createNodeWithType(test, "a", TestUtil.NT_TEST);
+        Tree af = createFileNode(a, "original", "hello", "text/plain");
+        af.setProperty("type", "jpg"); //Should be excluded
+        af.setProperty("class", "image"); //Should be included
+
+        root.commit();
+
+        // hello and image would be index by aggregation but
+        // jpg should be exclude as there is a property defn to exclude it
+        assertQuery("select [jcr:path] from [oak:TestNode] where contains(*, 'hello')", asList("/test/a"));
+        assertQuery("select [jcr:path] from [oak:TestNode] where contains(*, 'image')", asList("/test/a"));
+        assertQuery("select [jcr:path] from [oak:TestNode] where contains(*, 'jpg')", Collections.<String>emptyList());
+    }
+
+    @Test
     public void indexingBasedOnMixin() throws Exception {
         Tree idx = createIndex("test1", of("propa", "propb"));
         Tree props = TestUtil.newRulePropTree(idx, "mix:title");
@@ -1730,7 +1764,9 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     private Tree createFileNode(Tree tree, String name, Blob content, String mimeType){
-        Tree jcrContent = tree.addChild(name).addChild(JCR_CONTENT);
+        Tree fileNode = tree.addChild(name);
+        fileNode.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FILE, Type.NAME);
+        Tree jcrContent = fileNode.addChild(JCR_CONTENT);
         jcrContent.setProperty(JcrConstants.JCR_DATA, content);
         jcrContent.setProperty(JcrConstants.JCR_MIMETYPE, mimeType);
         return jcrContent;
