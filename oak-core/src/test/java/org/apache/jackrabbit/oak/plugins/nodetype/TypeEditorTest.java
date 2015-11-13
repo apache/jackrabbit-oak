@@ -16,16 +16,27 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.NT_FOLDER;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.easymock.EasyMock.createControl;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
@@ -102,4 +113,116 @@ public class TypeEditorTest {
         editor.childNodeDeleted("mandatory", EMPTY_NODE);
     }
 
+    @Test
+    public void addNamedPropertyWithBadRequiredType() {
+        EditorHook hook = new EditorHook(new TypeEditorProvider());
+
+        NodeState root = INITIAL_CONTENT;
+        NodeBuilder builder = root.builder();
+
+        NodeState before = builder.getNodeState();
+
+        NodeBuilder testNode = builder.child("testNode");
+        testNode.setProperty(JCR_PRIMARYTYPE, NT_FOLDER, Type.NAME);
+        testNode.setProperty(JCR_MIXINTYPES, ImmutableList.of("mix:title"), Type.NAMES);
+        testNode.setProperty("jcr:title", true);
+
+        try {
+            hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
+            fail();
+        } catch (CommitFailedException e) {
+            assertTrue(e.isConstraintViolation());
+        }
+    }
+
+    @Test
+    public void changeNamedPropertyToBadRequiredType() {
+        EditorHook hook = new EditorHook(new TypeEditorProvider());
+
+        NodeState root = INITIAL_CONTENT;
+        NodeBuilder builder = root.builder();
+        NodeBuilder testNode = builder.child("testNode");
+        testNode.setProperty(JCR_PRIMARYTYPE, NT_FOLDER, Type.NAME);
+        testNode.setProperty(JCR_MIXINTYPES, ImmutableList.of("mix:title"), Type.NAMES);
+        testNode.setProperty("jcr:title", "title");
+
+        NodeState before = builder.getNodeState();
+
+        testNode.setProperty("jcr:title", true);
+
+        try {
+            hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
+            fail();
+        } catch (CommitFailedException e) {
+            assertTrue(e.isConstraintViolation());
+        }
+    }
+
+    @Test
+    public void addMandatoryPropertyWithBadRequiredType() {
+        EditorHook hook = new EditorHook(new TypeEditorProvider());
+
+        NodeState root = INITIAL_CONTENT;
+        NodeBuilder builder = root.builder();
+
+        NodeState before = builder.getNodeState();
+
+        NodeBuilder acl = builder.child(AccessControlConstants.REP_POLICY);
+        acl.setProperty(JCR_PRIMARYTYPE, AccessControlConstants.NT_REP_ACL, Type.NAME);
+        NodeBuilder ace = acl.child("first");
+        ace.setProperty(JCR_PRIMARYTYPE, AccessControlConstants.NT_REP_GRANT_ACE, Type.NAME);
+        ace.setProperty(AccessControlConstants.REP_PRINCIPAL_NAME, EveryonePrincipal.NAME);
+        ace.setProperty(AccessControlConstants.REP_PRIVILEGES, ImmutableList.of(PrivilegeConstants.JCR_READ), Type.STRINGS);
+
+        try {
+            hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
+            fail();
+        } catch (CommitFailedException e) {
+            assertTrue(e.isConstraintViolation());
+            assertEquals(55, e.getCode());
+        }
+    }
+
+    @Test
+    public void changeMandatoryPropertyToBadRequiredType() {
+        EditorHook hook = new EditorHook(new TypeEditorProvider());
+
+        NodeState root = INITIAL_CONTENT;
+        NodeBuilder builder = root.builder();
+        NodeBuilder acl = builder.child(AccessControlConstants.REP_POLICY);
+        acl.setProperty(JCR_PRIMARYTYPE, AccessControlConstants.NT_REP_ACL, Type.NAME);
+        NodeBuilder ace = acl.child("first");
+        ace.setProperty(JCR_PRIMARYTYPE, AccessControlConstants.NT_REP_GRANT_ACE, Type.NAME);
+        ace.setProperty(AccessControlConstants.REP_PRINCIPAL_NAME, EveryonePrincipal.NAME);
+        ace.setProperty(AccessControlConstants.REP_PRIVILEGES, ImmutableList.of(PrivilegeConstants.JCR_READ), Type.NAMES);
+
+        NodeState before = builder.getNodeState();
+
+        // change to invalid type
+        ace.setProperty(AccessControlConstants.REP_PRIVILEGES, ImmutableList.of(PrivilegeConstants.JCR_READ), Type.STRINGS);
+
+        try {
+            hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
+            fail();
+        } catch (CommitFailedException e) {
+            assertTrue(e.isConstraintViolation());
+        }
+    }
+
+    @Test
+    public void requiredTypeIsUndefined() throws CommitFailedException {
+        EditorHook hook = new EditorHook(new TypeEditorProvider());
+
+        NodeState root = INITIAL_CONTENT;
+        NodeBuilder builder = root.builder();
+
+        NodeState before = builder.getNodeState();
+
+        builder.setProperty("any", "title");
+        NodeState after = builder.getNodeState();
+        hook.processCommit(before, after, CommitInfo.EMPTY);
+
+        builder.setProperty("any", 134.34, Type.DOUBLE);
+        hook.processCommit(after, builder.getNodeState(), CommitInfo.EMPTY);
+    }
 }
