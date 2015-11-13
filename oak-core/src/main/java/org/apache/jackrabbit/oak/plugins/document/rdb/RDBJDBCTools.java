@@ -18,8 +18,10 @@ package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,12 +29,17 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+
+import org.slf4j.LoggerFactory;
 
 /**
  * Convenience methods dealing with JDBC specifics.
  */
 public class RDBJDBCTools {
+
+    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(RDBJDBCTools.class);
 
     protected static String jdbctype(String jdbcurl) {
         if (jdbcurl == null) {
@@ -201,5 +208,36 @@ public class RDBJDBCTools {
         else {
             return "";
         }
+    }
+
+    /**
+     * Closes a {@link Statement}, logging potential problems.
+     * @return null
+     */
+    protected static <T extends Statement> T closeStatement(@CheckForNull T stmt) {
+        if (stmt != null) {
+            try {
+                stmt.close();
+            } catch (SQLException ex) {
+                LOG.debug("Closing statement", ex);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Closes a {@link ResultSet}, logging potential problems.
+     * @return null
+     */
+    protected static ResultSet closeResultSet(@CheckForNull ResultSet rs) {
+        if (rs != null) {
+            try {
+                rs.close();
+            } catch (SQLException ex) {
+                LOG.debug("Closing result set", ex);
+            }
+        }
+
+        return null;
     }
 }

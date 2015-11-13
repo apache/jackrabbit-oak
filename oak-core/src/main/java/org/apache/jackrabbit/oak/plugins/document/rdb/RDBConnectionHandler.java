@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -112,42 +111,6 @@ public class RDBConnectionHandler implements Closeable {
     }
 
     /**
-     * Closes a {@link Statement}, logging potential problems.
-     * @return null
-     */
-    public <T extends Statement> T closeStatement(@CheckForNull T stmt) {
-        if (stmt != null) {
-            try {
-                stmt.close();
-            } catch (SQLException ex) {
-                LOG.debug("Closing statement", ex);
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Closes a {@link ResultSet}, logging potential problems.
-     * 
-     * @return null
-     */
-    public ResultSet closeResultSet(@CheckForNull ResultSet rs) {
-        if (rs != null) {
-            try {
-                rs.close();
-            } catch (SQLException ex) {
-                LOG.debug("Closing result set", ex);
-            }
-        }
-
-        return null;
-    }
-
-    public boolean isClosed() {
-        return this.ds == null;
-    }
-
-    /**
      * Return current schema name or {@code null} when unavailable
      */
     @CheckForNull
@@ -160,12 +123,17 @@ public class RDBConnectionHandler implements Closeable {
         }
     }
 
+    public boolean isClosed() {
+        return this.ds == null;
+    }
+
     @Override
     public void close() throws IOException {
         this.ds = null;
         this.closedTime = System.currentTimeMillis();
     }
 
+    @Nonnull
     private DataSource getDataSource() throws IllegalStateException {
         DataSource result = this.ds;
         if (result == null) {
