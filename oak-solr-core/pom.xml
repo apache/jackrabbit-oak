@@ -59,6 +59,8 @@
             org.apache.jackrabbit.core.query.ExcerptTest#testPunctuationStartsFragment                     <!-- OAK-318 -->
             org.apache.jackrabbit.core.query.ExcerptTest#testPunctuationStartsFragmentEndsWithDots         <!-- OAK-318 -->
             org.apache.jackrabbit.core.query.ExcerptTest#testPreferPhrase                                  <!-- OAK-318 -->
+            org.apache.jackrabbit.core.query.ExcerptTest#testQuotedPhrase                                  <!-- OAK-3580 -->
+            org.apache.jackrabbit.core.query.ExcerptTest#testEncodeIllegalCharsHighlights                  <!-- OAK-3580 -->
         </known.issues>
     </properties>
 
