@@ -244,7 +244,15 @@ public class RDBDocumentStoreJDBC {
             if (rs.next()) {
                 long roundtrip = System.currentTimeMillis() - start;
                 long serverTime = rs.getTimestamp(1).getTime();
-                result = (start + roundtrip / 2) - serverTime;
+                long roundedTime = start + roundtrip / 2;
+                result = roundedTime - serverTime;
+                String msg = String.format("instance timestamp: %d, DB timestamp: %d, difference: %d", roundedTime, serverTime,
+                        result);
+                if (Math.abs(result) >= 2000) {
+                    LOG.info(msg);
+                } else {
+                    LOG.debug(msg);
+                }
             } else {
                 throw new DocumentStoreException("failed to determine server timestamp");
             }
