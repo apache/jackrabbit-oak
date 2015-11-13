@@ -21,6 +21,7 @@ import java.util.List;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
+import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextOr;
@@ -216,6 +217,19 @@ class FilterQueryParser {
                 }
             }
             solrQuery.addFilterQuery(ptQueryBuilder.toString());
+        }
+
+        if (filter.getQueryStatement() != null && filter.getQueryStatement().contains(QueryImpl.REP_EXCERPT)) {
+            if (!solrQuery.getHighlight()) {
+                // enable highlighting
+                solrQuery.setHighlight(true);
+                // defaults
+                solrQuery.set("hl.fl", "*");
+                solrQuery.set("hl.encoder", "html");
+                solrQuery.set("hl.mergeContiguous", true);
+                solrQuery.setHighlightSimplePre("<strong>");
+                solrQuery.setHighlightSimplePost("</strong>");
+            }
         }
 
         if (configuration.useForPathRestrictions()) {

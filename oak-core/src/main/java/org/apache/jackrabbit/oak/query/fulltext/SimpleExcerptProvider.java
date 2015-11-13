@@ -16,13 +16,16 @@
  */
 package org.apache.jackrabbit.oak.query.fulltext;
 
-import static org.apache.jackrabbit.util.Text.encodeIllegalXMLCharacters;
-
 import java.util.BitSet;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -33,20 +36,24 @@ import org.apache.jackrabbit.oak.query.ast.ConstraintImpl;
 import org.apache.jackrabbit.oak.query.ast.FullTextSearchImpl;
 import org.apache.jackrabbit.oak.query.ast.LiteralImpl;
 import org.apache.jackrabbit.oak.query.ast.OrImpl;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 
-import com.google.common.collect.ImmutableSet;
+import static com.google.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.util.Text.encodeIllegalXMLCharacters;
 
 /**
  * This class can extract excerpts from node.
  */
 public class SimpleExcerptProvider {
 
-    private static final String REP_EXCERPT_FN = "rep:excerpt(.)";
+    public static final String REP_EXCERPT_FN = "rep:excerpt(.)";
+    public static final String EXCERPT_END = "</span></div>";
+    public static final String EXCERPT_BEGIN = "<div><span>";
 
     private static int maxFragmentSize = 150;
 
     public static String getExcerpt(String path, String columnName,
-            Query query, boolean highlight) {
+                                    Query query, boolean highlight) {
         if (path == null) {
             return null;
         }
@@ -72,7 +79,7 @@ public class SimpleExcerptProvider {
         for (PropertyState p : t.getProperties()) {
             if (p.getType().tag() == Type.STRING.tag()
                     && (columnName == null || columnName.equalsIgnoreCase(p
-                            .getName()))) {
+                    .getName()))) {
                 text.append(separator);
                 separator = " ";
                 for (String v : p.getValue(Type.STRINGS)) {
@@ -82,8 +89,7 @@ public class SimpleExcerptProvider {
         }
         Set<String> searchToken = extractFulltext(query);
         if (highlight && searchToken != null) {
-            String h = highlight(text, searchToken);
-            return h;
+            return highlight(text, searchToken);
         }
         return noHighlight(text);
     }
@@ -140,32 +146,32 @@ public class SimpleExcerptProvider {
         Set<String> out = new HashSet<String>();
         StringBuilder token = new StringBuilder();
         boolean quote = false;
-        for (int i = 0; i < in.length();) {
+        for (int i = 0; i < in.length(); ) {
             final int c = in.codePointAt(i);
             int length = Character.charCount(c);
             switch (c) {
-            case ' ':
-                if (quote) {
-                    token.append(' ');
-                } else if (token.length() > 0) {
-                    out.add(token.toString());
-                    token = new StringBuilder();
-                }
-                break;
-            case '"':
-            case '\'':
-                if (quote) {
-                    quote = false;
-                    if (token.length() > 0) {
+                case ' ':
+                    if (quote) {
+                        token.append(' ');
+                    } else if (token.length() > 0) {
                         out.add(token.toString());
                         token = new StringBuilder();
                     }
-                } else {
-                    quote = true;
-                }
-                break;
-            default:
-                token.append(new String(Character.toChars(c)));
+                    break;
+                case '"':
+                case '\'':
+                    if (quote) {
+                        quote = false;
+                        if (token.length() > 0) {
+                            out.add(token.toString());
+                            token = new StringBuilder();
+                        }
+                    } else {
+                        quote = true;
+                    }
+                    break;
+                default:
+                    token.append(new String(Character.toChars(c)));
             }
             i += length;
         }
@@ -198,7 +204,7 @@ public class SimpleExcerptProvider {
         for (String token : tokens) {
             highlight(escaped, highlight, token);
         }
-        StringBuilder excerpt = new StringBuilder("<div><span>");
+        StringBuilder excerpt = new StringBuilder(EXCERPT_BEGIN);
         boolean strong = false;
         for (int i = 0; i < escaped.length(); i++) {
             if (highlight.get(i) && !strong) {
@@ -213,10 +219,10 @@ public class SimpleExcerptProvider {
         if (strong) {
             excerpt.append("</strong>");
         }
-        excerpt.append("</span></div>");
+        excerpt.append(EXCERPT_END);
         return excerpt.toString();
     }
-    
+
     private static void highlight(String text, BitSet highlightBits, String token) {
         boolean isLike = false;
         if (token.endsWith("*")) {
@@ -247,5 +253,14 @@ public class SimpleExcerptProvider {
             }
         }
     }
-    
+
+    public static PropertyValue getExcerpt(PropertyValue value) {
+        Splitter listSplitter = Splitter.on(',').trimResults().omitEmptyStrings();
+        StringBuilder excerpt = new StringBuilder(EXCERPT_BEGIN);
+        for (String v : listSplitter.splitToList(value.toString())) {
+            excerpt.append(v);
+        }
+        excerpt.append(EXCERPT_END);
+        return PropertyValues.newString(excerpt.toString());
+    }
 }

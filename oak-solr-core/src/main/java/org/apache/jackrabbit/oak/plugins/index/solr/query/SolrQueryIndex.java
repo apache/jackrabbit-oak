@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
+import javax.annotation.CheckForNull;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -26,7 +27,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.CheckForNull;
 
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Iterables;
@@ -64,10 +64,7 @@ import org.apache.solr.common.util.SimpleOrderedMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getAncestorPath;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getDepth;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+import static org.apache.jackrabbit.oak.commons.PathUtils.*;
 
 /**
  * A Solr based {@link QueryIndex}
@@ -131,11 +128,11 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
         }
 
         // property restriction OR native language property restriction defined AND property restriction handled
-        if (filter.getPropertyRestrictions() != null 
+        if (filter.getPropertyRestrictions() != null
                 && filter.getPropertyRestrictions().size() > 0
-                && (filter.getPropertyRestriction(NATIVE_SOLR_QUERY) != null 
+                && (filter.getPropertyRestriction(NATIVE_SOLR_QUERY) != null
                 || filter.getPropertyRestriction(NATIVE_LUCENE_QUERY) != null
-                || configuration.useForPropertyRestrictions()) 
+                || configuration.useForPropertyRestrictions())
                 && !hasIgnoredProperties(filter.getPropertyRestrictions(), configuration)) {
             match++;
         }
@@ -156,7 +153,6 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                 match++;
             }
         }
-
 
 
         return match;
@@ -320,7 +316,21 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                         onRetrievedDocs(filter, docs);
                         numFound = docs.getNumFound();
 
+                        Map<String, Map<String, List<String>>> highlighting = queryResponse.getHighlighting();
                         for (SolrDocument doc : docs) {
+                            // handle highlight
+                            if (highlighting != null) {
+                                Object pathObject = doc.getFieldValue(configuration.getPathField());
+                                if (pathObject != null && highlighting.get(String.valueOf(pathObject)) != null) {
+                                    Map<String, List<String>> value = highlighting.get(String.valueOf(pathObject));
+                                    for (Map.Entry<String, List<String>> entry : value.entrySet()) {
+                                        // all highlighted values end up in 'rep:excerpt', regardless of field match
+                                        for (String v : entry.getValue()) {
+                                            doc.addField(QueryImpl.REP_EXCERPT, v);
+                                        }
+                                    }
+                                }
+                            }
                             SolrResultRow row = convertToRow(doc);
                             if (row != null) {
                                 queue.add(row);
@@ -437,7 +447,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                 (!configuration.useForPropertyRestrictions() // Solr index not used for properties
                         || (configuration.getUsedProperties().size() > 0 && !configuration.getUsedProperties().contains(propertyName)) // not explicitly contained in the used properties
                         || propertyName.contains("/") // no child-level property restrictions
-                        || "rep:excerpt".equals(propertyName) // rep:excerpt is handled by the query engine
+                        || "rep:excerpt".equals(propertyName) // rep:excerpt is not handled at the property level
                         || QueryConstants.RESTRICTION_LOCAL_NAME.equals(propertyName)
                         || configuration.getIgnoredProperties().contains(propertyName));
     }
@@ -568,8 +578,23 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                     }
                     // TODO : make inclusion of doc configurable
                     Collection<Object> fieldValues = currentRow.doc.getFieldValues(columnName);
-                    return currentRow.doc != null ? PropertyValues.newString(
-                            Iterables.toString(fieldValues != null ? fieldValues : Collections.emptyList())) : null;
+                    String value;
+                    if (fieldValues != null && fieldValues.size() > 0) {
+                        if (fieldValues.size() > 1) {
+                            value = Iterables.toString(fieldValues);
+                        } else {
+                            Object fieldValue = currentRow.doc.getFieldValue(columnName);
+                            if (fieldValue != null) {
+                                value = fieldValue.toString();
+                            } else {
+                                value = null;
+                            }
+                        }
+                    } else {
+                        value = Iterables.toString(Collections.emptyList());
+                    }
+
+                    return PropertyValues.newString(value);
                 }
 
             };
