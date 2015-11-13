@@ -41,7 +41,11 @@
                 <artifactId>maven-bundle-plugin</artifactId>
                 <configuration>
                     <instructions>
-                        <Embed-Dependency>*;scope=compile|runtime;inline=true</Embed-Dependency>
+                        <Embed-Dependency>aws-java-sdk-s3;inline=com/amazonaws/services/s3/**|!c
+ om/amazonaws/services/**,aws-java-sdk-core;inline=true,jackson-core;inl
+ ine=true,jackson-databind;inline=true,jackson-annotations;inline=true,c
+ om.adobe.reef.commons.osgi.wrapper.httpcomponents;inline=com/**|org/**,
+ jackrabbit-aws-ext;inline=true</Embed-Dependency>
                         <Export-Package>org.apache.jackrabbit.oak.blob.cloud.aws.s3</Export-Package>
                         <Import-Package>org.slf4j;resolution:=optional</Import-Package>
                         <DynamicImport-Package>sun.io</DynamicImport-Package>
