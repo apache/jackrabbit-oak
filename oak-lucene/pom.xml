@@ -42,6 +42,9 @@
       org.apache.jackrabbit.core.query.ExcerptTest#testPunctuationStartsFragment                     <!-- OAK-318 -->
       org.apache.jackrabbit.core.query.ExcerptTest#testPunctuationStartsFragmentEndsWithDots         <!-- OAK-318 -->
       org.apache.jackrabbit.core.query.ExcerptTest#testPreferPhrase                                  <!-- OAK-318 -->
+      org.apache.jackrabbit.core.query.ExcerptTest#testQuotedPhrase                                  <!-- OAK-3580 -->
+      org.apache.jackrabbit.core.query.ExcerptTest#testHighlightJa                                   <!-- OAK-3580 -->
+      org.apache.jackrabbit.core.query.ExcerptTest#testEncodeIllegalCharsHighlights                  <!-- OAK-3580 -->
       org.apache.jackrabbit.core.query.QueryResultTest#testSkip                                      <!-- OAK-484 -->
       org.apache.jackrabbit.core.query.DerefTest#testDeref                                           <!-- OAK-321 -->
       org.apache.jackrabbit.core.query.DerefTest#testDerefInPredicate                                <!-- OAK-321 -->
@@ -209,6 +212,11 @@
       <artifactId>lucene-suggest</artifactId>
       <version>${lucene.version}</version>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-highlighter</artifactId>
+      <version>${lucene.version}</version>
     </dependency>
 
     <!-- Logging -->
