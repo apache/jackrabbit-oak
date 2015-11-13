@@ -176,6 +176,7 @@ public class RDBDocumentSerializer {
     /**
      * Reconstructs a {@link Document) based on the persisted {@link RDBRow}.
      */
+    @Nonnull
     public <T extends Document> T fromRow(@Nonnull Collection<T> collection, @Nonnull RDBRow row) throws DocumentStoreException {
         T doc = collection.newDocument(store);
         doc.put(ID, row.getId());

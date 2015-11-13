@@ -68,6 +68,8 @@ import javax.management.NotCompliantMBeanException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.cache.Cache;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -2293,9 +2295,9 @@ public final class DocumentNodeStore
         addPathsForDiff(path, paths, getPendingModifications().getPaths(minRev));
         for (Revision r : new Revision[]{fromRev, toRev}) {
             if (r.isBranch()) {
-                BranchCommit c = getBranches().getBranchCommit(r);
-                if (c != null) {
-                    addPathsForDiff(path, paths, c.getModifiedPaths());
+                Branch b = branches.getBranch(r);
+                if (b != null) {
+                    addPathsForDiff(path, paths, b.getModifiedPathsUntil(r));
                 }
             }
         }
@@ -2564,18 +2566,35 @@ public final class DocumentNodeStore
     static abstract class NodeStoreTask implements Runnable {
         final WeakReference<DocumentNodeStore> ref;
         private final AtomicBoolean isDisposed;
-        private int delay;
+        private final Supplier<Integer> delaySupplier;
 
-        NodeStoreTask(DocumentNodeStore nodeStore, AtomicBoolean isDisposed) {
-            ref = new WeakReference<DocumentNodeStore>(nodeStore);
-            delay = nodeStore.getAsyncDelay();
+        NodeStoreTask(final DocumentNodeStore nodeStore,
+                      final AtomicBoolean isDisposed,
+                      Supplier<Integer> delay) {
+            this.ref = new WeakReference<DocumentNodeStore>(nodeStore);
             this.isDisposed = isDisposed;
+            if (delay == null) {
+                delay = new Supplier<Integer>() {
+                    @Override
+                    public Integer get() {
+                        DocumentNodeStore ns = ref.get();
+                        return ns != null ? ns.getAsyncDelay() : 0;
+                    }
+                };
+            }
+            this.delaySupplier = delay;
+        }
+
+        NodeStoreTask(final DocumentNodeStore nodeStore,
+                      final AtomicBoolean isDisposed) {
+            this(nodeStore, isDisposed, null);
         }
 
         protected abstract void execute(@Nonnull DocumentNodeStore nodeStore);
 
         @Override
         public void run() {
+            int delay = delaySupplier.get();
             while (delay != 0 && !isDisposed.get()) {
                 synchronized (isDisposed) {
                     try {
@@ -2591,7 +2610,7 @@ public final class DocumentNodeStore
                     } catch (Throwable t) {
                         LOG.warn("Background operation failed: " + t.toString(), t);
                     }
-                    delay = nodeStore.getAsyncDelay();
+                    delay = delaySupplier.get();
                 } else {
                     // node store not in use anymore
                     break;
@@ -2636,7 +2655,7 @@ public final class DocumentNodeStore
 
         BackgroundLeaseUpdate(DocumentNodeStore nodeStore,
                               AtomicBoolean isDisposed) {
-            super(nodeStore, isDisposed);
+            super(nodeStore, isDisposed, Suppliers.ofInstance(1000));
         }
 
         @Override

@@ -47,7 +47,7 @@ public class CacheTest {
         out.write("corrupt".getBytes());
         out.close();
         PersistentCache pCache = new PersistentCache("target/cacheTest");
-        CacheLIRS<PathRev, StringValue> cache = new CacheLIRS.Builder().
+        CacheLIRS<PathRev, StringValue> cache = new CacheLIRS.Builder<PathRev, StringValue>().
                 maximumSize(1).build();
         Cache<PathRev, StringValue> map = pCache.wrap(null,  null,  cache, CacheType.DIFF);
         String largeString = new String(new char[1024 * 1024]);

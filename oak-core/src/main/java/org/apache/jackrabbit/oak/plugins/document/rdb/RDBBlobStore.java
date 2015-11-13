@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeResultSet;
+import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeStatement;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.security.MessageDigest;
@@ -84,7 +87,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                         stmt = null;
                         con.commit();
                     } catch (SQLException ex) {
-                        this.ch.closeStatement(stmt);
+                        closeStatement(stmt);
                         LOG.debug("attempting to drop: " + tname);
                     }
                 } catch (SQLException ex) {
@@ -186,7 +189,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                     con.commit();
                     tablesPresent.add(tableName);
                 } catch (SQLException ex) {
-                    this.ch.closeStatement(checkStatement);
+                    closeStatement(checkStatement);
  
                     // table does not appear to exist
                     con.rollback();
@@ -226,7 +229,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
             this.callStack = LOG.isDebugEnabled() ? new Exception("call stack of RDBBlobStore creation") : null;
         } finally {
-            this.ch.closeStatement(createStatement);
+            closeStatement(createStatement);
             this.ch.closeConnection(con);
         }
     }
@@ -420,7 +423,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
             prep.executeUpdate();
             prep.close();
         } finally {
-            this.ch.closeStatement(prep);
+            closeStatement(prep);
             con.commit();
             this.ch.closeConnection(con);
         }
@@ -470,10 +473,10 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
             minLastModified = 0;
             return count;
         } finally {
-            this.ch.closeResultSet(rs);
-            this.ch.closeStatement(prepCheck);
-            this.ch.closeStatement(prepDelMeta);
-            this.ch.closeStatement(prepDelData);
+            closeResultSet(rs);
+            closeStatement(prepCheck);
+            closeStatement(prepDelMeta);
+            closeStatement(prepDelData);
             con.commit();
             this.ch.closeConnection(con);
         }
@@ -522,13 +525,9 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
             count = prepMeta.executeUpdate();
             prepData.execute();
-            prepMeta.close();
-            prepMeta = null;
-            prepData.close();
-            prepData = null;
         } finally {
-            this.ch.closeStatement(prepMeta);
-            this.ch.closeStatement(prepData);
+            closeStatement(prepMeta);
+            closeStatement(prepData);
             con.commit();
             this.ch.closeConnection(con);
         }
@@ -612,8 +611,8 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                     rs = null;
                     return !results.isEmpty();
                 } finally {
-                    this.ch.closeResultSet(rs);
-                    this.ch.closeStatement(prep);
+                    closeResultSet(rs);
+                    closeStatement(prep);
                     connection.commit();
                     this.ch.closeConnection(connection);
                 }

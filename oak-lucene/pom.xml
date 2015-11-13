@@ -116,10 +116,14 @@
             <Import-Package>
                 org.apache.lucene.sandbox.*;resolution:=optional,
                 !org.apache.lucene.*,
+                !org.apache.jackrabbit.oak.cache,
                 *
             </Import-Package>
             <Embed-Dependency>
-                lucene-*;inline=true
+                lucene-*;inline=true,
+              <!-- TODO FIXME OAK-3598 -->
+              oak-core;inline="org/apache/jackrabbit/oak/cache/CacheStats*"
+              <!-- TODO FIXME OAK-3598 -->
             </Embed-Dependency>
           </instructions>
         </configuration>

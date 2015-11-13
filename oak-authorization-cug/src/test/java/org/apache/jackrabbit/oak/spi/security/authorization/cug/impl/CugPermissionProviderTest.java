@@ -497,7 +497,7 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
         assertTrue(rootTp instanceof EmptyCugTreePermission);
 
         TreePermission contentTp = cugPermProvider.getTreePermission(root.getTree(SUPPORTED_PATH), rootTp);
-        assertTrue(contentTp instanceof EmptyCugTreePermission);
+        assertTrue(contentTp instanceof CugTreePermission);
 
         TreePermission aTp = cugPermProvider.getTreePermission(root.getTree("/content/a"), contentTp);
         assertTrue(aTp instanceof CugTreePermission);
@@ -509,7 +509,7 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
         assertTrue(cTp instanceof CugTreePermission);
 
         TreePermission aaTp = cugPermProvider.getTreePermission(root.getTree("/content/aa"), contentTp);
-        assertTrue(aaTp instanceof EmptyCugTreePermission);
+        assertTrue(aaTp instanceof CugTreePermission);
 
         TreePermission bbTp = cugPermProvider.getTreePermission(root.getTree("/content/aa/bb"), aaTp);
         assertTrue(bbTp instanceof CugTreePermission);
@@ -521,7 +521,7 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
         Tree aaTree = root.getTree("/content/aa");
         new NodeUtil(aaTree).addChild(CugConstants.REP_CUG_POLICY, NT_OAK_UNSTRUCTURED);
         TreePermission aaTp2 = cugPermProvider.getTreePermission(root.getTree("/content/aa"), contentTp);
-        assertTrue(aaTp2 instanceof EmptyCugTreePermission);
+        assertTrue(aaTp2 instanceof CugTreePermission);
 
         TreePermission falseCugTp = cugPermProvider.getTreePermission(root.getTree("/content/aa/rep:cugPolicy"), aaTp2);
         assertNotSame(TreePermission.EMPTY, falseCugTp);

@@ -22,6 +22,7 @@ import javax.annotation.Nullable;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
+import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 
 /**
@@ -75,4 +76,18 @@ public interface AggregatedPermissionProvider extends PermissionProvider {
      * or non-existing item identified by the given location.
      */
     boolean isGranted(@Nonnull TreeLocation location, long permissions);
+
+    /**
+     * Return the {@code TreePermission} for the set of {@code Principal}s associated
+     * with this provider at the specified {@code tree} with the given {@code type}.
+     *
+     * @param tree The tree for which the {@code TreePermission} object should be built.
+     * @param type The type of this tree.
+     * @param parentPermission The {@code TreePermission} object that has been
+     * obtained before for the parent tree.
+     * @return The {@code TreePermission} object for the specified {@code tree}.
+     */
+    @Nonnull
+    TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreeType type, @Nonnull TreePermission parentPermission);
+
 }

@@ -20,6 +20,7 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
@@ -36,7 +37,6 @@ import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Maps;
@@ -50,12 +50,12 @@ public class CacheConsistencyRDBTest extends AbstractRDBConnectionTest {
     public void setUpConnection() throws Exception {
         dataSource = RDBDataSourceFactory.forJdbcUrl(URL, USERNAME, PASSWD);
         DocumentMK.Builder builder = new DocumentMK.Builder().clock(getTestClock()).setAsyncDelay(0);
-        store = new TestStore(dataSource, builder, new RDBOptions().dropTablesOnClose(true));
+        RDBOptions opt = new RDBOptions().tablePrefix("T" + UUID.randomUUID().toString().replace("-", "")).dropTablesOnClose(true);
+        store = new TestStore(dataSource, builder, opt);
         mk = builder.setDocumentStore(store).setLeaseCheck(false).open();
     }
 
     @Test
-    @Ignore("OAK-3566")
     public void cacheConsistency() throws Exception {
         mk.commit("/", "+\"node\":{}", null, null);
         // add a child node. this will require an update
@@ -69,7 +69,7 @@ public class CacheConsistencyRDBTest extends AbstractRDBConnectionTest {
             public void run() {
                 store.query(NODES, Utils.getKeyLowerLimit("/"), Utils.getKeyUpperLimit("/"), 10);
             }
-        });
+        }, "query");
         // block thread when it tries to convert db objects
         store.semaphores.put(t, new Semaphore(0));
         t.start();
@@ -86,10 +86,11 @@ public class CacheConsistencyRDBTest extends AbstractRDBConnectionTest {
                 mk.runBackgroundOperations();
                 done.release();
             }
-        }).start();
+        }, "mkbg").start();
 
         // wait at most one second for background thread
         done.tryAcquire(1, TimeUnit.SECONDS);
+        store.invalidateNodeDocument(Utils.getIdFromPath("/node"));
 
         // release thread
         store.semaphores.get(t).release();

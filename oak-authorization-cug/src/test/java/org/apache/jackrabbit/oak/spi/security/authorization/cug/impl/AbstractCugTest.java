@@ -40,9 +40,12 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugPolicy;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
+
+import static org.junit.Assert.assertTrue;
 
 /**
  * Base class for CUG related test that setup the authorization configuration
@@ -180,5 +183,13 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
 
     ContentSession createTestSession2() throws Exception {
         return login(new SimpleCredentials(TEST_USER2_ID, TEST_USER2_ID.toCharArray()));
+    }
+
+    static void assertCugPermission(@Nonnull TreePermission tp, boolean isSupportedPath) {
+        if (isSupportedPath) {
+            assertTrue(tp instanceof CugTreePermission);
+        } else {
+            assertTrue(tp instanceof EmptyCugTreePermission);
+        }
     }
 }

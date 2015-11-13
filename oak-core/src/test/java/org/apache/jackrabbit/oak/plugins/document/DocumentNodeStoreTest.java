@@ -27,11 +27,15 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifiedInSecs;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadInfo;
+import java.lang.management.ThreadMXBean;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -40,6 +44,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -626,7 +631,7 @@ public class DocumentNodeStoreTest {
         assertTrue(found);
 
         // diff must report '/test' modified and '/test/foo' added
-        ClusterTest.TrackingDiff diff = new ClusterTest.TrackingDiff();
+        TrackingDiff diff = new TrackingDiff();
         r2.compareAgainstBaseState(r1, diff);
         assertEquals(1, diff.modified.size());
         assertTrue(diff.modified.contains("/test"));
@@ -1621,6 +1626,47 @@ public class DocumentNodeStoreTest {
 
     }
 
+    // OAK-3579
+    @Test
+    public void backgroundLeaseUpdateThread() throws Exception {
+        int clusterId = -1;
+        Random random = new Random();
+        // pick a random clusterId between 1000 and 2000
+        // and make sure it is not in use (give up after 10 tries)
+        for (int i = 0; i < 10; i++) {
+            int id = random.nextInt(1000) + 1000;
+            if (!backgroundLeaseUpdateThreadRunning(id)) {
+                clusterId = id;
+                break;
+            }
+        }
+        assertNotEquals(-1, clusterId);
+        DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0)
+                .setClusterId(clusterId).getNodeStore();
+        for (int i = 0; i < 10; i++) {
+            if (!backgroundLeaseUpdateThreadRunning(clusterId)) {
+                Thread.sleep(100);
+            }
+        }
+        assertTrue(backgroundLeaseUpdateThreadRunning(clusterId));
+        // access DocumentNodeStore to make sure it is not
+        // garbage collected prematurely
+        assertEquals(clusterId, ns.getClusterId());
+    }
+
+    private static boolean backgroundLeaseUpdateThreadRunning(int clusterId) {
+        String threadName = "DocumentNodeStore lease update thread (" + clusterId + ")";
+        ThreadMXBean threadBean = ManagementFactory.getThreadMXBean();
+        for (ThreadInfo ti : threadBean.getThreadInfo(threadBean.getAllThreadIds())) {
+            if (ti != null) {
+                if (threadName.equals(ti.getThreadName())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     /**
      * Utility class that eases creating single cluster id merge conflicts. The two methods:
      * <ul>
@@ -2314,6 +2360,54 @@ public class DocumentNodeStoreTest {
         numPreviousFinds.set(0);
         doc.getNodeAtRevision(ns, ns.getHeadRevision(), null);
         assertEquals(0, numPreviousFinds.get());
+    }
+
+    // OAK-3608
+    @Test
+    public void compareOnBranch() throws Exception {
+        long modifiedResMillis = SECONDS.toMillis(MODIFIED_IN_SECS_RESOLUTION);
+        Clock clock = new Clock.Virtual();
+        clock.waitUntil(System.currentTimeMillis());
+        Revision.setClock(clock);
+        DocumentNodeStore ns = builderProvider.newBuilder()
+                .clock(clock)
+                .setAsyncDelay(0).getNodeStore();
+        // initial state
+        NodeBuilder builder = ns.getRoot().builder();
+        NodeBuilder p = builder.child("parent");
+        for (int i = 0; i < DocumentMK.MANY_CHILDREN_THRESHOLD * 2; i++) {
+            p.child("node-" + i);
+        }
+        p.child("node-x").child("child");
+        merge(ns, builder);
+        ns.runBackgroundOperations();
+
+        // wait until modified timestamp changes
+        clock.waitUntil(clock.getTime() + modifiedResMillis * 2);
+        // force new head revision with this different modified timestamp
+        builder = ns.getRoot().builder();
+        builder.child("a");
+        merge(ns, builder);
+
+        DocumentNodeState root = ns.getRoot();
+        final DocumentNodeStoreBranch b = ns.createBranch(root);
+        // branch state is now Unmodified
+        builder = root.builder();
+        builder.child("parent").child("node-x").child("child").child("x");
+        b.setRoot(builder.getNodeState());
+        // branch state is now InMemory
+        builder.child("b");
+        b.setRoot(builder.getNodeState());
+        // branch state is now Persisted
+        builder.child("c");
+        b.setRoot(builder.getNodeState());
+        // branch state is Persisted
+
+        // create a diff between base and head state of branch
+        DocumentNodeState head = asDocumentNodeState(b.getHead());
+        TrackingDiff diff = new TrackingDiff();
+        head.compareAgainstBaseState(root, diff);
+        assertTrue(diff.modified.contains("/parent/node-x/child"));
     }
 
     private static DocumentNodeState asDocumentNodeState(NodeState state) {

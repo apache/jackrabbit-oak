@@ -87,7 +87,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
 
     @Override
     protected AggregatedPermissionProvider getTestPermissionProvider() {
-        return new NoScopeProvider();
+        return new NoScopeProvider(root);
     }
 
     @Override
@@ -99,7 +99,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
         for (String path : TP_PATHS) {
             Tree t = readOnlyRoot.getTree(path);
             TreePermission tp = pp.getTreePermission(t, parentPermission);
-            assertEquals(t.isRoot(), tp instanceof CompositeTreePermission);
+            assertCompositeTreePermission(t.isRoot(), tp);
             parentPermission = tp;
         }
     }
@@ -112,12 +112,12 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
         Tree rootTree = readOnlyRoot.getTree(ROOT_PATH);
         NodeState ns = ((ImmutableTree) rootTree).getNodeState();
         TreePermission tp = createPermissionProvider().getTreePermission(rootTree, TreePermission.EMPTY);
-        assertTrue(tp instanceof CompositeTreePermission);
+        assertCompositeTreePermission(tp);
 
         for (String cName : childNames) {
             ns = ns.getChildNode(cName);
             tp = tp.getChildPermission(cName, ns);
-            assertFalse(tp instanceof CompositeTreePermission);
+            assertCompositeTreePermission(false, tp);
         }
     }
 
@@ -416,7 +416,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
             ns = ns.getChildNode(cName);
             tp = tp.getChildPermission(cName, ns);
 
-            assertFalse(tp instanceof CompositeTreePermission);
+            assertCompositeTreePermission(false, tp);
         }
     }
 }

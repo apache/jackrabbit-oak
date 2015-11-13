@@ -20,9 +20,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 
 /**
  * Same as {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission#EMPTY}
@@ -32,22 +30,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * indicates that this permission model will never grant access in the subtree
  * and thus can be ignored.
  */
-final class EmptyCugTreePermission implements TreePermission {
+final class EmptyCugTreePermission extends AbstractTreePermission {
 
-    private final Tree tree;
-    private final PermissionProvider permissionProvider;
-
-    EmptyCugTreePermission(@Nonnull Tree tree, @Nonnull PermissionProvider permissionProvider) {
-        this.tree = tree;
-        this.permissionProvider = permissionProvider;
+    EmptyCugTreePermission(@Nonnull Tree tree, @Nonnull TreeType type, @Nonnull CugPermissionProvider permissionProvider) {
+        super(tree, type, permissionProvider);
     }
 
     //-----------------------------------------------------< TreePermission >---
-    @Nonnull
-    @Override
-    public TreePermission getChildPermission(@Nonnull String childName, @Nonnull NodeState childState) {
-        return permissionProvider.getTreePermission(tree.getChild(childName), this);
-    }
 
     @Override
     public boolean canRead() {

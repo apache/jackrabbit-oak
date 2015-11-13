@@ -23,7 +23,9 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
@@ -67,13 +69,14 @@ public class LuceneIndexProviderServiceTest {
 
         LuceneIndexEditorProvider editorProvider =
                 (LuceneIndexEditorProvider) context.getService(IndexEditorProvider.class);
-        assertNull(editorProvider.getIndexCopier());
+        assertNotNull(editorProvider.getIndexCopier());
 
         IndexCopier indexCopier = service.getIndexCopier();
         assertNotNull("IndexCopier should be initialized as CopyOnRead is enabled by default", indexCopier);
         assertTrue(indexCopier.isPrefetchEnabled());
 
         assertNotNull("CopyOnRead should be enabled by default", context.getService(CopyOnReadStatsMBean.class));
+        assertNotNull(context.getService(CacheStatsMBean.class));
 
         assertTrue(context.getService(Observer.class) instanceof BackgroundObserver);
         assertEquals(InfoStream.NO_OUTPUT, InfoStream.getDefault());
@@ -127,6 +130,23 @@ public class LuceneIndexProviderServiceTest {
 
         assertEquals(LoggingInfoStream.INSTANCE, InfoStream.getDefault());
         MockOsgi.deactivate(service);
+    }
+
+    @Test
+    public void enableExtractedTextCaching() throws Exception{
+        Map<String,Object> config = getDefaultConfig();
+        config.put("extractedTextCacheSizeInMB", 11);
+        MockOsgi.activate(service, context.bundleContext(), config);
+
+        ExtractedTextCache textCache = service.getExtractedTextCache();
+        assertNotNull(textCache.getCacheStats());
+        assertNotNull(context.getService(CacheStatsMBean.class));
+
+        assertEquals(11 * FileUtils.ONE_MB, textCache.getCacheStats().getMaxTotalWeight());
+
+        MockOsgi.deactivate(service);
+
+        assertNull(context.getService(CacheStatsMBean.class));
     }
 
     @Test

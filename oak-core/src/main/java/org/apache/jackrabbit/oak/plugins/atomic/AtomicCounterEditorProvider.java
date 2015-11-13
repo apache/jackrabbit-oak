@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.atomic;
 
 import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -29,7 +30,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * Provide an instance of {@link AtomicCounterEditor}
  */
 @Component
-@Service
+@Property(name = "type", value = "atomicCounter", propertyPrivate = true)
+@Service(EditorProvider.class)
 public class AtomicCounterEditorProvider implements EditorProvider {
     
     @Override

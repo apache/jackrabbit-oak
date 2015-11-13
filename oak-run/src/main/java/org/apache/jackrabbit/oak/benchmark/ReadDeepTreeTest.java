@@ -69,7 +69,7 @@ public class ReadDeepTreeTest extends AbstractTest {
         Node rn = adminSession.getRootNode();
         allPaths.clear();
 
-        String testNodeName = getClass().getSimpleName() + TEST_ID;
+        String testNodeName = getTestNodeName();
         long start = System.currentTimeMillis();
         if (!rn.hasNode(testNodeName)) {
             testRoot = adminSession.getRootNode().addNode(testNodeName, "nt:unstructured");
@@ -99,6 +99,10 @@ public class ReadDeepTreeTest extends AbstractTest {
 
     protected String getImportFileName() {
         return "deepTree.xml";
+    }
+
+    protected String getTestNodeName() {
+        return getClass().getSimpleName() + TEST_ID;
     }
 
     protected void visitingNode(Node node, int i) throws RepositoryException {

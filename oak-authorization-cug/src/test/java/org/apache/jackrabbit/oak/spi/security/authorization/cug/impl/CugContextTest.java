@@ -133,6 +133,7 @@ public class CugContextTest extends AbstractCugTest implements NodeTypeConstants
         for (String path : nonExistingCug) {
             assertTrue(path, CugContext.INSTANCE.definesLocation(TreeLocation.create(root, path)));
             assertTrue(path, CugContext.INSTANCE.definesLocation(TreeLocation.create(root, path + "/" + CugConstants.REP_PRINCIPAL_NAMES)));
+            assertFalse(path, CugContext.INSTANCE.definesLocation(TreeLocation.create(root, path + "/" + JcrConstants.JCR_PRIMARYTYPE)));
         }
     }
 
