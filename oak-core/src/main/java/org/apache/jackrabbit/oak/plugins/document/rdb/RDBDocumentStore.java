@@ -1358,14 +1358,20 @@ public class RDBDocumentStore implements DocumentStore {
             Long modcount = (Long) document.get(MODCOUNT);
             Long cmodcount = (Long) document.get(COLLISIONSMODCOUNT);
             boolean success = false;
+            boolean shouldRetry = true;
 
             // every 16th update is a full rewrite
             if (isAppendableUpdate(update) && modcount % 16 != 0) {
                 String appendData = SR.asString(update);
                 if (appendData.length() < tmd.getDataLimitInOctets() / CHAR2OCTETRATIO) {
                     try {
-                        success = dbAppendingUpdate(connection, tmd, document.getId(), modified, modifiedIsConditional, hasBinary, deletedOnce,
-                                modcount, cmodcount, oldmodcount, appendData);
+                        success = dbAppendingUpdate(connection, tmd, document.getId(), modified, modifiedIsConditional, hasBinary,
+                                deletedOnce, modcount, cmodcount, oldmodcount, appendData);
+                        // if we get here, a retry is not going to help (the SQL
+                        // operation succeeded but simply did not select a row
+                        // that could be updated, likely because of the check on
+                        // MODCOUNT
+                        shouldRetry = false;
                         connection.commit();
                     } catch (SQLException ex) {
                         continueIfStringOverflow(ex);
@@ -1374,7 +1380,7 @@ public class RDBDocumentStore implements DocumentStore {
                     }
                 }
             }
-            if (!success) {
+            if (!success && shouldRetry) {
                 data = SR.asString(document);
                 success = dbUpdate(connection, tmd, document.getId(), modified, hasBinary, deletedOnce, modcount, cmodcount,
                         oldmodcount, data);
