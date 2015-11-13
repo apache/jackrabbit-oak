@@ -112,19 +112,28 @@ public class ResultRowImpl implements ResultRow {
             int columnIndex = query.getColumnIndex(QueryImpl.REP_EXCERPT);
             if (columnIndex >= 0 && QueryImpl.REP_EXCERPT.equals(columnName) || SimpleExcerptProvider.REP_EXCERPT_FN.
                     equals(columnName)) {
-                return SimpleExcerptProvider.getExcerpt(values[columnIndex]);
                 // TODO : make it possible to extract property level excerpts, e.g. rep:excerpt(text) from indexes
+                PropertyValue value = values[columnIndex];
+                if (value != null) {
+                    return SimpleExcerptProvider.getExcerpt(value);
+                } else {
+                    return getFallbackExcerpt(columnName);
+                }
             } else {
                 // missing excerpt, generate a default value
-                String ex = SimpleExcerptProvider.getExcerpt(getPath(), columnName,
-                        query, true);
-                if (ex != null) {
-                    return PropertyValues.newString(ex);
-                }
-                return PropertyValues.newString(getPath());
+                return getFallbackExcerpt(columnName);
             }
         }
         throw new IllegalArgumentException("Column not found: " + columnName);
+    }
+
+    private PropertyValue getFallbackExcerpt(String columnName) {
+        String ex = SimpleExcerptProvider.getExcerpt(getPath(), columnName,
+                query, true);
+        if (ex != null) {
+            return PropertyValues.newString(ex);
+        }
+        return PropertyValues.newString(getPath());
     }
 
     @Override
