@@ -74,6 +74,18 @@ public class PathUtilsTest extends TestCase {
         assertEquals(2, PathUtils.getDepth("a/b"));
     }
 
+    @Test
+    public void testConcatRelativePaths() {
+        assertNull(PathUtils.concatRelativePaths("", "", ""));
+        assertNull(PathUtils.concatRelativePaths());
+
+        assertEquals("a/b/c", PathUtils.concatRelativePaths("a", "b", "c"));
+        assertEquals("a/b/c", PathUtils.concatRelativePaths("a", "b/c"));
+        assertEquals("a/b/c", PathUtils.concatRelativePaths("a/b/c", ""));
+        assertEquals("a/b/c", PathUtils.concatRelativePaths("a/b", "c"));
+        assertEquals("a/b/c", PathUtils.concatRelativePaths("/", "a", "", "b/c/"));
+    }
+
 
     private static int getElementCount(String path) {
         int count = 0;

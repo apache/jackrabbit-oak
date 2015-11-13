@@ -43,6 +43,7 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.commons.DebugTimer;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
@@ -149,28 +150,10 @@ public class DefaultSyncContext implements SyncContext {
      * Robust relative path concatenation.
      * @param paths relative paths
      * @return the concatenated path
+     * @deprecated Since Oak 1.3.10. Please use {@link PathUtils#concatRelativePaths(String...)} instead.
      */
     public static String joinPaths(String... paths) {
-        StringBuilder result = new StringBuilder();
-        for (String path: paths) {
-            if (path != null && !path.isEmpty()) {
-                int i0 = 0;
-                int i1 = path.length();
-                while (i0 < i1 && path.charAt(i0) == '/') {
-                    i0++;
-                }
-                while (i1 > i0 && path.charAt(i1-1) == '/') {
-                    i1--;
-                }
-                if (i1 > i0) {
-                    if (result.length() > 0) {
-                        result.append('/');
-                    }
-                    result.append(path.substring(i0, i1));
-                }
-            }
-        }
-        return result.length() == 0 ? null : result.toString();
+        return PathUtils.concatRelativePaths(paths);
     }
 
     /**
@@ -390,7 +373,7 @@ public class DefaultSyncContext implements SyncContext {
                 externalUser.getId(),
                 null,
                 principal,
-                joinPaths(config.user().getPathPrefix(), externalUser.getIntermediatePath())
+                PathUtils.concatRelativePaths(config.user().getPathPrefix(), externalUser.getIntermediatePath())
         );
         user.setProperty(REP_EXTERNAL_ID, valueFactory.createValue(externalUser.getExternalId().getString()));
         return user;
@@ -410,7 +393,7 @@ public class DefaultSyncContext implements SyncContext {
         Group group = userManager.createGroup(
                 externalGroup.getId(),
                 principal,
-                joinPaths(config.group().getPathPrefix(), externalGroup.getIntermediatePath())
+                PathUtils.concatRelativePaths(config.group().getPathPrefix(), externalGroup.getIntermediatePath())
         );
         group.setProperty(REP_EXTERNAL_ID, valueFactory.createValue(externalGroup.getExternalId().getString()));
         return group;
