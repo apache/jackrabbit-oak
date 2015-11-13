@@ -41,13 +41,18 @@
                 <artifactId>maven-bundle-plugin</artifactId>
                 <configuration>
                     <instructions>
-                        <Embed-Dependency>aws-java-sdk-s3;inline=com/amazonaws/services/s3/**|!c
- om/amazonaws/services/**,aws-java-sdk-core;inline=true,jackson-core;inl
- ine=true,jackson-databind;inline=true,jackson-annotations;inline=true,c
- om.adobe.reef.commons.osgi.wrapper.httpcomponents;inline=com/**|org/**,
- jackrabbit-aws-ext;inline=true</Embed-Dependency>
+                        <Embed-Dependency>
+                            aws-java-sdk-s3;inline=true, 
+                            aws-java-sdk-core;inline=true, 
+                            jackson-annotations;inline=true, 
+                            jackson-databind;inline=true, 
+                            jackson-core;inline=true,
+                            httpclient;inline=true,
+                            httpcore;inline=true,
+                            commons-codec;inline=true
+                        </Embed-Dependency>
                         <Export-Package>org.apache.jackrabbit.oak.blob.cloud.aws.s3</Export-Package>
-                        <Import-Package>org.slf4j;resolution:=optional</Import-Package>
+                        <Import-Package>*;resolution:=optional</Import-Package>
                         <DynamicImport-Package>sun.io</DynamicImport-Package>
                     </instructions>
                 </configuration>
@@ -133,15 +138,58 @@
                     <artifactId>joda-time</artifactId>
                 </exclusion>
             </exclusions>
-
         </dependency>
         <dependency>
-            <groupId>joda-time</groupId>
-            <artifactId>joda-time</artifactId>
-            <version>2.2</version>
-            <optional>true</optional>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-core</artifactId>
+            <version>1.10.31</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>joda-time</groupId>
+                    <artifactId>joda-time</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
-
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <version>2.6.3</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.6.3</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>2.6.3</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>2.6.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpcore</artifactId>
+            <version>4.4.3</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-logging</groupId>
+            <artifactId>commons-logging</artifactId>
+            <version>1.1.3</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+            <version>1.9</version>
+        </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
