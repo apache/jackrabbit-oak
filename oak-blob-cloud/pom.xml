@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 
 <!--
    Licensed to the Apache Software Foundation (ASF) under one or more
@@ -41,7 +41,9 @@
                 <artifactId>maven-bundle-plugin</artifactId>
                 <configuration>
                     <instructions>
-                        <Export-Package>org.apache.jackrabbit.oak.blob.cloud.s3</Export-Package>
+                        <Embed-Dependency>*;scope=compile|runtime;inline=true</Embed-Dependency>
+                        <Export-Package>org.apache.jackrabbit.oak.blob.cloud.aws.s3</Export-Package>
+                        <Import-Package>org.slf4j;resolution:=optional</Import-Package>
                         <DynamicImport-Package>sun.io</DynamicImport-Package>
                     </instructions>
                 </configuration>
@@ -119,8 +121,8 @@
         <!-- Amazon AWS dependency -->
         <dependency>
             <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk</artifactId>
-            <version>1.9.11</version>
+            <artifactId>aws-java-sdk-s3</artifactId>
+            <version>1.10.31</version>
             <exclusions>
                 <exclusion>
                     <groupId>joda-time</groupId>
