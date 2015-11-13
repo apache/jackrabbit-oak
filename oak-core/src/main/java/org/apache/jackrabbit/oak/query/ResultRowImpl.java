@@ -35,18 +35,18 @@ public class ResultRowImpl implements ResultRow {
 
     private final Query query;
     private final Tree[] trees;
-    
+
     /**
      * The column values.
      */
     private final PropertyValue[] values;
-    
+
     /**
      * Whether the value at the given index is used for comparing rows (used
      * within hashCode and equals). If null, all columns are distinct.
      */
     private final boolean[] distinctValues;
-    
+
     /**
      * The values used for ordering.
      */
@@ -59,7 +59,7 @@ public class ResultRowImpl implements ResultRow {
         this.distinctValues = distinctValues;
         this.orderValues = orderValues;
     }
-    
+
     PropertyValue[] getOrderValues() {
         return orderValues;
     }
@@ -107,17 +107,33 @@ public class ResultRowImpl implements ResultRow {
         }
         // OAK-318:
         // somebody might call rep:excerpt(text)
-        // even thought the query doesn't contain that column
+        // even though the query doesn't contain that column
         if (columnName.startsWith(QueryImpl.REP_EXCERPT)) {
-            // missing excerpt, generate a default value
-            String ex = SimpleExcerptProvider.getExcerpt(getPath(), columnName,
-                    query, true);
-            if (ex != null) {
-                return PropertyValues.newString(ex);
+            int columnIndex = query.getColumnIndex(QueryImpl.REP_EXCERPT);
+            if (columnIndex >= 0 && QueryImpl.REP_EXCERPT.equals(columnName) || SimpleExcerptProvider.REP_EXCERPT_FN.
+                    equals(columnName)) {
+                // TODO : make it possible to extract property level excerpts, e.g. rep:excerpt(text) from indexes
+                PropertyValue value = values[columnIndex];
+                if (value != null) {
+                    return SimpleExcerptProvider.getExcerpt(value);
+                } else {
+                    return getFallbackExcerpt(columnName);
+                }
+            } else {
+                // missing excerpt, generate a default value
+                return getFallbackExcerpt(columnName);
             }
-            return PropertyValues.newString(getPath());
         }
         throw new IllegalArgumentException("Column not found: " + columnName);
+    }
+
+    private PropertyValue getFallbackExcerpt(String columnName) {
+        String ex = SimpleExcerptProvider.getExcerpt(getPath(), columnName,
+                query, true);
+        if (ex != null) {
+            return PropertyValues.newString(ex);
+        }
+        return PropertyValues.newString(getPath());
     }
 
     @Override
@@ -146,7 +162,7 @@ public class ResultRowImpl implements ResultRow {
         }
         return buff.toString();
     }
-    
+
 
     @Override
     public int hashCode() {
@@ -155,7 +171,7 @@ public class ResultRowImpl implements ResultRow {
         result = 31 * result + hashCodeOfValues();
         return result;
     }
-    
+
     private int hashCodeOfValues() {
         int result = 1;
         for (int i = 0; i < values.length; i++) {
