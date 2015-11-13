@@ -16,12 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeResultSet;
+import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeStatement;
+
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -95,8 +99,8 @@ public enum RDBDocumentStoreDB {
             } catch (SQLException ex) {
                 LOG.debug("while getting diagnostics", ex);
             } finally {
-                ch.closeResultSet(rs);
-                ch.closeStatement(stmt);
+                closeResultSet(rs);
+                closeStatement(stmt);
                 ch.closeConnection(con);
             }
             return result.toString();
@@ -107,6 +111,21 @@ public enum RDBDocumentStoreDB {
         @Override
         public String checkVersion(DatabaseMetaData md) throws SQLException {
             return RDBJDBCTools.versionCheck(md, 10, 1, description);
+        }
+
+        public String getTableCreationStatement(String tableName) {
+            return "create table " + tableName
+                    + " (ID varchar(512) not null, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA blob("
+                    + 1024 * 1024 * 1024 + "))";
+        }
+
+        public List<String> getIndexCreationStatements(String tableName) {
+            List<String> statements = new ArrayList<String>();
+            String pkName = tableName + "_pk";
+            statements.add("create unique index " + pkName + " on " + tableName + " ( ID ) cluster");
+            statements.add("alter table " + tableName + " add constraint " + pkName + " primary key ( ID )");
+            statements.addAll(super.getIndexCreationStatements(tableName));
+            return statements;
         }
 
         @Override
@@ -146,8 +165,8 @@ public enum RDBDocumentStoreDB {
             } catch (SQLException ex) {
                 LOG.debug("while getting diagnostics", ex);
             } finally {
-                ch.closeResultSet(rs);
-                ch.closeStatement(stmt);
+                closeResultSet(rs);
+                closeStatement(stmt);
                 ch.closeConnection(con);
             }
             return result.toString();
@@ -192,8 +211,8 @@ public enum RDBDocumentStoreDB {
             } catch (SQLException ex) {
                 LOG.debug("while getting diagnostics", ex);
             } finally {
-                ch.closeResultSet(rs);
-                ch.closeStatement(stmt);
+                closeResultSet(rs);
+                closeStatement(stmt);
                 ch.closeConnection(con);
             }
             return result.toString();
@@ -248,8 +267,8 @@ public enum RDBDocumentStoreDB {
             } catch (SQLException ex) {
                 LOG.debug("while getting diagnostics", ex);
             } finally {
-                ch.closeResultSet(rs);
-                ch.closeStatement(stmt);
+                closeResultSet(rs);
+                closeStatement(stmt);
                 ch.closeConnection(con);
             }
             return result.toString();
@@ -309,8 +328,8 @@ public enum RDBDocumentStoreDB {
             } catch (SQLException ex) {
                 LOG.debug("while getting diagnostics", ex);
             } finally {
-                ch.closeResultSet(rs);
-                ch.closeStatement(stmt);
+                closeResultSet(rs);
+                closeStatement(stmt);
                 ch.closeConnection(con);
             }
             return result.toString();

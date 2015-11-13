@@ -105,18 +105,23 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
         String oakPath = getOakPath(absPath);
         getTree(oakPath, Permissions.READ_ACCESS_CONTROL, true);
 
-        Root r = getRoot().getContentSession().getLatestRoot();
-        List<AccessControlPolicy> effective = new ArrayList<AccessControlPolicy>();
-        while (oakPath != null) {
-            if (isSupportedPath(oakPath)) {
-                CugPolicy cug = getCugPolicy(oakPath, r.getTree(oakPath));
-                if (cug != null) {
-                    effective.add(cug);
+        boolean enabled = config.getConfigValue(CugConstants.PARAM_CUG_ENABLED, false);
+        if (enabled) {
+            Root r = getRoot().getContentSession().getLatestRoot();
+            List<AccessControlPolicy> effective = new ArrayList<AccessControlPolicy>();
+            while (oakPath != null) {
+                if (isSupportedPath(oakPath)) {
+                    CugPolicy cug = getCugPolicy(oakPath, r.getTree(oakPath));
+                    if (cug != null) {
+                        effective.add(cug);
+                    }
                 }
+                oakPath = (PathUtils.denotesRoot(oakPath)) ? null : PathUtils.getAncestorPath(oakPath, 1);
             }
-            oakPath = (PathUtils.denotesRoot(oakPath)) ? null : PathUtils.getAncestorPath(oakPath, 1);
+            return effective.toArray(new AccessControlPolicy[effective.size()]);
+        } else {
+            return new AccessControlPolicy[0];
         }
-        return effective.toArray(new AccessControlPolicy[effective.size()]);
     }
 
     @Override

@@ -240,11 +240,16 @@
       <artifactId>oak-http</artifactId>
       <version>${project.version}</version>
     </dependency>
-      <dependency>
+    <dependency>
         <groupId>org.apache.jackrabbit</groupId>
         <artifactId>oak-remote</artifactId>
         <version>${project.version}</version>
-      </dependency>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-authorization-cug</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-lucene</artifactId>
@@ -360,11 +365,6 @@
       <artifactId>mapdb</artifactId>
       <version>1.0.6</version>
       <scope>compile</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.google.code.gson</groupId>
-      <artifactId>gson</artifactId>
-      <version>2.2.4</version>
     </dependency>
 
     <dependency>

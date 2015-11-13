@@ -42,6 +42,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -631,7 +632,7 @@ public class DocumentNodeStoreTest {
         assertTrue(found);
 
         // diff must report '/test' modified and '/test/foo' added
-        ClusterTest.TrackingDiff diff = new ClusterTest.TrackingDiff();
+        TrackingDiff diff = new TrackingDiff();
         r2.compareAgainstBaseState(r1, diff);
         assertEquals(1, diff.modified.size());
         assertTrue(diff.modified.contains("/test"));
@@ -2253,6 +2254,70 @@ public class DocumentNodeStoreTest {
                 mergeAttempts.get() <= 1);
     }
 
+    // OAK-3586
+    @Test
+    public void resolveMultipleConflictedRevisions() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        final DocumentNodeStore ds = builderProvider.newBuilder()
+                .setDocumentStore(store)
+                .setAsyncDelay(0).getNodeStore();
+
+        DocumentNodeState root = ds.getRoot();
+        final DocumentNodeStoreBranch b = ds.createBranch(root);
+
+        NodeBuilder builder = root.builder();
+        builder.child("foo");
+        b.setRoot(builder.getNodeState());
+
+        final Set<Revision> revisions = new HashSet<Revision>();
+        final List<Commit> commits = new ArrayList<Commit>();
+        for (int i = 0; i < 10; i++) {
+            Revision revision = ds.newRevision();
+            Commit commit = ds.newCommit(revision, ds.createBranch(root));
+            commits.add(commit);
+            revisions.add(revision);
+        }
+
+        final AtomicBoolean merged = new AtomicBoolean();
+        Thread t = new Thread(new Runnable() {
+            public void run() {
+                try {
+                    CommitFailedException exception = new ConflictException("Can't merge", revisions).asCommitFailedException();
+                    b.merge(new HookFailingOnce(exception), CommitInfo.EMPTY);
+                    merged.set(true);
+                } catch (CommitFailedException e) {
+                    LOG.error("Can't commit", e);
+                }
+            }
+        });
+        t.start();
+
+        // 6 x done()
+        for (int i = 0; i < 6; i++) {
+            assertFalse("The branch can't be merged yet", merged.get());
+            ds.done(commits.get(i), false, CommitInfo.EMPTY);
+            Thread.sleep(100);
+        }
+
+        // 2 x cancel()
+        for (int i = 6; i < 8; i++) {
+            assertFalse("The branch can't be merged yet", merged.get());
+            ds.canceled(commits.get(i));
+            Thread.sleep(100);
+        }
+
+        // 2 x branch done()
+        for (int i = 8; i < 10; i++) {
+            assertFalse("The branch can't be merged yet", merged.get());
+            ds.done(commits.get(i), true, CommitInfo.EMPTY);
+            Thread.sleep(100);
+        }
+
+        assertTrue("The branch should be merged by now", merged.get());
+
+        t.join();
+    }
+
     // OAK-3411
     @Test
     public void sameSeenAtRevision() throws Exception {
@@ -2362,6 +2427,54 @@ public class DocumentNodeStoreTest {
         assertEquals(0, numPreviousFinds.get());
     }
 
+    // OAK-3608
+    @Test
+    public void compareOnBranch() throws Exception {
+        long modifiedResMillis = SECONDS.toMillis(MODIFIED_IN_SECS_RESOLUTION);
+        Clock clock = new Clock.Virtual();
+        clock.waitUntil(System.currentTimeMillis());
+        Revision.setClock(clock);
+        DocumentNodeStore ns = builderProvider.newBuilder()
+                .clock(clock)
+                .setAsyncDelay(0).getNodeStore();
+        // initial state
+        NodeBuilder builder = ns.getRoot().builder();
+        NodeBuilder p = builder.child("parent");
+        for (int i = 0; i < DocumentMK.MANY_CHILDREN_THRESHOLD * 2; i++) {
+            p.child("node-" + i);
+        }
+        p.child("node-x").child("child");
+        merge(ns, builder);
+        ns.runBackgroundOperations();
+
+        // wait until modified timestamp changes
+        clock.waitUntil(clock.getTime() + modifiedResMillis * 2);
+        // force new head revision with this different modified timestamp
+        builder = ns.getRoot().builder();
+        builder.child("a");
+        merge(ns, builder);
+
+        DocumentNodeState root = ns.getRoot();
+        final DocumentNodeStoreBranch b = ns.createBranch(root);
+        // branch state is now Unmodified
+        builder = root.builder();
+        builder.child("parent").child("node-x").child("child").child("x");
+        b.setRoot(builder.getNodeState());
+        // branch state is now InMemory
+        builder.child("b");
+        b.setRoot(builder.getNodeState());
+        // branch state is now Persisted
+        builder.child("c");
+        b.setRoot(builder.getNodeState());
+        // branch state is Persisted
+
+        // create a diff between base and head state of branch
+        DocumentNodeState head = asDocumentNodeState(b.getHead());
+        TrackingDiff diff = new TrackingDiff();
+        head.compareAgainstBaseState(root, diff);
+        assertTrue(diff.modified.contains("/parent/node-x/child"));
+    }
+
     private static DocumentNodeState asDocumentNodeState(NodeState state) {
         if (!(state instanceof DocumentNodeState)) {
             throw new IllegalArgumentException("Not a DocumentNodeState");
@@ -2423,6 +2536,28 @@ public class DocumentNodeStoreTest {
             throw new CommitFailedException(CONSTRAINT, 0, "fail");
         }
     };
+
+    private static class HookFailingOnce implements CommitHook {
+
+        private final AtomicBoolean failedAlready = new AtomicBoolean();
+
+        private final CommitFailedException exception;
+
+        private HookFailingOnce(CommitFailedException exception) {
+            this.exception = exception;
+        }
+
+        @Override
+        public NodeState processCommit(NodeState before, NodeState after, CommitInfo info)
+                throws CommitFailedException {
+            if (failedAlready.getAndSet(true)) {
+                return after;
+            } else {
+                throw exception;
+            }
+        }
+
+    }
 
     private static class TestEditor extends DefaultEditor {
 

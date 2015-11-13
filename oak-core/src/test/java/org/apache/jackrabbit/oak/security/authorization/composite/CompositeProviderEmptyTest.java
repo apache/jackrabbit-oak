@@ -34,8 +34,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -203,21 +201,15 @@ public class CompositeProviderEmptyTest extends AbstractCompositeProviderTest {
     /**
      * {@code AggregatedPermissionProvider} that doesn't grant any access.
      */
-    private static final class EmptyAggregatedProvider implements AggregatedPermissionProvider {
+    private static final class EmptyAggregatedProvider extends AbstractAggrProvider {
 
         private static final PermissionProvider BASE = EmptyPermissionProvider.getInstance();
-        private final Root root;
 
         private EmptyAggregatedProvider(@Nonnull Root root) {
-            this.root = root;
+            super(root);
         }
 
         //---------------------------------------------< PermissionProvider >---
-        @Override
-        public void refresh() {
-            root.refresh();
-        }
-
         @Nonnull
         @Override
         public Set<String> getPrivileges(@Nullable Tree tree) {
@@ -252,27 +244,6 @@ public class CompositeProviderEmptyTest extends AbstractCompositeProviderTest {
         }
 
         //-----------------------------------< AggregatedPermissionProvider >---
-        @Nonnull
-        @Override
-        public PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits) {
-            return (privilegeBits == null) ? new PrivilegeBitsProvider(root).getBits(JCR_ALL) : privilegeBits;
-        }
-
-        @Override
-        public long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property, long permissions) {
-            return permissions;
-        }
-
-        @Override
-        public long supportedPermissions(@Nonnull TreeLocation location, long permissions) {
-            return permissions;
-        }
-
-        @Override
-        public long supportedPermissions(@Nonnull TreePermission treePermission, @Nullable PropertyState propertyState, long permissions) {
-            return permissions;
-        }
-
         @Override
         public boolean isGranted(@Nonnull TreeLocation location, long permissions) {
             return false;

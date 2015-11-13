@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree.impl;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.Iterables.filter;
@@ -44,6 +43,7 @@ import com.google.common.base.Predicate;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
@@ -94,7 +94,7 @@ public abstract class AbstractTree implements Tree {
      * @param name  name of an item
      * @return  {@code true} if the item is hidden, {@code false} otherwise.
      */
-    protected boolean isHidden(String name) {
+    protected boolean isHidden(@Nonnull String name) {
         return NodeStateUtils.isHidden(name);
     }
 
@@ -191,9 +191,9 @@ public abstract class AbstractTree implements Tree {
     @Nonnull
     public String getPath() {
         if (isRoot()) {
-            return "/";
+            return PathUtils.ROOT_PATH;
         } else {
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new StringBuilder(128);
             buildPath(sb);
             return sb.toString();
         }
@@ -202,7 +202,7 @@ public abstract class AbstractTree implements Tree {
     protected void buildPath(@Nonnull StringBuilder sb) {
         AbstractTree parent = getParentOrNull();
         if (parent != null) {
-            parent.buildPath(checkNotNull(sb));
+            parent.buildPath(sb);
             sb.append('/').append(getName());
         }
     }
@@ -236,7 +236,7 @@ public abstract class AbstractTree implements Tree {
     @Override
     @Nonnull
     public Tree getChild(@Nonnull String name) throws IllegalArgumentException {
-        if (!isHidden(checkNotNull(name))) {
+        if (!isHidden(name)) {
             return createChild(name);
         } else {
             return new HiddenTree(this, name);
@@ -246,14 +246,14 @@ public abstract class AbstractTree implements Tree {
     @Override
     @CheckForNull
     public PropertyState getProperty(@Nonnull String name) {
-        return !isHidden(checkNotNull(name))
+        return !isHidden(name)
             ? getNodeBuilder().getProperty(name)
             : null;
     }
 
     @Override
     public boolean hasProperty(@Nonnull String name) {
-        return (!isHidden(checkNotNull(name))) && getNodeBuilder().hasProperty(name);
+        return (!isHidden(name)) && getNodeBuilder().hasProperty(name);
     }
 
     @Override
@@ -265,7 +265,7 @@ public abstract class AbstractTree implements Tree {
     @CheckForNull
     public Status getPropertyStatus(@Nonnull String name) {
         NodeBuilder nodeBuilder = getNodeBuilder();
-        if (!hasProperty(checkNotNull(name))) {
+        if (!hasProperty(name)) {
             return null;
         } else if (nodeBuilder.isNew(name)) {
             return NEW;
@@ -290,7 +290,7 @@ public abstract class AbstractTree implements Tree {
 
     @Override
     public boolean hasChild(@Nonnull String name) {
-        return getNodeBuilder().hasChildNode(checkNotNull(name)) && !isHidden(name);
+        return getNodeBuilder().hasChildNode(name) && !isHidden(name);
     }
 
     @Override

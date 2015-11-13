@@ -36,6 +36,9 @@ import javax.annotation.Nonnull;
  */
 public final class PathUtils {
 
+    public static final String ROOT_PATH = "/";
+    public static final String ROOT_NAME = "";
+
     private static final Pattern SNS_PATTERN =
             Pattern.compile("(.+)\\[[1-9][0-9]*\\]$");
 
@@ -56,7 +59,7 @@ public final class PathUtils {
     }
 
     private static boolean denotesRootPath(String path) {
-        return "/".equals(path);
+        return ROOT_PATH.equals(path);
     }
 
     /**
@@ -130,7 +133,7 @@ public final class PathUtils {
             if (pos > 0) {
                 end = pos - 1;
             } else if (pos == 0) {
-                return "/";
+                return ROOT_PATH;
             } else {
                 return "";
             }
@@ -151,7 +154,7 @@ public final class PathUtils {
         assert isValid(path) : "Invalid path ["+path+"]";
 
         if (path.isEmpty() || denotesRootPath(path)) {
-            return "";
+            return ROOT_NAME;
         }
         int end = path.length() - 1;
         int pos = path.lastIndexOf('/', end);

@@ -24,7 +24,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import static com.google.common.collect.Sets.newHashSet;
-import static org.junit.Assert.assertEquals;
 
 /**
  * Test the PathUtils class.
@@ -175,10 +174,12 @@ public class PathUtilsTest extends TestCase {
 
         // denotesRoot
         assertTrue(PathUtils.denotesRoot("/"));
+        assertTrue(PathUtils.denotesRoot(PathUtils.ROOT_PATH));
         assertFalse(PathUtils.denotesRoot("/" + parent));
 
         // getName
         assertEquals("", PathUtils.getName("/"));
+        assertEquals(PathUtils.ROOT_NAME, PathUtils.getName(PathUtils.ROOT_PATH));
         assertEquals(parent, PathUtils.getName("/" + parent));
         assertEquals(child, PathUtils.getName("/" + parent + "/" + child));
 

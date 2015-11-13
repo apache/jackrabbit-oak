@@ -20,10 +20,16 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.Weigher;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
@@ -41,6 +47,24 @@ class ExtractedTextCache {
     private long totalTextSize;
     private long totalTime;
     private int preFetchedCount;
+    private final Cache<String, String> cache;
+    private final CacheStats cacheStats;
+
+    public ExtractedTextCache(long maxWeight, long expiryTimeInSecs) {
+        if (maxWeight > 0) {
+            cache = CacheBuilder.newBuilder()
+                    .weigher(EmpiricalWeigher.INSTANCE)
+                    .maximumWeight(maxWeight)
+                    .expireAfterAccess(expiryTimeInSecs, TimeUnit.SECONDS)
+                    .recordStats()
+                    .build();
+            cacheStats = new CacheStats(cache, "ExtractedTextCache",
+                    EmpiricalWeigher.INSTANCE, maxWeight);
+        } else {
+            cache = null;
+            cacheStats = null;
+        }
+    }
 
     /**
      * Get the pre extracted text for given blob
@@ -75,11 +99,21 @@ class ExtractedTextCache {
                 log.warn("Error occurred while fetching pre extracted text for {}", propertyPath, e);
             }
         }
+
+        String id = blob.getContentIdentity();
+        if (cache != null && id != null && result == null) {
+            result = cache.getIfPresent(id);
+        }
         return result;
     }
 
-    public void put(Blob blob, ExtractedText extractedText){
-
+    public void put(@Nonnull Blob blob, @Nonnull ExtractedText extractedText) {
+        String id = blob.getContentIdentity();
+        if (extractedText.getExtractionResult() == ExtractedText.ExtractionResult.SUCCESS
+                && cache != null
+                && id != null) {
+            cache.put(id, extractedText.getExtractedText().toString());
+        }
     }
 
     public void addStats(int count, long timeInMillis, long bytesRead, long textLength){
@@ -123,11 +157,43 @@ class ExtractedTextCache {
         };
     }
 
+    @CheckForNull
+    public CacheStats getCacheStats() {
+        return cacheStats;
+    }
+
     public void setExtractedTextProvider(PreExtractedTextProvider extractedTextProvider) {
         this.extractedTextProvider = extractedTextProvider;
     }
 
     public PreExtractedTextProvider getExtractedTextProvider() {
         return extractedTextProvider;
+    }
+
+    void resetCache(){
+        if (cache != null){
+            cache.invalidateAll();
+        }
+    }
+
+    //Taken from DocumentNodeStore and cache packages as they are private
+    private static class EmpiricalWeigher implements Weigher<String, String> {
+        public static final EmpiricalWeigher INSTANCE = new EmpiricalWeigher();
+
+        private EmpiricalWeigher() {
+        }
+
+        private static int getMemory(@Nonnull String s) {
+            return 16                           // shallow size
+                    + 40 + s.length() * 2;  // value
+        }
+
+        @Override
+        public int weigh(String key, String value) {
+            int size = 168;                 // overhead for each cache entry
+            size += getMemory(key);        // key
+            size += getMemory(value);      // value
+            return size;
+        }
     }
 }

@@ -142,7 +142,7 @@ public class MongoDocumentStore implements DocumentStore {
     /**
      * Locks to ensure cache consistency on reads, writes and invalidation.
      */
-    private final Striped<Lock> locks = Striped.lock(128);
+    private final Striped<Lock> locks = Striped.lock(4096);
 
     /**
      * ReadWriteLocks to synchronize cache access when child documents are
@@ -152,7 +152,7 @@ public class MongoDocumentStore implements DocumentStore {
      * document. Reading multiple sibling documents will acquire a write
      * (exclusive) lock for the parent key. See OAK-1897.
      */
-    private final Striped<ReadWriteLock> parentLocks = Striped.readWriteLock(64);
+    private final Striped<ReadWriteLock> parentLocks = Striped.readWriteLock(2048);
 
     /**
      * Counts how many times {@link TreeLock}s were acquired.
@@ -277,8 +277,9 @@ public class MongoDocumentStore implements DocumentStore {
         cacheStats = new CacheStats(nodesCache, "Document-Documents", builder.getWeigher(),
                 builder.getDocumentCacheSize());
         LOG.info("Configuration maxReplicationLagMillis {}, " +
-                "maxDeltaForModTimeIdxSecs {}, disableIndexHint {}",
-                maxReplicationLagMillis, maxDeltaForModTimeIdxSecs, disableIndexHint);
+                "maxDeltaForModTimeIdxSecs {}, disableIndexHint {}, {}",
+                maxReplicationLagMillis, maxDeltaForModTimeIdxSecs,
+                disableIndexHint, db.getWriteConcern());
     }
 
     private static String checkVersion(DB db) {
