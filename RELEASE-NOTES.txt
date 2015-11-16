@@ -1,5 +1,5 @@
 
-Release Notes -- Apache Jackrabbit Oak -- Version 1.0.23
+Release Notes -- Apache Jackrabbit Oak -- Version 1.0.24
 
 Introduction
 ------------
@@ -8,55 +8,65 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.0.23 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.0.24 is a patch release that contains fixes and
 improvements over Oak 1.0. Jackrabbit Oak 1.0.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.0.23
+Changes in Oak 1.0.24
 ---------------------
 
 Technical task
 
-    [OAK-3532] - create RDB export tool
-    [OAK-3540] - DocumentStore tests: use named parametrization
+    [OAK-3421] - RDBDocumentStore: force DB2 to use a clustered index
+    [OAK-3604] - RDBDocumentStore: update JDBC drivers for PostgresQL,
+    MySQL, and Derby
+    [OAK-3605] - RDBBlob/DocumentStore: reduce class complexity
+    [OAK-3617] - RDBDocumentStore: improve retry logic in
+    updateDocument
+    [OAK-3631] - RDBDocumentStore: improve logging for server time
+    difference detection
 
 Bug
 
-    [OAK-3325] - MissingIndexProviderStrategy should warn when setting
-    the reindex flag
-    [OAK-3442] - Intermittent IllegalMonitorStateException seen while
-    releaseing IndexNode
-    [OAK-3476] - Memory leak caused by using marker names based on non
-    static session id
-    [OAK-3487] - NodeDocumentTest.getNewestRevisionTooExpensive()
-    fails occasionally
-    [OAK-3513] - Session save going through despite repository being
-    shutdown causing reindex flag to reset
-    [OAK-3526] - Segment cache not invalidated on cleanup
-    [OAK-3556] - MongoDocumentStore may create incomplete document
+    [OAK-3137] - Global fulltext index returning plan for pure
+    NodeType queries
+    [OAK-3378] - Test failure: SuggestTest
+    [OAK-3566] - Stale documents in RDBDocumentStore cache
+    [OAK-3567] - Long running query holds TreeLock
+    [OAK-3582] - Background split may throw NPE
+    [OAK-3591] - Lucene index with 'analyzed=true' sometimes used by
+    mistake
+    [OAK-3608] - Compare of node states on branch may be incorrect
+    [OAK-3630] - Mixin based rules not working for relative properties
+    [OAK-3638] - NodeAggregator in SolrQueryIndexProviderService
+    should be volatile
+    [OAK-3639] - Wrong method name for "updated" reference in
+    SolrServerProviderService
+    [OAK-3641] - testSpellcheckMultipleWords failing on 1.0
 
 Improvement
 
-    [OAK-3054] - IndexStatsMBean should provide some details if the
-    async indexing is failing
-    [OAK-3300] - Include parameter descriptions in test output when
-    running parameterised tests
-    [OAK-3409] - CompositeRegistration.unregister diagnostics not
-    helpful
-    [OAK-3455] - Improve conflict exception message
-    [OAK-3495] - Query engine: disable or restrict built-in full-text
-    engine (backport to 1.0)
-    [OAK-3500] - Review padding for blobs collection (backport to 1.0)
-    [OAK-3504] - CopyOnRead directory should not schedule a copy task
-    for non existent file
-    [OAK-3505] - Provide an optionally stricter policy for missing
-    synchronous index editor providers
-    [OAK-3539] - Document interface should have entrySet() in addition
-    to keySet()
-    [OAK-3546] - Improve ObservationManagerImpl timeout message
+    [OAK-3092] - Cache recently extracted text to avoid duplicate
+    extraction
+    [OAK-3331] - Support spellchecking multiple words
+    [OAK-3489] - DocumentStore: introduce a "NotEquals" condition
+    [OAK-3580] - Make it possible to use indexes for providing
+    excerpts
+    [OAK-3581] - Increase tracked info on Lucene index closing
+    [OAK-3587] - SegmentNodeStore stricter checkpoint creation policy
+    [OAK-3588] - SegmentNodeStore allow tweaking of lock fairness
+    [OAK-3633] - Enable exclusion of relative property in aggregation
+
+Task
+
+    [OAK-3623] - backport DocumentStore time diff API back
+
+Test
+
+    [OAK-3570] - concurrentLoop(MongoDocumentStoreIT) test failures
 
 
 In addition to the above-mentioned changes, this release contains
