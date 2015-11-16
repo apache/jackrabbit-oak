@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.2.7
+Release Notes -- Apache Jackrabbit Oak -- Version 1.2.8
 
 Introduction
 ------------
@@ -7,79 +7,112 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.2.7 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.2.8 is a patch release that contains fixes and
 improvements over Oak 1.2. Jackrabbit Oak 1.2.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.2.7
+Changes in Oak 1.2.8
 --------------------
 
 Sub-task
 
-    [OAK-3133] - Make compaction map more efficient for offline
-    compaction
-    [OAK-3359] - Compactor progress log
-    [OAK-3443] - Track the start time of mark in GC
+    [OAK-3192] - Provide a way to allow embedding application to be
+    notified about OSGi startup
+    [OAK-3195] - Allow finer control for timeout handling in case of
+    repository startup
+    [OAK-3214] - Enable registration of MBean via Aries JMX Whiteboard
+    support
 
 Technical task
 
-    [OAK-3394] - RDBDocumentStore startup: log more DDL information
-    (incl. index information)
-    [OAK-3413] - RDBDocumentStorePerformanceTest leaks
-    PreparedStatements
-    [OAK-3414] - RDBDocumentStore: improve DB2 diagnostics
-    [OAK-3422] - RDBDocumentStore: improve index diagnostics
-    [OAK-3438] - RDBDocumentStoreDB: leaking resultset
-    [OAK-3445] - RDBDocumentStore: when generating SQL for queries,
-    leave out unneeded constraints
-    [OAK-3446] - RDBDocumentStore: update PostgresQL and MySQL JDBC
-    drivers
+    [OAK-3421] - RDBDocumentStore: force DB2 to use a clustered index
+    [OAK-3532] - create RDB export tool
+    [OAK-3540] - DocumentStore tests: use named parametrization
+    [OAK-3604] - RDBDocumentStore: update JDBC drivers for PostgresQL,
+    MySQL, and Derby
+    [OAK-3605] - RDBBlob/DocumentStore: reduce class complexity
+    [OAK-3617] - RDBDocumentStore: improve retry logic in
+    updateDocument
+    [OAK-3631] - RDBDocumentStore: improve logging for server time
+    difference detection
 
 Bug
 
-    [OAK-2929] - Parent of unseen children must not be removable
-    [OAK-3201] - Use static references in SecurityProviderImpl for
-    composite services
-    [OAK-3311] - Potential NPE in syncAllExternalUsers() aborts the
-    process
-    [OAK-3318] - IndexRule not respecting inheritence based on mixins
-    [OAK-3371] - Wrong evaluation of NOT clause
-    [OAK-3388] - Inconsistent read in cluster with clock differences
-    [OAK-3396] - NPE during syncAllExternalUsers in
-    LdapIdentityProvider.createUser
-    [OAK-3412] - Node name having non space whitspace chars should not
-    be allowed
-    [OAK-3417] - oak-run OakFixture might set incorrect clusterIDs
-    [OAK-3418] - ClusterNodeInfo uses irrelevant network interface IDs
-    on Windows
-    [OAK-3419] - ClusterNodeInfo.createInstance fails to clean up
-    random entries
-    [OAK-3420] - DocumentNodeStoreService fails to restart
-    DocumentNodeStore
-    [OAK-3423] - RandomAuthorizableNodeName should not be part of the
-    default configuration of SecurityProviderImpl
-    [OAK-3431] - SecurityProviderRegistration should not be part of an
-    exported package
-    [OAK-3433] - Background update may create journal entry with
-    incorrect id
-    [OAK-3434] - Revert backwards-incompatible changes to
-    SecurityProviderImpl
-    [OAK-3456] - MongoBlobGCTest.gcLongRunningBlobCollection() fails
+    [OAK-3137] - Global fulltext index returning plan for pure
+    NodeType queries
+    [OAK-3200] - Build Failure due to LuceneSupportTest and
+    OakOSGiRepositoryFactoryTest
+    [OAK-3248] - Felix Connect throws exception when launching Oak in
+    Spring Boot env
+    [OAK-3325] - MissingIndexProviderStrategy should warn when setting
+    the reindex flag
+    [OAK-3375] - RepositoryManager doesn't perform a shutdown of
+    OsgiRepository on deactivation
+    [OAK-3442] - Intermittent IllegalMonitorStateException seen while
+    releaseing IndexNode
+    [OAK-3476] - Memory leak caused by using marker names based on non
+    static session id
+    [OAK-3487] - NodeDocumentTest.getNewestRevisionTooExpensive()
+    fails occasionally
+    [OAK-3499] - Test failures when there is no network interface
+    [OAK-3513] - Session save going through despite repository being
+    shutdown causing reindex flag to reset
+    [OAK-3517] - Node.addNode(String, String) may check
+    nt-mgt-permission against the wrong node
+    [OAK-3526] - Segment cache not invalidated on cleanup
+    [OAK-3556] - MongoDocumentStore may create incomplete document
+    [OAK-3566] - Stale documents in RDBDocumentStore cache
+    [OAK-3567] - Long running query holds TreeLock
+    [OAK-3571] - baseline failures on 1.2
+    [OAK-3582] - Background split may throw NPE
+    [OAK-3591] - Lucene index with 'analyzed=true' sometimes used by
+    mistake
+    [OAK-3608] - Compare of node states on branch may be incorrect
+    [OAK-3630] - Mixin based rules not working for relative properties
+    [OAK-3640] - SolrIndexQueryTestIT failure on 1.2
 
 Improvement
 
-    [OAK-2948] - Expose DefaultSyncHandler
-    [OAK-3425] - Improve DocumentNodeStore startup/shutdown
-    diagnostics
-    [OAK-3435] - LastRevRecoveryAgent/MissingLastRevSeeker
-    improvements
-    [OAK-3441] - SecurityProviderImpl should not be an OSGi component
-    [OAK-3454] - Improve the logging capabilities of offline
-    compaction
-    [OAK-3455] - Improve conflict exception message
+    [OAK-3054] - IndexStatsMBean should provide some details if the
+    async indexing is failing
+    [OAK-3092] - Cache recently extracted text to avoid duplicate
+    extraction
+    [OAK-3203] - Make shutdown in PojoSR wait for framework shutdown
+    [OAK-3300] - Include parameter descriptions in test output when
+    running parameterised tests
+    [OAK-3331] - Support spellchecking multiple words
+    [OAK-3409] - CompositeRegistration.unregister diagnostics not
+    helpful
+    [OAK-3449] - DocumentNodeStore support for predefined clusterIds
+    should use ClusterNodeInfos
+    [OAK-3486] - Wrong evaluation of NOT NOT clause (see OAK-3371)
+    [OAK-3489] - DocumentStore: introduce a "NotEquals" condition
+    [OAK-3504] - CopyOnRead directory should not schedule a copy task
+    for non existent file
+    [OAK-3505] - Provide an optionally stricter policy for missing
+    synchronous index editor providers
+    [OAK-3539] - Document interface should have entrySet() in addition
+    to keySet()
+    [OAK-3546] - Improve ObservationManagerImpl timeout message
+    [OAK-3580] - Make it possible to use indexes for providing
+    excerpts
+    [OAK-3581] - Increase tracked info on Lucene index closing
+    [OAK-3587] - SegmentNodeStore stricter checkpoint creation policy
+    [OAK-3588] - SegmentNodeStore allow tweaking of lock fairness
+    [OAK-3633] - Enable exclusion of relative property in aggregation
+
+Task
+
+    [OAK-3569] - Bump mongo java driver version to 2.13.3
+    [OAK-3623] - backport DocumentStore time diff API back
+
+Test
+
+    [OAK-3562] - Tests do not close MongoConnection
+    [OAK-3570] - concurrentLoop(MongoDocumentStoreIT) test failures
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.2.4 release.
