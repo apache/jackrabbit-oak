@@ -214,6 +214,31 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
+    public void indexSelectionFulltextVsNodeType() throws Exception {
+        Tree nodeTypeIdx = root.getTree("/oak:index/nodetype");
+        nodeTypeIdx.setProperty(PropertyStates.createProperty(DECLARING_NODE_TYPES, of("nt:file"), NAMES));
+        nodeTypeIdx.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+        //Set the cost to highest to ensure that if Lucene index opts in then
+        //it always wins. In actual case Lucene index should not participate
+        //in such queries
+        nodeTypeIdx.setProperty(IndexConstants.ENTRY_COUNT_PROPERTY_NAME, Long.MAX_VALUE);
+
+        Tree luceneIndex = createFullTextIndex(root.getTree("/"), "lucene");
+
+        Tree test = root.getTree("/").addChild("test");
+        setNodeType(test, "nt:file");
+
+        setNodeType(test.addChild("a"), "nt:file");
+        setNodeType(test.addChild("b"), "nt:file");
+        setNodeType(test.addChild("c"), "nt:base");
+        root.commit();
+
+        String propabQuery = "/jcr:root//element(*, nt:file)";
+        System.out.println(explainXpath(propabQuery));
+        assertThat(explainXpath(propabQuery), containsString("nodeType"));
+    }
+
+    @Test
     public void declaringNodeTypeSameProp() throws Exception {
         createIndex("test1", of("propa"));
 
@@ -1602,6 +1627,27 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         def.setProperty(PropertyStates.createProperty(LuceneIndexConstants.INCLUDE_PROPERTY_NAMES, propNames, Type.STRINGS));
         def.setProperty(LuceneIndexConstants.SAVE_DIR_LISTING, true);
         return index.getChild(INDEX_DEFINITIONS_NAME).getChild(name);
+    }
+
+    private Tree createFullTextIndex(Tree index, String name) throws CommitFailedException {
+        Tree def = index.addChild(INDEX_DEFINITIONS_NAME).addChild(name);
+        def.setProperty(JcrConstants.JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
+        def.setProperty(TYPE_PROPERTY_NAME, LuceneIndexConstants.TYPE_LUCENE);
+        def.setProperty(REINDEX_PROPERTY_NAME, true);
+        def.setProperty(LuceneIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+        def.setProperty(LuceneIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
+
+        Tree props = def.addChild(LuceneIndexConstants.INDEX_RULES)
+                .addChild("nt:base")
+                .addChild(LuceneIndexConstants.PROP_NODE)
+                .addChild("allProps");
+
+        props.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
+        props.setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
+        props.setProperty(LuceneIndexConstants.PROP_USE_IN_EXCERPT, true);
+        props.setProperty(LuceneIndexConstants.PROP_NAME, LuceneIndexConstants.REGEX_ALL_PROPS);
+        props.setProperty(LuceneIndexConstants.PROP_IS_REGEX, true);
+        return def;
     }
 
     private static String dt(String date) throws ParseException {
