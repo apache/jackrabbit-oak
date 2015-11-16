@@ -38,9 +38,9 @@ public class SpellcheckTest extends AbstractQueryTest {
         Session session = superuser;
         QueryManager qm = session.getWorkspace().getQueryManager();
         Node n1 = testRootNode.addNode("node1");
-        n1.setProperty("text", "hello hello hello alt");
+        n1.setProperty("jcr:title", "hello hello hello alt");
         Node n2 = testRootNode.addNode("node2");
-        n2.setProperty("text", "hold");
+        n2.setProperty("jcr:title", "hold");
         session.save();
 
         String sql = "SELECT [rep:spellcheck()] FROM nt:base WHERE [jcr:path] = '/' AND SPELLCHECK('helo')";
@@ -54,9 +54,9 @@ public class SpellcheckTest extends AbstractQueryTest {
         Session session = superuser;
         QueryManager qm = session.getWorkspace().getQueryManager();
         Node n1 = testRootNode.addNode("node1");
-        n1.setProperty("text", "hello hello hello alt");
+        n1.setProperty("jcr:title", "hello hello hello alt");
         Node n2 = testRootNode.addNode("node2");
-        n2.setProperty("text", "hold");
+        n2.setProperty("jcr:title", "hold");
         session.save();
 
         String xpath = "/jcr:root[rep:spellcheck('helo')]/(rep:spellcheck())";

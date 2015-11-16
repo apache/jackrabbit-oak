@@ -118,6 +118,18 @@
 
         <fieldType name="currency" class="solr.CurrencyField" precisionStep="8" defaultCurrency="USD" currencyConfig="currency.xml" />
         <fieldtype name="ignored" stored="false" indexed="false" multiValued="true" class="solr.StrField"/>
+        <fieldtype name="spellcheck" class="solr.TextField">
+            <analyzer type="index">
+                <tokenizer class="solr.ClassicTokenizerFactory"/>
+                <filter class="solr.LowerCaseFilterFactory"/>
+                <filter class="solr.ShingleFilterFactory" minShingleSize="2"  maxShingleSize="3"
+                        outputUnigrams="true" outputUnigramsIfNoShingles="true" tokenSeparator=" " fillerToken="*"/>
+            </analyzer>
+            <analyzer type="query">
+                <tokenizer class="solr.KeywordTokenizerFactory"/>
+                <filter class="solr.LowerCaseFilterFactory"/>
+            </analyzer>
+        </fieldtype>
     </types>
     <fields>
         <field name="path_exact" type="string" indexed="true" stored="true"/>
@@ -130,6 +142,7 @@
         <field name=":indexed" type="tdate" indexed="true" stored="false" default="NOW" docValues="true"/>
         <field name=":suggest-weight" type="tint" indexed="false" stored="false" default="1"  docValues="true"/>
         <field name=":suggest" type="string" indexed="true" stored="true" multiValued="true" />
+        <field name=":spellcheck" type="spellcheck" indexed="true" stored="false" multiValued="true" />
         <field name="path_collapsed" type="string" indexed="true" stored="true"/>
         <field name="path_depth" type="tint" indexed="true" stored="false"/>
         <field name="_version_" type="long" indexed="true" stored="true"/>
@@ -147,6 +160,8 @@
     <copyField source="path_exact" dest="path_child"/>
     <copyField source="path_exact" dest=":path"/>
     <copyField source="*" dest="catch_all"/>
+    <copyField source="jcr:title" dest=":spellcheck"/>
+    <copyField source="jcr:description" dest=":spellcheck"/>
     <copyField source="jcr:title" dest=":suggest"/>
     <copyField source="jcr:description" dest=":suggest"/>
 </schema>
