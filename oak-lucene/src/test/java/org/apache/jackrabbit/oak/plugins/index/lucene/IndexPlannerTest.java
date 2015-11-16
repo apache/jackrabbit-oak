@@ -208,6 +208,25 @@ public class IndexPlannerTest {
     }
 
     @Test
+    public void pureNodeTypeWithEvaluatePathRestrictionEnabled() throws Exception{
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        NodeBuilder defn = newLuceneIndexDefinition(index, "lucene",
+                of(TYPENAME_STRING));
+        defn.setProperty(LuceneIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+        TestUtil.useV2(defn);
+
+        FilterImpl filter = createFilter("nt:file");
+        filter.restrictPath("/", Filter.PathRestriction.ALL_CHILDREN);
+
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+
+        // /jcr:root//element(*, nt:file)
+        //For queries like above Fulltext index should not return a plan
+        assertNull(planner.getPlan());
+    }
+
+    @Test
     public void purePropertyIndexAndNodeTypeRestriction() throws Exception{
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
         defn.setProperty(LuceneIndexConstants.EVALUATE_PATH_RESTRICTION, true);
