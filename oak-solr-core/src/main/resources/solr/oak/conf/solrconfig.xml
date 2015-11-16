@@ -1176,13 +1176,14 @@
 
     <searchComponent name="spellcheck" class="solr.SpellCheckComponent">
 
-        <str name="queryAnalyzerFieldType">text_general</str>
+        <str name="queryAnalyzerFieldType">spellcheck</str>
 
         <!-- a spellchecker built from a field of the main index -->
         <lst name="spellchecker">
             <str name="name">default</str>
-            <str name="field">catch_all</str>
+            <str name="field">:spellcheck</str>
             <str name="classname">solr.DirectSolrSpellChecker</str>
+            <!-- the spellcheck distance measure used, the default is the internal levenshtein -->
             <str name="distanceMeasure">internal</str>
             <!-- minimum accuracy needed to be considered a valid spellcheck suggestion -->
             <float name="accuracy">0.5</float>
