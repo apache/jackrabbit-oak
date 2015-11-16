@@ -701,6 +701,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
         for (PropertyState property : result.nodeState.getProperties()){
             String pname = property.getName();
+            String propertyPath = PathUtils.concat(result.nodePath, pname);
 
             if (!isVisible(pname)) {
                 continue;
@@ -713,6 +714,13 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                     continue;
                 }
             } else if (!indexingRule.includePropertyType(type)){
+                continue;
+            }
+
+            //Check if any explicit property defn is defined via relative path
+            // and is marked to exclude this property from being indexed
+            PropertyDefinition pdForRootNode = indexingRule.getConfig(propertyPath);
+            if (pdForRootNode != null && !pdForRootNode.index) {
                 continue;
             }
 
