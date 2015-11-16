@@ -45,6 +45,7 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMDirectory;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -400,6 +401,43 @@ public class IndexPlannerTest {
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
         IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
         assertNotNull(planner.getPlan());
+    }
+
+    @Test
+    public void noPlanForFulltextQueryAndOnlyAnalyzedProperties() throws Exception{
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        defn.setProperty(LuceneIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+
+        defn = IndexDefinition.updateDefinition(defn.getNodeState().builder());
+        NodeBuilder foob = getNode(defn, "indexRules/nt:base/properties/foo");
+        foob.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
+
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        FilterImpl filter = createFilter("nt:base");
+        filter.setFullTextConstraint(FullTextParser.parse(".", "mountain"));
+        IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+
+        QueryIndex.IndexPlan plan = planner.getPlan();
+        assertNull(plan);
+    }
+
+    @Test
+    public void noPlanForNodeTypeQueryAndOnlyAnalyzedProperties() throws Exception{
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        defn.setProperty(LuceneIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+        defn.setProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:file"), NAMES);
+
+        defn = IndexDefinition.updateDefinition(defn.getNodeState().builder());
+        NodeBuilder foob = getNode(defn, "indexRules/nt:file/properties/foo");
+        foob.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
+
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        FilterImpl filter = createFilter("nt:file");
+        filter.restrictPath("/foo", Filter.PathRestriction.ALL_CHILDREN);
+        IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+
+        QueryIndex.IndexPlan plan = planner.getPlan();
+        assertNull(plan);
     }
 
     private IndexNode createIndexNode(IndexDefinition defn, long numOfDocs) throws IOException {

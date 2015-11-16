@@ -638,6 +638,99 @@ public class IndexDefinitionTest {
         assertEquals(2, rule1.getNodeScopeAnalyzedProps().size());
     }
 
+    @Test
+    public void nodeFullTextIndexed_Regex() throws Exception {
+        NodeBuilder rules = builder.child(INDEX_RULES);
+        rules.child("nt:folder");
+        TestUtil.child(rules, "nt:folder/properties/prop1")
+                .setProperty(LuceneIndexConstants.PROP_NAME, ".*")
+                .setProperty(LuceneIndexConstants.PROP_ANALYZED, true)
+                .setProperty(LuceneIndexConstants.PROP_IS_REGEX, true);
+
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+        IndexingRule rule = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
+        assertNotNull(rule);
+        assertFalse(rule.isNodeFullTextIndexed());
+
+        TestUtil.child(rules, "nt:folder/properties/prop1")
+                .setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
+        defn = new IndexDefinition(root, builder.getNodeState());
+        rule = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
+        assertTrue(rule.isNodeFullTextIndexed());
+        assertTrue(rule.indexesAllNodesOfMatchingType());
+    }
+
+    @Test
+    public void nodeFullTextIndexed_Simple() throws Exception {
+        NodeBuilder rules = builder.child(INDEX_RULES);
+        rules.child("nt:folder");
+        TestUtil.child(rules, "nt:folder/properties/prop1")
+                .setProperty(LuceneIndexConstants.PROP_NAME, "foo")
+                .setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
+
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+        IndexingRule rule = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
+        assertNotNull(rule);
+        assertFalse(rule.isNodeFullTextIndexed());
+
+        TestUtil.child(rules, "nt:folder/properties/prop1")
+                .setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
+        defn = new IndexDefinition(root, builder.getNodeState());
+        rule = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
+        assertTrue(rule.isNodeFullTextIndexed());
+        assertTrue(rule.indexesAllNodesOfMatchingType());
+    }
+
+    @Test
+    public void nodeFullTextIndexed_Aggregates() throws Exception {
+        NodeBuilder rules = builder.child(INDEX_RULES);
+        rules.child("nt:folder");
+        TestUtil.child(rules, "nt:folder/properties/prop1")
+                .setProperty(LuceneIndexConstants.PROP_NAME, "foo")
+                .setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
+
+        NodeBuilder aggregates = builder.child(LuceneIndexConstants.AGGREGATES);
+        NodeBuilder aggFolder = aggregates.child("nt:folder");
+        aggFolder.child("i1").setProperty(LuceneIndexConstants.AGG_PATH, "*");
+
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+        IndexingRule rule = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
+        assertNotNull(rule);
+        assertTrue(rule.isNodeFullTextIndexed());
+        assertTrue(rule.indexesAllNodesOfMatchingType());
+    }
+
+    @Test
+    public void nonIndexPropShouldHaveAllOtherConfigDisabled() throws Exception{
+        NodeBuilder rules = builder.child(INDEX_RULES);
+        rules.child("nt:folder");
+        TestUtil.child(rules, "nt:folder/properties/prop1")
+                .setProperty(LuceneIndexConstants.PROP_NAME, "foo")
+                .setProperty(LuceneIndexConstants.PROP_INDEX, false)
+                .setProperty(LuceneIndexConstants.PROP_USE_IN_SUGGEST, true)
+                .setProperty(LuceneIndexConstants.PROP_USE_IN_SPELLCHECK, true)
+                .setProperty(LuceneIndexConstants.PROP_NULL_CHECK_ENABLED, true)
+                .setProperty(LuceneIndexConstants.PROP_USE_IN_EXCERPT, true)
+                .setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true)
+                .setProperty(LuceneIndexConstants.PROP_ORDERED, true)
+                .setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+        IndexingRule rule = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
+        assertNotNull(rule);
+
+        PropertyDefinition pd = rule.getConfig("foo");
+        //Assert that all other config is false if the index=false for any property
+        assertFalse(pd.index);
+        assertFalse(pd.nodeScopeIndex);
+        assertFalse(pd.useInSuggest);
+        assertFalse(pd.useInSpellcheck);
+        assertFalse(pd.nullCheckEnabled);
+        assertFalse(pd.stored);
+        assertFalse(pd.ordered);
+        assertFalse(pd.analyzed);
+
+    }
+
     //TODO indexesAllNodesOfMatchingType - with nullCheckEnabled
 
     private static IndexingRule getRule(IndexDefinition defn, String typeName){

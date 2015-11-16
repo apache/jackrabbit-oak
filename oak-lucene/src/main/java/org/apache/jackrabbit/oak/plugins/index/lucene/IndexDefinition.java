@@ -577,6 +577,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         final int propertyTypes;
         final boolean fulltextEnabled;
         final boolean propertyIndexEnabled;
+        final boolean nodeFullTextIndexed;
 
         final Aggregate aggregate;
         final Aggregate propAggregate;
@@ -601,8 +602,9 @@ class IndexDefinition implements Aggregate.AggregateMapper{
             this.nodeScopeAnalyzedProps = ImmutableList.copyOf(nodeScopeAnalyzedProps);
             this.nullCheckEnabledProperties = ImmutableList.copyOf(nonExistentProperties);
             this.fulltextEnabled = aggregate.hasNodeAggregates() || hasAnyFullTextEnabledProperty();
+            this.nodeFullTextIndexed = aggregate.hasNodeAggregates() || anyNodeScopeIndexedProperty();
             this.propertyIndexEnabled = hasAnyPropertyIndexConfigured();
-            this.indexesAllNodesOfMatchingType = allMatchingNodeByTypeIndexed();
+            this.indexesAllNodesOfMatchingType = areAlMatchingNodeByTypeIndexed();
             this.nodeNameIndexed = getOptionalValue(config, LuceneIndexConstants.INDEX_NODE_NAME, false);
             validateRuleDefinition();
         }
@@ -628,7 +630,8 @@ class IndexDefinition implements Aggregate.AggregateMapper{
             this.nodeScopeAnalyzedProps = original.nodeScopeAnalyzedProps;
             this.aggregate = combine(propAggregate, nodeTypeName);
             this.fulltextEnabled = aggregate.hasNodeAggregates() || original.fulltextEnabled;
-            this.indexesAllNodesOfMatchingType = allMatchingNodeByTypeIndexed();
+            this.nodeFullTextIndexed = aggregate.hasNodeAggregates() || original.nodeFullTextIndexed;
+            this.indexesAllNodesOfMatchingType = areAlMatchingNodeByTypeIndexed();
             this.nodeNameIndexed = original.nodeNameIndexed;
         }
 
@@ -713,9 +716,22 @@ class IndexDefinition implements Aggregate.AggregateMapper{
             return nodeNameIndexed;
         }
 
+        /**
+         * Returns true if the rule has any property definition which enables
+         * evaluation of fulltext related clauses
+         */
         public boolean isFulltextEnabled() {
             return fulltextEnabled;
         }
+
+        /**
+         * Returns true if a fulltext field for the node would be created
+         * for any node matching the current rule.
+         */
+        public boolean isNodeFullTextIndexed() {
+            return nodeFullTextIndexed;
+        }
+
         /**
          * @param propertyName name of a property.
          * @return the property configuration or <code>null</code> if this
@@ -841,10 +857,26 @@ class IndexDefinition implements Aggregate.AggregateMapper{
             return false;
         }
 
-        private boolean allMatchingNodeByTypeIndexed(){
-            //Incase of fulltext all nodes matching this rule type would be indexed
-            //and would have entry in the index
-            if (fulltextEnabled){
+        private boolean anyNodeScopeIndexedProperty(){
+            //Check if there is any nodeScope indexed property as
+            //for such case a node would always be indexed
+            for (PropertyDefinition pd : propConfigs.values()){
+                if (pd.nodeScopeIndex){
+                    return true;
+                }
+            }
+
+            for (NamePattern np : namePatterns){
+                if (np.getConfig().nodeScopeIndex){
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private boolean areAlMatchingNodeByTypeIndexed(){
+            if (nodeFullTextIndexed){
                 return true;
             }
 
@@ -1212,7 +1244,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
     private static boolean hasFulltextEnabledIndexRule(List<IndexingRule> rules) {
         for (IndexingRule rule : rules){
-            if (rule.fulltextEnabled){
+            if (rule.isFulltextEnabled()){
                 return true;
             }
         }
