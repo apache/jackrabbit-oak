@@ -422,7 +422,6 @@ public class IndexPlannerTest {
         assertNotNull(planner.getPlan());
     }
 
-    @Ignore("OAK-3591")
     @Test
     public void noPlanForFulltextQueryAndOnlyAnalyzedProperties() throws Exception{
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
@@ -441,7 +440,6 @@ public class IndexPlannerTest {
         assertNull(plan);
     }
 
-    @Ignore("OAK-3591")
     @Test
     public void noPlanForNodeTypeQueryAndOnlyAnalyzedProperties() throws Exception{
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");

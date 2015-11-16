@@ -266,6 +266,7 @@ class IndexPlanner {
         final HashSet<String> relPaths = new HashSet<String>();
         final HashSet<String> nonIndexedPaths = new HashSet<String>();
         final AtomicBoolean relativeParentsFound = new AtomicBoolean();
+        final AtomicBoolean nodeScopedCondition = new AtomicBoolean();
         ft.accept(new FullTextVisitor.FullTextVisitorBase() {
             @Override
             public boolean visit(FullTextContains contains) {
@@ -308,8 +309,16 @@ class IndexPlanner {
                         && !indexingRule.isIndexed(propertyPath)){
                     nonIndexedPaths.add(p);
                 }
+
+                if (nodeScopedTerm(propertyName)){
+                    nodeScopedCondition.set(true);
+                }
             }
         });
+
+        if (nodeScopedCondition.get() && !indexingRule.isNodeFullTextIndexed()){
+            return false;
+        }
 
         if (relativeParentsFound.get()){
             log.debug("Relative parents found {} which are not supported", relPaths);
@@ -458,6 +467,14 @@ class IndexPlanner {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Determine if the propertyName of a fulltext term indicates current node
+     * @param propertyName property name in the full text term clause
+     */
+    private static boolean nodeScopedTerm(String propertyName) {
+        return propertyName == null || ".".equals(propertyName) || "*".equals(propertyName);
     }
 
     //~--------------------------------------------------------< PlanResult >
