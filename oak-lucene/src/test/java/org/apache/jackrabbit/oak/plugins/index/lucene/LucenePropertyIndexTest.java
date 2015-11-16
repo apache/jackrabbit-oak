@@ -1645,6 +1645,36 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertQuery(propabQuery, asList("/test/a"));
     }
 
+    @Test
+    public void indexingBasedOnMixinAndRelativeProps() throws Exception {
+        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree props = TestUtil.newRulePropTree(idx, "mix:title");
+        Tree prop1 = props.addChild(TestUtil.unique("prop"));
+        prop1.setProperty(LuceneIndexConstants.PROP_NAME, "jcr:title");
+        prop1.setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true);
+
+        Tree prop2 = props.addChild(TestUtil.unique("prop"));
+        prop2.setProperty(LuceneIndexConstants.PROP_NAME, "jcr:content/type");
+        prop2.setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        Tree a = createNodeWithMixinType(test, "a", "mix:title");
+        a.setProperty("jcr:title", "a");
+        a.addChild("jcr:content").setProperty("type", "foo-a");
+
+        Tree c = createNodeWithMixinType(test, "c", "mix:title");
+        c.setProperty("jcr:title", "c");
+        c.addChild("jcr:content").setProperty("type", "foo-c");
+
+        test.addChild("c").setProperty("jcr:title", "a");
+        root.commit();
+
+        String propabQuery = "select [jcr:path] from [mix:title] where [jcr:content/type] = 'foo-a'";
+        assertThat(explain(propabQuery), containsString("lucene:test1(/oak:index/test1)"));
+        assertQuery(propabQuery, asList("/test/a"));
+    }
+
     private static Tree createNodeWithMixinType(Tree t, String nodeName, String typeName){
         t = t.addChild(nodeName);
         t.setProperty(JcrConstants.JCR_MIXINTYPES, Collections.singleton(typeName), Type.NAMES);
