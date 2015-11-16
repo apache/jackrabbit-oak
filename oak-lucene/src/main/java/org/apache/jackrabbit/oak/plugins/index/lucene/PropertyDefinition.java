@@ -103,29 +103,29 @@ class PropertyDefinition {
 
         //By default if a property is defined it is indexed
         this.index = getOptionalValue(defn, LuceneIndexConstants.PROP_INDEX, true);
-        this.stored = getOptionalValue(defn, LuceneIndexConstants.PROP_USE_IN_EXCERPT, false);
-        this.nodeScopeIndex = getOptionalValue(defn, LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, false);
+        this.stored = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_USE_IN_EXCERPT, false);
+        this.nodeScopeIndex = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, false);
 
         //If boost is specified then that field MUST be analyzed
         if (defn.hasProperty(FIELD_BOOST)){
             this.analyzed = true;
         } else {
-            this.analyzed = getOptionalValue(defn, LuceneIndexConstants.PROP_ANALYZED, false);
+            this.analyzed = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_ANALYZED, false);
         }
 
         //If node is not set for full text then a property definition indicates that definition is for property index
-        this.propertyIndex = getOptionalValue(defn, LuceneIndexConstants.PROP_PROPERTY_INDEX, false);
-        this.ordered = getOptionalValue(defn, LuceneIndexConstants.PROP_ORDERED, false);
+        this.propertyIndex = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_PROPERTY_INDEX, false);
+        this.ordered = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_ORDERED, false);
         this.includedPropertyTypes = IndexDefinition.getSupportedTypes(defn, LuceneIndexConstants.PROP_INCLUDED_TYPE,
                 IndexDefinition.TYPES_ALLOW_ALL);
 
         //TODO Add test case for above cases
 
         this.propertyType = getPropertyType(idxDefn, nodeName, defn);
-        this.useInSuggest = getOptionalValue(defn, LuceneIndexConstants.PROP_USE_IN_SUGGEST, false);
-        this.useInSpellcheck = getOptionalValue(defn, LuceneIndexConstants.PROP_USE_IN_SPELLCHECK, false);
-        this.nullCheckEnabled = getOptionalValue(defn, LuceneIndexConstants.PROP_NULL_CHECK_ENABLED, false);
-        this.notNullCheckEnabled = getOptionalValue(defn, LuceneIndexConstants.PROP_NOT_NULL_CHECK_ENABLED, false);
+        this.useInSuggest = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_USE_IN_SUGGEST, false);
+        this.useInSpellcheck = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_USE_IN_SPELLCHECK, false);
+        this.nullCheckEnabled = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_NULL_CHECK_ENABLED, false);
+        this.notNullCheckEnabled = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_NOT_NULL_CHECK_ENABLED, false);
         this.nonRelativeName = determineNonRelativeName();
         this.ancestors = computeAncestors(name);
         validate();
@@ -200,6 +200,15 @@ class PropertyDefinition {
     }
 
     //~---------------------------------------------< internal >
+
+    private boolean getOptionalValueIfIndexed(NodeState definition, String propName, boolean defaultVal){
+        //If property is not to be indexed then all other config would be
+        //set to false ignoring whatever is defined in config for them
+        if (!index){
+            return false;
+        }
+        return getOptionalValue(definition, propName, defaultVal);
+    }
 
     private void validate() {
         if (nullCheckEnabled && isRegexp){

@@ -360,7 +360,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
         //For property index no use making an empty document if
         //none of the properties are indexed
-        if(!indexingRule.isFulltextEnabled() && !dirty){
+        if(!indexingRule.indexesAllNodesOfMatchingType() && !dirty){
             return null;
         }
 
