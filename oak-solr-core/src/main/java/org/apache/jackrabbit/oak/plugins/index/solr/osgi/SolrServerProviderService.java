@@ -49,7 +49,7 @@ import org.slf4j.LoggerFactory;
                 policy = ReferencePolicy.DYNAMIC,
                 bind = "bindSolrServerConfigurationProvider",
                 unbind = "unbindSolrServerConfigurationProvider",
-                updated = "updateSolrServerConfigurationProvider"
+                updated = "updatedSolrServerConfigurationProvider"
         )
 })
 @Service(SolrServerProvider.class)
