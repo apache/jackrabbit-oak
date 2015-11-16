@@ -63,6 +63,7 @@ import javax.swing.tree.DefaultTreeModel;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.segment.PCMAnalyser;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
@@ -645,6 +646,10 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener,
             return false;
         }
         return true;
+    }
+
+    public void printPCMInfo() {
+        setText(new PCMAnalyser(store).toString());
     }
 
     private static class NamePathModel implements Comparable<NamePathModel> {
