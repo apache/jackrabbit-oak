@@ -272,11 +272,13 @@ public class RDBDocumentStore implements DocumentStore {
 
     @Override
     public <T extends Document> void update(Collection<T> collection, List<String> keys, UpdateOp updateOp) {
+        UpdateUtils.assertUnconditional(updateOp);
         internalUpdate(collection, keys, updateOp);
     }
 
     @Override
     public <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update) {
+        UpdateUtils.assertUnconditional(update);
         return internalCreateOrUpdate(collection, update, true, false);
     }
 
@@ -887,6 +889,7 @@ public class RDBDocumentStore implements DocumentStore {
             for (List<UpdateOp> chunks : Lists.partition(updates, CHUNKSIZE)) {
                 List<T> docs = new ArrayList<T>();
                 for (UpdateOp update : chunks) {
+                    UpdateUtils.assertUnconditional(update);
                     T doc = collection.newDocument(this);
                     update.increment(MODCOUNT, 1);
                     if (hasChangesToCollisions(update)) {
