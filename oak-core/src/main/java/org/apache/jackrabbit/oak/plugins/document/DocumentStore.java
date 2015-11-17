@@ -23,6 +23,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 
 /**
@@ -178,8 +179,9 @@ public interface DocumentStore {
      *
      * @param <T> the document type
      * @param collection the collection
-     * @param updateOps the list of documents to add
+     * @param updateOps the list of documents to add (where {@link Condition}s are not allowed)
      * @return true if this worked (if none of the documents already existed)
+     * @throws IllegalArgumentException when at least one of the {@linkplain UpdateOp}s is conditional
      */
     <T extends Document> boolean create(Collection<T> collection, List<UpdateOp> updateOps);
 
@@ -193,7 +195,9 @@ public interface DocumentStore {
      * @param <T> the document type.
      * @param collection the collection.
      * @param keys the keys of the documents to update.
-     * @param updateOp the update operation to apply to each of the documents.
+     * @param updateOp the update operation to apply to each of the documents
+     *        (where {@link Condition}s are not allowed)
+     * @throws IllegalArgumentException when the {@linkplain UpdateOp} is conditional
      */
     <T extends Document> void update(Collection<T> collection,
                                      List<String> keys,
@@ -205,8 +209,9 @@ public interface DocumentStore {
      *
      * @param <T> the document type
      * @param collection the collection
-     * @param update the update operation
+     * @param update the update operation (where {@link Condition}s are not allowed)
      * @return the old document or <code>null</code> if it didn't exist before.
+     * @throws IllegalArgumentException when the {@linkplain UpdateOp} is conditional
      */
     @CheckForNull
     <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update);
