@@ -83,6 +83,31 @@ public class QueryFulltextTest extends AbstractQueryTest {
 
     }
 
+    public void testSurrogateFulltext() throws Exception {
+        String surrogateString = "壱\n" +
+                "複数の文字\n" +
+                "カナポ\n" +
+                "ﾊﾝｶｸﾎﾟ\n" +
+                "表十ソ\n" +
+                "\uD842\uDF9F\n" +
+                "Mixあポﾋﾟ表\uD842\uDF9F" +
+                "";
+        String [] searchStrs = new String[]{"\uD842\uDF9F", "Mix"};
+        Session session = superuser;
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        Node n1 = testRootNode.addNode("node");
+        n1.setProperty("text", surrogateString);
+        session.save();
+
+        for (String searchTerm : searchStrs) {
+            String sql2 = "select [jcr:path] as [path] from [nt:base] " +
+                    "where contains([text], '" + searchTerm + "') order by [jcr:path]";
+            Query q = qm.createQuery(sql2, Query.JCR_SQL2);
+            log.println("Testing" + searchTerm);
+            assertEquals("Lookup failed for " + searchTerm, "/testroot/node", getResult(q.execute(), "path"));
+        }
+    }
+
     public void testFulltextRelativeProperty() throws Exception {
         Session session = superuser;
         QueryManager qm = session.getWorkspace().getQueryManager();
