@@ -47,7 +47,7 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean {
     private boolean fullTextComparisonWithoutIndex = 
             DEFAULT_FULL_TEXT_COMPARISON_WITHOUT_INDEX;
     
-    private boolean sql2Optimisation = Boolean.getBoolean(SQL2_OPTIMISATION_FLAG);
+    private boolean sql2Optimisation = Boolean.parseBoolean(System.getProperty(SQL2_OPTIMISATION_FLAG, "true"));
     
     /**
      * Get the limit on how many nodes a query may read at most into memory, for
