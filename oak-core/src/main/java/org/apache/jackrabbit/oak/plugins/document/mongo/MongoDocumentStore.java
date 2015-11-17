@@ -858,6 +858,7 @@ public class MongoDocumentStore implements DocumentStore {
     public <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update)
             throws DocumentStoreException {
         log("createOrUpdate", update);
+        UpdateUtils.assertUnconditional(update);
         T doc = findAndModify(collection, update, true, false);
         log("createOrUpdate returns ", doc);
         return doc;
@@ -881,6 +882,7 @@ public class MongoDocumentStore implements DocumentStore {
         for (int i = 0; i < updateOps.size(); i++) {
             inserts[i] = new BasicDBObject();
             UpdateOp update = updateOps.get(i);
+            UpdateUtils.assertUnconditional(update);
             T target = collection.newDocument(this);
             UpdateUtils.applyChanges(target, update, comparator);
             docs.add(target);
@@ -958,6 +960,7 @@ public class MongoDocumentStore implements DocumentStore {
                                             List<String> keys,
                                             UpdateOp updateOp) {
         log("update", keys, updateOp);
+        UpdateUtils.assertUnconditional(updateOp);
         DBCollection dbCollection = getDBCollection(collection);
         QueryBuilder query = QueryBuilder.start(Document.ID).in(keys);
         // make sure we don't modify the original updateOp

@@ -154,4 +154,17 @@ public class UpdateUtils {
         }
         return true;
     }
+
+    /**
+     * Ensures that the given {@link UpdateOp} is unconditional
+     * @param up the update operation
+     * @throws IllegalArgumentException when the operations is conditional
+     */
+    public static void assertUnconditional(@Nonnull UpdateOp up) {
+        Map<Key, Condition> conditions = up.getConditions();
+        if (!conditions.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "This DocumentStore method does not support conditional updates, but the UpdateOp contained: " + conditions);
+        }
+    }
 }
