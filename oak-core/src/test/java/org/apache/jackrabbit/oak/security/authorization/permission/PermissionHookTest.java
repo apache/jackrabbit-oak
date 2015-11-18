@@ -207,7 +207,7 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
         // add a new entry
         NodeUtil ace = new NodeUtil(aclTree).addChild("denyEveryoneLockMgt", NT_REP_DENY_ACE);
         ace.setString(REP_PRINCIPAL_NAME, EveryonePrincipal.NAME);
-        ace.setStrings(AccessControlConstants.REP_PRIVILEGES, JCR_LOCK_MANAGEMENT);
+        ace.setNames(AccessControlConstants.REP_PRIVILEGES, JCR_LOCK_MANAGEMENT);
         root.commit();
 
         entry = getEntry(testPrincipalName, testPath, 1);
@@ -233,7 +233,7 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
         // add a new entry
         NodeUtil ace = new NodeUtil(aclTree).addChild("denyEveryoneLockMgt", NT_REP_DENY_ACE);
         ace.setString(REP_PRINCIPAL_NAME, EveryonePrincipal.NAME);
-        ace.setStrings(AccessControlConstants.REP_PRIVILEGES, JCR_LOCK_MANAGEMENT);
+        ace.setNames(AccessControlConstants.REP_PRIVILEGES, JCR_LOCK_MANAGEMENT);
 
         // reorder the new entry before the remaining existing entry
         ace.getTree().orderBefore(name);

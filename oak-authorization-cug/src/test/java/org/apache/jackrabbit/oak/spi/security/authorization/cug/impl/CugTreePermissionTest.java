@@ -21,7 +21,6 @@ import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.tree.impl.AbstractTree;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
@@ -51,9 +50,12 @@ public class CugTreePermissionTest extends AbstractCugTest {
     }
 
     private CugTreePermission getCugTreePermission(@Nonnull Principal... principals) {
+        return getCugTreePermission(SUPPORTED_PATH, principals);
+    }
+
+    private CugTreePermission getCugTreePermission(@Nonnull String path, @Nonnull Principal... principals) {
         CugPermissionProvider pp = createCugPermissionProvider(ImmutableSet.of(SUPPORTED_PATH, SUPPORTED_PATH2), principals);
-        TreePermission rootTp = pp.getTreePermission(root.getTree("/"), TreePermission.EMPTY);
-        TreePermission targetTp = pp.getTreePermission(root.getTree(SUPPORTED_PATH), rootTp);
+        TreePermission targetTp = getTreePermission(root, path, pp);
         assertTrue(targetTp instanceof CugTreePermission);
         return (CugTreePermission) targetTp;
     }
@@ -70,6 +72,26 @@ public class CugTreePermissionTest extends AbstractCugTest {
         NodeState cugNs = ((AbstractTree) root.getTree(SUPPORTED_PATH + "/" + REP_CUG_POLICY)).getNodeState();
         TreePermission cugChild = allowedTp.getChildPermission(REP_CUG_POLICY, cugNs);
         assertSame(TreePermission.NO_RECOURSE, cugChild);
+    }
+
+    @Test
+    public void testIsAllow() throws Exception {
+        assertTrue(allowedTp.isAllow());
+        assertFalse(deniedTp.isAllow());
+
+        CugTreePermission tp = getCugTreePermission(SUPPORTED_PATH2);
+        assertFalse(tp.isAllow());
+        tp = getCugTreePermission(SUPPORTED_PATH2, getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
+        assertFalse(tp.isAllow());
+    }
+
+    @Test
+    public void testIsInCug() {
+        assertTrue(allowedTp.isInCug());
+        assertTrue(deniedTp.isInCug());
+
+        CugTreePermission tp = getCugTreePermission(SUPPORTED_PATH2);
+        assertFalse(tp.isInCug());
     }
 
     @Test

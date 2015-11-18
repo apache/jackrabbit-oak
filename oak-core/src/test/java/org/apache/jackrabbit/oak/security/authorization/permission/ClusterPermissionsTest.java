@@ -30,6 +30,7 @@ import javax.jcr.security.AccessControlManager;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -39,6 +40,7 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -166,7 +168,7 @@ public class ClusterPermissionsTest {
     @Test
     public void testAclPropagation() throws Exception {
         Tree node = root1.getTree("/").addChild("testNode");
-        node.setProperty("jcr:primaryType", "nt:unstructured");
+        node.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
         User user1 = userManager1.createUser("testUser", "testUser");
         JackrabbitAccessControlList acl1 = AccessControlUtils.getAccessControlList(aclMgr1, "/testNode");
         acl1.addEntry(user1.getPrincipal(), AccessControlUtils.privilegesFromNames(aclMgr1, "jcr:all"), true);
@@ -184,7 +186,7 @@ public class ClusterPermissionsTest {
     public void testPermissionPropagation() throws Exception {
         // create a "/testNode"
         Tree node = root1.getTree("/").addChild("testNode");
-        node.setProperty("jcr:primaryType", "nt:unstructured");
+        node.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
 
         // create 2 users
         User user1 = userManager1.createUser("testUser1", "testUser1");
