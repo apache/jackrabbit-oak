@@ -1725,6 +1725,62 @@ public class DocumentNodeStoreTest {
         assertEquals(1, Iterables.size(children));
     }
 
+    // OAK-3646
+    // similar to previous test but both cluster nodes add a child node
+    @Ignore("OAK-3646")
+    @Test
+    public void concurrentChildOperations2() throws Exception {
+        Clock clock = new Clock.Virtual();
+        Revision.setClock(clock);
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ns1 = builderProvider.newBuilder()
+                .setAsyncDelay(0).clock(clock)
+                .setDocumentStore(store).getNodeStore();
+        DocumentNodeStore ns2 = builderProvider.newBuilder()
+                .setAsyncDelay(0).clock(clock)
+                .setDocumentStore(store).getNodeStore();
+
+        // create initial /foo
+        NodeBuilder b1 = ns1.getRoot().builder();
+        b1.child("foo");
+        merge(ns1, b1);
+
+        // make changes visible on both cluster nodes
+        ns1.runBackgroundOperations();
+        ns2.runBackgroundOperations();
+
+        // add child-1 on cluster node 1
+        b1 = ns1.getRoot().builder();
+        b1.child("foo").child("child-1");
+        merge(ns1, b1);
+
+        // push _lastRev updates to DocumentStore
+        ns1.runBackgroundOperations();
+
+        // remove child-2 on cluster node 2
+        NodeBuilder b2 = ns2.getRoot().builder();
+        b2.child("foo").child("child-2");
+        merge(ns2, b2);
+
+        // on cluster node 2, add of child-1 is not yet visible
+        List<ChildNodeEntry> children = Lists.newArrayList(ns2.getRoot().getChildNode("foo").getChildNodeEntries());
+        assertEquals(1, Iterables.size(children));
+
+        // this will make changes from cluster node 1 visible
+        ns2.runBackgroundOperations();
+
+        // wait twice the time we remember revision order
+        clock.waitUntil(clock.getTime() + 2 * REMEMBER_REVISION_ORDER_MILLIS);
+
+        // trigger purge of revisions older than one hour in RevisionComparator
+        // this is usually done by the background read operation, but we
+        // do it explicitly here to make sure it really happens in this test
+        ns2.getRevisionComparator().purge(clock.getTime() - REMEMBER_REVISION_ORDER_MILLIS);
+
+        children = Lists.newArrayList(ns2.getRoot().getChildNode("foo").getChildNodeEntries());
+        assertEquals(2, Iterables.size(children));
+    }
+
     private static boolean backgroundLeaseUpdateThreadRunning(int clusterId) {
         String threadName = "DocumentNodeStore lease update thread (" + clusterId + ")";
         ThreadMXBean threadBean = ManagementFactory.getThreadMXBean();
