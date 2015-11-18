@@ -511,10 +511,10 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         scorer.setExpandMultiTermQuery(true);
         highlighter.setFragmentScorer(scorer);
 
+        Analyzer analyzer = indexNode.getDefinition().getAnalyzer();
         for (IndexableField field : searcher.getIndexReader().document(doc.doc).getFields())
             if (!SUGGEST.equals(field.name())) {
                 try {
-                    Analyzer analyzer = indexNode.getDefinition().getAnalyzer();
                     TokenStream tokenStream = analyzer.tokenStream(field.name(), field.stringValue());
                     tokenStream.reset();
                     CachingTokenFilter cachingTokenFilter = new CachingTokenFilter(tokenStream);

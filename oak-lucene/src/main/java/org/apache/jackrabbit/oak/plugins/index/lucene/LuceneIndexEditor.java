@@ -569,9 +569,9 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
             }
 
             if (nodePath != null){
-                fields.add(newFulltextField(nodePath, value));
+                fields.add(newFulltextField(nodePath, value, true));
             } else {
-                fields.add(newFulltextField(value));
+                fields.add(newFulltextField(value, true));
             }
         }
         return fields;
