@@ -16,25 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static com.google.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getAncestorPath;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getDepth;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newFulltextTerm;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.skipTokenization;
-import static org.apache.jackrabbit.oak.query.QueryImpl.JCR_PATH;
-import static org.apache.lucene.search.BooleanClause.Occur.MUST;
-import static org.apache.lucene.search.BooleanClause.Occur.MUST_NOT;
-import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
-
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -47,6 +28,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Queues;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
@@ -112,10 +97,18 @@ import org.apache.lucene.util.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Queues;
-import com.google.common.collect.Sets;
+import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.commons.PathUtils.*;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newFulltextTerm;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.skipTokenization;
+import static org.apache.jackrabbit.oak.query.QueryImpl.JCR_PATH;
+import static org.apache.lucene.search.BooleanClause.Occur.*;
 
 /**
  * Provides a QueryIndex that does lookups against a Lucene-based index
@@ -491,11 +484,11 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
         QueryScorer scorer = new QueryScorer(query);
         scorer.setExpandMultiTermQuery(true);
         highlighter.setFragmentScorer(scorer);
+        Analyzer analyzer = indexNode.getDefinition().getAnalyzer();
 
         for (IndexableField field : searcher.getIndexReader().document(doc.doc).getFields())
             if (!FieldNames.SUGGEST.equals(field.name())) {
                 try {
-                    Analyzer analyzer = indexNode.getDefinition().getAnalyzer();
                     TokenStream tokenStream = analyzer.tokenStream(field.name(), field.stringValue());
                     tokenStream.reset();
                     CachingTokenFilter cachingTokenFilter = new CachingTokenFilter(tokenStream);
