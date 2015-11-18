@@ -110,28 +110,27 @@ public class ResultRowImpl implements ResultRow {
         // even though the query doesn't contain that column
         if (columnName.startsWith(QueryImpl.REP_EXCERPT)) {
             int columnIndex = query.getColumnIndex(QueryImpl.REP_EXCERPT);
-            if (columnIndex >= 0 && QueryImpl.REP_EXCERPT.equals(columnName) || SimpleExcerptProvider.REP_EXCERPT_FN.
-                    equals(columnName)) {
-                // TODO : make it possible to extract property level excerpts, e.g. rep:excerpt(text) from indexes
-                PropertyValue value = values[columnIndex];
-                if (value != null) {
-                    return SimpleExcerptProvider.getExcerpt(value);
-                } else {
-                    return getFallbackExcerpt(columnName);
+            PropertyValue indexExcerptValue = null;
+            if (columnIndex >= 0) {
+                indexExcerptValue = values[columnIndex];
+                if (indexExcerptValue != null) {
+                    if (QueryImpl.REP_EXCERPT.equals(columnName) || SimpleExcerptProvider.REP_EXCERPT_FN.equals(columnName)) {
+                        return SimpleExcerptProvider.getExcerpt(indexExcerptValue);
+                    }
                 }
-            } else {
-                // missing excerpt, generate a default value
-                return getFallbackExcerpt(columnName);
             }
+            return getFallbackExcerpt(columnName, indexExcerptValue);
         }
         throw new IllegalArgumentException("Column not found: " + columnName);
     }
 
-    private PropertyValue getFallbackExcerpt(String columnName) {
+    private PropertyValue getFallbackExcerpt(String columnName, PropertyValue indexValue) {
         String ex = SimpleExcerptProvider.getExcerpt(getPath(), columnName,
                 query, true);
-        if (ex != null) {
+        if (ex != null && ex.length() > 24) {
             return PropertyValues.newString(ex);
+        } else if (indexValue != null) {
+            return SimpleExcerptProvider.getExcerpt(indexValue);
         }
         return PropertyValues.newString(getPath());
     }
