@@ -131,7 +131,7 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
             assertEquals(super.dsname + ": _modified value must never ever get smaller", 3L, nd1.getModified().intValue());
 
             // verify that _modified can indeed be *set* to a smaller value, see
-            // https://jira.corp.adobe.com/browse/GRANITE-8903
+            // https://issues.apache.org/jira/browse/OAK-2940
             upds1 = new UpdateOp(id, true);
             upds1.set("_id", id);
             upds1.set("_modified", 0L);
