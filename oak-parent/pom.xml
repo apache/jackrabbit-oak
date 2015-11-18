@@ -534,9 +534,21 @@
    </profile>
     
     <profile>
-      <id>pedantic</id>
+      <id>rat</id>
       <build>
         <plugins>
+          <plugin>
+            <groupId>org.apache.rat</groupId>
+            <artifactId>apache-rat-plugin</artifactId>
+            <executions>
+              <execution>
+                <phase>verify</phase>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
            <plugin>
              <artifactId>maven-surefire-plugin</artifactId>
              <configuration>
@@ -545,6 +557,13 @@
                <failIfNoSpecifiedTests>false</failIfNoSpecifiedTests>
              </configuration>
            </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>pedantic</id>
+      <build>
+        <plugins>
           <plugin>
             <groupId>org.apache.rat</groupId>
             <artifactId>apache-rat-plugin</artifactId>

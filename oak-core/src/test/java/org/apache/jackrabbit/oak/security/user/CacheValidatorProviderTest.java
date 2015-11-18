@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
@@ -213,7 +214,7 @@ public class CacheValidatorProviderTest extends AbstractSecurityTest {
         List<PropertyState> props = new ArrayList();
         props.add(PropertyStates.createProperty(CacheConstants.REP_EXPIRATION, 25));
         props.add(PropertyStates.createProperty(CacheConstants.REP_GROUP_PRINCIPAL_NAMES, EveryonePrincipal.NAME));
-        props.add(PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED));
+        props.add(PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME));
         props.add(PropertyStates.createProperty("residualProp", "anyvalue"));
 
         Tree cache = getCache(getTestUser());

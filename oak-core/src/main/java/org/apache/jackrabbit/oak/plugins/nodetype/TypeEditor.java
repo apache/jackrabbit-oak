@@ -185,7 +185,11 @@ class TypeEditor extends DefaultEditor {
                     constraintViolation(12, "Invalid UUID value in the jcr:uuid property");
                 }
             } else {
-                checkValueConstraints(definition, after);
+                int requiredType = getRequiredType(definition);
+                if (requiredType != PropertyType.UNDEFINED) {
+                    checkRequiredType(after, requiredType);
+                    checkValueConstraints(definition, after, requiredType);
+                }
             }
         }
     }
@@ -315,56 +319,58 @@ class TypeEditor extends DefaultEditor {
         return effective;
     }
 
-    private void checkValueConstraints(
-            NodeState definition, PropertyState property)
-            throws CommitFailedException {
+    private static int getRequiredType(NodeState definition) {
+        int type = PropertyType.UNDEFINED;
+        PropertyState required = definition.getProperty(JCR_REQUIREDTYPE);
+        if (required != null) {
+            String value = required.getValue(STRING);
+            if ("BINARY".equals(value)) {
+                type = PropertyType.BINARY;
+            } else if ("BOOLEAN".equals(value)) {
+                type = PropertyType.BOOLEAN;
+            } else if ("DATE".equals(value)) {
+                type = PropertyType.DATE;
+            } else if ("DECIMAL".equals(value)) {
+                type = PropertyType.DECIMAL;
+            } else if ("DOUBLE".equals(value)) {
+                type = PropertyType.DOUBLE;
+            } else if ("LONG".equals(value)) {
+                type = PropertyType.LONG;
+            } else if ("NAME".equals(value)) {
+                type = PropertyType.NAME;
+            } else if ("PATH".equals(value)) {
+                type = PropertyType.PATH;
+            } else if ("REFERENCE".equals(value)) {
+                type = PropertyType.REFERENCE;
+            } else if ("STRING".equals(value)) {
+                type = PropertyType.STRING;
+            } else if ("URI".equals(value)) {
+                type = PropertyType.URI;
+            } else if ("WEAKREFERENCE".equals(value)) {
+                type = PropertyType.WEAKREFERENCE;
+            }
+        }
+        return type;
+    }
+
+    private void checkRequiredType(PropertyState property, int requiredType) throws CommitFailedException {
+        if (requiredType != property.getType().tag()) {
+            constraintViolation(55, "Required property type violation in " + property);
+        }
+    }
+
+    private void checkValueConstraints(NodeState definition, PropertyState property, int requiredType) throws CommitFailedException {
         if (property.count() == 0) {
             return;
         }
 
-        PropertyState constraints =
-                definition.getProperty(JCR_VALUECONSTRAINTS);
+        PropertyState constraints = definition.getProperty(JCR_VALUECONSTRAINTS);
         if (constraints == null || constraints.count() == 0) {
             return;
         }
 
-        PropertyState required = definition.getProperty(JCR_REQUIREDTYPE);
-        if (required == null) {
-            return;
-        }
-
-        int type;
-        String value = required.getValue(STRING);
-        if ("BINARY".equals(value)) {
-            type = PropertyType.BINARY;
-        } else if ("BOOLEAN".equals(value)) {
-            type = PropertyType.BOOLEAN;
-        } else if ("DATE".equals(value)) {
-            type = PropertyType.DATE;
-        } else if ("DECIMAL".equals(value)) {
-            type = PropertyType.DECIMAL;
-        } else if ("DOUBLE".equals(value)) {
-            type = PropertyType.DOUBLE;
-        } else if ("LONG".equals(value)) {
-            type = PropertyType.LONG;
-        } else if ("NAME".equals(value)) {
-            type = PropertyType.NAME;
-        } else if ("PATH".equals(value)) {
-            type = PropertyType.PATH;
-        } else if ("REFERENCE".equals(value)) {
-            type = PropertyType.REFERENCE;
-        } else if ("STRING".equals(value)) {
-            type = PropertyType.STRING;
-        } else if ("URI".equals(value)) {
-            type = PropertyType.URI;
-        } else if ("WEAKREFERENCE".equals(value)) {
-            type = PropertyType.WEAKREFERENCE;
-        } else {
-            return;
-        }
-
         for (String constraint : constraints.getValue(STRINGS)) {
-            Predicate<Value> predicate = valueConstraint(type, constraint);
+            Predicate<Value> predicate = valueConstraint(requiredType, constraint);
             for (Value v : ValueFactoryImpl.createValues(property, NamePathMapper.DEFAULT)) {
                 if (predicate.apply(v)) {
                     return;

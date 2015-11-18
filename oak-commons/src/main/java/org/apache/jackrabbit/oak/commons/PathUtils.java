@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 /**
@@ -320,6 +321,36 @@ public final class PathUtils {
         }
         buff.append(subPath);
         return buff.toString();
+    }
+
+    /**
+     * Relative path concatenation.
+     *
+     * @param relativePaths relative paths
+     * @return the concatenated path or {@code null} if the resulting path is empty.
+     */
+    @CheckForNull
+    public static String concatRelativePaths(String... relativePaths) {
+        StringBuilder result = new StringBuilder();
+        for (String path : relativePaths) {
+            if (path != null && !path.isEmpty()) {
+                int i0 = 0;
+                int i1 = path.length();
+                while (i0 < i1 && path.charAt(i0) == '/') {
+                    i0++;
+                }
+                while (i1 > i0 && path.charAt(i1-1) == '/') {
+                    i1--;
+                }
+                if (i1 > i0) {
+                    if (result.length() > 0) {
+                        result.append('/');
+                    }
+                    result.append(path.substring(i0, i1));
+                }
+            }
+        }
+        return result.length() == 0 ? null : result.toString();
     }
 
     /**
