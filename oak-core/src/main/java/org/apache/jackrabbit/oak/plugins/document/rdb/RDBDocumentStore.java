@@ -286,7 +286,7 @@ public class RDBDocumentStore implements DocumentStore {
 
     @Override
     public CacheInvalidationStats invalidateCache() {
-        for (NodeDocument nd : nodeCache.asMap().values()) {
+        for (NodeDocument nd : nodesCache.asMap().values()) {
             nd.markUpToDate(0);
         }
         return null;
@@ -313,9 +313,9 @@ public class RDBDocumentStore implements DocumentStore {
         TreeLock lock = nodeLocks.acquire(id);
         try {
             if (remove) {
-                nodeCache.invalidate(id);
+                nodesCache.invalidate(id);
             } else {
-                NodeDocument entry = nodeCache.getIfPresent(id);
+                NodeDocument entry = nodesCache.getIfPresent(id);
                 if (entry != null) {
                     entry.markUpToDate(0);
                 }
@@ -445,14 +445,14 @@ public class RDBDocumentStore implements DocumentStore {
         if (collection != Collection.NODES) {
             return null;
         } else {
-            NodeDocument doc = nodeCache.getIfPresent(id);
+            NodeDocument doc = nodesCache.getIfPresent(id);
             return castAsT(doc);
         }
     }
 
     @Override
     public CacheStats getCacheStats() {
-        return nodeCache.getCacheStats();
+        return nodesCache.getCacheStats();
     }
 
     @Override
@@ -529,7 +529,7 @@ public class RDBDocumentStore implements DocumentStore {
         this.ch = new RDBConnectionHandler(ds);
         this.callStack = LOG.isDebugEnabled() ? new Exception("call stack of RDBDocumentStore creation") : null;
 
-        this.nodeCache = new NodeDocumentCache(builder, this);
+        this.nodesCache = new NodeDocumentCache(builder, this);
         this.nodeLocks = new NodeDocumentLocks();
 
         Connection con = this.ch.getRWConnection();
@@ -821,7 +821,7 @@ public class RDBDocumentStore implements DocumentStore {
             NodeDocument doc = null;
             if (maxCacheAge > 0) {
                 // first try without lock
-                doc = nodeCache.getIfPresent(id);
+                doc = nodesCache.getIfPresent(id);
                 if (doc != null) {
                     long lastCheckTime = doc.getLastCheckTime();
                     if (lastCheckTime != 0) {
@@ -840,7 +840,7 @@ public class RDBDocumentStore implements DocumentStore {
                         doc = null;
                     }
                     final NodeDocument cachedDoc = doc;
-                    doc = nodeCache.get(id, new Callable<NodeDocument>() {
+                    doc = nodesCache.get(id, new Callable<NodeDocument>() {
                         @Override
                         public NodeDocument call() throws Exception {
                             NodeDocument doc = (NodeDocument) readDocumentUncached(collection, id, cachedDoc);
@@ -864,7 +864,7 @@ public class RDBDocumentStore implements DocumentStore {
                             ndoc.seal();
                         }
                         doc = wrap(ndoc);
-                        nodeCache.put(doc);
+                        nodesCache.put(doc);
                     }
                 } finally {
                     lock.unlock();
@@ -1004,7 +1004,7 @@ public class RDBDocumentStore implements DocumentStore {
                         }
                     } else {
                         if (collection == Collection.NODES) {
-                            nodeCache.replaceCachedDocument((NodeDocument) oldDoc, (NodeDocument) doc);
+                            nodesCache.replaceCachedDocument((NodeDocument) oldDoc, (NodeDocument) doc);
                         }
                     }
                 }
@@ -1059,7 +1059,7 @@ public class RDBDocumentStore implements DocumentStore {
                 if (collection == Collection.NODES) {
                     cachedDocs = new HashMap<String, NodeDocument>();
                     for (String key : chunkedIds) {
-                        cachedDocs.put(key, nodeCache.getIfPresent(key));
+                        cachedDocs.put(key, nodesCache.getIfPresent(key));
                     }
                 }
 
@@ -1094,7 +1094,7 @@ public class RDBDocumentStore implements DocumentStore {
                         } else {
                             T newDoc = applyChanges(collection, oldDoc, update, true);
                             if (newDoc != null) {
-                                nodeCache.replaceCachedDocument((NodeDocument) oldDoc, (NodeDocument) newDoc);
+                                nodesCache.replaceCachedDocument((NodeDocument) oldDoc, (NodeDocument) newDoc);
                             }
                         }
                     }
@@ -1522,7 +1522,7 @@ public class RDBDocumentStore implements DocumentStore {
         return (T) doc;
     }
 
-    private NodeDocumentCache nodeCache;
+    private NodeDocumentCache nodesCache;
 
     private NodeDocumentLocks nodeLocks;
 
@@ -1550,54 +1550,11 @@ public class RDBDocumentStore implements DocumentStore {
         return n != null ? n.longValue() : -1;
     }
 
-    /**
-     * Adds a document to the {@link #nodesCache} iff there is no document in
-     * the cache with the document key. This method does not acquire a lock from
-     * {@link #locks}! The caller must ensure a lock is held for the given
-     * document.
-     * 
-     * @param doc
-     *            the document to add to the cache.
-     * @return either the given <code>doc</code> or the document already present
-     *         in the cache.
-     */
-    @Nonnull
-    private NodeDocument addToCache(@Nonnull final NodeDocument doc) {
-        if (doc == NodeDocument.NULL) {
-            throw new IllegalArgumentException("doc must not be NULL document");
-        }
-        doc.seal();
-        // make sure we only cache the document if it wasn't
-        // changed and cached by some other thread in the
-        // meantime. That is, use get() with a Callable,
-        // which is only used when the document isn't there
-        try {
-            String key = idOf(doc);
-            for (;;) {
-                NodeDocument cached = nodeCache.get(key, new Callable<NodeDocument>() {
-                    @Override
-                    public NodeDocument call() {
-                        return doc;
-                    }
-                });
-                if (cached != NodeDocument.NULL) {
-                    return cached;
-                } else {
-                    nodeCache.invalidate(key);
-                }
-            }
-        } catch (ExecutionException e) {
-            // will never happen because call() just returns
-            // the already available doc
-            throw new IllegalStateException(e);
-        }
-    }
-
     private <T extends Document> void addToCache(Collection<T> collection, T doc) {
         if (collection == Collection.NODES) {
             TreeLock lock = nodeLocks.acquire(idOf(doc));
             try {
-                addToCache((NodeDocument) doc);
+                nodesCache.putIfAbsent((NodeDocument) doc);
             } finally {
                 lock.unlock();
             }
@@ -1618,7 +1575,7 @@ public class RDBDocumentStore implements DocumentStore {
         }
 
         String id = row.getId();
-        NodeDocument inCache = nodeCache.getIfPresent(id);
+        NodeDocument inCache = nodesCache.getIfPresent(id);
         Number modCount = row.getModcount();
 
         // do not overwrite document in cache if the
@@ -1645,7 +1602,7 @@ public class RDBDocumentStore implements DocumentStore {
 
         TreeLock lock = nodeLocks.acquire(id);
         try {
-            inCache = nodeCache.getIfPresent(id);
+            inCache = nodesCache.getIfPresent(id);
             if (inCache != null && inCache != NodeDocument.NULL) {
                 // check mod count
                 Number cachedModCount = inCache.getModCount();
@@ -1653,12 +1610,12 @@ public class RDBDocumentStore implements DocumentStore {
                     throw new IllegalStateException("Missing " + Document.MOD_COUNT);
                 }
                 if (modCount.longValue() > cachedModCount.longValue()) {
-                    nodeCache.put(fresh);
+                    nodesCache.put(fresh);
                 } else {
                     fresh = inCache;
                 }
             } else {
-                nodeCache.put(fresh);
+                nodesCache.put(fresh);
             }
         } finally {
             lock.unlock();
@@ -1682,6 +1639,6 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     protected NodeDocumentCache getNodeDocumentCache() {
-        return nodeCache;
+        return nodesCache;
     }
 }
