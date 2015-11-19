@@ -44,7 +44,12 @@ public class MultiGenerationMap<K, V> implements Map<K, V> {
     
     @Override
     public V put(K key, V value) {
-        return write.put(key, value);
+        CacheMap<K, V> m = write;
+        if (m == null) {
+            // closed concurrently
+            return null;
+        }
+        return m.put(key, value);
     }
 
     @SuppressWarnings("unchecked")
