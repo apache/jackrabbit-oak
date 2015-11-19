@@ -19,8 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import com.google.common.collect.Iterables;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
@@ -47,7 +45,6 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
     private DocumentNodeStore c1;
     private DocumentNodeStore c2;
     private int initialCacheSizeC1;
-    private int initialCacheSizeC2;
 
     @Before
     public void prepareStores() throws Exception {
@@ -56,7 +53,6 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
         c1 = createNS(2);
         c2 = createNS(3);
         initialCacheSizeC1 = getCurrentCacheSize(c1);
-        initialCacheSizeC2 = getCurrentCacheSize(c2);
     }
 
     private int createScenario() throws CommitFailedException {
@@ -77,7 +73,6 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
                 "/a/d",
                 "/a/d/h",
         };
-        final int totalPaths = paths.length + 1; // 1 extra for root
         NodeBuilder root = getRoot(c1).builder();
         createTree(root, paths);
         c1.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -105,10 +100,8 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
         //Only 2 entries /a and /a/d would be invalidated
         // '/' would have been added to cache in start of backgroundRead
         //itself
-        assertEquals(initialCacheSizeC1+ totalPaths - 2, Iterables.size(ds(c1).getCacheEntries()));
+        assertEquals(initialCacheSizeC1 + totalPaths - 2, ds(c1).getNodeDocumentCache().asMap().size());
     }
-
-
 
     @Test
     public void testCacheInvalidationHierarchicalNotExist()
@@ -148,7 +141,7 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
     }
 
     private int getCurrentCacheSize(DocumentNodeStore ds){
-        return Iterables.size(ds(ds).getCacheEntries());
+        return ds(ds).getNodeDocumentCache().asMap().size();
     }
 
     private static void refreshHead(DocumentNodeStore store) {
