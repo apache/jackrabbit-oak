@@ -765,7 +765,7 @@ public class MongoDocumentStore implements DocumentStore {
                 if (result.getN() > 0) {
                     // success, update cached document
                     if (collection == Collection.NODES) {
-                        nodesCache.putToCache((NodeDocument) cachedDoc, updateOp);
+                        nodesCache.putWithUpdate((NodeDocument) cachedDoc, updateOp);
                     }
                     // return previously cached document
                     return cachedDoc;
@@ -782,14 +782,14 @@ public class MongoDocumentStore implements DocumentStore {
             T oldDoc = convertFromDBObject(collection, oldNode);
             if (oldDoc != null) {
                 if (collection == Collection.NODES) {
-                    nodesCache.putToCache((NodeDocument) oldDoc, updateOp);
+                    nodesCache.putWithUpdate((NodeDocument) oldDoc, updateOp);
                 }
                 oldDoc.seal();
             } else if (upsert) {
                 if (collection == Collection.NODES) {
                     NodeDocument doc = (NodeDocument) collection.newDocument(this);
                     UpdateUtils.applyChanges(doc, updateOp, comparator);
-                    nodesCache.addToCache(doc);
+                    nodesCache.putIfAbsent(doc);
                 }
             } else {
                 // updateOp without conditions and not an upsert
@@ -890,7 +890,7 @@ public class MongoDocumentStore implements DocumentStore {
                     for (T doc : docs) {
                         TreeLock lock = nodeLocks.acquire(doc.getId());
                         try {
-                            nodesCache.addToCache((NodeDocument) doc);
+                            nodesCache.putIfAbsent((NodeDocument) doc);
                         } finally {
                             lock.unlock();
                         }
@@ -937,7 +937,7 @@ public class MongoDocumentStore implements DocumentStore {
                             // invalidated
                             nodesCache.invalidate(entry.getKey());
                         } else {
-                            nodesCache.updateCache(entry.getValue(), updateOp.shallowCopy(entry.getKey()));
+                            nodesCache.applyUpdateOnCachedDocument(entry.getValue(), updateOp.shallowCopy(entry.getKey()));
                         }
                     } finally {
                         lock.unlock();

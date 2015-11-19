@@ -74,15 +74,6 @@ public class NodeDocumentLocks {
         return TreeLock.exclusive(parentLocks.get(parentKey));
     }
 
-    public void withLock(String key, Runnable runnable) {
-        TreeLock lock = acquire(key);
-        try {
-            runnable.run();
-        } finally {
-            lock.unlock();
-        }
-    }
-
     /**
      * Returns the parent id for the given id. An empty String is returned if
      * the given value is the id of the root document or the id for a long path.

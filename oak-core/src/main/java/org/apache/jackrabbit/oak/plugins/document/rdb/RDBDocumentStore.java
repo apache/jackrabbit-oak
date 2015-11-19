@@ -79,7 +79,6 @@ import org.apache.jackrabbit.oak.util.OakVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -1005,7 +1004,7 @@ public class RDBDocumentStore implements DocumentStore {
                         }
                     } else {
                         if (collection == Collection.NODES) {
-                            applyToCache((NodeDocument) oldDoc, (NodeDocument) doc);
+                            nodeCache.replaceCachedDocument((NodeDocument) oldDoc, (NodeDocument) doc);
                         }
                     }
                 }
@@ -1095,7 +1094,7 @@ public class RDBDocumentStore implements DocumentStore {
                         } else {
                             T newDoc = applyChanges(collection, oldDoc, update, true);
                             if (newDoc != null) {
-                                applyToCache((NodeDocument) oldDoc, (NodeDocument) newDoc);
+                                nodeCache.replaceCachedDocument((NodeDocument) oldDoc, (NodeDocument) newDoc);
                             }
                         }
                     }
@@ -1591,32 +1590,6 @@ public class RDBDocumentStore implements DocumentStore {
             // will never happen because call() just returns
             // the already available doc
             throw new IllegalStateException(e);
-        }
-    }
-
-    @Nonnull
-    private void applyToCache(@Nonnull final NodeDocument oldDoc, @Nonnull final NodeDocument newDoc) {
-        NodeDocument cached = addToCache(newDoc);
-        if (cached == newDoc) {
-            // successful
-            return;
-        } else if (oldDoc == null) {
-            // this is an insert and some other thread was quicker
-            // loading it into the cache -> return now
-            return;
-        } else {
-            String key = idOf(newDoc);
-            // this is an update (oldDoc != null)
-            if (Objects.equal(cached.getModCount(), oldDoc.getModCount())) {
-                nodeCache.put(newDoc);
-            } else {
-                // the cache entry was modified by some other thread in
-                // the meantime. the updated cache entry may or may not
-                // include this update. we cannot just apply our update
-                // on top of the cached entry.
-                // therefore we must invalidate the cache entry
-                nodeCache.invalidate(key);
-            }
         }
     }
 
