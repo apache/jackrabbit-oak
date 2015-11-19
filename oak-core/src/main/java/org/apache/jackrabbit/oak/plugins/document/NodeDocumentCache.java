@@ -90,7 +90,9 @@ public class NodeDocumentCache implements Closeable {
     }
 
     public void put(NodeDocument doc) {
-        nodesCache.put(new StringValue(doc.getId()), doc);
+        if (doc != NodeDocument.NULL) {
+            nodesCache.put(new StringValue(doc.getId()), doc);
+        }
     }
 
     /**

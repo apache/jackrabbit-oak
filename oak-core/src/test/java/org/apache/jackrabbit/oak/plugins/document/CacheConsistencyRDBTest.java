@@ -33,7 +33,6 @@ import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBRow;
-import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
@@ -124,7 +123,7 @@ public class CacheConsistencyRDBTest extends AbstractRDBConnectionTest {
         }
 
         public void invalidateNodeDocument(String key) {
-            getNodeDocumentCache().invalidate(new StringValue(key));
+            getNodeDocumentCache().invalidate(key);
         }
     }
 }
