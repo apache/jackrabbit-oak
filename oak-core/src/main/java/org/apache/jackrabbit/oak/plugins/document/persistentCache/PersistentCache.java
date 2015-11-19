@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.Broadcaster;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.InMemoryBroadcaster;
+import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.TCPBroadcaster;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.UDPBroadcaster;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.h2.mvstore.FileStore;
@@ -197,6 +198,9 @@ public class PersistentCache implements Broadcaster.Listener {
         } else if (broadcast.startsWith("udp:")) {
             String config = broadcast.substring("udp:".length(), broadcast.length());
             broadcaster = new UDPBroadcaster(config);
+        } else if (broadcast.startsWith("tcp:")) {
+            String config = broadcast.substring("tcp:".length(), broadcast.length());
+            broadcaster = new TCPBroadcaster(config);
         } else {
             throw new IllegalArgumentException("Unknown broadcaster type " + broadcast);
         }
