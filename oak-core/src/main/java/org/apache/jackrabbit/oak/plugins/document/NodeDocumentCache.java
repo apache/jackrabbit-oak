@@ -236,7 +236,7 @@ public class NodeDocumentCache implements Closeable {
         // still have the oldDoc in the cache, otherwise we may
         // update the cache with an outdated document
         String id = updateOp.getId();
-        NodeDocument cached = nodesCache.getIfPresent(id);
+        NodeDocument cached = getIfPresent(id);
         if (cached == null) {
             // cannot use oldDoc to update cache
             return;
