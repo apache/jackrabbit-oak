@@ -40,7 +40,7 @@ public class AndImplTest {
         op2 = mock(ComparisonImpl.class);
         and = new AndImpl(op1, op2);
         expected = emptySet();
-        assertThat(and.simplifyForUnion(), is(expected));
+        assertThat(and.convertToUnion(), is(expected));
 
         op1 = mockConstraint("op1", ComparisonImpl.class);
         op2 = mockConstraint("op2", ComparisonImpl.class);
@@ -50,7 +50,7 @@ public class AndImplTest {
             (ConstraintImpl) new AndImpl(op1, op3)
             , (ConstraintImpl) new AndImpl(op2, op3)
         );
-        assertThat(and.simplifyForUnion(), is(expected));
+        assertThat(and.convertToUnion(), is(expected));
 
         op1 = mockConstraint("op1", ComparisonImpl.class);
         op2 = mockConstraint("op2", ComparisonImpl.class);
@@ -62,7 +62,7 @@ public class AndImplTest {
             , (ConstraintImpl) new AndImpl(op2, op3)
             , (ConstraintImpl) new AndImpl(op4, op3)
         );
-        assertThat(and.simplifyForUnion(), is(expected));
+        assertThat(and.convertToUnion(), is(expected));
 }
     
     /**

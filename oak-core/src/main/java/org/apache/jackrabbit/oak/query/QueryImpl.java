@@ -172,11 +172,6 @@ public class QueryImpl implements Query {
      * whether the object has been initialised or not
      */
     private boolean init;
-    
-    /**
-     * whether the query is a result of optimisation or original one.
-     */
-    private boolean optimised;
 
     private boolean isSortedByIndex;
 
@@ -191,20 +186,13 @@ public class QueryImpl implements Query {
     private boolean isInternal;
 
     QueryImpl(String statement, SourceImpl source, ConstraintImpl constraint,
-            ColumnImpl[] columns, NamePathMapper mapper, QueryEngineSettings settings) {
-        this(statement, source, constraint, columns, mapper, settings, false);
-    }
-
-    QueryImpl(String statement, SourceImpl source, ConstraintImpl constraint,
-        ColumnImpl[] columns, NamePathMapper mapper, QueryEngineSettings settings, 
-        final boolean optimised) {
+        ColumnImpl[] columns, NamePathMapper mapper, QueryEngineSettings settings) {
         this.statement = statement;
         this.source = source;
         this.constraint = constraint;
         this.columns = columns;
         this.namePathMapper = mapper;
         this.settings = settings;
-        this.optimised = optimised;
     }
 
     @Override
@@ -1198,12 +1186,11 @@ public class QueryImpl implements Query {
     }
 
     @Override
-    public Query optimise() {
-        // optimising for UNION
-        Query optimised = this;
+    public Query buildAlternativeQuery() {
+        Query result = this;
         
         if (constraint != null) {
-            Set<ConstraintImpl> unionList = constraint.simplifyForUnion();
+            Set<ConstraintImpl> unionList = constraint.convertToUnion();
             if (unionList.size() > 1) {
                 // there are some cases where multiple ORs simplify into a single one. If we get a
                 // union list of just one we don't really have to UNION anything.
@@ -1212,7 +1199,7 @@ public class QueryImpl implements Query {
                 // we have something to do here.
                 for (ConstraintImpl c : unionList) {
                     if (right != null) {
-                        right = newOptimisedUnionQuery(left, right);
+                        right = newAlternativeUnionQuery(left, right);
                     } else {
                         // pulling left to the right
                         if (left != null) {
@@ -1221,7 +1208,7 @@ public class QueryImpl implements Query {
                     }
                     
                     // cloning original query
-                    left = (QueryImpl) this.copyOf(true);
+                    left = (QueryImpl) this.copyOf();
                     
                     // cloning the constraints and assigning to new query
                     left.constraint = (ConstraintImpl) copyElementAndCheckReference(c);
@@ -1229,11 +1216,11 @@ public class QueryImpl implements Query {
                     left.statement = recomposeStatement(left);
                 }
                 
-                optimised = newOptimisedUnionQuery(left, right);
+                result = newAlternativeUnionQuery(left, right);
             }
         }
         
-        return optimised;
+        return result;
     }
     
     private static String recomposeStatement(@Nonnull QueryImpl query) {
@@ -1258,29 +1245,26 @@ public class QueryImpl implements Query {
     }
     
     /**
-     * convenience method for creating a UnionQueryImpl with proper settings.
+     * Convenience method for creating a UnionQueryImpl with proper settings.
      * 
-     * @param left
-     * @param right
-     * @return
+     * @param left the first subquery
+     * @param right the second subquery
+     * @return the union query
      */
-    private UnionQueryImpl newOptimisedUnionQuery(@Nonnull Query left, @Nonnull Query right) {
+    private UnionQueryImpl newAlternativeUnionQuery(@Nonnull Query left, @Nonnull Query right) {
         UnionQueryImpl u = new UnionQueryImpl(
             false, 
             checkNotNull(left, "`left` cannot be null"), 
             checkNotNull(right, "`right` cannot be null"),
-            this.settings, 
-            true);
+            this.settings);
         u.setExplain(explain);
+        u.setMeasure(measure);
+        u.setInternal(isInternal);
         return u;
     }
     
     @Override
-    public Query copyOf() throws IllegalStateException {
-        return copyOf(false);
-    }
-    
-    private Query copyOf(final boolean optimised) {
+    public Query copyOf() {
         if (isInit()) {
             throw new IllegalStateException("QueryImpl cannot be cloned once initialised.");
         }
@@ -1296,8 +1280,7 @@ public class QueryImpl implements Query {
             this.constraint,
             cols.toArray(new ColumnImpl[0]),
             this.namePathMapper,
-            this.settings,
-            optimised);
+            this.settings);
         copy.explain = this.explain;
         copy.distinct = this.distinct;
         
@@ -1307,11 +1290,6 @@ public class QueryImpl implements Query {
     @Override
     public boolean isInit() {
         return init;
-    }
-
-    @Override
-    public boolean isOptimised() {
-        return optimised;
     }
 
     @Override

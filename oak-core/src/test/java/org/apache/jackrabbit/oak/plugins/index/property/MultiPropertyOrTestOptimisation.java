@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import static org.apache.jackrabbit.oak.query.QueryEngineImpl.ForceOptimised.OPTIMISED;
+import static org.apache.jackrabbit.oak.query.QueryEngineImpl.QuerySelectionMode.ALTERNATIVE;
 
 import org.junit.Before;
 
@@ -29,7 +29,7 @@ public class MultiPropertyOrTestOptimisation extends MultiPropertyOrTest {
     @Before
     public void before() throws Exception {
         super.before();
-        setForceOptimised(OPTIMISED);
+        setQuerySelectionMode(ALTERNATIVE);
         setTraversalEnabled(false);
     }    
 }

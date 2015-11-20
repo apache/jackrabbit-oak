@@ -35,14 +35,14 @@ public class OrImplTest {
         op2 = mock(ComparisonImpl.class);
         or = new OrImpl(op1, op2);
         expected = of(op1, op2);
-        assertThat(or.simplifyForUnion(), is(expected));
+        assertThat(or.convertToUnion(), is(expected));
         
         op1 = mock(ComparisonImpl.class);
         op2 = mock(ComparisonImpl.class);
         op3 = mock(ComparisonImpl.class);
         or = new OrImpl(new OrImpl(op1, op2), op3);
         expected = of(op1, op2, op3);
-        assertThat(or.simplifyForUnion(), is(expected));
+        assertThat(or.convertToUnion(), is(expected));
 
         op1 = mock(ComparisonImpl.class);
         op2 = mock(ComparisonImpl.class);
@@ -50,6 +50,6 @@ public class OrImplTest {
         op4 = mock(ComparisonImpl.class);
         or = new OrImpl(new OrImpl(new OrImpl(op1, op4), op2), op3);
         expected = of(op1, op2, op3, op4);
-        assertThat(or.simplifyForUnion(), is(expected));
+        assertThat(or.convertToUnion(), is(expected));
     }
 }
