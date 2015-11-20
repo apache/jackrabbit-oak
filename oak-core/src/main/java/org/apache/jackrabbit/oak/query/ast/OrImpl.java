@@ -358,17 +358,17 @@ public class OrImpl extends ConstraintImpl {
     }
 
     @Override
-    public Set<ConstraintImpl> simplifyForUnion() {
-        Set<ConstraintImpl> cc = Sets.newHashSet();
+    public Set<ConstraintImpl> convertToUnion() {
+        Set<ConstraintImpl> result = Sets.newHashSet();
         for (ConstraintImpl c : getConstraints()) {
-            Set<ConstraintImpl> ccc = c.simplifyForUnion(); 
-            if (ccc.isEmpty()) {
-                cc.add(c);
+            Set<ConstraintImpl> converted = c.convertToUnion(); 
+            if (converted.isEmpty()) {
+                result.add(c);
             } else {
-                cc.addAll(ccc);
+                result.addAll(converted);
             }
         }
-        return cc;
+        return result;
     }
 
     @Override

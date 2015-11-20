@@ -24,9 +24,9 @@ import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
-import static org.apache.jackrabbit.oak.query.QueryEngineImpl.ForceOptimised.CHEAPEST;
-import static org.apache.jackrabbit.oak.query.QueryEngineImpl.ForceOptimised.OPTIMISED;
-import static org.apache.jackrabbit.oak.query.QueryEngineImpl.ForceOptimised.ORIGINAL;
+import static org.apache.jackrabbit.oak.query.QueryEngineImpl.QuerySelectionMode.CHEAPEST;
+import static org.apache.jackrabbit.oak.query.QueryEngineImpl.QuerySelectionMode.ALTERNATIVE;
+import static org.apache.jackrabbit.oak.query.QueryEngineImpl.QuerySelectionMode.ORIGINAL;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
@@ -97,11 +97,11 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
         statement = String.format("SELECT * FROM [%s] WHERE p = 'a' OR p = 'b'",
             NT_OAK_UNSTRUCTURED);
         expected = of("/test/a", "/test/b", "/test2/a");
-        setForceOptimised(ORIGINAL);
+        setQuerySelectionMode(ORIGINAL);
         original = executeQuery(statement, JCR_SQL2, true);
-        setForceOptimised(OPTIMISED);
+        setQuerySelectionMode(ALTERNATIVE);
         optimised = executeQuery(statement, JCR_SQL2, true);
-        setForceOptimised(CHEAPEST);
+        setQuerySelectionMode(CHEAPEST);
         cheapest = executeQuery(statement, JCR_SQL2, true);
         assertOrToUnionResults(expected, original, optimised, cheapest);
         
@@ -109,11 +109,11 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
             "SELECT * FROM [%s] WHERE p = 'a' OR p = 'b' OR p = 'c' OR p = 'd' OR p = 'e' ",
             NT_OAK_UNSTRUCTURED);
         expected = of("/test/a", "/test/b", "/test/c", "/test/d", "/test/e", "/test2/a");
-        setForceOptimised(ORIGINAL);
+        setQuerySelectionMode(ORIGINAL);
         original = executeQuery(statement, JCR_SQL2, true);
-        setForceOptimised(OPTIMISED);
+        setQuerySelectionMode(ALTERNATIVE);
         optimised = executeQuery(statement, JCR_SQL2, true);
-        setForceOptimised(CHEAPEST);
+        setQuerySelectionMode(CHEAPEST);
         cheapest = executeQuery(statement, JCR_SQL2, true);
         assertOrToUnionResults(expected, original, optimised, cheapest);
 
@@ -121,11 +121,11 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
             "SELECT * FROM [%s] WHERE (p = 'a' OR p = 'b') AND (p1 = 'a1' OR p1 = 'b1')",
             NT_OAK_UNSTRUCTURED);
         expected = of("/test/a", "/test/b");
-        setForceOptimised(ORIGINAL);
+        setQuerySelectionMode(ORIGINAL);
         original = executeQuery(statement, JCR_SQL2, true);
-        setForceOptimised(OPTIMISED);
+        setQuerySelectionMode(ALTERNATIVE);
         optimised = executeQuery(statement, JCR_SQL2, true);
-        setForceOptimised(CHEAPEST);
+        setQuerySelectionMode(CHEAPEST);
         cheapest = executeQuery(statement, JCR_SQL2, true);
         assertOrToUnionResults(expected, original, optimised, cheapest);
 
@@ -133,11 +133,11 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
             "SELECT * FROM [%s] WHERE (p = 'a' AND p1 = 'a1') OR (p = 'b' AND p1 = 'b1')",
             NT_OAK_UNSTRUCTURED);
         expected = of("/test/a", "/test/b");
-        setForceOptimised(ORIGINAL);
+        setQuerySelectionMode(ORIGINAL);
         original = executeQuery(statement, JCR_SQL2, true);
-        setForceOptimised(OPTIMISED);
+        setQuerySelectionMode(ALTERNATIVE);
         optimised = executeQuery(statement, JCR_SQL2, true);
-        setForceOptimised(CHEAPEST);
+        setQuerySelectionMode(CHEAPEST);
         cheapest = executeQuery(statement, JCR_SQL2, true);
         assertOrToUnionResults(expected, original, optimised, cheapest);
         
@@ -148,11 +148,11 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
             + "AND ISDESCENDANTNODE(c, '/test') "
             + "ORDER BY added DESC";
         expected = of("/test/a", "/test/b", "/test/c");
-        setForceOptimised(ORIGINAL);
+        setQuerySelectionMode(ORIGINAL);
         original = executeQuery(statement, JCR_SQL2, true);
-        setForceOptimised(OPTIMISED);
+        setQuerySelectionMode(ALTERNATIVE);
         optimised = executeQuery(statement, JCR_SQL2, true);
-        setForceOptimised(CHEAPEST);
+        setQuerySelectionMode(CHEAPEST);
         cheapest = executeQuery(statement, JCR_SQL2, true);
         assertOrToUnionResults(expected, original, optimised, cheapest);
     }
@@ -197,7 +197,7 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
                 + "(c.[p1]='a' OR c.[p2]='b') ";
         original = parser.parse(statement, false);
         assertNotNull(original);
-        optimised = original.optimise();
+        optimised = original.buildAlternativeQuery();
         assertNotNull(optimised);
         assertNotSame(original, optimised);
         assertTrue(optimised instanceof UnionQueryImpl);
@@ -210,7 +210,7 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
                 + "ISDESCENDANTNODE(c, '/test') ";
         original = parser.parse(statement, false);
         assertNotNull(original);
-        optimised = original.optimise();
+        optimised = original.buildAlternativeQuery();
         assertNotNull(optimised);
         assertNotSame(original, optimised);
         
@@ -222,7 +222,7 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
                 + "ISDESCENDANTNODE(c, '/test') ";
         original = parser.parse(statement, false);
         assertNotNull(original);
-        optimised = original.optimise();
+        optimised = original.buildAlternativeQuery();
         assertNotNull(optimised);
         assertNotSame(original, optimised);
     }

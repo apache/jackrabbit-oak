@@ -219,17 +219,17 @@ public class AndImpl extends ConstraintImpl {
     }
 
     @Override
-    public Set<ConstraintImpl> simplifyForUnion() {
+    public Set<ConstraintImpl> convertToUnion() {
         Set<ConstraintImpl> union = Sets.newHashSet();
         Set<ConstraintImpl> result = Sets.newHashSet();
         Set<ConstraintImpl> nonUnion = Sets.newHashSet();
         
         for (ConstraintImpl c : constraints) {
-            Set<ConstraintImpl> ccc = c.simplifyForUnion();
-            if (ccc.isEmpty()) {
+            Set<ConstraintImpl> converted = c.convertToUnion();
+            if (converted.isEmpty()) {
                 nonUnion.add(c);
             } else {
-                union.addAll(ccc);
+                union.addAll(converted);
             }
         }
         if (!union.isEmpty() && nonUnion.size() == 1) {
@@ -240,7 +240,7 @@ public class AndImpl extends ConstraintImpl {
                 result.add(new AndImpl(c, right));
             }
         } else {
-            // in this case prefer to be conservative and don't optimise. This could happen when for
+            // in this case prefer to be conservative and don't optimize. This could happen when for
             // example: WHERE (a OR b) AND (c OR d).
             // This should be translated into a AND c, a AND d, b AND c, b AND d.
         }

@@ -161,23 +161,21 @@ public abstract class ConstraintImpl extends AstElement {
     }
     
     /**
+     * Compute a set of sub-constraints that could be used for composing UNION
+     * statements. For example in case of "c=1 or c=2", it will return to the
+     * caller {@code [c=1, c=2]}. Those can be later on used for re-composing
+     * conditions.
      * <p>
-     * Compute a Set of sub-constraints that could be used for composing UNION statements. For
-     * example in case of {@code OR (c1, c2)} it will return to the caller {@code [c1, c2]}. Those
-     * can be later on used for re-composing conditions.
-     * </p>
+     * If it is not possible to convert to a union, it must return an empty set.
      * <p>
-     * If no union optimisations are possible it must return an empty set.
-     * </p>
-     * <p>
-     * Default implementation in {@link ConstraintImpl#simplifyForUnion()} always return an empty
-     * set.
-     * </p>
+     * The default implementation in {@link ConstraintImpl#convertToUnion()}
+     * always return an empty set.
      * 
-     * @return the set of constraints, if available
+     * @return the set of union constraints, if available, or an empty set if
+     *         conversion is not possible
      */
     @Nonnull
-    public Set<ConstraintImpl> simplifyForUnion() {
+    public Set<ConstraintImpl> convertToUnion() {
         return Collections.emptySet();
     }
 }

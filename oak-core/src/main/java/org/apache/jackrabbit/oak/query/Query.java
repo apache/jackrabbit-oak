@@ -131,14 +131,15 @@ public interface Query {
     boolean isSortedByIndex();
     
     /**
-     * Perform optimisation on the object itself. To avoid any potential error due to state
-     * variables perfom the optimisation before the {@link #init()}.
+     * Try to convert the query to an alternative form, specially a "union". To
+     * avoid any potential error due to state variables perform the conversion
+     * before the {@link #init()}.
      * 
-     * @return {@code this} if no optimisations are possible or a new instance of a {@link Query}.
-     *         Cannot return null.
+     * @return {@code this} if no conversions are possible or a new instance of
+     *         a {@link Query}. Cannot return null.
      */
     @Nonnull
-    Query optimise();
+    Query buildAlternativeQuery();
     
     /**
      * <p>
@@ -160,12 +161,6 @@ public interface Query {
      * @return {@code true} if the query has been already initialised. {@code false} otherwise.
      */
     boolean isInit();
-    
-    /**
-     * @return {@code true} if the query is a result of optimisations. {@code false} if it's the
-     *         originally computed one.
-     */
-    boolean isOptimised();
     
     /**
      * @return the original statement as it was used to construct the object. If not provided the
