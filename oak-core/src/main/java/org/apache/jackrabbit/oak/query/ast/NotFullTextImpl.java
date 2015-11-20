@@ -51,6 +51,14 @@ public class NotFullTextImpl extends NotImpl {
     
     @Override
     public FullTextExpression getFullTextConstraint(SelectorImpl s) {
+        // TODO is this correct?
+        ;
         return getConstraint().getFullTextConstraint(s);
     }
+
+    @Override
+    public boolean requiresFullTextIndex() {
+        return true;
+    }
+
 }

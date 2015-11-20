@@ -184,7 +184,7 @@ public class SQL2Parser {
      * as {@link #parse(String, boolean)} by providing {@code true} to the initialisation flag.
      * 
      * @param query
-     * @return
+     * @return the parsed query
      * @throws ParseException
      */
     public Query parse(final String query) throws ParseException {

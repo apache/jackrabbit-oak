@@ -180,18 +180,12 @@ public interface Query {
     boolean isInternal();
 
     /**
-     * <p>
-     * Some queries can bring with them a cost overhead that the query engine could consider when
-     * electing the best query between the original SQL2 and the possible available optimisations.
-     * </p>
-     * <p>
-     * For example for the case of <a href="https://issues.apache.org/jira/browse/OAK-2660" /> if
-     * you have a case where {@code (a = 'v' OR CONTAINS(b, 'v1') OR CONTAINS(c, 'v2')) AND (...)}
-     * currently the query engine does not know how to leverage indexes and post conditions and the
-     * query is better suited with a UNION.
-     * </p>
+     * Whether the condition contains a fulltext condition that can not be 
+     * applied to the filter, for example because it is part of an "or" condition
+     * of the form "where a=1 or contains(., 'x')".
      * 
-     * @return a positive number or 0. <strong>Cannot be negative.</strong>
-     */
-    double getCostOverhead();
+     * @return true if yes
+     */    
+    boolean containsUnfilteredFullTextCondition();
+
 }

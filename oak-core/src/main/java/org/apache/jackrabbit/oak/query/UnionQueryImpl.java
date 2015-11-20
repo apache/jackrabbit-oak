@@ -137,7 +137,9 @@ public class UnionQueryImpl implements Query {
     
     @Override
     public double getEstimatedCost() {
-        return left.getEstimatedCost() + right.getEstimatedCost();
+        // the cost is higher than the cost of both parts, so that
+        // non-union queries are preferred over union ones
+        return 10 + left.getEstimatedCost() + right.getEstimatedCost();
     }
 
     @Override
@@ -398,8 +400,9 @@ public class UnionQueryImpl implements Query {
     }
 
     @Override
-    public double getCostOverhead() {
-        // for now we don't really have any case where a union query should suffer from overheads.
-        return 0;
+    public boolean containsUnfilteredFullTextCondition() {
+        return left.containsUnfilteredFullTextCondition() || 
+                right.containsUnfilteredFullTextCondition();
     }
+
 }
