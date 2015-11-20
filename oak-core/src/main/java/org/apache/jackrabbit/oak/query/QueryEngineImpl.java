@@ -257,27 +257,13 @@ public abstract class QueryEngineImpl implements QueryEngine {
 
         boolean mdc = false;
         try {
-            MdcAndPrepared map = prepareAndGetCheapest(queries); 
-            mdc = map.mdc;
-            Query q = map.query;
-            return q.executeQuery();
+            Query query = prepareAndGetCheapest(queries); 
+            mdc = setupMDC(query);
+            return query.executeQuery();
         } finally {
             if (mdc) {
                 clearMDC();
             }
-        }
-    }
-
-    /**
-     * POJO class used to return the cheapest prepared query from the set and related MDC status
-     */
-    private static class MdcAndPrepared {
-        private final boolean mdc;
-        private final Query query;
-        
-        public MdcAndPrepared(final boolean mdc, @Nonnull final Query q) {
-            this.mdc = mdc;
-            this.query = checkNotNull(q);
         }
     }
     
@@ -289,17 +275,14 @@ public abstract class QueryEngineImpl implements QueryEngine {
      * @return
      */
     @Nonnull
-    private MdcAndPrepared prepareAndGetCheapest(@Nonnull final Set<Query> queries) {
-        MdcAndPrepared map = null;
-        Query cheapest = null;
-        
+    private Query prepareAndGetCheapest(@Nonnull final Set<Query> queries) {
+        Query result = null;
         
         if (checkNotNull(queries).size() == 1) {
             // we only have the original query so we prepare and return it.
-            cheapest = queries.iterator().next();
-            cheapest.prepare();
-            LOG.debug("No optimisations found. Cheapest is the original query: {}", cheapest);
-            map = new MdcAndPrepared(setupMDC(cheapest), cheapest);
+            result = queries.iterator().next();
+            result.prepare();
+            LOG.debug("No optimisations found. Query: {}", result);
         } else {
             double bestCost = Double.POSITIVE_INFINITY;
             double originalCost = Double.POSITIVE_INFINITY;
@@ -316,8 +299,8 @@ public abstract class QueryEngineImpl implements QueryEngine {
                     LOG.debug("contains an unfiltered fulltext condition");
                     cost = Double.POSITIVE_INFINITY;
                 }
-                if (cheapest == null || cost < bestCost) {
-                    cheapest = q;
+                if (result == null || cost < bestCost) {
+                    result = q;
                     bestCost = cost;
                 }
                 if (!q.isOptimised()) {
@@ -326,11 +309,11 @@ public abstract class QueryEngineImpl implements QueryEngine {
                 }
             }
             
-            if (original != null && bestCost == originalCost && cheapest != original) {
+            if (original != null && bestCost == originalCost && result != original) {
                 // if the optimised cost is the same as the original SQL2 query we prefer the original. As
                 // we deal with references the `cheapest!=original` should work.
                 LOG.trace("Same cost for original and optimised. Using original");
-                cheapest = original;
+                result = original;
             }
 
             switch (forceOptimised) {
@@ -338,7 +321,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
                 LOG.debug("Forcing the original SQL2 query to be executed by flag");
                 for (Query q  : checkNotNull(queries)) {
                     if (!q.isOptimised()) {
-                        map = new MdcAndPrepared(setupMDC(q), q);
+                        result = q;
                     }
                 }
                 break;
@@ -347,7 +330,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
                 LOG.debug("Forcing the optimised SQL2 query to be executed by flag");
                 for (Query q  : checkNotNull(queries)) {
                     if (q.isOptimised()) {
-                        map = new MdcAndPrepared(setupMDC(q), q);
+                        result = q;
                     }
                 }
                 break;
@@ -355,34 +338,19 @@ public abstract class QueryEngineImpl implements QueryEngine {
             // CHEAPEST is the default behaviour
             case CHEAPEST:
             default:
-                if (cheapest == null) {
+                if (result == null) {
                     // this should not really happen. Defensive coding.
                     LOG.debug("Cheapest is null. Returning the original SQL2 query.");
                     for (Query q  : checkNotNull(queries)) {
                         if (!q.isOptimised()) {
-                            map = new MdcAndPrepared(setupMDC(q), q);
+                            result = q;
                         }
                     }
-                } else {
-                    LOG.debug("Cheapest cost: {} - query: {}", bestCost, cheapest);
-                    map = new MdcAndPrepared(setupMDC(cheapest), cheapest);                
-                }
-            }
-        }
-
-        
-        if (map == null) {
-            // we should only get here in case of testing forcing weird conditions
-            LOG.trace("`MdcAndPrepared` is null. Falling back to the original query");
-            for (Query q  : checkNotNull(queries)) {
-                if (!q.isOptimised()) {
-                    map = new MdcAndPrepared(setupMDC(q), q);
-                    break;
                 }
             }
         }
         
-        return map;
+        return result;
     }
     
     protected void setTraversalEnabled(boolean traversalEnabled) {
