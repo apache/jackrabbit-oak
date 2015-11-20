@@ -34,11 +34,21 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
+import org.apache.jackrabbit.oak.commons.json.JsopReader;
+import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
@@ -53,10 +63,15 @@ public class RDBExport {
 
     private static final Charset UTF8 = Charset.forName("UTF-8");
 
+    private enum Format {
+        JSON, JSONARRAY, CSV
+    };
+
     public static void main(String[] args) throws ClassNotFoundException, SQLException, IOException {
 
         String url = null, user = null, pw = null, table = "nodes", query = null, dumpfile = null, lobdir = null;
-        boolean asArray = false;
+        List<String> fieldList = Collections.emptyList();
+        Format format = Format.JSON;
         PrintStream out = System.out;
         Set<String> excl = new HashSet<String>();
         excl.add(Document.ID);
@@ -84,7 +99,12 @@ public class RDBExport {
                 } else if ("--lobdir".equals(param)) {
                     lobdir = args[++i];
                 } else if ("--jsonArray".equals(param)) {
-                    asArray = true;
+                    format = Format.JSONARRAY;
+                } else if ("--csv".equals(param)) {
+                    format = Format.CSV;
+                } else if ("--fields".equals(param)) {
+                    String fields = args[++i];
+                    fieldList = Arrays.asList(fields.split(","));
                 } else if ("--version".equals(param)) {
                     System.out.println(RDBExport.class.getName() + " version " + OakVersion.getVersion());
                     System.exit(0);
@@ -103,32 +123,45 @@ public class RDBExport {
             System.exit(2);
         }
 
-        if (dumpfile != null && url != null) {
+        if (format == Format.CSV && fieldList.isEmpty()) {
+            System.err.println(RDBExport.class.getName() + ": csv output requires specification of field list");
+            System.exit(2);
+        }
+
+        // JSON output with fieldList missing "_id"
+        if ((format == Format.JSON || format == Format.JSONARRAY) && !fieldList.isEmpty() && !fieldList.contains("_id")) {
+            fieldList = new ArrayList<String>(fieldList);
+            fieldList.add(0, "_id");
+        }
+
+        if (dumpfile == null && url == null) {
             System.err.println(RDBExport.class.getName() + ": must use either dump file or JDBC URL");
             printUsage();
             System.exit(2);
         } else if (dumpfile != null) {
-            dumpFile(dumpfile, lobdir, asArray, out, ser);
+            dumpFile(dumpfile, lobdir, format, out, fieldList, ser);
         } else {
-            dumpJDBC(url, user, pw, table, query, asArray, out, ser);
+            dumpJDBC(url, user, pw, table, query, format, out, fieldList, ser);
         }
 
         out.flush();
         out.close();
     }
 
-    private static void dumpFile(String filename, String lobdir, boolean asArray, PrintStream out, RDBDocumentSerializer ser)
-            throws IOException {
+    private static void dumpFile(String filename, String lobdir, Format format, PrintStream out, List<String> fieldNames,
+            RDBDocumentSerializer ser) throws IOException {
         File f = new File(filename);
         File lobDirectory = lobdir == null ? new File(f.getParentFile(), "lobdir") : new File(lobdir);
         FileInputStream fis = new FileInputStream(f);
         InputStreamReader ir = new InputStreamReader(fis, UTF8);
         BufferedReader br = new BufferedReader(ir);
 
-        if (asArray) {
+        if (format == Format.JSONARRAY) {
             out.println("[");
+        } else if (format == Format.CSV) {
+            out.println(dumpFieldNames(fieldNames));
         }
-        boolean needComma = asArray;
+        boolean needComma = format == Format.JSONARRAY;
         String line = br.readLine();
         while (line != null) {
             ArrayList<String> fields = parseDel(line);
@@ -164,18 +197,23 @@ public class RDBExport {
                         smodified.length() == 0 ? 0 : Long.parseLong(smodified), Long.parseLong(smodcount),
                         Long.parseLong(scmodcount), sdata, bytes);
                 StringBuilder fulljson = dumpRow(ser, id, row);
-                if (asArray && needComma) {
-                    fulljson.append(",");
+                if (format == Format.CSV) {
+                    out.println(asCSV(fieldNames, fulljson));
+                } else {
+                    fulljson = asJSON(fieldNames, fulljson);
+                    if (format == Format.JSONARRAY && needComma) {
+                        fulljson.append(",");
+                    }
+                    out.println(fulljson);
+                    needComma = true;
                 }
-                out.println(fulljson);
-                needComma = true;
             } catch (DocumentStoreException ex) {
                 System.err.println("Error: skipping line for ID " + id + " because of " + ex.getMessage());
             }
             line = br.readLine();
         }
         br.close();
-        if (asArray) {
+        if (format == Format.JSONARRAY) {
             out.println("]");
         }
     }
@@ -219,8 +257,8 @@ public class RDBExport {
         return result;
     }
 
-    private static void dumpJDBC(String url, String user, String pw, String table, String query, boolean asArray, PrintStream out,
-            RDBDocumentSerializer ser) throws SQLException {
+    private static void dumpJDBC(String url, String user, String pw, String table, String query, Format format, PrintStream out,
+            List<String> fieldNames, RDBDocumentSerializer ser) throws SQLException {
         String driver = RDBJDBCTools.driverForDBType(RDBJDBCTools.jdbctype(url));
         try {
             Class.forName(driver);
@@ -230,17 +268,19 @@ public class RDBExport {
         Connection c = DriverManager.getConnection(url, user, pw);
         c.setReadOnly(true);
         Statement stmt = c.createStatement();
-        String sql = "select ID, MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, DATA, BDATA  from " + table;
+        String sql = "select ID, MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, DATA, BDATA from " + table;
         if (query != null) {
             sql += " where " + query;
         }
         sql += " order by id";
         ResultSet rs = stmt.executeQuery(sql);
 
-        if (asArray) {
+        if (format == Format.JSONARRAY) {
             out.println("[");
+        } else if (format == Format.CSV) {
+            out.println(dumpFieldNames(fieldNames));
         }
-        boolean needComma = asArray;
+        boolean needComma = format == Format.JSONARRAY;
         ResultSetMetaData rsm = null;
         boolean idIsAscii = true;
         while (rs.next()) {
@@ -259,13 +299,18 @@ public class RDBExport {
 
             RDBRow row = new RDBRow(id, hasBinary == 1, deletedOnce == 1, modified, modcount, cmodcount, data, bdata);
             StringBuilder fulljson = dumpRow(ser, id, row);
-            if (asArray && needComma && !rs.isLast()) {
-                fulljson.append(",");
+            if (format == Format.CSV) {
+                out.println(asCSV(fieldNames, fulljson));
+            } else {
+                fulljson = asJSON(fieldNames, fulljson);
+                if (format == Format.JSONARRAY && needComma && !rs.isLast()) {
+                    fulljson.append(",");
+                }
+                out.println(fulljson);
+                needComma = true;
             }
-            out.println(fulljson);
-            needComma = true;
         }
-        if (asArray) {
+        if (format == Format.JSONARRAY) {
             out.println("]");
         }
         out.close();
@@ -274,6 +319,7 @@ public class RDBExport {
         c.close();
     }
 
+    @Nonnull
     private static StringBuilder dumpRow(RDBDocumentSerializer ser, String id, RDBRow row) {
         NodeDocument doc = ser.fromRow(Collection.NODES, row);
         String docjson = ser.asString(doc);
@@ -285,15 +331,177 @@ public class RDBExport {
         return fulljson;
     }
 
+    @Nonnull
+    private static String dumpFieldNames(List<String> fieldNames) {
+        StringBuilder result = new StringBuilder();
+        for (String f : fieldNames) {
+            if (result.length() != 0) {
+                result.append(',');
+            }
+            result.append(f);
+        }
+        return result.toString();
+    }
+
+    @Nonnull
+    private static StringBuilder asJSON(List<String> fieldNames, StringBuilder fulljson) {
+        if (fieldNames.isEmpty()) {
+            return fulljson;
+        } else {
+            JsopTokenizer t = new JsopTokenizer(fulljson.toString());
+            Map<String, Object> doc = (Map<String, Object>) readValueFromJson(t);
+            StringBuilder buf = new StringBuilder();
+            buf.append('{');
+            String delim = "";
+            for (String field : fieldNames) {
+                buf.append(delim);
+                delim = ",";
+                String[] fn = field.split("\\.");
+                if (doc.containsKey(fn[0])) {
+                    Object o = doc.get(fn[0]);
+                    appendJsonMember(buf, fn[0], o);
+                }
+            }
+            buf.append('}');
+            return buf;
+        }
+    }
+
+    private static void appendJsonMember(StringBuilder sb, String key, Object value) {
+        appendJsonString(sb, key);
+        sb.append(":");
+        appendJsonValue(sb, value);
+    }
+
+    private static void appendJsonString(StringBuilder sb, String s) {
+        sb.append('"');
+        JsopBuilder.escape(s, sb);
+        sb.append('"');
+    }
+
+    private static void appendJsonMap(StringBuilder sb, Map<Object, Object> map) {
+        sb.append("{");
+        boolean needComma = false;
+        for (Map.Entry<Object, Object> e : map.entrySet()) {
+            if (needComma) {
+                sb.append(",");
+            }
+            appendJsonMember(sb, e.getKey().toString(), e.getValue());
+            needComma = true;
+        }
+        sb.append("}");
+    }
+
+    private static void appendJsonValue(StringBuilder sb, Object value) {
+        if (value == null) {
+            sb.append("null");
+        } else if (value instanceof Number) {
+            sb.append(value.toString());
+        } else if (value instanceof Boolean) {
+            sb.append(value.toString());
+        } else if (value instanceof String) {
+            appendJsonString(sb, (String) value);
+        } else if (value instanceof Map) {
+            appendJsonMap(sb, (Map<Object, Object>) value);
+        } else {
+            throw new IllegalArgumentException("unexpected type: " + value.getClass());
+        }
+    }
+
+    @Nonnull
+    private static StringBuilder asCSV(List<String> csvFieldNames, StringBuilder fulljson) {
+        JsopTokenizer t = new JsopTokenizer(fulljson.toString());
+        Map<String, Object> doc = (Map<String, Object>) readValueFromJson(t);
+        StringBuilder buf = new StringBuilder();
+        String delim = "";
+        for (String field : csvFieldNames) {
+            buf.append(delim);
+            delim = ",";
+            String[] fn = field.split("\\.");
+            boolean checkMember = fn.length > 1;
+            if (doc.containsKey(fn[0])) {
+                Object o = doc.get(fn[0]);
+                if (checkMember) {
+                    if (o instanceof Map) {
+                        Map<String, Object> m = (Map<String, Object>) o;
+                        if (m.containsKey(fn[1])) {
+                            dumpJsonValuetoCsv(buf, m.get(fn[1]));
+                        }
+                    }
+                } else {
+                    dumpJsonValuetoCsv(buf, o);
+                }
+            }
+        }
+        return buf;
+    }
+
+    private static void dumpJsonValuetoCsv(StringBuilder buf, Object o) {
+        if (o == null) {
+            buf.append("null");
+        } else if (o instanceof Boolean) {
+            buf.append(o.toString());
+        } else if (o instanceof Long) {
+            buf.append(((Long) o).longValue());
+        } else {
+            buf.append('"');
+            buf.append(o.toString().replace("\"", "\"\""));
+            buf.append('"');
+        }
+    }
+
+    @Nullable
+    private static Object readValueFromJson(@Nonnull JsopTokenizer json) {
+        switch (json.read()) {
+            case JsopReader.NULL:
+                return null;
+            case JsopReader.TRUE:
+                return true;
+            case JsopReader.FALSE:
+                return false;
+            case JsopReader.NUMBER:
+                return Long.parseLong(json.getToken());
+            case JsopReader.STRING:
+                return json.getToken();
+            case '{':
+                Map<String, Object> map = new HashMap<String, Object>();
+                while (true) {
+                    if (json.matches('}')) {
+                        break;
+                    }
+                    String k = json.readString();
+                    if (k == null) {
+                        throw new IllegalArgumentException();
+                    }
+                    json.read(':');
+                    map.put(k, readValueFromJson(json));
+                    json.matches(',');
+                }
+                return map;
+            case '[':
+                List<Object> list = new ArrayList<Object>();
+                while (true) {
+                    if (json.matches(']')) {
+                        break;
+                    }
+                    list.add(readValueFromJson(json));
+                    json.matches(',');
+                }
+                return list;
+            default:
+                throw new IllegalArgumentException(json.readRawValue());
+        }
+    }
+
     private static boolean isBinaryType(int sqlType) {
         return sqlType == Types.VARBINARY || sqlType == Types.BINARY || sqlType == Types.LONGVARBINARY;
     }
 
     private static void printUsage() {
         System.err.println("Usage: " + RDBExport.class.getName()
-                + " -j/--jdbc-url JDBC-URL [-u/--username username] [-p/--password password] [-c/--collection table] [-q/--query query] [-o/--out file] [--jsonArray]");
+                + " -j/--jdbc-url JDBC-URL [-u/--username username] [-p/--password password] [-c/--collection table] [-q/--query query] [-o/--out file] [--fields list] [--csv] [--jsonArray]");
         System.err.println(
-                "Usage: " + RDBExport.class.getName() + " --from-db2-dump file [--lobdir lobdir] [-o/--out file] [--jsonArray]");
+                "Usage: " + RDBExport.class.getName() + " --from-db2-dump file [--lobdir lobdir] [-o/--out file] [--fields list] [--csv] [--jsonArray]");
         System.err.println("Usage: " + RDBExport.class.getName() + " --version");
         System.err.println("Usage: " + RDBExport.class.getName() + " --help");
     }
@@ -319,6 +527,10 @@ public class RDBExport {
         System.err.println("");
         System.err.println("Output options:");
         System.err.println("  -o/--out file                      Output to name file (instead of stdout)");
-        System.err.println("  --jsonArray                        Output a JSON array (instead of one JSON doc per line)");
+        System.err.println("  --jsonArray                        Output a JSON array (instead of one");
+        System.err.println("                                     JSON doc per line)");
+        System.err.println("  --csv                              Output in CSV format (requires --fields");
+        System.err.println("  --fields names                     field names (comma separated); required");
+        System.err.println("                                     for CSV output");
     }
 }
