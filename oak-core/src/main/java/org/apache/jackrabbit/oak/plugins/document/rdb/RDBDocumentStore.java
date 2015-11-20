@@ -1607,21 +1607,7 @@ public class RDBDocumentStore implements DocumentStore {
 
         Lock lock = getAndLock(id);
         try {
-            inCache = nodesCache.getIfPresent(id);
-            if (inCache != null && inCache != NodeDocument.NULL) {
-                // check mod count
-                Number cachedModCount = inCache.getModCount();
-                if (cachedModCount == null) {
-                    throw new IllegalStateException("Missing " + Document.MOD_COUNT);
-                }
-                if (modCount.longValue() > cachedModCount.longValue()) {
-                    nodesCache.put(fresh);
-                } else {
-                    fresh = inCache;
-                }
-            } else {
-                nodesCache.put(fresh);
-            }
+            fresh = nodesCache.putIfNewer(fresh);
         } finally {
             lock.unlock();
         }
