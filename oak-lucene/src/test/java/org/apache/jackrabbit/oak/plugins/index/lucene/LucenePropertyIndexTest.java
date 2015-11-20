@@ -104,7 +104,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.junit.matchers.JUnitMatchers.containsString;
+import static org.hamcrest.CoreMatchers.containsString;
 
 public class LucenePropertyIndexTest extends AbstractQueryTest {
     /**
@@ -1751,6 +1751,44 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         String propabQuery = "select [jcr:path] from [mix:mimeType] where [jcr:mimeType] = 'a'";
         assertThat(explain(propabQuery), containsString("lucene:test1(/oak:index/test1)"));
         assertQuery(propabQuery, asList("/test/a"));
+    }
+    
+    @Test
+    public void indexingPropertyWithAnalyzeButQueryWithWildcard() throws Exception {
+        Tree index = root.getTree("/");
+        Tree idx = index.addChild(INDEX_DEFINITIONS_NAME).addChild("test2");
+        // not async, to speed up testing
+        // idx.setProperty("async", "async");
+        idx.setProperty(JcrConstants.JCR_PRIMARYTYPE,
+                INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
+        // idx.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, true);
+        idx.setProperty(TYPE_PROPERTY_NAME, LuceneIndexConstants.TYPE_LUCENE);
+        idx.setProperty(REINDEX_PROPERTY_NAME, true);
+        Tree props = TestUtil.newRulePropTree(idx, "nt:base");
+        Tree prop = props.addChild(TestUtil.unique("jcr:mimeType"));
+        prop.setProperty(LuceneIndexConstants.PROP_NAME, "jcr:mimeType");
+        prop.setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true);
+        prop.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
+        root.commit();
+        
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("jcr:mimeType", "1234");
+        test.addChild("b").setProperty("other", "1234");
+        test.addChild("c").setProperty("jcr:mimeType", "a");
+        root.commit();        
+        
+        String query;
+        
+        query = "/jcr:root/test//*[jcr:contains(@jcr:mimeType, '1234')]";
+        assertThat(explainXpath(query), containsString("lucene:test2(/oak:index/test2)"));
+        assertQuery(query, "xpath", asList("/test/a"));
+
+        query = "/jcr:root/test//*[jcr:contains(., '1234')]";
+        assertThat(explainXpath(query), containsString("no-index"));
+        
+        query = "/jcr:root/test//*[@jcr:mimeType = '1234']";
+        assertThat(explainXpath(query), containsString("lucene:test2(/oak:index/test2)"));
+        assertQuery(query, "xpath", asList("/test/a"));
     }
 
     @Test
