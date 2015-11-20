@@ -660,7 +660,9 @@ public class MongoDocumentStore implements DocumentStore {
                     throw DocumentStoreException.convert(e, "Remove failed for " + keyBatch);
                 } finally {
                     if (collection == Collection.NODES) {
-                        invalidateCache(keyBatch);
+                        for (String key : keyBatch) {
+                            invalidateCache(collection, key);
+                        }
                     }
                 }
             }
