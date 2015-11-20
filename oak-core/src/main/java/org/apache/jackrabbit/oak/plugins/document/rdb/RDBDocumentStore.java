@@ -49,6 +49,7 @@ import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.locks.Lock;
 import java.util.zip.Deflater;
 import java.util.zip.GZIPOutputStream;
 
@@ -64,8 +65,6 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocumentCache;
-import org.apache.jackrabbit.oak.plugins.document.NodeDocumentLocks;
-import org.apache.jackrabbit.oak.plugins.document.NodeDocumentLocks.TreeLock;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
@@ -85,6 +84,7 @@ import com.google.common.collect.Maps;
 import com.google.common.hash.BloomFilter;
 import com.google.common.hash.Funnel;
 import com.google.common.hash.PrimitiveSink;
+import com.google.common.util.concurrent.Striped;
 
 /**
  * Implementation of {@link DocumentStore} for relational databases.
@@ -310,7 +310,7 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     private void invalidateNodesCache(String id, boolean remove) {
-        TreeLock lock = nodeLocks.acquire(id);
+        Lock lock = getAndLock(id);
         try {
             if (remove) {
                 nodesCache.invalidate(id);
@@ -530,7 +530,6 @@ public class RDBDocumentStore implements DocumentStore {
         this.callStack = LOG.isDebugEnabled() ? new Exception("call stack of RDBDocumentStore creation") : null;
 
         this.nodesCache = new NodeDocumentCache(builder, this);
-        this.nodeLocks = new NodeDocumentLocks();
 
         Connection con = this.ch.getRWConnection();
 
@@ -832,7 +831,7 @@ public class RDBDocumentStore implements DocumentStore {
                 }
             }
             try {
-                TreeLock lock = nodeLocks.acquire(id);
+                Lock lock = getAndLock(id);
                 try {
                     // caller really wants the cache to be cleared
                     if (maxCacheAge == 0) {
@@ -972,7 +971,7 @@ public class RDBDocumentStore implements DocumentStore {
             // conditions not met
             return null;
         } else {
-            TreeLock l = nodeLocks.acquire(update.getId());
+            Lock l = getAndLock(update.getId());
             try {
                 boolean success = false;
 
@@ -1524,7 +1523,13 @@ public class RDBDocumentStore implements DocumentStore {
 
     private NodeDocumentCache nodesCache;
 
-    private NodeDocumentLocks nodeLocks;
+    private final Striped<Lock> locks = Striped.lock(64);
+
+    private Lock getAndLock(String key) {
+        Lock l = locks.get(key);
+        l.lock();
+        return l;
+    }
 
     @CheckForNull
     private static NodeDocument unwrap(@Nonnull NodeDocument doc) {
@@ -1552,7 +1557,7 @@ public class RDBDocumentStore implements DocumentStore {
 
     private <T extends Document> void addToCache(Collection<T> collection, T doc) {
         if (collection == Collection.NODES) {
-            TreeLock lock = nodeLocks.acquire(idOf(doc));
+            Lock lock = getAndLock(idOf(doc));
             try {
                 nodesCache.putIfAbsent((NodeDocument) doc);
             } finally {
@@ -1600,7 +1605,7 @@ public class RDBDocumentStore implements DocumentStore {
             return castAsT(fresh);
         }
 
-        TreeLock lock = nodeLocks.acquire(id);
+        Lock lock = getAndLock(id);
         try {
             inCache = nodesCache.getIfPresent(id);
             if (inCache != null && inCache != NodeDocument.NULL) {
