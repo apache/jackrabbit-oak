@@ -608,25 +608,7 @@ public class MongoDocumentStore implements DocumentStore {
                     if (collection == Collection.NODES
                             && doc != null
                             && lock != null) {
-                        doc.seal();
-                        String id = doc.getId();
-                        // do not overwrite document in cache if the
-                        // existing one in the cache is newer
-                        NodeDocument cached = nodesCache.getIfPresent(id);
-                        if (cached != null && cached != NodeDocument.NULL) {
-                            // check mod count
-                            Number cachedModCount = cached.getModCount();
-                            Number modCount = doc.getModCount();
-                            if (cachedModCount == null || modCount == null) {
-                                throw new IllegalStateException(
-                                        "Missing " + Document.MOD_COUNT);
-                            }
-                            if (modCount.longValue() > cachedModCount.longValue()) {
-                                nodesCache.put((NodeDocument) doc);
-                            }
-                        } else {
-                            nodesCache.put((NodeDocument) doc);
-                        }
+                        nodesCache.putIfNewer((NodeDocument) doc);
                     }
                     list.add(doc);
                 }

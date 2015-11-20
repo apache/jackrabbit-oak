@@ -147,6 +147,45 @@ public class NodeDocumentCache implements Closeable {
 
     /**
      * Puts document into cache iff no entry with the given key is cached
+     * already or the cached document is older (has smaller {@link Document#MOD_COUNT}).
+     *
+     * @param doc the document to add to the cache
+     * @return either the given <code>doc</code> or the document already present
+     *         in the cache if it's newer
+     */
+    @Nonnull
+    public NodeDocument putIfNewer(@Nonnull final NodeDocument doc) {
+        if (doc == NodeDocument.NULL) {
+            throw new IllegalArgumentException("doc must not be NULL document");
+        }
+        doc.seal();
+
+        String id = doc.getId();
+        NodeDocument cachedDoc = getIfPresent(id);
+        NodeDocument newerDoc;
+        if (cachedDoc == null || cachedDoc == NodeDocument.NULL) {
+            newerDoc = doc;
+            put(doc);
+        } else {
+            Number cachedModCount = cachedDoc.getModCount();
+            Number modCount = doc.getModCount();
+
+            if (cachedModCount == null || modCount == null) {
+                throw new IllegalStateException("Missing " + Document.MOD_COUNT);
+            }
+
+            if (modCount.longValue() > cachedModCount.longValue()) {
+                newerDoc = doc;
+                put(doc);
+            } else {
+                newerDoc = cachedDoc;
+            }
+        }
+        return newerDoc;
+    }
+    
+    /**
+     * Puts document into cache iff no entry with the given key is cached
      * already. This operations is atomic.
      *
      * @param doc the document to add to the cache.
