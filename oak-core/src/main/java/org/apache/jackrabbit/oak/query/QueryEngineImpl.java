@@ -295,51 +295,41 @@ public abstract class QueryEngineImpl implements QueryEngine {
         
         
         if (checkNotNull(queries).size() == 1) {
-            // Optimisation. We only have the original query so we prepare and return it.
+            // we only have the original query so we prepare and return it.
             cheapest = queries.iterator().next();
             cheapest.prepare();
             LOG.debug("No optimisations found. Cheapest is the original query: {}", cheapest);
             map = new MdcAndPrepared(setupMDC(cheapest), cheapest);
         } else {
-            double bestCost = Double.MAX_VALUE;
-            double originalCost = Double.MAX_VALUE;
-            boolean firstLoop = true;
+            double bestCost = Double.POSITIVE_INFINITY;
+            double originalCost = Double.POSITIVE_INFINITY;
             Query original = null;
             
             // always prepare all of the queries and compute the cheapest as it's the default behaviour.
             // It should trigger more errors during unit and integration testing. Changing
             // `forceOptimised` flag should be in case used only during testing.
             for (Query q : checkNotNull(queries)) {
-                LOG.debug("Preparing: {}", q);
                 q.prepare();
-                
-                double actualCost = q.getEstimatedCost();
-                double costOverhead = q.getCostOverhead();
-                double overallCost = Math.min(actualCost + costOverhead, Double.MAX_VALUE);
-                
-                LOG.debug("actualCost: {} - costOverhead: {} - overallCost: {}", actualCost,
-                    costOverhead, overallCost);
-                
-                if (firstLoop) {
-                    // first time we're always the best cost. Avoiding situations where the original
-                    // query has an overall cost as Double.MAX_VALUE.
-                    bestCost = overallCost;
+                double cost = q.getEstimatedCost();
+                LOG.debug("cost: {} for query {}", cost, q);
+                if (q.containsUnfilteredFullTextCondition()) {
+                    LOG.debug("contains an unfiltered fulltext condition");
+                    cost = Double.POSITIVE_INFINITY;
+                }
+                if (cheapest == null || cost < bestCost) {
                     cheapest = q;
-                    firstLoop = false;
-                } else if (overallCost < bestCost) {
-                    bestCost = overallCost;
-                    cheapest = q;
+                    bestCost = cost;
                 }
                 if (!q.isOptimised()) {
                     original = q;
-                    originalCost = overallCost;
+                    originalCost = cost;
                 }
             }
             
             if (original != null && bestCost == originalCost && cheapest != original) {
                 // if the optimised cost is the same as the original SQL2 query we prefer the original. As
                 // we deal with references the `cheapest!=original` should work.
-                LOG.trace("Same cost for original and optimised. Forcing original");
+                LOG.trace("Same cost for original and optimised. Using original");
                 cheapest = original;
             }
 

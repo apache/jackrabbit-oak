@@ -308,4 +308,10 @@ public class FullTextSearchImpl extends ConstraintImpl {
     public AstElement copyOf() {
         return new FullTextSearchImpl(selectorName, propertyName, fullTextSearchExpression);
     }
+
+    @Override
+    public boolean requiresFullTextIndex() {
+        return true;
+    }
+
 }

@@ -17,11 +17,9 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -142,13 +140,24 @@ public abstract class ConstraintImpl extends AstElement {
     }
     
     /**
+     * Whether the constraint contains a fulltext condition that requires
+     * using a fulltext index, because the condition can only be evaluated there.
      * 
-     * @return the list of {@link ConstraintImpl} that the current constraint could hold. Default
-     *         implementation returns {@code null}.
+     * @return true if yes
      */
-    @Nullable
-    public List<ConstraintImpl> getConstraints() {
-        return null;
+    public boolean requiresFullTextIndex() {
+        return false;
+    }
+    
+    /**
+     * Whether the condition contains a fulltext condition that can not be 
+     * applied to the filter, for example because it is part of an "or" condition
+     * of the form "where a=1 or contains(., 'x')".
+     * 
+     * @return true if yes
+     */
+    public boolean containsUnfilteredFullTextCondition() {
+        return false;
     }
     
     /**
@@ -165,7 +174,7 @@ public abstract class ConstraintImpl extends AstElement {
      * set.
      * </p>
      * 
-     * @return
+     * @return the set of constraints, if available
      */
     @Nonnull
     public Set<ConstraintImpl> simplifyForUnion() {

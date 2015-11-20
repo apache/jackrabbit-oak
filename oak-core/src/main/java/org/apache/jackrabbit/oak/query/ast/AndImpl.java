@@ -43,7 +43,7 @@ public class AndImpl extends ConstraintImpl {
 
     private final List<ConstraintImpl> constraints;
 
-    AndImpl(List<ConstraintImpl> constraints) {
+    public AndImpl(List<ConstraintImpl> constraints) {
         checkArgument(!constraints.isEmpty());
         this.constraints = constraints;
     }
@@ -52,7 +52,6 @@ public class AndImpl extends ConstraintImpl {
         this(Arrays.asList(constraint1, constraint2));
     }
 
-    @Override
     public List<ConstraintImpl> getConstraints() {
         return constraints;
     }
@@ -225,7 +224,7 @@ public class AndImpl extends ConstraintImpl {
         Set<ConstraintImpl> result = Sets.newHashSet();
         Set<ConstraintImpl> nonUnion = Sets.newHashSet();
         
-        for (ConstraintImpl c : getConstraints()) {
+        for (ConstraintImpl c : constraints) {
             Set<ConstraintImpl> ccc = c.simplifyForUnion();
             if (ccc.isEmpty()) {
                 nonUnion.add(c);
@@ -247,6 +246,26 @@ public class AndImpl extends ConstraintImpl {
         }
         
         return result;
+    }
+    
+    @Override
+    public boolean requiresFullTextIndex() {
+        for (ConstraintImpl c : constraints) {
+            if (c.requiresFullTextIndex()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean containsUnfilteredFullTextCondition() {
+        for (ConstraintImpl c : constraints) {
+            if (c.containsUnfilteredFullTextCondition()) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }

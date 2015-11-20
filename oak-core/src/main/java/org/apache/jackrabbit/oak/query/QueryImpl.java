@@ -86,7 +86,6 @@ import org.apache.jackrabbit.oak.query.plan.ExecutionPlan;
 import org.apache.jackrabbit.oak.query.plan.SelectorExecutionPlan;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
-import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
@@ -1321,48 +1320,8 @@ public class QueryImpl implements Query {
     }
 
     @Override
-    public double getCostOverhead() {
-        return oak2660CostOverhead(getConstraint());
+    public boolean containsUnfilteredFullTextCondition() {
+        return constraint.containsUnfilteredFullTextCondition();
     }
 
-    /**
-     * compute a cost overhead for the OAK-2660 use case. The query engine better perform/compute
-     * the use case `(a = 'v' OR CONTAINS(b, 'v1') OR CONTAINS(c, 'v2') AND (...)` as a UNION query
-     * to leverage different indexes. In this case we return an 'Infinity' overhead for make the
-     * query engine choose a union query instead.
-     * 
-     * @param constraint the constraint to analyse. Cannot be null.
-     * @return
-     */
-    private double oak2660CostOverhead(@Nonnull ConstraintImpl constraint) {
-        if (checkNotNull(constraint) instanceof OrImpl) {
-            boolean fulltext = false, plain = false;
-            for (ConstraintImpl c : constraint.getConstraints()) {
-                if (c instanceof FullTextSearchImpl) {
-                    fulltext = true;
-                } else {
-                    plain = true;
-                }
-                
-                if (fulltext && plain) {
-                    return Double.MAX_VALUE;
-                }
-            }
-        } else {
-            List<ConstraintImpl> cs = constraint.getConstraints();
-            if (cs == null) {
-                return 0;
-            } else {
-                double cost = 0;
-                for (ConstraintImpl c : cs) {
-                    cost += oak2660CostOverhead(c);
-                    if (cost == Double.MAX_VALUE) {
-                        return cost;
-                    }
-                }
-                return cost;
-            }
-        }
-        return 0;
-    }
 }
