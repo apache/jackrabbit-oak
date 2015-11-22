@@ -119,8 +119,10 @@ public class LuceneIndexSuggestionTest {
             throws Exception {
         createSuggestIndex("lucene-suggest", indexNodeType, indexPropName, addFullText);
 
-        Node indexedNode = root.addNode("indexedNode", queryNodeType);
-        indexedNode.setProperty(indexPropName, indexPropValue);
+        Node indexedNode = root.addNode("indexedNode1", queryNodeType);
+        indexedNode.setProperty(indexPropName, indexPropValue + " 1");
+        indexedNode = root.addNode("indexedNode2", queryNodeType);
+        indexedNode.setProperty(indexPropName, indexPropValue + " 2");
         if (useUserSession) {
             session.getUserManager().createUser(TEST_USER_NAME, TEST_USER_NAME);
         }
@@ -140,51 +142,20 @@ public class LuceneIndexSuggestionTest {
         RowIterator rows = result.getRows();
 
         String value = null;
-        if (rows.hasNext()) {
+        while (rows.hasNext()) {
             Row firstRow = rows.nextRow();
             value = firstRow.getValue("suggestion").getString();
         }
-        Suggestion suggestion = Suggestion.fromString(value);
 
         if (shouldSuggest) {
-            assertNotNull("There should be some suggestion", suggestion.getSuggestion());
+            assertNotNull("There should be some suggestion", value);
         } else {
-            assertNull("There shouldn't be any suggestion", suggestion.getSuggestion());
+            assertNull("There shouldn't be any suggestion", value);
         }
     }
 
     private String createSuggestQuery(String nodeTypeName, String suggestFor) {
-        return "SELECT [rep:suggest()] as suggestion  FROM [" + nodeTypeName + "] WHERE suggest('" + suggestFor + "')";
-    }
-
-    static class Suggestion {
-        private final long weight;
-        private final String suggestion;
-        Suggestion(String suggestion, long weight) {
-            this.suggestion = suggestion;
-            this.weight = weight;
-        }
-
-        long getWeight() {
-            return weight;
-        }
-
-        String getSuggestion() {
-            return suggestion;
-        }
-
-        static Suggestion fromString(String suggestionResultStr) {
-            if (suggestionResultStr==null || "".equals(suggestionResultStr) || "[]".equals(suggestionResultStr)) {
-                return new Suggestion(null, -1);
-            }
-
-            String [] parts = suggestionResultStr.split(",weight=", 2);
-            int endWeightIdx = parts[1].lastIndexOf("}");
-            long weight = Long.parseLong(parts[1].substring(0, endWeightIdx));
-            String suggestion = parts[0].split("=", 2)[1];
-
-            return new Suggestion(suggestion, weight);
-        }
+        return "SELECT [rep:suggest()] as suggestion, [jcr:score] as score  FROM [" + nodeTypeName + "] WHERE suggest('" + suggestFor + "')";
     }
 
     //OAK-3157
@@ -236,6 +207,21 @@ public class LuceneIndexSuggestionTest {
     //OAK-3156
     @Test
     public void testSuggestQueryOnNonNtBase() throws Exception {
+        final String nodeType = "oak:Unstructured";
+        final String indexPropName = "description";
+        final String indexPropValue = "this is just a sample text which should get some response in suggestions";
+        final String suggestQueryText = "th";
+        final boolean shouldSuggest = true;
+
+        checkSuggestions(nodeType,
+                indexPropName, indexPropValue,
+                true, false,
+                suggestQueryText, shouldSuggest);
+    }
+
+    //OAK-3509
+    @Test
+    public void testMultipleSuggestions() throws Exception {
         final String nodeType = "oak:Unstructured";
         final String indexPropName = "description";
         final String indexPropValue = "this is just a sample text which should get some response in suggestions";
