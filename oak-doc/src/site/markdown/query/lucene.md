@@ -943,6 +943,8 @@ updated every 10 minutes but that can be changed by setting the property
 Sample configuration for suggestions based on terms contained in `jcr:description` 
 property.
 
+Since Oak 1.3.11, the each suggestion would be returned per row.
+
 ```
 /oak:index/lucene-suggest
   - jcr:primaryType = "oak:QueryIndexDefinition"
@@ -973,6 +975,8 @@ properties terms to be used for spellcheck corrections will be taken.
  
 Sample configuration for spellchecking based on terms contained in `jcr:title` 
 property.
+
+Since Oak 1.3.11, the each suggestion would be returned per row.
 
 ```
 /oak:index/lucene-spellcheck
