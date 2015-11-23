@@ -73,7 +73,6 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
-import org.apache.jackrabbit.oak.plugins.document.mongo.CacheInvalidator.InvalidationResult;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -312,9 +311,12 @@ public class MongoDocumentStore implements DocumentStore {
 
     @Override
     public CacheInvalidationStats invalidateCache() {
-        //TODO Check if we should use LinearInvalidator for small cache sizes as
-        //that would lead to lesser number of queries
-        return CacheInvalidator.createHierarchicalInvalidator(this).invalidateCache();
+        InvalidationResult result = new InvalidationResult();
+        for (CacheValue key : nodesCache.asMap().keySet()) {
+            result.invalidationCount++;
+            invalidateCache(Collection.NODES, key.toString());
+        }
+        return result;
     }
     
     @Override
@@ -869,7 +871,7 @@ public class MongoDocumentStore implements DocumentStore {
      * Try to apply all the {@link UpdateOp}s with at least MongoDB requests as
      * possible. The return value is the list of the old documents (before
      * applying changes). The mechanism is as follows:
-     * 
+     *
      * <ol>
      * <li>For each UpdateOp try to read the assigned document from the cache. Add them to {@code oldDocs}.</li>
      * <li>Prepare a list of all UpdateOps that doesn't have their documents and
@@ -1734,6 +1736,30 @@ public class MongoDocumentStore implements DocumentStore {
         private BulkUpdateResult(Set<String> failedUpdates, Set<String> upserts) {
             this.failedUpdates = failedUpdates;
             this.upserts = upserts;
+        }
+    }
+
+    private static class InvalidationResult implements CacheInvalidationStats {
+        int invalidationCount;
+        int upToDateCount;
+        int cacheSize;
+        int queryCount;
+        int cacheEntriesProcessedCount;
+
+        @Override
+        public String toString() {
+            return "InvalidationResult{" +
+                    "invalidationCount=" + invalidationCount +
+                    ", upToDateCount=" + upToDateCount +
+                    ", cacheSize=" + cacheSize +
+                    ", queryCount=" + queryCount +
+                    ", cacheEntriesProcessedCount=" + cacheEntriesProcessedCount +
+                    '}';
+        }
+
+        @Override
+        public String summaryReport() {
+            return toString();
         }
     }
 }

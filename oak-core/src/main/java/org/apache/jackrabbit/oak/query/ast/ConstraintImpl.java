@@ -17,11 +17,9 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -142,33 +140,42 @@ public abstract class ConstraintImpl extends AstElement {
     }
     
     /**
+     * Whether the constraint contains a fulltext condition that requires
+     * using a fulltext index, because the condition can only be evaluated there.
      * 
-     * @return the list of {@link ConstraintImpl} that the current constraint could hold. Default
-     *         implementation returns {@code null}.
+     * @return true if yes
      */
-    @Nullable
-    public List<ConstraintImpl> getConstraints() {
-        return null;
+    public boolean requiresFullTextIndex() {
+        return false;
     }
     
     /**
-     * <p>
-     * Compute a Set of sub-constraints that could be used for composing UNION statements. For
-     * example in case of {@code OR (c1, c2)} it will return to the caller {@code [c1, c2]}. Those
-     * can be later on used for re-composing conditions.
-     * </p>
-     * <p>
-     * If no union optimisations are possible it must return an empty set.
-     * </p>
-     * <p>
-     * Default implementation in {@link ConstraintImpl#simplifyForUnion()} always return an empty
-     * set.
-     * </p>
+     * Whether the condition contains a fulltext condition that can not be 
+     * applied to the filter, for example because it is part of an "or" condition
+     * of the form "where a=1 or contains(., 'x')".
      * 
-     * @return
+     * @return true if yes
+     */
+    public boolean containsUnfilteredFullTextCondition() {
+        return false;
+    }
+    
+    /**
+     * Compute a set of sub-constraints that could be used for composing UNION
+     * statements. For example in case of "c=1 or c=2", it will return to the
+     * caller {@code [c=1, c=2]}. Those can be later on used for re-composing
+     * conditions.
+     * <p>
+     * If it is not possible to convert to a union, it must return an empty set.
+     * <p>
+     * The default implementation in {@link ConstraintImpl#convertToUnion()}
+     * always return an empty set.
+     * 
+     * @return the set of union constraints, if available, or an empty set if
+     *         conversion is not possible
      */
     @Nonnull
-    public Set<ConstraintImpl> simplifyForUnion() {
+    public Set<ConstraintImpl> convertToUnion() {
         return Collections.emptySet();
     }
 }
