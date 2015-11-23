@@ -298,7 +298,7 @@ public enum RDBDocumentStoreDB {
              * To avoid truncation when concatenating force an error when limit
              * is above the octet limit
              */
-            return "CASE WHEN LEN(DATA) <= " + (dataOctetLimit - dataLength) + " THEN (DATA + CAST(? AS nvarchar(" + dataOctetLimit
+            return "CASE WHEN LEN(DATA) < " + (dataOctetLimit - dataLength) + " THEN (DATA + CAST(? AS nvarchar(" + dataOctetLimit
                     + "))) ELSE (DATA + CAST(DATA AS nvarchar(max))) END";
 
         }
