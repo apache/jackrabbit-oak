@@ -97,6 +97,11 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
+    public <T extends Document> List<T> createOrUpdate(Collection<T> collection, List<UpdateOp> updateOps) {
+        return store.createOrUpdate(collection, updateOps);
+    }
+
+    @Override
     public synchronized <T extends Document> T findAndUpdate(final Collection<T> collection, final UpdateOp update) {
         return store.findAndUpdate(collection, update);
     }

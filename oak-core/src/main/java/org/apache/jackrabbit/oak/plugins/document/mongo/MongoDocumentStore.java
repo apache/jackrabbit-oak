@@ -52,6 +52,7 @@ import com.mongodb.ReadPreference;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
+import org.apache.jackrabbit.oak.plugins.document.BulkUpdateException;
 import org.apache.jackrabbit.oak.plugins.document.CachedNodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -840,6 +841,21 @@ public class MongoDocumentStore implements DocumentStore {
         T doc = findAndModify(collection, update, true, false);
         log("createOrUpdate returns ", doc);
         return doc;
+    }
+
+    @Override
+    public <T extends Document> List<T> createOrUpdate(Collection<T> collection, List<UpdateOp> updateOps) {
+        List<T> result = new ArrayList<T>(updateOps.size());
+        int i = 0;
+        for (UpdateOp update : updateOps) {
+            try {
+                result.add(createOrUpdate(collection, update));
+            } catch(DocumentStoreException e) {
+                throw new BulkUpdateException(e, updateOps.subList(0, i + 1));
+            }
+            i++;
+        }
+        return result;
     }
 
     @Override

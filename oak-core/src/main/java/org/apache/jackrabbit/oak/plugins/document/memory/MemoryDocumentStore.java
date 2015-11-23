@@ -31,6 +31,7 @@ import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.plugins.document.BulkUpdateException;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -216,6 +217,21 @@ public class MemoryDocumentStore implements DocumentStore {
     public <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update) {
         assertUnconditional(update);
         return internalCreateOrUpdate(collection, update, false);
+    }
+
+    @Override
+    public <T extends Document> List<T> createOrUpdate(Collection<T> collection, List<UpdateOp> updateOps) {
+        List<T> result = new ArrayList<T>(updateOps.size());
+        int i = 0;
+        for (UpdateOp update : updateOps) {
+            try {
+                result.add(internalCreateOrUpdate(collection, update, false));
+            } catch(DocumentStoreException e) {
+                throw new BulkUpdateException(e, updateOps.subList(0, i + 1));
+            }
+            i++;
+        }
+        return result;
     }
 
     @Override
