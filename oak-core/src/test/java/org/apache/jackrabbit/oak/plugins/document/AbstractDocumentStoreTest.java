@@ -109,4 +109,15 @@ public abstract class AbstractDocumentStoreTest {
         }
         return new String(s);
     }
+
+    /**
+     * Generate a random string of given size, with or without non-ASCII characters.
+     */
+    public static String generateConstantString(int length) {
+        char[] s = new char[length];
+        for (int i = 0; i < length; i++) {
+            s[i] = (char)('0' + (i % 10));
+        }
+        return new String(s);
+    }
 }
