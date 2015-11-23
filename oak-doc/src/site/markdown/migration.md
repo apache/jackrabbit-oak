@@ -153,7 +153,15 @@ There are two parameters: `--copy-orphaned-versions` and `--copy-versions`. Both
         --copy-orphaned-versions=2011-01-01 \
         /old/repository /new/repository
 
-### Resumed migration
+### Incremental migration
+
+If an existing repository is passed as the destination, then only a diff between source and destination will be migrated. It allows to migrate the content in a few iterations. For instance, following case is possible:
+
+1. migrate a large repository a week before go-live
+2. run the migration again every night (only the recent changes are copied)
+3. run the migration one final time before go-live
+
+### Interrupting the migration
 
 The migration might be stop at any time using `^C`. Resume the migration running the same command which was used to start it.
 
