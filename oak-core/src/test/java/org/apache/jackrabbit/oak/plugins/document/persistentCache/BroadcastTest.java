@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.Broa
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.TCPBroadcaster;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
@@ -139,6 +140,7 @@ public class BroadcastTest {
         Thread.sleep(Integer.MAX_VALUE);
     }
     
+    @Ignore("OAK-2843")
     @Test
     public void broadcastTCP() throws Exception {
         broadcast("tcp:key 123", 90);
