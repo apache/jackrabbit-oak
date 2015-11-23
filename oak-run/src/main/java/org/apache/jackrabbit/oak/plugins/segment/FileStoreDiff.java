@@ -59,7 +59,7 @@ public class FileStoreDiff {
     public static void main(String[] args) throws Exception {
         if (args.length == 0) {
             System.out
-                    .println("java -jar oak-diff-*.jar <path/to/repository> [–-list] [–-diff=R0..R1] [–-incremental] [–-ignore-snfes] [–-output=/path/to/output/file]");
+                    .println("java -jar oak-diff-*.jar <path/to/repository> [--list] [--diff=R0..R1] [--incremental] [--ignore-snfes] [--output=/path/to/output/file]");
             System.exit(0);
         }
         OptionParser parser = new OptionParser();
@@ -79,7 +79,7 @@ public class FileStoreDiff {
         OptionSpec<String> intervalO = parser
                 .accepts(
                         "diff",
-                        "Revision diff interval. Ex '–-diff=R0..R1'. 'HEAD' can be used to reference the latest head revision, ie. '–-diff=R0..HEAD'")
+                        "Revision diff interval. Ex '--diff=R0..R1'. 'HEAD' can be used to reference the latest head revision, ie. '--diff=R0..HEAD'")
                 .withRequiredArg().ofType(String.class);
         OptionSpec<?> incrementalO = parser
                 .accepts("incremental",

@@ -864,12 +864,12 @@ Oak TarMK Revision Diff
 
 Show changes between revisions on TarMk. It uses a read-only store, so it can also be used on a running system without the need to shut down.
 
-    $ java -jar oak-run-*.jar tarmkdiff path/to/repository [–-list] [–-diff=R0..R1] [–-incremental] [–-ignore-snfes] [–-output=/path/to/output/file]
+    $ java -jar oak-run-*.jar tarmkdiff path/to/repository [--list] [--diff=R0..R1] [--incremental] [--ignore-snfes] [--output=/path/to/output/file]
 
 The following options are available:
 
     --list           - Lists the existing revisions. will ignore other params if this is provided
-    --diff           - Revision diff interval. Ex '–-diff=R0..R1'. 'HEAD' can be used to reference the latest head revision, ie. '–-diff=R0..HEAD'
+    --diff           - Revision diff interval. Ex '--diff=R0..R1'. 'HEAD' can be used to reference the latest head revision, ie. '--diff=R0..HEAD'
     --incremental    - Runs diffs between each subsequent revisions in the provided interval (false by default)
     --ignore-snfes   - Ignores SegmentNotFoundExceptions and continues running the diff (experimental) (false by default)
     --path           - Filter diff by given path
