@@ -119,4 +119,9 @@ public class SpellcheckImpl extends ConstraintImpl {
         return new SpellcheckImpl(selectorName, expression);
     }
 
+    @Override
+    public boolean requiresFullTextIndex() {
+        return true;
+    }
+
 }

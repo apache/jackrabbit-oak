@@ -113,10 +113,13 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache {
                 }
             });
         }
-        if (value == null) {
-            map.remove(key);
-        } else {
-            map.put(key, value);
+        MultiGenerationMap<K, V> m = map;
+        if (m != null) {
+            if (value == null) {
+                m.remove(key);
+            } else {
+                m.put(key, value);
+            }
         }
     }
     

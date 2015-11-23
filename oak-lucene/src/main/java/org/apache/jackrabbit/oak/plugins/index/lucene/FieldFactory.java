@@ -103,11 +103,19 @@ public final class FieldFactory {
     }
 
     public static Field newFulltextField(String value) {
-        return new TextField(FULLTEXT, value, NO);
+        return newFulltextField(value, false);
     }
 
     public static Field newFulltextField(String name, String value) {
-        return new TextField(FieldNames.createFulltextFieldName(name), value, NO);
+        return newFulltextField(name, value, false);
+    }
+
+    public static Field newFulltextField(String value, boolean stored) {
+        return new TextField(FULLTEXT, value, stored ? YES : NO);
+    }
+
+    public static Field newFulltextField(String name, String value, boolean stored) {
+        return new TextField(FieldNames.createFulltextFieldName(name), value, stored ? YES : NO);
     }
 
     public static Field newAncestorsField(String path){

@@ -18,11 +18,11 @@ package org.apache.jackrabbit.oak.query;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableSet.of;
-import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -49,24 +49,26 @@ import org.slf4j.MDC;
 public abstract class QueryEngineImpl implements QueryEngine {
     
     /**
-     * used to instruct the {@link QueryEngineImpl} on how to act with respect of the SQL2
+     * Used to instruct the {@link QueryEngineImpl} on how to act with respect of the SQL2
      * optimisation.
      */
-    public static enum ForceOptimised {
+    public static enum QuerySelectionMode {
+        
         /**
-         * will force the original SQL2 query to be executed
+         * Will execute the cheapest (default).
+         */
+        CHEAPEST,
+
+        /**
+         * Will use the original SQL2 query.
          */
         ORIGINAL, 
         
         /**
-         * will force the computed optimised query to be executed. If available.
+         * Will force the computed alternate query to be executed. If available.
          */
-        OPTIMISED, 
+        ALTERNATIVE
         
-        /**
-         * will execute the cheapest.
-         */
-        CHEAPEST
     }
 
     private static final AtomicInteger ID_COUNTER = new AtomicInteger();
@@ -95,10 +97,11 @@ public abstract class QueryEngineImpl implements QueryEngine {
     private boolean traversalEnabled = true;
     
     /**
-     * Whether the query engine should be forced to use the optimised version of the query if
-     * available.
+     * Which query to select in case multiple options are available. Whether the
+     * query engine should pick the one with the lowest expected cost (default),
+     * or the original, or the alternative.
      */
-    private ForceOptimised forceOptimised = ForceOptimised.CHEAPEST;
+    private QuerySelectionMode querySelectionMode = QuerySelectionMode.CHEAPEST;
 
     /**
      * Get the execution context for a single query execution.
@@ -125,12 +128,22 @@ public abstract class QueryEngineImpl implements QueryEngine {
     public List<String> getBindVariableNames(
             String statement, String language, Map<String, String> mappings)
             throws ParseException {
-        Set<Query> qs = parseQuery(statement, language, getExecutionContext(), mappings);
+        List<Query> qs = parseQuery(statement, language, getExecutionContext(), mappings);
         
         return qs.iterator().next().getBindVariableNames();
     }
 
-    private static Set<Query> parseQuery(
+    /**
+     * Parse the query.
+     * 
+     * @param statement the statement
+     * @param language the language
+     * @param context the context
+     * @param mappings the mappings
+     * @return the list of queries, where the first is the original, and all
+     *         others are alternatives (for example, a "union" query)
+     */
+    private static List<Query> parseQuery(
             String statement, String language, ExecutionContext context,
             Map<String, String> mappings) throws ParseException {
         
@@ -156,7 +169,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
             parser.setAllowTextLiterals(false);
         }
         
-        Set<Query> queries = newHashSet();
+        ArrayList<Query> queries = new ArrayList<Query>();
         
         Query q;
         
@@ -190,9 +203,9 @@ public abstract class QueryEngineImpl implements QueryEngine {
                 LOG.trace("Skipping optimisation as internal query.");
             } else {
                 LOG.trace("Attempting optimisation");
-                Query q2 = q.optimise();
+                Query q2 = q.buildAlternativeQuery();
                 if (q2 != q) {
-                    LOG.debug("Optimised query available. {}", q2);
+                    LOG.debug("Alternative query available: {}", q2);
                     queries.add(q2);
                 }
             }
@@ -241,7 +254,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
         }
 
         ExecutionContext context = getExecutionContext();
-        Set<Query> queries = parseQuery(statement, language, context, mappings);
+        List<Query> queries = parseQuery(statement, language, context, mappings);
         
         for (Query q : queries) {
             q.setExecutionContext(context);
@@ -257,142 +270,72 @@ public abstract class QueryEngineImpl implements QueryEngine {
 
         boolean mdc = false;
         try {
-            MdcAndPrepared map = prepareAndGetCheapest(queries); 
-            mdc = map.mdc;
-            Query q = map.query;
-            return q.executeQuery();
+            Query query = prepareAndSelect(queries); 
+            mdc = setupMDC(query);
+            return query.executeQuery();
         } finally {
             if (mdc) {
                 clearMDC();
             }
         }
     }
-
-    /**
-     * POJO class used to return the cheapest prepared query from the set and related MDC status
-     */
-    private static class MdcAndPrepared {
-        private final boolean mdc;
-        private final Query query;
-        
-        public MdcAndPrepared(final boolean mdc, @Nonnull final Query q) {
-            this.mdc = mdc;
-            this.query = checkNotNull(q);
-        }
-    }
     
     /**
-     * will prepare all the available queries and by based on the {@link ForceOptimised} flag return
+     * Prepare all the available queries and by based on the {@link QuerySelectionMode} flag return
      * the appropriate.
      * 
-     * @param queries the list of queries to be executed. cannot be null
-     * @return
+     * @param queries the list of queries to be executed. Cannot be null.
+     *      If there are multiple, the first one is the original, and the second the alternative.
+     * @return the query
      */
     @Nonnull
-    private MdcAndPrepared prepareAndGetCheapest(@Nonnull final Set<Query> queries) {
-        MdcAndPrepared map = null;
-        Query cheapest = null;
-        
+    private Query prepareAndSelect(@Nonnull List<Query> queries) {
+        Query result = null;
         
         if (checkNotNull(queries).size() == 1) {
-            // Optimisation. We only have the original query so we prepare and return it.
-            cheapest = queries.iterator().next();
-            cheapest.prepare();
-            LOG.debug("No optimisations found. Cheapest is the original query: {}", cheapest);
-            map = new MdcAndPrepared(setupMDC(cheapest), cheapest);
+            // we only have the original query so we prepare and return it.
+            result = queries.iterator().next();
+            result.prepare();
+            LOG.debug("No alternatives found. Query: {}", result);
         } else {
-            double bestCost = Double.MAX_VALUE;
-            double originalCost = Double.MAX_VALUE;
-            boolean firstLoop = true;
-            Query original = null;
+            double bestCost = Double.POSITIVE_INFINITY;
             
-            // always prepare all of the queries and compute the cheapest as it's the default behaviour.
-            // It should trigger more errors during unit and integration testing. Changing
-            // `forceOptimised` flag should be in case used only during testing.
+            // Always prepare all of the queries and compute the cheapest as
+            // it's the default behaviour. That way, we always log the cost and
+            // can more easily analyze problems. The querySelectionMode flag can
+            // be used to override the cheapest.
             for (Query q : checkNotNull(queries)) {
-                LOG.debug("Preparing: {}", q);
                 q.prepare();
-                
-                double actualCost = q.getEstimatedCost();
-                double costOverhead = q.getCostOverhead();
-                double overallCost = Math.min(actualCost + costOverhead, Double.MAX_VALUE);
-                
-                LOG.debug("actualCost: {} - costOverhead: {} - overallCost: {}", actualCost,
-                    costOverhead, overallCost);
-                
-                if (firstLoop) {
-                    // first time we're always the best cost. Avoiding situations where the original
-                    // query has an overall cost as Double.MAX_VALUE.
-                    bestCost = overallCost;
-                    cheapest = q;
-                    firstLoop = false;
-                } else if (overallCost < bestCost) {
-                    bestCost = overallCost;
-                    cheapest = q;
+                double cost = q.getEstimatedCost();
+                LOG.debug("cost: {} for query {}", cost, q);
+                if (q.containsUnfilteredFullTextCondition()) {
+                    LOG.debug("contains an unfiltered fulltext condition");
+                    cost = Double.POSITIVE_INFINITY;
                 }
-                if (!q.isOptimised()) {
-                    original = q;
-                    originalCost = overallCost;
+                if (result == null || cost < bestCost) {
+                    result = q;
+                    bestCost = cost;
                 }
-            }
-            
-            if (original != null && bestCost == originalCost && cheapest != original) {
-                // if the optimised cost is the same as the original SQL2 query we prefer the original. As
-                // we deal with references the `cheapest!=original` should work.
-                LOG.trace("Same cost for original and optimised. Forcing original");
-                cheapest = original;
             }
 
-            switch (forceOptimised) {
+            switch (querySelectionMode) {
             case ORIGINAL:
                 LOG.debug("Forcing the original SQL2 query to be executed by flag");
-                for (Query q  : checkNotNull(queries)) {
-                    if (!q.isOptimised()) {
-                        map = new MdcAndPrepared(setupMDC(q), q);
-                    }
-                }
+                result = queries.get(0);
                 break;
 
-            case OPTIMISED:
-                LOG.debug("Forcing the optimised SQL2 query to be executed by flag");
-                for (Query q  : checkNotNull(queries)) {
-                    if (q.isOptimised()) {
-                        map = new MdcAndPrepared(setupMDC(q), q);
-                    }
-                }
+            case ALTERNATIVE:
+                LOG.debug("Forcing the alternative SQL2 query to be executed by flag");
+                result = queries.get(1);
                 break;
 
             // CHEAPEST is the default behaviour
             case CHEAPEST:
             default:
-                if (cheapest == null) {
-                    // this should not really happen. Defensive coding.
-                    LOG.debug("Cheapest is null. Returning the original SQL2 query.");
-                    for (Query q  : checkNotNull(queries)) {
-                        if (!q.isOptimised()) {
-                            map = new MdcAndPrepared(setupMDC(q), q);
-                        }
-                    }
-                } else {
-                    LOG.debug("Cheapest cost: {} - query: {}", bestCost, cheapest);
-                    map = new MdcAndPrepared(setupMDC(cheapest), cheapest);                
-                }
-            }
-        }
-
-        
-        if (map == null) {
-            // we should only get here in case of testing forcing weird conditions
-            LOG.trace("`MdcAndPrepared` is null. Falling back to the original query");
-            for (Query q  : checkNotNull(queries)) {
-                if (!q.isOptimised()) {
-                    map = new MdcAndPrepared(setupMDC(q), q);
-                    break;
-                }
             }
         }
         
-        return map;
+        return result;
     }
     
     protected void setTraversalEnabled(boolean traversalEnabled) {
@@ -422,9 +365,9 @@ public abstract class QueryEngineImpl implements QueryEngine {
      * Instruct the query engine on how to behave with regards to the SQL2 optimised query if
      * available.
      * 
-     * @param forceOptimised cannot be null
+     * @param querySelectionMode cannot be null
      */
-    protected void setForceOptimised(@Nonnull ForceOptimised forceOptimised) {
-        this.forceOptimised = forceOptimised;
+    protected void setQuerySelectionMode(@Nonnull QuerySelectionMode querySelectionMode) {
+        this.querySelectionMode = querySelectionMode;
     }
 }

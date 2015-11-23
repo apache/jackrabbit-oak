@@ -17,9 +17,9 @@
 package org.apache.jackrabbit.oak.query;
 
 import static com.google.common.collect.ImmutableList.of;
-import static junit.framework.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import org.apache.jackrabbit.oak.query.ast.AndImpl;
 import org.apache.jackrabbit.oak.query.ast.ComparisonImpl;
@@ -32,70 +32,64 @@ import org.junit.Test;
 public class QueryCostOverheadTest {
     @Test
     public void getCostOverhead() {
-        final double allowedDelta = 10;
         QueryImpl query;
         UnionQueryImpl union;
         ConstraintImpl c, c1, c2, c3, c4, c5;
         
-        union = new UnionQueryImpl(false, null, null, null);
-        assertEquals("we always expect 0 from a `UnionQueryImpl`", 0, union.getCostOverhead(),
-            allowedDelta);
+        c1 = new ComparisonImpl(null, null, null);
+        c2 = new FullTextSearchImpl(null, null, null);
+        union = new UnionQueryImpl(false,
+                new QueryImpl(null, null, c1, null, null, null),
+                new QueryImpl(null, null, c2, null, null, null),
+                null);
+        assertFalse("we always expect false from a `UnionQueryImpl`", 
+                union.containsUnfilteredFullTextCondition());
         
-        c = mock(OrImpl.class);
-        c1 = mock(ComparisonImpl.class);
-        c2 = mock(FullTextSearchImpl.class);
-        when(c.getConstraints()).thenReturn(of(c1, c2));
+        c1 = new ComparisonImpl(null, null, null);
+        c2 = new FullTextSearchImpl(null, null, null);
+        c = new OrImpl(c1, c2);
         query = new QueryImpl(null, null, c, null, null, null);
-        assertEquals(Double.MAX_VALUE, query.getCostOverhead(), allowedDelta);
+        assertTrue(query.containsUnfilteredFullTextCondition());
 
-        c = mock(OrImpl.class);
-        c1 = mock(ComparisonImpl.class);
-        c2 = mock(FullTextSearchImpl.class);
-        c3 = mock(FullTextSearchImpl.class);
-        when(c.getConstraints()).thenReturn(of(c1, c2, c3));
+        c1 = new ComparisonImpl(null, null, null);
+        c2 = new FullTextSearchImpl(null, null, null);
+        c3 = new FullTextSearchImpl(null, null, null);
+        c = new OrImpl(of(c1, c2, c3));
         query = new QueryImpl(null, null, c, null, null, null);
-        assertEquals(Double.MAX_VALUE, query.getCostOverhead(), allowedDelta);
+        assertTrue(query.containsUnfilteredFullTextCondition());
         
-        c1 = mock(OrImpl.class);
-        c2 = mock(FullTextSearchImpl.class);
-        c3 = mock(FullTextSearchImpl.class);
-        c4 = mock(ComparisonImpl.class);
-        when(c1.getConstraints()).thenReturn(of(c2, c3, c4));
-        c = mock(AndImpl.class);
+        c2 = new FullTextSearchImpl(null, null, null);
+        c3 = new FullTextSearchImpl(null, null, null);
+        c4 = new ComparisonImpl(null, null, null);
+        c1 = new OrImpl(of(c2, c3, c4));
         c5 = mock(DescendantNodeImpl.class);
-        when(c.getConstraints()).thenReturn(of(c1, c5));
+        c = new AndImpl(c1, c5);
         query = new QueryImpl(null, null, c, null, null, null);
-        assertEquals(Double.MAX_VALUE, query.getCostOverhead(), allowedDelta);
+        assertTrue(query.containsUnfilteredFullTextCondition());
         
-        c = mock(FullTextSearchImpl.class);
+        c = new FullTextSearchImpl(null, null, null);
         query = new QueryImpl(null, null, c, null, null, null);
-        assertEquals(0, query.getCostOverhead(), allowedDelta);
+        assertFalse(query.containsUnfilteredFullTextCondition());
 
-        c = mock(OrImpl.class);
-        c1 = mock(FullTextSearchImpl.class);
-        c2 = mock(FullTextSearchImpl.class);
-        c3 = mock(FullTextSearchImpl.class);
-        when(c.getConstraints()).thenReturn(of(c1, c2, c3));
+        c1 = new FullTextSearchImpl(null, null, null);
+        c2 = new FullTextSearchImpl(null, null, null);
+        c3 = new FullTextSearchImpl(null, null, null);
+        c = new OrImpl(of(c1, c2, c3));
         query = new QueryImpl(null, null, c, null, null, null);
-        assertEquals(0, query.getCostOverhead(), allowedDelta);
+        assertFalse(query.containsUnfilteredFullTextCondition());
         
-        c = mock(AndImpl.class);
-        c1 = mock(ComparisonImpl.class);
-        c2 = mock(FullTextSearchImpl.class);
-        c3 = mock(FullTextSearchImpl.class);
-        when(c.getConstraints()).thenReturn(of(c1, c2, c3));
+        c1 = new ComparisonImpl(null, null, null);
+        c2 = new FullTextSearchImpl(null, null, null);
+        c3 = new FullTextSearchImpl(null, null, null);
+        c = new AndImpl(of(c1, c2, c3));
         query = new QueryImpl(null, null, c, null, null, null);
-        assertEquals(0, query.getCostOverhead(), allowedDelta);
+        assertFalse(query.containsUnfilteredFullTextCondition());
 
-        c = mock(AndImpl.class);
-        c1 = mock(ComparisonImpl.class);
-        c2 = mock(ComparisonImpl.class);
-        when(c.getConstraints()).thenReturn(of(c1, c2, c3));
+        c1 = new ComparisonImpl(null, null, null);
+        c2 = new ComparisonImpl(null, null, null);
+        c = new AndImpl(of(c1, c2, c3));
         query = new QueryImpl(null, null, c, null, null, null);
-        assertEquals(0, query.getCostOverhead(), allowedDelta);
+        assertFalse(query.containsUnfilteredFullTextCondition());
 
-        c2 = mock(ComparisonImpl.class);
-        query = new QueryImpl(null, null, c, null, null, null);
-        assertEquals(0, query.getCostOverhead(), allowedDelta);
     }
 }
