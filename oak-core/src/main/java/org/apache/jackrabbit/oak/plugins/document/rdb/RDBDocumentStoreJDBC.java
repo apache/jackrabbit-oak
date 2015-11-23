@@ -114,7 +114,7 @@ public class RDBDocumentStoreJDBC {
         t.append("update " + tmd.getName() + " set ");
         t.append(setModifiedConditionally ? "MODIFIED = case when ? > MODIFIED then ? else MODIFIED end, " : "MODIFIED = ?, ");
         t.append("MODCOUNT = MODCOUNT + 1, DSIZE = DSIZE + ?, ");
-        t.append("DATA = " + this.dbInfo.getConcatQueryString(tmd.getDataLimitInOctets(), appendData.length()) + " ");
+        t.append("DATA = " + this.dbInfo.getConcatQueryString(tmd.getDataLimitInOctets(), appendData.length() + 1) + " ");
         t.append("where ID in (");
         for (int i = 0; i < ids.size(); i++) {
             if (i != 0) {
