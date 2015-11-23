@@ -28,7 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.TimeUnit;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -48,6 +48,8 @@ import org.apache.jackrabbit.oak.jcr.query.qom.QueryObjectModelFactoryImpl;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.stats.MeterStats;
+import org.apache.jackrabbit.oak.stats.TimerStats;
 
 /**
  * The implementation of the corresponding JCR interface.
@@ -59,8 +61,8 @@ public class QueryManagerImpl implements QueryManager {
     private final QueryObjectModelFactoryImpl qomFactory;
     private final QueryEngine queryEngine;
     private final HashSet<String> supportedQueryLanguages = new HashSet<String>();
-    private final AtomicLong queryCount;
-    private final AtomicLong queryDuration;
+    private final MeterStats queryCount;
+    private final TimerStats queryDuration;
 
     public QueryManagerImpl(SessionContext sessionContext) {
         this.sessionDelegate = sessionContext.getSessionDelegate();
@@ -68,8 +70,8 @@ public class QueryManagerImpl implements QueryManager {
         qomFactory = new QueryObjectModelFactoryImpl(this, sessionContext);
         queryEngine = sessionDelegate.getQueryEngine();
         supportedQueryLanguages.addAll(queryEngine.getSupportedQueryLanguages());
-        queryCount = sessionContext.getCounter(QUERY_COUNT);
-        queryDuration = sessionContext.getCounter(QUERY_DURATION);
+        queryCount = sessionContext.getMeter(QUERY_COUNT);
+        queryDuration = sessionContext.getTimer(QUERY_DURATION);
     }
 
     @Override
@@ -132,9 +134,9 @@ public class QueryManagerImpl implements QueryManager {
             Result r = queryEngine.executeQuery(
                     statement, language, limit, offset, bindMap,
                     sessionContext.getSessionLocalMappings());
-            queryCount.incrementAndGet();
+            queryCount.mark();
             long dt = (System.nanoTime() - t0) / 1000000;
-            queryDuration.addAndGet(dt);
+            queryDuration.update(dt, TimeUnit.MILLISECONDS);
             sessionContext.getStatisticManager()
                     .logQueryEvaluationTime(language, statement, dt);
             return new QueryResultImpl(sessionContext, r);
