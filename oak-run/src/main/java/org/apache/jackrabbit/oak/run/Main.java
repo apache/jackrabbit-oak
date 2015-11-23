@@ -98,6 +98,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
 import org.apache.jackrabbit.oak.plugins.document.util.MapDBMapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.segment.FileStoreDiff;
 import org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper;
 import org.apache.jackrabbit.oak.plugins.segment.PCMAnalyser;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
@@ -212,6 +213,9 @@ public final class Main {
                 break;
             case GARBAGE:
                 garbage(args);
+                break;
+            case TARMKDIFF:
+                FileStoreDiff.main(args);
                 break;
             case HELP:
             default:
@@ -1262,7 +1266,8 @@ public final class Main {
         RECOVERY("recovery"),
         REPAIR("repair"),
         TIKA("tika"),
-        GARBAGE("garbage");
+        GARBAGE("garbage"),
+        TARMKDIFF("tarmkdiff");
 
         private final String name;
 
