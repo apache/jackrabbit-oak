@@ -83,7 +83,7 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener,
     private final static int MAX_CHAR_DISPLAY = Integer.getInteger(
             "max.char.display", 60);
 
-    private final String path;
+    private final File path;
     private ReadOnlyStore store;
     private Map<String, Set<UUID>> index;
 
@@ -94,7 +94,7 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener,
     private Map<RecordIdKey, Long[]> sizeCache;
     private final boolean skipSizeCheck;
 
-    public NodeStoreTree(String path, JTextArea log, boolean skipSizeCheck)
+    public NodeStoreTree(File path, JTextArea log, boolean skipSizeCheck)
             throws IOException {
         super(new GridLayout(1, 0));
         this.path = path;
@@ -115,7 +115,7 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener,
     }
 
     private void refreshStore() throws IOException {
-        this.store = new ReadOnlyStore(new File(path));
+        this.store = new ReadOnlyStore(path);
     }
 
     private void refreshModel() {
