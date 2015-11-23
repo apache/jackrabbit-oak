@@ -214,6 +214,12 @@
       <version>2.4</version>
     </dependency>
     <dependency>
+      <groupId>io.dropwizard.metrics</groupId>
+      <artifactId>metrics-core</artifactId>
+      <version>3.1.0</version>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>jackrabbit-aws-ext</artifactId>
       <version>${jackrabbit.version}</version>

@@ -76,7 +76,7 @@ public class SessionStats implements SessionMBean {
         this.refreshStrategy = refreshStrategy;
         this.sessionDelegate = sessionDelegate;
 
-        long activeSessionCount = statisticManager.getCounter(Type.SESSION_COUNT).get();
+        long activeSessionCount = statisticManager.getStatsCounter(Type.SESSION_COUNT).getCount();
         initStackTrace = (activeSessionCount > INIT_STACK_TRACE_THRESHOLD) ?
                 new Exception("The session was opened here:") : null;
     }
