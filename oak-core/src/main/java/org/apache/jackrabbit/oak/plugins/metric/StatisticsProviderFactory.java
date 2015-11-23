@@ -35,6 +35,7 @@ import org.apache.felix.scr.annotations.PropertyOption;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.osgi.framework.BundleContext;
@@ -100,11 +101,7 @@ public class StatisticsProviderFactory {
             ((Closeable) statisticsProvider).close();
         }
 
-        //TODO Refactor ExecutorCloser in Oak as a utility class and
-        //use that here
-        if (executor != null) {
-            executor.shutdown();
-        }
+        new ExecutorCloser(executor).close();
     }
 
     private StatisticsProvider createProvider(String providerType) {
