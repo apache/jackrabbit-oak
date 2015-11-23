@@ -35,6 +35,7 @@ import java.util.UUID;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -344,6 +345,37 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             }
             super.ds.remove(Collection.NODES, id);
         }
+    }
+
+    @Test
+    @Ignore("OAK-3670")
+    public void testRepeatingUpdatesOnSQLServer() {
+        // simulates two updates to trigger the off-by-one bug documented in OAK-3670
+        String id = this.getClass().getName() + ".testRepeatingUpdatesOnSQLServer";
+
+        // remove if present
+        NodeDocument nd = super.ds.find(Collection.NODES, id);
+        if (nd != null) {
+            super.ds.remove(Collection.NODES, id);
+        }
+
+        UpdateOp up = new UpdateOp(id, true);
+        up.set("_id", id);
+        assertTrue(super.ds.create(Collection.NODES, Collections.singletonList(up)));
+        removeMe.add(id);
+
+        up = new UpdateOp(id, false);
+        up.set("_id", id);
+        up.set("f0", generateConstantString(3000));
+        super.ds.update(Collection.NODES, Collections.singletonList(id), up);
+
+        up = new UpdateOp(id, false);
+        up.set("_id", id);
+        up.set("f1", generateConstantString(967));
+        super.ds.update(Collection.NODES, Collections.singletonList(id), up);
+
+        NodeDocument doc = super.ds.find(Collection.NODES, id, 0);
+        assertNotNull(doc);
     }
 
     @Test
