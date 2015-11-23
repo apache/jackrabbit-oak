@@ -47,7 +47,7 @@ public class OrImpl extends ConstraintImpl {
 
     private final List<ConstraintImpl> constraints;
 
-    OrImpl(List<ConstraintImpl> constraints) {
+    public OrImpl(List<ConstraintImpl> constraints) {
         checkArgument(!constraints.isEmpty());
         this.constraints = constraints;
     }
@@ -56,7 +56,6 @@ public class OrImpl extends ConstraintImpl {
         this(Arrays.asList(constraint1, constraint2));
     }
 
-    @Override
     public List<ConstraintImpl> getConstraints() {
         return constraints;
     }
@@ -359,16 +358,53 @@ public class OrImpl extends ConstraintImpl {
     }
 
     @Override
-    public Set<ConstraintImpl> simplifyForUnion() {
-        Set<ConstraintImpl> cc = Sets.newHashSet();
+    public Set<ConstraintImpl> convertToUnion() {
+        Set<ConstraintImpl> result = Sets.newHashSet();
         for (ConstraintImpl c : getConstraints()) {
-            Set<ConstraintImpl> ccc = c.simplifyForUnion(); 
-            if (ccc.isEmpty()) {
-                cc.add(c);
+            Set<ConstraintImpl> converted = c.convertToUnion(); 
+            if (converted.isEmpty()) {
+                result.add(c);
             } else {
-                cc.addAll(ccc);
+                result.addAll(converted);
             }
         }
-        return cc;
+        return result;
     }
+
+    @Override
+    public boolean requiresFullTextIndex() {
+        for (ConstraintImpl c : getConstraints()) {
+            if (c.requiresFullTextIndex()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean containsUnfilteredFullTextCondition() {
+        boolean fulltext = false;
+        boolean plain = false;
+        for (ConstraintImpl c : constraints) {
+            // this part of the condition already contains an unfiltered
+            // condition, so we don't need to check further
+            if (c.containsUnfilteredFullTextCondition()) {
+                return true;
+            }
+            if (c.requiresFullTextIndex()) {
+                // for example "contains(a, 'x')"
+                fulltext = true;
+            } else {
+                // for example "b=123"
+                plain = true;
+            }
+            // the full-text index contains both typescan not be used for conditions
+            // of the form "contains(a, 'x') or b=123"
+            if (fulltext && plain) {
+                return true;
+            }
+        }
+        return false;
+    }    
+
 }

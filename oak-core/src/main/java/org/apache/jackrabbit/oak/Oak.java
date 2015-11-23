@@ -243,7 +243,7 @@ public class Oak {
     private Whiteboard whiteboard = new DefaultWhiteboard() {
         @Override
         public <T> Registration register(
-                Class<T> type, T service, Map<?, ?> properties) {
+                final Class<T> type, T service, Map<?, ?> properties) {
             final Registration registration =
                     super.register(type, service, properties);
 
@@ -279,7 +279,8 @@ public class Oak {
                     }
                     mbeanServer.registerMBean(service, objectName);
                 } catch (JMException e) {
-                    // ignore
+                    LOG.warn("Unexpected exception while registering MBean of type [{}] " +
+                            "against name [{}]", type, objectName, e);
                 }
             }
 
@@ -295,7 +296,8 @@ public class Oak {
                         try {
                             mbeanServer.unregisterMBean(on);
                         } catch (JMException e) {
-                            // ignore
+                            LOG.warn("Unexpected exception while unregistering MBean of type {} " +
+                                    "against name {} ", type, on, e);
                         }
                     }
                     try {

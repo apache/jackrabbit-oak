@@ -82,4 +82,10 @@ public class NotFullTextSearchImpl extends FullTextSearchImpl {
         // we don't care whether the property is there or not.
         return true;
     }
+
+    @Override
+    public boolean requiresFullTextIndex() {
+        return true;
+    }
+
 }

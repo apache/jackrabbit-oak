@@ -114,6 +114,7 @@ public class UDPBroadcaster implements Broadcaster, Runnable {
             if (!stop) {
                 LOG.warn("join group failed", e);
             }
+            stop = true;
             return;
         }              
         while (!stop) {
@@ -244,6 +245,10 @@ public class UDPBroadcaster implements Broadcaster, Runnable {
                 // ignore
             }
         }
+    }
+
+    public boolean isRunning() {
+        return !stop;
     }
 
 }

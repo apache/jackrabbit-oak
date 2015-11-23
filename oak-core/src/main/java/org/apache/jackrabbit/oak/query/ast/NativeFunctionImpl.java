@@ -111,4 +111,10 @@ public class NativeFunctionImpl extends ConstraintImpl {
     public AstElement copyOf() {
         return new NativeFunctionImpl(selectorName, language, nativeSearchExpression);
     }
+
+    @Override
+    public boolean requiresFullTextIndex() {
+        return true;
+    }
+
 }
