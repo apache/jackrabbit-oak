@@ -53,17 +53,18 @@ import org.slf4j.LoggerFactory;
                 "See http://metrics.dropwizard.io) library is present then that is used. Otherwise it fallbacks " +
                 "to default")
 public class StatisticsProviderFactory {
-    @Property(value = TYPE_AUTO, options = {
-            @PropertyOption(name = TYPE_DEFAULT, value = TYPE_DEFAULT),
-            @PropertyOption(name = TYPE_METRIC, value = TYPE_METRIC),
-            @PropertyOption(name = TYPE_NONE, value = TYPE_NONE)})
-    static final String PROVIDER_TYPE = "providerType";
     private static final String TYPE_DEFAULT = "DEFAULT";
     private static final String TYPE_METRIC = "METRIC";
     private static final String TYPE_NONE = "NONE";
     private static final String TYPE_AUTO = "AUTO";
     private static final String METRIC_PROVIDER_CLASS =
             "com.codahale.metrics.MetricRegistry";
+
+    @Property(value = TYPE_AUTO, options = {
+            @PropertyOption(name = TYPE_DEFAULT, value = TYPE_DEFAULT),
+            @PropertyOption(name = TYPE_METRIC, value = TYPE_METRIC),
+            @PropertyOption(name = TYPE_NONE, value = TYPE_NONE)})
+    static final String PROVIDER_TYPE = "providerType";
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
