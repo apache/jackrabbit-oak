@@ -60,6 +60,7 @@ import org.apache.jackrabbit.oak.api.Descriptors;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
 import org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.management.RepositoryManager;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
@@ -695,30 +696,6 @@ public class Oak {
      */
     public Root createRoot() {
         return createContentSession().getLatestRoot();
-    }
-
-    private static class ExecutorCloser implements Closeable {
-        final ExecutorService executorService;
-
-        private ExecutorCloser(ExecutorService executorService) {
-            this.executorService = executorService;
-        }
-
-        @Override
-        public void close() throws IOException {
-            try {
-                executorService.shutdown();
-                executorService.awaitTermination(5, TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-                LOG.error("Error while shutting down the executorService", e);
-                Thread.currentThread().interrupt();
-            } finally {
-                if (!executorService.isTerminated()) {
-                    LOG.warn("executorService didn't shutdown properly. Will be forced now.");
-                }
-                executorService.shutdownNow();
-            }
-        }
     }
 
     /**
