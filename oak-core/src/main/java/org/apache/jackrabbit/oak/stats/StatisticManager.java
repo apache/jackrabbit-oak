@@ -79,16 +79,6 @@ public class StatisticManager {
         queryStat.logQuery(language, statement, millis);
     }
 
-    /**
-     * Get the counter of the specified {@code type}.
-     * @param type  type of the counter
-     * @return  counter for the given {@code type}
-     * @see org.apache.jackrabbit.stats.RepositoryStatisticsImpl#getCounter(org.apache.jackrabbit.api.stats.RepositoryStatistics.Type)
-     */
-    public AtomicLong getCounter(Type type) {
-        throw new UnsupportedOperationException();
-    }
-
     public MeterStats getMeter(Type type){
         return repoStats.getMeter(type.name());
     }
