@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 import aQute.bnd.annotation.ProviderType;
 
 @ProviderType
-public interface TimerStats {
+public interface TimerStats extends Stats{
     /**
      * Adds a recorded duration.
      *
