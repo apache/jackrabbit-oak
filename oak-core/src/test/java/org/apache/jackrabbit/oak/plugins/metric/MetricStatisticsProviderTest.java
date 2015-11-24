@@ -96,10 +96,10 @@ public class MetricStatisticsProviderTest {
     @Test
     public void timeSeriesIntegration() throws Exception {
         statsProvider = new MetricStatisticsProvider(server, executorService);
-        MeterStats meterStats = statsProvider.getMeter(Type.QUERY_COUNT.name());
+        MeterStats meterStats = statsProvider.getMeter(Type.SESSION_COUNT.name());
 
         meterStats.mark(5);
-        assertEquals(5, statsProvider.getRepoStats().getCounter(Type.QUERY_COUNT).get());
+        assertEquals(5, statsProvider.getRepoStats().getCounter(Type.SESSION_COUNT).get());
     }
 
     @Test
