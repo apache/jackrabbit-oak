@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.metric;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.codahale.metrics.Counter;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
@@ -39,7 +40,7 @@ public class CompositeStatsTest {
 
     @Test
     public void counter() throws Exception {
-        MetricCounterStats counter = new MetricCounterStats(registry.counter("test"));
+        Counter counter = registry.counter("test");
         CounterStats counterStats = new CompositeStats(simpleStats, counter);
 
         counterStats.inc();
@@ -59,7 +60,7 @@ public class CompositeStatsTest {
     @Test
     public void meter() throws Exception {
         Meter meter = registry.meter("test");
-        MeterStats meterStats = new CompositeStats(simpleStats, new MetricMeterStats(meter));
+        MeterStats meterStats = new CompositeStats(simpleStats, meter);
 
         meterStats.mark();
         assertEquals(1, simpleStats.getCount());
@@ -73,7 +74,7 @@ public class CompositeStatsTest {
     @Test
     public void timer() throws Exception {
         Timer time = registry.timer("test");
-        TimerStats timerStats = new CompositeStats(simpleStats, new MetricTimerStats(time));
+        TimerStats timerStats = new CompositeStats(simpleStats, time);
 
         timerStats.update(100, TimeUnit.SECONDS);
         assertEquals(1, time.getCount());
