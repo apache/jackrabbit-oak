@@ -40,14 +40,16 @@ import javax.management.openmbean.CompositeData;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.api.jmx.RepositoryStatsMBean;
+import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.stats.TimeSeriesStatsUtil;
 
-public class RepositoryStats implements RepositoryStatsMBean {
+public class RepositoryStats extends AnnotatedStandardMBean implements RepositoryStatsMBean {
 
     private final RepositoryStatistics repoStats;
     private final TimeSeries maxQueueLength;
 
     public RepositoryStats(RepositoryStatistics repoStats, TimeSeries maxQueueLength) {
+        super(RepositoryStatsMBean.class);
         this.repoStats = repoStats;
         this.maxQueueLength = maxQueueLength;
     }
