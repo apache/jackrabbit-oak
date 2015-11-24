@@ -232,6 +232,11 @@
       <artifactId>mongo-java-driver</artifactId>
       <optional>true</optional>
     </dependency>
+    <dependency>
+      <groupId>org.apache.tomcat</groupId>
+      <artifactId>tomcat-jdbc</artifactId>
+      <optional>true</optional>
+    </dependency>
 
     <!--  Optional dependency for jclouds s3 to enable s3 cloud store -->
     <dependency>
@@ -336,12 +341,6 @@
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-math3</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.tomcat</groupId>
-      <artifactId>tomcat-jdbc</artifactId>
-      <version>7.0.64</version>
       <scope>test</scope>
     </dependency>
     <dependency>
