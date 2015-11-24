@@ -124,12 +124,14 @@ public class MemoryNodeStore implements NodeStore, Observable {
             @Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
             @Nullable CommitInfo info) throws CommitFailedException {
         checkArgument(builder instanceof MemoryNodeBuilder);
+        MemoryNodeBuilder mnb = (MemoryNodeBuilder) builder;
+        checkArgument(mnb.isRoot());
         checkNotNull(commitHook);
         rebase(builder);
         NodeStoreBranch branch = new MemoryNodeStoreBranch(this, getRoot());
         branch.setRoot(builder.getNodeState());
         NodeState merged = branch.merge(commitHook, info);
-        ((MemoryNodeBuilder) builder).reset(merged);
+        mnb.reset(merged);
         return merged;
     }
 
