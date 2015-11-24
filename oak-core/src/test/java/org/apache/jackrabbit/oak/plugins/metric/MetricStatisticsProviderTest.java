@@ -32,14 +32,16 @@ import javax.management.Query;
 import javax.management.QueryExp;
 
 import com.codahale.metrics.JmxReporter;
-import org.apache.jackrabbit.api.stats.RepositoryStatistics;
+import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
+import org.apache.jackrabbit.oak.stats.NoopStats;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.junit.After;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -94,10 +96,10 @@ public class MetricStatisticsProviderTest {
     @Test
     public void timeSeriesIntegration() throws Exception {
         statsProvider = new MetricStatisticsProvider(server, executorService);
-        MeterStats meterStats = statsProvider.getMeter(RepositoryStatistics.Type.QUERY_COUNT.name());
+        MeterStats meterStats = statsProvider.getMeter(Type.QUERY_COUNT.name());
 
         meterStats.mark(5);
-        assertEquals(5, statsProvider.getRepoStats().getCounter(RepositoryStatistics.Type.QUERY_COUNT).get());
+        assertEquals(5, statsProvider.getRepoStats().getCounter(Type.QUERY_COUNT).get());
     }
 
     @Test
@@ -105,6 +107,15 @@ public class MetricStatisticsProviderTest {
         statsProvider = new MetricStatisticsProvider(server, executorService);
         TimerStats timerStats = statsProvider.getTimer("hello");
         assertNotNull(server.getObjectInstance(new ObjectName("org.apache.jackrabbit.oak:type=Metrics,name=hello")));
+    }
+
+    @Test
+    public void noopMeter() throws Exception{
+        statsProvider = new MetricStatisticsProvider(server, executorService);
+        assertEquals(statsProvider.getMeter(Type.SESSION_READ_COUNTER.name()), NoopStats.INSTANCE);
+        assertEquals(statsProvider.getMeter(Type.SESSION_WRITE_COUNTER.name()), NoopStats.INSTANCE);
+        assertEquals(statsProvider.getMeter(Type.QUERY_COUNT.name()), NoopStats.INSTANCE);
+        assertNotEquals(statsProvider.getMeter(Type.OBSERVATION_EVENT_COUNTER.name()), NoopStats.INSTANCE);
     }
 
     @After

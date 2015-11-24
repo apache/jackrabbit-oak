@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.metric;
 import java.io.Closeable;
 import java.util.Hashtable;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 
 import javax.management.MBeanServer;
@@ -34,6 +35,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.ObjectNameFactory;
 import com.codahale.metrics.RatioGauge;
 import com.codahale.metrics.Timer;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
@@ -51,6 +53,16 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
     private static final Logger log = LoggerFactory.getLogger(MetricStatisticsProvider.class);
 
     private static final String JMX_TYPE_METRICS = "Metrics";
+
+    /**
+     * Name of Meters for which NoopMeter is to be returned as there are corresponding
+     * Timer instances which internally manage the Meter
+     */
+    private static final Set<String> NOOP_METERS = ImmutableSet.of(
+            Type.SESSION_READ_COUNTER.name(), //Meter managed in SESSION_READ_DURATION
+            Type.SESSION_WRITE_COUNTER.name(), //Meter managed in SESSION_WRITE_DURATION
+            Type.QUERY_COUNT.name() //Meter managed in QUERY_DURATION
+    );
 
     private final Map<String, CompositeStats> statsRegistry = Maps.newHashMap();
     private final MetricRegistry registry;
@@ -87,6 +99,9 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
 
     @Override
     public MeterStats getMeter(String name) {
+        if (noopMeter(name)){
+            return NOOP.getMeter(name);
+        }
         return getStats(name, StatsType.METER);
     }
 
@@ -158,6 +173,10 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
         registry.register(typeToName(Type.OBSERVATION_EVENT_AVERAGE),
                 new AvgGauge(registry.meter(typeToName(Type.OBSERVATION_EVENT_COUNTER)),
                         registry.timer(typeToName(Type.OBSERVATION_EVENT_DURATION))));
+    }
+
+    private boolean noopMeter(String name) {
+        return NOOP_METERS.contains(name);
     }
 
     private enum StatsType {METER, COUNTER, TIMER}
