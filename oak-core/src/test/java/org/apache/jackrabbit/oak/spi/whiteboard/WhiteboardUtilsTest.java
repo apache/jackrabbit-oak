@@ -94,7 +94,7 @@ public class WhiteboardUtilsTest {
         assertNotNull(server.getObjectInstance(new ObjectName("org.apache.jackrabbit.oak:type=query,name=settings")));
     }
 
-    private interface HelloMBean {
+    public interface HelloMBean {
         boolean isRunning();
         int getCount();
     }
