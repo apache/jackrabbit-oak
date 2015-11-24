@@ -115,7 +115,7 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
         return getStats(name, StatsType.TIMER);
     }
 
-    MetricRegistry getRegistry() {
+    public MetricRegistry getRegistry() {
         return registry;
     }
 
