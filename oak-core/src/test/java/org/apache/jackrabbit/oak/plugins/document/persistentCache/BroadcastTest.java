@@ -140,7 +140,6 @@ public class BroadcastTest {
         Thread.sleep(Integer.MAX_VALUE);
     }
     
-    @Ignore("OAK-2843")
     @Test
     public void broadcastTCP() throws Exception {
         broadcast("tcp:key 123", 90);
@@ -152,6 +151,7 @@ public class BroadcastTest {
     }
     
     @Test
+    @Ignore("OAK-2843")
     public void broadcastUDP() throws Exception {
         try {
             broadcast("udp:sendTo localhost", 50);
@@ -166,6 +166,7 @@ public class BroadcastTest {
     }
     
     @Test
+    @Ignore("OAK-2843")
     public void broadcastEncryptedUDP() throws Exception {
         try {
             broadcast("udp:group FF78:230::1234;key test;port 9876;sendTo localhost;aes", 50);
@@ -199,14 +200,14 @@ public class BroadcastTest {
         int correct = 0;
         for (int i = 0; i < 50; i++) {
             c1.put(k, new StringValue("Hello World " + i));
-            waitFor(c2, k, 20);
+            waitFor(c2, k, 100);
             StringValue v2 = c2.getIfPresent(k);
             if (v2 != null && v2.toString().equals("Hello World " + i)) {
                 correct++;
             }
             c2.invalidate(k);
             assertNull(c2.getIfPresent(k));
-            waitFor(c1, k, null, 20);
+            waitFor(c1, k, null, 100);
             StringValue v1 = c1.getIfPresent(k);
             if (v1 == null) {
                 correct++;
