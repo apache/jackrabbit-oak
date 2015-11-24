@@ -46,6 +46,7 @@ import javax.jcr.NoSuchWorkspaceException;
 import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
+import javax.management.StandardMBean;
 import javax.security.auth.login.LoginException;
 
 import com.google.common.base.Function;
@@ -278,7 +279,15 @@ public class Oak {
                     } else {
                         objectName = new ObjectName(String.valueOf(name));
                     }
-                    mbeanServer.registerMBean(service, objectName);
+
+                    if (type.getName().equals(service.getClass().getName().concat("MBean"))
+                            || service instanceof StandardMBean){
+                        mbeanServer.registerMBean(service, objectName);
+                    } else {
+                        //Wrap the MBean in std MBean
+                        mbeanServer.registerMBean(new StandardMBean(service, type), objectName);
+                    }
+
                 } catch (JMException e) {
                     LOG.warn("Unexpected exception while registering MBean of type [{}] " +
                             "against name [{}]", type, objectName, e);
