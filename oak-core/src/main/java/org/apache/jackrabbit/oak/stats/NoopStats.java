@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.stats;
 
 import java.util.concurrent.TimeUnit;
 
-final class NoopStats implements TimerStats, MeterStats, CounterStats {
+public final class NoopStats implements TimerStats, MeterStats, CounterStats {
 
     public static final NoopStats INSTANCE = new NoopStats();
 
