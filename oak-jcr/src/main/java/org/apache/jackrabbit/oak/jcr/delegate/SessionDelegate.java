@@ -624,13 +624,13 @@ public class SessionDelegate {
             sessionCounters.writeTime = t0;
             sessionCounters.writeCount++;
             writeCounter.mark();
-            writeDuration.update(dt, TimeUnit.MILLISECONDS);
+            writeDuration.update(dt, TimeUnit.NANOSECONDS);
             updateCount++;
         } else {
             sessionCounters.readTime = t0;
             sessionCounters.readCount++;
             readCounter.mark();
-            readDuration.update(dt, TimeUnit.MILLISECONDS);
+            readDuration.update(dt, TimeUnit.NANOSECONDS);
         }
         if (op.isSave()) {
             refreshAtNextAccess.refreshAtNextAccess(false);
