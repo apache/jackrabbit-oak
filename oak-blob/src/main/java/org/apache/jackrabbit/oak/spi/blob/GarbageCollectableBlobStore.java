@@ -79,7 +79,8 @@ public interface GarbageCollectableBlobStore extends BlobStore {
      * Gets all the identifiers.
      * 
      * @param maxLastModifiedTime
-     *            the max last modified time to consider for retrieval
+     *            the max last modified time to consider for retrieval,
+     *            with the special value '0' meaning no filtering by time
      * @return the identifiers
      * @throws Exception
      *             the exception
@@ -90,7 +91,8 @@ public interface GarbageCollectableBlobStore extends BlobStore {
      * Deletes the blobs with the given ids.
      *
      * @param chunkIds the chunk ids
-     * @param maxLastModifiedTime the max last modified time to consider for retrieval
+     * @param maxLastModifiedTime the max last modified time to consider for retrieval,
+     *            with the special value '0' meaning no filtering by time
      * @return true, if successful
      * @throws Exception the exception
      */
@@ -101,7 +103,8 @@ public interface GarbageCollectableBlobStore extends BlobStore {
      * Deletes the blobs with the given ids.
      *
      * @param chunkIds the chunk ids
-     * @param maxLastModifiedTime the max last modified time to consider for retrieval
+     * @param maxLastModifiedTime the max last modified time to consider for retrieval,
+     *            with the special value '0' meaning no filtering by time
      * @return long the count of successful deletions
      * @throws Exception the exception
      */
