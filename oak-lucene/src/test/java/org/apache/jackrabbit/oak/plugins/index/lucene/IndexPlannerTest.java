@@ -460,11 +460,11 @@ public class IndexPlannerTest {
     }
 
     private IndexNode createIndexNode(IndexDefinition defn, long numOfDocs) throws IOException {
-        return new IndexNode("foo", defn, createSampleDirectory(numOfDocs));
+        return new IndexNode("foo", defn, createSampleDirectory(numOfDocs), null);
     }
 
     private IndexNode createIndexNode(IndexDefinition defn) throws IOException {
-        return new IndexNode("foo", defn, createSampleDirectory());
+        return new IndexNode("foo", defn, createSampleDirectory(), null);
     }
 
     private FilterImpl createFilter(String nodeTypeName) {

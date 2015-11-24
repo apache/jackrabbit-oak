@@ -90,6 +90,22 @@ public class SuggestTest extends AbstractQueryTest {
         assertTrue(result.contains("in 2015 my fox is red, like mike's fox and john's fox"));
     }
 
+    public void testSuggestInfix() throws Exception {
+        Session session = superuser;
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        Node n1 = testRootNode.addNode("node1");
+        n1.setProperty("jcr:title", "in 2015 my fox is red, like mike's fox and john's fox");
+        Node n2 = testRootNode.addNode("node2");
+        n2.setProperty("jcr:title", "in 2015 a red fox is still a fox");
+        session.save();
+
+        String xpath = "/jcr:root[rep:suggest('like mike')]/(rep:suggest())";
+        Query q = qm.createQuery(xpath, Query.XPATH);
+        List<String> result = getResult(q.execute(), "rep:suggest()");
+        assertNotNull(result);
+        assertTrue(result.contains("in 2015 my fox is red, like mike's fox and john's fox"));
+    }
+
     public void testNoSuggestions() throws Exception {
         Session session = superuser;
         QueryManager qm = session.getWorkspace().getQueryManager();
