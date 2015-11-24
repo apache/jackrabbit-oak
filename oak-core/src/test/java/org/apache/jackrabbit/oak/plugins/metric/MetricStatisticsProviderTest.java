@@ -36,6 +36,7 @@ import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.NoopStats;
+import org.apache.jackrabbit.oak.stats.SimpleStats;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.junit.After;
 import org.junit.Test;
@@ -53,8 +54,8 @@ public class MetricStatisticsProviderTest {
     @Test
     public void basicSetup() throws Exception {
         statsProvider = new MetricStatisticsProvider(server, executorService);
-        assertEquals(4, statsProvider.getRegistry().getMeters().size());
-        assertEquals(4, statsProvider.getRegistry().getTimers().size());
+        assertEquals(2, statsProvider.getRegistry().getMeters().size());
+        assertEquals(2, statsProvider.getRegistry().getTimers().size());
 
         assertNotNull(statsProvider.getStats());
         assertEquals(statsProvider.getRegistry().getMetrics().size(), getMetricMbeans().size());
@@ -110,11 +111,10 @@ public class MetricStatisticsProviderTest {
     }
 
     @Test
-    public void noopMeter() throws Exception{
+    public void noopMeter() throws Exception {
         statsProvider = new MetricStatisticsProvider(server, executorService);
-        assertEquals(statsProvider.getMeter(Type.SESSION_READ_COUNTER.name()), NoopStats.INSTANCE);
-        assertEquals(statsProvider.getMeter(Type.SESSION_WRITE_COUNTER.name()), NoopStats.INSTANCE);
-        assertEquals(statsProvider.getMeter(Type.QUERY_COUNT.name()), NoopStats.INSTANCE);
+        assertTrue(statsProvider.getTimer(Type.SESSION_READ_DURATION.name()) instanceof SimpleStats);
+        assertTrue(statsProvider.getTimer(Type.SESSION_WRITE_DURATION.name()) instanceof SimpleStats);
         assertNotEquals(statsProvider.getMeter(Type.OBSERVATION_EVENT_COUNTER.name()), NoopStats.INSTANCE);
     }
 

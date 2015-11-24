@@ -44,6 +44,7 @@ import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.SimpleStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.oak.stats.Stats;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.apache.jackrabbit.stats.RepositoryStatisticsImpl;
 import org.slf4j.Logger;
@@ -55,16 +56,16 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
     private static final String JMX_TYPE_METRICS = "Metrics";
 
     /**
-     * Name of Meters for which NoopMeter is to be returned as there are corresponding
-     * Timer instances which internally manage the Meter
+     * Types for which Noop Variant has to be used
      */
-    private static final Set<String> NOOP_METERS = ImmutableSet.of(
-            Type.SESSION_READ_COUNTER.name(), //Meter managed in SESSION_READ_DURATION
-            Type.SESSION_WRITE_COUNTER.name(), //Meter managed in SESSION_WRITE_DURATION
-            Type.QUERY_COUNT.name() //Meter managed in QUERY_DURATION
+    private static final Set<String> NOOPS_TYPES = ImmutableSet.of(
+            Type.SESSION_READ_DURATION.name(),
+            Type.SESSION_READ_COUNTER.name(),
+            Type.SESSION_WRITE_DURATION.name(),
+            Type.SESSION_WRITE_COUNTER.name()
     );
 
-    private final Map<String, CompositeStats> statsRegistry = Maps.newHashMap();
+    private final Map<String, Stats> statsRegistry = Maps.newHashMap();
     private final MetricRegistry registry;
     private final JmxReporter reporter;
     private final RepositoryStatisticsImpl repoStats;
@@ -99,20 +100,17 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
 
     @Override
     public MeterStats getMeter(String name) {
-        if (noopMeter(name)){
-            return NOOP.getMeter(name);
-        }
-        return getStats(name, StatsType.METER);
+        return getStats(name, StatsBuilder.METERS);
     }
 
     @Override
     public CounterStats getCounterStats(String name) {
-        return getStats(name, StatsType.COUNTER);
+        return getStats(name, StatsBuilder.COUNTERS);
     }
 
     @Override
     public TimerStats getTimer(String name) {
-        return getStats(name, StatsType.TIMER);
+        return getStats(name, StatsBuilder.TIMERS);
     }
 
     public MetricRegistry getRegistry() {
@@ -123,49 +121,38 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
         return repoStats;
     }
 
-    private synchronized CompositeStats getStats(String type, StatsType statsType) {
+    private synchronized <T extends Stats> T getStats(String type, StatsBuilder<T> builder) {
         String name = type;
         Type enumType = Type.getType(type);
-        CompositeStats stats = statsRegistry.get(type);
+        Stats stats = statsRegistry.get(type);
         if (stats == null) {
             SimpleStats delegate;
             if (enumType != null) {
                 delegate = new SimpleStats(repoStats.getCounter(enumType));
                 name = typeToName(enumType);
             } else {
-                boolean resetValueEachSecond = statsType != StatsType.COUNTER;
+                boolean resetValueEachSecond = builder != StatsBuilder.COUNTERS;
                 delegate = new SimpleStats(repoStats.getCounter(type, resetValueEachSecond));
             }
-            stats = createStat(name, statsType, delegate);
+
+            if (NOOPS_TYPES.contains(name)) {
+                stats = delegate;
+            } else {
+                stats = builder.newComposite(delegate, registry, name);
+            }
+
             statsRegistry.put(type, stats);
         }
-        return stats;
-    }
 
-    private CompositeStats createStat(String name, StatsType statsType, SimpleStats delegate) {
-        switch (statsType) {
-            case COUNTER:
-                MetricCounterStats counter = new MetricCounterStats(registry.counter(name));
-                return new CompositeStats(delegate, counter);
-            case TIMER:
-                MetricTimerStats timer = new MetricTimerStats(registry.timer(name));
-                return new CompositeStats(delegate, timer);
-            case METER:
-                MetricMeterStats meter = new MetricMeterStats(registry.meter(name));
-                return new CompositeStats(delegate, meter);
+        if (builder.isInstance(stats)) {
+            //noinspection unchecked
+            return (T) stats;
         }
+
         throw new IllegalStateException();
     }
 
     private void registerAverages() {
-        registry.register(typeToName(Type.SESSION_READ_AVERAGE),
-                new AvgGauge(registry.meter(typeToName(Type.SESSION_READ_COUNTER)),
-                        registry.timer(typeToName(Type.SESSION_READ_DURATION))));
-
-        registry.register(typeToName(Type.SESSION_WRITE_AVERAGE),
-                new AvgGauge(registry.meter(typeToName(Type.SESSION_WRITE_COUNTER)),
-                        registry.timer(typeToName(Type.SESSION_WRITE_DURATION))));
-
         registry.register(typeToName(Type.QUERY_AVERAGE),
                 new AvgGauge(registry.meter(typeToName(Type.QUERY_COUNT)),
                         registry.timer(typeToName(Type.QUERY_DURATION))));
@@ -175,11 +162,49 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
                         registry.timer(typeToName(Type.OBSERVATION_EVENT_DURATION))));
     }
 
-    private boolean noopMeter(String name) {
-        return NOOP_METERS.contains(name);
-    }
+    @SuppressWarnings("unused")
+    private interface StatsBuilder<T extends Stats> {
+        StatsBuilder<CounterStats> COUNTERS = new StatsBuilder<CounterStats>() {
+            @Override
+            public CompositeStats newComposite(SimpleStats delegate, MetricRegistry registry,String name) {
+                return new CompositeStats(delegate, new MetricCounterStats(registry.counter(name)));
+            }
 
-    private enum StatsType {METER, COUNTER, TIMER}
+            @Override
+            public boolean isInstance(Stats metric) {
+                return CounterStats.class.isInstance(metric);
+            }
+        };
+
+        StatsBuilder<MeterStats> METERS = new StatsBuilder<MeterStats>() {
+            @Override
+            public CompositeStats newComposite(SimpleStats delegate, MetricRegistry registry,String name) {
+                return new CompositeStats(delegate, new MetricMeterStats(registry.meter(name)));
+            }
+
+            @Override
+            public boolean isInstance(Stats metric) {
+                return MeterStats.class.isInstance(metric);
+            }
+        };
+
+        StatsBuilder<TimerStats> TIMERS = new StatsBuilder<TimerStats>() {
+
+            @Override
+            public CompositeStats newComposite(SimpleStats delegate, MetricRegistry registry,String name) {
+                return new CompositeStats(delegate, new MetricTimerStats(registry.timer(name)));
+            }
+
+            @Override
+            public boolean isInstance(Stats metric) {
+                return TimerStats.class.isInstance(metric);
+            }
+        };
+
+        CompositeStats newComposite(SimpleStats delegate, MetricRegistry registry,String name);
+
+        boolean isInstance(Stats stats);
+    }
 
     private static class AvgGauge extends RatioGauge {
         private final Meter meter;

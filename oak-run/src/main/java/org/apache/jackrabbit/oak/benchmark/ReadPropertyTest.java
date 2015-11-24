@@ -99,7 +99,7 @@ public class ReadPropertyTest extends AbstractTest {
                                 .filter(new MetricFilter() {
                                     @Override
                                     public boolean matches(String name, Metric metric) {
-                                        return "SESSION_READ_DURATION".equals(name);
+                                        return name.startsWith("SESSION_READ");
                                     }
                                 })
                                 .convertDurationsTo(TimeUnit.MICROSECONDS)
