@@ -138,7 +138,7 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
             if (NOOPS_TYPES.contains(name)) {
                 stats = delegate;
             } else {
-                stats = builder.newComposite(delegate, registry, name);
+                stats = builder.newComposite(delegate, this, name);
             }
 
             statsRegistry.put(type, stats);
@@ -154,20 +154,25 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
 
     private void registerAverages() {
         registry.register(typeToName(Type.QUERY_AVERAGE),
-                new AvgGauge(registry.meter(typeToName(Type.QUERY_COUNT)),
-                        registry.timer(typeToName(Type.QUERY_DURATION))));
+                new AvgGauge(compStats(Type.QUERY_COUNT, StatsBuilder.METERS).getMeter(),
+                        compStats(Type.QUERY_DURATION, StatsBuilder.TIMERS).getTimer()));
 
         registry.register(typeToName(Type.OBSERVATION_EVENT_AVERAGE),
-                new AvgGauge(registry.meter(typeToName(Type.OBSERVATION_EVENT_COUNTER)),
-                        registry.timer(typeToName(Type.OBSERVATION_EVENT_DURATION))));
+                new AvgGauge(compStats(Type.OBSERVATION_EVENT_COUNTER, StatsBuilder.METERS).getMeter(),
+                        compStats(Type.OBSERVATION_EVENT_DURATION, StatsBuilder.TIMERS).getTimer()));
+    }
+
+    private CompositeStats compStats(Type type, StatsBuilder builder){
+        Stats stats = getStats(typeToName(type), builder);
+        return (CompositeStats) stats;
     }
 
     @SuppressWarnings("unused")
     private interface StatsBuilder<T extends Stats> {
         StatsBuilder<CounterStats> COUNTERS = new StatsBuilder<CounterStats>() {
             @Override
-            public CompositeStats newComposite(SimpleStats delegate, MetricRegistry registry,String name) {
-                return new CompositeStats(delegate, new MetricCounterStats(registry.counter(name)));
+            public CompositeStats newComposite(SimpleStats delegate, MetricStatisticsProvider provider,String name) {
+                return new CompositeStats(delegate, provider.registry.counter(name));
             }
 
             @Override
@@ -178,8 +183,8 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
 
         StatsBuilder<MeterStats> METERS = new StatsBuilder<MeterStats>() {
             @Override
-            public CompositeStats newComposite(SimpleStats delegate, MetricRegistry registry,String name) {
-                return new CompositeStats(delegate, new MetricMeterStats(registry.meter(name)));
+            public CompositeStats newComposite(SimpleStats delegate, MetricStatisticsProvider provider,String name) {
+                return new CompositeStats(delegate, provider.registry.meter(name));
             }
 
             @Override
@@ -191,8 +196,8 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
         StatsBuilder<TimerStats> TIMERS = new StatsBuilder<TimerStats>() {
 
             @Override
-            public CompositeStats newComposite(SimpleStats delegate, MetricRegistry registry,String name) {
-                return new CompositeStats(delegate, new MetricTimerStats(registry.timer(name)));
+            public CompositeStats newComposite(SimpleStats delegate, MetricStatisticsProvider provider,String name) {
+                return new CompositeStats(delegate, provider.registry.timer(name));
             }
 
             @Override
@@ -201,7 +206,7 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
             }
         };
 
-        CompositeStats newComposite(SimpleStats delegate, MetricRegistry registry,String name);
+        CompositeStats newComposite(SimpleStats delegate, MetricStatisticsProvider provider,String name);
 
         boolean isInstance(Stats stats);
     }

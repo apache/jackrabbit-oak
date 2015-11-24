@@ -21,6 +21,9 @@ package org.apache.jackrabbit.oak.plugins.metric;
 
 import java.util.concurrent.TimeUnit;
 
+import com.codahale.metrics.Counter;
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.Timer;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.SimpleStats;
@@ -33,24 +36,24 @@ import org.apache.jackrabbit.oak.stats.TimerStats;
  */
 class CompositeStats implements CounterStats, MeterStats, TimerStats {
     private final SimpleStats delegate;
-    private final CounterStats counter;
-    private final TimerStats timer;
-    private final MeterStats meter;
+    private final Counter counter;
+    private final Timer timer;
+    private final Meter meter;
 
-    public CompositeStats(SimpleStats delegate, CounterStats counter) {
+    public CompositeStats(SimpleStats delegate, Counter counter) {
         this(delegate, counter, null, null);
     }
 
-    public CompositeStats(SimpleStats delegate, TimerStats timer) {
+    public CompositeStats(SimpleStats delegate, Timer timer) {
         this(delegate, null, timer, null);
     }
 
-    public CompositeStats(SimpleStats delegate, MeterStats meter) {
+    public CompositeStats(SimpleStats delegate, Meter meter) {
         this(delegate, null, null, meter);
     }
 
-    private CompositeStats(SimpleStats delegate, CounterStats counter,
-                           TimerStats timer, MeterStats meter) {
+    private CompositeStats(SimpleStats delegate, Counter counter,
+                           Timer timer, Meter meter) {
         this.delegate = delegate;
         this.counter = counter;
         this.timer = timer;
@@ -102,5 +105,17 @@ class CompositeStats implements CounterStats, MeterStats, TimerStats {
 
     boolean isCounter() {
         return meter == null && timer == null && counter != null;
+    }
+
+    Counter getCounter() {
+        return counter;
+    }
+
+    Timer getTimer() {
+        return timer;
+    }
+
+    Meter getMeter() {
+        return meter;
     }
 }
