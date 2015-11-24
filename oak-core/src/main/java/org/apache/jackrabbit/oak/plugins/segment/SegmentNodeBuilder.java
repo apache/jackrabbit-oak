@@ -73,6 +73,13 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
         this.updateCount = -1;
     }
 
+    /**
+     * @return  {@code true} iff this builder has been acquired from a root node state.
+     */
+    boolean isRootBuilder() {
+        return isRoot();
+    }
+
     //-------------------------------------------------< MemoryNodeBuilder >--
 
     @Override
