@@ -33,24 +33,24 @@ import org.apache.jackrabbit.oak.stats.TimerStats;
  */
 class CompositeStats implements CounterStats, MeterStats, TimerStats {
     private final SimpleStats delegate;
-    private final MetricCounterStats counter;
-    private final MetricTimerStats timer;
-    private final MetricMeterStats meter;
+    private final CounterStats counter;
+    private final TimerStats timer;
+    private final MeterStats meter;
 
-    public CompositeStats(SimpleStats delegate, MetricCounterStats counter) {
+    public CompositeStats(SimpleStats delegate, CounterStats counter) {
         this(delegate, counter, null, null);
     }
 
-    public CompositeStats(SimpleStats delegate, MetricTimerStats timer) {
+    public CompositeStats(SimpleStats delegate, TimerStats timer) {
         this(delegate, null, timer, null);
     }
 
-    public CompositeStats(SimpleStats delegate, MetricMeterStats meter) {
+    public CompositeStats(SimpleStats delegate, MeterStats meter) {
         this(delegate, null, null, meter);
     }
 
-    private CompositeStats(SimpleStats delegate, MetricCounterStats counter,
-                           MetricTimerStats timer, MetricMeterStats meter) {
+    private CompositeStats(SimpleStats delegate, CounterStats counter,
+                           TimerStats timer, MeterStats meter) {
         this.delegate = delegate;
         this.counter = counter;
         this.timer = timer;
