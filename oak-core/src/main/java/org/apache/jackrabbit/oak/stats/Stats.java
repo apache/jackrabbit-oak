@@ -19,19 +19,8 @@
 
 package org.apache.jackrabbit.oak.stats;
 
-import aQute.bnd.annotation.ProviderType;
-
-@ProviderType
-public interface MeterStats extends Stats{
-    /**
-     * Mark the occurrence of an event.
-     */
-    void mark();
-
-    /**
-     * Mark the occurrence of a given number of events.
-     *
-     * @param n the number of events
-     */
-    void mark(long n);
+/**
+ * A tag interface to indicate that a class is a Stat.
+ */
+public interface Stats {
 }
