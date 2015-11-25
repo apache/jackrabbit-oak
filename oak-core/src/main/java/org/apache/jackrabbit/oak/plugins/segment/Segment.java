@@ -182,6 +182,18 @@ public class Segment {
         return (short) (offset >> RECORD_ALIGN_BITS);
     }
 
+    /**
+     * Align an {@code address} on the given {@code boundary}
+     *
+     * @param address     address to align
+     * @param boundary    boundary to align to
+     * @return  {@code n = address + a} such that {@code n % boundary == 0} and
+     *          {@code 0 <= a < boundary}.
+     */
+    public static int align(int address, int boundary) {
+        return (address + boundary - 1) & ~(boundary - 1);
+    }
+
     public Segment(SegmentTracker tracker, SegmentId id, ByteBuffer data) {
         this(tracker, id, data, V_11);
     }

@@ -45,6 +45,7 @@ import static org.apache.jackrabbit.oak.plugins.segment.RecordType.NODE;
 import static org.apache.jackrabbit.oak.plugins.segment.RecordType.TEMPLATE;
 import static org.apache.jackrabbit.oak.plugins.segment.RecordType.VALUE;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.MAX_SEGMENT_SIZE;
+import static org.apache.jackrabbit.oak.plugins.segment.Segment.align;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.readString;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.V_11;
 
@@ -653,7 +654,7 @@ public class SegmentWriter {
         // Write the data to bulk segments and collect the list of block ids
         while (n != 0) {
             SegmentId bulkId = store.getTracker().newBulkSegmentId();
-            int len = align(n);
+            int len = align(n, 1 << Segment.RECORD_ALIGN_BITS);
             LOG.debug("Writing bulk segment {} ({} bytes)", bulkId, n);
             store.writeSegment(bulkId, data, 0, len);
 
@@ -1046,14 +1047,6 @@ public class SegmentWriter {
                 return false;
             }
         }
-    }
-
-    private static int align(int value) {
-        return align(value, 1 << Segment.RECORD_ALIGN_BITS);
-    }
-
-    private static int align(int value, int boundary) {
-        return (value + boundary - 1) & ~(boundary - 1);
     }
 
 }

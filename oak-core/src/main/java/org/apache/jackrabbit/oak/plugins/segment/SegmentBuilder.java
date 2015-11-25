@@ -32,6 +32,7 @@ import static org.apache.jackrabbit.oak.plugins.segment.RecordType.VALUE;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.MAX_SEGMENT_SIZE;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ID_BYTES;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.SEGMENT_REFERENCE_LIMIT;
+import static org.apache.jackrabbit.oak.plugins.segment.Segment.align;
 
 import java.nio.ByteBuffer;
 import java.util.Collection;
@@ -187,7 +188,7 @@ class SegmentBuilder {
 
         int offset = listId.getOffset();
         checkState(0 <= offset && offset < MAX_SEGMENT_SIZE);
-        checkState(offset == align(offset));
+        checkState(offset == align(offset, 1 << Segment.RECORD_ALIGN_BITS));
 
         buffer[position++] = (byte) getSegmentRef(listId.getSegmentId());
         buffer[position++] = (byte) (offset >> (8 + Segment.RECORD_ALIGN_BITS));
@@ -326,7 +327,7 @@ class SegmentBuilder {
         checkNotNull(ids);
 
         int idCount = ids.size();
-        int recordSize = align(size + idCount * RECORD_ID_BYTES);
+        int recordSize = align(size + idCount * RECORD_ID_BYTES, 1 << Segment.RECORD_ALIGN_BITS);
 
         // First compute the header and segment sizes based on the assumption
         // that *all* identifiers stored in this record point to previously
@@ -389,11 +390,4 @@ class SegmentBuilder {
         return id;
     }
 
-    private static int align(int value) {
-        return align(value, 1 << Segment.RECORD_ALIGN_BITS);
-    }
-
-    private static int align(int value, int boundary) {
-        return (value + boundary - 1) & ~(boundary - 1);
-    }
 }
