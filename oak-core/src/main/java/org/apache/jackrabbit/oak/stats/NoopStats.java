@@ -59,4 +59,23 @@ public final class NoopStats implements TimerStats, MeterStats, CounterStats {
 
     }
 
+    @Override
+    public Context time() {
+        return NoopContext.INSTANCE;
+    }
+
+    private static final class NoopContext implements Context {
+        public static final NoopContext INSTANCE = new NoopContext();
+
+        @Override
+        public long stop() {
+            return 0;
+        }
+
+        @Override
+        public void close() {
+
+        }
+    }
+
 }
