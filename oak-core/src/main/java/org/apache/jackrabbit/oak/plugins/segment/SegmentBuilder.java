@@ -228,17 +228,6 @@ class SegmentBuilder {
      * enough space for a record. It can also be called explicitly.
      */
     public void flush() {
-        // Id of the segment to be written in the file store. If the segment id
-        // is not null, a segment will be written outside of the synchronized block.
-        SegmentId segmentId = null;
-
-        // Buffer containing segment data, and offset and length to locate the
-        // segment data into the buffer. These variable will be initialized in
-        // the synchronized block.
-        byte[] segmentBuffer = null;
-        int segmentOffset = 0;
-        int segmentLength = 0;
-
         if (length > 0) {
             int refcount = segment.getRefCount();
 
@@ -285,10 +274,26 @@ class SegmentBuilder {
                 buffer[pos++] = (byte) (offset >> Segment.RECORD_ALIGN_BITS);
             }
 
-            segmentId = segment.getSegmentId();
-            segmentBuffer = buffer;
-            segmentOffset = buffer.length - length;
-            segmentLength = length;
+            SegmentId segmentId = segment.getSegmentId();
+            int segmentOffset = buffer.length - length;
+
+            LOG.debug("Writing data segment {} ({} bytes)", segmentId, length);
+            store.writeSegment(segmentId, buffer, segmentOffset, length);
+
+            // Keep this segment in memory as it's likely to be accessed soon
+            ByteBuffer data;
+            if (segmentOffset > 4096) {
+                data = ByteBuffer.allocate(length);
+                data.put(buffer, segmentOffset, length);
+                data.rewind();
+            } else {
+                data = ByteBuffer.wrap(buffer, segmentOffset, length);
+            }
+
+            // It is important to put the segment into the cache only *after* it has been
+            // written to the store since as soon as it is in the cache it becomes eligible
+            // for eviction, which might lead to SNFEs when it is not yet in the store at that point.
+            tracker.setSegment(segmentId, new Segment(tracker, segmentId, data));
 
             buffer = createNewBuffer(version);
             roots.clear();
@@ -296,26 +301,6 @@ class SegmentBuilder {
             length = 0;
             position = buffer.length;
             newSegment(wid);
-        }
-
-        if (segmentId != null) {
-            LOG.debug("Writing data segment {} ({} bytes)", segmentId, segmentLength);
-            store.writeSegment(segmentId, segmentBuffer, segmentOffset, segmentLength);
-
-            // Keep this segment in memory as it's likely to be accessed soon
-            ByteBuffer data;
-            if (segmentOffset > 4096) {
-                data = ByteBuffer.allocate(segmentLength);
-                data.put(segmentBuffer, segmentOffset, segmentLength);
-                data.rewind();
-            } else {
-                data = ByteBuffer.wrap(segmentBuffer, segmentOffset, segmentLength);
-            }
-
-            // It is important to put the segment into the cache only *after* it has been
-            // written to the store since as soon as it is in the cache it becomes eligible
-            // for eviction, which might lead to SNFEs when it is not yet in the store at that point.
-            tracker.setSegment(segmentId, new Segment(tracker, segmentId, data));
         }
     }
 
