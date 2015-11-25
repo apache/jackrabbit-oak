@@ -21,12 +21,16 @@ package org.apache.jackrabbit.oak.plugins.metric;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Dictionary;
+import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 import javax.management.MBeanServer;
 
+import com.google.common.collect.Lists;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -77,25 +81,28 @@ public class StatisticsProviderFactory {
     @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY)
     private MBeanServer server;
     private StatisticsProvider statisticsProvider;
-    private ServiceRegistration registration;
+    private List<ServiceRegistration> regs = Lists.newArrayList();
     private ScheduledExecutorService executor;
+    private BundleContext bundleContext;
 
     @Activate
     private void activate(BundleContext context, Map<String, Object> config) {
+        this.bundleContext = context;
         String providerType = PropertiesUtil.toString(config.get(PROVIDER_TYPE), TYPE_AUTO);
         statisticsProvider = createProvider(providerType);
 
         if (statisticsProvider != null) {
-            registration = context.registerService(StatisticsProvider.class.getName(),
-                    statisticsProvider, null);
+            regs.add(context.registerService(StatisticsProvider.class.getName(),
+                    statisticsProvider, null));
         }
     }
 
     @Deactivate
     private void deactivate() throws IOException {
-        if (registration != null) {
-            registration.unregister();
+        for (ServiceRegistration reg : regs){
+            reg.unregister();
         }
+        regs.clear();
 
         if (statisticsProvider instanceof Closeable) {
             ((Closeable) statisticsProvider).close();
@@ -127,7 +134,13 @@ public class StatisticsProviderFactory {
     }
 
     private StatisticsProvider createMetricsProvider(ScheduledExecutorService executor) {
-        return new org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider(server, executor);
+        org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider metricProvider =
+         new org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider(server, executor);
+        Dictionary<Object, Object> dictionary = new Hashtable<Object, Object>();
+        dictionary.put("name", "oak");
+        regs.add(bundleContext.registerService("com.codahale.metrics.MetricRegistry",
+                metricProvider.getRegistry(),  dictionary));
+        return metricProvider;
     }
 
     private boolean isMetricSupportPresent() {
