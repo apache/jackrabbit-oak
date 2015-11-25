@@ -24,6 +24,7 @@ import java.util.Hashtable;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
@@ -40,6 +41,7 @@ import com.google.common.collect.Maps;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.SimpleStats;
@@ -60,17 +62,19 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
      */
     private static final Set<String> NOOPS_TYPES = ImmutableSet.of(
             Type.SESSION_READ_DURATION.name(),
-            Type.SESSION_READ_COUNTER.name(),
-            Type.SESSION_WRITE_DURATION.name(),
-            Type.SESSION_WRITE_COUNTER.name()
+            Type.SESSION_WRITE_DURATION.name()
     );
 
     private final Map<String, Stats> statsRegistry = Maps.newHashMap();
     private final MetricRegistry registry;
     private final JmxReporter reporter;
     private final RepositoryStatisticsImpl repoStats;
+    private final Clock.Fast clock;
+    private final com.codahale.metrics.Clock metricsClock;
 
     public MetricStatisticsProvider(MBeanServer server, ScheduledExecutorService executor) {
+        clock = new Clock.Fast(executor);
+        metricsClock = new OakMetricClock(clock);
         registry = new MetricRegistry();
         repoStats = new RepositoryStatisticsImpl(executor);
         reporter = JmxReporter.forRegistry(registry)
@@ -88,6 +92,7 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
     }
 
     public void close() {
+        clock.close();
         if (reporter != null) {
             reporter.close();
         }
@@ -184,7 +189,9 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
         StatsBuilder<MeterStats> METERS = new StatsBuilder<MeterStats>() {
             @Override
             public CompositeStats newComposite(SimpleStats delegate, MetricStatisticsProvider provider,String name) {
-                return new CompositeStats(delegate, provider.registry.meter(name));
+                Meter meter = new Meter(provider.metricsClock);
+                provider.registry.register(name, meter);
+                return new CompositeStats(delegate, meter);
             }
 
             @Override
@@ -240,6 +247,19 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
                 log.warn("Unable to register {} {}", type, name, e);
                 throw new RuntimeException(e);
             }
+        }
+    }
+
+    private static class OakMetricClock extends com.codahale.metrics.Clock {
+        private final Clock clock;
+
+        public OakMetricClock(Clock clock) {
+            this.clock = clock;
+        }
+
+        @Override
+        public long getTick() {
+            return TimeUnit.NANOSECONDS.convert(clock.getTime(), TimeUnit.MILLISECONDS);
         }
     }
 
