@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.stats;
 
+import java.io.Closeable;
 import java.util.concurrent.TimeUnit;
 
 import aQute.bnd.annotation.ProviderType;
@@ -26,10 +27,32 @@ import aQute.bnd.annotation.ProviderType;
 @ProviderType
 public interface TimerStats extends Stats{
     /**
+     * A timing context.
+     *
+     * @see TimerStats#time()
+     */
+    interface Context extends Closeable {
+        /**
+         * Updates the timer with the difference between current and start time. Call to this method will
+         * not reset the start time. Multiple calls result in multiple updates.
+         * @return the elapsed time in nanoseconds
+         */
+        long stop();
+    }
+
+    /**
      * Adds a recorded duration.
      *
      * @param duration the length of the duration
      * @param unit     the scale unit of {@code duration}
      */
     void update(long duration, TimeUnit unit);
+
+    /**
+     * Returns a new {@link Context}.
+     *
+     * @return a new {@link Context}
+     * @see Context
+     */
+    Context time();
 }

@@ -49,6 +49,12 @@ public class SimpleStatsTest {
         counter.set(0);
         stats.update(100, TimeUnit.SECONDS);
         assertEquals(TimeUnit.MILLISECONDS.convert(100, TimeUnit.SECONDS), counter.get());
+
+        counter.set(0);
+        TimerStats.Context context = stats.time();
+        long delta = context.stop();
+        TimeUnit.MILLISECONDS.sleep(42);
+        assertEquals(TimeUnit.NANOSECONDS.toMillis(delta), counter.get());
     }
 
     @Test
@@ -70,5 +76,8 @@ public class SimpleStatsTest {
 
         noop.update(100, TimeUnit.SECONDS);
         assertEquals(0, noop.getCount());
+
+        TimerStats.Context context = noop.time();
+        assertEquals(0, context.stop());
     }
 }

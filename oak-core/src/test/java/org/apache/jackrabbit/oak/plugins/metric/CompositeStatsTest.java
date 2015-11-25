@@ -23,9 +23,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.codahale.metrics.Counter;
+import com.codahale.metrics.ExponentiallyDecayingReservoir;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.SimpleStats;
@@ -33,6 +35,9 @@ import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class CompositeStatsTest {
     private MetricRegistry registry = new MetricRegistry();
@@ -41,7 +46,7 @@ public class CompositeStatsTest {
     @Test
     public void counter() throws Exception {
         Counter counter = registry.counter("test");
-        CounterStats counterStats = new CompositeStats(simpleStats, counter);
+        CompositeStats counterStats = new CompositeStats(simpleStats, counter);
 
         counterStats.inc();
         assertEquals(1, simpleStats.getCount());
@@ -55,12 +60,17 @@ public class CompositeStatsTest {
         counterStats.dec();
         assertEquals(2, simpleStats.getCount());
         assertEquals(2, counter.getCount());
+
+        assertFalse(counterStats.isMeter());
+        assertFalse(counterStats.isTimer());
+        assertTrue(counterStats.isCounter());
+        assertNotNull(counterStats.getCounter());
     }
 
     @Test
     public void meter() throws Exception {
         Meter meter = registry.meter("test");
-        MeterStats meterStats = new CompositeStats(simpleStats, meter);
+        CompositeStats meterStats = new CompositeStats(simpleStats, meter);
 
         meterStats.mark();
         assertEquals(1, simpleStats.getCount());
@@ -69,15 +79,47 @@ public class CompositeStatsTest {
         meterStats.mark(5);
         assertEquals(6, simpleStats.getCount());
         assertEquals(6, meter.getCount());
+        assertTrue(meterStats.isMeter());
+        assertFalse(meterStats.isTimer());
+        assertFalse(meterStats.isCounter());
+        assertNotNull(meterStats.getMeter());
     }
 
     @Test
     public void timer() throws Exception {
         Timer time = registry.timer("test");
-        TimerStats timerStats = new CompositeStats(simpleStats, time);
+        CompositeStats timerStats = new CompositeStats(simpleStats, time);
 
         timerStats.update(100, TimeUnit.SECONDS);
         assertEquals(1, time.getCount());
         assertEquals(TimeUnit.SECONDS.toMillis(100), simpleStats.getCount());
+
+        assertFalse(timerStats.isMeter());
+        assertTrue(timerStats.isTimer());
+        assertFalse(timerStats.isCounter());
+        assertNotNull(timerStats.getTimer());
+    }
+
+    @Test
+    public void timerContext() throws Exception{
+        VirtualClock clock = new VirtualClock();
+        Timer time = new Timer(new ExponentiallyDecayingReservoir(), clock);
+
+        TimerStats timerStats = new CompositeStats(simpleStats, time);
+        TimerStats.Context context = timerStats.time();
+
+        clock.tick = TimeUnit.SECONDS.toNanos(314);
+        context.close();
+
+        assertEquals(1, time.getCount());
+        assertEquals(TimeUnit.SECONDS.toMillis(314), simpleStats.getCount());
+    }
+
+    private static class VirtualClock extends com.codahale.metrics.Clock {
+        long tick;
+        @Override
+        public long getTick() {
+            return tick;
+        }
     }
 }

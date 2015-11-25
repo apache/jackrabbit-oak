@@ -58,4 +58,31 @@ public final class SimpleStats implements TimerStats, MeterStats, CounterStats {
     public void update(long duration, TimeUnit unit) {
         statsHolder.getAndAdd(unit.toMillis(duration));
     }
+
+    @Override
+    public Context time() {
+        return new SimpleContext(this);
+    }
+
+    private static final class SimpleContext implements Context {
+        private final TimerStats timer;
+        private final long startTime;
+
+        private SimpleContext(TimerStats timer) {
+            this.timer = timer;
+            this.startTime = System.nanoTime();
+        }
+
+        @Override
+        public long stop() {
+            final long elapsed = System.nanoTime() - startTime;
+            timer.update(elapsed, TimeUnit.NANOSECONDS);
+            return elapsed;
+        }
+
+        @Override
+        public void close() {
+            stop();
+        }
+    }
 }

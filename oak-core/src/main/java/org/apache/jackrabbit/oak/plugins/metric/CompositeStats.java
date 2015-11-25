@@ -34,7 +34,7 @@ import org.apache.jackrabbit.oak.stats.TimerStats;
  * and Metrics based meters so as to allow both systems to collect
  * stats
  */
-class CompositeStats implements CounterStats, MeterStats, TimerStats {
+final class CompositeStats implements CounterStats, MeterStats, TimerStats {
     private final SimpleStats delegate;
     private final Counter counter;
     private final Timer timer;
@@ -95,6 +95,11 @@ class CompositeStats implements CounterStats, MeterStats, TimerStats {
         timer.update(duration, unit);
     }
 
+    @Override
+    public Context time() {
+        return new StatsContext(timer.time(), delegate);
+    }
+
     boolean isMeter() {
         return meter != null && timer == null && counter == null;
     }
@@ -117,5 +122,27 @@ class CompositeStats implements CounterStats, MeterStats, TimerStats {
 
     Meter getMeter() {
         return meter;
+    }
+
+    private static final class StatsContext implements Context {
+        private final Timer.Context context ;
+        private final SimpleStats simpleStats;
+
+        private StatsContext(Timer.Context context, SimpleStats delegate) {
+            this.context = context;
+            this.simpleStats = delegate;
+        }
+
+        public long stop() {
+            long nanos = context.stop();
+            simpleStats.update(nanos, TimeUnit.NANOSECONDS);
+            return nanos;
+        }
+
+        /** Equivalent to calling {@link #stop()}. */
+        @Override
+        public void close() {
+            stop();
+        }
     }
 }
