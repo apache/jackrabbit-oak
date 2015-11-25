@@ -552,7 +552,7 @@ public class Commit {
                 if (!collisions.isEmpty() && isConflicting(before, op)) {
                     for (Revision r : collisions) {
                         // mark collisions on commit root
-                        Collision c = new Collision(before, r, op, revision, nodeStore);
+                        Collision c = new Collision(before, r, op, revision);
                         if (c.mark(store).equals(revision)) {
                             // our revision was marked
                             if (baseRevision.isBranch()) {
