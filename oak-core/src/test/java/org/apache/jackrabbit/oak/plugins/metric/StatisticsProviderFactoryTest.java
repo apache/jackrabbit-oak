@@ -24,6 +24,7 @@ import java.util.Collections;
 
 import javax.management.MBeanServer;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -33,6 +34,7 @@ import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -51,6 +53,7 @@ public class StatisticsProviderFactoryTest {
     public void autoMode() throws Exception {
         MockOsgi.activate(service, context.bundleContext(), Collections.<String, Object>emptyMap());
         assertTrue(context.getService(StatisticsProvider.class) instanceof MetricStatisticsProvider);
+        assertNotNull(context.getService(MetricRegistry.class));
 
         MockOsgi.deactivate(service);
         assertNull(context.getService(StatisticsProvider.class));
