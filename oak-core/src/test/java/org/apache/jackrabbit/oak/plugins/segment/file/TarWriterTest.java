@@ -40,7 +40,6 @@ import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.plugins.segment.file.TarWriterTest.SegmentGraphBuilder.Node;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
@@ -157,8 +156,7 @@ public class TarWriterTest {
                 segments.put(id, buffer);
             }
         };
-        private final SegmentTracker tracker = new SegmentTracker(store, V_11);
-        private final SegmentWriter writer = new SegmentWriter(store, tracker, V_11);
+        private final SegmentWriter writer = new SegmentWriter(store, V_11);
 
         private int nextNodeNo;
 
@@ -172,7 +170,7 @@ public class TarWriterTest {
                 this.name = name;
                 this.selfId = selfId;
                 this.data = data.array();
-                segment = new Segment(tracker, selfId.getSegmentId(), data);
+                segment = new Segment(store.getTracker(), selfId.getSegmentId(), data);
             }
 
             public void write(TarWriter tarWriter) throws IOException {
