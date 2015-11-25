@@ -62,7 +62,8 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
      */
     private static final Set<String> NOOPS_TYPES = ImmutableSet.of(
             Type.SESSION_READ_DURATION.name(),
-            Type.SESSION_WRITE_DURATION.name()
+            Type.SESSION_WRITE_DURATION.name(),
+            Type.QUERY_COUNT.name()
     );
 
     private final Map<String, Stats> statsRegistry = Maps.newHashMap();
@@ -158,10 +159,6 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
     }
 
     private void registerAverages() {
-        registry.register(typeToName(Type.QUERY_AVERAGE),
-                new AvgGauge(compStats(Type.QUERY_COUNT, StatsBuilder.METERS).getMeter(),
-                        compStats(Type.QUERY_DURATION, StatsBuilder.TIMERS).getTimer()));
-
         registry.register(typeToName(Type.OBSERVATION_EVENT_AVERAGE),
                 new AvgGauge(compStats(Type.OBSERVATION_EVENT_COUNTER, StatsBuilder.METERS).getMeter(),
                         compStats(Type.OBSERVATION_EVENT_DURATION, StatsBuilder.TIMERS).getTimer()));

@@ -54,8 +54,11 @@ public class MetricStatisticsProviderTest {
     @Test
     public void basicSetup() throws Exception {
         statsProvider = new MetricStatisticsProvider(server, executorService);
-        assertEquals(2, statsProvider.getRegistry().getMeters().size());
-        assertEquals(2, statsProvider.getRegistry().getTimers().size());
+
+        //By default avg counters would be configured. So check if they are
+        //configured
+        assertEquals(1, statsProvider.getRegistry().getMeters().size());
+        assertEquals(1, statsProvider.getRegistry().getTimers().size());
 
         assertNotNull(statsProvider.getStats());
         assertEquals(statsProvider.getRegistry().getMetrics().size(), getMetricMbeans().size());
@@ -115,6 +118,7 @@ public class MetricStatisticsProviderTest {
         statsProvider = new MetricStatisticsProvider(server, executorService);
         assertTrue(statsProvider.getTimer(Type.SESSION_READ_DURATION.name()) instanceof SimpleStats);
         assertTrue(statsProvider.getTimer(Type.SESSION_WRITE_DURATION.name()) instanceof SimpleStats);
+        assertTrue(statsProvider.getTimer(Type.QUERY_COUNT.name()) instanceof SimpleStats);
         assertNotEquals(statsProvider.getMeter(Type.OBSERVATION_EVENT_COUNTER.name()), NoopStats.INSTANCE);
     }
 
