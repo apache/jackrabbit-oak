@@ -59,7 +59,6 @@ public class ExecutorCloserTest {
             }
         });
         new ExecutorCloser(executorService, 100, TimeUnit.MILLISECONDS).close();
-        assertFalse(executorService.isTerminated());
         assertTrue(executorService.isShutdown());
     }
 
