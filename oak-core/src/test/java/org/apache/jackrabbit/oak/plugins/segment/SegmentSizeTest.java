@@ -40,29 +40,29 @@ public class SegmentSizeTest {
     @Test
     public void testNodeSize() {
         NodeBuilder builder = EMPTY_NODE.builder();
-        assertEquals(96, getSize(builder));
+        assertEquals(112, getSize(builder));
         assertEquals(4, getAmortizedSize(builder));
 
         builder = EMPTY_NODE.builder();
         builder.setProperty("foo", "bar");
-        assertEquals(96, getSize(builder));
+        assertEquals(112, getSize(builder));
         assertEquals(8, getAmortizedSize(builder));
 
         builder = EMPTY_NODE.builder();
         builder.setProperty("foo", "bar");
         builder.setProperty("baz", 123);
-        assertEquals(128, getSize(builder));
+        assertEquals(144, getSize(builder));
         assertEquals(16, getAmortizedSize(builder));
 
         builder = EMPTY_NODE.builder();
         builder.child("foo");
-        assertEquals(112, getSize(builder));
+        assertEquals(128, getSize(builder));
         assertEquals(12, getAmortizedSize(builder));
 
         builder = EMPTY_NODE.builder();
         builder.child("foo");
         builder.child("bar");
-        assertEquals(144, getSize(builder));
+        assertEquals(160, getSize(builder));
         assertEquals(40, getAmortizedSize(builder));
     }
 
@@ -118,7 +118,7 @@ public class SegmentSizeTest {
     public void testAccessControlNodes() {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("jcr:primaryType", "rep:ACL", Type.NAME);
-        assertEquals(96, getSize(builder));
+        assertEquals(112, getSize(builder));
         assertEquals(4, getAmortizedSize(builder));
 
         NodeBuilder deny = builder.child("deny");
@@ -126,7 +126,7 @@ public class SegmentSizeTest {
         deny.setProperty("rep:principalName", "everyone");
         deny.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:read"), Type.NAMES));
-        assertEquals(224, getSize(builder));
+        assertEquals(240, getSize(builder));
         assertEquals(32, getAmortizedSize(builder));
 
         NodeBuilder allow = builder.child("allow");
@@ -143,7 +143,7 @@ public class SegmentSizeTest {
         deny0.setProperty("rep:glob", "*/activities/*");
         builder.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:read"), Type.NAMES));
-        assertEquals(464, getSize(builder));
+        assertEquals(480, getSize(builder));
         assertEquals(124, getAmortizedSize(builder));
 
         NodeBuilder allow0 = builder.child("allow0");
@@ -151,7 +151,7 @@ public class SegmentSizeTest {
         allow0.setProperty("rep:principalName", "user-administrators");
         allow0.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:all"), Type.NAMES));
-        assertEquals(528, getSize(builder));
+        assertEquals(544, getSize(builder));
         assertEquals(160, getAmortizedSize(builder));
     }
 
