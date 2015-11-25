@@ -130,15 +130,14 @@ public class QueryManagerImpl implements QueryManager {
             long limit, long offset, HashMap<String, Value> bindVariableMap) throws RepositoryException {
         try {
             Map<String, PropertyValue> bindMap = convertMap(bindVariableMap);
-            long t0 = System.nanoTime();
+            TimerStats.Context context = queryDuration.time();
             Result r = queryEngine.executeQuery(
                     statement, language, limit, offset, bindMap,
                     sessionContext.getSessionLocalMappings());
             queryCount.mark();
-            long dt = (System.nanoTime() - t0) / 1000000;
-            queryDuration.update(dt, TimeUnit.MILLISECONDS);
+            long nanos = context.stop();
             sessionContext.getStatisticManager()
-                    .logQueryEvaluationTime(language, statement, dt);
+                    .logQueryEvaluationTime(language, statement, TimeUnit.NANOSECONDS.toMillis(nanos));
             return new QueryResultImpl(sessionContext, r);
         } catch (IllegalArgumentException e) {
             throw new InvalidQueryException(e);
