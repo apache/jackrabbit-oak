@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
@@ -28,7 +29,7 @@ import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.System.arraycopy;
 import static java.lang.System.currentTimeMillis;
 import static java.lang.System.identityHashCode;
-import static org.apache.jackrabbit.oak.plugins.segment.RecordType.VALUE;
+import static org.apache.jackrabbit.oak.plugins.segment.RecordWriters.newValueWriter;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.MAX_SEGMENT_SIZE;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ID_BYTES;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.SEGMENT_REFERENCE_LIMIT;
@@ -36,13 +37,11 @@ import static org.apache.jackrabbit.oak.plugins.segment.Segment.align;
 
 import java.nio.ByteBuffer;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.base.Charsets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -132,16 +131,8 @@ class SegmentBuilder {
                 ",\"gc\":" + tracker.getCompactionMap().getGeneration() +
                 ",\"t\":" + currentTimeMillis() + "}";
 
-        byte[] data = metaInfo.getBytes(Charsets.UTF_8);
-        if (data.length < Segment.SMALL_LIMIT) {
-            prepare(VALUE, data.length + 1, Collections.<RecordId>emptyList());
-            writeByte((byte) data.length);
-            writeBytes(data, 0, data.length);
-        } else {
-            prepare(VALUE, data.length + 2, Collections.<RecordId>emptyList());
-            writeShort((short) ((data.length - Segment.SMALL_LIMIT) | 0x8000));
-            writeBytes(data, 0, data.length);
-        }
+        byte[] data = metaInfo.getBytes(UTF_8);
+        newValueWriter(data.length, data).write(this);
     }
 
     static byte[] createNewBuffer(SegmentVersion v) {
