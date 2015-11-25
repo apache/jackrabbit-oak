@@ -124,7 +124,7 @@ public class PartialCompactionMapTest {
         if (usePersistedMap) {
             return new PersistedCompactionMap(segmentStore);
         } else {
-            return new InMemoryCompactionMap(writer.getTracker());
+            return new InMemoryCompactionMap(segmentStore.getTracker());
         }
     }
 

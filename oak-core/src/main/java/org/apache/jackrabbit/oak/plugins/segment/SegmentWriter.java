@@ -142,10 +142,6 @@ public class SegmentWriter {
         this.wid = wid;
     }
 
-    SegmentTracker getTracker() {
-        return store.getTracker();
-    }
-
     public void flush() {
         segmentBuilderPool.flush();
     }

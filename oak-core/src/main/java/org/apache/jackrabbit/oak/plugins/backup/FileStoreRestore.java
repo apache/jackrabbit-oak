@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.segment.Compactor;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -53,20 +53,19 @@ public class FileStoreRestore {
 
         // 2. init filestore
         FileStore restore = new FileStore(source, MAX_FILE_SIZE, false);
-        SegmentWriter writer = restore.getTracker().getWriter();
         try {
             SegmentNodeState state = restore.getHead();
-            restore(state.getChildNode("root"), store, writer);
+            restore(state.getChildNode("root"), store, restore);
         } finally {
             restore.close();
         }
     }
 
     private static void restore(NodeState source, NodeStore store,
-            SegmentWriter writer) throws CommitFailedException {
+            SegmentStore restore) throws CommitFailedException {
         long s = System.currentTimeMillis();
         NodeState current = store.getRoot();
-        RestoreCompactor compactor = new RestoreCompactor(writer);
+        RestoreCompactor compactor = new RestoreCompactor(restore);
         SegmentNodeBuilder builder = compactor.process(current, source, current);
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         log.debug("Restore finished in {} ms.", System.currentTimeMillis() - s);
@@ -74,8 +73,8 @@ public class FileStoreRestore {
 
     private static class RestoreCompactor extends Compactor {
 
-        public RestoreCompactor(SegmentWriter writer) {
-            super(writer);
+        public RestoreCompactor(SegmentStore store) {
+            super(store);
         }
 
         @Override
