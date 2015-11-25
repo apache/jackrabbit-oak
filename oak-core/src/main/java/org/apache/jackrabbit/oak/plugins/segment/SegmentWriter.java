@@ -96,13 +96,24 @@ public class SegmentWriter {
     /**
      * Cache of recently stored string and template records, used to
      * avoid storing duplicates of frequently occurring data.
-     * Should only be accessed from synchronized blocks to prevent corruption.
      */
     private final Map<Object, RecordId> records =
         new LinkedHashMap<Object, RecordId>(15000, 0.75f, true) {
             @Override
             protected boolean removeEldestEntry(Map.Entry<Object, RecordId> e) {
                 return size() > 10000;
+            }
+            @Override
+            public synchronized RecordId get(Object key) {
+                return super.get(key);
+            }
+            @Override
+            public synchronized RecordId put(Object key, RecordId value) {
+                return super.put(key, value);
+            }
+            @Override
+            public synchronized void clear() {
+                super.clear();
             }
         };
 
@@ -140,6 +151,10 @@ public class SegmentWriter {
 
     public void flush() {
         segmentBuilderPool.flush();
+    }
+
+    public void dropCache() {
+        records.clear();
     }
 
     MapRecord writeMap(MapRecord base, Map<String, RecordId> changes) {
@@ -447,7 +462,7 @@ public class SegmentWriter {
      * @return value record identifier
      */
     public RecordId writeString(String string) {
-        RecordId id = getRecord(string);
+        RecordId id = records.get(string);
         if (id != null) {
             return id; // shortcut if the same string was recently stored
         }
@@ -457,7 +472,7 @@ public class SegmentWriter {
         if (data.length < Segment.MEDIUM_LIMIT) {
             // only cache short strings to avoid excessive memory use
             id = writeValueRecord(data.length, data);
-            putRecord(string, id);
+            records.put(string, id);
             return id;
         }
 
@@ -706,7 +721,7 @@ public class SegmentWriter {
     public RecordId writeTemplate(Template template) {
         checkNotNull(template);
 
-        RecordId id = getRecord(template);
+        RecordId id = records.get(template);
         if (id != null) {
             return id; // shortcut if the same template was recently stored
         }
@@ -810,7 +825,7 @@ public class SegmentWriter {
                 }
             }
         });
-        putRecord(template, id);
+        records.put(template, id);
         return id;
     }
 
@@ -987,24 +1002,6 @@ public class SegmentWriter {
         }
 
         protected abstract void write(RecordId id, SegmentBuilder builder);
-    }
-
-    private RecordId getRecord(Object key) {
-        synchronized (records) {
-            return records.get(key);
-        }
-    }
-
-    private void putRecord(Object key, RecordId id) {
-        synchronized (records) {
-            records.put(key, id);
-        }
-    }
-
-    public void dropCache() {
-        synchronized (records) {
-            records.clear();
-        }
     }
 
     private class SegmentBuilderPool {
