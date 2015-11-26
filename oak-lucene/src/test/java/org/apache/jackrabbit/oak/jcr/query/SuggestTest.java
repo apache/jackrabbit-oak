@@ -26,13 +26,12 @@ import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
+import java.util.List;
 
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.core.query.AbstractQueryTest;
 import org.junit.After;
 import org.junit.Before;
-
-import java.util.List;
 
 /**
  * Tests the suggest support.
@@ -105,6 +104,29 @@ public class SuggestTest extends AbstractQueryTest {
         assertNotNull(result);
         assertTrue(result.contains("in 2015 my fox is red, like mike's fox and john's fox"));
     }
+
+//    public void testSuggestAnalyzed() throws Exception {
+//        superuser.getNode("/oak:index/luceneGlobal").setProperty("suggestAnalyzed", true);
+//
+//        try {
+//            Session session = superuser;
+//            QueryManager qm = session.getWorkspace().getQueryManager();
+//            Node n1 = testRootNode.addNode("node1");
+//            n1.setProperty("jcr:title", "all along 2015 my fox has been red, like mike's fox and john's fox");
+//            Node n2 = testRootNode.addNode("node2");
+//            n2.setProperty("jcr:title", "in 2015 a red fox is still a fox, although not jeff's fox");
+//            session.save();
+//
+//            String xpath = "/jcr:root[rep:suggest('al')]/(rep:suggest())";
+//            Query q = qm.createQuery(xpath, Query.XPATH);
+//            List<String> result = getResult(q.execute(), "rep:suggest()");
+//            assertNotNull(result);
+//            assertTrue(result.contains("all"));
+//            assertTrue(result.contains("although"));
+//        } finally {
+//            superuser.getNode("/oak:index/luceneGlobal").setProperty("suggestAnalyzed", false);
+//        }
+//    }
 
     public void testNoSuggestions() throws Exception {
         Session session = superuser;
