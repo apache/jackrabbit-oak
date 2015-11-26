@@ -46,7 +46,6 @@ public class OrderableNodesTest extends AbstractRepositoryTest {
 
     @Test
     public void orderableFolder() throws Exception {
-        assumeTrue(fixture != DOCUMENT_RDB);  // FIXME this keeps failing on DOCUMENT_RDB. See OAK-2859
         // check ordering with node type without a residual properties definition
         new TestContentLoader().loadTestContent(getAdminSession());
         doTest("test:orderableFolder");
