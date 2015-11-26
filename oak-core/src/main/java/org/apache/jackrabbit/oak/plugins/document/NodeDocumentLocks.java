@@ -18,7 +18,9 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 
@@ -57,9 +59,11 @@ public class NodeDocumentLocks {
      * @param key a key.
      * @return the acquired lock for the given key.
      */
-    public TreeLock acquire(String key) {
+    public Lock acquire(String key) {
         lockAcquisitionCounter.incrementAndGet();
-        return TreeLock.shared(parentLocks.get(getParentId(key)), locks.get(key));
+        Lock lock = TreeLock.shared(parentLocks.get(getParentId(key)), locks.get(key));
+        lock.lock();
+        return lock;
     }
 
     /**
@@ -69,9 +73,11 @@ public class NodeDocumentLocks {
      * @param parentKey the parent key.
      * @return the acquired lock for the given parent key.
      */
-    public TreeLock acquireExclusive(String parentKey) {
+    public Lock acquireExclusive(String parentKey) {
         lockAcquisitionCounter.incrementAndGet();
-        return TreeLock.exclusive(parentLocks.get(parentKey));
+        Lock lock = TreeLock.exclusive(parentLocks.get(parentKey));
+        lock.lock();
+        return lock;
     }
 
     /**
@@ -94,7 +100,7 @@ public class NodeDocumentLocks {
         return lockAcquisitionCounter.get();
     }
 
-    public final static class TreeLock {
+    private final static class TreeLock implements Lock {
 
         private final Lock parentLock;
 
@@ -106,26 +112,47 @@ public class NodeDocumentLocks {
         }
 
         private static TreeLock shared(ReadWriteLock parentLock, Lock lock) {
-            return new TreeLock(parentLock.readLock(), lock).lock();
+            return new TreeLock(parentLock.readLock(), lock);
         }
 
         private static TreeLock exclusive(ReadWriteLock parentLock) {
-            return new TreeLock(parentLock.writeLock(), null).lock();
+            return new TreeLock(parentLock.writeLock(), null);
         }
 
-        private TreeLock lock() {
+        @Override
+        public void lock() {
             parentLock.lock();
             if (lock != null) {
                 lock.lock();
             }
-            return this;
         }
 
+        @Override
         public void unlock() {
             if (lock != null) {
                 lock.unlock();
             }
             parentLock.unlock();
+        }
+
+        @Override
+        public void lockInterruptibly() throws InterruptedException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean tryLock() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Condition newCondition() {
+            throw new UnsupportedOperationException();
         }
     }
 

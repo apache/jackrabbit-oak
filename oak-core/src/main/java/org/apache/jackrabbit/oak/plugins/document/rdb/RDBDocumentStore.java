@@ -48,6 +48,7 @@ import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.locks.Lock;
 import java.util.zip.Deflater;
 import java.util.zip.GZIPOutputStream;
 
@@ -64,9 +65,6 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocumentCache;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocumentLocks;
-import org.apache.jackrabbit.oak.plugins.document.NodeDocumentLocks.TreeLock;
-import org.apache.jackrabbit.oak.plugins.document.Revision;
-import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
@@ -309,7 +307,7 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     private void invalidateNodesCache(String id, boolean remove) {
-        TreeLock lock = locks.acquire(id);
+        Lock lock = locks.acquire(id);
         try {
             if (remove) {
                 nodesCache.invalidate(id);
@@ -829,7 +827,7 @@ public class RDBDocumentStore implements DocumentStore {
                 }
             }
             try {
-                TreeLock lock = locks.acquire(id);
+                Lock lock = locks.acquire(id);
                 try {
                     // caller really wants the cache to be cleared
                     if (maxCacheAge == 0) {
@@ -971,7 +969,7 @@ public class RDBDocumentStore implements DocumentStore {
             // conditions not met
             return null;
         } else {
-            TreeLock l = locks.acquire(update.getId());
+            Lock l = locks.acquire(update.getId());
             try {
                 boolean success = false;
 

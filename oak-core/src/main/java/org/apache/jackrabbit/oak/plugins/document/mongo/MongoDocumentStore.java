@@ -30,6 +30,7 @@ import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -56,7 +57,6 @@ import org.apache.jackrabbit.oak.plugins.document.JournalEntry;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocumentCache;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocumentLocks;
-import org.apache.jackrabbit.oak.plugins.document.NodeDocumentLocks.TreeLock;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
@@ -362,7 +362,7 @@ public class MongoDocumentStore implements DocumentStore {
         }
         Throwable t;
         try {
-            TreeLock lock = nodeLocks.acquire(key);
+            Lock lock = nodeLocks.acquire(key);
             try {
                 if (maxCacheAge > 0 || preferCached) {
                     // try again some other thread may have populated
@@ -565,7 +565,7 @@ public class MongoDocumentStore implements DocumentStore {
         String parentId = Utils.getParentIdFromLowerLimit(fromKey);
         long lockTime = -1;
         final long start = PERFLOG.start();
-        TreeLock lock = withLock ? nodeLocks.acquireExclusive(parentId != null ? parentId : "") : null;
+        Lock lock = withLock ? nodeLocks.acquireExclusive(parentId != null ? parentId : "") : null;
         try {
             if (start != -1) {
                 lockTime = System.currentTimeMillis() - start;
@@ -709,7 +709,7 @@ public class MongoDocumentStore implements DocumentStore {
         updateOp = updateOp.copy();
         DBObject update = createUpdate(updateOp);
 
-        TreeLock lock = null;
+        Lock lock = null;
         if (collection == Collection.NODES) {
             lock = nodeLocks.acquire(updateOp.getId());
         }
@@ -897,7 +897,7 @@ public class MongoDocumentStore implements DocumentStore {
                 // update cache
                 for (Entry<String, NodeDocument> entry : cachedDocs.entrySet()) {
                     // the cachedDocs is not empty, so the collection = NODES
-                    TreeLock lock = nodeLocks.acquire(entry.getKey());
+                    Lock lock = nodeLocks.acquire(entry.getKey());
                     try {
                         if (entry.getValue() == null || entry.getValue() == NodeDocument.NULL) {
                             // make sure concurrently loaded document is

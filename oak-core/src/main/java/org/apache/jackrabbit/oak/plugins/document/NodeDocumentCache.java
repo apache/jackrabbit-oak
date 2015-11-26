@@ -18,11 +18,11 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.Comparator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.locks.Lock;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnegative;
@@ -30,7 +30,6 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
-import org.apache.jackrabbit.oak.plugins.document.NodeDocumentLocks.TreeLock;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 
 import com.google.common.base.Objects;
@@ -64,7 +63,7 @@ public class NodeDocumentCache implements Closeable {
      * @param key to invalidate
      */
     public void invalidate(@Nonnull String key) {
-        TreeLock lock = locks.acquire(key);
+        Lock lock = locks.acquire(key);
         try {
             nodesCache.invalidate(new StringValue(key));
         } finally {
@@ -130,7 +129,7 @@ public class NodeDocumentCache implements Closeable {
      */
     public void put(@Nonnull NodeDocument doc) {
         if (doc != NodeDocument.NULL) {
-            TreeLock lock = locks.acquire(doc.getId());
+            Lock lock = locks.acquire(doc.getId());
             try {
                 nodesCache.put(new StringValue(doc.getId()), doc);
             } finally {
@@ -171,7 +170,7 @@ public class NodeDocumentCache implements Closeable {
 
         NodeDocument newerDoc;
 
-        TreeLock lock = locks.acquire(doc.getId());
+        Lock lock = locks.acquire(doc.getId());
         try {
             String id = doc.getId();
             NodeDocument cachedDoc = getIfPresent(id);
@@ -220,7 +219,7 @@ public class NodeDocumentCache implements Closeable {
         // changed and cached by some other thread in the
         // meantime. That is, use get() with a Callable,
         // which is only used when the document isn't there
-        TreeLock lock = locks.acquire(id);
+        Lock lock = locks.acquire(id);
         try {
             for (;;) {
                 NodeDocument cached = get(id, new Callable<NodeDocument>() {
@@ -257,7 +256,7 @@ public class NodeDocumentCache implements Closeable {
         // update the cache with an outdated document
         String id = updateOp.getId();
 
-        TreeLock lock = locks.acquire(id);
+        Lock lock = locks.acquire(id);
         try {
             NodeDocument cached = getIfPresent(id);
             if (cached == null) {
@@ -301,7 +300,7 @@ public class NodeDocumentCache implements Closeable {
         }
         String id = newDoc.getId();
 
-        TreeLock lock = locks.acquire(id);
+        Lock lock = locks.acquire(id);
         try {
             NodeDocument cached = putIfAbsent(newDoc);
             if (cached == newDoc) {
