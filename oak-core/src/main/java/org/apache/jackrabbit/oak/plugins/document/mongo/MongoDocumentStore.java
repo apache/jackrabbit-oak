@@ -215,8 +215,8 @@ public class MongoDocumentStore implements DocumentStore {
         options.put("unique", Boolean.FALSE);
         this.journal.createIndex(index, options);
 
-        this.nodesCache = new NodeDocumentCache(builder, this);
         this.nodeLocks = new NodeDocumentLocks();
+        this.nodesCache = new NodeDocumentCache(builder, this, nodeLocks);
 
         LOG.info("Configuration maxReplicationLagMillis {}, " +
                 "maxDeltaForModTimeIdxSecs {}, disableIndexHint {}, {}",
@@ -315,12 +315,7 @@ public class MongoDocumentStore implements DocumentStore {
     @Override
     public <T extends Document> void invalidateCache(Collection<T> collection, String key) {
         if (collection == Collection.NODES) {
-            TreeLock lock = nodeLocks.acquire(key);
-            try {
-                nodesCache.invalidate(key);
-            } finally {
-                lock.unlock();
-            }
+            nodesCache.invalidate(key);
         }
     }
 
@@ -865,12 +860,7 @@ public class MongoDocumentStore implements DocumentStore {
                 dbCollection.insert(inserts);
                 if (collection == Collection.NODES) {
                     for (T doc : docs) {
-                        TreeLock lock = nodeLocks.acquire(doc.getId());
-                        try {
-                            nodesCache.putIfAbsent((NodeDocument) doc);
-                        } finally {
-                            lock.unlock();
-                        }
+                        nodesCache.putIfAbsent((NodeDocument) doc);
                     }
                 }
                 return true;

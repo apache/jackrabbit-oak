@@ -30,14 +30,14 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocumentLocks.TreeLock;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 
 import com.google.common.base.Objects;
 import com.google.common.cache.Cache;
 
 /**
- * Cache for the NodeDocuments. This class is not thread-safe and requires
- * external locking (see {@link NodeDocumentLocks}).
+ * Cache for the NodeDocuments. This class is thread-safe and uses the provided NodeDocumentLock.
  */
 public class NodeDocumentCache implements Closeable {
 
@@ -47,8 +47,12 @@ public class NodeDocumentCache implements Closeable {
 
     private final DocumentStore docStore;
 
-    public NodeDocumentCache(@Nonnull DocumentMK.Builder builder, @Nonnull DocumentStore docStore) {
+    private final NodeDocumentLocks locks;
+
+    public NodeDocumentCache(@Nonnull DocumentMK.Builder builder, @Nonnull DocumentStore docStore,
+            @Nonnull NodeDocumentLocks locks) {
         this.docStore = docStore;
+        this.locks = locks;
         nodesCache = builder.buildDocumentCache(docStore);
         cacheStats = new CacheStats(nodesCache, "Document-Documents", builder.getWeigher(),
                 builder.getDocumentCacheSize());
@@ -60,7 +64,12 @@ public class NodeDocumentCache implements Closeable {
      * @param key to invalidate
      */
     public void invalidate(@Nonnull String key) {
-        nodesCache.invalidate(new StringValue(key));
+        TreeLock lock = locks.acquire(key);
+        try {
+            nodesCache.invalidate(new StringValue(key));
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -109,7 +118,8 @@ public class NodeDocumentCache implements Closeable {
      * @return document matching given key
      */
     @Nonnull
-    public NodeDocument get(@Nonnull String key, @Nonnull Callable<NodeDocument> valueLoader) throws ExecutionException {
+    public NodeDocument get(@Nonnull String key, @Nonnull Callable<NodeDocument> valueLoader)
+            throws ExecutionException {
         return nodesCache.get(new StringValue(key), valueLoader);
     }
 
@@ -120,7 +130,12 @@ public class NodeDocumentCache implements Closeable {
      */
     public void put(@Nonnull NodeDocument doc) {
         if (doc != NodeDocument.NULL) {
-            nodesCache.put(new StringValue(doc.getId()), doc);
+            TreeLock lock = locks.acquire(doc.getId());
+            try {
+                nodesCache.put(new StringValue(doc.getId()), doc);
+            } finally {
+                lock.unlock();
+            }
         }
     }
 
@@ -154,30 +169,36 @@ public class NodeDocumentCache implements Closeable {
         }
         doc.seal();
 
-        String id = doc.getId();
-        NodeDocument cachedDoc = getIfPresent(id);
         NodeDocument newerDoc;
-        if (cachedDoc == null || cachedDoc == NodeDocument.NULL) {
-            newerDoc = doc;
-            put(doc);
-        } else {
-            Number cachedModCount = cachedDoc.getModCount();
-            Number modCount = doc.getModCount();
 
-            if (cachedModCount == null || modCount == null) {
-                throw new IllegalStateException("Missing " + Document.MOD_COUNT);
-            }
-
-            if (modCount.longValue() > cachedModCount.longValue()) {
+        TreeLock lock = locks.acquire(doc.getId());
+        try {
+            String id = doc.getId();
+            NodeDocument cachedDoc = getIfPresent(id);
+            if (cachedDoc == null || cachedDoc == NodeDocument.NULL) {
                 newerDoc = doc;
                 put(doc);
             } else {
-                newerDoc = cachedDoc;
+                Number cachedModCount = cachedDoc.getModCount();
+                Number modCount = doc.getModCount();
+
+                if (cachedModCount == null || modCount == null) {
+                    throw new IllegalStateException("Missing " + Document.MOD_COUNT);
+                }
+
+                if (modCount.longValue() > cachedModCount.longValue()) {
+                    newerDoc = doc;
+                    put(doc);
+                } else {
+                    newerDoc = cachedDoc;
+                }
             }
+        } finally {
+            lock.unlock();
         }
         return newerDoc;
     }
-    
+
     /**
      * Puts document into cache iff no entry with the given key is cached
      * already. This operations is atomic.
@@ -192,12 +213,15 @@ public class NodeDocumentCache implements Closeable {
             throw new IllegalArgumentException("doc must not be NULL document");
         }
         doc.seal();
+
+        String id = doc.getId();
+
         // make sure we only cache the document if it wasn't
         // changed and cached by some other thread in the
         // meantime. That is, use get() with a Callable,
         // which is only used when the document isn't there
+        TreeLock lock = locks.acquire(id);
         try {
-            String id = doc.getId();
             for (;;) {
                 NodeDocument cached = get(id, new Callable<NodeDocument>() {
                     @Override
@@ -215,6 +239,8 @@ public class NodeDocumentCache implements Closeable {
             // will never happen because call() just returns
             // the already available doc
             throw new IllegalStateException(e);
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -230,50 +256,23 @@ public class NodeDocumentCache implements Closeable {
         // still have the oldDoc in the cache, otherwise we may
         // update the cache with an outdated document
         String id = updateOp.getId();
-        NodeDocument cached = getIfPresent(id);
-        if (cached == null) {
-            // cannot use oldDoc to update cache
-            return;
-        }
 
-        // check if the currently cached document matches oldDoc
-        if (Objects.equal(cached.getModCount(), oldDocument.getModCount())) {
-            NodeDocument newDoc = Collection.NODES.newDocument(docStore);
-            oldDocument.deepCopy(newDoc);
+        TreeLock lock = locks.acquire(id);
+        try {
+            NodeDocument cached = getIfPresent(id);
+            if (cached == null) {
+                // cannot use oldDoc to update cache
+                return;
+            }
 
-            UpdateUtils.applyChanges(newDoc, updateOp);
-            newDoc.seal();
-
-            put(newDoc);
-        } else {
-            // the cache entry was modified by some other thread in
-            // the meantime. the updated cache entry may or may not
-            // include this update. we cannot just apply our update
-            // on top of the cached entry.
-            // therefore we must invalidate the cache entry
-            invalidate(id);
-        }
-    }
-
-    /**
-     * Replaces the cached value. If the {@code oldDocument} is not cached, nothing will happen.
-     *
-     * @param oldDoc the old document
-     * @param newDoc the replacement
-     */
-    @Nonnull
-    public void replaceCachedDocument(@Nonnull final NodeDocument oldDocument, @Nonnull final NodeDocument newDoc) {
-        NodeDocument cached = putIfAbsent(newDoc);
-        if (cached == newDoc) {
-            // successful
-            return;
-        } else if (oldDocument == null) {
-            // this is an insert and some other thread was quicker
-            // loading it into the cache -> return now
-            return;
-        } else {
-            // this is an update (oldDoc != null)
+            // check if the currently cached document matches oldDoc
             if (Objects.equal(cached.getModCount(), oldDocument.getModCount())) {
+                NodeDocument newDoc = Collection.NODES.newDocument(docStore);
+                oldDocument.deepCopy(newDoc);
+
+                UpdateUtils.applyChanges(newDoc, updateOp);
+                newDoc.seal();
+
                 put(newDoc);
             } else {
                 // the cache entry was modified by some other thread in
@@ -281,8 +280,52 @@ public class NodeDocumentCache implements Closeable {
                 // include this update. we cannot just apply our update
                 // on top of the cached entry.
                 // therefore we must invalidate the cache entry
-                invalidate(newDoc.getId());
+                invalidate(id);
             }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Replaces the cached value. If the {@code oldDocument} is not cached,
+     * nothing will happen.
+     *
+     * @param oldDoc the old document
+     * @param newDoc the replacement
+     */
+    @Nonnull
+    public void replaceCachedDocument(@Nonnull final NodeDocument oldDocument, @Nonnull final NodeDocument newDoc) {
+        if (newDoc == NodeDocument.NULL) {
+            throw new IllegalArgumentException("doc must not be NULL document");
+        }
+        String id = newDoc.getId();
+
+        TreeLock lock = locks.acquire(id);
+        try {
+            NodeDocument cached = putIfAbsent(newDoc);
+            if (cached == newDoc) {
+                // successful
+                return;
+            } else if (oldDocument == null) {
+                // this is an insert and some other thread was quicker
+                // loading it into the cache -> return now
+                return;
+            } else {
+                // this is an update (oldDoc != null)
+                if (Objects.equal(cached.getModCount(), oldDocument.getModCount())) {
+                    put(newDoc);
+                } else {
+                    // the cache entry was modified by some other thread in
+                    // the meantime. the updated cache entry may or may not
+                    // include this update. we cannot just apply our update
+                    // on top of the cached entry.
+                    // therefore we must invalidate the cache entry
+                    invalidate(newDoc.getId());
+                }
+            }
+        } finally {
+            lock.unlock();
         }
     }
 

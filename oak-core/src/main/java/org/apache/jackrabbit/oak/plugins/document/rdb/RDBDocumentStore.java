@@ -48,7 +48,6 @@ import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.locks.Lock;
 import java.util.zip.Deflater;
 import java.util.zip.GZIPOutputStream;
 
@@ -64,6 +63,8 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocumentCache;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocumentLocks;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocumentLocks.TreeLock;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
@@ -83,7 +84,6 @@ import com.google.common.collect.Maps;
 import com.google.common.hash.BloomFilter;
 import com.google.common.hash.Funnel;
 import com.google.common.hash.PrimitiveSink;
-import com.google.common.util.concurrent.Striped;
 
 /**
  * Implementation of {@link DocumentStore} for relational databases.
@@ -309,7 +309,7 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     private void invalidateNodesCache(String id, boolean remove) {
-        Lock lock = getAndLock(id);
+        TreeLock lock = locks.acquire(id);
         try {
             if (remove) {
                 nodesCache.invalidate(id);
@@ -526,7 +526,8 @@ public class RDBDocumentStore implements DocumentStore {
         this.ch = new RDBConnectionHandler(ds);
         this.callStack = LOG.isDebugEnabled() ? new Exception("call stack of RDBDocumentStore creation") : null;
 
-        this.nodesCache = new NodeDocumentCache(builder, this);
+        this.locks = new NodeDocumentLocks();
+        this.nodesCache = new NodeDocumentCache(builder, this, locks);
 
         Connection con = this.ch.getRWConnection();
 
@@ -828,7 +829,7 @@ public class RDBDocumentStore implements DocumentStore {
                 }
             }
             try {
-                Lock lock = getAndLock(id);
+                TreeLock lock = locks.acquire(id);
                 try {
                     // caller really wants the cache to be cleared
                     if (maxCacheAge == 0) {
@@ -894,9 +895,9 @@ public class RDBDocumentStore implements DocumentStore {
                     docs.add(doc);
                 }
                 boolean done = insertDocuments(collection, docs);
-                if (done) {
+                if (done && collection == Collection.NODES) {
                     for (T doc : docs) {
-                        addToCache(collection, doc);
+                        nodesCache.putIfAbsent((NodeDocument) doc);
                     }
                 }
                 else {
@@ -931,7 +932,9 @@ public class RDBDocumentStore implements DocumentStore {
             UpdateUtils.applyChanges(doc, update);
             try {
                 insertDocuments(collection, Collections.singletonList(doc));
-                addToCache(collection, doc);
+                if (collection == Collection.NODES) {
+                    nodesCache.putIfAbsent((NodeDocument) doc);
+                }
                 return oldDoc;
             } catch (DocumentStoreException ex) {
                 // may have failed due to a race condition; try update instead
@@ -968,7 +971,7 @@ public class RDBDocumentStore implements DocumentStore {
             // conditions not met
             return null;
         } else {
-            Lock l = getAndLock(update.getId());
+            TreeLock l = locks.acquire(update.getId());
             try {
                 boolean success = false;
 
@@ -1531,13 +1534,7 @@ public class RDBDocumentStore implements DocumentStore {
 
     private NodeDocumentCache nodesCache;
 
-    private final Striped<Lock> locks = Striped.lock(64);
-
-    private Lock getAndLock(String key) {
-        Lock l = locks.get(key);
-        l.lock();
-        return l;
-    }
+    private NodeDocumentLocks locks;
 
     @CheckForNull
     private static NodeDocument unwrap(@Nonnull NodeDocument doc) {
@@ -1561,17 +1558,6 @@ public class RDBDocumentStore implements DocumentStore {
     private static long modcountOf(@Nonnull Document doc) {
         Number n = doc.getModCount();
         return n != null ? n.longValue() : -1;
-    }
-
-    private <T extends Document> void addToCache(Collection<T> collection, T doc) {
-        if (collection == Collection.NODES) {
-            Lock lock = getAndLock(idOf(doc));
-            try {
-                nodesCache.putIfAbsent((NodeDocument) doc);
-            } finally {
-                lock.unlock();
-            }
-        }
     }
 
     @Nonnull
@@ -1613,12 +1599,7 @@ public class RDBDocumentStore implements DocumentStore {
             return castAsT(fresh);
         }
 
-        Lock lock = getAndLock(id);
-        try {
-            fresh = nodesCache.putIfNewer(fresh);
-        } finally {
-            lock.unlock();
-        }
+        nodesCache.putIfNewer(fresh);
         return castAsT(fresh);
     }
 
