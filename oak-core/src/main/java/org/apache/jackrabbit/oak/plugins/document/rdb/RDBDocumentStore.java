@@ -36,7 +36,6 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -477,8 +476,6 @@ public class RDBDocumentStore implements DocumentStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(RDBDocumentStore.class);
 
-    private final Comparator<Revision> comparator = StableRevisionComparator.REVERSE;
-
     private Exception callStack;
 
     private RDBConnectionHandler ch;
@@ -894,7 +891,7 @@ public class RDBDocumentStore implements DocumentStore {
                     if (hasChangesToCollisions(update)) {
                         update.increment(COLLISIONSMODCOUNT, 1);
                     }
-                    UpdateUtils.applyChanges(doc, update, comparator);
+                    UpdateUtils.applyChanges(doc, update);
                     if (!update.getId().equals(doc.getId())) {
                         throw new DocumentStoreException("ID mismatch - UpdateOp: " + update.getId() + ", ID property: "
                                 + doc.getId());
@@ -936,7 +933,7 @@ public class RDBDocumentStore implements DocumentStore {
             if (hasChangesToCollisions(update)) {
                 update.increment(COLLISIONSMODCOUNT, 1);
             }
-            UpdateUtils.applyChanges(doc, update, comparator);
+            UpdateUtils.applyChanges(doc, update);
             try {
                 insertDocuments(collection, Collections.singletonList(doc));
                 addToCache(collection, doc);
@@ -1036,7 +1033,7 @@ public class RDBDocumentStore implements DocumentStore {
             update.increment(COLLISIONSMODCOUNT, 1);
         }
         update.increment(MODCOUNT, 1);
-        UpdateUtils.applyChanges(doc, update, comparator);
+        UpdateUtils.applyChanges(doc, update);
         doc.seal();
         return doc;
     }

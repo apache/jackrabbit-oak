@@ -341,7 +341,7 @@ class SplitOperations {
             }
             // check size of old document
             NodeDocument oldDoc = new NodeDocument(STORE);
-            UpdateUtils.applyChanges(oldDoc, old, context.getRevisionComparator());
+            UpdateUtils.applyChanges(oldDoc, old);
             setSplitDocProps(doc, oldDoc, old, high);
             // only split if enough of the data can be moved to old document
             if (oldDoc.getMemory() > doc.getMemory() * SPLIT_RATIO
