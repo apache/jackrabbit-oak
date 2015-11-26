@@ -64,7 +64,7 @@ public class NodeDocumentTest {
             NodeDocument.setRevision(op, r, "c");
             NodeDocument.addCollision(op, r);
         }
-        UpdateUtils.applyChanges(doc, op, StableRevisionComparator.INSTANCE);
+        UpdateUtils.applyChanges(doc, op);
         Revision head = DummyRevisionContext.INSTANCE.getHeadRevision();
         doc.split(DummyRevisionContext.INSTANCE, head);
     }
