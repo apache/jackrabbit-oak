@@ -999,9 +999,7 @@ public class RDBDocumentStore implements DocumentStore {
                             return null;
                         }
                     } else {
-                        if (collection == Collection.NODES) {
-                            applyToCache((NodeDocument) oldDoc, (NodeDocument) doc);
-                        }
+                        updateCache(collection, oldDoc, doc);
                     }
                 }
 
@@ -1082,16 +1080,21 @@ public class RDBDocumentStore implements DocumentStore {
                     }
                     for (Entry<String, NodeDocument> entry : cachedDocs.entrySet()) {
                         T oldDoc = castAsT(entry.getValue());
-                        if (oldDoc == null) {
-                            String id = entry.getKey();
-                            // make sure concurrently loaded document is
-                            // invalidated
-                            nodesCache.invalidate(new StringValue(id));
-                        } else {
-                            T newDoc = applyChanges(collection, oldDoc, update, true);
-                            if (newDoc != null) {
-                                applyToCache((NodeDocument) oldDoc, (NodeDocument) newDoc);
+                        String id = entry.getKey();
+                        Lock lock = getAndLock(id);
+                        try {
+                            if (oldDoc == null) {
+                                // make sure concurrently loaded document is
+                                // invalidated
+                                nodesCache.invalidate(new StringValue(id));
+                            } else {
+                                T newDoc = applyChanges(collection, oldDoc, update, true);
+                                if (newDoc != null) {
+                                    updateCache(collection, oldDoc, newDoc);
+                                }
                             }
+                        } finally {
+                            lock.unlock();
                         }
                     }
                 } else {
@@ -1553,14 +1556,65 @@ public class RDBDocumentStore implements DocumentStore {
         return n != null ? n.longValue() : -1;
     }
 
+    private <T extends Document> void addToCache(Collection<T> collection, T doc) {
+        if (collection == Collection.NODES) {
+            Lock lock = getAndLock(idOf(doc));
+            try {
+                addToCache((NodeDocument) doc);
+            } finally {
+                lock.unlock();
+            }
+        }
+    }
+
     /**
-     * Adds a document to the {@link #nodesCache} iff there is no document in
-     * the cache with the document key. This method does not acquire a lock from
-     * {@link #locks}! The caller must ensure a lock is held for the given
-     * document.
-     * 
-     * @param doc
-     *            the document to add to the cache.
+     * Applies an update to the nodes cache. This method does not acquire
+     * a lock for the document. The caller must ensure it holds a lock for
+     * the updated document. See striped {@link #locks}.
+     *
+     * @param <T> the document type.
+     * @param collection the document collection.
+     * @param oldDoc the old document.
+     * @param updateOp the update operation.
+     */
+    private <T extends Document> void updateCache(@Nonnull Collection<T> collection,
+                                                  @Nonnull T oldDoc,
+                                                  @Nonnull T newDoc) {
+        // cache the new document
+        if (collection == Collection.NODES) {
+            checkNotNull(oldDoc);
+            checkNotNull(newDoc);
+            // we can only update the cache based on the oldDoc if we
+            // still have the oldDoc in the cache, otherwise we may
+            // update the cache with an outdated document
+            CacheValue key = new StringValue(idOf(newDoc));
+            NodeDocument cached = nodesCache.getIfPresent(key);
+            if (cached == null) {
+                // cannot use oldDoc to update cache
+                return;
+            }
+
+            // check if the currently cached document matches oldDoc
+            if (Objects.equal(cached.getModCount(), oldDoc.getModCount())) {
+                nodesCache.put(key, (NodeDocument)newDoc);
+            } else {
+                // the cache entry was modified by some other thread in
+                // the meantime. the updated cache entry may or may not
+                // include this update. we cannot just apply our update
+                // on top of the cached entry.
+                // therefore we must invalidate the cache entry
+                nodesCache.invalidate(key);
+            }
+        }
+    }
+
+    /**
+     * Adds a document to the {@link #nodesCache} iff there is no document
+     * in the cache with the document key. This method does not acquire a lock
+     * from {@link #locks}! The caller must ensure a lock is held for the
+     * given document.
+     *
+     * @param doc the document to add to the cache.
      * @return either the given <code>doc</code> or the document already present
      *         in the cache.
      */
@@ -1593,43 +1647,6 @@ public class RDBDocumentStore implements DocumentStore {
             // will never happen because call() just returns
             // the already available doc
             throw new IllegalStateException(e);
-        }
-    }
-
-    @Nonnull
-    private void applyToCache(@Nonnull final NodeDocument oldDoc, @Nonnull final NodeDocument newDoc) {
-        NodeDocument cached = addToCache(newDoc);
-        if (cached == newDoc) {
-            // successful
-            return;
-        } else if (oldDoc == null) {
-            // this is an insert and some other thread was quicker
-            // loading it into the cache -> return now
-            return;
-        } else {
-            CacheValue key = new StringValue(idOf(newDoc));
-            // this is an update (oldDoc != null)
-            if (Objects.equal(cached.getModCount(), oldDoc.getModCount())) {
-                nodesCache.put(key, newDoc);
-            } else {
-                // the cache entry was modified by some other thread in
-                // the meantime. the updated cache entry may or may not
-                // include this update. we cannot just apply our update
-                // on top of the cached entry.
-                // therefore we must invalidate the cache entry
-                nodesCache.invalidate(key);
-            }
-        }
-    }
-
-    private <T extends Document> void addToCache(Collection<T> collection, T doc) {
-        if (collection == Collection.NODES) {
-            Lock lock = getAndLock(idOf(doc));
-            try {
-                addToCache((NodeDocument) doc);
-            } finally {
-                lock.unlock();
-            }
         }
     }
 
