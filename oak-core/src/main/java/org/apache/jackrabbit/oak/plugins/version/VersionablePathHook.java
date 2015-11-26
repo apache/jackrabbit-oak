@@ -110,7 +110,7 @@ public class VersionablePathHook implements CommitHook {
         public boolean childNodeChanged(
                 String name, NodeState before, NodeState after) {
             if (NodeStateUtils.isHidden(name)) {
-                // stop comparison
+                // do not traverse into hidden trees
                 return true;
             }
             Node node = new Node(nodeAfter, name);
