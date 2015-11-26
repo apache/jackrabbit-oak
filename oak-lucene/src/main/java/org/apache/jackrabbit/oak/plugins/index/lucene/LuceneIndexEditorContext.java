@@ -16,12 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
-import static org.apache.lucene.store.NoLockFactory.getNoLockFactory;
-
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,9 +27,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -62,6 +55,12 @@ import org.apache.tika.parser.Parser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
+import static org.apache.lucene.store.NoLockFactory.getNoLockFactory;
+
 public class LuceneIndexEditorContext {
 
     private static final Logger log = LoggerFactory
@@ -79,7 +78,9 @@ public class LuceneIndexEditorContext {
             Analyzer definitionAnalyzer = definition.getAnalyzer();
             Map<String, Analyzer> analyzers = new HashMap<String, Analyzer>();
             analyzers.put(FieldNames.SPELLCHECK, new ShingleAnalyzerWrapper(LuceneIndexConstants.ANALYZER, 3));
-            analyzers.put(FieldNames.SUGGEST, SuggestHelper.getAnalyzer());
+            if (!definition.isSuggestAnalyzed()) {
+                analyzers.put(FieldNames.SUGGEST, SuggestHelper.getAnalyzer());
+            }
             Analyzer analyzer = new PerFieldAnalyzerWrapper(definitionAnalyzer, analyzers);
             IndexWriterConfig config = new IndexWriterConfig(VERSION, analyzer);
             if (remoteDir) {

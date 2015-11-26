@@ -943,8 +943,6 @@ updated every 10 minutes but that can be changed by setting the property
 Sample configuration for suggestions based on terms contained in `jcr:description` 
 property.
 
-Since Oak 1.3.11, the each suggestion would be returned per row.
-
 ```
 /oak:index/lucene-suggest
   - jcr:primaryType = "oak:QueryIndexDefinition"
@@ -962,6 +960,23 @@ Since Oak 1.3.11, the each suggestion would be returned per row.
           - analyzed = true
           - useInSuggest = true
 ```
+
+`@since Oak 1.3.11` each suggestion would be returned per row.
+
+`@since Oak 1.3.12` the index Analyzer can be used to perform a have more fine grained suggestions, e.g. single words 
+(whereas default suggest configuration returns entire property values, see [OAK-3149]: https://issues.apache.org/jira/browse/OAK-3149).
+Analyzed suggestions can be enabled by setting "suggestAnalyzed" property to true, e.g.:
+
+```
+/oak:index/lucene-suggest
+  - jcr:primaryType = "oak:QueryIndexDefinition"
+  - compatVersion = 2
+  - type = "lucene"
+  - async = "async"
+  - suggestUpdateFrequencyMinutes = 60
+  - suggestAnalyzed = true
+```
+
 
 #### Spellchecking
 
