@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.Comparator;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.Map.Entry;
@@ -44,12 +43,9 @@ public class UpdateUtils {
      *            the target document.
      * @param update
      *            the changes to apply.
-     * @param comparator
-     *            the revision comparator.
      */
     public static void applyChanges(@Nonnull Document doc,
-                                    @Nonnull UpdateOp update,
-                                    @Nonnull Comparator<Revision> comparator) {
+                                    @Nonnull UpdateOp update) {
         for (Entry<Key, Operation> e : checkNotNull(update).getChanges().entrySet()) {
             Key k = e.getKey();
             Operation op = e.getValue();
@@ -81,7 +77,7 @@ public class UpdateUtils {
                     @SuppressWarnings("unchecked")
                     Map<Revision, Object> m = (Map<Revision, Object>) old;
                     if (m == null) {
-                        m = new TreeMap<Revision, Object>(comparator);
+                        m = new TreeMap<Revision, Object>(StableRevisionComparator.REVERSE);
                         doc.put(k.getName(), m);
                     }
                     if (k.getRevision() == null) {
