@@ -111,10 +111,11 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
     }
 
     @Override
-    protected void finalize() {
+    protected void finalize() throws Throwable {
         if (!this.ch.isClosed() && this.callStack != null) {
             LOG.debug("finalizing RDBDocumentStore that was not disposed", this.callStack);
         }
+        super.finalize();
     }
 
     private static final Logger LOG = LoggerFactory.getLogger(RDBBlobStore.class);
