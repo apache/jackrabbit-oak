@@ -29,7 +29,6 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -64,6 +63,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfigu
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
+import org.apache.jackrabbit.oak.stats.MeterStats;
+import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -92,10 +93,10 @@ public class SessionDelegate {
     private final Counters sessionCounters;
 
     // repository-wide counters for statistics about all sessions
-    private final AtomicLong readCounter;
-    private final AtomicLong readDuration;
-    private final AtomicLong writeCounter;
-    private final AtomicLong writeDuration;
+    private final MeterStats readCounter;
+    private final TimerStats readDuration;
+    private final MeterStats writeCounter;
+    private final TimerStats writeDuration;
 
     private boolean isAlive = true;
     private int sessionOpCount;
@@ -149,10 +150,10 @@ public class SessionDelegate {
         this.sessionStats = new SessionStats(contentSession.toString(),
                 contentSession.getAuthInfo(), clock, refreshStrategy, this, statisticManager);
         this.sessionCounters = sessionStats.getCounters();
-        readCounter = statisticManager.getCounter(SESSION_READ_COUNTER);
-        readDuration = statisticManager.getCounter(SESSION_READ_DURATION);
-        writeCounter = statisticManager.getCounter(SESSION_WRITE_COUNTER);
-        writeDuration = statisticManager.getCounter(SESSION_WRITE_DURATION);
+        readCounter = statisticManager.getMeter(SESSION_READ_COUNTER);
+        readDuration = statisticManager.getTimer(SESSION_READ_DURATION);
+        writeCounter = statisticManager.getMeter(SESSION_WRITE_COUNTER);
+        writeDuration = statisticManager.getTimer(SESSION_WRITE_DURATION);
     }
 
     @Nonnull
@@ -622,14 +623,14 @@ public class SessionDelegate {
         if (op.isUpdate()) {
             sessionCounters.writeTime = t0;
             sessionCounters.writeCount++;
-            writeCounter.incrementAndGet();
-            writeDuration.addAndGet(dt);
+            writeCounter.mark();
+            writeDuration.update(dt, TimeUnit.NANOSECONDS);
             updateCount++;
         } else {
             sessionCounters.readTime = t0;
             sessionCounters.readCount++;
-            readCounter.incrementAndGet();
-            readDuration.addAndGet(dt);
+            readCounter.mark();
+            readDuration.update(dt, TimeUnit.NANOSECONDS);
         }
         if (op.isSave()) {
             refreshAtNextAccess.refreshAtNextAccess(false);

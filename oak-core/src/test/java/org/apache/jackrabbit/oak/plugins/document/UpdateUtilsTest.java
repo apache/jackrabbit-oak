@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.util.Comparator;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -34,7 +33,6 @@ public class UpdateUtilsTest {
 
     @Test
     public void applyChanges() {
-        Comparator<Revision> comp = StableRevisionComparator.INSTANCE;
         Revision r = Revision.newRevision(1);
         String id = Utils.getIdFromPath("/foo");
         Document d = new Document();
@@ -43,43 +41,42 @@ public class UpdateUtilsTest {
         UpdateOp op = newUpdateOp(id);
         op.set("p", 42L);
 
-        UpdateUtils.applyChanges(d, op, comp);
+        UpdateUtils.applyChanges(d, op);
         assertEquals(42L, d.get("p"));
 
         op = newUpdateOp(id);
         op.max("p", 23L);
 
-        UpdateUtils.applyChanges(d, op, comp);
+        UpdateUtils.applyChanges(d, op);
         assertEquals(42L, d.get("p"));
 
         op = newUpdateOp(id);
         op.max("p", 58L);
 
-        UpdateUtils.applyChanges(d, op, comp);
+        UpdateUtils.applyChanges(d, op);
         assertEquals(58L, d.get("p"));
 
         op = newUpdateOp(id);
         op.increment("p", 3);
 
-        UpdateUtils.applyChanges(d, op, comp);
+        UpdateUtils.applyChanges(d, op);
         assertEquals(61L, d.get("p"));
 
         op = newUpdateOp(id);
         op.setMapEntry("t", r, "value");
 
-        UpdateUtils.applyChanges(d, op, comp);
+        UpdateUtils.applyChanges(d, op);
         assertEquals("value", getMapEntry(d, "t", r));
 
         op = newUpdateOp(id);
         op.removeMapEntry("t", r);
 
-        UpdateUtils.applyChanges(d, op, comp);
+        UpdateUtils.applyChanges(d, op);
         assertNull(getMapEntry(d, "t", r));
     }
 
     @Test
     public void checkConditions() {
-        Comparator<Revision> comp = StableRevisionComparator.INSTANCE;
         Revision r = Revision.newRevision(1);
         String id = Utils.getIdFromPath("/foo");
         Document d = new Document();
@@ -88,7 +85,7 @@ public class UpdateUtilsTest {
         UpdateOp op = newUpdateOp(id);
         op.set("p", 42L);
         op.setMapEntry("t", r, "value");
-        UpdateUtils.applyChanges(d, op, comp);
+        UpdateUtils.applyChanges(d, op);
 
         op = newUpdateOp(id);
         op.containsMapEntry("t", r, true);

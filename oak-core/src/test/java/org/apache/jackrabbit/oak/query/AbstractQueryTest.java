@@ -56,7 +56,7 @@ import org.apache.jackrabbit.oak.json.TypeCodes;
 import org.apache.jackrabbit.oak.plugins.memory.BooleanPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
-import org.apache.jackrabbit.oak.query.QueryEngineImpl.ForceOptimised;
+import org.apache.jackrabbit.oak.query.QueryEngineImpl.QuerySelectionMode;
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
 import org.junit.Before;
 
@@ -329,8 +329,8 @@ public abstract class AbstractQueryTest {
         ((QueryEngineImpl) qe).setTraversalEnabled(traversalEnabled);
     }
     
-    protected void setForceOptimised(@Nonnull ForceOptimised forceOptimised) {
-        ((QueryEngineImpl) qe).setForceOptimised(checkNotNull(forceOptimised));
+    protected void setQuerySelectionMode(@Nonnull QuerySelectionMode querySelectionMode) {
+        ((QueryEngineImpl) qe).setQuerySelectionMode(checkNotNull(querySelectionMode));
     }
 
     protected static String readRow(ResultRow row, boolean pathOnly) {

@@ -41,12 +41,6 @@ import com.google.common.cache.Cache;
  */
 public class NodeDocumentCache implements Closeable {
 
-    /**
-     * Comparator for maps with {@link Revision} keys. The maps are ordered
-     * descending, newest revisions first!
-     */
-    private final Comparator<Revision> comparator = StableRevisionComparator.REVERSE;
-
     private final Cache<CacheValue, NodeDocument> nodesCache;
 
     private final CacheStats cacheStats;
@@ -140,7 +134,7 @@ public class NodeDocumentCache implements Closeable {
     public void putWithUpdate(@Nonnull NodeDocument oldDoc, @Nonnull UpdateOp updateOp) {
         NodeDocument newDoc = Collection.NODES.newDocument(docStore);
         oldDoc.deepCopy(newDoc);
-        UpdateUtils.applyChanges(newDoc, updateOp, comparator);
+        UpdateUtils.applyChanges(newDoc, updateOp);
         newDoc.seal();
         put(newDoc);
     }
@@ -247,7 +241,7 @@ public class NodeDocumentCache implements Closeable {
             NodeDocument newDoc = Collection.NODES.newDocument(docStore);
             oldDocument.deepCopy(newDoc);
 
-            UpdateUtils.applyChanges(newDoc, updateOp, comparator);
+            UpdateUtils.applyChanges(newDoc, updateOp);
             newDoc.seal();
 
             put(newDoc);

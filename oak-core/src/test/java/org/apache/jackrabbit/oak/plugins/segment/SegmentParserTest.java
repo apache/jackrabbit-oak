@@ -67,6 +67,7 @@ import org.junit.runners.Parameterized;
 public class SegmentParserTest {
     private final SegmentVersion segmentVersion;
 
+    private SegmentStore store;
     private SegmentWriter writer;
 
     @Parameterized.Parameters
@@ -152,10 +153,10 @@ public class SegmentParserTest {
 
     @Before
     public void setup() {
-        SegmentStore store = mock(SegmentStore.class, withSettings().stubOnly());
+        store = mock(SegmentStore.class, withSettings().stubOnly());
         SegmentTracker tracker = new SegmentTracker(store);
         when(store.getTracker()).thenReturn(tracker);
-        writer = new SegmentWriter(store, store.getTracker(), segmentVersion);
+        writer = new SegmentWriter(store, segmentVersion);
     }
 
     @Test
@@ -295,7 +296,7 @@ public class SegmentParserTest {
     private Map<String, RecordId> createMap(int size, Random rnd) {
         Map<String, RecordId> map = newHashMap();
         for (int k = 0; k < size; k++) {
-            map.put("k" + k, newRecordId(writer.getTracker(), rnd));
+            map.put("k" + k, newRecordId(store.getTracker(), rnd));
         }
         return map;
     }
@@ -429,7 +430,7 @@ public class SegmentParserTest {
 
     @Test
     public void emptyList() {
-        RecordId listId = newRecordId(writer.getTracker(), new Random());
+        RecordId listId = newRecordId(store.getTracker(), new Random());
         ListInfo listInfo = new TestParser("emptyList").parseList(null, listId, 0);
         assertEquals(listId, listInfo.listId);
         assertEquals(0, listInfo.count);
@@ -442,7 +443,7 @@ public class SegmentParserTest {
         Random rnd = new Random();
         List<RecordId> list = newArrayListWithCapacity(count);
         for (int k = 0; k < count; k++) {
-            list.add(newRecordId(writer.getTracker(), rnd));
+            list.add(newRecordId(store.getTracker(), rnd));
         }
         RecordId listId = writer.writeList(list);
         ListInfo listInfo = new TestParser("nonEmptyList"){

@@ -27,7 +27,6 @@ import java.io.OutputStream;
 import java.security.AccessControlException;
 import java.util.Collections;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -69,6 +68,7 @@ import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.jcr.xml.ImportHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
+import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,14 +83,14 @@ public class SessionImpl implements JackrabbitSession {
 
     private SessionContext sessionContext;
     private SessionDelegate sd;
-    private final AtomicLong sessionCounter;
+    private final CounterStats sessionCounter;
 
     public SessionImpl(SessionContext sessionContext) {
         this.sessionContext = sessionContext;
         this.sd = sessionContext.getSessionDelegate();
-        this.sessionCounter = sessionContext.getCounter(SESSION_COUNT);
-        sessionCounter.incrementAndGet();
-        sessionContext.getCounter(Type.SESSION_LOGIN_COUNTER).incrementAndGet();
+        this.sessionCounter = sessionContext.getCount(SESSION_COUNT);
+        sessionCounter.inc();
+        sessionContext.getMeter(Type.SESSION_LOGIN_COUNTER).mark();
     }
 
     static void checkIndexOnName(String jcrPath) throws RepositoryException {
@@ -456,7 +456,7 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     public void logout() {
         if (isLive()) {
-            sessionCounter.decrementAndGet();
+            sessionCounter.dec();
             try {
                 sd.performVoid(new SessionOperation<Void>("logout") {
                     @Override

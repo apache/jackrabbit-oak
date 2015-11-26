@@ -118,4 +118,10 @@ public class SuggestImpl extends ConstraintImpl {
     public AstElement copyOf() {
         return new SuggestImpl(selectorName, expression);
     }
+
+    @Override
+    public boolean requiresFullTextIndex() {
+        return true;
+    }
+
 }

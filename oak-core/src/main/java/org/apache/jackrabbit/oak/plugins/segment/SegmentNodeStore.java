@@ -215,9 +215,9 @@ public class SegmentNodeStore implements NodeStore, Observable {
             @Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
             @Nonnull CommitInfo info) throws CommitFailedException {
         checkArgument(builder instanceof SegmentNodeBuilder);
-        checkNotNull(commitHook);
-
         SegmentNodeBuilder snb = (SegmentNodeBuilder) builder;
+        checkArgument(snb.isRootBuilder());
+        checkNotNull(commitHook);
 
         try {
             commitSemaphore.acquire();

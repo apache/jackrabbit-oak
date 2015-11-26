@@ -29,7 +29,6 @@ import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleW
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
@@ -60,6 +59,8 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
+import org.apache.jackrabbit.oak.stats.MeterStats;
+import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.apache.jackrabbit.stats.TimeSeriesMax;
 import org.slf4j.Logger;
@@ -102,8 +103,8 @@ class ChangeProcessor implements Observer {
     private final ListenerTracker tracker;
     private final EventListener eventListener;
     private final AtomicReference<FilterProvider> filterProvider;
-    private final AtomicLong eventCount;
-    private final AtomicLong eventDuration;
+    private final MeterStats eventCount;
+    private final TimerStats eventDuration;
     private final TimeSeriesMax maxQueueLength;
     private final int queueLength;
     private final CommitRateLimiter commitRateLimiter;
@@ -133,8 +134,8 @@ class ChangeProcessor implements Observer {
         this.tracker = tracker;
         eventListener = tracker.getTrackedListener();
         filterProvider = new AtomicReference<FilterProvider>(filter);
-        this.eventCount = statisticManager.getCounter(OBSERVATION_EVENT_COUNTER);
-        this.eventDuration = statisticManager.getCounter(OBSERVATION_EVENT_DURATION);
+        this.eventCount = statisticManager.getMeter(OBSERVATION_EVENT_COUNTER);
+        this.eventDuration = statisticManager.getTimer(OBSERVATION_EVENT_DURATION);
         this.maxQueueLength = statisticManager.maxQueLengthRecorder();
         this.queueLength = queueLength;
         this.commitRateLimiter = commitRateLimiter;
@@ -340,10 +341,10 @@ class ChangeProcessor implements Observer {
             this.events = events;
         }
 
-        public void updateCounters(AtomicLong eventCount, AtomicLong eventDuration) {
+        public void updateCounters(MeterStats eventCount, TimerStats eventDuration) {
             checkState(this.eventCount >= 0);
-            eventCount.addAndGet(this.eventCount);
-            eventDuration.addAndGet(System.nanoTime() - t0 - sysTime);
+            eventCount.mark(this.eventCount);
+            eventDuration.update(System.nanoTime() - t0 - sysTime, TimeUnit.NANOSECONDS);
             this.eventCount = -1;
         }
 

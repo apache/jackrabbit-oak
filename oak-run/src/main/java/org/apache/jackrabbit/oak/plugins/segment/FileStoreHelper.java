@@ -42,13 +42,12 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.plugins.segment.file.JournalReader;
 
 public final class FileStoreHelper {
 
@@ -237,31 +236,6 @@ public final class FileStoreHelper {
         }
     }
 
-    private static void collectSegments(SegmentNodeState root, Map<UUID, Set<UUID>> graph) {
-        UUID nodeId = root.getRecordId().asUUID();
-        Set<UUID> refs = graph.get(nodeId);
-        if (refs == null) {
-            refs = newHashSet();
-            graph.put(nodeId, refs);
-        }
-
-        for (PropertyState propertyState : root.getProperties()) {
-            if (propertyState instanceof SegmentPropertyState) {
-                SegmentPropertyState sps = (SegmentPropertyState) propertyState;
-                refs.add(sps.getRecordId().getSegmentId().asUUID());
-            }
-
-        }
-
-        for (ChildNodeEntry childNodeEntry : root.getChildNodeEntries()) {
-            if (childNodeEntry.getNodeState() instanceof SegmentNodeState) {
-                SegmentNodeState child = (SegmentNodeState) childNodeEntry.getNodeState();
-                refs.add(child.getRecordId().getSegmentId().asUUID());
-                collectSegments(child, graph);
-            }
-        }
-    }
-
     private static void writeNode(UUID node, PrintWriter writer, boolean inHead, Date epoch, SegmentTracker tracker) {
         Map<String, String> sInfo = getSegmentInfo(node, tracker);
         if (sInfo == null) {
@@ -301,6 +275,34 @@ public final class FileStoreHelper {
         } else {
             return null;
         }
+    }
+
+    public static List<String> readRevisions(File store) {
+        File journal = new File(store, "journal.log");
+        if (!journal.exists()) {
+            return newArrayList();
+        }
+
+        List<String> revs = newArrayList();
+        JournalReader journalReader = null;
+        try {
+            journalReader = new JournalReader(journal);
+            try {
+                revs = newArrayList(journalReader.iterator());
+            } finally {
+                journalReader.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (journalReader != null) {
+                    journalReader.close();
+                }
+            } catch (IOException e) {
+            }
+        }
+        return revs;
     }
 
 }

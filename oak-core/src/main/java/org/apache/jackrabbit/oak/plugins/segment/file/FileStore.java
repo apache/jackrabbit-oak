@@ -894,7 +894,7 @@ public class FileStore implements SegmentStore {
      * @return  a new {@link SegmentWriter} instance for writing to this store.
      */
     public SegmentWriter createSegmentWriter(String wid) {
-        return new SegmentWriter(this, tracker, getVersion(), wid);
+        return new SegmentWriter(this, getVersion(), wid);
     }
 
     /**
@@ -1343,9 +1343,16 @@ public class FileStore implements SegmentStore {
      * All write methods are no-ops.
      */
     public static class ReadOnlyStore extends FileStore {
+
         public ReadOnlyStore(File directory) throws IOException {
             super(null, directory, EMPTY_NODE, -1, 0, MEMORY_MAPPING_DEFAULT,
                     GCMonitor.EMPTY, true);
+        }
+
+        public ReadOnlyStore(File directory, BlobStore blobStore)
+                throws IOException {
+            super(blobStore, directory, EMPTY_NODE, -1, 0,
+                    MEMORY_MAPPING_DEFAULT, GCMonitor.EMPTY, true);
         }
 
         /**

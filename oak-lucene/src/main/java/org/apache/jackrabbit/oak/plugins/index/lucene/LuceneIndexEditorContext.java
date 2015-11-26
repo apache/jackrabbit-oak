@@ -16,12 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
-import static org.apache.lucene.store.NoLockFactory.getNoLockFactory;
-
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,9 +27,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -62,6 +55,12 @@ import org.apache.tika.parser.Parser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
+import static org.apache.lucene.store.NoLockFactory.getNoLockFactory;
+
 public class LuceneIndexEditorContext {
 
     private static final Logger log = LoggerFactory
@@ -79,6 +78,9 @@ public class LuceneIndexEditorContext {
             Analyzer definitionAnalyzer = definition.getAnalyzer();
             Map<String, Analyzer> analyzers = new HashMap<String, Analyzer>();
             analyzers.put(FieldNames.SPELLCHECK, new ShingleAnalyzerWrapper(LuceneIndexConstants.ANALYZER, 3));
+            if (!definition.isSuggestAnalyzed()) {
+                analyzers.put(FieldNames.SUGGEST, SuggestHelper.getAnalyzer());
+            }
             Analyzer analyzer = new PerFieldAnalyzerWrapper(definitionAnalyzer, analyzers);
             IndexWriterConfig config = new IndexWriterConfig(VERSION, analyzer);
             if (remoteDir) {
@@ -136,7 +138,6 @@ public class LuceneIndexEditorContext {
     @Nullable
     private final IndexCopier indexCopier;
 
-
     private Directory directory;
 
     private final TextExtractionStats textExtractionStats = new TextExtractionStats();
@@ -190,12 +191,12 @@ public class LuceneIndexEditorContext {
         checkNotNull(writer);
         checkNotNull(definition);
         checkNotNull(directory);
-        
+
         int docs = writer.numDocs();
         int ram = writer.numRamDocs();
 
         log.trace("Writer for direcory {} - docs: {}, ramDocs: {}", definition, docs, ram);
-        
+
         String[] files = directory.listAll();
         long overallSize = 0;
         StringBuilder sb = new StringBuilder();
@@ -231,18 +232,18 @@ public class LuceneIndexEditorContext {
             if (log.isTraceEnabled()) {
                 trackIndexSizeInfo(writer, definition, directory);
             }
-            
+
             final long start = PERF_LOGGER.start();
-            
-            updateSuggester();
+
+            updateSuggester(writer.getAnalyzer());
             PERF_LOGGER.end(start, -1, "Completed suggester for directory {}", definition);
-            
+
             writer.close();
             PERF_LOGGER.end(start, -1, "Closed writer for directory {}", definition);
-            
+
             directory.close();
             PERF_LOGGER.end(start, -1, "Closed directory for directory {}", definition);
-            
+
             //OAK-2029 Record the last updated status so
             //as to make IndexTracker detect changes when index
             //is stored in file system
@@ -250,7 +251,7 @@ public class LuceneIndexEditorContext {
             status.setProperty("lastUpdated", ISO8601.format(Calendar.getInstance()), Type.DATE);
             status.setProperty("indexedNodes",indexedNodes);
             PERF_LOGGER.end(start, -1, "Overall Closed IndexWriter for directory {}", definition);
-            
+
             textExtractionStats.log(reindex);
             textExtractionStats.collectStats(extractedTextCache);
         }
@@ -259,8 +260,9 @@ public class LuceneIndexEditorContext {
     /**
      * eventually update suggest dictionary
      * @throws IOException if suggest dictionary update fails
+     * @param analyzer the analyzer used to update the suggester
      */
-    private void updateSuggester() throws IOException {
+    private void updateSuggester(Analyzer analyzer) throws IOException {
 
         if (definition.isSuggestEnabled()) {
 
@@ -280,12 +282,14 @@ public class LuceneIndexEditorContext {
 
             if (updateSuggester) {
                 DirectoryReader reader = DirectoryReader.open(writer, false);
+                final OakDirectory suggestDirectory = new OakDirectory(definitionBuilder, ":suggest-data", definition, false);
                 try {
-                    SuggestHelper.updateSuggester(reader);
+                    SuggestHelper.updateSuggester(suggestDirectory, analyzer, reader);
                     suggesterStatus.setProperty("lastUpdated", ISO8601.format(Calendar.getInstance()), Type.DATE);
                 } catch (Throwable e) {
                     log.warn("could not update suggester", e);
                 } finally {
+                    suggestDirectory.close();
                     reader.close();
                 }
             }

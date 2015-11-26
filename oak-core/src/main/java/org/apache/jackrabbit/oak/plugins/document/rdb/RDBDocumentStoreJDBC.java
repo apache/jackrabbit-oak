@@ -43,6 +43,7 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.RDBTableMetaData;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStoreDB.FETCHFIRSTSYNTAX;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStoreDB.PreparedStatementComponent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,11 +72,13 @@ public class RDBDocumentStoreJDBC {
     public boolean appendingUpdate(Connection connection, RDBTableMetaData tmd, String id, Long modified,
             boolean setModifiedConditionally, Boolean hasBinary, Boolean deletedOnce, Long modcount, Long cmodcount,
             Long oldmodcount, String appendData) throws SQLException {
+        String appendDataWithComma = "," + appendData;
+        PreparedStatementComponent stringAppend = this.dbInfo.getConcatQuery(appendDataWithComma, tmd.getDataLimitInOctets());
         StringBuilder t = new StringBuilder();
         t.append("update " + tmd.getName() + " set ");
         t.append(setModifiedConditionally ? "MODIFIED = case when ? > MODIFIED then ? else MODIFIED end, " : "MODIFIED = ?, ");
         t.append("HASBINARY = ?, DELETEDONCE = ?, MODCOUNT = ?, CMODCOUNT = ?, DSIZE = DSIZE + ?, ");
-        t.append("DATA = " + this.dbInfo.getConcatQueryString(tmd.getDataLimitInOctets(), appendData.length()) + " ");
+        t.append("DATA = " + stringAppend.getStatementComponent() + " ");
         t.append("where ID = ?");
         if (oldmodcount != null) {
             t.append(" and MODCOUNT = ?");
@@ -91,8 +94,8 @@ public class RDBDocumentStoreJDBC {
             stmt.setObject(si++, deletedOnce ? 1 : 0, Types.SMALLINT);
             stmt.setObject(si++, modcount, Types.BIGINT);
             stmt.setObject(si++, cmodcount == null ? Long.valueOf(0) : cmodcount, Types.BIGINT);
-            stmt.setObject(si++, 1 + appendData.length(), Types.BIGINT);
-            stmt.setString(si++, "," + appendData);
+            stmt.setObject(si++, appendDataWithComma.length(), Types.BIGINT);
+            si = stringAppend.setParameters(stmt, si);
             setIdInStatement(tmd, stmt, si++, id);
 
             if (oldmodcount != null) {
@@ -110,11 +113,13 @@ public class RDBDocumentStoreJDBC {
 
     public boolean batchedAppendingUpdate(Connection connection, RDBTableMetaData tmd, List<String> ids, Long modified,
             boolean setModifiedConditionally, String appendData) throws SQLException {
+        String appendDataWithComma = "," + appendData;
+        PreparedStatementComponent stringAppend = this.dbInfo.getConcatQuery(appendDataWithComma, tmd.getDataLimitInOctets());
         StringBuilder t = new StringBuilder();
         t.append("update " + tmd.getName() + " set ");
         t.append(setModifiedConditionally ? "MODIFIED = case when ? > MODIFIED then ? else MODIFIED end, " : "MODIFIED = ?, ");
         t.append("MODCOUNT = MODCOUNT + 1, DSIZE = DSIZE + ?, ");
-        t.append("DATA = " + this.dbInfo.getConcatQueryString(tmd.getDataLimitInOctets(), appendData.length()) + " ");
+        t.append("DATA = " + stringAppend.getStatementComponent() + " ");
         t.append("where ID in (");
         for (int i = 0; i < ids.size(); i++) {
             if (i != 0) {
@@ -130,8 +135,8 @@ public class RDBDocumentStoreJDBC {
             if (setModifiedConditionally) {
                 stmt.setObject(si++, modified, Types.BIGINT);
             }
-            stmt.setObject(si++, 1 + appendData.length(), Types.BIGINT);
-            stmt.setString(si++, "," + appendData);
+            stmt.setObject(si++, appendDataWithComma.length(), Types.BIGINT);
+            si = stringAppend.setParameters(stmt, si);
             for (String id : ids) {
                 setIdInStatement(tmd, stmt, si++, id);
             }

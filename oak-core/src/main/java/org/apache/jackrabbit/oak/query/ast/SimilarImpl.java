@@ -132,4 +132,9 @@ public class SimilarImpl extends ConstraintImpl {
         return new SimilarImpl(selectorName, propertyName, pathExpression);
     }
 
+    @Override
+    public boolean requiresFullTextIndex() {
+        return true;
+    }
+
 }

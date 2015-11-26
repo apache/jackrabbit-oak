@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -116,12 +115,6 @@ public class MongoDocumentStore implements DocumentStore {
     private final NodeDocumentCache nodesCache;
 
     private final NodeDocumentLocks nodeLocks;
-
-    /**
-     * Comparator for maps with {@link Revision} keys. The maps are ordered
-     * descending, newest revisions first!
-     */
-    private final Comparator<Revision> comparator = StableRevisionComparator.REVERSE;
 
     private Clock clock = Clock.SIMPLE;
 
@@ -772,7 +765,7 @@ public class MongoDocumentStore implements DocumentStore {
             } else if (upsert) {
                 if (collection == Collection.NODES) {
                     NodeDocument doc = (NodeDocument) collection.newDocument(this);
-                    UpdateUtils.applyChanges(doc, updateOp, comparator);
+                    UpdateUtils.applyChanges(doc, updateOp);
                     nodesCache.putIfAbsent(doc);
                 }
             } else {
@@ -821,7 +814,7 @@ public class MongoDocumentStore implements DocumentStore {
             UpdateOp update = updateOps.get(i);
             UpdateUtils.assertUnconditional(update);
             T target = collection.newDocument(this);
-            UpdateUtils.applyChanges(target, update, comparator);
+            UpdateUtils.applyChanges(target, update);
             docs.add(target);
             for (Entry<Key, Operation> entry : update.getChanges().entrySet()) {
                 Key k = entry.getKey();
@@ -1024,7 +1017,7 @@ public class MongoDocumentStore implements DocumentStore {
 
     @Nonnull
     private Map<Revision, Object> convertMongoMap(@Nonnull BasicDBObject obj) {
-        Map<Revision, Object> map = new TreeMap<Revision, Object>(comparator);
+        Map<Revision, Object> map = new TreeMap<Revision, Object>(StableRevisionComparator.REVERSE);
         for (Map.Entry<String, Object> entry : obj.entrySet()) {
             map.put(Revision.fromString(entry.getKey()), entry.getValue());
         }
