@@ -19,8 +19,6 @@
 
 package org.apache.jackrabbit.oak.stats;
 
-import javax.annotation.CheckForNull;
-
 import aQute.bnd.annotation.ProviderType;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 
@@ -30,7 +28,7 @@ public interface StatisticsProvider {
     StatisticsProvider NOOP = new StatisticsProvider() {
         @Override
         public RepositoryStatistics getStats() {
-            return null;
+            return NoopRepositoryStatistics.INSTANCE;
         }
 
         @Override
@@ -50,7 +48,6 @@ public interface StatisticsProvider {
     };
 
 
-    @CheckForNull
     RepositoryStatistics getStats();
 
     MeterStats getMeter(String name);

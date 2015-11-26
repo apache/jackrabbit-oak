@@ -22,9 +22,12 @@ package org.apache.jackrabbit.oak.stats;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.jackrabbit.api.stats.RepositoryStatistics;
+import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 public class SimpleStatsTest {
 
@@ -80,4 +83,22 @@ public class SimpleStatsTest {
         TimerStats.Context context = noop.time();
         assertEquals(0, context.stop());
     }
+
+    @Test
+    public void noopRepoStatsTest() throws Exception{
+        RepositoryStatistics stats = StatisticsProvider.NOOP.getStats();
+
+        assertNotNull(stats);
+        assertNotNull(stats.getTimeSeries("foo", false));
+        assertNotNull(stats.getTimeSeries(RepositoryStatistics.Type.QUERY_COUNT));
+
+        TimeSeries ts = stats.getTimeSeries("foo", false);
+        assertNotNull(ts.getValuePerHour());
+        assertNotNull(ts.getValuePerMinute());
+        assertNotNull(ts.getValuePerSecond());
+        assertNotNull(ts.getValuePerWeek());
+        assertEquals(0, ts.getMissingValue());
+
+    }
+
 }
