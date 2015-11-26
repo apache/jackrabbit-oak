@@ -964,7 +964,7 @@ property.
 `@since Oak 1.3.11` each suggestion would be returned per row.
 
 `@since Oak 1.3.12` the index Analyzer can be used to perform a have more fine grained suggestions, e.g. single words 
-(whereas default suggest configuration returns entire property values, see [OAK-3149]: https://issues.apache.org/jira/browse/OAK-3149).
+(whereas default suggest configuration returns entire property values, see [OAK-3407]: https://issues.apache.org/jira/browse/OAK-3407).
 Analyzed suggestions can be enabled by setting "suggestAnalyzed" property to true, e.g.:
 
 ```
