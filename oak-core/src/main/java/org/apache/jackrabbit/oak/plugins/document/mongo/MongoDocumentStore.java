@@ -56,7 +56,6 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.JournalEntry;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocumentCache;
-import org.apache.jackrabbit.oak.plugins.document.NodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
@@ -65,6 +64,7 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
+import org.apache.jackrabbit.oak.plugins.document.locks.TreeNodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.util.PerfLogger;
@@ -114,7 +114,7 @@ public class MongoDocumentStore implements DocumentStore {
 
     private final NodeDocumentCache nodesCache;
 
-    private final NodeDocumentLocks nodeLocks;
+    private final TreeNodeDocumentLocks nodeLocks;
 
     private Clock clock = Clock.SIMPLE;
 
@@ -215,7 +215,7 @@ public class MongoDocumentStore implements DocumentStore {
         options.put("unique", Boolean.FALSE);
         this.journal.createIndex(index, options);
 
-        this.nodeLocks = new NodeDocumentLocks();
+        this.nodeLocks = new TreeNodeDocumentLocks();
         this.nodesCache = new NodeDocumentCache(builder, this, nodeLocks);
 
         LOG.info("Configuration maxReplicationLagMillis {}, " +

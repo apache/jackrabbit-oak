@@ -30,6 +30,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
+import org.apache.jackrabbit.oak.plugins.document.locks.NodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 
 import com.google.common.base.Objects;
@@ -48,8 +49,9 @@ public class NodeDocumentCache implements Closeable {
 
     private final NodeDocumentLocks locks;
 
-    public NodeDocumentCache(@Nonnull DocumentMK.Builder builder, @Nonnull DocumentStore docStore,
-            @Nonnull NodeDocumentLocks locks) {
+    public NodeDocumentCache(@Nonnull DocumentMK.Builder builder,
+                             @Nonnull DocumentStore docStore,
+                             @Nonnull NodeDocumentLocks locks) {
         this.docStore = docStore;
         this.locks = locks;
         nodesCache = builder.buildDocumentCache(docStore);

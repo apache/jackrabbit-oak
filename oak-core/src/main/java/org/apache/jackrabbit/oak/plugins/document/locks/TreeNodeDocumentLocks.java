@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.document;
+package org.apache.jackrabbit.oak.plugins.document.locks;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 
 import com.google.common.util.concurrent.Striped;
 
-public class NodeDocumentLocks {
+public class TreeNodeDocumentLocks implements NodeDocumentLocks {
 
     /**
      * Locks to ensure cache consistency on reads, writes and invalidation.
@@ -59,9 +59,10 @@ public class NodeDocumentLocks {
      * @param key a key.
      * @return the acquired lock for the given key.
      */
-    public Lock acquire(String key) {
+    @Override
+    public TreeLock acquire(String key) {
         lockAcquisitionCounter.incrementAndGet();
-        Lock lock = TreeLock.shared(parentLocks.get(getParentId(key)), locks.get(key));
+        TreeLock lock = TreeLock.shared(parentLocks.get(getParentId(key)), locks.get(key));
         lock.lock();
         return lock;
     }
@@ -73,9 +74,9 @@ public class NodeDocumentLocks {
      * @param parentKey the parent key.
      * @return the acquired lock for the given parent key.
      */
-    public Lock acquireExclusive(String parentKey) {
+    public TreeLock acquireExclusive(String parentKey) {
         lockAcquisitionCounter.incrementAndGet();
-        Lock lock = TreeLock.exclusive(parentLocks.get(parentKey));
+        TreeLock lock = TreeLock.exclusive(parentLocks.get(parentKey));
         lock.lock();
         return lock;
     }
@@ -96,6 +97,7 @@ public class NodeDocumentLocks {
         return parentId;
     }
 
+    @Override
     public long getLockAcquisitionCount() {
         return lockAcquisitionCounter.get();
     }
