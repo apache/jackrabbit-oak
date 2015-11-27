@@ -132,6 +132,14 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
     public static final String REPOSITORY_ENV_SPRING_BOOT =
             "org.apache.jackrabbit.oak.repository.springBootMode";
 
+    public static final String REPOSITORY_BUNDLE_FILTER_DEFAULT = "(|" +
+            "(Bundle-SymbolicName=org.apache.jackrabbit*)" +
+            "(Bundle-SymbolicName=org.apache.sling*)" +
+            "(Bundle-SymbolicName=org.apache.felix*)" +
+            "(Bundle-SymbolicName=org.apache.aries*)" +
+            "(Bundle-SymbolicName=groovy-all)" +
+            ")";
+
     /**
      * Default timeout for repository creation
      */
@@ -330,6 +338,9 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
 
     private void startBundles(PojoServiceRegistry registry, String bundleFilter, Map config) {
         try {
+            if (bundleFilter == null){
+                bundleFilter = REPOSITORY_BUNDLE_FILTER_DEFAULT;
+            }
             List<BundleDescriptor> descriptors = new ClasspathScanner().scanForBundles(bundleFilter);
             descriptors = Lists.newArrayList(descriptors);
             if (PropertiesUtil.toBoolean(config.get(REPOSITORY_ENV_SPRING_BOOT), false)){
