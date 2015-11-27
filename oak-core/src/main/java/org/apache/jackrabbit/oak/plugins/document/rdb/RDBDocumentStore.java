@@ -373,8 +373,8 @@ public class RDBDocumentStore implements DocumentStore {
      */
     static class RDBTableMetaData {
 
-        final String name;
-        boolean idIsBinary = false;
+        private final String name;
+        private boolean idIsBinary = false;
         private int dataLimitInOctets = 16384;
 
         public RDBTableMetaData(String name) {
