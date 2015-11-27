@@ -54,7 +54,7 @@ public class RemotingInitializer {
         }, "/repository/*");
 
         bean.addInitParameter(SimpleWebdavServlet.INIT_PARAM_RESOURCE_PATH_PREFIX, "/repository");
-        bean.addInitParameter(SimpleWebdavServlet.INIT_PARAM_RESOURCE_CONFIG, "webdav-config.xml");
+        bean.addInitParameter(SimpleWebdavServlet.INIT_PARAM_RESOURCE_CONFIG, "remoting/webdav-config.xml");
         return bean;
     }
 
@@ -69,7 +69,7 @@ public class RemotingInitializer {
         }, "/server/*");
 
         bean.addInitParameter(JcrRemotingServlet.INIT_PARAM_RESOURCE_PATH_PREFIX, "/server");
-        bean.addInitParameter(JcrRemotingServlet.INIT_PARAM_BATCHREAD_CONFIG, "batchread.properties");
+        bean.addInitParameter(JcrRemotingServlet.INIT_PARAM_BATCHREAD_CONFIG, "remoting/batchread.properties");
 
         //TODO By docs this is meant to point to a file which gets loaded
         //but servlet always reads it as File not via input stream. Hence using
