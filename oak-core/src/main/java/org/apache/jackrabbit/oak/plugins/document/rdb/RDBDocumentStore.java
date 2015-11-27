@@ -721,7 +721,8 @@ public class RDBDocumentStore implements DocumentStore {
             return sb.toString();
         } catch (SQLException ex) {
             // well it was best-effort
-            return "";
+            return String.format("/* exception while retrieving index information: %s, code %d, state %s */",
+                    ex.getMessage(), ex.getErrorCode(), ex.getSQLState());
         } finally {
             closeResultSet(rs);
         }
