@@ -97,6 +97,8 @@ public class RepositoryInitializer {
         config.put(OakOSGiRepositoryFactory.REPOSITORY_ENV_SPRING_BOOT, true);
         config.put(OakOSGiRepositoryFactory.REPOSITORY_TIMEOUT_IN_SECS, 10);
 
+        config.put("repo.home", repoHomeDir.getAbsolutePath());
+
         configureActivator(config);
         return new OakOSGiRepositoryFactory().getRepository(config);
     }
