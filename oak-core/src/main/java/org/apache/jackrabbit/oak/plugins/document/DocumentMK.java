@@ -37,6 +37,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.mongodb.DB;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.cache.EmpiricalWeigher;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -936,6 +937,12 @@ public class DocumentMK {
 
         public Cache<CacheValue, NodeDocument> buildDocumentCache(DocumentStore docStore) {
             return buildCache(CacheType.DOCUMENT, getDocumentCacheSize(), null, docStore);
+        }
+
+        public NodeDocumentCache buildNodeDocumentCache(DocumentStore docStore) {
+            Cache<CacheValue, NodeDocument> cache = buildDocumentCache(docStore);
+            CacheStats cacheStats = new CacheStats(cache, "Document-Documents", getWeigher(), getDocumentCacheSize());
+            return new NodeDocumentCache(cache, cacheStats);
         }
 
         private <K extends CacheValue, V extends CacheValue> Cache<K, V> buildCache(

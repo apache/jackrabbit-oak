@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.Comparator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.Callable;
@@ -45,13 +44,9 @@ public class NodeDocumentCache implements Closeable {
 
     private final CacheStats cacheStats;
 
-    private final DocumentStore docStore;
-
-    public NodeDocumentCache(@Nonnull DocumentMK.Builder builder, @Nonnull DocumentStore docStore) {
-        this.docStore = docStore;
-        nodesCache = builder.buildDocumentCache(docStore);
-        cacheStats = new CacheStats(nodesCache, "Document-Documents", builder.getWeigher(),
-                builder.getDocumentCacheSize());
+    public NodeDocumentCache(Cache<CacheValue, NodeDocument> nodesCache, CacheStats cacheStats) {
+        this.nodesCache = nodesCache;
+        this.cacheStats = cacheStats;
     }
 
     /**
@@ -122,21 +117,6 @@ public class NodeDocumentCache implements Closeable {
         if (doc != NodeDocument.NULL) {
             nodesCache.put(new StringValue(doc.getId()), doc);
         }
-    }
-
-    /**
-     * Creates a new document, applying {@code updateOp} on {@code oldDoc} and
-     * puts it into cache.
-     *
-     * @param oldDoc initial document
-     * @param updateOp to apply on the {@code oldDoc}
-     */
-    public void putWithUpdate(@Nonnull NodeDocument oldDoc, @Nonnull UpdateOp updateOp) {
-        NodeDocument newDoc = Collection.NODES.newDocument(docStore);
-        oldDoc.deepCopy(newDoc);
-        UpdateUtils.applyChanges(newDoc, updateOp);
-        newDoc.seal();
-        put(newDoc);
     }
 
     /**
@@ -219,43 +199,6 @@ public class NodeDocumentCache implements Closeable {
     }
 
     /**
-     * Applies an update on the cached value. If the {@code oldDocument} is not
-     * cached, nothing will happen.
-     *
-     * @param oldDoc the old document
-     * @param updateOp the update operation
-     */
-    public void applyUpdateOnCachedDocument(@Nonnull NodeDocument oldDocument, @Nonnull UpdateOp updateOp) {
-        // we can only update the cache based on the oldDoc if we
-        // still have the oldDoc in the cache, otherwise we may
-        // update the cache with an outdated document
-        String id = updateOp.getId();
-        NodeDocument cached = getIfPresent(id);
-        if (cached == null) {
-            // cannot use oldDoc to update cache
-            return;
-        }
-
-        // check if the currently cached document matches oldDoc
-        if (Objects.equal(cached.getModCount(), oldDocument.getModCount())) {
-            NodeDocument newDoc = Collection.NODES.newDocument(docStore);
-            oldDocument.deepCopy(newDoc);
-
-            UpdateUtils.applyChanges(newDoc, updateOp);
-            newDoc.seal();
-
-            put(newDoc);
-        } else {
-            // the cache entry was modified by some other thread in
-            // the meantime. the updated cache entry may or may not
-            // include this update. we cannot just apply our update
-            // on top of the cached entry.
-            // therefore we must invalidate the cache entry
-            invalidate(id);
-        }
-    }
-
-    /**
      * Replaces the cached value. If the {@code oldDocument} is not cached, nothing will happen.
      *
      * @param oldDoc the old document
@@ -294,14 +237,14 @@ public class NodeDocumentCache implements Closeable {
         return nodesCache.asMap();
     }
 
+    public CacheStats getCacheStats() {
+        return cacheStats;
+    }
+
     @Override
     public void close() throws IOException {
         if (nodesCache instanceof Closeable) {
             ((Closeable) nodesCache).close();
         }
-    }
-
-    public CacheStats getCacheStats() {
-        return cacheStats;
     }
 }
