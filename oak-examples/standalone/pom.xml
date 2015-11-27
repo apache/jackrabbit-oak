@@ -85,6 +85,12 @@
       <version>1.11</version>
       <optional>true</optional>
     </dependency>
+    <dependency>
+      <groupId>io.dropwizard.metrics</groupId>
+      <artifactId>metrics-core</artifactId>
+      <version>3.1.0</version>
+      <optional>true</optional>
+    </dependency>
 
     <dependency>
       <groupId>javax.jcr</groupId>

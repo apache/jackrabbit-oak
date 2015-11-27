@@ -34,8 +34,10 @@ import javax.servlet.ServletContext;
 import com.google.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.felix.connect.launch.PojoServiceRegistry;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory;
+import org.apache.jackrabbit.oak.run.osgi.ServiceRegistryProvider;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
@@ -78,6 +80,11 @@ public class RepositoryInitializer {
     @Bean(name="repository")
     public Repository getRepository(){
         return repository;
+    }
+
+    @Bean
+    public PojoServiceRegistry getServiceRegistry(){
+        return ((ServiceRegistryProvider) repository).getServiceRegistry();
     }
 
     private void initRepository() throws IOException, RepositoryException {
