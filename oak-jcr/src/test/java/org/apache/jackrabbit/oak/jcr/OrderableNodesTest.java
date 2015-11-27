@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.jcr;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
-import static org.apache.jackrabbit.oak.jcr.NodeStoreFixture.DOCUMENT_RDB;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
@@ -97,7 +96,6 @@ public class OrderableNodesTest extends AbstractRepositoryTest {
      */
     @Test
     public void testAddNode() throws Exception {
-        assumeTrue(fixture != DOCUMENT_RDB);  // FIXME this keeps failing on DOCUMENT_RDB. See OAK-2655
         new TestContentLoader().loadTestContent(getAdminSession());
 
         Session session = getAdminSession();
