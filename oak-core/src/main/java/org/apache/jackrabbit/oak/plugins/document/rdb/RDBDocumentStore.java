@@ -96,10 +96,12 @@ import com.google.common.util.concurrent.Striped;
  * simplify testing, and <em>that</em> code specifically supports these
  * databases:
  * <ul>
- * <li>h2</li>
+ * <li>H2DB</li>
+ * <li>Apache Derby</li>
  * <li>IBM DB2</li>
- * <li>Postgres</li>
+ * <li>PostgreSQL</li>
  * <li>MariaDB (MySQL) (experimental)</li>
+ * <li>Microsoft SQL Server (experimental)</li>
  * <li>Oracle (experimental)</li>
  * </ul>
  * 
@@ -124,8 +126,7 @@ import com.google.common.util.concurrent.Striped;
  * <th>ID</th>
  * <td>varchar(512) not null primary key</td>
  * <td>the document's key (for databases that can not handle 512 character
- * primary keys, such as MySQL, varbinary is possible as well; note that this
- * currently needs to be hardcoded)</td>
+ * primary keys, such as MySQL, varbinary is possible as wells)</td>
  * </tr>
  * <tr>
  * <th>MODIFIED</th>
@@ -172,19 +173,18 @@ import com.google.common.util.concurrent.Striped;
  * The names of database tables can be prefixed; the purpose is mainly for
  * testing, as tables can also be dropped automatically when the store is
  * disposed (this only happens for those tables that have been created on
- * demand)
+ * demand).
  * <p>
  * <em>Note that the database needs to be created/configured to support all Unicode
  * characters in text fields, and to collate by Unicode code point (in DB2: "collate using identity",
  * in Postgres: "C").
  * THIS IS NOT THE DEFAULT!</em>
  * <p>
- * <em>For MySQL, the database parameter "max_allowed_packet" needs to be increased to support ~16 blobs.</em>
+ * <em>For MySQL, the database parameter "max_allowed_packet" needs to be increased to support ~16M blobs.</em>
  * 
  * <h3>Caching</h3>
  * <p>
- * The cache borrows heavily from the {@link MongoDocumentStore} implementation;
- * however it does not support the off-heap mechanism yet.
+ * The cache borrows heavily from the {@link MongoDocumentStore} implementation.
  * 
  * <h3>Queries</h3>
  * <p>
