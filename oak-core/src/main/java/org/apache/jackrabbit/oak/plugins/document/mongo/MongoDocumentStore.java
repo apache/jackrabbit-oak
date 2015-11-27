@@ -216,7 +216,7 @@ public class MongoDocumentStore implements DocumentStore {
         this.journal.createIndex(index, options);
 
         this.nodeLocks = new TreeNodeDocumentLocks();
-        this.nodesCache = new NodeDocumentCache(builder, this, nodeLocks);
+        this.nodesCache = builder.buildNodeDocumentCache(this, nodeLocks);
 
         LOG.info("Configuration maxReplicationLagMillis {}, " +
                 "maxDeltaForModTimeIdxSecs {}, disableIndexHint {}, {}",
@@ -737,7 +737,8 @@ public class MongoDocumentStore implements DocumentStore {
                 if (result.getN() > 0) {
                     // success, update cached document
                     if (collection == Collection.NODES) {
-                        nodesCache.putWithUpdate((NodeDocument) cachedDoc, updateOp);
+                        NodeDocument newDoc = (NodeDocument) applyChanges(collection, cachedDoc, updateOp);
+                        nodesCache.put(newDoc);
                     }
                     // return previously cached document
                     return cachedDoc;
@@ -754,7 +755,8 @@ public class MongoDocumentStore implements DocumentStore {
             T oldDoc = convertFromDBObject(collection, oldNode);
             if (oldDoc != null) {
                 if (collection == Collection.NODES) {
-                    nodesCache.putWithUpdate((NodeDocument) oldDoc, updateOp);
+                    NodeDocument newDoc = (NodeDocument) applyChanges(collection, oldDoc, updateOp);
+                    nodesCache.put(newDoc);
                 }
                 oldDoc.seal();
             } else if (upsert) {
@@ -904,7 +906,8 @@ public class MongoDocumentStore implements DocumentStore {
                             // invalidated
                             nodesCache.invalidate(entry.getKey());
                         } else {
-                            nodesCache.applyUpdateOnCachedDocument(entry.getValue(), updateOp.shallowCopy(entry.getKey()));
+                            NodeDocument newDoc = applyChanges(Collection.NODES, entry.getValue(), updateOp.shallowCopy(entry.getKey()));
+                            nodesCache.replaceCachedDocument(entry.getValue(), newDoc);
                         }
                     } finally {
                         lock.unlock();
@@ -1165,6 +1168,15 @@ public class MongoDocumentStore implements DocumentStore {
         }
 
         return update;
+    }
+
+    @CheckForNull
+    private <T extends Document> T applyChanges(Collection<T> collection, T oldDoc, UpdateOp update) {
+        T doc = collection.newDocument(this);
+        oldDoc.deepCopy(doc);
+        UpdateUtils.applyChanges(doc, update);
+        doc.seal();
+        return doc;
     }
 
     @Override
