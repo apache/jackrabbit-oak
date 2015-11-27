@@ -22,50 +22,49 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import java.util.Calendar;
 import java.util.Collections;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.util.ISO8601;
-import org.junit.Ignore;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableList;
 
 /**
  * Test case for ensuring that segment size remains within bounds.
  */
 public class SegmentSizeTest {
 
-    @Ignore("OAK-3681")
     @Test
     public void testNodeSize() {
         NodeBuilder builder = EMPTY_NODE.builder();
-        assertEquals(112, getSize(builder));
-        assertEquals(4, getAmortizedSize(builder));
+        System.out.println("testNodeSize");
+        expectSize(96, builder);
+        expectAmortizedSize(4, builder);
 
         builder = EMPTY_NODE.builder();
         builder.setProperty("foo", "bar");
-        assertEquals(112, getSize(builder));
-        assertEquals(8, getAmortizedSize(builder));
+        expectSize(112, builder);
+        expectAmortizedSize(8, builder);
 
         builder = EMPTY_NODE.builder();
         builder.setProperty("foo", "bar");
         builder.setProperty("baz", 123);
-        assertEquals(144, getSize(builder));
-        assertEquals(16, getAmortizedSize(builder));
+        expectSize(128, builder);
+        expectAmortizedSize(16, builder);
 
         builder = EMPTY_NODE.builder();
         builder.child("foo");
-        assertEquals(128, getSize(builder));
-        assertEquals(12, getAmortizedSize(builder));
+        expectSize(128, builder);
+        expectAmortizedSize(12, builder);
 
         builder = EMPTY_NODE.builder();
         builder.child("foo");
         builder.child("bar");
-        assertEquals(160, getSize(builder));
-        assertEquals(40, getAmortizedSize(builder));
+        expectSize(144, builder);
+        expectAmortizedSize(40, builder);
     }
 
     @Test
@@ -116,29 +115,29 @@ public class SegmentSizeTest {
                 id2.getOffset() - id3.getOffset());
     }
 
-    @Ignore("OAK-3681")
     @Test
     public void testAccessControlNodes() {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("jcr:primaryType", "rep:ACL", Type.NAME);
-        assertEquals(112, getSize(builder));
-        assertEquals(4, getAmortizedSize(builder));
+        System.out.println("testAccessControlNodes");
+        expectSize(96, builder);
+        expectAmortizedSize(4, builder);
 
         NodeBuilder deny = builder.child("deny");
         deny.setProperty("jcr:primaryType", "rep:DenyACE", Type.NAME);
         deny.setProperty("rep:principalName", "everyone");
         deny.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:read"), Type.NAMES));
-        assertEquals(240, getSize(builder));
-        assertEquals(32, getAmortizedSize(builder));
+        expectSize(240, builder);
+        expectAmortizedSize(32, builder);
 
         NodeBuilder allow = builder.child("allow");
         allow.setProperty("jcr:primaryType", "rep:GrantACE");
         allow.setProperty("rep:principalName", "administrators");
         allow.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:all"), Type.NAMES));
-        assertEquals(368, getSize(builder));
-        assertEquals(84, getAmortizedSize(builder));
+        expectSize(368, builder);
+        expectAmortizedSize(84, builder);
 
         NodeBuilder deny0 = builder.child("deny0");
         deny0.setProperty("jcr:primaryType", "rep:DenyACE", Type.NAME);
@@ -146,16 +145,16 @@ public class SegmentSizeTest {
         deny0.setProperty("rep:glob", "*/activities/*");
         builder.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:read"), Type.NAMES));
-        assertEquals(480, getSize(builder));
-        assertEquals(124, getAmortizedSize(builder));
+        expectSize(464, builder);
+        expectAmortizedSize(124, builder);
 
         NodeBuilder allow0 = builder.child("allow0");
         allow0.setProperty("jcr:primaryType", "rep:GrantACE");
         allow0.setProperty("rep:principalName", "user-administrators");
         allow0.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:all"), Type.NAMES));
-        assertEquals(544, getSize(builder));
-        assertEquals(160, getAmortizedSize(builder));
+        expectSize(528, builder);
+        expectAmortizedSize(160, builder);
     }
 
     @Test
@@ -183,19 +182,22 @@ public class SegmentSizeTest {
         assertEquals(560, segment.size());
     }
 
-    private int getSize(NodeBuilder builder) {
+    private static void expectSize(int expectedSize, NodeBuilder builder) {
         SegmentWriter writer = new MemoryStore().getTracker().getWriter();
         RecordId id = writer.writeNode(builder.getNodeState()).getRecordId();
         writer.flush();
-        return id.getSegment().size();
+        Segment segment = id.getSegment();
+        System.out.println(segment.getSegmentInfo());
+        assertEquals("Unexpected size of segment " + id + " info=" + segment.getSegmentInfo(),
+            expectedSize, segment.size());
     }
 
-    private int getAmortizedSize(NodeBuilder builder) {
+    private static void expectAmortizedSize(int expectedSize, NodeBuilder builder) {
         SegmentWriter writer = new MemoryStore().getTracker().getWriter();
         NodeState state = builder.getNodeState();
         RecordId id1 = writer.writeNode(state).getRecordId();
         RecordId id2 = writer.writeNode(state).getRecordId();
-        return id1.getOffset() - id2.getOffset();
+        assertEquals(expectedSize, id1.getOffset() - id2.getOffset());
     }
 
 }
