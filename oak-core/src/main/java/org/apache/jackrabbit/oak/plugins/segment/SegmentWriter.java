@@ -88,7 +88,7 @@ public class SegmentWriter {
 
     static final int BLOCK_SIZE = 1 << 12; // 4kB
 
-    private final SegmentBuilderPool segmentBuilderPool = new SegmentBuilderPool();
+    private final SegmentBufferWriterPool segmentBufferWriterPool = new SegmentBufferWriterPool();
 
     /**
      * Cache of recently stored string and template records, used to
@@ -139,7 +139,7 @@ public class SegmentWriter {
     }
 
     public void flush() {
-        segmentBuilderPool.flush();
+        segmentBufferWriterPool.flush();
     }
 
     public void dropCache() {
@@ -776,51 +776,51 @@ public class SegmentWriter {
     }
 
     private <T> T writeRecord(RecordWriter<T> recordWriter) {
-        SegmentBuilder builder = segmentBuilderPool.borrowBuilder(currentThread());
+        SegmentBufferWriter writer = segmentBufferWriterPool.borrowWriter(currentThread());
         try {
-            return recordWriter.write(builder);
+            return recordWriter.write(writer);
         } finally {
-            segmentBuilderPool.returnBuilder(currentThread(), builder);
+            segmentBufferWriterPool.returnWriter(currentThread(), writer);
         }
     }
 
-    private class SegmentBuilderPool {
-        private final Set<SegmentBuilder> borrowed = newHashSet();
-        private final Map<Object, SegmentBuilder> builders = newHashMap();
+    private class SegmentBufferWriterPool {
+        private final Set<SegmentBufferWriter> borrowed = newHashSet();
+        private final Map<Object, SegmentBufferWriter> writers = newHashMap();
 
         public void flush() {
-            List<SegmentBuilder> toFlush = newArrayList();
+            List<SegmentBufferWriter> toFlush = newArrayList();
             synchronized (this) {
-                toFlush.addAll(builders.values());
-                builders.clear();
+                toFlush.addAll(writers.values());
+                writers.clear();
                 borrowed.clear();
             }
             // Call flush from outside a synchronized context to avoid
             // deadlocks of that method calling SegmentStore.writeSegment
-            for (SegmentBuilder builder : toFlush) {
-                builder.flush();
+            for (SegmentBufferWriter writer : toFlush) {
+                writer.flush();
             }
         }
 
-        public synchronized SegmentBuilder borrowBuilder(Object key) {
-            SegmentBuilder builder = builders.remove(key);
-            if (builder == null) {
-                builder = new SegmentBuilder(store, version, wid + "." + (key.hashCode() & 0xffff));
+        public synchronized SegmentBufferWriter borrowWriter(Object key) {
+            SegmentBufferWriter writer = writers.remove(key);
+            if (writer == null) {
+                writer = new SegmentBufferWriter(store, version, wid + "." + (key.hashCode() & 0xffff));
             }
-            borrowed.add(builder);
-            return builder;
+            borrowed.add(writer);
+            return writer;
         }
 
-        public void returnBuilder(Object key, SegmentBuilder builder) {
-            if (!tryReturn(key, builder)) {
-                // Delayed flush this builder as it was borrowed while flush() was called.
-                builder.flush();
+        public void returnWriter(Object key, SegmentBufferWriter writer) {
+            if (!tryReturn(key, writer)) {
+                // Delayed flush this writer as it was borrowed while flush() was called.
+                writer.flush();
             }
         }
 
-        private synchronized boolean tryReturn(Object key, SegmentBuilder builder) {
-            if (borrowed.remove(builder)) {
-                builders.put(key, builder);
+        private synchronized boolean tryReturn(Object key, SegmentBufferWriter writer) {
+            if (borrowed.remove(writer)) {
+                writers.put(key, writer);
                 return true;
             } else {
                 return false;

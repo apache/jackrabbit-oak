@@ -62,13 +62,13 @@ final class RecordWriters {
             this(type, size, Collections.<RecordId> emptyList());
         }
 
-        public final T write(SegmentBuilder builder) {
-            RecordId id = builder.prepare(type, size, ids);
-            return writeRecordContent(id, builder);
+        public final T write(SegmentBufferWriter writer) {
+            RecordId id = writer.prepare(type, size, ids);
+            return writeRecordContent(id, writer);
         }
 
         protected abstract T writeRecordContent(RecordId id,
-                SegmentBuilder builder);
+                SegmentBufferWriter writer);
     }
 
     public static RecordWriter<MapRecord> newMapLeafWriter(int level, Collection<MapEntry> entries) {
@@ -171,10 +171,10 @@ final class RecordWriters {
 
         @Override
         protected MapRecord writeRecordContent(RecordId id,
-                SegmentBuilder builder) {
+                SegmentBufferWriter writer) {
             if (entries != null) {
                 int size = entries.size();
-                builder.writeInt((level << SIZE_BITS) | size);
+                writer.writeInt((level << SIZE_BITS) | size);
 
                 // copy the entries to an array so we can sort them before
                 // writing
@@ -182,14 +182,14 @@ final class RecordWriters {
                 sort(array);
 
                 for (MapEntry entry : array) {
-                    builder.writeInt(entry.getHash());
+                    writer.writeInt(entry.getHash());
                 }
                 for (MapEntry entry : array) {
-                    builder.writeRecordId(entry.getKey());
-                    builder.writeRecordId(entry.getValue());
+                    writer.writeRecordId(entry.getKey());
+                    writer.writeRecordId(entry.getValue());
                 }
             } else {
-                builder.writeInt(0);
+                writer.writeInt(0);
             }
             return new MapRecord(id);
         }
@@ -223,12 +223,12 @@ final class RecordWriters {
         }
 
         @Override
-        protected MapRecord writeRecordContent(RecordId id, SegmentBuilder builder) {
+        protected MapRecord writeRecordContent(RecordId id, SegmentBufferWriter writer) {
             // -1 to encode a map diff (if level == 0 and entryCount == -1)
-            builder.writeInt((level << SIZE_BITS) | entryCount);
-            builder.writeInt(bitmap);
+            writer.writeInt((level << SIZE_BITS) | entryCount);
+            writer.writeInt(bitmap);
             for (RecordId mapId : ids) {
-                builder.writeRecordId(mapId);
+                writer.writeRecordId(mapId);
             }
             return new MapRecord(id);
         }
@@ -256,10 +256,10 @@ final class RecordWriters {
 
         @Override
         protected RecordId writeRecordContent(RecordId id,
-                SegmentBuilder builder) {
-            builder.writeInt(count);
+                SegmentBufferWriter writer) {
+            writer.writeInt(count);
             if (lid != null) {
-                builder.writeRecordId(lid);
+                writer.writeRecordId(lid);
             }
             return id;
         }
@@ -278,9 +278,9 @@ final class RecordWriters {
 
         @Override
         protected RecordId writeRecordContent(RecordId id,
-                SegmentBuilder builder) {
+                SegmentBufferWriter writer) {
             for (RecordId bucketId : ids) {
-                builder.writeRecordId(bucketId);
+                writer.writeRecordId(bucketId);
             }
             return id;
         }
@@ -303,8 +303,8 @@ final class RecordWriters {
 
         @Override
         protected RecordId writeRecordContent(RecordId id,
-                SegmentBuilder builder) {
-            builder.writeBytes(bytes, offset, size);
+                SegmentBufferWriter writer) {
+            writer.writeBytes(bytes, offset, size);
             return id;
         }
     }
@@ -326,9 +326,9 @@ final class RecordWriters {
 
         @Override
         protected RecordId writeRecordContent(RecordId id,
-                SegmentBuilder builder) {
-            builder.writeLong(len);
-            builder.writeRecordId(rid);
+                SegmentBufferWriter writer) {
+            writer.writeLong(len);
+            writer.writeRecordId(rid);
             return id;
         }
     }
@@ -364,13 +364,13 @@ final class RecordWriters {
         }
 
         @Override
-        protected RecordId writeRecordContent(RecordId id, SegmentBuilder builder) {
+        protected RecordId writeRecordContent(RecordId id, SegmentBufferWriter writer) {
             if (isSmallSize(length)) {
-                builder.writeByte((byte) length);
+                writer.writeByte((byte) length);
             } else {
-                builder.writeShort((short) ((length - SMALL_LIMIT) | 0x8000));
+                writer.writeShort((short) ((length - SMALL_LIMIT) | 0x8000));
             }
-            builder.writeBytes(data, 0, length);
+            writer.writeBytes(data, 0, length);
             return id;
         }
     }
@@ -393,13 +393,13 @@ final class RecordWriters {
 
         @Override
         protected RecordId writeRecordContent(RecordId id,
-                SegmentBuilder builder) {
+                SegmentBufferWriter writer) {
             // The length uses a fake "length" field that is always equal to
             // 0xF0.
             // This allows the code to take apart small from a large blob IDs.
-            builder.writeByte((byte) 0xF0);
-            builder.writeRecordId(stringRecord);
-            builder.addBlobRef(id);
+            writer.writeByte((byte) 0xF0);
+            writer.writeRecordId(stringRecord);
+            writer.addBlobRef(id);
             return id;
         }
     }
@@ -422,11 +422,11 @@ final class RecordWriters {
 
         @Override
         protected RecordId writeRecordContent(RecordId id,
-                SegmentBuilder builder) {
+                SegmentBufferWriter writer) {
             int length = blobId.length;
-            builder.writeShort((short) (length | 0xE000));
-            builder.writeBytes(blobId, 0, length);
-            builder.addBlobRef(id);
+            writer.writeShort((short) (length | 0xE000));
+            writer.writeBytes(blobId, 0, length);
+            writer.addBlobRef(id);
             return id;
         }
     }
@@ -461,30 +461,30 @@ final class RecordWriters {
 
         @Override
         protected RecordId writeRecordContent(RecordId id,
-                SegmentBuilder builder) {
-            builder.writeInt(head);
+                SegmentBufferWriter writer) {
+            writer.writeInt(head);
             if (primaryId != null) {
-                builder.writeRecordId(primaryId);
+                writer.writeRecordId(primaryId);
             }
             if (mixinIds != null) {
                 for (RecordId mixinId : mixinIds) {
-                    builder.writeRecordId(mixinId);
+                    writer.writeRecordId(mixinId);
                 }
             }
             if (childNameId != null) {
-                builder.writeRecordId(childNameId);
+                writer.writeRecordId(childNameId);
             }
             if (version.onOrAfter(V_11)) {
                 if (propNamesId != null) {
-                    builder.writeRecordId(propNamesId);
+                    writer.writeRecordId(propNamesId);
                 }
             }
             for (int i = 0; i < propertyNames.length; i++) {
                 if (!version.onOrAfter(V_11)) {
                     // V10 only
-                    builder.writeRecordId(propertyNames[i]);
+                    writer.writeRecordId(propertyNames[i]);
                 }
-                builder.writeByte(propertyTypes[i]);
+                writer.writeByte(propertyTypes[i]);
             }
             return id;
         }
@@ -501,9 +501,9 @@ final class RecordWriters {
 
         @Override
         protected SegmentNodeState writeRecordContent(RecordId id,
-                SegmentBuilder builder) {
+                SegmentBufferWriter writer) {
             for (RecordId recordId : ids) {
-                builder.writeRecordId(recordId);
+                writer.writeRecordId(recordId);
             }
             return new SegmentNodeState(id);
         }
