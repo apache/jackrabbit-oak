@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.List;
 import java.util.Map;
 
 import javax.annotation.PostConstruct;
@@ -31,6 +32,8 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.servlet.ServletContext;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -44,12 +47,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.ApplicationArguments;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 
 @Configuration
 public class RepositoryInitializer {
+    public static final String ARG_MONGO = "mongo";
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
@@ -62,6 +68,15 @@ public class RepositoryInitializer {
 
     @Value("${repo.home}")
     private String repoHome;
+
+    @Value("${oak.mongo.db}")
+    private String mongoDbName;
+
+    @Value("${oak.mongo.uri}")
+    private String mongouri;
+
+    @Autowired
+    private ApplicationArguments args;
 
     @PostConstruct
     public void initialize() throws Exception {
@@ -91,39 +106,66 @@ public class RepositoryInitializer {
         File repoHomeDir = new File(repoHome);
         FileUtils.forceMkdir(repoHomeDir);
 
-        File repoConfig = new File(repoHomeDir, "repository-config.json");
-        copyDefaultConfig(repoConfig, defaultRepoConfig);
-        repository = createRepository(repoConfig, repoHomeDir);
+        List<String> configFileNames = determineConfigFileNamesToCopy();
+        List<String> configFilePaths = copyConfigs(repoHomeDir, configFileNames);
+        repository = createRepository(configFilePaths, repoHomeDir);
     }
 
-    private Repository createRepository(File repoConfig, File repoHomeDir) throws RepositoryException {
+    private Repository createRepository(List<String> repoConfigs, File repoHomeDir) throws RepositoryException {
         Map<String,Object> config = Maps.newHashMap();
         config.put(OakOSGiRepositoryFactory.REPOSITORY_HOME, repoHomeDir.getAbsolutePath());
-        config.put(OakOSGiRepositoryFactory.REPOSITORY_CONFIG_FILE, repoConfig.getAbsolutePath());
+        config.put(OakOSGiRepositoryFactory.REPOSITORY_CONFIG_FILE, commaSepFilePaths(repoConfigs));
         config.put(OakOSGiRepositoryFactory.REPOSITORY_SHUTDOWN_ON_TIMEOUT, false);
         config.put(OakOSGiRepositoryFactory.REPOSITORY_ENV_SPRING_BOOT, true);
         config.put(OakOSGiRepositoryFactory.REPOSITORY_TIMEOUT_IN_SECS, 10);
 
         config.put("repo.home", repoHomeDir.getAbsolutePath());
+        config.put("oak.mongo.db", mongoDbName);
+        config.put("oak.mongo.uri", getMongoURI());
 
         configureActivator(config);
         return new OakOSGiRepositoryFactory().getRepository(config);
     }
 
-    private void configureActivator(Map<String, Object> config) {
-        config.put(BundleActivator.class.getName(), new BundleActivator() {
-            @Override
-            public void start(BundleContext bundleContext) throws Exception {
-                servletContext.setAttribute(BundleContext.class.getName(), bundleContext);
-            }
-
-            @Override
-            public void stop(BundleContext bundleContext) throws Exception {
-                servletContext.removeAttribute(BundleContext.class.getName());
-            }
-        });
-
+    private String getMongoURI() {
+        List<String> mongoOpts = args.getOptionValues(ARG_MONGO);
+        if (mongoOpts != null && !mongoOpts.isEmpty()){
+            return mongoOpts.get(0);
+        }
+        return mongouri;
     }
+
+    private Object commaSepFilePaths(List<String> repoConfigs) {
+        return Joiner.on(",").join(repoConfigs);
+    }
+
+    private List<String> copyConfigs(File repoHomeDir, List<String> configFileNames)
+            throws IOException, RepositoryException {
+        List<String> filePaths = Lists.newArrayList();
+        for (String configName : configFileNames) {
+            File dest = new File(repoHomeDir, configName);
+            Resource source = new ClassPathResource("config-templates/" + configName);
+            copyDefaultConfig(dest, source);
+            filePaths.add(dest.getAbsolutePath());
+        }
+        return filePaths;
+    }
+
+
+    private List<String> determineConfigFileNamesToCopy() {
+        List<String> configNames = Lists.newArrayList();
+        configNames.add("repository-config.json");
+
+        //Mongo mode can be selected via --mongo
+        if (args.containsOption(ARG_MONGO)) {
+            configNames.add("mongomk-config.json");
+            log.info("Using Mongo persistence");
+        } else {
+            configNames.add("segmentmk-config.json");
+        }
+        return configNames;
+    }
+
 
     private void copyDefaultConfig(File repoConfig, Resource defaultRepoConfig)
             throws IOException, RepositoryException {
@@ -144,5 +186,18 @@ public class RepositoryInitializer {
         }
     }
 
+    private void configureActivator(Map<String, Object> config) {
+        config.put(BundleActivator.class.getName(), new BundleActivator() {
+            @Override
+            public void start(BundleContext bundleContext) throws Exception {
+                servletContext.setAttribute(BundleContext.class.getName(), bundleContext);
+            }
 
+            @Override
+            public void stop(BundleContext bundleContext) throws Exception {
+                servletContext.removeAttribute(BundleContext.class.getName());
+            }
+        });
+
+    }
 }
