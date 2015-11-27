@@ -887,10 +887,7 @@ public class RDBDocumentStore implements DocumentStore {
                 for (UpdateOp update : chunks) {
                     UpdateUtils.assertUnconditional(update);
                     T doc = collection.newDocument(this);
-                    update.increment(MODCOUNT, 1);
-                    if (hasChangesToCollisions(update)) {
-                        update.increment(COLLISIONSMODCOUNT, 1);
-                    }
+                    addUpdateCounters(update);
                     UpdateUtils.applyChanges(doc, update);
                     if (!update.getId().equals(doc.getId())) {
                         throw new DocumentStoreException("ID mismatch - UpdateOp: " + update.getId() + ", ID property: "
@@ -929,10 +926,7 @@ public class RDBDocumentStore implements DocumentStore {
             if (checkConditions && !checkConditions(doc, update.getConditions())) {
                 return null;
             }
-            update.increment(MODCOUNT, 1);
-            if (hasChangesToCollisions(update)) {
-                update.increment(COLLISIONSMODCOUNT, 1);
-            }
+            addUpdateCounters(update);
             UpdateUtils.applyChanges(doc, update);
             try {
                 insertDocuments(collection, Collections.singletonList(doc));
@@ -962,11 +956,11 @@ public class RDBDocumentStore implements DocumentStore {
     @CheckForNull
     private <T extends Document> T internalUpdate(Collection<T> collection, UpdateOp update, T oldDoc, boolean checkConditions,
             int maxRetries) {
-        T doc = applyChanges(collection, oldDoc, update, checkConditions);
-        if (doc == null) {
-            // conditions not met
+        if (checkConditions && !UpdateUtils.checkConditions(oldDoc, update.getConditions())) {
             return null;
         } else {
+            addUpdateCounters(update);
+            T doc = createNewDocument(collection, oldDoc, update);
             Lock l = getAndLock(update.getId());
             try {
                 boolean success = false;
@@ -993,9 +987,12 @@ public class RDBDocumentStore implements DocumentStore {
                             return null;
                         }
 
-                        doc = applyChanges(collection, oldDoc, update, checkConditions);
-                        if (doc == null) {
+                        if (checkConditions && !UpdateUtils.checkConditions(oldDoc, update.getConditions())) {
                             return null;
+                        }
+                        else {
+                            addUpdateCounters(update);
+                            doc = createNewDocument(collection, oldDoc, update);
                         }
                     } else {
                         updateCache(collection, oldDoc, doc);
@@ -1014,20 +1011,20 @@ public class RDBDocumentStore implements DocumentStore {
         }
     }
 
-    @CheckForNull
-    private <T extends Document> T applyChanges(Collection<T> collection, T oldDoc, UpdateOp update, boolean checkConditions) {
+    @Nonnull
+    private <T extends Document> T createNewDocument(Collection<T> collection, T oldDoc, UpdateOp update) {
         T doc = collection.newDocument(this);
         oldDoc.deepCopy(doc);
-        if (checkConditions && !checkConditions(doc, update.getConditions())) {
-            return null;
-        }
+        UpdateUtils.applyChanges(doc, update);
+        doc.seal();
+        return doc;
+    }
+
+    private static void addUpdateCounters(UpdateOp update) {
         if (hasChangesToCollisions(update)) {
             update.increment(COLLISIONSMODCOUNT, 1);
         }
         update.increment(MODCOUNT, 1);
-        UpdateUtils.applyChanges(doc, update);
-        doc.seal();
-        return doc;
     }
 
     @CheckForNull
@@ -1087,10 +1084,9 @@ public class RDBDocumentStore implements DocumentStore {
                                 // invalidated
                                 nodesCache.invalidate(new StringValue(id));
                             } else {
-                                T newDoc = applyChanges(collection, oldDoc, update, true);
-                                if (newDoc != null) {
-                                    updateCache(collection, oldDoc, newDoc);
-                                }
+                                addUpdateCounters(update);
+                                T newDoc = createNewDocument(collection, oldDoc, update);
+                                updateCache(collection, oldDoc, newDoc);
                             }
                         } finally {
                             lock.unlock();
@@ -1712,19 +1708,21 @@ public class RDBDocumentStore implements DocumentStore {
         return castAsT(fresh);
     }
 
-    private boolean hasChangesToCollisions(UpdateOp update) {
-        if (! USECMODCOUNT) return false;
-
-        for (Entry<Key, Operation> e : checkNotNull(update).getChanges().entrySet()) {
-            Key k = e.getKey();
-            Operation op = e.getValue();
-            if (op.type == Operation.Type.SET_MAP_ENTRY) {
-                if (NodeDocument.COLLISIONS.equals(k.getName())) {
-                    return true;
+    private static boolean hasChangesToCollisions(UpdateOp update) {
+        if (!USECMODCOUNT) {
+            return false;
+        } else {
+            for (Entry<Key, Operation> e : checkNotNull(update).getChanges().entrySet()) {
+                Key k = e.getKey();
+                Operation op = e.getValue();
+                if (op.type == Operation.Type.SET_MAP_ENTRY) {
+                    if (NodeDocument.COLLISIONS.equals(k.getName())) {
+                        return true;
+                    }
                 }
             }
+            return false;
         }
-        return false;
     }
 
     protected Cache<CacheValue, NodeDocument> getNodeDocumentCache() {
