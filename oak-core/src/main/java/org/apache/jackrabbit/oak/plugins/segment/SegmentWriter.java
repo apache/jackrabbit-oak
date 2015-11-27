@@ -32,6 +32,7 @@ import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.io.ByteStreams.read;
 import static com.google.common.io.Closeables.close;
+import static java.lang.String.valueOf;
 import static java.lang.Thread.currentThread;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
@@ -788,6 +789,8 @@ public class SegmentWriter {
         private final Set<SegmentBufferWriter> borrowed = newHashSet();
         private final Map<Object, SegmentBufferWriter> writers = newHashMap();
 
+        private short writerId = -1;
+
         public void flush() {
             List<SegmentBufferWriter> toFlush = newArrayList();
             synchronized (this) {
@@ -805,7 +808,7 @@ public class SegmentWriter {
         public synchronized SegmentBufferWriter borrowWriter(Object key) {
             SegmentBufferWriter writer = writers.remove(key);
             if (writer == null) {
-                writer = new SegmentBufferWriter(store, version, wid + "." + (key.hashCode() & 0xffff));
+                writer = new SegmentBufferWriter(store, version, wid + "." + getWriterId());
             }
             borrowed.add(writer);
             return writer;
@@ -824,6 +827,22 @@ public class SegmentWriter {
                 return true;
             } else {
                 return false;
+            }
+        }
+
+        private synchronized String getWriterId() {
+            if (++writerId > 9999) {
+                writerId = 0;
+            }
+            // Manually padding seems to be fastest here
+            if (writerId < 10) {
+                return "000" + writerId;
+            } else if (writerId < 100) {
+                return "00" + writerId;
+            } else if (writerId < 1000) {
+                return "0" + writerId;
+            } else {
+                return valueOf(writerId);
             }
         }
     }
