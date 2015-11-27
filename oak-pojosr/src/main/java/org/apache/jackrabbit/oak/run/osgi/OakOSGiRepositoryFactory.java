@@ -466,13 +466,15 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
                 return tracker.getRegistry();
             }
 
-            Object result = method.invoke(obj, args);
-
-            //If shutdown then close the framework *after* repository shutdown
+            //If shutdown then close the framework and return
+            //Repository would be shutdown by the owning OSGi
+            //component like RepositoryManager
             if ("shutdown".equals(name)) {
                 tracker.shutdownRepository();
+                return null;
             }
-            return result;
+
+            return method.invoke(obj, args);
         }
 
         public void clearInitialReference() {
