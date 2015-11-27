@@ -459,13 +459,7 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
                 obj = initialService;
             }
 
-            checkNotNull(obj, "Repository service is not available");
-
             final String name = method.getName();
-            if ("getServiceRegistry".equals(name)){
-                return tracker.getRegistry();
-            }
-
             //If shutdown then close the framework and return
             //Repository would be shutdown by the owning OSGi
             //component like RepositoryManager
@@ -474,6 +468,11 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
                 return null;
             }
 
+            if ("getServiceRegistry".equals(name)){
+                return tracker.getRegistry();
+            }
+
+            checkNotNull(obj, "Repository service is not available");
             return method.invoke(obj, args);
         }
 
