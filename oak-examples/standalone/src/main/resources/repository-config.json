@@ -20,6 +20,10 @@
     "jaas.configProviderName": "FelixJaasProvider"
   },
   "org.apache.jackrabbit.oak.jcr.osgi.RepositoryManager": {},
+  "org.apache.jackrabbit.oak.plugins.blob.datastore.FileDataStore": {
+    "minRecordLength" : 4096,
+    "path" : "${repo.home}/datastore"
+  },
   "org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService" : {
   }
 }
