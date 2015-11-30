@@ -16,19 +16,30 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.blob;
 
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import static org.apache.jackrabbit.oak.upgrade.cli.blob.S3DataStoreFactory.stripValue;
+import static org.junit.Assert.assertEquals;
 
-import com.google.common.io.Closer;
+import org.junit.Test;
 
-public class DummyBlobStoreFactory implements BlobStoreFactory {
+public class StripConfigValueTest {
 
-    @Override
-    public BlobStore create(Closer closer) {
-        return null;
+    @Test
+    public void testStripPrefixAndQuotes() {
+        assertEquals("123aaa", stripValue("B\"123aaa\""));
     }
 
-    @Override
-    public String toString() {
-        return "DummyBlobStore";
+    @Test
+    public void testStripPrefixQuotesAndWhitespaces() {
+        assertEquals("123aaa", stripValue("B\"123aaa\"   "));
+    }
+
+    @Test
+    public void testStripQuotes() {
+        assertEquals("123aaa", stripValue("\"123aaa\""));
+    }
+
+    @Test
+    public void testNoStrip() {
+        assertEquals("123aaa", stripValue("123aaa"));
     }
 }

@@ -17,76 +17,55 @@
 package org.apache.jackrabbit.oak.upgrade.cli.container;
 
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
-import java.util.Properties;
-
-import javax.jcr.RepositoryException;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.oak.blob.cloud.aws.s3.S3DataStore;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.upgrade.cli.blob.S3DataStoreFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.io.Closer;
 import com.google.common.io.Files;
 
 public class S3DataStoreContainer implements BlobStoreContainer {
 
     private static final Logger log = LoggerFactory.getLogger(S3DataStoreContainer.class);
 
-    private final String configFile;
+    private final File directory;
 
-    private final File homeDir;
+    private final S3DataStoreFactory factory;
 
-    private S3DataStore s3DataStore;
+    private final Closer closer;
 
-    public S3DataStoreContainer(String configFile) {
-        this.configFile = configFile;
-        this.homeDir = Files.createTempDir();
+    public S3DataStoreContainer(String configFile) throws IOException {
+        this.directory = Files.createTempDir();
+        this.factory = new S3DataStoreFactory(configFile, directory.getPath());
+        this.closer = Closer.create();
     }
 
     @Override
     public BlobStore open() throws IOException {
-        Properties props = new Properties();
-        FileReader reader = new FileReader(new File(configFile));
-        try {
-            props.load(reader);
-        } finally {
-            IOUtils.closeQuietly(reader);
-        }
-        props.setProperty("path", new File(homeDir, "repository/datastore").getPath());
-
-        S3DataStore delegate = new S3DataStore();
-        delegate.setProperties(props);
-        try {
-            delegate.init(homeDir.getPath());
-        } catch (RepositoryException e) {
-            throw new IOException(e);
-        }
-        return new DataStoreBlobStore(delegate);
+        return factory.create(closer);
     }
 
     @Override
     public void close() {
         try {
-            s3DataStore.close();
-        } catch (DataStoreException e) {
-            log.error("Can't close s3datastore", e);
+            closer.close();
+        } catch (IOException e) {
+            log.error("Can't close store", e);
         }
     }
 
     @Override
     public void clean() throws IOException {
-        FileUtils.deleteDirectory(homeDir);
+        FileUtils.deleteDirectory(directory);
     }
 
     @Override
     public String getDescription() {
-        return homeDir.getPath();
+        return directory.getPath();
     }
 
 }
