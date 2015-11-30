@@ -808,10 +808,11 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     @Override
-    protected void finalize() {
+    protected void finalize() throws Throwable {
         if (!this.ch.isClosed() && this.callStack != null) {
             LOG.debug("finalizing RDBDocumentStore that was not disposed", this.callStack);
         }
+        super.finalize();
     }
 
     private <T extends Document> T readDocumentCached(final Collection<T> collection, final String id, int maxCacheAge) {
