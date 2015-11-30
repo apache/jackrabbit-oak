@@ -43,10 +43,31 @@ class RepositoryShutdownTest {
     @Test
     public void multipleShutdown() throws Exception{
         JackrabbitRepository repository = mock(JackrabbitRepository.class)
+        def config = getConfig(repository)
+
+        Repository repo2 = new OakOSGiRepositoryFactory().getRepository(config)
+        assert repo2 instanceof JackrabbitRepository
+        repo2.shutdown()
+
+        verify(repository, times(0)).shutdown()
+    }
+
+    @Test
+    public void multipleShutdownAndWait() throws Exception{
+        JackrabbitRepository repository = mock(JackrabbitRepository.class)
+        def config = getConfig(repository)
+
+        Repository repo2 = new OakOSGiRepositoryFactory().getRepository(config)
+        assert repo2 instanceof JackrabbitRepository
+        repo2.shutdown()
+        repo2.shutdown()
+    }
+
+    private LinkedHashMap<String, Object> getConfig(repository) {
         def config = [
-                (REPOSITORY_HOME): tmpFolder.root.absolutePath,
-                (REPOSITORY_TIMEOUT_IN_SECS) : 60,
-                (BundleActivator.class.name) : new BundleActivator(){
+                (REPOSITORY_HOME)           : tmpFolder.root.absolutePath,
+                (REPOSITORY_TIMEOUT_IN_SECS): 1,
+                (BundleActivator.class.name): new BundleActivator() {
                     @Override
                     void start(BundleContext bundleContext) throws Exception {
                         bundleContext.registerService(Repository.class.name, repository, null)
@@ -58,12 +79,6 @@ class RepositoryShutdownTest {
                     }
                 }
         ]
-
-        Repository repo2 = new OakOSGiRepositoryFactory().getRepository(config)
-        assert repo2 instanceof JackrabbitRepository
-        repo2.shutdown()
-
-        verify(repository, times(0)).shutdown()
-
+        config
     }
 }
