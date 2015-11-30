@@ -33,6 +33,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -274,7 +275,12 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
 
         //Wait for framework shutdown to complete
         try {
-            shutdownLatch.await(timeoutInSecs, TimeUnit.SECONDS);
+            boolean shutdownWithinTimeout = shutdownLatch.await(timeoutInSecs,
+                    TimeUnit.SECONDS);
+            if (!shutdownWithinTimeout){
+                throw new BundleException("Timed out while waiting for repository " +
+                        "shutdown for "+ timeoutInSecs + " secs");
+            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new BundleException("Timed out while waiting for repository " +
@@ -446,6 +452,7 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
     private static class RepositoryProxy implements InvocationHandler {
         private final RepositoryTracker tracker;
         private Repository initialService;
+        private final AtomicBoolean shutdownInitiated = new AtomicBoolean();
 
         private RepositoryProxy(RepositoryTracker tracker, Repository initialService) {
             this.tracker = tracker;
@@ -464,7 +471,9 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
             //Repository would be shutdown by the owning OSGi
             //component like RepositoryManager
             if ("shutdown".equals(name)) {
-                tracker.shutdownRepository();
+                if (!shutdownInitiated.getAndSet(true)) {
+                    tracker.shutdownRepository();
+                }
                 return null;
             }
 
