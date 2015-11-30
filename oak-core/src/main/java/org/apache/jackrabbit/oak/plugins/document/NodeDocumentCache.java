@@ -206,13 +206,9 @@ public class NodeDocumentCache implements Closeable {
      */
     @Nonnull
     public void replaceCachedDocument(@Nonnull final NodeDocument oldDocument, @Nonnull final NodeDocument newDoc) {
-        NodeDocument cached = putIfAbsent(newDoc);
-        if (cached == newDoc) {
-            // successful
-            return;
-        } else if (oldDocument == null) {
-            // this is an insert and some other thread was quicker
-            // loading it into the cache -> return now
+        String key = oldDocument.getId();
+        NodeDocument cached = getIfPresent(key);
+        if (cached == null) {
             return;
         } else {
             // this is an update (oldDoc != null)
@@ -224,7 +220,7 @@ public class NodeDocumentCache implements Closeable {
                 // include this update. we cannot just apply our update
                 // on top of the cached entry.
                 // therefore we must invalidate the cache entry
-                invalidate(newDoc.getId());
+                invalidate(key);
             }
         }
     }
