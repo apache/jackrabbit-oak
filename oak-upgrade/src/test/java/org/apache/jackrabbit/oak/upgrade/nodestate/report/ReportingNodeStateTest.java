@@ -30,6 +30,7 @@ import static org.apache.jackrabbit.oak.upgrade.nodestate.report.AssertingPeriod
 import static org.apache.jackrabbit.oak.upgrade.nodestate.report.AssertingPeriodicReporter.hasReportedNodes;
 import static org.apache.jackrabbit.oak.upgrade.nodestate.report.AssertingPeriodicReporter.hasReportedProperty;
 import static org.hamcrest.CoreMatchers.any;
+import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
 
 public class ReportingNodeStateTest {
@@ -73,24 +74,33 @@ public class ReportingNodeStateTest {
 
     @Test
     public void getPropertyReportsProperty() {
-        final AssertingPeriodicReporter reporter = new AssertingPeriodicReporter(10, 10);
-        final NodeState nodeState = ReportingNodeState.wrap(EmptyNodeState.EMPTY_NODE, reporter);
+        final NodeBuilder builder = EmptyNodeState.EMPTY_NODE.builder();
+        final String name = "meaningOfLife";
+        builder.setProperty(name, "42");
+
+        final AssertingPeriodicReporter reporter = new AssertingPeriodicReporter(1, 1);
+        final NodeState nodeState = ReportingNodeState.wrap(builder.getNodeState(), reporter);
 
         reporter.reset();
-        final String name = "a";
-        for (int i = 0; i < 3; i++) {
-            // 3 * 7 property requests = 21
-            nodeState.getProperty(name);
-            nodeState.getBoolean(name);
-            nodeState.getLong(name);
-            nodeState.getString(name);
-            nodeState.getStrings(name);
-            nodeState.getName(name);
-            nodeState.getNames(name);
-        }
 
-        assertThat(reporter, hasReportedProperty(10, "/a"));
-        assertThat(reporter, hasReportedProperty(20, "/a"));
+        // 7 accesses via 7 methods
+        nodeState.getProperty(name);
+        nodeState.getBoolean(name);
+        nodeState.getLong(name);
+        nodeState.getString(name);
+        nodeState.getStrings(name);
+        nodeState.getName(name);
+        nodeState.getNames(name);
+
+        assertThat(reporter, not(hasReportedProperty(0, "/meaningOfLife")));
+        assertThat(reporter, hasReportedProperty(1, "/meaningOfLife"));
+        assertThat(reporter, hasReportedProperty(2, "/meaningOfLife"));
+        assertThat(reporter, hasReportedProperty(3, "/meaningOfLife"));
+        assertThat(reporter, hasReportedProperty(4, "/meaningOfLife"));
+        assertThat(reporter, hasReportedProperty(5, "/meaningOfLife"));
+        assertThat(reporter, hasReportedProperty(6, "/meaningOfLife"));
+        assertThat(reporter, hasReportedProperty(7, "/meaningOfLife"));
+        assertThat(reporter, not(hasReportedProperty(8, "/meaningOfLife")));
     }
 
     @Test
