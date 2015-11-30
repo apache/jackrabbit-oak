@@ -16,27 +16,14 @@
  */
 package org.apache.jackrabbit.oak.upgrade.nodestate;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Set;
-
-import static org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants.OAK_CHILD_ORDER;
 
 /**
  * NodeState implementation that decorates another node-state instance
@@ -68,13 +55,11 @@ import static org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants.OAK_CHIL
  *     <li>{@link #getProperty(String)}</li>
  * </ul>
  */
-public class FilteringNodeState extends AbstractNodeState {
+public class FilteringNodeState extends AbstractDecoratedNodeState {
 
     public static final Set<String> ALL = ImmutableSet.of("/");
 
     public static final Set<String> NONE = ImmutableSet.of();
-
-    private final NodeState delegate;
 
     private final String path;
 
@@ -114,116 +99,27 @@ public class FilteringNodeState extends AbstractNodeState {
             @Nonnull final Set<String> includedPaths,
             @Nonnull final Set<String> excludedPaths
     ) {
+        super(delegate);
         this.path = path;
-        this.delegate = delegate;
         this.includedPaths = includedPaths;
         this.excludedPaths = excludedPaths;
     }
 
-    @Override
     @Nonnull
-    public NodeBuilder builder() {
-        return new MemoryNodeBuilder(this);
-    }
-
     @Override
-    public boolean exists() {
-        return !isHidden(path, includedPaths, excludedPaths) && delegate.exists();
-    }
-
-    @Override
-    @Nonnull
-    public NodeState getChildNode(@Nonnull final String name) throws IllegalArgumentException {
+    protected NodeState decorateChild(@Nonnull final String name, @Nonnull final NodeState child) {
         final String childPath = PathUtils.concat(path, name);
-        return wrap(childPath, delegate.getChildNode(name), includedPaths, excludedPaths);
+        return wrap(childPath, child, includedPaths, excludedPaths);
     }
 
     @Override
-    public boolean hasChildNode(@Nonnull final String name) {
-        final String childPath = PathUtils.concat(path, name);
-        return !isHidden(childPath, includedPaths, excludedPaths) && delegate.hasChildNode(name);
+    protected boolean hideChild(@Nonnull final String name, @Nonnull final NodeState delegateChild) {
+        return isHidden(PathUtils.concat(path, name), includedPaths, excludedPaths);
     }
 
     @Override
-    @Nonnull
-    public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        final Iterable<ChildNodeEntry> transformed = Iterables.transform(
-                delegate.getChildNodeEntries(),
-                new Function<ChildNodeEntry, ChildNodeEntry>() {
-                    @Nullable
-                    @Override
-                    public ChildNodeEntry apply(@Nullable final ChildNodeEntry childNodeEntry) {
-                        if (childNodeEntry != null) {
-                            final String name = childNodeEntry.getName();
-                            final String childPath = PathUtils.concat(path, name);
-                            if (!isHidden(childPath, includedPaths, excludedPaths)) {
-                                final NodeState nodeState = childNodeEntry.getNodeState();
-                                final NodeState state = wrap(childPath, nodeState, includedPaths, excludedPaths);
-                                return new MemoryChildNodeEntry(name, state);
-                            }
-                        }
-                        return null;
-                    }
-                }
-        );
-        return Iterables.filter(transformed, new Predicate<ChildNodeEntry>() {
-            @Override
-            public boolean apply(@Nullable final ChildNodeEntry childNodeEntry) {
-                return childNodeEntry != null;
-            }
-        });
-    }
-
-    @Override
-    public long getPropertyCount() {
-        return delegate.getPropertyCount();
-    }
-
-    @Override
-    @Nonnull
-    public Iterable<? extends PropertyState> getProperties() {
-        return Iterables.transform(delegate.getProperties(), new Function<PropertyState, PropertyState>() {
-            @Nullable
-            @Override
-            public PropertyState apply(@Nullable final PropertyState propertyState) {
-                return fixChildOrderPropertyState(propertyState);
-            }
-        });
-    }
-
-    @Override
-    public PropertyState getProperty(String name) {
-        return fixChildOrderPropertyState(delegate.getProperty(name));
-    }
-
-    @Override
-    public boolean hasProperty(String name) {
-        return delegate.getProperty(name) != null;
-    }
-
-    /**
-     * Utility method to fix the PropertyState of properties called {@code :childOrder}.
-     *
-     * @param propertyState A property-state.
-     * @return The original property-state or if the property name is {@code :childOrder}, a
-     *         property-state with hidden child names removed from the value.
-     */
-    @CheckForNull
-    private PropertyState fixChildOrderPropertyState(@Nullable final PropertyState propertyState) {
-        if (propertyState != null && OAK_CHILD_ORDER.equals(propertyState.getName())) {
-            final Iterable<String> values = Iterables.filter(propertyState.getValue(Type.NAMES), new Predicate<String>() {
-                @Override
-                public boolean apply(@Nullable final String name) {
-                    if (name == null) {
-                        return false;
-                    }
-                    final String childPath = PathUtils.concat(path, name);
-                    return !isHidden(childPath, includedPaths, excludedPaths);
-                }
-            });
-            return PropertyStates.createProperty(OAK_CHILD_ORDER, values, Type.NAMES);
-        }
-        return propertyState;
+    protected PropertyState decorateProperty(@Nonnull final PropertyState propertyState) {
+        return fixChildOrderPropertyState(this, propertyState);
     }
 
     /**
@@ -235,7 +131,7 @@ public class FilteringNodeState extends AbstractNodeState {
      * @param excludes Exclude paths
      * @return Whether the {@code path} is hidden or not.
      */
-    public static boolean isHidden(
+    private static boolean isHidden(
             @Nonnull final String path,
             @Nonnull final Set<String> includes,
             @Nonnull final Set<String> excludes

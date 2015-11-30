@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.LoggingCompositeHook;
+import org.apache.jackrabbit.oak.upgrade.nodestate.NameFilteringNodeState;
 import org.apache.jackrabbit.oak.upgrade.nodestate.report.LoggingReporter;
 import org.apache.jackrabbit.oak.upgrade.nodestate.report.ReportingNodeState;
 import org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier;
@@ -78,6 +79,8 @@ public class RepositorySidegrade {
      * Paths to merge during the copy process. Empty by default.
      */
     private Set<String> mergePaths = DEFAULT_MERGE_PATHS;
+
+    private boolean skipLongNames = true;
 
     private List<CommitHook> customCommitHooks = null;
 
@@ -182,6 +185,14 @@ public class RepositorySidegrade {
         this.mergePaths = copyOf(checkNotNull(merges));
     }
 
+    public boolean isSkipLongNames() {
+        return skipLongNames;
+    }
+
+    public void setSkipLongNames(boolean skipLongNames) {
+        this.skipLongNames = skipLongNames;
+    }
+
     /**
      * Same as {@link #copy(RepositoryInitializer)}, but with no custom initializer. 
      */
@@ -205,7 +216,6 @@ public class RepositorySidegrade {
      */
     public void copy(RepositoryInitializer initializer) throws RepositoryException {
         try {
-            NodeState sourceRoot = source.getRoot();
             NodeBuilder targetRoot = target.getRoot().builder();
 
             new InitialContent().initialize(targetRoot);
@@ -213,10 +223,14 @@ public class RepositorySidegrade {
                 initializer.initialize(targetRoot);
             }
 
-            copyState(
-                    ReportingNodeState.wrap(sourceRoot, new LoggingReporter(LOG, "Copying", 10000, -1)),
-                    targetRoot
-            );
+            final NodeState reportingSourceRoot = ReportingNodeState.wrap(source.getRoot(), new LoggingReporter(LOG, "Copying", 10000, -1));
+            final NodeState sourceRoot;
+            if (skipLongNames) {
+                sourceRoot = NameFilteringNodeState.wrap(reportingSourceRoot);
+            } else {
+                sourceRoot = reportingSourceRoot;
+            }
+            copyState(sourceRoot, targetRoot);
 
         } catch (Exception e) {
             throw new RepositoryException("Failed to copy content", e);
