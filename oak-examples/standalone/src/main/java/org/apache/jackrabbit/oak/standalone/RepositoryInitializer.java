@@ -119,11 +119,16 @@ public class RepositoryInitializer {
         config.put(OakOSGiRepositoryFactory.REPOSITORY_ENV_SPRING_BOOT, true);
         config.put(OakOSGiRepositoryFactory.REPOSITORY_TIMEOUT_IN_SECS, 10);
 
+        //Set of properties used to perform property substitution in
+        //OSGi configs
         config.put("repo.home", repoHomeDir.getAbsolutePath());
         config.put("oak.mongo.db", mongoDbName);
         config.put("oak.mongo.uri", getMongoURI());
 
+        //Configures BundleActivator to get notified of
+        //OSGi startup and shutdown
         configureActivator(config);
+
         return new OakOSGiRepositoryFactory().getRepository(config);
     }
 
