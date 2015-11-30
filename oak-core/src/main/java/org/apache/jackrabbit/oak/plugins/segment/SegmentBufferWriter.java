@@ -53,17 +53,15 @@ import org.slf4j.LoggerFactory;
  * <p>
  * The common usage pattern is:
  * <pre>
- *    SegmentBuilder builder = ...
- *    builder.prepare(...)  // allocate buffer
- *    builder.writeXYZ(...)
+ *    SegmentBufferWriter writer = ...
+ *    writer.prepare(...)  // allocate buffer
+ *    writer.writeXYZ(...)
  * </pre>
  * The behaviour of this class is undefined should the pre-allocated buffer be
  * overrun be calling any of the write methods.
- *
- * TODO find a better name for SegmentBuilder
  */
-class SegmentBuilder {
-    private static final Logger LOG = LoggerFactory.getLogger(SegmentBuilder.class);
+class SegmentBufferWriter {
+    private static final Logger LOG = LoggerFactory.getLogger(SegmentBufferWriter.class);
 
     /**
      * The set of root records (i.e. ones not referenced by other records)
@@ -110,7 +108,7 @@ class SegmentBuilder {
      */
     private int position;
 
-    public SegmentBuilder(SegmentStore store, SegmentVersion version, String wid) {
+    public SegmentBufferWriter(SegmentStore store, SegmentVersion version, String wid) {
         this.store = store;
         this.version = version;
         this.wid = (wid == null

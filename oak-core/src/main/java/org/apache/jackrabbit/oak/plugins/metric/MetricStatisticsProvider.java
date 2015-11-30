@@ -237,7 +237,7 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
         public ObjectName createName(String type, String domain, String name) {
             Hashtable<String, String> table = new Hashtable<String, String>();
             table.put("type", JMX_TYPE_METRICS);
-            table.put("name", name);
+            table.put("name", quoteIfRequired(name));
             try {
                 return new ObjectName(domain, table);
             } catch (MalformedObjectNameException e) {
@@ -258,6 +258,14 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
         public long getTick() {
             return TimeUnit.NANOSECONDS.convert(clock.getTime(), TimeUnit.MILLISECONDS);
         }
+    }
+
+    static String quoteIfRequired(String text) {
+        String quoted = ObjectName.quote(text);
+        if (quoted.substring(1, quoted.length() - 1).equals(text)) {
+            return text;
+        }
+        return quoted;
     }
 
 }

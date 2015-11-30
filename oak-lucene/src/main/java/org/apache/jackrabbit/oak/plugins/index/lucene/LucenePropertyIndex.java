@@ -77,7 +77,6 @@ import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queries.CustomScoreQuery;
-import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
@@ -432,8 +431,10 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
 
                         List<Lookup.LookupResult> lookupResults = SuggestHelper.getSuggestions(indexNode.getLookup(), suggestQuery);
 
-                        Collection<String> indexedFields = MultiFields.getIndexedFields(searcher.getIndexReader());
-                        QueryParser qp = new MultiFieldQueryParser(Version.LUCENE_47, indexedFields.toArray(new String[indexedFields.size()]), indexNode.getDefinition().getAnalyzer());
+                        QueryParser qp =  new QueryParser(Version.LUCENE_47, FieldNames.SUGGEST,
+                                indexNode.getDefinition().isSuggestAnalyzed() ? indexNode.getDefinition().getAnalyzer() :
+                                SuggestHelper.getAnalyzer());
+
                         // ACL filter suggestions
                         for (Lookup.LookupResult suggestion : lookupResults) {
                             Query query = qp.parse("\"" + suggestion.key.toString() + "\"");
