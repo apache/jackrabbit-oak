@@ -122,6 +122,10 @@ public class StoreArguments {
         return false;
     }
 
+    public boolean isSkipLongNames() {
+        return dst.getType() != SEGMENT;
+    }
+
     public String[] getSrcPaths() {
         return src.getPaths();
     }
