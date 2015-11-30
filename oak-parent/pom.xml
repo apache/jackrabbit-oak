@@ -49,6 +49,7 @@
     <mongo.db2>MongoMKDB2</mongo.db2>
     <segment.db>SegmentMK</segment.db>
     <lucene.version>4.7.1</lucene.version>
+    <mongo.driver.version>2.13.3</mongo.driver.version>
     <!-- Note that we're using SLF4J API version 1.7 when compiling     -->
     <!-- core Oak components but more recent SLF4J and Logback versions -->
     <!-- when compiling and running test cases and the oak-run jar.     -->
@@ -387,7 +388,7 @@
       <dependency>
         <groupId>org.mongodb</groupId>
         <artifactId>mongo-java-driver</artifactId>
-        <version>2.13.3</version>
+        <version>${mongo.driver.version}</version>
       </dependency>
       <dependency>
         <groupId>com.google.guava</groupId>

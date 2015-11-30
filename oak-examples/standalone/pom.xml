@@ -83,6 +83,12 @@
       <optional>true</optional>
     </dependency>
 
+    <dependency>
+      <groupId>org.apache.felix</groupId>
+      <artifactId>org.apache.felix.scr.annotations</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
     <!-- For colored console logging -->
     <dependency>
       <groupId>org.fusesource.jansi</groupId>
@@ -93,13 +99,12 @@
     <dependency>
       <groupId>io.dropwizard.metrics</groupId>
       <artifactId>metrics-core</artifactId>
-      <version>3.1.0</version>
       <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.mongodb</groupId>
       <artifactId>mongo-java-driver</artifactId>
-      <version>2.13.3</version>
+      <version>${mongo.driver.version}</version>
       <optional>true</optional>
     </dependency>
 
@@ -157,7 +162,6 @@
     <dependency>
       <groupId>com.googlecode.json-simple</groupId>
       <artifactId>json-simple</artifactId>
-      <version>1.1</version>
     </dependency>
 
     <!-- Required for Felix WebConsole -->
@@ -186,7 +190,6 @@
     <dependency>
       <groupId>org.codehaus.groovy</groupId>
       <artifactId>groovy-all</artifactId>
-      <version>2.3.6</version>
     </dependency>
 
     <dependency>
@@ -258,7 +261,6 @@
       </plugin>
       <plugin>
         <artifactId>maven-clean-plugin</artifactId>
-        <version>2.5</version>
         <configuration>
           <filesets>
             <fileset>
