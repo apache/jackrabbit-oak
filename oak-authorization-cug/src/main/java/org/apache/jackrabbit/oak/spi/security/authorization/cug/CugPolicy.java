@@ -16,11 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug;
 
-import java.security.Principal;
-import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.jcr.security.AccessControlException;
-
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.api.security.authorization.PrincipalSetPolicy;
 
@@ -28,36 +23,5 @@ import org.apache.jackrabbit.api.security.authorization.PrincipalSetPolicy;
  * Denies read access for all principals except for the specified principals.
  */
 public interface CugPolicy extends PrincipalSetPolicy, JackrabbitAccessControlPolicy {
-
-    /**
-     * Returns the set of {@code Principal}s that are allowed to access the items
-     * in the restricted area defined by this policy.
-     *
-     * @return The set of {@code Principal}s that are allowed to access the
-     * restricted area.
-     */
-    @Nonnull
-    Set<Principal> getPrincipals();
-
-    /**
-     * Add {@code Principal}s that are allowed to access the restricted area.
-     *
-     * @param principals The {@code Principal}s that are granted read access.
-     * @return {@code true} if this policy was modified; {@code false} otherwise.
-     * @throws AccessControlException If any of the specified principals is
-     * invalid.
-     */
-    boolean addPrincipals(@Nonnull Principal... principals) throws AccessControlException;
-
-    /**
-     * Remove the specified {@code Principal}s for the set of allowed principals
-     * thus revoking their ability to read items in the restricted area defined
-     * by this policy.
-     *
-     * @param principals The {@code Principal}s for which access should be revoked.
-     * @return {@code true} if this policy was modified; {@code false} otherwise.
-     * @throws  AccessControlException If an error occurs.
-     */
-    boolean removePrincipals(@Nonnull Principal... principals) throws AccessControlException;
 
 }

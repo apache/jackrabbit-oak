@@ -19,27 +19,23 @@ package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 import java.io.IOException;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlManager;
-import javax.security.auth.Subject;
-import javax.security.auth.login.LoginException;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Properties;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -57,7 +53,6 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.EmptyPermissionProvider;
@@ -71,8 +66,7 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 
 @Component(metatype = true,
         label = "Apache Jackrabbit Oak CUG Configuration",
-        description = "Authorization configuration dedicated to setup and evaluate 'Closed User Group' permissions.",
-        policy = ConfigurationPolicy.REQUIRE)
+        description = "Authorization configuration dedicated to setup and evaluate 'Closed User Group' permissions.")
 @Service({AuthorizationConfiguration.class, SecurityConfiguration.class})
 @Properties({
         @Property(name = CugConstants.PARAM_CUG_SUPPORTED_PATHS,
@@ -80,7 +74,7 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
                 description = "Paths under which CUGs can be created and will be evaluated.",
                 cardinality = Integer.MAX_VALUE),
         @Property(name = CugConstants.PARAM_CUG_ENABLED,
-                label = "CUG Enabled",
+                label = "CUG Evaluation Enabled",
                 description = "Flag to enable the evaluation of the configured CUG policies.",
                 boolValue = false),
         @Property(name = CompositeConfiguration.PARAM_RANKING,
@@ -90,14 +84,11 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 })
 public class CugConfiguration extends ConfigurationBase implements AuthorizationConfiguration, CugConstants {
 
-    @Reference
-    private ContentRepository repository;
-
     /**
      * Reference to services implementing {@link org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude}.
      */
-    @Reference
-    private CugExclude exclude = new CugExclude.Default();
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY)
+    private CugExclude exclude;
 
     @SuppressWarnings("UnusedDeclaration")
     public CugConfiguration() {
@@ -181,24 +172,8 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
     //----------------------------------------------------< SCR Integration >---
     @SuppressWarnings("UnusedDeclaration")
     @Activate
-    protected void activate() throws IOException, CommitFailedException, PrivilegedActionException, RepositoryException {
-        ContentSession systemSession = null;
-        try {
-            systemSession = Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
-                @Override
-                public ContentSession run() throws LoginException, RepositoryException {
-                    return repository.login(null, null);
-                }
-            });
-            final Root root = systemSession.getLatestRoot();
-            if (CugUtil.registerCugNodeTypes(root)) {
-                root.commit();
-            }
-        } finally {
-            if (systemSession != null) {
-                systemSession.close();
-            }
-        }
+    protected void activate(Map<String, Object> properties) throws IOException, CommitFailedException, PrivilegedActionException, RepositoryException {
+        setParameters(ConfigurationParameters.of(properties));
     }
 
     //--------------------------------------------------------------------------
