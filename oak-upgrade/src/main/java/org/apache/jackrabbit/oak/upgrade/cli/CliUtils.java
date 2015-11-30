@@ -33,7 +33,6 @@ import com.google.common.io.Closer;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 
-@SuppressWarnings("restriction")
 public class CliUtils {
 
     private static final Logger log = LoggerFactory.getLogger(OakUpgrade.class);

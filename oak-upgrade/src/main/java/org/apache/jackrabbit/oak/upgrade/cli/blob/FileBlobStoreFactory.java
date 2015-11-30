@@ -34,4 +34,8 @@ public class FileBlobStoreFactory implements BlobStoreFactory {
         return new FileBlobStore(directory);
     }
 
+    @Override
+    public String toString() {
+        return String.format("FileBlobStore[%s]", directory);
+    }
 }
