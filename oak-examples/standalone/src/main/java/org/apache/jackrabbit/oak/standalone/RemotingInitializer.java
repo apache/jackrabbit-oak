@@ -60,7 +60,7 @@ public class RemotingInitializer {
 
     @Bean
     public ServletRegistrationBean remotingServlet() {
-        ServletRegistrationBean bean = new ServletRegistrationBean(new DavexServletService() {
+        ServletRegistrationBean bean = new ServletRegistrationBean(new JcrRemotingServlet() {
 
             @Override
             public Repository getRepository() {
