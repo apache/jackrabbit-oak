@@ -33,7 +33,6 @@ import org.apache.jackrabbit.oak.plugins.document.NodeDocumentCache;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
@@ -48,7 +47,7 @@ public class RDBCacheConsistencyIT extends AbstractRDBConnectionTest {
     @Before
     @Override
     public void setUpConnection() throws Exception {
-        dataSource = RDBDataSourceFactory.forJdbcUrl(URL, USERNAME, PASSWD);
+        dataSource = RDBDataSourceFactory.forJdbcUrl(URL, USERNAME, PASSWD); // /*"jdbc:derby:foo;create=true"*/
         DocumentMK.Builder builder = new DocumentMK.Builder().clock(getTestClock()).setAsyncDelay(0);
         RDBOptions opt = new RDBOptions().tablePrefix("T" + UUID.randomUUID().toString().replace("-", "")).dropTablesOnClose(true);
         store = new RDBDocumentStore(dataSource, builder, opt);
@@ -56,7 +55,6 @@ public class RDBCacheConsistencyIT extends AbstractRDBConnectionTest {
     }
 
     @Test
-    @Ignore("OAK-3659")
     public void evictWhileUpdateLoop() throws Throwable {
         for (int i = 0; i < 10; i++) {
             runTest();
@@ -84,7 +82,9 @@ public class RDBCacheConsistencyIT extends AbstractRDBConnectionTest {
                         store.update(NODES, ids, op);
                         NodeDocument doc = store.find(NODES, id);
                         Object p = doc.get("p");
-                        assertEquals(/*"last modified by: " + doc.get("mb"),*/ v, ((Long) p).longValue());
+                        assertEquals("Unexpected result after update-then-find sequence, last modification of document by '"
+                                + doc.get("mb") + "' thread @" + doc.getModCount(), v, ((Long) p).longValue());
+                        // System.out.println("u @" + doc.getModCount() + " p=" + v + "; q=" + doc.get("q"));
                     } catch (Throwable e) {
                         exceptions.add(e);
                     }
@@ -98,6 +98,7 @@ public class RDBCacheConsistencyIT extends AbstractRDBConnectionTest {
             public void run() {
                 String id = Utils.getIdFromPath("/test/foo");
                 long v = 0;
+                long lastWrittenV = 0;
                 while (exceptions.isEmpty()) {
                     try {
                         UpdateOp op = new UpdateOp(id, false);
@@ -106,10 +107,15 @@ public class RDBCacheConsistencyIT extends AbstractRDBConnectionTest {
                         NodeDocument old = store.findAndUpdate(NODES, op);
                         Object q = old.get("q");
                         if (q != null) {
-                            assertEquals(v - 1, ((Long) q).longValue());
+                            assertEquals("Unexpected result after findAndUpdate, last modification of document by '" + old.get("mb")
+                                    + "' thread @" + old.getModCount(), lastWrittenV, ((Long) q).longValue());
                         }
+                        lastWrittenV = v;
+                        // System.out.println("f @" + old.getModCount() + " p=" + old.get("p") + "; q=" + q);
                     } catch (DocumentStoreException e) {
-                        // keep going, RDBDocumentStore might have given up due to race conditions
+                        // System.err.println("f update of v to " + v + " failed: " + e.getMessage());
+                        // keep going, RDBDocumentStore might have given up due
+                        // to race conditions
                     } catch (Throwable e) {
                         exceptions.add(e);
                     }
@@ -124,21 +130,31 @@ public class RDBCacheConsistencyIT extends AbstractRDBConnectionTest {
                 String id = Utils.getIdFromPath("/test/foo");
                 long p = 0;
                 long q = 0;
+                long mc = 0;
                 while (exceptions.isEmpty()) {
                     try {
                         NodeDocument doc = store.find(NODES, id);
                         if (doc != null) {
                             Object value = doc.get("p");
                             if (value != null) {
-                                assertTrue((Long) value >= p);
+                                assertTrue(
+                                        "reader thread at @" + doc.getModCount()
+                                                + ": observed property value for 'p' (incremented by 'update' thread) decreased, last change by '"
+                                                + doc.get("mb") + "' thread; previous: " + p + " (at @" + mc + "), now: " + value,
+                                        (Long) value >= p);
                                 p = (Long) value;
                             }
                             value = doc.get("q");
                             if (value != null) {
-                                assertTrue("previous: " + q + ", now: " + value, (Long) value >= q);
+                                assertTrue(
+                                        "reader thread at @" + doc.getModCount()
+                                                + ": observed property value for 'q' (incremented by 'findAndUpdate' thread) decreased, last change by '"
+                                                + doc.get("mb") + "' thread; previous: " + q + " (at @" + mc + "), now: " + value,
+                                        (Long) value >= q);
                                 q = (Long) value;
                             }
                         }
+                        mc = doc.getModCount().longValue();
                     } catch (Throwable e) {
                         exceptions.add(e);
                     }
