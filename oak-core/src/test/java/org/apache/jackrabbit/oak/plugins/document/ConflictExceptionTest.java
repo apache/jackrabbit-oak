@@ -23,18 +23,20 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Collections;
+
 public class ConflictExceptionTest {
 
     @Test
     public void type() {
-        ConflictException e = new ConflictException("conflict", null);
+        ConflictException e = new ConflictException("conflict");
         CommitFailedException cfe = e.asCommitFailedException();
         assertEquals(CommitFailedException.MERGE, cfe.getType());
     }
 
     @Test
     public void cause() {
-        ConflictException e = new ConflictException("conflict", null);
+        ConflictException e = new ConflictException("conflict");
         CommitFailedException cfe = e.asCommitFailedException();
         assertSame(e, cfe.getCause());
     }
@@ -47,6 +49,6 @@ public class ConflictExceptionTest {
         assertTrue(cfe instanceof FailedWithConflictException);
         FailedWithConflictException fwce = (FailedWithConflictException) cfe;
         assertEquals(CommitFailedException.MERGE, fwce.getType());
-        assertEquals(r, fwce.getConflictRevision());
+        assertEquals(Collections.singleton(r), fwce.getConflictRevisions());
     }
 }

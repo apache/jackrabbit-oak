@@ -318,17 +318,17 @@ public class Commit {
         boolean commitRootHasChanges = operations.containsKey(commitRootPath);
         // create a "root of the commit" if there is none
         UpdateOp commitRoot = getUpdateOperationForNode(commitRootPath);
-        for (String p : operations.keySet()) {
-            UpdateOp op = operations.get(p);
+
+        if (!commitRoot.isNew() && commitRootHasChanges) {
+            // commit root already exists and this is an update
+            changedNodes.add(commitRoot);
+        }
+
+        for (UpdateOp op : operations.values()) {
             if (op.isNew()) {
                 NodeDocument.setDeleted(op, revision, false);
             }
-            if (op == commitRoot) {
-                if (!op.isNew() && commitRootHasChanges) {
-                    // commit root already exists and this is an update
-                    changedNodes.add(op);
-                }
-            } else {
+            if (op != commitRoot) {
                 NodeDocument.setCommitRoot(op, revision, commitRootDepth);
                 if (op.isNew()) {
                     newNodes.add(op);
@@ -337,7 +337,7 @@ public class Commit {
                 }
             }
         }
-        if (changedNodes.size() == 0 && commitRoot.isNew()) {
+        if (changedNodes.isEmpty() && commitRoot.isNew()) {
             // no updates and root of commit is also new. that is,
             // it is the root of a subtree added in a commit.
             // so we try to add the root like all other nodes
@@ -346,30 +346,38 @@ public class Commit {
         }
         boolean success = false;
         try {
-            if (newNodes.size() > 0) {
+            if (!newNodes.isEmpty()) {
                 // set commit root on new nodes
                 if (!store.create(NODES, newNodes)) {
                     // some of the documents already exist:
                     // try to apply all changes one by one
-                    for (UpdateOp op : newNodes) {
-                        if (op == commitRoot) {
-                            // don't write the commit root just yet
-                            // (because there might be a conflict)
-                            NodeDocument.unsetRevision(commitRoot, revision);
-                        }
-                        changedNodes.add(op);
-                    }
+                    changedNodes.addAll(newNodes);
                     newNodes.clear();
+
+                    // don't write the commit root just yet
+                    // (because there might be a conflict)
+                    NodeDocument.unsetRevision(commitRoot, revision);
                 }
             }
+
             for (UpdateOp op : changedNodes) {
                 // set commit root on changed nodes. this may even apply
                 // to the commit root. the _commitRoot entry is removed
                 // again when the _revisions entry is set at the end
                 NodeDocument.setCommitRoot(op, revision, commitRootDepth);
-                opLog.add(op);
-                createOrUpdateNode(store, op);
             }
+
+            List<NodeDocument> oldDocs;
+            try {
+                oldDocs = store.createOrUpdate(NODES, changedNodes);
+                opLog.addAll(changedNodes);
+                checkConflicts(oldDocs, changedNodes);
+                checkSplitCandidate(oldDocs);
+            } catch (BulkUpdateException e) {
+                opLog.addAll(e.getAppliedChanges());
+                throw e.getCause();
+            }
+
             // finally write the commit root, unless it was already written
             // with added nodes (the commit root might be written twice,
             // first to check if there was a conflict, and only then to commit
@@ -488,6 +496,12 @@ public class Commit {
         checkSplitCandidate(doc);
     }
 
+    private void checkSplitCandidate(List<NodeDocument> docs) {
+        for (NodeDocument doc : docs) {
+            checkSplitCandidate(doc);
+        }
+    }
+
     private void checkSplitCandidate(@Nullable NodeDocument doc) {
         if (doc != null && doc.getMemory() > SPLIT_CANDIDATE_THRESHOLD) {
             nodeStore.addSplitCandidate(doc.getId());
@@ -581,6 +595,28 @@ public class Commit {
                 }
                 throw new ConflictException(conflictMessage, conflictRevision);
             }
+        }
+    }
+
+    private void checkConflicts(List<NodeDocument> oldDocs, List<UpdateOp> changedNodes) {
+        int i = 0;
+        List<ConflictException> exceptions = new ArrayList<ConflictException>();
+        Set<Revision> revisions = new HashSet<Revision>();
+        for (NodeDocument doc : oldDocs) {
+            UpdateOp op = changedNodes.get(i++);
+            try {
+                checkConflicts(op, doc);
+            } catch (ConflictException e) {
+                exceptions.add(e);
+                if (e.getConflictRevisions() != null) {
+                    for (Revision r : e.getConflictRevisions()) {
+                        revisions.add(r);
+                    }
+                }
+            }
+        }
+        if (!exceptions.isEmpty()) {
+            throw new ConflictException("Following exceptions occurred during the bulk update operations: " + exceptions, revisions);
         }
     }
 
