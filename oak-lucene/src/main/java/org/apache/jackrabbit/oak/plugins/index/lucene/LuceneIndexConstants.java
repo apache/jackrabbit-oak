@@ -284,4 +284,10 @@ public interface LuceneIndexConstants {
      * existing index files
      */
     String INDEX_PATH = "indexPath";
+
+    /**
+     * Optional property to set the suggest field to be analyzed and therefore allow more fine
+     * grained and flexible suggestions.
+     */
+    String SUGGEST_ANALYZED = "suggestAnalyzed";
 }

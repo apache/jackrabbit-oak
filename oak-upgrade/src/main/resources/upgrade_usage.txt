@@ -76,6 +76,8 @@ An descriptor of the Oak node store. Possible options:
                             FileDataStore
 --src-fileblobstore       Datastore directory to be used as a source
                             FileBlobStore
+--src-s3datastore         Datastore directory to be used for the source S3
+--src-s3config            Configuration file for the source S3DataStore
 
 # destination blob store options
 
@@ -83,8 +85,8 @@ An descriptor of the Oak node store. Possible options:
                             FileDataStore
 --fileblobstore           Datastore directory to be used as a target
                             FileBlobStore
+--s3datastore             Datastore directory to be used for the target S3
 --s3config                Configuration file for the target S3DataStore
---s3datastore             Repository home to be used for the target S3
 
 # other options
 

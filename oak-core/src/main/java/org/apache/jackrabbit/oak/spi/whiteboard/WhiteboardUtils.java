@@ -39,6 +39,11 @@ import com.google.common.collect.Iterables;
 
 public class WhiteboardUtils {
 
+    /**
+     * JMX Domain name under which Oak related JMX MBeans are registered
+     */
+    public static final String JMX_OAK_DOMAIN = "org.apache.jackrabbit.oak";
+
     public static Registration scheduleWithFixedDelay(
             Whiteboard whiteboard, Runnable runnable, long delayInSeconds) {
         return scheduleWithFixedDelay(whiteboard, runnable, delayInSeconds, false);
@@ -73,7 +78,7 @@ public class WhiteboardUtils {
             table.put("name", quoteIfRequired(name));
             return whiteboard.register(iface, bean, ImmutableMap.of(
                     "jmx.objectname",
-                    new ObjectName("org.apache.jackrabbit.oak", table)));
+                    new ObjectName(JMX_OAK_DOMAIN, table)));
         } catch (MalformedObjectNameException e) {
             throw new IllegalArgumentException(e);
         }

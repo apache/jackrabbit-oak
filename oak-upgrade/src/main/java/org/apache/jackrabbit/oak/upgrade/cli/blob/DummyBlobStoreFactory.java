@@ -27,4 +27,8 @@ public class DummyBlobStoreFactory implements BlobStoreFactory {
         return null;
     }
 
+    @Override
+    public String toString() {
+        return "DummyBlobStore";
+    }
 }

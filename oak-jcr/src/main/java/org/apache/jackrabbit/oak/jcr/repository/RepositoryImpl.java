@@ -51,6 +51,7 @@ import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.jmx.SessionMBean;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy.Composite;
@@ -319,24 +320,9 @@ public class RepositoryImpl implements JackrabbitRepository {
         statisticManager.dispose();
         gcMonitorRegistration.unregister();
         clock.close();
-        closeExecutor();
+        new ExecutorCloser(scheduledExecutor).close();
         if (contentRepository instanceof Closeable) {
             IOUtils.closeQuietly((Closeable) contentRepository);
-        }
-    }
-
-    private void closeExecutor() {
-        try {
-            scheduledExecutor.shutdown();
-            scheduledExecutor.awaitTermination(5, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            log.error("Error while shutting down the executorService", e);
-            Thread.currentThread().interrupt();
-        } finally {
-            if (!scheduledExecutor.isTerminated()) {
-                log.warn("executorService didn't shutdown properly. Will be forced now.");
-            }
-            scheduledExecutor.shutdownNow();
         }
     }
 

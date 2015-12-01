@@ -63,6 +63,7 @@
             org.apache.jackrabbit.core.query.JoinTest#testJoinWithOR3                                      <!-- OAK-3437 -->
             org.apache.jackrabbit.core.query.JoinTest#testJoinWithOR4                                      <!-- OAK-3437 -->
             org.apache.jackrabbit.core.query.JoinTest#testJoinWithOR5                                      <!-- OAK-3437 -->
+            org.apache.jackrabbit.oak.jcr.query.SpellcheckTest#testSpellcheckMultipleWords                 <!-- OAK-3355 -->
         </known.issues>
     </properties>
 

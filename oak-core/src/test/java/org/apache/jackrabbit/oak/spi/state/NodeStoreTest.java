@@ -125,6 +125,12 @@ public class NodeStoreTest extends OakBaseTest {
         store.merge(b2, hook, CommitInfo.EMPTY);
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void mergeNodeRoot() throws CommitFailedException {
+        NodeBuilder x = store.getRoot().builder().getChildNode("x");
+        store.merge(x, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    }
+
     @Test
     public void addExistingNodeJCRLastModified() throws CommitFailedException {
         CommitHook hook = new CompositeHook(

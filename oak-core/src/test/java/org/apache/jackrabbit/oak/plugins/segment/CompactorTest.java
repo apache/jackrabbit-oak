@@ -16,7 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import com.google.common.base.Supplier;
+import static org.junit.Assert.assertFalse;
+
 import com.google.common.base.Suppliers;
 import junit.framework.Assert;
 import org.apache.jackrabbit.oak.Oak;
@@ -31,8 +32,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.assertFalse;
 
 public class CompactorTest {
 
@@ -53,7 +52,7 @@ public class CompactorTest {
         NodeStore store = new SegmentNodeStore(segmentStore);
         init(store);
 
-        Compactor compactor = new Compactor(segmentStore.getTracker().getWriter());
+        Compactor compactor = new Compactor(segmentStore);
         addTestContent(store, 0);
 
         NodeState initial = store.getRoot();
@@ -74,7 +73,7 @@ public class CompactorTest {
         // doesn't have the child named "b".
 
         NodeStore store = SegmentNodeStore.newSegmentNodeStore(segmentStore).create();
-        Compactor compactor = new Compactor(segmentStore.getTracker().getWriter(), Suppliers.ofInstance(true));
+        Compactor compactor = new Compactor(segmentStore, Suppliers.ofInstance(true));
         SegmentNodeState sns = compactor.compact(store.getRoot(), addChild(store.getRoot(), "b"), store.getRoot());
         assertFalse(sns.hasChildNode("b"));
     }
