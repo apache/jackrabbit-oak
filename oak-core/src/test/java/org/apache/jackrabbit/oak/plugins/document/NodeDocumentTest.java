@@ -69,7 +69,7 @@ public class NodeDocumentTest {
             NodeDocument.setRevision(op, r, "c");
             NodeDocument.addCollision(op, r, Revision.newRevision(1));
         }
-        UpdateUtils.applyChanges(doc, op, StableRevisionComparator.INSTANCE);
+        UpdateUtils.applyChanges(doc, op);
         Revision head = DummyRevisionContext.INSTANCE.getHeadRevision();
         doc.split(DummyRevisionContext.INSTANCE, head);
     }
@@ -135,7 +135,7 @@ public class NodeDocumentTest {
         // regular collision entries
         NodeDocument.addCollision(op, r1, c1);
         NodeDocument.addCollision(op, r2, c2);
-        UpdateUtils.applyChanges(doc, op, StableRevisionComparator.INSTANCE);
+        UpdateUtils.applyChanges(doc, op);
 
         branchCommits = Collections.singleton(r0);
         conflict = doc.getMostRecentConflictFor(branchCommits, context);

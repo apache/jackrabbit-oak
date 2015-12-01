@@ -18,17 +18,22 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.Collections;
 import java.util.List;
 
+import com.google.common.io.Files;
 import org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.search.suggest.DocumentDictionary;
+import org.apache.lucene.search.spell.Dictionary;
+import org.apache.lucene.search.spell.LuceneDictionary;
 import org.apache.lucene.search.suggest.Lookup;
-import org.apache.lucene.search.suggest.analyzing.FreeTextSuggester;
+import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,29 +53,20 @@ public class SuggestHelper {
         }
     };
 
-    private static final Lookup suggester = new FreeTextSuggester(analyzer);
-
-    public static void updateSuggester(IndexReader reader) throws IOException {
-//        Terms terms = MultiFields.getTerms(reader, FieldNames.SUGGEST);
-//        long size = terms.size() * 2;
-//        if (size < 0) {
-//            size = terms.getDocCount() / 3;
-//        }
-//        long count = suggester.getCount();
-//        if (size  > count) {
-            try {
-                suggester.build(new DocumentDictionary(reader, FieldNames.SUGGEST, FieldNames.PATH_DEPTH));
-            } catch (RuntimeException e) {
-                log.debug("could not update the suggester", e);
-            }
-//        }
+    public static void updateSuggester(Directory directory, Analyzer analyzer, IndexReader reader) throws IOException {
+        try {
+            Dictionary dictionary = new LuceneDictionary(reader, FieldNames.SUGGEST);
+            getLookup(directory, analyzer).build(dictionary);
+        } catch (RuntimeException e) {
+            log.debug("could not update the suggester", e);
+        }
     }
 
-    public static List<Lookup.LookupResult> getSuggestions(SuggestQuery suggestQuery) {
+    public static List<Lookup.LookupResult> getSuggestions(AnalyzingInfixSuggester suggester, SuggestQuery suggestQuery) {
         try {
             long count = suggester.getCount();
             if (count > 0) {
-                return suggester.lookup(suggestQuery.getText(), false, 10);
+                return suggester.lookup(suggestQuery.getText(), 10, true, false);
             } else {
                 return Collections.emptyList();
             }
@@ -101,6 +97,28 @@ public class SuggestHelper {
         } catch (Exception e) {
             throw new RuntimeException("could not build SuggestQuery " + suggestQueryString, e);
         }
+    }
+
+    public static AnalyzingInfixSuggester getLookup(final Directory suggestDirectory) throws IOException {
+        return getLookup(suggestDirectory, SuggestHelper.analyzer);
+    }
+
+    public static AnalyzingInfixSuggester getLookup(final Directory suggestDirectory, Analyzer analyzer) throws IOException {
+        final File tempDir = Files.createTempDir();
+        return new AnalyzingInfixSuggester(Version.LUCENE_47, tempDir, analyzer, analyzer, 3) {
+            @Override
+            protected Directory getDirectory(File path) throws IOException {
+                if (tempDir.getAbsolutePath().equals(path.getAbsolutePath())) {
+                    return suggestDirectory; // use oak directory for writing suggest index
+                } else {
+                    return FSDirectory.open(path); // use FS for temp index used at build time
+                }
+            }
+        };
+    }
+
+    public static Analyzer getAnalyzer() {
+        return analyzer;
     }
 
     public static class SuggestQuery {

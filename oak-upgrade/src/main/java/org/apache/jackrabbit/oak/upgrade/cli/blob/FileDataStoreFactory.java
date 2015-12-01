@@ -51,4 +51,9 @@ public class FileDataStoreFactory implements BlobStoreFactory {
             }
         };
     }
+
+    @Override
+    public String toString() {
+        return String.format("FileDataStore[%s]", directory);
+    }
 }

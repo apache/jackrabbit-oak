@@ -18,14 +18,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.compaction;
 
-import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
-
-import javax.annotation.Nonnull;
-import java.util.concurrent.Callable;
-
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.System.currentTimeMillis;
+
+import java.util.concurrent.Callable;
+
+import javax.annotation.Nonnull;
+
+import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 
 public abstract class CompactionStrategy {
 
@@ -85,7 +86,7 @@ public abstract class CompactionStrategy {
     /**
      * Default value for {@link #getForceAfterFail()}
      */
-    public static final boolean FORCE_AFTER_FAIL_DEFAULT = true;
+    public static final boolean FORCE_AFTER_FAIL_DEFAULT = false;
 
     /**
      * No compaction at all

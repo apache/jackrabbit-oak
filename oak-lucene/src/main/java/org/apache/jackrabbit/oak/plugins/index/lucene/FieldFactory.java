@@ -134,7 +134,7 @@ public final class FieldFactory {
             }
             builder.append(v);
         }
-        return new OakTextField(FieldNames.SUGGEST, builder.toString(), true);
+        return new OakTextField(FieldNames.SUGGEST, builder.toString(), false);
     }
 
     /**

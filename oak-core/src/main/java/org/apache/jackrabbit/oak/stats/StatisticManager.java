@@ -30,8 +30,8 @@ import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
 import org.apache.jackrabbit.oak.api.jmx.RepositoryStatsMBean;
 import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.stats.QueryStatImpl;
-import org.apache.jackrabbit.stats.RepositoryStatisticsImpl;
 import org.apache.jackrabbit.stats.TimeSeriesMax;
 import org.apache.jackrabbit.stats.jmx.QueryStatManager;
 
@@ -42,7 +42,7 @@ import org.apache.jackrabbit.stats.jmx.QueryStatManager;
  */
 public class StatisticManager {
     private final QueryStatImpl queryStat = new QueryStatImpl();
-    private final RepositoryStatisticsImpl repoStats;
+    private final StatisticsProvider repoStats;
     private final TimeSeriesMax maxQueueLength;
     private final CompositeRegistration registration;
 
@@ -53,12 +53,12 @@ public class StatisticManager {
      */
     public StatisticManager(Whiteboard whiteboard, ScheduledExecutorService executor) {
         queryStat.setEnabled(true);
-        repoStats = new RepositoryStatisticsImpl(executor);
+        repoStats = getStatsProvider(whiteboard, executor);
         maxQueueLength = new TimeSeriesMax(-1);
         registration = new CompositeRegistration(
             registerMBean(whiteboard, QueryStatManagerMBean.class, new QueryStatManager(queryStat),
                     "QueryStat", "Oak Query Statistics"),
-            registerMBean(whiteboard, RepositoryStatsMBean.class, new RepositoryStats(repoStats, maxQueueLength),
+            registerMBean(whiteboard, RepositoryStatsMBean.class, new RepositoryStats(repoStats.getStats(), maxQueueLength),
                     RepositoryStats.TYPE, "Oak Repository Statistics"),
             scheduleWithFixedDelay(whiteboard, new Runnable() {
                     @Override
@@ -79,15 +79,18 @@ public class StatisticManager {
         queryStat.logQuery(language, statement, millis);
     }
 
-    /**
-     * Get the counter of the specified {@code type}.
-     * @param type  type of the counter
-     * @return  counter for the given {@code type}
-     * @see org.apache.jackrabbit.stats.RepositoryStatisticsImpl#getCounter(org.apache.jackrabbit.api.stats.RepositoryStatistics.Type)
-     */
-    public AtomicLong getCounter(Type type) {
-        return repoStats.getCounter(type);
+    public MeterStats getMeter(Type type){
+        return repoStats.getMeter(type.name());
     }
+
+    public CounterStats getStatsCounter(Type type){
+        return repoStats.getCounterStats(type.name());
+    }
+
+    public TimerStats getTimer(Type type){
+        return repoStats.getTimer(type.name());
+    }
+
 
     public TimeSeriesMax maxQueLengthRecorder() {
         return maxQueueLength;
@@ -99,6 +102,15 @@ public class StatisticManager {
      */
     public void dispose() {
         registration.unregister();
+    }
+
+    private StatisticsProvider getStatsProvider(Whiteboard wb,
+                                                ScheduledExecutorService executor) {
+        StatisticsProvider provider = WhiteboardUtils.getService(wb, StatisticsProvider.class);
+        if (provider == null){
+            provider = new DefaultStatisticsProvider(executor);
+        }
+        return provider;
     }
 
 }

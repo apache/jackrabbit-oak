@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.explorer;
 
+import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.readRevisions;
+
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -42,9 +44,6 @@ import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.oak.plugins.segment.file.JournalReader;
-
-import com.google.common.collect.Lists;
 
 /**
  * NodeStore explorer
@@ -66,7 +65,7 @@ public class Explorer {
             System.exit(1);
         }
 
-        final String path = args[0];
+        final File path = new File(args[0]);
         final boolean skipSizeCheck = args.length == 2
                 && skip.equalsIgnoreCase(args[1]);
 
@@ -96,7 +95,7 @@ public class Explorer {
         }
     }
 
-    private void createAndShowGUI(final String path, boolean skipSizeCheck)
+    private void createAndShowGUI(final File path, boolean skipSizeCheck)
             throws IOException {
 
         JTextArea log = new JTextArea(5, 20);
@@ -149,33 +148,7 @@ public class Explorer {
         menuCompaction.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent ev) {
-                List<String> revs = new ArrayList<String>();
-
-                File journal = new File(path, "journal.log");
-                if (!journal.exists()) {
-                    return;
-                }
-
-                JournalReader journalReader = null;
-                try {
-                    journalReader = new JournalReader(journal);
-                    try {
-                        revs = Lists.newArrayList(journalReader.iterator());
-                    } finally {
-                        journalReader.close();
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    return;
-                } finally {
-                    try {
-                        if (journalReader != null) {
-                            journalReader.close();
-                        }
-                    } catch (IOException e) {
-                    }
-                }
-
+                List<String> revs = readRevisions(path);
                 String s = (String) JOptionPane.showInputDialog(frame,
                         "Revert to a specified revision", "Time Machine",
                         JOptionPane.PLAIN_MESSAGE, null, revs.toArray(),
@@ -192,7 +165,7 @@ public class Explorer {
             @Override
             public void actionPerformed(ActionEvent ev) {
                 List<String> tarFiles = new ArrayList<String>();
-                for (File f : new File(path).listFiles()) {
+                for (File f : path.listFiles()) {
                     if (f.getName().endsWith(".tar")) {
                         tarFiles.add(f.getName());
                     }

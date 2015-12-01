@@ -27,6 +27,8 @@ import javax.management.ObjectName;
 
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.junit.After;
 import org.junit.Test;
 
@@ -72,7 +74,27 @@ public class WhiteboardUtilsTest {
         assertTrue(WhiteboardUtils.quoteIfRequired("text*with?chars").startsWith("\""));
     }
 
-    private interface HelloMBean {
+    @Test
+    public void stdMBean() throws Exception{
+        MBeanServer server = ManagementFactory.getPlatformMBeanServer();
+        Oak oak = new Oak().with(server);
+        Whiteboard wb = oak.getWhiteboard();
+        Hello hello = new HelloTest();
+        regs.add(WhiteboardUtils.registerMBean(wb, HelloMBean.class, hello, "test", "hello"));
+        assertNotNull(server.getObjectInstance(new ObjectName("org.apache.jackrabbit.oak:type=test,name=hello")));
+    }
+
+    @Test
+    public void queryMBean() throws Exception{
+        MBeanServer server = ManagementFactory.getPlatformMBeanServer();
+        Oak oak = new Oak().with(server);
+        Whiteboard wb = oak.getWhiteboard();
+        QueryEngineSettings settings = new QueryEngineSettings();
+        regs.add(WhiteboardUtils.registerMBean(wb, QueryEngineSettingsMBean.class, settings, "query", "settings"));
+        assertNotNull(server.getObjectInstance(new ObjectName("org.apache.jackrabbit.oak:type=query,name=settings")));
+    }
+
+    public interface HelloMBean {
         boolean isRunning();
         int getCount();
     }
@@ -90,5 +112,9 @@ public class WhiteboardUtilsTest {
         public int getCount() {
             return count;
         }
+    }
+
+    private static class HelloTest extends Hello {
+
     }
 }

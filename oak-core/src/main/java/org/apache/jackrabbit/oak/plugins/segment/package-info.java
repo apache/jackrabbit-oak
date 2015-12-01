@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@Version("5.3.0")
+@Version("7.0.0")
 @Export(optional = "provide:=true")
 package org.apache.jackrabbit.oak.plugins.segment;
 

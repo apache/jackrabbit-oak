@@ -1,0 +1,6 @@
+repo:
+  home: oak
+oak:
+  mongo:
+    db: oak
+    uri: mongodb://localhost:27017

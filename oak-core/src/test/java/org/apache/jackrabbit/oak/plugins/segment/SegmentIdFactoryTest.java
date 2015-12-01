@@ -90,7 +90,7 @@ public class SegmentIdFactoryTest {
     @Test(expected = IllegalStateException.class)
     public void dataAIOOBE() {
         SegmentId id = factory.newDataSegmentId();
-        byte[] buffer = SegmentWriter.createNewBuffer(SegmentVersion.V_11);
+        byte[] buffer = SegmentBufferWriter.createNewBuffer(SegmentVersion.V_11);
         ByteBuffer data = ByteBuffer.allocate(Segment.MAX_SEGMENT_SIZE);
         data.put(buffer);
         data.rewind();

@@ -18,16 +18,10 @@
  */
 package org.apache.jackrabbit.oak.upgrade.nodestate.report;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
+import org.apache.jackrabbit.oak.upgrade.nodestate.AbstractDecoratedNodeState;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -52,10 +46,9 @@ import javax.annotation.Nullable;
  *
  * @see Reporter, PeriodicReporter, LoggingReporter
  */
-public class ReportingNodeState implements NodeState {
+public class ReportingNodeState extends AbstractDecoratedNodeState {
 
     private final ReportingNodeState parent;
-    private final NodeState delegate;
     private final String name;
     private final Reporter reporter;
 
@@ -81,13 +74,9 @@ public class ReportingNodeState implements NodeState {
         return nodeState;
     }
 
-    protected NodeState wrapChild(String name, NodeState delegate) {
-        return wrapAndReport(this, name, delegate, this.reporter);
-    }
-
     private ReportingNodeState(ReportingNodeState parent, String name, NodeState delegate, Reporter reporter) {
+        super(delegate);
         this.parent = parent;
-        this.delegate = delegate;
         this.name = name;
         this.reporter = reporter;
     }
@@ -104,203 +93,24 @@ public class ReportingNodeState implements NodeState {
         if (parent == null) {
             return name;
         }
-        return PathUtils.concat(parent.getPath(), name);
+        return PathUtils.concat(this.parent.getPath(), name);
     }
 
-    /**
-     * The ReportingNodeState implementation returns a ReadOnlyBuilder, which
-     * will fail for any mutable operation.
-     *
-     * @return a NodeBuilder instance corresponding to this NodeState.
-     */
-    @Override
     @Nonnull
-    public NodeBuilder builder() {
-        return new ReadOnlyBuilder(this);
-    }
-
     @Override
-    public boolean compareAgainstBaseState(final NodeState base, final NodeStateDiff diff) {
-        return delegate.compareAgainstBaseState(base, new ReportingDiff(diff, this));
-    }
-
-    /**
-     * Note that any implementation-specific optimizations of wrapped NodeStates
-     * will not work if a ReportingNodeState is passed into their {@code #equals()}
-     * method. This implementation will compare the wrapped NodeState, however. So
-     * optimizations work when calling {@code #equals()} on a ReportingNodeState.
-     *
-     * @param other Object to compare with this NodeState.
-     * @return true if the given object is equal to this NodeState, false otherwise.
-     */
-    @Override
-    public boolean equals(final Object other) {
-        if (other instanceof ReportingNodeState) {
-            return delegate.equals(((ReportingNodeState) other).delegate);
-        } else {
-            return delegate.equals(other);
-        }
-    }
-
-    @Override
-    public boolean exists() {
-        return delegate.exists();
-    }
-
-    @Override
-    public boolean hasChildNode(@Nonnull final String name) {
-        return delegate.hasChildNode(name);
-    }
-
-    @Override
-    @Nonnull
-    public NodeState getChildNode(@Nonnull final String name) throws IllegalArgumentException {
-        return wrapChild(name, delegate.getChildNode(name));
-    }
-
-    @Override
-    public long getChildNodeCount(final long max) {
-        return delegate.getChildNodeCount(max);
-    }
-
-    @Override
-    public Iterable<String> getChildNodeNames() {
-        return delegate.getChildNodeNames();
-    }
-
-    @Override
-    @Nonnull
-    public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        return Iterables.transform(
-                delegate.getChildNodeEntries(),
-                new Function<ChildNodeEntry, ChildNodeEntry>() {
-                    @Override
-                    @Nonnull
-                    public ChildNodeEntry apply(final ChildNodeEntry childNodeEntry) {
-                        final String name = childNodeEntry.getName();
-                        return new MemoryChildNodeEntry(name, wrapChild(name, childNodeEntry.getNodeState()));
-                    }
-                }
-        );
-    }
-
-    @Override
-    public boolean hasProperty(@Nonnull final String name) {
-        return delegate.hasProperty(name);
-    }
-
-    @Override
-    public boolean getBoolean(@Nonnull final String name) {
-        reporter.reportProperty(this, name);
-        return delegate.getBoolean(name);
-    }
-
-    @Override
-    public long getLong(final String name) {
-        reporter.reportProperty(this, name);
-        return delegate.getLong(name);
+    protected NodeState decorateChild(@Nonnull final String name, @Nonnull final NodeState delegateChild) {
+        return wrapAndReport(this, name, delegateChild, reporter);
     }
 
     @Override
     @CheckForNull
-    public String getName(@Nonnull final String name) {
-        reporter.reportProperty(this, name);
-        return delegate.getName(name);
-    }
-
-    @Override
-    @Nonnull
-    public Iterable<String> getNames(@Nonnull final String name) {
-        reporter.reportProperty(this, name);
-        return delegate.getNames(name);
-    }
-
-
-    @Override
-    @CheckForNull
-    public String getString(final String name) {
-        reporter.reportProperty(this, name);
-        return delegate.getString(name);
-    }
-
-    @Override
-    @Nonnull
-    public Iterable<String> getStrings(@Nonnull final String name) {
-        reporter.reportProperty(this, name);
-        return delegate.getStrings(name);
-    }
-
-    @Override
-    @CheckForNull
-    public PropertyState getProperty(@Nonnull final String name) {
-        reporter.reportProperty(this, name);
-        return delegate.getProperty(name);
-    }
-
-    @Override
-    public long getPropertyCount() {
-        return delegate.getPropertyCount();
-    }
-
-    @Override
-    @Nonnull
-    public Iterable<? extends PropertyState> getProperties() {
-        return Iterables.transform(
-                delegate.getProperties(),
-                new Function<PropertyState, PropertyState>() {
-                    @Override
-                    @Nonnull
-                    public PropertyState apply(final PropertyState propertyState) {
-                        reporter.reportProperty(ReportingNodeState.this, propertyState.getName());
-                        return propertyState;
-                    }
-                }
-        );
+    protected PropertyState decorateProperty(@Nonnull final PropertyState delegatePropertyState) {
+        reporter.reportProperty(this, delegatePropertyState.getName());
+        return delegatePropertyState;
     }
 
     @Override
     public String toString() {
-        return "ReportingNodeState{" + getPath() + ", " + super.toString() + "}";
-    }
-
-    private static class ReportingDiff implements NodeStateDiff {
-
-        private final NodeStateDiff diff;
-        private ReportingNodeState parent;
-
-        public ReportingDiff(NodeStateDiff diff, ReportingNodeState parent) {
-            this.diff = diff;
-            this.parent = parent;
-        }
-
-        @Override
-        public boolean childNodeAdded(final String name, final NodeState after) {
-            return diff.childNodeAdded(name, parent.wrapChild(name, after));
-        }
-
-        @Override
-        public boolean childNodeChanged(final String name, final NodeState before, final NodeState after) {
-            return diff.childNodeChanged(name, before, parent.wrapChild(name, after));
-        }
-
-        @Override
-        public boolean childNodeDeleted(final String name, final NodeState before) {
-            return diff.childNodeDeleted(name, before);
-        }
-
-        @Override
-        public boolean propertyAdded(final PropertyState after) {
-            return diff.propertyAdded(after);
-        }
-
-        @Override
-        public boolean propertyChanged(final PropertyState before, final PropertyState after) {
-            return diff.propertyChanged(before, after);
-        }
-
-        @Override
-        public boolean propertyDeleted(final PropertyState before) {
-            return diff.propertyDeleted(before);
-        }
+        return "ReportingNodeState{" + getPath() + ", " + delegate.toString() + "}";
     }
 }
