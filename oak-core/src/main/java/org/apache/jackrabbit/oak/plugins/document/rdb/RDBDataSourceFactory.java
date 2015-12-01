@@ -23,6 +23,7 @@ import java.sql.SQLException;
 import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
+import org.apache.tomcat.jdbc.pool.PoolProperties;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -63,12 +64,14 @@ public class RDBDataSourceFactory {
 
             String classname = "org.apache.tomcat.jdbc.pool.DataSource";
             try {
-                Class<?> dsclazz = Class.forName(classname);
-                DataSource ds = (DataSource)dsclazz.newInstance();
-                dsclazz.getMethod("setDriverClassName",  String.class).invoke(ds, d.getClass().getName());
-                dsclazz.getMethod("setUsername",  String.class).invoke(ds, username);
-                dsclazz.getMethod("setPassword",  String.class).invoke(ds, passwd);
-                dsclazz.getMethod("setUrl",  String.class).invoke(ds, url);
+                PoolProperties properties = new PoolProperties();
+                properties.setJdbcInterceptors(RDBFailedQueryLogger.class.getName());
+
+                org.apache.tomcat.jdbc.pool.DataSource ds = new org.apache.tomcat.jdbc.pool.DataSource(properties);
+                ds.setDriverClassName(d.getClass().getName());
+                ds.setUsername(username);
+                ds.setPassword(passwd);
+                ds.setUrl(url);
                 return ds;
             }
             catch (Exception ex) {

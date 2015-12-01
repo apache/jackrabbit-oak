@@ -391,6 +391,11 @@
         <version>${mongo.driver.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.apache.tomcat</groupId>
+        <artifactId>tomcat-jdbc</artifactId>
+        <version>7.0.64</version>
+      </dependency>
+      <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
         <version>15.0</version>
