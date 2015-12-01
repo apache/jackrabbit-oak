@@ -1,5 +1,5 @@
 repo:
-  home: repository
+  home: oak
 oak:
   mongo:
     db: oak
