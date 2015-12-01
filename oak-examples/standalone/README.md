@@ -17,7 +17,7 @@ Once done you can run the application by executing
     $ java -jar target/oak-standalone-*.jar
     
 This would start an Oak based repository which uses filesystem storage. All 
-the content would be by default stored under `repository` folder. The server
+the content would be by default stored under `oak` folder. The server
 would listen at port 8080 and support remote access via DavEx (at `/server`) 
 and WebDAV (at `/repository`). 
 
@@ -59,10 +59,10 @@ specify the server detail also
 Application Structure
 ---------------------
 
-Oak uses a repository home (defaults to `repository`) folder in current 
+Oak uses a repository home (defaults to `oak`) folder in current 
 directory.
 
-    repository/
+    oak/
     ├── bundles
     ├── dav
     │   └── tmp

@@ -265,7 +265,6 @@
           <filesets>
             <fileset>
               <directory>oak</directory>
-              <directory>repository</directory>
             </fileset>
           </filesets>
         </configuration>
