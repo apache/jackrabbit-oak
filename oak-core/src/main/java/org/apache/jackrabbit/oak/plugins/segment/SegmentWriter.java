@@ -61,6 +61,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -492,7 +493,7 @@ public class SegmentWriter {
     private RecordId internalWriteStream(InputStream stream)
             throws IOException {
         BlobStore blobStore = store.getBlobStore();
-        byte[] data = new byte[MAX_SEGMENT_SIZE];
+        byte[] data = new byte[Segment.MEDIUM_LIMIT];
         int n = read(stream, data, 0, data.length);
 
         // Special case for short binaries (up to about 16kB):
@@ -505,6 +506,8 @@ public class SegmentWriter {
             return writeBlobId(blobId);
         }
 
+        data = Arrays.copyOf(data, MAX_SEGMENT_SIZE);
+        n += read(stream, data, n, MAX_SEGMENT_SIZE - n);
         long length = n;
         List<RecordId> blockIds =
                 newArrayListWithExpectedSize(2 * n / BLOCK_SIZE);
