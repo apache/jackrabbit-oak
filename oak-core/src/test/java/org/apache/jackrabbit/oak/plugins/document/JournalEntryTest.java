@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -34,7 +35,9 @@ import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -63,6 +66,46 @@ public class JournalEntryTest {
             }
         }
         sort.close();
+    }
+
+    //OAK-3494
+    @Test
+    public void useParentDiff() throws Exception {
+        DiffCache cache = new MemoryDiffCache(new DocumentMK.Builder());
+        Revision from = new Revision(1, 0, 1);
+        Revision to = new Revision(2, 0, 1);
+        Revision unjournalled = new Revision(3, 0, 1);
+
+        //Put one entry for (from, to, "/a/b")->["c1", "c2"] manually
+        DiffCache.Entry entry = cache.newEntry(from, to, false);
+        entry.append("/a/b", "^\"c1\":{}^\"c2\":{}");
+        entry.done();
+
+        //NOTE: calling validateCacheUsage fills the cache with an empty diff for the path being validated.
+        //So, we need to make sure that each validation is done on a separate path.
+
+        //Cases that cache can answer (only c1 and c2 sub-trees are possibly changed)
+        validateCacheUsage(cache, from, to, "/a/b/c3", true);
+        validateCacheUsage(cache, from, to, "/a/b/c4/e/f/g", true);
+
+        //Cases that cache can't answer
+        validateCacheUsage(cache, from, to, "/a/b/c1", false); //cached entry says that c1 sub-tree is changed
+        validateCacheUsage(cache, from, to, "/a/b/c2/d", false); //cached entry says that c2 sub-tree is changed
+        validateCacheUsage(cache, from, to, "/c", false);//there is no cache entry for the whole hierarchy
+
+        //Fill cache using journal
+        List<String> paths = Lists.newArrayList("/content/changed", "/content/changed1/child1");
+        StringSort sort = JournalEntry.newSorter();
+        add(sort, paths);
+        sort.sort();
+        JournalEntry.applyTo(sort, cache, from, to);
+
+        validateCacheUsage(cache, from, to, "/topUnchanged", true);
+        validateCacheUsage(cache, from, to, "/content/changed/unchangedLeaf", true);
+        validateCacheUsage(cache, from, to, "/content/changed1/child2", true);
+
+        //check against an unjournalled revision (essentially empty cache)
+        validateCacheUsage(cache, from, unjournalled, "/unjournalledPath", false);
     }
 
     @Test
@@ -144,6 +187,26 @@ public class JournalEntryTest {
                 default:
                     fail("Unexpected token: " + r);
             }
+        }
+    }
+
+    private void validateCacheUsage(DiffCache cache, Revision from, Revision to, String path, boolean cacheExpected) {
+        String nonLoaderDiff = cache.getChanges(from, to, path, null);
+        final AtomicBoolean loaderCalled = new AtomicBoolean(false);
+        cache.getChanges(from, to, path, new DiffCache.Loader() {
+            @Override
+            public String call() {
+                loaderCalled.set(true);
+                return "";
+            }
+        });
+
+        if (cacheExpected) {
+            assertNotNull(nonLoaderDiff);
+            assertFalse(loaderCalled.get());
+        } else {
+            assertNull(nonLoaderDiff);
+            assertTrue(loaderCalled.get());
         }
     }
 }

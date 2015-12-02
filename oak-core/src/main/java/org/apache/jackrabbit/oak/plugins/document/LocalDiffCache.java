@@ -36,7 +36,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 /**
  * A diff cache, which is pro-actively filled after a commit.
  */
-public class LocalDiffCache implements DiffCache {
+public class LocalDiffCache extends DiffCache {
 
     /**
      * Limit is arbitrary for now i.e. 16 MB. Same as in MongoDiffCache
