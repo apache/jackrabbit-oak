@@ -34,6 +34,7 @@ import org.osgi.framework.ServiceRegistration
 import javax.sql.DataSource
 import java.sql.Connection
 import java.sql.ResultSet
+import java.util.concurrent.TimeUnit
 
 import static org.junit.Assume.assumeTrue
 
@@ -84,6 +85,7 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
 
         //3. Shut down ds
         srds.unregister();
+        TimeUnit.MILLISECONDS.sleep(500);
         assertNoService(NodeStore.class)
 
         //4. Restart ds, service should still be down

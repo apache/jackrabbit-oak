@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.query.ast.AstElementFactory.copyElementAndCheckReference;
 
 import java.util.Collections;
@@ -117,4 +116,20 @@ public class NotImpl extends ConstraintImpl {
     public AstElement copyOf() {
         return new NotImpl((ConstraintImpl) copyElementAndCheckReference(constraint));
     }
+
+    @Override
+    public boolean requiresFullTextIndex() {
+        return constraint.requiresFullTextIndex();
+    }
+
+    @Override
+    public boolean containsUnfilteredFullTextCondition() {
+        // If the constraint is a fulltext condition,
+        // then we can not apply it, as in "not contains(., 'x')".
+        // Also, if the constraint _contains_ a unfiltered fulltext condition, as in
+        // "not (x=1 or contains(., 'x')".
+        return constraint.requiresFullTextIndex() || 
+                constraint.requiresFullTextIndex();
+    }
+
 }

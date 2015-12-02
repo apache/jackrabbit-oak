@@ -25,7 +25,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -66,6 +65,9 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
+import org.apache.jackrabbit.oak.stats.CounterStats;
+import org.apache.jackrabbit.oak.stats.MeterStats;
+import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -189,8 +191,18 @@ public class SessionContext implements NamePathMapper {
     }
 
     @Nonnull
-    public AtomicLong getCounter(Type type) {
-        return statisticManager.getCounter(type);
+    public MeterStats getMeter(Type type){
+        return statisticManager.getMeter(type);
+    }
+
+    @Nonnull
+    public TimerStats getTimer(Type type) {
+        return statisticManager.getTimer(type);
+    }
+
+    @Nonnull
+    public CounterStats getCount(Type type) {
+        return statisticManager.getStatsCounter(type);
     }
 
     @Nonnull

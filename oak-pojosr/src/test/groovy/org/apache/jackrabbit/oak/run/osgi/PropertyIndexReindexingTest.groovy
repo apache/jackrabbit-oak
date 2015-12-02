@@ -31,6 +31,7 @@ import org.junit.Test
 import javax.jcr.Node
 import javax.jcr.Repository
 import javax.jcr.Session
+import java.util.concurrent.TimeUnit
 
 import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_CONFIG_FILE
 
@@ -70,7 +71,7 @@ class PropertyIndexReindexingTest extends AbstractRepositoryFactoryTest{
         assert c
 
         c[0].disable()
-
+        TimeUnit.SECONDS.sleep(1)
        assert registry.getServiceReference(Repository.class.name) == null : "Repository should be unregistered " +
                "if no property index editor found"
 

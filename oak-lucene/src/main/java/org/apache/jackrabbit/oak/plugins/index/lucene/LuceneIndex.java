@@ -16,25 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static com.google.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getAncestorPath;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getDepth;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newFulltextTerm;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.skipTokenization;
-import static org.apache.jackrabbit.oak.query.QueryImpl.JCR_PATH;
-import static org.apache.lucene.search.BooleanClause.Occur.MUST;
-import static org.apache.lucene.search.BooleanClause.Occur.MUST_NOT;
-import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
-
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -47,6 +28,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Queues;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
@@ -73,12 +58,14 @@ import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.CachingTokenFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.index.Term;
@@ -98,16 +85,30 @@ import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.TotalHitCountCollector;
 import org.apache.lucene.search.WildcardQuery;
+import org.apache.lucene.search.highlight.Highlighter;
+import org.apache.lucene.search.highlight.InvalidTokenOffsetsException;
+import org.apache.lucene.search.highlight.QueryScorer;
+import org.apache.lucene.search.highlight.SimpleHTMLEncoder;
+import org.apache.lucene.search.highlight.SimpleHTMLFormatter;
+import org.apache.lucene.search.highlight.TextFragment;
 import org.apache.lucene.search.spell.SuggestWord;
 import org.apache.lucene.search.suggest.Lookup;
 import org.apache.lucene.util.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Queues;
-import com.google.common.collect.Sets;
+import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.commons.PathUtils.*;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newFulltextTerm;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.skipTokenization;
+import static org.apache.jackrabbit.oak.query.QueryImpl.JCR_PATH;
+import static org.apache.lucene.search.BooleanClause.Occur.*;
 
 /**
  * Provides a QueryIndex that does lookups against a Lucene-based index
@@ -171,6 +172,9 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
     protected final IndexTracker tracker;
 
     private final NodeAggregator aggregator;
+
+    private final Highlighter highlighter = new Highlighter(new SimpleHTMLFormatter("<strong>", "</strong>"),
+            new SimpleHTMLEncoder(), null);
 
     public LuceneIndex(IndexTracker tracker, NodeAggregator aggregator) {
         this.tracker = tracker;
@@ -298,7 +302,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                 return endOfData();
             }
 
-            private LuceneResultRow convertToRow(ScoreDoc doc, IndexSearcher searcher) throws IOException {
+            private LuceneResultRow convertToRow(ScoreDoc doc, IndexSearcher searcher, String excerpt) throws IOException {
                 IndexReader reader = searcher.getIndexReader();
                 PathStoredFieldVisitor visitor = new PathStoredFieldVisitor();
                 reader.document(doc.doc, visitor);
@@ -323,7 +327,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                         seenPaths.add(path);
                     }
 
-                    return new LuceneResultRow(path, doc.score);
+                    return new LuceneResultRow(path, doc.score, excerpt);
                 }
                 return null;
             }
@@ -363,8 +367,14 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                             LOG.debug("... took {} ms", time);
                             nextBatchSize = (int) Math.min(nextBatchSize * 2L, 100000);
 
+                            boolean addExcerpt = filter.getQueryStatement() != null && filter.getQueryStatement().contains(QueryImpl.REP_EXCERPT);
                             for (ScoreDoc doc : docs.scoreDocs) {
-                                LuceneResultRow row = convertToRow(doc, searcher);
+                                String excerpt = null;
+                                if (addExcerpt) {
+                                    excerpt = getExcerpt(indexNode, searcher, query, doc);
+                                }
+
+                                LuceneResultRow row = convertToRow(doc, searcher, excerpt);
                                 if (row != null) {
                                     queue.add(row);
                                 }
@@ -402,7 +412,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                         noDocs = true;
                     } else if (luceneRequestFacade.getLuceneRequest() instanceof SuggestHelper.SuggestQuery) {
                         SuggestHelper.SuggestQuery suggestQuery = (SuggestHelper.SuggestQuery) luceneRequestFacade.getLuceneRequest();
-                        List<Lookup.LookupResult> lookupResults = SuggestHelper.getSuggestions(suggestQuery);
+                        List<Lookup.LookupResult> lookupResults = SuggestHelper.getSuggestions(indexNode.getLookup(), suggestQuery);
 
                         // ACL filter suggestions
                         Collection<String> suggestedWords = new ArrayList<String>(lookupResults.size());
@@ -474,6 +484,35 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             }
         };
         return new LucenePathCursor(itr, settings, sizeEstimator);
+    }
+
+    private String getExcerpt(IndexNode indexNode, IndexSearcher searcher, Query query, ScoreDoc doc) throws IOException {
+        StringBuilder excerpt = new StringBuilder();
+        QueryScorer scorer = new QueryScorer(query);
+        scorer.setExpandMultiTermQuery(true);
+        highlighter.setFragmentScorer(scorer);
+        Analyzer analyzer = indexNode.getDefinition().getAnalyzer();
+
+        for (IndexableField field : searcher.getIndexReader().document(doc.doc).getFields())
+            if (!FieldNames.SUGGEST.equals(field.name())) {
+                try {
+                    TokenStream tokenStream = analyzer.tokenStream(field.name(), field.stringValue());
+                    tokenStream.reset();
+                    CachingTokenFilter cachingTokenFilter = new CachingTokenFilter(tokenStream);
+                    TextFragment[] textFragments = highlighter.getBestTextFragments(cachingTokenFilter, field.stringValue(), true, 2);
+                    if (textFragments != null && textFragments.length > 0) {
+                        for (TextFragment fragment : textFragments) {
+                            if (excerpt.length() > 0) {
+                                excerpt.append("...");
+                            }
+                            excerpt.append(fragment.toString());
+                        }
+                    }
+                } catch (InvalidTokenOffsetsException e) {
+                    LOG.error("higlighting failed", e);
+                }
+            }
+        return excerpt.toString();
     }
 
     protected static IndexPlan.Builder planBuilder(Filter filter){
@@ -1039,11 +1078,13 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
         final double score;
         final Iterable<String> suggestWords;
         final boolean isVirtual;
+        final String excerpt;
 
-        LuceneResultRow(String path, double score) {
+        LuceneResultRow(String path, double score, String excerpt) {
             this.isVirtual = false;
             this.path = path;
             this.score = score;
+            this.excerpt = excerpt;
             this.suggestWords = Collections.emptySet();
         }
 
@@ -1052,6 +1093,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             this.path = "/";
             this.score = 1.0d;
             this.suggestWords = suggestWords;
+            this.excerpt = null;
         }
 
         @Override
@@ -1129,6 +1171,9 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                     }
                     if (QueryImpl.REP_SPELLCHECK.equals(columnName) || QueryImpl.REP_SUGGEST.equals(columnName)) {
                         return PropertyValues.newString(Iterables.toString(currentRow.suggestWords));
+                    }
+                    if (QueryImpl.REP_EXCERPT.equals(columnName)) {
+                        return PropertyValues.newString(currentRow.excerpt);
                     }
                     return pathRow.getValue(columnName);
                 }

@@ -961,6 +961,23 @@ property.
           - useInSuggest = true
 ```
 
+`@since Oak 1.3.11` each suggestion would be returned per row.
+
+`@since Oak 1.3.12` the index Analyzer can be used to perform a have more fine grained suggestions, e.g. single words 
+(whereas default suggest configuration returns entire property values, see [OAK-3407]: https://issues.apache.org/jira/browse/OAK-3407).
+Analyzed suggestions can be enabled by setting "suggestAnalyzed" property to true, e.g.:
+
+```
+/oak:index/lucene-suggest
+  - jcr:primaryType = "oak:QueryIndexDefinition"
+  - compatVersion = 2
+  - type = "lucene"
+  - async = "async"
+  - suggestUpdateFrequencyMinutes = 60
+  - suggestAnalyzed = true
+```
+
+
 #### Spellchecking
 
 `@since Oak 1.1.17, 1.0.13`
@@ -973,6 +990,8 @@ properties terms to be used for spellcheck corrections will be taken.
  
 Sample configuration for spellchecking based on terms contained in `jcr:title` 
 property.
+
+Since Oak 1.3.11, the each suggestion would be returned per row.
 
 ```
 /oak:index/lucene-spellcheck

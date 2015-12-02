@@ -19,9 +19,9 @@
 package org.apache.jackrabbit.oak.jcr.query;
 
 import static com.google.common.collect.Sets.newHashSet;
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
@@ -274,6 +274,36 @@ public class QueryTest extends AbstractRepositoryTest {
                 "where ([a].[jcr:primaryType] = 'oak:Unstructured') " +
                 "and ([a].[content/lastMod] > '2001-02-01') " +
                 "and (isdescendantnode([a], [/test])) */",
+                rit.nextRow().getValue("plan").getString());
+        
+    }
+    
+    @Test
+    public void propertyIndexWithDeclaringNodeTypeAndRelativQuery() throws RepositoryException {
+        Session session = getAdminSession();
+        RowIterator rit;
+        QueryResult r;
+        String query;
+        query = "//element(*, rep:Authorizable)[@rep:principalName = 'admin']";
+        r = session.getWorkspace().getQueryManager()
+                .createQuery("explain " + query, "xpath").execute();
+        rit = r.getRows();
+        assertEquals("[rep:Authorizable] as [a] /* property principalName = admin " + 
+                "where [a].[rep:principalName] = 'admin' */", 
+                rit.nextRow().getValue("plan").getString());
+        
+        query = "//element(*, rep:Authorizable)[admin/@rep:principalName = 'admin']";
+        r = session.getWorkspace().getQueryManager()
+                .createQuery("explain " + query, "xpath").execute();
+        rit = r.getRows();
+        assertEquals("[rep:Authorizable] as [a] /* nodeType " + 
+                "Filter(query=explain select [jcr:path], [jcr:score], * " + 
+                "from [rep:Authorizable] as a " + 
+                "where [admin/rep:principalName] = 'admin' " + 
+                "/* xpath: //element(*, rep:Authorizable)[" + 
+                "admin/@rep:principalName = 'admin'] */, path=*, " + 
+                "property=[admin/rep:principalName=[admin]]) " + 
+                "where [a].[admin/rep:principalName] = 'admin' */", 
                 rit.nextRow().getValue("plan").getString());
         
     }

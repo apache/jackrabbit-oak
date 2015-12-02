@@ -98,7 +98,9 @@ import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
 import org.apache.jackrabbit.oak.plugins.document.util.MapDBMapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.segment.FileStoreDiff;
 import org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper;
+import org.apache.jackrabbit.oak.plugins.segment.PCMAnalyser;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.RecordUsageAnalyser;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
@@ -211,6 +213,9 @@ public final class Main {
                 break;
             case GARBAGE:
                 garbage(args);
+                break;
+            case TARMKDIFF:
+                FileStoreDiff.main(args);
                 break;
             case HELP:
             default:
@@ -1029,13 +1034,12 @@ public final class Main {
                 bulkSize += id.getSegment().size();
             }
         }
-        System.out.println("\nAvailable for garbage collection:");
-        System.out.format(
-                "%s in %6d data segments%n",
+        System.out.format("%nAvailable for garbage collection:%n");
+        System.out.format("%s in %6d data segments%n",
                 byteCountToDisplaySize(dataSize), dataCount);
-        System.out.format(
-                "%s in %6d bulk segments%n",
+        System.out.format("%s in %6d bulk segments%n",
                 byteCountToDisplaySize(bulkSize), bulkCount);
+        System.out.format("%n%s", new PCMAnalyser(store).toString());
     }
 
     private static void analyseSegment(Segment segment, RecordUsageAnalyser analyser) {
@@ -1262,7 +1266,8 @@ public final class Main {
         RECOVERY("recovery"),
         REPAIR("repair"),
         TIKA("tika"),
-        GARBAGE("garbage");
+        GARBAGE("garbage"),
+        TARMKDIFF("tarmkdiff");
 
         private final String name;
 

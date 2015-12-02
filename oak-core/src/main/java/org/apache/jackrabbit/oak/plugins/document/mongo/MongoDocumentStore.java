@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -70,7 +69,6 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
-import org.apache.jackrabbit.oak.plugins.document.mongo.CacheInvalidator.InvalidationResult;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -145,12 +143,6 @@ public class MongoDocumentStore implements DocumentStore, UnmergedBranchesAware 
      * Counts how many times {@link TreeLock}s were acquired.
      */
     private final AtomicLong lockAcquisitionCounter = new AtomicLong();
-
-    /**
-     * Comparator for maps with {@link Revision} keys. The maps are ordered
-     * descending, newest revisions first!
-     */
-    private final Comparator<Revision> comparator = StableRevisionComparator.REVERSE;
 
     private Clock clock = Clock.SIMPLE;
 
@@ -304,9 +296,12 @@ public class MongoDocumentStore implements DocumentStore, UnmergedBranchesAware 
 
     @Override
     public CacheInvalidationStats invalidateCache() {
-        //TODO Check if we should use LinearInvalidator for small cache sizes as
-        //that would lead to lesser number of queries
-        return CacheInvalidator.createHierarchicalInvalidator(this).invalidateCache();
+        InvalidationResult result = new InvalidationResult();
+        for (CacheValue key : nodesCache.asMap().keySet()) {
+            result.invalidationCount++;
+            invalidateCache(Collection.NODES, key.toString());
+        }
+        return result;
     }
     
     @Override
@@ -830,7 +825,7 @@ public class MongoDocumentStore implements DocumentStore, UnmergedBranchesAware 
             } else if (upsert) {
                 if (collection == Collection.NODES) {
                     NodeDocument doc = (NodeDocument) collection.newDocument(this);
-                    UpdateUtils.applyChanges(doc, updateOp, comparator);
+                    UpdateUtils.applyChanges(doc, updateOp);
                     addToCache(doc);
                 }
             } else {
@@ -851,6 +846,7 @@ public class MongoDocumentStore implements DocumentStore, UnmergedBranchesAware 
     public <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update)
             throws DocumentStoreException {
         log("createOrUpdate", update);
+        UpdateUtils.assertUnconditional(update);
         T doc = findAndModify(collection, update, true, false);
         log("createOrUpdate returns ", doc);
         return doc;
@@ -874,8 +870,9 @@ public class MongoDocumentStore implements DocumentStore, UnmergedBranchesAware 
         for (int i = 0; i < updateOps.size(); i++) {
             inserts[i] = new BasicDBObject();
             UpdateOp update = updateOps.get(i);
+            UpdateUtils.assertUnconditional(update);
             T target = collection.newDocument(this);
-            UpdateUtils.applyChanges(target, update, comparator);
+            UpdateUtils.applyChanges(target, update);
             docs.add(target);
             for (Entry<Key, Operation> entry : update.getChanges().entrySet()) {
                 Key k = entry.getKey();
@@ -948,6 +945,7 @@ public class MongoDocumentStore implements DocumentStore, UnmergedBranchesAware 
                                             List<String> keys,
                                             UpdateOp updateOp) {
         log("update", keys, updateOp);
+        UpdateUtils.assertUnconditional(updateOp);
         DBCollection dbCollection = getDBCollection(collection);
         QueryBuilder query = QueryBuilder.start(Document.ID).in(keys);
         // make sure we don't modify the original updateOp
@@ -1072,7 +1070,7 @@ public class MongoDocumentStore implements DocumentStore, UnmergedBranchesAware 
 
     @Nonnull
     private Map<Revision, Object> convertMongoMap(@Nonnull BasicDBObject obj) {
-        Map<Revision, Object> map = new TreeMap<Revision, Object>(comparator);
+        Map<Revision, Object> map = new TreeMap<Revision, Object>(StableRevisionComparator.REVERSE);
         for (Map.Entry<String, Object> entry : obj.entrySet()) {
             map.put(Revision.fromString(entry.getKey()), entry.getValue());
         }
@@ -1195,7 +1193,7 @@ public class MongoDocumentStore implements DocumentStore, UnmergedBranchesAware 
                 NodeDocument newDoc = (NodeDocument) collection.newDocument(this);
                 oldDoc.deepCopy(newDoc);
 
-                UpdateUtils.applyChanges(newDoc, updateOp, comparator);
+                UpdateUtils.applyChanges(newDoc, updateOp);
                 newDoc.seal();
 
                 nodesCache.put(key, newDoc);
@@ -1271,7 +1269,7 @@ public class MongoDocumentStore implements DocumentStore, UnmergedBranchesAware 
             CacheValue key = new StringValue(oldDoc.getId());
             NodeDocument newDoc = (NodeDocument) collection.newDocument(this);
             oldDoc.deepCopy(newDoc);
-            UpdateUtils.applyChanges(newDoc, updateOp, comparator);
+            UpdateUtils.applyChanges(newDoc, updateOp);
             newDoc.seal();
             nodesCache.put(key, newDoc);
         }
@@ -1535,5 +1533,29 @@ public class MongoDocumentStore implements DocumentStore, UnmergedBranchesAware 
     @Override
     public void setUnmergedBranches(UnmergedBranches unmergedBranches) {
         this.unmergedBranches = unmergedBranches;
+    }
+
+    private static class InvalidationResult implements CacheInvalidationStats {
+        int invalidationCount;
+        int upToDateCount;
+        int cacheSize;
+        int queryCount;
+        int cacheEntriesProcessedCount;
+
+        @Override
+        public String toString() {
+            return "InvalidationResult{" +
+                    "invalidationCount=" + invalidationCount +
+                    ", upToDateCount=" + upToDateCount +
+                    ", cacheSize=" + cacheSize +
+                    ", queryCount=" + queryCount +
+                    ", cacheEntriesProcessedCount=" + cacheEntriesProcessedCount +
+                    '}';
+        }
+
+        @Override
+        public String summaryReport() {
+            return toString();
+        }
     }
 }

@@ -19,11 +19,18 @@
 package org.apache.jackrabbit.oak.query;
 
 import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
+import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 
 /**
  * Settings of the query engine.
  */
-public class QueryEngineSettings implements QueryEngineSettingsMBean {
+public class QueryEngineSettings extends AnnotatedStandardMBean implements QueryEngineSettingsMBean {
+    
+    /**
+     * the flag used to turn on/off the optimisations on top of the {@link Query} object.
+     * {@code -Doak.query.sql2optimisation}
+     */
+    public static final String SQL2_OPTIMISATION_FLAG = "oak.query.sql2optimisation";
     
     private static final int DEFAULT_QUERY_LIMIT_IN_MEMORY = 
             Integer.getInteger("oak.queryLimitInMemory", Integer.MAX_VALUE);
@@ -41,8 +48,12 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean {
     private boolean fullTextComparisonWithoutIndex = 
             DEFAULT_FULL_TEXT_COMPARISON_WITHOUT_INDEX;
     
-    private boolean sql2Optimisation = Boolean.getBoolean("oak.query.sql2optimisation");
-    
+    private boolean sql2Optimisation = Boolean.parseBoolean(System.getProperty(SQL2_OPTIMISATION_FLAG, "true"));
+
+    public QueryEngineSettings() {
+        super(QueryEngineSettingsMBean.class);
+    }
+
     /**
      * Get the limit on how many nodes a query may read at most into memory, for
      * "order by" and "distinct" queries. If this limit is exceeded, the query

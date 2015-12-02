@@ -146,6 +146,13 @@ public class PropertyIndexPlan {
                         // covering indexes are not currently supported
                         continue;
                     }
+                    if (depth != 1 && !matchesAllTypes) {
+                        // OAK-3589
+                        // index has a nodetype condition, and the property condition is
+                        // relative: can not use this index, as we don't know the nodetype
+                        // of the child node (well, we could, for some node types)
+                        continue;
+                    }
                     Set<String> values = getValues(restriction);
                     double cost = strategy.count(filter, root, definition, values, MAX_COST);
                     if (cost < bestCost) {

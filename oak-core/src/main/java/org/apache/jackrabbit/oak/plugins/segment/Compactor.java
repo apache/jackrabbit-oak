@@ -99,13 +99,13 @@ public class Compactor {
      */
     private final Supplier<Boolean> cancel;
 
-    public Compactor(SegmentWriter writer) {
-        this(writer, Suppliers.ofInstance(false));
+    public Compactor(SegmentStore store) {
+        this(store, Suppliers.ofInstance(false));
     }
 
-    public Compactor(SegmentWriter writer, Supplier<Boolean> cancel) {
-        this.writer = writer;
-        this.map = new InMemoryCompactionMap(writer.getTracker());
+    public Compactor(SegmentStore store, Supplier<Boolean> cancel) {
+        this.writer = store.getTracker().getWriter();
+        this.map = new InMemoryCompactionMap(store.getTracker());
         this.cloneBinaries = false;
         this.cancel = cancel;
     }
@@ -120,7 +120,7 @@ public class Compactor {
         if (compactionStrategy.getPersistCompactionMap()) {
             this.map = new PersistedCompactionMap(store);
         } else {
-            this.map = new InMemoryCompactionMap(writer.getTracker());
+            this.map = new InMemoryCompactionMap(store.getTracker());
         }
         this.cloneBinaries = compactionStrategy.cloneBinaries();
         if (compactionStrategy.isOfflineCompaction()) {

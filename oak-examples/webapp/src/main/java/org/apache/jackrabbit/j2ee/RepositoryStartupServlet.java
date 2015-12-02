@@ -18,9 +18,12 @@ package org.apache.jackrabbit.j2ee;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.felix.connect.launch.PojoServiceRegistry;
+import org.apache.felix.webconsole.WebConsoleSecurityProvider;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.commons.repository.RepositoryFactory;
 import org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory;
+import org.apache.jackrabbit.oak.run.osgi.ServiceRegistryProvider;
 import org.apache.jackrabbit.rmi.server.RemoteAdapterFactory;
 import org.apache.jackrabbit.rmi.server.ServerAdapterFactory;
 import org.apache.jackrabbit.servlet.AbstractRepositoryServlet;
@@ -479,7 +482,17 @@ public class RepositoryStartupServlet extends AbstractRepositoryServlet {
         //TODO oak-jcr also provides a dummy RepositoryFactory. Hence this
         //cannot be used
         //return JcrUtils.getRepository(config);
-        return new OakOSGiRepositoryFactory().getRepository(config);
+        Repository repository = new OakOSGiRepositoryFactory().getRepository(config);
+        configWebConsoleSecurityProvider(repository);
+        return repository;
+    }
+
+    private void configWebConsoleSecurityProvider(Repository repository) {
+        if (repository instanceof ServiceRegistryProvider){
+            PojoServiceRegistry registry = ((ServiceRegistryProvider) repository).getServiceRegistry();
+            registry.registerService(WebConsoleSecurityProvider.class.getName(),
+                    new RepositorySecurityProvider(repository), null);
+        }
     }
 
     private void configureActivator(Map<String, Object> config) {

@@ -46,18 +46,15 @@ class Collision {
     private final Revision theirRev;
     private final UpdateOp ourOp;
     private final Revision ourRev;
-    private final RevisionContext context;
 
     Collision(@Nonnull NodeDocument document,
               @Nonnull Revision theirRev,
               @Nonnull UpdateOp ourOp,
-              @Nonnull Revision ourRev,
-              @Nonnull RevisionContext context) {
+              @Nonnull Revision ourRev) {
         this.document = checkNotNull(document);
         this.theirRev = checkNotNull(theirRev);
         this.ourOp = checkNotNull(ourOp);
         this.ourRev = checkNotNull(ourRev);
-        this.context = checkNotNull(context);
     }
 
     /**
@@ -78,7 +75,7 @@ class Collision {
         // their commit wins, we have to mark ourRev
         NodeDocument newDoc = Collection.NODES.newDocument(store);
         document.deepCopy(newDoc);
-        UpdateUtils.applyChanges(newDoc, ourOp, context.getRevisionComparator());
+        UpdateUtils.applyChanges(newDoc, ourOp);
         if (!markCommitRoot(newDoc, ourRev, theirRev, store)) {
             throw new IllegalStateException("Unable to annotate our revision "
                     + "with collision marker. Our revision: " + ourRev

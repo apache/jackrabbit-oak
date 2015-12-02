@@ -23,6 +23,7 @@ The following runmodes are currently available:
     * checkpoints : Manage checkpoints
     * tika        : Performs text extraction
     * garbage     : Identifies blob garbage on a DocumentMK repository
+    * tarmkdiff   : Show changes between revisions on TarMk
     * help        : Print a list of available runmodes
     
 
@@ -857,6 +858,60 @@ can be dumped to a file
 
 [1]: http://jackrabbit.apache.org/oak/docs/oak-mongo-js/oak.html
 
+<a name="tarmkdiff"></a>
+Oak TarMK Revision Diff
+-----------------------
+
+Show changes between revisions on TarMk. It uses a read-only store, so it can also be used on a running system without the need to shut down.
+
+    $ java -jar oak-run-*.jar tarmkdiff path/to/repository [--list] [--diff=R0..R1] [--incremental] [--ignore-snfes] [--output=/path/to/output/file]
+
+The following options are available:
+
+    --list           - Lists the existing revisions. will ignore other params if this is provided
+    --diff           - Revision diff interval. Ex '--diff=R0..R1'. 'HEAD' can be used to reference the latest head revision, ie. '--diff=R0..HEAD'
+    --incremental    - Runs diffs between each subsequent revisions in the provided interval (false by default)
+    --ignore-snfes   - Ignores SegmentNotFoundExceptions and continues running the diff (experimental) (false by default)
+    --path           - Filter diff by given path
+    --output         - Output file name (generated randomly if not provided)
+
+Output sample
+
+    rev 7583946d-1817-4716-a05c-660ee52ddce0.ff94..c238cd7d-87a0-4cca-aa14-80b75e8ab81d.fb3e
+    ^ /oak:index
+    ^ /oak:index/lucene
+    ^ /oak:index/lucene/:data
+    - /oak:index/lucene/:data/_3729.cfs
+    + /oak:index/lucene/:data/_372d.si
+        + blobSize<LONG> = 1047552
+        + jcr:lastModified<LONG> = 1447948037017
+        + jcr:data<BINARIES>[1] = [252 bytes]
+    - /oak:index/lucene/:data/segments_37bv
+    + /oak:index/lucene/:data/_372d.cfe
+        + blobSize<LONG> = 1047552
+        + jcr:lastModified<LONG> = 1447948037017
+        + jcr:data<BINARIES>[1] = [224 bytes]
+    - /oak:index/lucene/:data/_3729.si
+    - /oak:index/lucene/:data/_3729.cfe
+    + /oak:index/lucene/:data/_372d.cfs
+        + blobSize<LONG> = 1047552
+        + jcr:lastModified<LONG> = 1447948037017
+        + jcr:data<BINARIES>[1] = [907 bytes]
+    + /oak:index/lucene/:data/segments_37bz
+        + blobSize<LONG> = 1047552
+        + jcr:lastModified<LONG> = 1447948045167
+        + jcr:data<BINARIES>[1] = [863 bytes]
+    ^ /oak:index/lucene/:data/segments.gen
+        ^ jcr:lastModified
+          - jcr:lastModified<LONG> = 1447947918027
+          + jcr:lastModified<LONG> = 1447948045167
+        ^ jcr:data
+          - jcr:data<BINARIES>[1] = [20 bytes]
+          + jcr:data<BINARIES>[1] = [20 bytes]
+    ^ /oak:index/lucene/:status
+        ^ lastUpdated
+          - lastUpdated<DATE> = 2015-11-19T10:45:18.027-05:00
+          + lastUpdated<DATE> = 2015-11-19T10:47:25.167-05:00
 
 License
 -------

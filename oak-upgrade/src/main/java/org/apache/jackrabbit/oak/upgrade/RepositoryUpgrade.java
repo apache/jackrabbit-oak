@@ -108,6 +108,7 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.upgrade.nodestate.NameFilteringNodeState;
 import org.apache.jackrabbit.oak.upgrade.nodestate.report.LoggingReporter;
 import org.apache.jackrabbit.oak.upgrade.nodestate.report.ReportingNodeState;
 import org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier;
@@ -174,6 +175,8 @@ public class RepositoryUpgrade {
     private boolean earlyShutdown = false;
 
     private List<CommitHook> customCommitHooks = null;
+
+    private boolean skipLongNames = true;
 
     VersionCopyConfiguration versionCopyConfiguration = new VersionCopyConfiguration();
 
@@ -243,6 +246,14 @@ public class RepositoryUpgrade {
 
     public void setEarlyShutdown(boolean earlyShutdown) {
         this.earlyShutdown = earlyShutdown;
+    }
+
+    public boolean isSkipLongNames() {
+        return skipLongNames;
+    }
+
+    public void setSkipLongNames(boolean skipLongNames) {
+        this.skipLongNames = skipLongNames;
     }
 
     /**
@@ -407,13 +418,19 @@ public class RepositoryUpgrade {
             new TypeEditorProvider(false).getRootEditor(
                     targetBuilder.getBaseState(), targetBuilder.getNodeState(), targetBuilder, null);
 
-            final NodeState sourceRoot = ReportingNodeState.wrap(
+            final NodeState reportingSourceRoot = ReportingNodeState.wrap(
                     JackrabbitNodeState.createRootNodeState(
                             source, workspaceName, targetBuilder.getNodeState(), 
                             uriToPrefix, copyBinariesByReference, skipOnError
                     ),
                     new LoggingReporter(logger, "Migrating", 10000, -1)
             );
+            final NodeState sourceRoot;
+            if (skipLongNames) {
+                sourceRoot = NameFilteringNodeState.wrap(reportingSourceRoot);
+            } else {
+                sourceRoot = reportingSourceRoot;
+            }
 
             final Stopwatch watch = Stopwatch.createStarted();
 

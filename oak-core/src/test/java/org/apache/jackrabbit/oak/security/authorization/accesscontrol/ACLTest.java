@@ -452,6 +452,19 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
     }
 
     @Test
+    public void testComplementaryEntry3() throws Exception {
+        Privilege[] readPriv = privilegesFromNames(JCR_READ);
+
+        acl.addAccessControlEntry(testPrincipal, privilegesFromNames(JCR_WRITE));
+        acl.addEntry(testPrincipal, readPriv, false);
+
+        acl.addAccessControlEntry(testPrincipal, readPriv);
+
+        List<? extends JackrabbitAccessControlEntry> entries = acl.getEntries();
+        assertEquals(1, entries.size());
+    }
+
+    @Test
     public void testMultiplePrincipals() throws Exception {
         Principal everyone = principalManager.getEveryone();
         Privilege[] privs = privilegesFromNames(JCR_READ);

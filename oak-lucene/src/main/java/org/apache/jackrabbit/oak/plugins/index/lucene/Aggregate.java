@@ -30,7 +30,6 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil;
@@ -79,7 +78,7 @@ class Aggregate {
     }
 
     public void collectAggregates(NodeState root, ResultCollector collector) {
-        if (nodeTypeName.equals(ConfigUtil.getPrimaryTypeName(root))) {
+        if (matchingType(nodeTypeName, root)) {
             List<Matcher> matchers = createMatchers();
             collectAggregates(root, matchers, collector);
         }
@@ -109,6 +108,19 @@ class Aggregate {
     @Override
     public String toString() {
         return nodeTypeName;
+    }
+
+    private static boolean matchingType(String nodeTypeName, NodeState nodeState) {
+        if (nodeTypeName.equals(ConfigUtil.getPrimaryTypeName(nodeState))) {
+            return true;
+        }
+
+        for (String mixin : ConfigUtil.getMixinNames(nodeState)) {
+            if (nodeTypeName.equals(mixin)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void collectAggregates(NodeState nodeState, List<Matcher> matchers,
@@ -231,7 +243,7 @@ class Aggregate {
             //last segment -> add to collector if node type matches
             if (depth == maxDepth() - 1
                     && primaryType != null
-                    && !primaryType.equals(ConfigUtil.getPrimaryTypeName(nodeState))) {
+                    && !matchingType(primaryType, nodeState)) {
                 return false;
             }
             return super.match(name, nodeState, depth);
@@ -256,7 +268,19 @@ class Aggregate {
 
         @Override
         public Aggregate getAggregate(NodeState matchedNodeState) {
-            return aggMapper.getAggregate(ConfigUtil.getPrimaryTypeName(matchedNodeState));
+            //Check agg defn for primaryType first
+            Aggregate agg = aggMapper.getAggregate(ConfigUtil.getPrimaryTypeName(matchedNodeState));
+
+            //If not found then look for defn for mixins
+            if (agg == null) {
+                for (String mixin : ConfigUtil.getMixinNames(matchedNodeState)) {
+                    agg = aggMapper.getAggregate(mixin);
+                    if (agg != null) {
+                        break;
+                    }
+                }
+            }
+            return agg;
         }
 
         @Override

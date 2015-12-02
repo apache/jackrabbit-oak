@@ -49,7 +49,7 @@ class BackgroundThread extends Thread implements Closeable {
 
     private long maxDuration = 0;
 
-    BackgroundThread(String name, long interval, Runnable target) {
+    private BackgroundThread(String name, long interval, Runnable target) {
         super(target, name);
 
         this.name = name;
@@ -57,7 +57,20 @@ class BackgroundThread extends Thread implements Closeable {
 
         setDaemon(true);
         setPriority(MIN_PRIORITY);
-        start();
+    }
+
+    /**
+     * Run a {@code task} in an regular {@code interval} in the background
+     * (i.e. {@link Thread#MIN_PRIORITY}.
+     * @param name       name of the thread
+     * @param interval   interval in milliseconds
+     * @param task       task to run
+     * @return  the {@code BackgroundThread} instance running {@code task}.
+     */
+    public static BackgroundThread run(String name, long interval, Runnable task) {
+        BackgroundThread t = new BackgroundThread(name, interval, task);
+        t.start();
+        return t;
     }
 
     @Override
@@ -83,8 +96,11 @@ class BackgroundThread extends Thread implements Closeable {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.error(name + " interrupted", e);
+        } catch (RuntimeException e) {
+            log.error("Unhandled exception in background thread", e);
+            throw e;
         }
-    }
+}
 
     void trigger() {
         trigger(false);

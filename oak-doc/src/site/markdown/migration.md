@@ -74,25 +74,25 @@ In order to upgrade Jackrabbit 2 repository to the new node store, pass the path
 
 By default, the `oak-upgrade` only copies the binary references, so you need to reuse the same blob/data store in the new repository. However, it's also possible to migrate binaries as well using the `--copy-binaries` parameter. Following migration paths are possible for the binaries. The *internal* means that the binaries are stored inside the segment or document node store:
 
-| From ↓ To →   | Internal | FileBlobStore | FileDataStore | S3   |
-| :-----------: | :------: | :-----------: | :-----------: | :--: |
-| Internal      | Yes²     | Yes           | Yes           | Yes  |
-| FileBlobStore | Yes      | Yes²          | Yes           | Yes  |
-| FileDataStore | Yes      | Yes           | Yes²          | Yes¹ |
-| S3            | \-       | \-            | \-            | Yes² |
+| From ↓ To →   | Internal | FileBlobStore | FileDataStore | S3                     |
+| :-----------: | :------: | :-----------: | :-----------: | :--------------------: |
+| Internal      | Yes²     | Yes           | Yes           | Yes                    |
+| FileBlobStore | Yes      | Yes²          | Yes           | Yes                    |
+| FileDataStore | Yes      | Yes           | Yes²          | Yes (not recommended)¹ |
+| S3            | Yes      | Yes           | Yes           | Yes²                   |
 
-¹ Online migration is available as well using Granite Amazon S3DataStore Connector <br/>
+¹ The S3DataStore will take care of this migration automatically, no need to use oak-upgrade <br/>
 ² The storage might be simple cloned without using oak2oak
 
 Following parameters can be used to define the source and the destination blob stores:
 
-| Blob store type | Source parameter                   | Destination           |
-| :-------------: | :--------------------------------: | :-------------------: |
-| FileBlobStore   | `--src-fileblobstore=...`          | `--fileblobstore=...` |
-| FileDataStore   | `--src-datastore=...`              | `--datastore=...`     |
-| S3              | `--s3config=... --s3datastore=...` | \-                    |
+| Blob store type | Source parameter                           | Destination                        |
+| :-------------: | :----------------------------------------: | :--------------------------------: |
+| FileBlobStore   | `--src-fileblobstore=...`                  | `--fileblobstore=...`              |
+| FileDataStore   | `--src-datastore=...`                      | `--datastore=...`                  |
+| S3              | `--src-s3config=... --src-s3datastore=...` | `--s3config=... --s3datastore=...` |
 
-Use the `--copy-binaries` parameter to instruct the `oak-upgrade` to copy binaries:
+Use the `--copy-binaries` parameter to instruct the `oak-upgrade` to copy binaries.
 
 Example:
 
@@ -102,6 +102,26 @@ Example:
         --fileblobstore=/new/repository/datastore \
         /old/repository \
         /new/repository
+
+#### S3 configuration
+
+Using S3DataStore as a source or destination for binaries requires passing two arguments: `s3datastore` and `s3config`. The first one should point to the datastore directory (eg. `crx-quickstart/repository/datastore`). The second should be used to define the `org.apache.jackrabbit.oak.plugins.blob.datastore.S3DataStore.cfg` configuration file path. File should have following format:
+
+    accessKey=...
+    secretKey=...
+    s3Bucket=...
+    s3Region=eu-west-1
+    s3EndPoint=s3-eu-west-1.amazonaws.com
+
+    connectionTimeout=120000
+    socketTimeout=120000
+    maxConnections=40
+    writeThreads=30
+    maxErrorRetry=10
+
+For the region and endpoints please visit the [Amazon documentation](http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region).
+
+Alternativly the `*.config` file format, described on the [Apache Sling website](https://sling.apache.org/documentation/bundles/configuration-installer-factory.html#configuration-files), can be used as it may be convenient for re-using existing OSGi configuration files. 
 
 ### Migrating a subtree
 
@@ -153,7 +173,15 @@ There are two parameters: `--copy-orphaned-versions` and `--copy-versions`. Both
         --copy-orphaned-versions=2011-01-01 \
         /old/repository /new/repository
 
-### Resumed migration
+### Incremental migration
+
+If an existing repository is passed as the destination, then only a diff between source and destination will be migrated. It allows to migrate the content in a few iterations. For instance, following case is possible:
+
+1. migrate a large repository a week before go-live
+2. run the migration again every night (only the recent changes are copied)
+3. run the migration one final time before go-live
+
+### Interrupting the migration
 
 The migration might be stop at any time using `^C`. Resume the migration running the same command which was used to start it.
 

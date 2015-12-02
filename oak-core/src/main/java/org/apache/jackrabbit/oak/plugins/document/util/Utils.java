@@ -84,7 +84,7 @@ public class Utils {
     /**
      * The maximum size a node name, in bytes. This is only a problem for long path.
      */
-    private static final int NODE_NAME_LIMIT = Integer.getInteger("oak.nodeNameLimit", 150);
+    public static final int NODE_NAME_LIMIT = Integer.getInteger("oak.nodeNameLimit", 150);
 
     private static final Charset UTF_8 = Charset.forName("UTF-8");
 

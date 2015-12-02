@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.document.memory;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentNavigableMap;
@@ -37,8 +36,6 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.JournalEntry;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
-import org.apache.jackrabbit.oak.plugins.document.Revision;
-import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
@@ -48,6 +45,7 @@ import com.mongodb.ReadPreference;
 import com.mongodb.WriteConcern;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 
+import static org.apache.jackrabbit.oak.plugins.document.UpdateUtils.assertUnconditional;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateUtils.checkConditions;
 
 /**
@@ -81,12 +79,6 @@ public class MemoryDocumentStore implements DocumentStore {
             new ConcurrentSkipListMap<String, JournalEntry>();
 
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
-
-    /**
-     * Comparator for maps with {@link Revision} keys. The maps are ordered
-     * descending, newest revisions first!
-     */
-    private final Comparator<Revision> comparator = StableRevisionComparator.REVERSE;
 
     private ReadPreference readPreference;
 
@@ -213,6 +205,7 @@ public class MemoryDocumentStore implements DocumentStore {
     @CheckForNull
     @Override
     public <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update) {
+        assertUnconditional(update);
         return internalCreateOrUpdate(collection, update, false);
     }
 
@@ -294,7 +287,7 @@ public class MemoryDocumentStore implements DocumentStore {
                 return null;
             }
             // update the document
-            UpdateUtils.applyChanges(doc, update, comparator);
+            UpdateUtils.applyChanges(doc, update);
             doc.seal();
             map.put(update.getId(), doc);
             return oldDoc;
@@ -316,6 +309,7 @@ public class MemoryDocumentStore implements DocumentStore {
                 }
             }
             for (UpdateOp op : updateOps) {
+                assertUnconditional(op);
                 internalCreateOrUpdate(collection, op, false);
             }
             return true;
@@ -328,6 +322,7 @@ public class MemoryDocumentStore implements DocumentStore {
     public <T extends Document> void update(Collection<T> collection,
                                             List<String> keys,
                                             UpdateOp updateOp) {
+        assertUnconditional(updateOp);
         Lock lock = rwLock.writeLock();
         lock.lock();
         try {

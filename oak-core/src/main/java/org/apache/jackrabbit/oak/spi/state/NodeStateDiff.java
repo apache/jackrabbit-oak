@@ -30,10 +30,11 @@ import org.apache.jackrabbit.oak.api.PropertyState;
  * nodes do not affect the comparison, and the order in which such
  * differences are reported is unspecified.
  * <p>
- * The methods in this interface all return a boolean value to signify
- * whether the comparison should continue. If a method returns {@code false},
- * then the comparison is immediately stopped. Otherwise it continues until
- * all changes have been reported.
+ * The methods in this interface all return a boolean value to signify whether
+ * the comparison should continue or abort. If a method returns {@code false},
+ * then the comparison is immediately stopped, that means sibling nodes and
+ * sibling nodes of all parents are not further processed. Otherwise it
+ * continues until all changes have been reported.
  * <p>
  * Note that the
  * {@link NodeState#compareAgainstBaseState(NodeState, NodeStateDiff)}
@@ -48,7 +49,9 @@ public interface NodeStateDiff {
      * Called for all added properties.
      *
      * @param after property state after the change
-     * @return {@code true} to continue the comparison, {@code false} to stop
+     * @return {@code true} to continue the comparison, {@code false} to abort.
+     *         Abort will stop comparing completely, that means sibling nodes
+     *         and sibling nodes of all parents are not further compared.
      */
     boolean propertyAdded(PropertyState after);
 
@@ -58,7 +61,9 @@ public interface NodeStateDiff {
      *
      * @param before property state before the change
      * @param after property state after the change
-     * @return {@code true} to continue the comparison, {@code false} to stop
+     * @return {@code true} to continue the comparison, {@code false} to abort.
+     *         Abort will stop comparing completely, that means sibling nodes
+     *         and sibling nodes of all parents are not further compared.
      */
     boolean propertyChanged(PropertyState before, PropertyState after);
 
@@ -66,7 +71,9 @@ public interface NodeStateDiff {
      * Called for all deleted properties.
      *
      * @param before property state before the change
-     * @return {@code true} to continue the comparison, {@code false} to stop
+     * @return {@code true} to continue the comparison, {@code false} to abort.
+     *         Abort will stop comparing completely, that means sibling nodes
+     *         and sibling nodes of all parents are not further compared.
      */
     boolean propertyDeleted(PropertyState before);
 
@@ -75,7 +82,9 @@ public interface NodeStateDiff {
      *
      * @param name name of the added child node
      * @param after child node state after the change
-     * @return {@code true} to continue the comparison, {@code false} to stop
+     * @return {@code true} to continue the comparison, {@code false} to abort.
+     *         Abort will stop comparing completely, that means sibling nodes
+     *         and sibling nodes of all parents are not further compared.
      */
     boolean childNodeAdded(String name, NodeState after);
 
@@ -88,7 +97,9 @@ public interface NodeStateDiff {
      * @param name name of the changed child node
      * @param before child node state before the change
      * @param after child node state after the change
-     * @return {@code true} to continue the comparison, {@code false} to stop
+     * @return {@code true} to continue the comparison, {@code false} to abort.
+     *         Abort will stop comparing completely, that means sibling nodes
+     *         and sibling nodes of all parents are not further compared.
      */
     boolean childNodeChanged(String name, NodeState before, NodeState after);
 
@@ -97,7 +108,9 @@ public interface NodeStateDiff {
      *
      * @param name name of the deleted child node
      * @param before child node state before the change
-     * @return {@code true} to continue the comparison, {@code false} to stop
+     * @return {@code true} to continue the comparison, {@code false} to abort.
+     *         Abort will stop comparing completely, that means sibling nodes
+     *         and sibling nodes of all parents are not further compared.
      */
     boolean childNodeDeleted(String name, NodeState before);
 

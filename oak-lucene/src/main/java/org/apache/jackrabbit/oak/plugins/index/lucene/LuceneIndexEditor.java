@@ -360,7 +360,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
         //For property index no use making an empty document if
         //none of the properties are indexed
-        if(!indexingRule.isFulltextEnabled() && !dirty){
+        if(!indexingRule.indexesAllNodesOfMatchingType() && !dirty){
             return null;
         }
 
@@ -380,7 +380,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         // because of LUCENE-5833 we have to merge the suggest fields into a single one
         Field suggestField = null;
         for (Field f : fields) {
-            if (FieldNames.SUGGEST.endsWith(f.name())) {
+            if (FieldNames.SUGGEST.equals(f.name())) {
                 if (suggestField == null) {
                     suggestField = FieldFactory.newSuggestField(f.stringValue());
                 } else {
@@ -425,7 +425,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                     }
 
                     if (pd.useInSuggest) {
-                        fields.add(newPropertyField(FieldNames.SUGGEST, value, true, true));
+                        fields.add(FieldFactory.newSuggestField(value));
                     }
 
                     if (pd.useInSpellcheck) {
@@ -569,9 +569,9 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
             }
 
             if (nodePath != null){
-                fields.add(newFulltextField(nodePath, value));
+                fields.add(newFulltextField(nodePath, value, true));
             } else {
-                fields.add(newFulltextField(value));
+                fields.add(newFulltextField(value, true));
             }
         }
         return fields;
@@ -734,6 +734,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
         for (PropertyState property : result.nodeState.getProperties()){
             String pname = property.getName();
+            String propertyPath = PathUtils.concat(result.nodePath, pname);
 
             if (!isVisible(pname)) {
                 continue;
@@ -746,6 +747,13 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                     continue;
                 }
             } else if (!indexingRule.includePropertyType(type)){
+                continue;
+            }
+
+            //Check if any explicit property defn is defined via relative path
+            // and is marked to exclude this property from being indexed
+            PropertyDefinition pdForRootNode = indexingRule.getConfig(propertyPath);
+            if (pdForRootNode != null && !pdForRootNode.index) {
                 continue;
             }
 

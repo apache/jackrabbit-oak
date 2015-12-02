@@ -30,6 +30,7 @@ import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceStrategy;
+import org.apache.felix.scr.annotations.References;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
@@ -45,6 +46,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardEditorProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardIndexEditorProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardIndexProvider;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 
@@ -55,10 +57,15 @@ import org.osgi.framework.ServiceRegistration;
  * to be configured in a custom way
  */
 @Component(policy = ConfigurationPolicy.REQUIRE)
-@Reference(referenceInterface = IndexEditorProvider.class,
-        target = "(type=property)",
-        strategy = ReferenceStrategy.LOOKUP
-)
+@References({
+        @Reference(referenceInterface = IndexEditorProvider.class,
+                target = "(type=property)",
+                strategy = ReferenceStrategy.LOOKUP
+        ),
+        @Reference(referenceInterface = StatisticsProvider.class,
+                strategy = ReferenceStrategy.LOOKUP
+        )
+})
 public class RepositoryManager {
     private static final int DEFAULT_OBSERVATION_QUEUE_LENGTH = 1000;
     private static final boolean DEFAULT_COMMIT_RATE_LIMIT = false;

@@ -349,7 +349,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
         NodeUtil policy = new NodeUtil(root.getTree(testPath + "/rep:policy"));
         NodeUtil ace = policy.addChild("duplicateAce", NT_REP_GRANT_ACE);
         ace.setString(REP_PRINCIPAL_NAME, testPrincipal.getName());
-        ace.setStrings(AccessControlConstants.REP_PRIVILEGES, PrivilegeConstants.JCR_ADD_CHILD_NODES);
+        ace.setNames(AccessControlConstants.REP_PRIVILEGES, PrivilegeConstants.JCR_ADD_CHILD_NODES);
 
         try {
             root.commit();

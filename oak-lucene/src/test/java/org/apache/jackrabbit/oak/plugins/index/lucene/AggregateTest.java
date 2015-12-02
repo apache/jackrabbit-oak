@@ -20,13 +20,15 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.Aggregate.NodeInclude;
 import org.apache.jackrabbit.oak.plugins.index.lucene.Aggregate.NodeIncludeResult;
@@ -39,6 +41,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableList.of;
 import static com.google.common.collect.Iterables.toArray;
 import static com.google.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_RULES;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -88,6 +91,18 @@ public class AggregateTest {
         Aggregate ag = new Aggregate("nt:base", of(ni("nt:resource","*", false)));
         NodeBuilder nb = newNode("nt:base");
         nb.child("a").setProperty(JCR_PRIMARYTYPE,"nt:resource");
+        nb.child("b");
+
+        ag.collectAggregates(nb.getNodeState(), col);
+        assertEquals(1, col.getNodePaths().size());
+        assertThat(col.getNodePaths(), hasItems("a"));
+    }
+
+    @Test
+    public void oneLevelTypedMixin() throws Exception{
+        Aggregate ag = new Aggregate("nt:base", of(ni("mix:title","*", false)));
+        NodeBuilder nb = newNode("nt:base");
+        nb.child("a").setProperty(JcrConstants.JCR_MIXINTYPES, Collections.singleton("mix:title"), Type.NAMES);
         nb.child("b");
 
         ag.collectAggregates(nb.getNodeState(), col);
@@ -259,6 +274,37 @@ public class AggregateTest {
     }
 
     @Test
+    public void testReaggregateMixin() throws Exception{
+        //A variant of testReaggregation but using mixin
+        //instead of normal nodetype. It abuses mix:title
+        //and treat it like nt:file. Test check if reaggregation
+        //works for mixins also
+
+        //Enable relative include for all child nodes of nt:folder
+        //So indexing would create fulltext field for each relative nodes
+        Aggregate agFolder = new Aggregate("nt:folder", of(ni("mix:title", "*", true)));
+
+        Aggregate agFile = new Aggregate("mix:title", of(ni(null, "jcr:content", true)));
+        mapper.add("mix:title", agFile);
+        mapper.add("nt:folder", agFolder);
+
+        NodeBuilder nb = newNode("nt:folder");
+        nb.child("a").child("c");
+        createFileMixin(nb, "b", "hello world");
+        createFileMixin(nb, "c", "hello world");
+
+        agFolder.collectAggregates(nb.getNodeState(), col);
+        assertEquals(4, col.getNodePaths().size());
+        assertThat(col.getNodePaths(), hasItems("b", "c", "b/jcr:content", "c/jcr:content"));
+
+        assertEquals(2, col.nodeResults.get("b/jcr:content").size());
+
+        //Check that a result is provided for relative node 'b'. Actual node provided
+        //is b/jcr:content
+        assertEquals(1, col.getRelativeNodeResults("b/jcr:content", "b").size());
+    }
+
+    @Test
     public void testRelativeNodeInclude() throws Exception{
         //Enable relative include for all child nodes of nt:folder
         //So indexing would create fulltext field for each relative nodes
@@ -282,6 +328,12 @@ public class AggregateTest {
 
     private static void createFile(NodeBuilder nb, String fileName, String content){
         nb.child(fileName).setProperty(JCR_PRIMARYTYPE, "nt:file")
+                .child("jcr:content").setProperty("jcr:data", content.getBytes());
+    }
+
+    private static void createFileMixin(NodeBuilder nb, String fileName, String content){
+        //Abusing mix:title as its registered by default
+        nb.child(fileName).setProperty(JCR_MIXINTYPES, Collections.singleton("mix:title"), Type.NAMES)
                 .child("jcr:content").setProperty("jcr:data", content.getBytes());
     }
 
