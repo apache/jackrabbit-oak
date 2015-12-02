@@ -328,13 +328,9 @@
             <param-value>/WEB-INF/batchread.properties</param-value>
             <description>JcrRemotingServlet: Optional mapping from node type names to default depth.</description>
         </init-param>
-        <!--
-            TODO FIXME Using a temporary workaround for OAK-3701. Once that is fixed we should
-            refer to actual config file
-        -->
         <init-param>
           <param-name>protectedhandlers-config</param-name>
-          <param-value>org.apache.jackrabbit.server.remoting.davex.AclRemoveHandler</param-value>
+          <param-value>/WEB-INF/protectedHandlersConfig.xml</param-value>
           <description>JcrRemotingServlet: Handlers for removing protected items.</description>
         </init-param>
         <!-- init-param>
