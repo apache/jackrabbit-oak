@@ -157,6 +157,8 @@ The result of such a query will be a JCR `Row` which will contain the corrected 
 index, in a special property named `rep:spellcheck()`.
 
 Clients wanting to obtain spellchecks could use the following JCR code:
+
+`@until Oak 1.3.10` spellchecks are returned flat.
        
     QueryManager qm = ...;
     String xpath = "/jcr:root[rep:spellcheck('helo')]/(rep:spellcheck())";
@@ -167,10 +169,23 @@ Clients wanting to obtain spellchecks could use the following JCR code:
         spellchecks = row.getValue("rep:spellcheck()").getString()        
     }
     
-If either Lucene or Solr were configured to provide the spellcheck feature, see [Enable spellchecking in Lucene](lucene.html#Spellchecking) and [Enable
-spellchecking in Solr](solr.html#Spellchecking), the `spellchecks` String would be have the following pattern `\[[\w|\W]+(\,\s[\w|\W]+)*\]`, e.g.:
+The `spellchecks` String would be have the following pattern `\[[\w|\W]+(\,\s[\w|\W]+)*\]`, e.g.:
 
     [hello, hold]
+    
+`@since Oak 1.3.11` each spellcheck would be returned per row.
+
+    QueryManager qm = ...;
+    String xpath = "/jcr:root[rep:spellcheck('helo')]/(rep:spellcheck())";
+    QueryResult result = qm.createQuery(xpath, Query.XPATH).execute();
+    RowIterator it = result.getRows();
+    List<String> spellchecks = new LinkedList<String>();
+    while (it.hasNext()) {
+        spellchecks.add(row.getValue("rep:spellcheck()").getString());        
+    }
+    
+If either Lucene or Solr were configured to provide the spellcheck feature, see [Enable spellchecking in Lucene](lucene.html#Spellchecking) and [Enable
+spellchecking in Solr](solr.html#Spellchecking)
 
 Note that spellcheck terms come already filtered according to calling user privileges, so that users could see spellcheck 
 corrections only coming from indexed content they are allowed to read.
@@ -190,6 +205,8 @@ The result of such a query will be a JCR `Row` which will contain the suggested 
 suggested and scored by the used underlying index, in a special property named `rep:suggest()`.
 
 Clients wanting to obtain suggestions could use the following JCR code:
+
+`@until Oak 1.3.10` suggestions are returned flat.
        
     QueryManager qm = ...;
     String xpath = "/jcr:root[rep:suggest('in ')]/(rep:suggest())";
@@ -198,6 +215,17 @@ Clients wanting to obtain suggestions could use the following JCR code:
     String suggestions = "";
     if (it.hasNext()) {
         suggestions = row.getValue("rep:suggest()").getString()        
+    }
+    
+`@since Oak 1.3.11` each suggestion would be returned per row.
+
+    QueryManager qm = ...;
+    String xpath = "/jcr:root[rep:suggest('in ')]/(rep:suggest())";
+    QueryResult result = qm.createQuery(xpath, Query.XPATH).execute();
+    RowIterator it = result.getRows();
+    List<String> suggestions = new LinkedList<String>();
+    while (it.hasNext()) {
+        suggestions.add(row.getValue("rep:suggest()").getString());        
     }
     
 If either Lucene or Solr were configured to provide the suggestions feature, see [Enable suggestions in Lucene](lucene.html#Suggestions) and [Enable
