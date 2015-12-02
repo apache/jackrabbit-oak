@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.cache.CacheStats;
 /**
  * A diff cache implementation, which immediately forgets the diff.
  */
-class AmnesiaDiffCache implements DiffCache {
+class AmnesiaDiffCache extends DiffCache {
 
     static final DiffCache INSTANCE = new AmnesiaDiffCache();
 
