@@ -85,7 +85,6 @@ public class DocumentNodeStoreService {
     private static final String DEFAULT_URI = "mongodb://localhost:27017/oak";
     private static final int DEFAULT_CACHE = 256;
     private static final int DEFAULT_OFF_HEAP_CACHE = 0;
-    private static final int DEFAULT_CHANGES_SIZE = 256;
     private static final int DEFAULT_BLOB_CACHE_SIZE = 16;
     private static final String DEFAULT_DB = "oak";
     private static final String DEFAULT_PERSISTENT_CACHE = "";
@@ -150,9 +149,6 @@ public class DocumentNodeStoreService {
 
     @Property(intValue = DEFAULT_OFF_HEAP_CACHE)
     private static final String PROP_OFF_HEAP_CACHE = "offHeapCache";
-
-    @Property(intValue =  DEFAULT_CHANGES_SIZE)
-    private static final String PROP_CHANGES_SIZE = "changesSize";
 
     @Property(intValue =  DEFAULT_BLOB_CACHE_SIZE)
     private static final String PROP_BLOB_CACHE_SIZE = "blobCacheSize";
@@ -290,7 +286,6 @@ public class DocumentNodeStoreService {
         int childrenCachePercentage = toInteger(prop(PROP_CHILDREN_CACHE_PERCENTAGE), DEFAULT_CHILDREN_CACHE_PERCENTAGE);
         int docChildrenCachePercentage = toInteger(prop(PROP_DOC_CHILDREN_CACHE_PERCENTAGE), DEFAULT_DOC_CHILDREN_CACHE_PERCENTAGE);
         int diffCachePercentage = toInteger(prop(PROP_DIFF_CACHE_PERCENTAGE), DEFAULT_DIFF_CACHE_PERCENTAGE);
-        int changesSize = toInteger(prop(PROP_CHANGES_SIZE), DEFAULT_CHANGES_SIZE);
         int blobCacheSize = toInteger(prop(PROP_BLOB_CACHE_SIZE), DEFAULT_BLOB_CACHE_SIZE);
         String persistentCache = PropertiesUtil.toString(prop(PROP_PERSISTENT_CACHE), DEFAULT_PERSISTENT_CACHE);
         int cacheSegmentCount = toInteger(prop(PROP_CACHE_SEGMENT_COUNT), DEFAULT_CACHE_SEGMENT_COUNT);
@@ -342,8 +337,8 @@ public class DocumentNodeStoreService {
                 // might contain passwords
                 String type = useMK ? "MK" : "NodeStore";
                 log.info("Starting Document{} with host={}, db={}, cache size (MB)={}, Off Heap Cache size (MB)={}, " +
-                                "'changes' collection size (MB)={}, blobCacheSize (MB)={}, maxReplicationLagInSecs={}",
-                        type, mongoURI.getHosts(), db, cacheSize, offHeapCache, changesSize, blobCacheSize, maxReplicationLagInSecs);
+                                "blobCacheSize (MB)={}, maxReplicationLagInSecs={}",
+                        type, mongoURI.getHosts(), db, cacheSize, offHeapCache, blobCacheSize, maxReplicationLagInSecs);
                 log.info("Mongo Connection details {}", MongoConnection.toString(mongoURI.getOptions()));
             }
 
@@ -351,7 +346,7 @@ public class DocumentNodeStoreService {
             DB mongoDB = client.getDB(db);
 
             mkBuilder.setMaxReplicationLag(maxReplicationLagInSecs, TimeUnit.SECONDS);
-            mkBuilder.setMongoDB(mongoDB, changesSize, blobCacheSize);
+            mkBuilder.setMongoDB(mongoDB, blobCacheSize);
 
             log.info("Connected to database {}", mongoDB);
         }
