@@ -34,7 +34,6 @@ import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.asStringValueIterable;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.pathToId;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.unshareString;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -2064,67 +2063,45 @@ public final class DocumentNodeStore
         return false;
     }
 
-    private boolean dispatch(@Nonnull String jsonDiff,
-                             @Nonnull DocumentNodeState node,
-                             @Nonnull DocumentNodeState base,
-                             @Nonnull NodeStateDiff diff) {
-        if (jsonDiff.trim().isEmpty()) {
-            return true;
-        }
-        JsopTokenizer t = new JsopTokenizer(jsonDiff);
-        boolean continueComparison = true;
-        while (continueComparison) {
-            int r = t.read();
-            if (r == JsopReader.END) {
-                break;
+    private boolean dispatch(@Nonnull final String jsonDiff,
+                             @Nonnull final DocumentNodeState node,
+                             @Nonnull final DocumentNodeState base,
+                             @Nonnull final NodeStateDiff diff) {
+        return DiffCache.parseJsopDiff(jsonDiff, new DiffCache.Diff() {
+            @Override
+            public boolean childNodeAdded(String name) {
+                return diff.childNodeAdded(name,
+                        node.getChildNode(name));
             }
-            switch (r) {
-                case '+': {
-                    String name = unshareString(t.readString());
-                    t.read(':');
-                    t.read('{');
-                    while (t.read() != '}') {
-                        // skip properties
-                    }
-                    continueComparison = diff.childNodeAdded(name,
-                            node.getChildNode(name));
-                    break;
-                }
-                case '-': {
-                    String name = unshareString(t.readString());
-                    continueComparison = diff.childNodeDeleted(name,
-                            base.getChildNode(name));
-                    break;
-                }
-                case '^': {
-                    String name = unshareString(t.readString());
-                    t.read(':');
-                    t.read('{');
-                    t.read('}');
-                    NodeState baseChild = base.getChildNode(name);
-                    NodeState nodeChild = node.getChildNode(name);
-                    if (baseChild.exists()) {
-                        if (nodeChild.exists()) {
-                            continueComparison = diff.childNodeChanged(name,
-                                    baseChild, nodeChild);
-                        } else {
-                            continueComparison = diff.childNodeDeleted(name,
-                                    baseChild);
-                        }
+
+            @Override
+            public boolean childNodeChanged(String name) {
+                boolean continueComparison = true;
+                NodeState baseChild = base.getChildNode(name);
+                NodeState nodeChild = node.getChildNode(name);
+                if (baseChild.exists()) {
+                    if (nodeChild.exists()) {
+                        continueComparison = diff.childNodeChanged(name,
+                                baseChild, nodeChild);
                     } else {
-                        if (nodeChild.exists()) {
-                            continueComparison = diff.childNodeAdded(name,
-                                    nodeChild);
-                        }
+                        continueComparison = diff.childNodeDeleted(name,
+                                baseChild);
                     }
-                    break;
+                } else {
+                    if (nodeChild.exists()) {
+                        continueComparison = diff.childNodeAdded(name,
+                                nodeChild);
+                    }
                 }
-                default:
-                    throw new IllegalArgumentException("jsonDiff: illegal token '"
-                            + t.getToken() + "' at pos: " + t.getLastPos() + ' ' + jsonDiff);
+                return continueComparison;
             }
-        }
-        return continueComparison;
+
+            @Override
+            public boolean childNodeDeleted(String name) {
+                return diff.childNodeDeleted(name,
+                        base.getChildNode(name));
+            }
+        });
     }
 
     /**

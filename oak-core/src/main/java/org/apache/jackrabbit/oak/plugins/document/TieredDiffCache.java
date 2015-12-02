@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.cache.CacheStats;
  * Implements a tiered diff cache which consists of a {@link LocalDiffCache} and
  * a {@link MemoryDiffCache}.
  */
-class TieredDiffCache implements DiffCache {
+class TieredDiffCache extends DiffCache {
 
     private final DiffCache localCache;
     private final DiffCache memoryCache;
