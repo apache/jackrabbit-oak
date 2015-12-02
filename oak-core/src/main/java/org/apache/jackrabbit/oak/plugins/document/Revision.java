@@ -439,7 +439,7 @@ public class Revision {
          */
         private final int currentClusterNodeId;
 
-        RevisionComparator(int currentClusterNodId) {
+        public RevisionComparator(int currentClusterNodId) {
             this.currentClusterNodeId = currentClusterNodId;
         }
 

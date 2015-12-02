@@ -219,6 +219,11 @@ public class DocumentNodeStoreService {
     )
     private static final String PROP_JOURNAL_GC_MAX_AGE_MILLIS = "journalGCMaxAge";
 
+    @Property(label = "Secondary Mongo instance credentials",
+            description = "Credentials to the secondary instances in the Mongo replica set"
+    )
+    private static final String PROP_SECONDARY_CREDENTIALS = "secondaryCredentials";
+    
     private static final long MB = 1024 * 1024;
 
     private static enum DocumentStoreType {
@@ -426,6 +431,8 @@ public class DocumentNodeStoreService {
                 log.info("Mongo Connection details {}", MongoConnection.toString(mongoURI.getOptions()));
             }
 
+            String mongoSecondaryCredentials = PropertiesUtil.toString(prop(PROP_SECONDARY_CREDENTIALS), null);
+            mkBuilder.setMongoSecondaryCredentials(mongoSecondaryCredentials);
             mkBuilder.setMaxReplicationLag(maxReplicationLagInSecs, TimeUnit.SECONDS);
             mkBuilder.setMongoDB(uri, db, blobCacheSize);
 

@@ -485,6 +485,7 @@ public class DocumentMK {
         public static final int DEFAULT_CACHE_STACK_MOVE_DISTANCE = 16;
         private DocumentNodeStore nodeStore;
         private DocumentStore documentStore;
+        private String mongoSecondaryCredentials;
         private DiffCache diffCache;
         private BlobStore blobStore;
         private int clusterId  = Integer.getInteger("oak.documentMK.clusterId", 0);
@@ -575,6 +576,31 @@ public class DocumentMK {
          */
         public Builder setMongoDB(@Nonnull DB db) {
             return setMongoDB(db, 16);
+        }
+        
+        /**
+         * Set credentials to the secondary instances in the Mongo replica set.
+         * 
+         * @param credentials in the format: {@code username:password}
+         * @return this
+         * @throws IllegalStateException if the setMongoDB() has been already invoked.
+         */
+        public Builder setMongoSecondaryCredentials(String credentials) {
+            if (documentStore != null) {
+                throw new IllegalStateException("This method must be invoked before setMongoDB()");
+            }
+            this.mongoSecondaryCredentials = credentials;
+            return this;
+        }
+
+        /**
+         * Returns the credentials for the secondary instances in the Mongo replica set.
+         * 
+         * @return Credentials in the format: {@code username:password} or null if credentials
+         *         hasn't been set.
+         */
+        public String getMongoSecondaryCredentials() {
+            return mongoSecondaryCredentials;
         }
 
         /**

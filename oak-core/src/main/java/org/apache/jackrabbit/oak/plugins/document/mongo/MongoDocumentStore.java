@@ -61,6 +61,8 @@ import org.apache.jackrabbit.oak.plugins.document.JournalEntry;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
+import org.apache.jackrabbit.oak.plugins.document.UnmergedBranches;
+import org.apache.jackrabbit.oak.plugins.document.UnmergedBranchesAware;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
@@ -94,7 +96,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /**
  * A document store that uses MongoDB as the backend.
  */
-public class MongoDocumentStore implements DocumentStore {
+public class MongoDocumentStore implements DocumentStore, UnmergedBranchesAware {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentStore.class);
     private static final PerfLogger PERFLOG = new PerfLogger(
@@ -144,7 +146,9 @@ public class MongoDocumentStore implements DocumentStore {
 
     private Clock clock = Clock.SIMPLE;
 
-    private final long maxReplicationLagMillis;
+    private UnmergedBranches unmergedBranches;
+
+    private final ReplicaSetInfo replicaInfo;
 
     /**
      * Duration in seconds under which queries would use index on _modified field
@@ -185,6 +189,15 @@ public class MongoDocumentStore implements DocumentStore {
     private long maxLockedQueryTimeMS =
             Long.getLong("oak.mongo.maxLockedQueryTimeMS", TimeUnit.SECONDS.toMillis(3));
 
+    /**
+     * How often in milliseconds the MongoDocumentStore should estimate the
+     * replication lag.
+     * <p>
+     * Default is 60'000 (one minute).
+     */
+    private long estimationPullFrequencyMS =
+            Long.getLong("oak.mongo.estimationPullFrequencyMS", TimeUnit.SECONDS.toMillis(60));
+
     private String lastReadWriteMode;
 
     private final Map<String, String> metadata;
@@ -202,7 +215,9 @@ public class MongoDocumentStore implements DocumentStore {
         settings = db.getCollection(Collection.SETTINGS.toString());
         journal = db.getCollection(Collection.JOURNAL.toString());
 
-        maxReplicationLagMillis = builder.getMaxReplicationLagMillis();
+        long maxReplicationLagMillis = builder.getMaxReplicationLagMillis();
+        replicaInfo = new ReplicaSetInfo(db, builder.getMongoSecondaryCredentials(), builder.getClusterId(), maxReplicationLagMillis, estimationPullFrequencyMS);
+        new Thread(replicaInfo, "MongoDocumentStore replica set info provider (" + builder.getClusterId() + ")").start();
 
         // indexes:
         // the _id field is the primary key, so we don't need to define it
@@ -496,7 +511,7 @@ public class MongoDocumentStore implements DocumentStore {
         final long start = PERFLOG.start();
         boolean isSlaveOk = false;
         try {
-            ReadPreference readPreference = getMongoReadPreference(collection, Utils.getParentId(key), docReadPref);
+            ReadPreference readPreference = getMongoReadPreference(collection, key, Utils.getParentId(key), docReadPref);
 
             if(readPreference.isSlaveOk()){
                 LOG.trace("Routing call to secondary for fetching [{}]", key);
@@ -622,7 +637,7 @@ public class MongoDocumentStore implements DocumentStore {
                 cursor.maxTime(maxQueryTime, TimeUnit.MILLISECONDS);
             }
             ReadPreference readPreference =
-                    getMongoReadPreference(collection, parentId, getDefaultReadPreference(collection));
+                    getMongoReadPreference(collection, null, parentId, getDefaultReadPreference(collection));
 
             if(readPreference.isSlaveOk()){
                 LOG.trace("Routing call to secondary for fetching children from [{}] to [{}]", fromKey, toKey);
@@ -973,7 +988,7 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     DocumentReadPreference getReadPreference(int maxCacheAge){
-        if(maxCacheAge >= 0 && maxCacheAge < maxReplicationLagMillis) {
+        if(maxCacheAge >= 0 && !replicaInfo.isSecondarySafe(maxCacheAge, getTime())) {
             return DocumentReadPreference.PRIMARY;
         } else if(maxCacheAge == Integer.MAX_VALUE){
             return DocumentReadPreference.PREFER_SECONDARY;
@@ -987,6 +1002,7 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     <T extends Document> ReadPreference getMongoReadPreference(Collection<T> collection,
+                                                               String documentId,
                                                                String parentId,
                                                                DocumentReadPreference preference) {
         switch(preference){
@@ -1004,17 +1020,10 @@ public class MongoDocumentStore implements DocumentStore {
                 // read from primary unless parent has not been modified
                 // within replication lag period
                 ReadPreference readPreference = ReadPreference.primary();
-                if (parentId != null) {
-                    long replicationSafeLimit = getTime() - maxReplicationLagMillis;
-                    NodeDocument cachedDoc = (NodeDocument) getIfCached(collection, parentId);
-                    // FIXME: this is not quite accurate, because ancestors
-                    // are updated in a background thread (_lastRev). We
-                    // will need to revise this for low maxReplicationLagMillis
-                    // values
-                    if (cachedDoc != null && !cachedDoc.hasBeenModifiedSince(replicationSafeLimit)) {
 
-                        //If parent has been modified loooong time back then there children
-                        //would also have not be modified. In that case we can read from secondary
+                if (!belongsToBranch(documentId) && parentId != null) {
+                    NodeDocument cachedDoc = (NodeDocument) getIfCached(collection, parentId);
+                    if (replicaInfo.isSecondarySafe(cachedDoc, getTime())) {
                         readPreference = getConfiguredReadPreference(collection);
                     }
                 }
@@ -1089,6 +1098,7 @@ public class MongoDocumentStore implements DocumentStore {
 
     @Override
     public void dispose() {
+        replicaInfo.stop();
         nodes.getDB().getMongo().close();
 
         if (nodesCache instanceof Closeable) {
@@ -1504,6 +1514,25 @@ public class MongoDocumentStore implements DocumentStore {
         final long diff = midPoint - serverLocalTimeMillis;
 
         return diff;
+    }
+
+    /**
+     * @param documentId
+     * @return {@code true} if it's possible that this document belongs to a branch
+     */
+    boolean belongsToBranch(@CheckForNull String documentId) {
+        if (unmergedBranches == null) {
+            return true;
+        }
+        if (documentId == null) {
+            return false;
+        }
+        return unmergedBranches.mightAffectPath(Utils.getPathFromId(documentId));
+    }
+
+    @Override
+    public void setUnmergedBranches(UnmergedBranches unmergedBranches) {
+        this.unmergedBranches = unmergedBranches;
     }
 
     private static class InvalidationResult implements CacheInvalidationStats {
