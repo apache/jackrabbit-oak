@@ -22,6 +22,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
@@ -40,7 +41,7 @@ class CugValidatorProvider extends ValidatorProvider implements CugConstants {
     @Override
     protected Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
         this.isMixCug = new TypePredicate(after, MIX_REP_CUG_MIXIN);
-        return new CugValidator("", after);
+        return new CugValidator("", after, false);
     }
 
     private static CommitFailedException accessViolation(int code, String message) {
@@ -56,14 +57,24 @@ class CugValidatorProvider extends ValidatorProvider implements CugConstants {
         }
     }
 
+    private static boolean isNodetypeTree(CugValidator parentValidator, String name) {
+        if (parentValidator.isNodetypeTree) {
+            return true;
+        } else {
+            return NodeTypeConstants.JCR_NODE_TYPES.equals(name) && NodeTypeConstants.JCR_SYSTEM.equals(parentValidator.parentName);
+        }
+    }
+
     private final class CugValidator extends DefaultValidator {
 
         private final NodeState parentAfter;
         private final String parentName;
+        private final boolean isNodetypeTree;
 
-        private CugValidator(@Nonnull String parentName, @Nonnull NodeState parentAfter) {
+        private CugValidator(@Nonnull String parentName, @Nonnull NodeState parentAfter, @Nonnull boolean isNodetypeTree) {
             this.parentAfter = parentAfter;
             this.parentName = parentName;
+            this.isNodetypeTree = isNodetypeTree;
         }
 
         //------------------------------------------------------< Validator >---
@@ -89,18 +100,18 @@ class CugValidatorProvider extends ValidatorProvider implements CugConstants {
 
         @Override
         public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
-            if (REP_CUG_POLICY.equals(name)) {
+            if (!isNodetypeTree && REP_CUG_POLICY.equals(name)) {
                 validateCugNode(parentAfter, after);
             }
-            return new VisibleValidator(new CugValidator(name, after), true, true);
+            return new VisibleValidator(new CugValidator(name, after, isNodetypeTree(this, name)), true, true);
         }
 
         @Override
         public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
-            if (after.hasChildNode(REP_CUG_POLICY)) {
+            if (!isNodetypeTree && after.hasChildNode(REP_CUG_POLICY)) {
                 validateCugNode(after, after.getChildNode(REP_CUG_POLICY));
             }
-            return new VisibleValidator(new CugValidator(name, after), true, true);
+            return new VisibleValidator(new CugValidator(name, after, isNodetypeTree(this, name)), true, true);
         }
     }
 }
