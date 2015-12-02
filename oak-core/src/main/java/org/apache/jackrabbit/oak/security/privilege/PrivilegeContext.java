@@ -57,4 +57,9 @@ final class PrivilegeContext implements Context, PrivilegeConstants {
         return location.getPath().startsWith(PRIVILEGES_PATH);
     }
 
+    @Override
+    public boolean definesInternal(@Nonnull Tree tree) {
+        return false;
+    }
+
 }

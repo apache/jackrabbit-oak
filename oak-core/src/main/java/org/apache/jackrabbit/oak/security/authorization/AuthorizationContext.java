@@ -75,6 +75,11 @@ final class AuthorizationContext implements Context, AccessControlConstants, Per
         }
     }
 
+    @Override
+    public boolean definesInternal(@Nonnull Tree tree) {
+        return PermissionConstants.REP_PERMISSION_STORE.equals(tree.getName());
+    }
+
     private static boolean isNodeName(@Nonnull String name) {
         for (String n : NODE_NAMES) {
             if (n.equals(name)) {

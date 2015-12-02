@@ -22,15 +22,13 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
-import org.apache.jackrabbit.oak.spi.security.Context;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
 public final class TreeTypeProvider {
 
-    private final Context ctx;
+    private final TreeContext ctx;
 
-    public TreeTypeProvider(@Nonnull Context authorizationContext) {
+    public TreeTypeProvider(@Nonnull TreeContext authorizationContext) {
         this.ctx = authorizationContext;
     }
 
@@ -110,7 +108,7 @@ public final class TreeTypeProvider {
             type = TreeType.HIDDEN;
         } else if (VersionConstants.VERSION_STORE_ROOT_NAMES.contains(name)) {
             type = (JcrConstants.JCR_SYSTEM.equals(tree.getParent().getName())) ?  TreeType.VERSION : TreeType.DEFAULT;
-        } else if (PermissionConstants.REP_PERMISSION_STORE.equals(name)) {
+        } else if (ctx.definesInternal(tree)) {
             type = TreeType.INTERNAL;
         } else if (ctx.definesContextRoot(tree)) {
             type = TreeType.ACCESS_CONTROL;

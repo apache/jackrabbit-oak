@@ -285,6 +285,19 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
             }
             return false;
         }
+
+        @Override
+        public boolean definesInternal(@Nonnull Tree tree) {
+            if (delegatees == null) {
+                return defaultCtx.definesInternal(tree);
+            }
+            for (Context ctx : delegatees) {
+                if (ctx.definesInternal(tree)) {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
     private static final class ContextFunction implements Function<SecurityConfiguration, Context> {
