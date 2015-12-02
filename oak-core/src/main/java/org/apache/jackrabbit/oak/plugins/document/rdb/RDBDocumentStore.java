@@ -674,30 +674,11 @@ public class RDBDocumentStore implements DocumentStore {
             Map<String, Map<String, Object>> indices = new TreeMap<String, Map<String, Object>>();
             StringBuilder sb = new StringBuilder();
             rs = met.getIndexInfo(null, null, tableName, false, true);
-            while (rs.next()) {
-                String name = asQualifiedDbName(rs.getString(5), rs.getString(6));
-                if (name != null) {
-                    Map<String, Object> info = indices.get(name);
-                    if (info == null) {
-                        info = new HashMap<String, Object>();
-                        indices.put(name, info);
-                        info.put("fields", new TreeMap<Integer, String>());
-                    }
-                    info.put("nonunique", rs.getBoolean(4));
-                    info.put("type", indexTypeAsString(rs.getInt(7)));
-                    String inSchema = rs.getString(2);
-                    inSchema = inSchema == null ? "" : inSchema.trim();
-                    // skip indices on tables in other schemas in case we have that information
-                    if (rmetSchemaName.isEmpty() || inSchema.isEmpty() || rmetSchemaName.equals(inSchema)) {
-                        String tname = asQualifiedDbName(inSchema, rs.getString(3));
-                        info.put("tname", tname);
-                        String cname = rs.getString(9);
-                        if (cname != null) {
-                            String order = "A".equals(rs.getString(10)) ? " ASC" : ("D".equals(rs.getString(10)) ? " DESC" : "");
-                            ((Map<Integer, String>) info.get("fields")).put(rs.getInt(8), cname + order);
-                        }
-                    }
-                }
+            getIndexInformation(rs, rmetSchemaName, indices);
+            if (indices.isEmpty() && ! tableName.equals(tableName.toUpperCase(Locale.ENGLISH))) {
+                // might have failed due to the DB's handling on ucase/lcase, retry ucase
+                rs = met.getIndexInfo(null, null, tableName.toUpperCase(Locale.ENGLISH), false, true);
+                getIndexInformation(rs, rmetSchemaName, indices);
             }
             for (Entry<String, Map<String, Object>> index : indices.entrySet()) {
                 boolean nonUnique = ((Boolean) index.getValue().get("nonunique"));
@@ -728,6 +709,35 @@ public class RDBDocumentStore implements DocumentStore {
                     ex.getMessage(), ex.getErrorCode(), ex.getSQLState());
         } finally {
             closeResultSet(rs);
+        }
+    }
+
+    private void getIndexInformation(ResultSet rs, String rmetSchemaName, Map<String, Map<String, Object>> indices)
+            throws SQLException {
+        while (rs.next()) {
+            String name = asQualifiedDbName(rs.getString(5), rs.getString(6));
+            if (name != null) {
+                Map<String, Object> info = indices.get(name);
+                if (info == null) {
+                    info = new HashMap<String, Object>();
+                    indices.put(name, info);
+                    info.put("fields", new TreeMap<Integer, String>());
+                }
+                info.put("nonunique", rs.getBoolean(4));
+                info.put("type", indexTypeAsString(rs.getInt(7)));
+                String inSchema = rs.getString(2);
+                inSchema = inSchema == null ? "" : inSchema.trim();
+                // skip indices on tables in other schemas in case we have that information
+                if (rmetSchemaName.isEmpty() || inSchema.isEmpty() || rmetSchemaName.equals(inSchema)) {
+                    String tname = asQualifiedDbName(inSchema, rs.getString(3));
+                    info.put("tname", tname);
+                    String cname = rs.getString(9);
+                    if (cname != null) {
+                        String order = "A".equals(rs.getString(10)) ? " ASC" : ("D".equals(rs.getString(10)) ? " DESC" : "");
+                        ((Map<Integer, String>) info.get("fields")).put(rs.getInt(8), cname + order);
+                    }
+                }
+            }
         }
     }
 
