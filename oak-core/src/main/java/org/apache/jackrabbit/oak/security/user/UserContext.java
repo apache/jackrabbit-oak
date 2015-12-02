@@ -87,4 +87,9 @@ final class UserContext implements Context, UserConstants {
         }
     }
 
+    @Override
+    public boolean definesInternal(@Nonnull Tree tree) {
+        return false;
+    }
+
 }

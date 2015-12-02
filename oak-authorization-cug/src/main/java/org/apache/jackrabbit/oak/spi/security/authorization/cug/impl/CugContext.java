@@ -59,4 +59,9 @@ final class CugContext implements Context, CugConstants {
             return REP_CUG_POLICY.equals(Text.getName(path)) || path.endsWith(REP_CUG_POLICY + '/' + REP_PRINCIPAL_NAMES);
         }
     }
+
+    @Override
+    public boolean definesInternal(@Nonnull Tree tree) {
+        return false;
+    }
 }
