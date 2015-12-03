@@ -367,7 +367,8 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                             LOG.debug("... took {} ms", time);
                             nextBatchSize = (int) Math.min(nextBatchSize * 2L, 100000);
 
-                            boolean addExcerpt = filter.getQueryStatement() != null && filter.getQueryStatement().contains(QueryImpl.REP_EXCERPT);
+                            PropertyRestriction restriction = filter.getPropertyRestriction(QueryImpl.REP_EXCERPT);
+                            boolean addExcerpt = restriction != null && restriction.isNotNullRestriction();
                             for (ScoreDoc doc : docs.scoreDocs) {
                                 String excerpt = null;
                                 if (addExcerpt) {
@@ -698,7 +699,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             }
 
             String name = pr.propertyName;
-            if ("rep:excerpt".equals(name)) {
+            if (QueryImpl.REP_EXCERPT.equals(name)) {
                 continue;
             }
             if (JCR_PRIMARYTYPE.equals(name)) {
