@@ -92,7 +92,9 @@ public class ManyChildNodesTest {
                                                   String fromKey,
                                                   String toKey,
                                                   int limit) {
-            queries.put(fromKey, limit);
+            if (collection == Collection.NODES) {
+                queries.put(fromKey, limit);
+            }
             return super.query(collection, fromKey, toKey, limit);
         }
     }
