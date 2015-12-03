@@ -42,6 +42,38 @@ This would create a node `hello` at root.
 This should return a json rendition of the node. Application also has some 
 other web interfaces which are linked at http://localhost:8080/
 
+### Scripting Repository
+
+The application also has a [Script Console][1] at http://localhost:8080/osgi/system/console/sc
+which can be used to execute scripts like below
+
+```java
+import javax.jcr.Repository
+import javax.jcr.Session
+import javax.jcr.SimpleCredentials
+import javax.jcr.query.QueryResult
+import javax.jcr.query.Row
+
+def queryStr = '''select [jcr:path], [jcr:score], *
+    from [oak:QueryIndexDefinition]
+'''
+
+Repository repo = osgi.getService(Repository.class)
+Session s = null
+try {
+    s = repo.login(new SimpleCredentials("admin", "admin".toCharArray()))
+    def qm = s.getWorkspace().getQueryManager()
+    def query = qm.createQuery(queryStr,'sql')
+    QueryResult result = query.execute()
+
+    result.rows.each {Row r -> println r.path}
+} finally {
+    s?.logout()
+}
+```
+
+Above script would dump path for all index definition nodes.
+
 Using Mongo
 -----------
 
@@ -126,3 +158,5 @@ In above setup
 
 Standalone Application is based on [Spring Boot](http://projects.spring.io/spring-boot/)
 and thus supports all features provided by it. 
+
+[1]: http://felix.apache.org/documentation/subprojects/apache-felix-script-console-plugin.html
