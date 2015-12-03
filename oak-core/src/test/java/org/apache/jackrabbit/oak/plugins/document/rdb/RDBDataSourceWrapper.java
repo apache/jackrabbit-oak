@@ -37,7 +37,7 @@ import javax.sql.DataSource;
  * Note that the implementations currently focus on method invocations done
  * by {@link RDBDocumentStore} and thus may not be applicable for other use cases.
  */
-public class RDBDataSourceWrapper implements DataSource {
+public class RDBDataSourceWrapper implements DataSource, Closeable {
 
     // sample use in BasicDocumentStoreTest:
 
