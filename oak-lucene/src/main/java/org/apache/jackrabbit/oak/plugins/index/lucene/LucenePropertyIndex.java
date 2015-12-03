@@ -299,7 +299,8 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 return endOfData();
             }
 
-            private LuceneResultRow convertToRow(ScoreDoc doc, IndexSearcher searcher, String excerpt) throws IOException {
+            private LuceneResultRow convertToRow(ScoreDoc doc, IndexSearcher searcher, String excerpt,
+                                                 String explanation) throws IOException {
                 IndexReader reader = searcher.getIndexReader();
                 //TODO Look into usage of field cache for retrieving the path
                 //instead of reading via reader if no of docs in index are limited
@@ -328,7 +329,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                     }
 
                     LOG.trace("Matched path {}", path);
-                    return new LuceneResultRow(path, doc.score, excerpt);
+                    return new LuceneResultRow(path, doc.score, excerpt, explanation);
                 }
                 return null;
             }
@@ -382,14 +383,22 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                             PERF_LOGGER.end(start, -1, "{} ...", docs.scoreDocs.length);
                             nextBatchSize = (int) Math.min(nextBatchSize * 2L, 100000);
 
-                            boolean addExcerpt = filter.getQueryStatement() != null && filter.getQueryStatement().contains(QueryImpl.REP_EXCERPT);
+                            String queryStatement = filter.getQueryStatement();
+                            boolean addExcerpt = queryStatement != null && queryStatement.contains(QueryImpl.REP_EXCERPT);
+                            boolean addExplain = queryStatement != null && queryStatement.contains(QueryImpl.OAK_SCORE_EXPLANATION);
+
                             for (ScoreDoc doc : docs.scoreDocs) {
                                 String excerpt = null;
                                 if (addExcerpt) {
                                     excerpt = getExcerpt(indexNode, searcher, query, doc);
                                 }
 
-                                LuceneResultRow row = convertToRow(doc, searcher, excerpt);
+                                String explanation = null;
+                                if (addExplain) {
+                                    explanation = searcher.explain(query, doc.doc).toString();
+                                }
+
+                                LuceneResultRow row = convertToRow(doc, searcher, excerpt, explanation);
                                 if (row != null) {
                                     queue.add(row);
                                 }
@@ -1324,8 +1333,10 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         final String suggestion;
         final boolean isVirutal;
         final String excerpt;
+        final String explanation;
 
-        LuceneResultRow(String path, double score, String excerpt) {
+        LuceneResultRow(String path, double score, String excerpt, String explanation) {
+            this.explanation = explanation;
             this.excerpt = excerpt;
             this.isVirutal = false;
             this.path = path;
@@ -1339,6 +1350,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             this.score = weight;
             this.suggestion = suggestion;
             this.excerpt = null;
+            this.explanation = null;
         }
 
         LuceneResultRow(String suggestion) {
@@ -1427,6 +1439,9 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                     }
                     if (QueryImpl.REP_SPELLCHECK.equals(columnName) || QueryImpl.REP_SUGGEST.equals(columnName)) {
                         return PropertyValues.newString(currentRow.suggestion);
+                    }
+                    if (QueryImpl.OAK_SCORE_EXPLANATION.equals(columnName)) {
+                        return PropertyValues.newString(currentRow.explanation);
                     }
                     if (QueryImpl.REP_EXCERPT.equals(columnName)) {
                         return PropertyValues.newString(currentRow.excerpt);
