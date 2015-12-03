@@ -119,6 +119,11 @@ public class QueryImpl implements Query {
     public static final String REP_EXCERPT = "rep:excerpt";
 
     /**
+     * The "oak:explainScore" pseudo-property.
+     */
+    public static final String OAK_SCORE_EXPLANATION = "oak:scoreExplanation";
+
+    /**
      * The "rep:spellcheck" pseudo-property.
      */
     public static final String REP_SPELLCHECK = "rep:spellcheck()";

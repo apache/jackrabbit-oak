@@ -36,6 +36,7 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -436,6 +437,8 @@ public class RDBDocumentStore implements DocumentStore {
         } catch (IOException ex) {
             LOG.error("closing connection handler", ex);
         }
+        LOG.info("RDBDocumentStore (" + OakVersion.getVersion() + ") disposed" + getCnStats()
+                + (this.droppedTables.isEmpty() ? "" : " (tables dropped: " + this.droppedTables + ")"));
     }
 
     @Override
@@ -669,30 +672,11 @@ public class RDBDocumentStore implements DocumentStore {
             Map<String, Map<String, Object>> indices = new TreeMap<String, Map<String, Object>>();
             StringBuilder sb = new StringBuilder();
             rs = met.getIndexInfo(null, null, tableName, false, true);
-            while (rs.next()) {
-                String name = asQualifiedDbName(rs.getString(5), rs.getString(6));
-                if (name != null) {
-                    Map<String, Object> info = indices.get(name);
-                    if (info == null) {
-                        info = new HashMap<String, Object>();
-                        indices.put(name, info);
-                        info.put("fields", new TreeMap<Integer, String>());
-                    }
-                    info.put("nonunique", rs.getBoolean(4));
-                    info.put("type", indexTypeAsString(rs.getInt(7)));
-                    String inSchema = rs.getString(2);
-                    inSchema = inSchema == null ? "" : inSchema.trim();
-                    // skip indices on tables in other schemas in case we have that information
-                    if (rmetSchemaName.isEmpty() || inSchema.isEmpty() || rmetSchemaName.equals(inSchema)) {
-                        String tname = asQualifiedDbName(inSchema, rs.getString(3));
-                        info.put("tname", tname);
-                        String cname = rs.getString(9);
-                        if (cname != null) {
-                            String order = "A".equals(rs.getString(10)) ? " ASC" : ("D".equals(rs.getString(10)) ? " DESC" : "");
-                            ((Map<Integer, String>) info.get("fields")).put(rs.getInt(8), cname + order);
-                        }
-                    }
-                }
+            getIndexInformation(rs, rmetSchemaName, indices);
+            if (indices.isEmpty() && ! tableName.equals(tableName.toUpperCase(Locale.ENGLISH))) {
+                // might have failed due to the DB's handling on ucase/lcase, retry ucase
+                rs = met.getIndexInfo(null, null, tableName.toUpperCase(Locale.ENGLISH), false, true);
+                getIndexInformation(rs, rmetSchemaName, indices);
             }
             for (Entry<String, Map<String, Object>> index : indices.entrySet()) {
                 boolean nonUnique = ((Boolean) index.getValue().get("nonunique"));
@@ -723,6 +707,35 @@ public class RDBDocumentStore implements DocumentStore {
                     ex.getMessage(), ex.getErrorCode(), ex.getSQLState());
         } finally {
             closeResultSet(rs);
+        }
+    }
+
+    private void getIndexInformation(ResultSet rs, String rmetSchemaName, Map<String, Map<String, Object>> indices)
+            throws SQLException {
+        while (rs.next()) {
+            String name = asQualifiedDbName(rs.getString(5), rs.getString(6));
+            if (name != null) {
+                Map<String, Object> info = indices.get(name);
+                if (info == null) {
+                    info = new HashMap<String, Object>();
+                    indices.put(name, info);
+                    info.put("fields", new TreeMap<Integer, String>());
+                }
+                info.put("nonunique", rs.getBoolean(4));
+                info.put("type", indexTypeAsString(rs.getInt(7)));
+                String inSchema = rs.getString(2);
+                inSchema = inSchema == null ? "" : inSchema.trim();
+                // skip indices on tables in other schemas in case we have that information
+                if (rmetSchemaName.isEmpty() || inSchema.isEmpty() || rmetSchemaName.equals(inSchema)) {
+                    String tname = asQualifiedDbName(inSchema, rs.getString(3));
+                    info.put("tname", tname);
+                    String cname = rs.getString(9);
+                    if (cname != null) {
+                        String order = "A".equals(rs.getString(10)) ? " ASC" : ("D".equals(rs.getString(10)) ? " DESC" : "");
+                        ((Map<Integer, String>) info.get("fields")).put(rs.getInt(8), cname + order);
+                    }
+                }
+            }
         }
     }
 
@@ -805,10 +818,11 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     @Override
-    protected void finalize() {
+    protected void finalize() throws Throwable {
         if (!this.ch.isClosed() && this.callStack != null) {
             LOG.debug("finalizing RDBDocumentStore that was not disposed", this.callStack);
         }
+        super.finalize();
     }
 
     private <T extends Document> T readDocumentCached(final Collection<T> collection, final String id, int maxCacheAge) {
@@ -881,6 +895,7 @@ public class RDBDocumentStore implements DocumentStore {
             for (List<UpdateOp> chunks : Lists.partition(updates, CHUNKSIZE)) {
                 List<T> docs = new ArrayList<T>();
                 for (UpdateOp update : chunks) {
+                    maintainUpdateStats(collection, update.getId());
                     UpdateUtils.assertUnconditional(update);
                     T doc = collection.newDocument(this);
                     addUpdateCounters(update);
@@ -963,6 +978,7 @@ public class RDBDocumentStore implements DocumentStore {
         if (checkConditions && !UpdateUtils.checkConditions(oldDoc, update.getConditions())) {
             return null;
         } else {
+            maintainUpdateStats(collection, update.getId());
             addUpdateCounters(update);
             T doc = createNewDocument(collection, oldDoc, update);
             Lock l = locks.acquire(update.getId());
@@ -1618,6 +1634,34 @@ public class RDBDocumentStore implements DocumentStore {
                 }
             }
             return false;
+        }
+    }
+
+    // keeping track of CLUSTER_NODES updates
+    private Map<String, Long> cnUpdates = new ConcurrentHashMap<String, Long>();
+
+    private void maintainUpdateStats(Collection collection, String key) {
+        if (collection == Collection.CLUSTER_NODES) {
+            synchronized (this) {
+                Long old = cnUpdates.get(key);
+                old = old == null ? Long.valueOf(1) : old + 1;
+                cnUpdates.put(key, old);
+            }
+        }
+    }
+
+    private String getCnStats() {
+        if (cnUpdates.isEmpty()) {
+            return "";
+        } else {
+            List<Map.Entry<String, Long>> tmp = new ArrayList<Map.Entry<String, Long>>();
+            tmp.addAll(cnUpdates.entrySet());
+            Collections.sort(tmp, new Comparator<Map.Entry<String, Long>>() {
+                @Override
+                public int compare(Entry<String, Long> o1, Entry<String, Long> o2) {
+                    return o1.getKey().compareTo(o2.getKey());
+                }});
+            return " (Cluster Node updates: " + tmp.toString() + ")";
         }
     }
 

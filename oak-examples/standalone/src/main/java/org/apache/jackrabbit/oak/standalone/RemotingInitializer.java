@@ -75,7 +75,7 @@ public class RemotingInitializer {
         //but servlet always reads it as File not via input stream. Hence using
         //actual class
         bean.addInitParameter(JcrRemotingServlet.INIT_PARAM_PROTECTED_HANDLERS_CONFIG,
-                "org.apache.jackrabbit.server.remoting.davex.AclRemoveHandler");
+                "remoting/protectedHandlersConfig.xml");
         bean.addInitParameter(JcrRemotingServlet.INIT_PARAM_HOME, davHome);
         return bean;
     }

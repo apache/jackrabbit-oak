@@ -389,8 +389,9 @@ public class SelectorImpl extends SourceImpl {
         // we will need the excerpt
         for (ColumnImpl c : query.getColumns()) {
             if (c.getSelector().equals(this)) {
-                if (c.getColumnName().equals("rep:excerpt")) {
-                    f.restrictProperty("rep:excerpt", Operator.NOT_EQUAL, null);
+                String columnName = c.getColumnName();
+                if (columnName.equals(QueryImpl.REP_EXCERPT) || columnName.equals(QueryImpl.OAK_SCORE_EXPLANATION)) {
+                    f.restrictProperty(columnName, Operator.NOT_EQUAL, null);
                 }
             }
         }
@@ -661,6 +662,8 @@ public class SelectorImpl extends SourceImpl {
             result = currentRow.getValue(QueryImpl.JCR_SCORE);
         } else if (oakPropertyName.equals(QueryImpl.REP_EXCERPT)) {
             result = currentRow.getValue(QueryImpl.REP_EXCERPT);
+        } else if (oakPropertyName.equals(QueryImpl.OAK_SCORE_EXPLANATION)) {
+            result = currentRow.getValue(QueryImpl.OAK_SCORE_EXPLANATION);
         } else if (oakPropertyName.equals(QueryImpl.REP_SPELLCHECK)) {
             result = currentRow.getValue(QueryImpl.REP_SPELLCHECK);
         } else if (oakPropertyName.equals(QueryImpl.REP_SUGGEST)) {

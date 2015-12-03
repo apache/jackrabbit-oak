@@ -330,7 +330,7 @@
         </init-param>
         <init-param>
           <param-name>protectedhandlers-config</param-name>
-          <param-value>/WEB-INF/protectedHandlers.properties</param-value>
+          <param-value>/WEB-INF/protectedHandlersConfig.xml</param-value>
           <description>JcrRemotingServlet: Handlers for removing protected items.</description>
         </init-param>
         <!-- init-param>

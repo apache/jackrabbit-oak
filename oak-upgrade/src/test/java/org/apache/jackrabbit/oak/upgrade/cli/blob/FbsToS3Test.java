@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.blob;
 
+import java.io.IOException;
+
 import org.apache.jackrabbit.oak.upgrade.cli.AbstractOak2OakTest;
 import org.apache.jackrabbit.oak.upgrade.cli.container.BlobStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.FileBlobStoreContainer;
@@ -36,7 +38,7 @@ public class FbsToS3Test extends AbstractOak2OakTest {
 
     private final NodeStoreContainer destination;
 
-    public FbsToS3Test() {
+    public FbsToS3Test() throws IOException {
         Assume.assumeTrue(S3_PROPERTIES != null);
         sourceBlob = new FileBlobStoreContainer();
         destinationBlob = new S3DataStoreContainer(S3_PROPERTIES);

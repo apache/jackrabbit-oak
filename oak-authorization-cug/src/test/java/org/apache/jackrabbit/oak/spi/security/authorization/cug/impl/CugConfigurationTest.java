@@ -16,26 +16,18 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import java.lang.reflect.Field;
 import java.security.Principal;
 import java.util.List;
 import java.util.Set;
-import javax.jcr.GuestCredentials;
 import javax.jcr.security.AccessControlManager;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
-import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.EmptyPermissionProvider;
@@ -162,30 +154,6 @@ public class CugConfigurationTest extends AbstractSecurityTest {
             PermissionProvider pp = cc.getPermissionProvider(root, "default", principals);
 
             assertSame(EmptyPermissionProvider.getInstance(), pp);
-        }
-    }
-
-    @Test
-    public void testActivate() throws Exception {
-        SecurityProvider sp = new OpenSecurityProvider();
-        ContentRepository repo = new Oak().with(sp).with(new InitialContent()).createContentRepository();
-        ContentSession cs = null;
-        try {
-            Field repoField = CugConfiguration.class.getDeclaredField("repository");
-            repoField.setAccessible(true);
-
-            CugConfiguration cc = new CugConfiguration(sp);
-            repoField.set(cc, repo);
-
-            cc.activate();
-
-            cs = repo.login(new GuestCredentials(), null);
-            ReadOnlyNodeTypeManager ntMgr = ReadOnlyNodeTypeManager.getInstance(cs.getLatestRoot(), NamePathMapper.DEFAULT);
-            assertTrue(ntMgr.hasNodeType(CugConstants.NT_REP_CUG_POLICY));
-        } finally {
-            if (cs != null) {
-                cs.close();
-            }
         }
     }
 }

@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.upgrade.nodestate.report;
 
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
@@ -46,8 +47,13 @@ public class PeriodicReporterTest {
 
     @Test
     public void callbackEveryTenProperties() {
+        final NodeBuilder builder = EmptyNodeState.EMPTY_NODE.builder();
+        for (int i = 1; i < 40; i++) {
+            builder.child("counter").setProperty(Integer.toString(i), i);
+        }
+
         final AssertingPeriodicReporter reporter = new AssertingPeriodicReporter(-1, 10);
-        final NodeState counter = ReportingNodeState.wrap(EmptyNodeState.EMPTY_NODE, reporter)
+        final NodeState counter = ReportingNodeState.wrap(builder.getNodeState(), reporter)
                 .getChildNode("counter");
 
         reporter.reset();

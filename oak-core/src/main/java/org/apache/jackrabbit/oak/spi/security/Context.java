@@ -20,6 +20,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.tree.TreeContext;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 
 /**
@@ -28,51 +29,7 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
  * This information allows to determine if a given {@code Tree} or {@link PropertyState}
  * is defined by or related to the security model provided by the configuration.
  */
-public interface Context {
-
-    /**
-     * Reveals if the specified {@code PropertyState} is defined by the security
-     * module that exposes this {@link Context} instance.
-     *
-     * @param parent The parent tree of the property state.
-     * @param property The {@code PropertyState} to be tested.
-     * @return {@code true} if the specified property state is related to or
-     * defined by the security module.
-     */
-    boolean definesProperty(@Nonnull Tree parent, @Nonnull PropertyState property);
-
-    /**
-     * Reveals if the specified {@code Tree} is the root of a subtree defined by
-     * the security module that exposes this {@link Context} instance. Note,
-     * that in contrast to {@link #definesTree(org.apache.jackrabbit.oak.api.Tree)}
-     * this method will only return {@code false} for any tree located in the
-     * subtree.
-     *
-     * @param tree The tree to be tested.
-     * @return {@code true} if the specified tree is the root of a subtree of items
-     * that are defined by the security module.
-     */
-    boolean definesContextRoot(@Nonnull Tree tree);
-
-    /**
-     * Reveals if the specified {@code Tree} is defined by the security
-     * module that exposes this {@link Context} instance.
-     *
-     * @param tree The tree to be tested.
-     * @return {@code true} if the specified tree is related to or defined by the
-     * security module.
-     */
-    boolean definesTree(@Nonnull Tree tree);
-
-    /**
-     * Reveals if the specified {@code TreeLocation} is defined by the security
-     * module that exposes this {@link Context} instance.
-     *
-     * @param location The tree location to be tested.
-     * @return {@code true} if the specified tree location is related to or
-     * defined by the security module.
-     */
-    boolean definesLocation(@Nonnull TreeLocation location);
+public interface Context extends TreeContext {
 
     Context DEFAULT = new Default();
 
@@ -102,5 +59,9 @@ public interface Context {
             return false;
         }
 
+        @Override
+        public boolean definesInternal(@Nonnull Tree tree) {
+            return false;
+        }
     }
 }

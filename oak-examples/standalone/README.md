@@ -17,7 +17,7 @@ Once done you can run the application by executing
     $ java -jar target/oak-standalone-*.jar
     
 This would start an Oak based repository which uses filesystem storage. All 
-the content would be by default stored under `repository` folder. The server
+the content would be by default stored under `oak` folder. The server
 would listen at port 8080 and support remote access via DavEx (at `/server`) 
 and WebDAV (at `/repository`). 
 
@@ -42,6 +42,38 @@ This would create a node `hello` at root.
 This should return a json rendition of the node. Application also has some 
 other web interfaces which are linked at http://localhost:8080/
 
+### Scripting Repository
+
+The application also has a [Script Console][1] at http://localhost:8080/osgi/system/console/sc
+which can be used to execute scripts like below
+
+```java
+import javax.jcr.Repository
+import javax.jcr.Session
+import javax.jcr.SimpleCredentials
+import javax.jcr.query.QueryResult
+import javax.jcr.query.Row
+
+def queryStr = '''select [jcr:path], [jcr:score], *
+    from [oak:QueryIndexDefinition]
+'''
+
+Repository repo = osgi.getService(Repository.class)
+Session s = null
+try {
+    s = repo.login(new SimpleCredentials("admin", "admin".toCharArray()))
+    def qm = s.getWorkspace().getQueryManager()
+    def query = qm.createQuery(queryStr,'sql')
+    QueryResult result = query.execute()
+
+    result.rows.each {Row r -> println r.path}
+} finally {
+    s?.logout()
+}
+```
+
+Above script would dump path for all index definition nodes.
+
 Using Mongo
 -----------
 
@@ -59,10 +91,10 @@ specify the server detail also
 Application Structure
 ---------------------
 
-Oak uses a repository home (defaults to `repository`) folder in current 
+Oak uses a repository home (defaults to `oak`) folder in current 
 directory.
 
-    repository/
+    oak/
     ├── bundles
     ├── dav
     │   └── tmp
@@ -126,3 +158,5 @@ In above setup
 
 Standalone Application is based on [Spring Boot](http://projects.spring.io/spring-boot/)
 and thus supports all features provided by it. 
+
+[1]: http://felix.apache.org/documentation/subprojects/apache-felix-script-console-plugin.html

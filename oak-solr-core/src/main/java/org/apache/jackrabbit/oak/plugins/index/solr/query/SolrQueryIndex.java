@@ -347,8 +347,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                     SpellCheckResponse spellCheckResponse = queryResponse.getSpellCheckResponse();
                     if (spellCheckResponse != null && spellCheckResponse.getSuggestions() != null &&
                             spellCheckResponse.getSuggestions().size() > 0) {
-                        SolrDocument fakeDoc = getSpellChecks(spellCheckResponse, filter);
-                        queue.add(new SolrResultRow("/", 1.0, fakeDoc));
+                        putSpellChecks(spellCheckResponse, queue, filter);
                         noDocs = true;
                     }
 
@@ -358,8 +357,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                     if (suggest != null) {
                         Set<Map.Entry<String, Object>> suggestEntries = suggest.entrySet();
                         if (!suggestEntries.isEmpty()) {
-                            SolrDocument fakeDoc = getSuggestions(suggestEntries, filter);
-                            queue.add(new SolrResultRow("/", 1.0, fakeDoc));
+                            putSuggestions(suggestEntries, queue, filter);
                             noDocs = true;
                         }
                     }
@@ -376,8 +374,9 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
         };
     }
 
-    private SolrDocument getSpellChecks(SpellCheckResponse spellCheckResponse, Filter filter) throws SolrServerException {
-        SolrDocument fakeDoc = new SolrDocument();
+    private void putSpellChecks(SpellCheckResponse spellCheckResponse,
+                                        final Deque<SolrResultRow> queue,
+                                        Filter filter) throws SolrServerException {
         List<SpellCheckResponse.Suggestion> suggestions = spellCheckResponse.getSuggestions();
         Collection<String> alternatives = new ArrayList<String>(suggestions.size());
         for (SpellCheckResponse.Suggestion suggestion : suggestions) {
@@ -396,19 +395,18 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
             if (results != null && results.getNumFound() > 0) {
                 for (SolrDocument doc : results) {
                     if (filter.isAccessible(String.valueOf(doc.getFieldValue(configuration.getPathField())))) {
-                        fakeDoc.addField(QueryImpl.REP_SPELLCHECK, alternative);
+                        queue.add (new SolrResultRow(alternative));
                         break;
                     }
                 }
             }
         }
-
-        return fakeDoc;
     }
 
-    private SolrDocument getSuggestions(Set<Map.Entry<String, Object>> suggestEntries, Filter filter) throws SolrServerException {
+    private void putSuggestions(Set<Map.Entry<String, Object>> suggestEntries,
+                                final Deque<SolrResultRow> queue,
+                                Filter filter) throws SolrServerException {
         Collection<SimpleOrderedMap<Object>> retrievedSuggestions = new HashSet<SimpleOrderedMap<Object>>();
-        SolrDocument fakeDoc = new SolrDocument();
         for (Map.Entry<String, Object> suggester : suggestEntries) {
             SimpleOrderedMap<Object> suggestionResponses = ((SimpleOrderedMap) suggester.getValue());
             for (Map.Entry<String, Object> suggestionResponse : suggestionResponses) {
@@ -438,13 +436,13 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
             if (results != null && results.getNumFound() > 0) {
                 for (SolrDocument doc : results) {
                     if (filter.isAccessible(String.valueOf(doc.getFieldValue(configuration.getPathField())))) {
-                        fakeDoc.addField(QueryImpl.REP_SUGGEST, "{term=" + suggestion.get("term") + ",weight=" + suggestion.get("weight") + "}");
+                        queue.add (new SolrResultRow(suggestion.get("term").toString(),
+                                Double.parseDouble(suggestion.get("weight").toString())));
                         break;
                     }
                 }
             }
         }
-        return fakeDoc;
     }
 
     static boolean isIgnoredProperty(String propertyName, OakSolrConfiguration configuration) {
@@ -500,11 +498,25 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
         final String path;
         final double score;
         final SolrDocument doc;
+        final String suggestion;
 
-        SolrResultRow(String path, double score, SolrDocument doc) {
+        private SolrResultRow(String path, double score, SolrDocument doc, String suggestion) {
             this.path = path;
             this.score = score;
             this.doc = doc;
+            this.suggestion = suggestion;
+        }
+
+        SolrResultRow(String path, double score, SolrDocument doc) {
+            this (path, score, doc, null);
+        }
+
+        SolrResultRow(String suggestion, double score) {
+            this ("/", score, null, suggestion);
+        }
+
+        SolrResultRow(String suggestion) {
+            this ("/", 1.0, null, suggestion);
         }
 
         @Override
@@ -546,7 +558,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
 
             };
             this.plan = plan;
-            this.pathCursor = new Cursors.PathCursor(pathIterator, true, settings);
+            this.pathCursor = new Cursors.PathCursor(pathIterator, false, settings);
         }
 
 
@@ -580,6 +592,9 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                     // overlay the score
                     if (QueryImpl.JCR_SCORE.equals(columnName)) {
                         return PropertyValues.newDouble(currentRow.score);
+                    }
+                    if (QueryImpl.REP_SPELLCHECK.equals(columnName) || QueryImpl.REP_SUGGEST.equals(columnName)) {
+                        return PropertyValues.newString(currentRow.suggestion);
                     }
                     Collection<Object> fieldValues = currentRow.doc.getFieldValues(columnName);
                     String value;
