@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.List;
 
 import javax.sql.DataSource;
@@ -159,6 +161,17 @@ public abstract class DocumentStoreFixture {
         @Override
         public DataSource getRDBDataSource() {
             return dataSource;
+        }
+
+        @Override
+        public void dispose() {
+            if (dataSource instanceof Closeable) {
+                try {
+                    ((Closeable)dataSource).close();
+                }
+                catch (IOException ignored) {
+                }
+            }
         }
     }
 

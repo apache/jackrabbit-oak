@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -132,5 +134,12 @@ public class RDBDataSourceWrapper implements DataSource {
 
     public <T> T unwrap(Class<T> iface) throws SQLException {
         return ds.unwrap(iface);
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (ds instanceof Closeable) {
+            ((Closeable) ds).close();
+        }
     }
 }
