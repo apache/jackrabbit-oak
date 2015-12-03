@@ -2423,23 +2423,26 @@ public class DocumentNodeStoreTest {
         for (int i = 0; i < 6; i++) {
             assertFalse("The branch can't be merged yet", merged.get());
             ds.done(commits.get(i), false, CommitInfo.EMPTY);
-            Thread.sleep(100);
         }
 
         // 2 x cancel()
         for (int i = 6; i < 8; i++) {
             assertFalse("The branch can't be merged yet", merged.get());
             ds.canceled(commits.get(i));
-            Thread.sleep(100);
         }
 
         // 2 x branch done()
         for (int i = 8; i < 10; i++) {
             assertFalse("The branch can't be merged yet", merged.get());
             ds.done(commits.get(i), true, CommitInfo.EMPTY);
-            Thread.sleep(100);
         }
 
+        for (int i = 0; i < 100; i++) {
+            if (merged.get()) {
+                break;
+            }
+            Thread.sleep(10);
+        }
         assertTrue("The branch should be merged by now", merged.get());
 
         t.join();
