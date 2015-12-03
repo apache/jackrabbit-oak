@@ -383,9 +383,11 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                             PERF_LOGGER.end(start, -1, "{} ...", docs.scoreDocs.length);
                             nextBatchSize = (int) Math.min(nextBatchSize * 2L, 100000);
 
-                            String queryStatement = filter.getQueryStatement();
-                            boolean addExcerpt = queryStatement != null && queryStatement.contains(QueryImpl.REP_EXCERPT);
-                            boolean addExplain = queryStatement != null && queryStatement.contains(QueryImpl.OAK_SCORE_EXPLANATION);
+                            PropertyRestriction restriction = filter.getPropertyRestriction(QueryImpl.REP_EXCERPT);
+                            boolean addExcerpt = restriction != null && restriction.isNotNullRestriction();
+
+                            restriction = filter.getPropertyRestriction(QueryImpl.OAK_SCORE_EXPLANATION);
+                            boolean addExplain = restriction != null && restriction.isNotNullRestriction();
 
                             for (ScoreDoc doc : docs.scoreDocs) {
                                 String excerpt = null;
@@ -840,7 +842,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
             String name = pr.propertyName;
 
-            if ("rep:excerpt".equals(name)) {
+            if (QueryImpl.REP_EXCERPT.equals(name) || QueryImpl.OAK_SCORE_EXPLANATION.equals(name)) {
                 continue;
             }
 
