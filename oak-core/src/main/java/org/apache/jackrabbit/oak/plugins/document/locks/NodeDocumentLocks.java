@@ -12,11 +12,4 @@ public interface NodeDocumentLocks {
      */
     Lock acquire(String key);
 
-    /**
-     * Returns the number of acquire() method invocations.
-     * 
-     * @return how many times the lock has been acquired
-     */
-    long getLockAcquisitionCount();
-
 }

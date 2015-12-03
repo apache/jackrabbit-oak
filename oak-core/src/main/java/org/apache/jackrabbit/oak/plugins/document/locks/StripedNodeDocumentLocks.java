@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.locks;
 
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 
 import com.google.common.util.concurrent.Striped;
@@ -28,21 +27,10 @@ public class StripedNodeDocumentLocks implements NodeDocumentLocks {
      */
     private final Striped<Lock> locks = Striped.lock(4096);
 
-    /**
-     * Counts how many times {@link Lock}s were acquired.
-     */
-    private final AtomicLong lockAcquisitionCounter = new AtomicLong();
-
     @Override
     public Lock acquire(String key) {
-        lockAcquisitionCounter.incrementAndGet();
         Lock lock = locks.get(key);
         lock.lock();
         return lock;
-    }
-
-    @Override
-    public long getLockAcquisitionCount() {
-        return lockAcquisitionCounter.get();
     }
 }
