@@ -49,8 +49,9 @@ import org.slf4j.LoggerFactory;
  * to fill up, any further update will automatically be merged into just one
  * external content change, causing potential loss of local commit information.
  * To help prevent such cases, any sequential external content changes that
- * the background observer thread has yet to process are automatically merged
- * to just one change.
+ * the background observer thread has yet to process are optionally
+ * (see {@code alwaysCollapseExternalEvents} and {@code oak.observation.alwaysCollapseExternal})
+ * automatically merged to just one change.
  */
 public class BackgroundObserver implements Observer, Closeable {
 
@@ -83,6 +84,12 @@ public class BackgroundObserver implements Observer, Closeable {
      * The max queue length used for this observer's queue
      */
     private final int maxQueueLength;
+
+    /**
+     * Whether external events should be collapsed even if queue isn't full yet.
+     */
+    private final boolean alwaysCollapseExternalEvents =
+            Boolean.parseBoolean(System.getProperty("oak.observation.alwaysCollapseExternal", "false"));
 
     private static class ContentChange {
         private final NodeState root;
@@ -247,7 +254,7 @@ public class BackgroundObserver implements Observer, Closeable {
         checkState(!stopped);
         checkNotNull(root);
 
-        if (info == null && last != null && last.info == null) {
+        if (alwaysCollapseExternalEvents && info == null && last != null && last.info == null) {
             // This is an external change. If the previous change was
             // also external, we can drop it from the queue (since external
             // changes in any case can cover multiple commits) to help
