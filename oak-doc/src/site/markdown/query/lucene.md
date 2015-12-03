@@ -1008,6 +1008,16 @@ Since Oak 1.3.11, the each suggestion would be returned per row.
           - useInSpellcheck = true
 ```
 
+
+#### Score Explanation
+
+`@since Oak 1.3.12`
+
+Lucene supports [explanation of scores][score-explanation] which can be selected in a query using a virtual column `oak:scoreExplanation`.
+e.g. `select [oak:scoreExplanation], * from [nt:base] where foo='bar'`
+
+_Note that showing explanation score is expensive. So, this feature should be used for debug purposes only_.
+
 ### Design Considerations
 
 Lucene index provides quite a few features to meet various query requirements. 
@@ -1433,3 +1443,4 @@ such fields
 [oak-run-tika]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run#tika
 [jcr-contains]: http://www.day.com/specs/jcr/1.0/6.6.5.2_jcr_contains_Function.html
 [boost-faq]: https://wiki.apache.org/lucene-java/LuceneFAQ#How_do_I_make_sure_that_a_match_in_a_document_title_has_greater_weight_than_a_match_in_a_document_body.3F
+[score-explanation]: https://lucene.apache.org/core/4_6_0/core/org/apache/lucene/search/IndexSearcher.html#explain%28org.apache.lucene.search.Query,%20int%29
