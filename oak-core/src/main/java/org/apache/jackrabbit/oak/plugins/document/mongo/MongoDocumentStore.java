@@ -1220,6 +1220,10 @@ public class MongoDocumentStore implements DocumentStore {
         this.maxLockedQueryTimeMS = maxLockedQueryTimeMS;
     }
 
+    void resetLockAcquisitionCount() {
+        nodeLocks.resetLockAcquisitionCount();
+    }
+
     long getLockAcquisitionCount() {
         return nodeLocks.getLockAcquisitionCount();
     }

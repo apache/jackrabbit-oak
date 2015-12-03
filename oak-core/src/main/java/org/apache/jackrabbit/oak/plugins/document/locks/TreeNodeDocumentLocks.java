@@ -50,7 +50,7 @@ public class TreeNodeDocumentLocks implements NodeDocumentLocks {
     /**
      * Counts how many times {@link TreeLock}s were acquired.
      */
-    private final AtomicLong lockAcquisitionCounter = new AtomicLong();
+    private volatile AtomicLong lockAcquisitionCounter;
 
     /**
      * Acquires a log for the given key. The returned tree lock will also hold
@@ -61,7 +61,9 @@ public class TreeNodeDocumentLocks implements NodeDocumentLocks {
      */
     @Override
     public TreeLock acquire(String key) {
-        lockAcquisitionCounter.incrementAndGet();
+        if (lockAcquisitionCounter != null) {
+            lockAcquisitionCounter.incrementAndGet();
+        }
         TreeLock lock = TreeLock.shared(parentLocks.get(getParentId(key)), locks.get(key));
         lock.lock();
         return lock;
@@ -75,7 +77,9 @@ public class TreeNodeDocumentLocks implements NodeDocumentLocks {
      * @return the acquired lock for the given parent key.
      */
     public TreeLock acquireExclusive(String parentKey) {
-        lockAcquisitionCounter.incrementAndGet();
+        if (lockAcquisitionCounter != null) {
+            lockAcquisitionCounter.incrementAndGet();
+        }
         TreeLock lock = TreeLock.exclusive(parentLocks.get(parentKey));
         lock.lock();
         return lock;
@@ -97,8 +101,14 @@ public class TreeNodeDocumentLocks implements NodeDocumentLocks {
         return parentId;
     }
 
-    @Override
+    public void resetLockAcquisitionCount() {
+        lockAcquisitionCounter = new AtomicLong();
+    }
+
     public long getLockAcquisitionCount() {
+        if (lockAcquisitionCounter == null) {
+            throw new IllegalStateException("The counter hasn't been initialized");
+        }
         return lockAcquisitionCounter.get();
     }
 
