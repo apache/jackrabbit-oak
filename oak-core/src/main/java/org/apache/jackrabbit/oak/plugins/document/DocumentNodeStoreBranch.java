@@ -23,6 +23,7 @@ import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.STATE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COLLISIONS;
 
+import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -149,7 +150,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                              boolean exclusive)
             throws CommitFailedException {
         CommitFailedException ex = null;
-        Revision conflictRevision = null;
+        Set<Revision> conflictRevisions = new HashSet<Revision>();
         long time = System.currentTimeMillis();
         int numRetries = 0;
         for (long backoff = MIN_BACKOFF; backoff <= maximumBackoff; backoff *= 2) {
@@ -159,14 +160,13 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                     final long start = perfLogger.start();
                     // suspend until conflict revision is visible
                     // or as a fallback sleep for a while
-                    if (conflictRevision != null) {
+                    if (!conflictRevisions.isEmpty()) {
                         // suspend until conflicting revision is visible
                         LOG.debug("Suspending until {} is visible. Current head {}.",
-                                conflictRevision, store.getHeadRevision());
-                        store.suspendUntil(conflictRevision);
+                                conflictRevisions, store.getHeadRevision());
+                        store.suspendUntilAll(conflictRevisions);
+                        conflictRevisions.clear();
                         LOG.debug("Resumed. Current head {}.", store.getHeadRevision());
-                        // reset conflict revision
-                        conflictRevision = null;
                     } else {
                         Thread.sleep(backoff + RANDOM.nextInt((int) Math.min(backoff, Integer.MAX_VALUE)));
                     }
@@ -181,7 +181,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                         checkNotNull(info), exclusive);
             } catch (FailedWithConflictException e) {
                 ex = e;
-                conflictRevision = e.getConflictRevision();
+                conflictRevisions.addAll(e.getConflictRevisions());
             } catch (CommitFailedException e) {
                 ex = e;
             }
