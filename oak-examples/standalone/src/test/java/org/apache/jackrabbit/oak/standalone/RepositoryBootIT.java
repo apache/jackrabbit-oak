@@ -33,7 +33,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration({OakServer.class, TestConfig.class})
 @TestPropertySource(properties = {"repo.home=target/testrepo"})
-public class RepositoryTest {
+public class RepositoryBootIT {
 
     @Autowired
     private Repository repository;
