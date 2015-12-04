@@ -115,7 +115,9 @@ public class VersionGarbageCollector {
     }
 
     private void collectSplitDocuments(VersionGCStats stats, long oldestRevTimeStamp) {
+        stats.collectAndDeleteSplitDocs.start();
         versionStore.deleteSplitDocuments(GC_TYPES, oldestRevTimeStamp, stats);
+        stats.collectAndDeleteSplitDocs.stop();
     }
 
     private void collectDeletedDocuments(VersionGCStats stats,
@@ -167,7 +169,7 @@ public class VersionGarbageCollector {
         int intermediateSplitDocGCCount;
         final Stopwatch collectDeletedDocs = Stopwatch.createUnstarted();
         final Stopwatch deleteDeletedDocs = Stopwatch.createUnstarted();
-
+        final Stopwatch collectAndDeleteSplitDocs = Stopwatch.createUnstarted();
 
         @Override
         public String toString() {
@@ -177,7 +179,8 @@ public class VersionGarbageCollector {
                     ", splitDocGCCount=" + splitDocGCCount +
                     ", intermediateSplitDocGCCount=" + intermediateSplitDocGCCount +
                     ", timeToCollectDeletedDocs=" + collectDeletedDocs +
-                    ", timeTakenToDeleteDocs=" + deleteDeletedDocs +
+                    ", timeTakenToDeleteDeletedDocs=" + deleteDeletedDocs +
+                    ", timeTakenToCollectAndDeleteSplitDocs=" + collectAndDeleteSplitDocs +
                     '}';
         }
     }
