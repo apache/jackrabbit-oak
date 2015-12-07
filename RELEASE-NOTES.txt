@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.3.11
+Release Notes -- Apache Jackrabbit Oak -- Version 1.3.12
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.3.11 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.3.12 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.2.x
 release.
@@ -15,76 +15,101 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.3.11
---------------------
+Changes in Oak 1.3.12
+---------------------
 
 Sub-task
 
-    [OAK-318] - Excerpt support
+    [OAK-1828] - Improved SegmentWriter
+    [OAK-3193] - Integrate with Felix WebConsole
 
 Technical task
 
-    [OAK-3421] - RDBDocumentStore: force DB2 to use a clustered index
-    [OAK-3566] - Stale documents in RDBDocumentStore cache
-    [OAK-3604] - RDBDocumentStore: update JDBC drivers for PostgresQL, MySQL, and Derby
-    [OAK-3605] - RDBBlob/DocumentStore: reduce class complexity
-    [OAK-3617] - RDBDocumentStore: improve retry logic in updateDocument
-    [OAK-3624] - TypeEditor doesn't validate the required property type
-    [OAK-3631] - RDBDocumentStore: improve logging for server time difference detection
-    [OAK-3652] - RDB support: extend RDB export tool for CSV export
-    [OAK-3657] - RDBDocumentStore: cache update logic introduced for OAK-3566 should only be used for NODES collection
+    [OAK-3632] - Incorrect Value Conversion upon Node.setProperty and
+    Node.setValue
+    [OAK-3659] - Stale document in RDBDocumentStore cache
+    [OAK-3661] - RDBDocumentStore: improve logging for invalid data in
+    persistence
+    [OAK-3670] - RDBDocumentStore on SQLServer: off-by-one bug may
+    cause truncated JSON to be written
+    [OAK-3676] - RDBDocumentStore on SQLServer: append logic creates
+    many different PreparedStatements
+    [OAK-3684] - RDBBlob/DocumentStore.finalize() do not call
+    super.finalize()
+    [OAK-3691] - RDBDocumentStore: refactor update logic
+    [OAK-3699] - RDBDocumentStore shutdown: improve logging
+    [OAK-3714] - RDBDocumentStore diagnostics for Oracle might not
+    contain index information
+    [OAK-3722] - RDBDataSourceFactory: restore ability to close the
+    pool
+    [OAK-3731] - Version Garbage Collection: improve logging for split
+    documents
+    [OAK-3737] - Compactor should log revisions acting upon
 
 Bug
 
-    [OAK-2539] - SQL2 query not working with filter (s.[stringa] = 'a' OR CONTAINS(s.[stringb], 'b'))
-    [OAK-3215] - Solr test often fail with  No such core: oak
-    [OAK-3522] - DefaultSyncContext exposes internal path-utility method
-    [OAK-3558] - oak-core imports every package with the optional resolution policy
-    [OAK-3589] - Property index with declaringNodeTypes sometimes used by mistake
-    [OAK-3591] - Lucene index with 'analyzed=true' sometimes used by mistake
-    [OAK-3608] - Compare of node states on branch may be incorrect
-    [OAK-3625] - Test cases using wrong property types
-    [OAK-3628] - baseline failures on trunk
-    [OAK-3630] - Mixin based rules not working for relative properties
-    [OAK-3638] - NodeAggregator in SolrQueryIndexProviderService should be volatile
-    [OAK-3639] - Wrong method name for "updated" reference in SolrServerProviderService
+    [OAK-2655] - Test failure: OrderableNodesTest.testAddNode
+    [OAK-2858] - Test failure: ObservationRefreshTest
+    [OAK-2859] - Test failure: OrderableNodesTest
+    [OAK-3149] - SuggestHelper should manage a suggestor per index
+    definition
+    [OAK-3612] - The string/template cache of the SegmentWriter should
+    be cleared before cleanup
+    [OAK-3621] - Required property type not respected
+    [OAK-3671] - Incomplete cleanup of entries in ACL
+    [OAK-3673] - NotCompliantMBeanException for QueryEngineSettings,
+    QueryStatManager, RepositoryStatsMBean
+    [OAK-3682] - Missing lucene-memory dependency in OSGi env breaks
+    excerpt
+    [OAK-3689] - OakOSGiRepositoryFactory shutting down the repository
+    twice
+    [OAK-3692] - java.lang.NoClassDefFoundError:
+    org/apache/lucene/index/sorter/Sorter$DocComparator
+    [OAK-3697] - Baseline failure in oak-lucene
+    [OAK-3701] - Exception in JcrRemotingServlet at startup
+    [OAK-3709] - CugValidator should ignore node type definitions
+    [OAK-3732] - Offline compaction doesn't clean up unreferenced tar
+    files
 
 Improvement
 
-    [OAK-3092] - Cache recently extracted text to avoid duplicate extraction
-    [OAK-3477] - Make JMX Bean names predictable so they can be used in configurations.
-    [OAK-3509] - Lucene suggestion results should have 1 row per suggestion with appropriate column names
-    [OAK-3554] - Use write concern of w:majority when connected to a replica set
-    [OAK-3568] - Oak Explorer: add persisted compaction map size
-    [OAK-3580] - Make it possible to use indexes for providing excerpts
-    [OAK-3607] - Enable caching of extracted text by default
-    [OAK-3619] - Increase lock stripes in MongoDocumentStore 
-    [OAK-3622] - Expose sql2optimisation prop name as static final
-    [OAK-3633] - Enable exclusion of relative property in aggregation
-    [OAK-3636] - Change scope of json-simple from compile to test
-    [OAK-3647] - enable OAK-1617 by default in trunk
-    [OAK-3648] - Use StandardTokenizer instead of ClassicTokenizer in OakAnalyzer
-    [OAK-3650] - Index based excerpt should be used for binaries
-
+    [OAK-2843] - Broadcasting cache
+    [OAK-3407] - Configuration to pass suggestion fields through
+    analyzer
+    [OAK-3677] - NodeStore.merge implementations throw ISE instead of
+    IAE when passed a non root builder
+    [OAK-3678] - Use stable reverse revision comparator in
+    UpdateUtils.applyChanges()
+    [OAK-3685] - Support S3DataSource as the migration source
+    [OAK-3688] - Provide and use a default set of bundle filters
+    [OAK-3702] - More resilient BackgroundThread implementation
+    [OAK-3713] - Remove dep cycle between
+    plugins/tree/TreeTypeProvider and spi.security
+    [OAK-3715] - SegmentWriter reduce buffer size for reading binaries
 
 New Feature
 
-    [OAK-1995] - Improved SegmentNodeStore documentation
-
+    [OAK-3352] - Expose Lucene search score explanation
+    [OAK-3654] - Integrate with Metrics for various stats collection
 
 Task
 
-    [OAK-3609] - Enable CopyOnWrite by default
-    [OAK-3635] - DocumentStore: clarify which methods support checking conditions in UpdateOps, and enforce this in implementations
-    [OAK-3651] - Remove HierrachialCacheInvalidator
+    [OAK-3111] - Enforce check for max node name length
+    [OAK-3611] - upgrade H2DB dependency to 1.4.190
+    [OAK-3667] - Refactor executor closing logic as a utility class
+    [OAK-3669] - Update jackrabbit.version to regular non-snapshot
+    version
+    [OAK-3686] - Solr suggestion results should have 1 row per
+    suggestion with appropriate column names
+    [OAK-3705] - Change default of compaction.forceAfterFail to false
+    [OAK-3708] - Update Oak to Jackrabbit 2.11.3
+    [OAK-3719] - Test failure: ManyChildNodesTest
+    [OAK-3720] - Update script console bundle version to 1.0.2
 
 Test
 
-    [OAK-3387] - Enable NodeLocalNameTest tests
-    [OAK-3610] - BroadcastTest fails when connected with VPN client
-    [OAK-3618] - Improve SetPropertyTest benchmark for concurrent execution
-    [OAK-3643] - ConflictResolutionTest fails occasionally
-    [OAK-3644] - Run tests with pedantic profile
+    [OAK-3681] - SegmentSizeTest.testAccessControlNodes() and
+    testNodeSize() fail
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.2.x release.
