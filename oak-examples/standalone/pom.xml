@@ -255,6 +255,9 @@
           <excludes>
             <exclude>src/main/webapp/WEB-INF/log4j.dtd</exclude>
             <exclude>src/main/webapp/WEB-INF/templates/repository-config.json</exclude>
+            <exclude>src/main/resources/config-templates/mongomk-config.json</exclude>
+            <exclude>src/main/resources/config-templates/repository-config.json</exclude>
+            <exclude>src/main/resources/config-templates/segmentmk-config.json</exclude>
             <exclude>*.sh</exclude>
           </excludes>
         </configuration>
