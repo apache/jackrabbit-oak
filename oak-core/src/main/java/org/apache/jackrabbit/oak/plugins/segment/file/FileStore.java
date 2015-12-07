@@ -976,6 +976,8 @@ public class FileStore implements SegmentStore {
         }
 
         SegmentNodeState after = compactor.compact(EMPTY_NODE, before, EMPTY_NODE);
+        gcMonitor.info("TarMK GC #{}: compacted {} to {}",
+            gcCount, before.getRecordId(), after.getRecordId());
 
         if (compactionCanceled.get()) {
             gcMonitor.warn("TarMK GC #{}: compaction canceled: {}", gcCount, compactionCanceled);
@@ -995,6 +997,8 @@ public class FileStore implements SegmentStore {
                         "Compacting these commits. Cycle {}", gcCount, cycles);
                 SegmentNodeState head = getHead();
                 after = compactor.compact(before, head, after);
+                gcMonitor.info("TarMK GC #{}: compacted {} against {} to {}",
+                    gcCount, head.getRecordId(), before.getRecordId(), after.getRecordId());
 
                 if (compactionCanceled.get()) {
                     gcMonitor.warn("TarMK GC #{}: compaction canceled: {}", gcCount, compactionCanceled);
