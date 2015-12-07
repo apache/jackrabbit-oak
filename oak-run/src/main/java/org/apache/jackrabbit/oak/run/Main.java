@@ -531,7 +531,13 @@ public final class Main {
             System.out.println("    -> cleaning up");
             store = openFileStore(directory);
             try {
-                store.cleanup();
+                for (File file : store.cleanup()) {
+                    if (!file.exists() || file.delete()) {
+                        System.out.println("    -> removed old file " + file.getName());
+                    } else {
+                        System.out.println("    -> failed to remove old file " + file.getName());
+                    }
+                }
 
                 String head;
                 File journal = new File(directory, "journal.log");
