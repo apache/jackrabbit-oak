@@ -794,6 +794,12 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
     @Test
     public void removeWithCondition() throws Exception {
+
+        Set<String> existingDocs = new HashSet<String>();
+        for (NodeDocument doc : Utils.getAllDocuments(ds)) {
+            existingDocs.add(doc.getPath());
+        }
+
         List<UpdateOp> docs = Lists.newArrayList();
         docs.add(newDocument("/foo", 100));
         removeMe.add(Utils.getIdFromPath("/foo"));
@@ -818,7 +824,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         assertEquals(2, removed);
         assertNotNull(ds.find(Collection.NODES, Utils.getIdFromPath("/bar")));
         for (NodeDocument doc : Utils.getAllDocuments(ds)) {
-            if (!doc.getPath().equals("/bar")) {
+            if (!doc.getPath().equals("/bar") && !existingDocs.contains(doc.getPath())) {
                 fail("document must not exist: " + doc.getId());
             }
         }
