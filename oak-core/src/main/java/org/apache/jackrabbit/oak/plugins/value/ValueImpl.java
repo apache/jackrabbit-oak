@@ -34,10 +34,10 @@ import javax.jcr.ValueFormatException;
 import com.google.common.base.Objects;
 import org.apache.jackrabbit.api.JackrabbitValue;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -379,7 +379,7 @@ public class ValueImpl implements JackrabbitValue {
     private <T> T getValue(Type<T> type, int index) throws RepositoryException {
         try {
             return propertyState.getValue(type, index);
-        } catch (SegmentNotFoundException e) {
+        } catch (IllegalRepositoryStateException e) {
             throw new RepositoryException(e);
         }
     }
@@ -387,7 +387,7 @@ public class ValueImpl implements JackrabbitValue {
     private Type<?> getType(PropertyState property) throws RepositoryException {
         try {
             return propertyState.getType();
-        } catch (SegmentNotFoundException e) {
+        } catch (IllegalRepositoryStateException e) {
             throw new RepositoryException(e);
         }
     }
