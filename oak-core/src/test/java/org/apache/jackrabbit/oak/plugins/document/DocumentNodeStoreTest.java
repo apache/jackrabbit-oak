@@ -42,6 +42,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -2380,6 +2381,73 @@ public class DocumentNodeStoreTest {
                 mergeAttempts.get() <= 1);
     }
 
+    // OAK-3586
+    @Test
+    public void resolveMultipleConflictedRevisions() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        final DocumentNodeStore ds = builderProvider.newBuilder()
+                .setDocumentStore(store)
+                .setAsyncDelay(0).getNodeStore();
+
+        DocumentNodeState root = ds.getRoot();
+        final DocumentNodeStoreBranch b = ds.createBranch(root);
+
+        NodeBuilder builder = root.builder();
+        builder.child("foo");
+        b.setRoot(builder.getNodeState());
+
+        final Set<Revision> revisions = new HashSet<Revision>();
+        final List<Commit> commits = new ArrayList<Commit>();
+        for (int i = 0; i < 10; i++) {
+            Revision revision = ds.newRevision();
+            Commit commit = ds.newCommit(revision, ds.createBranch(root));
+            commits.add(commit);
+            revisions.add(revision);
+        }
+
+        final AtomicBoolean merged = new AtomicBoolean();
+        Thread t = new Thread(new Runnable() {
+            public void run() {
+                try {
+                    CommitFailedException exception = new ConflictException("Can't merge", revisions).asCommitFailedException();
+                    b.merge(new HookFailingOnce(exception), CommitInfo.EMPTY);
+                    merged.set(true);
+                } catch (CommitFailedException e) {
+                    LOG.error("Can't commit", e);
+                }
+            }
+        });
+        t.start();
+
+        // 6 x done()
+        for (int i = 0; i < 6; i++) {
+            assertFalse("The branch can't be merged yet", merged.get());
+            ds.done(commits.get(i), false, CommitInfo.EMPTY);
+        }
+
+        // 2 x cancel()
+        for (int i = 6; i < 8; i++) {
+            assertFalse("The branch can't be merged yet", merged.get());
+            ds.canceled(commits.get(i));
+        }
+
+        // 2 x branch done()
+        for (int i = 8; i < 10; i++) {
+            assertFalse("The branch can't be merged yet", merged.get());
+            ds.done(commits.get(i), true, CommitInfo.EMPTY);
+        }
+
+        for (int i = 0; i < 100; i++) {
+            if (merged.get()) {
+                break;
+            }
+            Thread.sleep(10);
+        }
+        assertTrue("The branch should be merged by now", merged.get());
+
+        t.join();
+    }
+
     // OAK-3411
     @Test
     public void sameSeenAtRevision() throws Exception {
@@ -2598,6 +2666,28 @@ public class DocumentNodeStoreTest {
             throw new CommitFailedException(CONSTRAINT, 0, "fail");
         }
     };
+
+    private static class HookFailingOnce implements CommitHook {
+
+        private final AtomicBoolean failedAlready = new AtomicBoolean();
+
+        private final CommitFailedException exception;
+
+        private HookFailingOnce(CommitFailedException exception) {
+            this.exception = exception;
+        }
+
+        @Override
+        public NodeState processCommit(NodeState before, NodeState after, CommitInfo info)
+                throws CommitFailedException {
+            if (failedAlready.getAndSet(true)) {
+                return after;
+            } else {
+                throw exception;
+            }
+        }
+
+    }
 
     private static class TestEditor extends DefaultEditor {
 
