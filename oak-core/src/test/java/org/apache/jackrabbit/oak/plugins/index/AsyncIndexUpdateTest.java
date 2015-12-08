@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -61,6 +62,7 @@ import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.ProxyNodeStore;
 import org.junit.Test;
 
 import ch.qos.logback.classic.Level;
@@ -582,6 +584,88 @@ public class AsyncIndexUpdateTest {
         assertFalse(stats.isFailing());
         assertEquals(0, stats.getConsecutiveFailedExecutions());
         assertEquals("", stats.getFailingSince());
+    }
+
+    @Test
+    public void cpCleanupNoRelease() throws Exception {
+        final MemoryNodeStore mns = new MemoryNodeStore();
+        final AtomicBoolean canRelease = new AtomicBoolean(false);
+
+        ProxyNodeStore store = new ProxyNodeStore() {
+
+            @Override
+            protected NodeStore getNodeStore() {
+                return mns;
+            }
+
+            @Override
+            public boolean release(String checkpoint) {
+                if (canRelease.get()) {
+                    return super.release(checkpoint);
+                }
+                return false;
+            }
+        };
+
+        IndexEditorProvider provider = new PropertyIndexEditorProvider();
+
+        NodeBuilder builder = store.getRoot().builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, "async");
+        builder.child("testRoot").setProperty("foo", "abc");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        assertTrue("Expecting no checkpoints",
+                mns.listCheckpoints().size() == 0);
+
+        AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
+        async.run();
+        assertTrue("Expecting one checkpoint",
+                mns.listCheckpoints().size() == 1);
+        assertTrue(
+                "Expecting one temp checkpoint",
+                newHashSet(
+                        store.getRoot().getChildNode(AsyncIndexUpdate.ASYNC)
+                                .getStrings("async-temp")).size() == 1);
+
+        builder = store.getRoot().builder();
+        builder.child("testRoot").setProperty("foo", "def");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        async.run();
+        assertTrue("Expecting two checkpoints",
+                mns.listCheckpoints().size() == 2);
+        assertTrue(
+                "Expecting two temp checkpoints",
+                newHashSet(
+                        store.getRoot().getChildNode(AsyncIndexUpdate.ASYNC)
+                                .getStrings("async-temp")).size() == 2);
+
+        canRelease.set(true);
+
+        builder = store.getRoot().builder();
+        builder.child("testRoot").setProperty("foo", "ghi");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        async.run();
+
+        assertTrue("Expecting one checkpoint",
+                mns.listCheckpoints().size() == 1);
+        String secondCp = mns.listCheckpoints().iterator().next();
+        assertEquals(
+                secondCp,
+                store.getRoot().getChildNode(AsyncIndexUpdate.ASYNC)
+                        .getString("async"));
+        // the temp cps size is 2 now but the unreferenced checkpoints have been
+        // cleared from the store already
+        for (String cp : store.getRoot().getChildNode(AsyncIndexUpdate.ASYNC)
+                .getStrings("async-temp")) {
+            if (cp.equals(secondCp)) {
+                continue;
+            }
+            assertNull("Temp checkpoint was already cleared from store",
+                    store.retrieve(cp));
+        }
     }
 
     /**
