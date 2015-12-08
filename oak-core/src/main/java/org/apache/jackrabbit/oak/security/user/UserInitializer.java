@@ -108,12 +108,18 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
             NodeUtil index = rootTree.getOrAddChild(IndexConstants.INDEX_DEFINITIONS_NAME, JcrConstants.NT_UNSTRUCTURED);
 
             if (!index.hasChild("authorizableId")) {
-                IndexUtils.createIndexDefinition(index, "authorizableId", true, new String[]{REP_AUTHORIZABLE_ID}, null);
+                NodeUtil authorizableId = IndexUtils.createIndexDefinition(index, "authorizableId", true, new String[]{REP_AUTHORIZABLE_ID}, null);
+                authorizableId.setString("info", 
+                        "Oak index used by the user management " + 
+                        "to quickly search an authorizable by id.");
             }
             if (!index.hasChild("principalName")) {
-                IndexUtils.createIndexDefinition(index, "principalName", true,
+                NodeUtil principalName = IndexUtils.createIndexDefinition(index, "principalName", true,
                         new String[]{REP_PRINCIPAL_NAME},
                         new String[]{NT_REP_AUTHORIZABLE});
+                principalName.setString("info", 
+                        "Oak index used by the user management " + 
+                        "to quickly search a prinipal by name.");
             }
 
             ConfigurationParameters params = userConfiguration.getParameters();
