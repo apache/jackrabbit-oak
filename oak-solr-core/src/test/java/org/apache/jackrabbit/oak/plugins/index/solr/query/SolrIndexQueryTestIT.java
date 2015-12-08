@@ -17,8 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
 import static java.util.Arrays.asList;
-import static junit.framework.Assert.assertEquals;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
@@ -299,17 +299,23 @@ import org.junit.rules.TestName;
         test.addChild("h").setProperty("text", "over the lazy top");
         root.commit();
         Iterator<String> result = executeQuery(query, "xpath").iterator();
-        assertTrue(result.hasNext());
-        assertEquals("/test/b", result.next());
-        assertTrue(result.hasNext());
-        assertEquals("/test/d", result.next());
-        assertTrue(result.hasNext());
-        assertEquals("/test/e", result.next());
-        assertTrue(result.hasNext());
-        assertEquals("/test/f", result.next());
-        assertTrue(result.hasNext());
-        assertEquals("/test/h", result.next());
-        assertFalse(result.hasNext());
+        String list = "";
+        while (result.hasNext()) {
+            String p = result.next();
+            if (p.startsWith("/oak:index")) {
+                // OAK-3728
+                // /oak:index nodes can match, because they have an info
+                // we ignore those
+                continue;
+            }
+            list += p + " ";
+        }
+        assertEquals(
+                "/test/b " +
+                "/test/d " +
+                "/test/e " + 
+                "/test/f " +
+                "/test/h ", list);
     }
 
     @Test
