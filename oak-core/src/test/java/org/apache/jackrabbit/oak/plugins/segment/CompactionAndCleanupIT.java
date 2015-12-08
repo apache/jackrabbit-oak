@@ -303,6 +303,7 @@ public class CompactionAndCleanupIT {
     }
 
     @Test
+    @Ignore("OAK-3348")  // FIXME OAK-3348
     public void testMixedSegments() throws Exception {
         FileStore store = new FileStore(directory, 2, false);
         final SegmentNodeStore nodeStore = new SegmentNodeStore(store);
