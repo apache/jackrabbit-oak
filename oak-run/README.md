@@ -15,6 +15,7 @@ The following runmodes are currently available:
     * console     : Start an interactive console.
     * explore     : Starts a GUI browser based on java swing.
     * graph       : Export the segment graph of a segment store to a file.
+    * history     : Trace the history of a node
     * check       : Check the FileStore for inconsistencies
     * primary     : Run a TarMK Cold Standby primary instance
     * standby     : Run a TarMK Cold Standby standby instance
@@ -119,6 +120,23 @@ a negative offset translating all timestamps into a valid int range.
                        (derived from journal.log if not
                        given)
     --output <File>  Output file (default: segments.gdf)
+
+History
+-------
+
+Trace the history of a node backward through the revision history.
+
+    $ java -jar oak-run-*.jar history [File] <options>
+
+    [File] -- Path to segment store (required)
+
+    Option             Description
+    ------             -----------
+    --depth <Integer>  Depth up to which to dump node states
+                         (default: 0)
+    --journal          journal file (default: journal.log)
+    --path             Path for which to trace the history
+                         (default: /)
 
 Check
 -----
