@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
@@ -79,6 +80,7 @@ public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
     }
 
     @Test
+    @Ignore("OAK-3436")
     public void testPrePrepare() throws Exception {
         // take care of initial reindex before
         new AsyncIndexUpdate(name, store, provider).run();
