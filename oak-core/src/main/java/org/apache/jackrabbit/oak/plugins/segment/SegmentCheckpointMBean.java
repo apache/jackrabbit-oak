@@ -41,13 +41,18 @@ public class SegmentCheckpointMBean extends AbstractCheckpointMBean {
     }
 
     @Override
+    protected String getTypeName() {
+        return SegmentCheckpointMBean.class.getName();
+    }
+
+    @Override
     protected void collectCheckpoints(TabularDataSupport tab) throws OpenDataException {
         for (ChildNodeEntry cne : store.getCheckpoints().getChildNodeEntries()) {
             String id = cne.getName();
             NodeState checkpoint = cne.getNodeState();
             String created = getDate(checkpoint, "created");
             String expires = getDate(checkpoint, "timestamp");
-            tab.put(id, toCompositeData(id, created, expires, store.checkpointInfo(id)));
+            tab.put(id, toCompositeData(getTypeName(), id, created, expires, store.checkpointInfo(id)));
         }
     }
 
