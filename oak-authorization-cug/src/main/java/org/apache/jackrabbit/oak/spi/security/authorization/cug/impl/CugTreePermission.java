@@ -31,8 +31,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermi
 final class CugTreePermission extends AbstractTreePermission implements CugConstants {
 
     private final TreePermission parent;
-    private Boolean inCug;
-    private Boolean allow;
+    private Status status;
 
     CugTreePermission(@Nonnull Tree tree, @Nonnull TreeType type, @Nonnull TreePermission parent,
                       @Nonnull CugPermissionProvider permissionProvider) {
@@ -44,35 +43,39 @@ final class CugTreePermission extends AbstractTreePermission implements CugConst
                       @Nonnull CugPermissionProvider permissionProvider, boolean inCug, boolean canRead) {
         super(tree, type, permissionProvider);
         this.parent = parent;
-        this.inCug = inCug;
-        this.allow = canRead;
+        status = new Status(inCug, canRead);
     }
 
     boolean isInCug() {
-        if (inCug == null) {
-            loadCug();
+        if (status == null) {
+            loadStatus();
         }
-        return inCug;
+        return status.inCug;
     }
 
     boolean isAllow() {
-        if (allow == null) {
-            loadCug();
+        if (status == null) {
+            loadStatus();
         }
-        return allow;
+        return status.allow;
     }
 
-    private void loadCug() {
+    private Status getStatus() {
+        if (status == null) {
+            loadStatus();
+        }
+        return status;
+    }
+
+    private void loadStatus() {
         Tree cugTree = CugUtil.getCug(tree);
         if (cugTree != null) {
-            inCug = true;
-            allow = permissionProvider.isAllow(cugTree);
+            status = new Status(true, permissionProvider.isAllow(cugTree));
         } else if (parent instanceof CugTreePermission) {
-            inCug = ((CugTreePermission) parent).isInCug();
-            allow = ((CugTreePermission) parent).isAllow();
+            status = ((CugTreePermission) parent).getStatus();
+            ;
         } else {
-            inCug = false;
-            allow = false;
+            status = Status.FALSE;
         }
     }
 
@@ -106,5 +109,19 @@ final class CugTreePermission extends AbstractTreePermission implements CugConst
     @Override
     public boolean isGranted(long permissions, @Nonnull PropertyState property) {
         return permissions == Permissions.READ_PROPERTY && isAllow();
+    }
+
+    //--------------------------------------------------------------------------
+    private final static class Status {
+
+        private static final Status FALSE = new Status(false, false);
+
+        private final boolean inCug;
+        private final boolean allow;
+
+        private Status(boolean inCug, boolean allow) {
+            this.inCug = inCug;
+            this.allow = allow;
+        }
     }
 }
