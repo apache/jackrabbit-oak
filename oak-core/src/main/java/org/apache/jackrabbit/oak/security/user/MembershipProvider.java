@@ -158,50 +158,31 @@ class MembershipProvider extends AuthorizableBaseProvider {
                 true, authorizableTree, REP_MEMBERS, NT_REP_MEMBER_REFERENCES
         );
 
-        return new AbstractLazyIterator<String>() {
-
-            private final Iterator<String> references = refPaths.iterator();
-
-            private Iterator<String> parent;
-
+        return new AbstractMemberIterator(refPaths.iterator()) {
             @Override
-            protected String getNext() {
+            protected String internalGetNext() {
                 String next = null;
-                while (next == null) {
-                    if (parent != null) {
-                        // if we have a parent iterator, process it first
-                        if (parent.hasNext()) {
-                            next = parent.next();
-                        } else {
-                            parent = null;
-                        }
-                    } else if (!references.hasNext()) {
-                        // if not, check if we have more references to process and abort if not
-                        break;
-                    } else {
-                        // get the next rep:members property path
-                        String propPath = references.next();
-                        int index = propPath.indexOf('/' + REP_MEMBERS_LIST);
-                        if (index < 0) {
-                            index = propPath.indexOf('/' + REP_MEMBERS);
-                        }
-                        if (index > 0) {
-                            String groupPath = propPath.substring(0, index);
-                            if (processedPaths.add(groupPath)) {
-                                // we didn't see this path before, so continue
-                                next = groupPath;
-                                if (includeInherited) {
-                                    // inject a parent iterator of the inherited memberships is needed
-                                    Tree group = getByPath(groupPath);
-                                    if (UserUtil.isType(group, AuthorizableType.GROUP)) {
-                                        parent = getMembership(group, true, processedPaths);
-                                    }
-                                }
+                // get the next rep:members property path
+                String propPath = references.next();
+                int index = propPath.indexOf('/' + REP_MEMBERS_LIST);
+                if (index < 0) {
+                    index = propPath.indexOf('/' + REP_MEMBERS);
+                }
+                if (index > 0) {
+                    String groupPath = propPath.substring(0, index);
+                    if (processedPaths.add(groupPath)) {
+                        // we didn't see this path before, so continue
+                        next = groupPath;
+                        if (includeInherited) {
+                            // inject a parent iterator of the inherited memberships is needed
+                            Tree group = getByPath(groupPath);
+                            if (UserUtil.isType(group, AuthorizableType.GROUP)) {
+                                parent = getMembership(group, true, processedPaths);
                             }
-                        } else {
-                            log.debug("Not a membership reference property " + propPath);
                         }
                     }
+                } else {
+                    log.debug("Not a membership reference property " + propPath);
                 }
                 return next;
             }
@@ -234,42 +215,22 @@ class MembershipProvider extends AuthorizableBaseProvider {
     private Iterator<String> getMembers(@Nonnull final Tree groupTree, @Nonnull final AuthorizableType authorizableType,
                                         final boolean includeInherited, @Nonnull final Set<String> processedRefs) {
 
-        return new AbstractLazyIterator<String>() {
-
-            private MemberReferenceIterator references = new MemberReferenceIterator(groupTree, processedRefs);
-
-            private Iterator<String> parent;
-
+        return new AbstractMemberIterator(new MemberReferenceIterator(groupTree, processedRefs)) {
             @Override
-            protected String getNext() {
-                String next = null;
-                while (next == null) {
-                    // process parent iterators first
-                    if (parent != null) {
-                        if (parent.hasNext()) {
-                            next = parent.next();
-                        } else {
-                            parent = null;
-                        }
-                    } else if (!references.hasNext()) {
-                        // if there are no more values left, reset the iterator
-                        break;
-                    } else {
-                        String value = references.next();
-                        next = identifierManager.getPath(PropertyValues.newWeakReference(value));
+            protected String internalGetNext() {
+                String value = references.next();
+                String next = identifierManager.getPath(PropertyValues.newWeakReference(value));
 
-                        // filter by authorizable type, and/or get inherited members
-                        if (next != null && (includeInherited || authorizableType != AuthorizableType.AUTHORIZABLE)) {
-                            Tree auth = getByPath(next);
-                            AuthorizableType type = (auth == null) ? null : UserUtil.getType(auth);
+                // filter by authorizable type, and/or get inherited members
+                if (next != null && (includeInherited || authorizableType != AuthorizableType.AUTHORIZABLE)) {
+                    Tree auth = getByPath(next);
+                    AuthorizableType type = (auth == null) ? null : UserUtil.getType(auth);
 
-                            if (includeInherited && type == AuthorizableType.GROUP) {
-                                parent = getMembers(auth, authorizableType, true, processedRefs);
-                            }
-                            if (authorizableType != AuthorizableType.AUTHORIZABLE && type != authorizableType) {
-                                next = null;
-                            }
-                        }
+                    if (includeInherited && type == AuthorizableType.GROUP) {
+                        parent = getMembers(auth, authorizableType, true, processedRefs);
+                    }
+                    if (authorizableType != AuthorizableType.AUTHORIZABLE && type != authorizableType) {
+                        next = null;
                     }
                 }
                 return next;
@@ -414,5 +375,38 @@ class MembershipProvider extends AuthorizableBaseProvider {
             }
             return next;
         }
+    }
+
+    private abstract class AbstractMemberIterator extends AbstractLazyIterator<String> {
+
+        protected Iterator<String> references;
+        protected Iterator<String> parent;
+
+        AbstractMemberIterator(@Nonnull Iterator<String> references) {
+            this.references = references;
+        }
+
+        @Override
+        protected String getNext() {
+            String next = null;
+            while (next == null) {
+                // process parent iterators first
+                if (parent != null) {
+                    if (parent.hasNext()) {
+                        next = parent.next();
+                    } else {
+                        parent = null;
+                    }
+                } else if (!references.hasNext()) {
+                    // if there are no more values left, reset the iterator
+                    break;
+                } else {
+                    next = internalGetNext();
+                }
+            }
+            return next;
+        }
+
+        protected abstract String internalGetNext();
     }
 }
