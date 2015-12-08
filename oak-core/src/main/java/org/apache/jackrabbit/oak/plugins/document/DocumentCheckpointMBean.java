@@ -42,6 +42,11 @@ public class DocumentCheckpointMBean extends AbstractCheckpointMBean {
     }
 
     @Override
+    protected String getTypeName() {
+        return DocumentCheckpointMBean.class.getName();
+    }
+
+    @Override
     protected void collectCheckpoints(TabularDataSupport tab) throws OpenDataException {
         Map<Revision, Info> checkpoints = store.getCheckpoints().getCheckpoints();
         if (checkpoints == null) {
@@ -53,8 +58,7 @@ public class DocumentCheckpointMBean extends AbstractCheckpointMBean {
             Info info = checkpoint.getValue();
             Date created = new Date(checkpoint.getKey().getTimestamp());
             Date expires = new Date(info.getExpiryTime());
-            tab.put(id, toCompositeData(
-                    id, created.toString(), expires.toString(), info.get()));
+            tab.put(id, toCompositeData(getTypeName(), id, created.toString(), expires.toString(), info.get()));
         }
     }
 
