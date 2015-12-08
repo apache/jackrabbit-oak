@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -30,10 +30,7 @@ import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -51,7 +48,6 @@ import com.mongodb.ReadPreference;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
-import org.apache.jackrabbit.oak.plugins.document.CachedNodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
@@ -67,17 +63,15 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
-import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
+import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocumentCache;
+import org.apache.jackrabbit.oak.plugins.document.locks.TreeNodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Objects;
-import com.google.common.cache.Cache;
 import com.google.common.collect.Maps;
-import com.google.common.util.concurrent.Striped;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
@@ -89,7 +83,6 @@ import com.mongodb.WriteConcern;
 import com.mongodb.WriteResult;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * A document store that uses MongoDB as the backend.
@@ -119,28 +112,9 @@ public class MongoDocumentStore implements DocumentStore {
 
     private final DB db;
 
-    private final Cache<CacheValue, NodeDocument> nodesCache;
-    private final CacheStats cacheStats;
+    private final NodeDocumentCache nodesCache;
 
-    /**
-     * Locks to ensure cache consistency on reads, writes and invalidation.
-     */
-    private final Striped<Lock> locks = Striped.lock(4096);
-
-    /**
-     * ReadWriteLocks to synchronize cache access when child documents are
-     * requested from MongoDB and put into the cache. Accessing a single
-     * document in the cache will acquire a read (shared) lock for the parent
-     * key in addition to the lock (from {@link #locks}) for the individual
-     * document. Reading multiple sibling documents will acquire a write
-     * (exclusive) lock for the parent key. See OAK-1897.
-     */
-    private final Striped<ReadWriteLock> parentLocks = Striped.readWriteLock(2048);
-
-    /**
-     * Counts how many times {@link TreeLock}s were acquired.
-     */
-    private final AtomicLong lockAcquisitionCounter = new AtomicLong();
+    private final TreeNodeDocumentLocks nodeLocks;
 
     private Clock clock = Clock.SIMPLE;
 
@@ -241,10 +215,9 @@ public class MongoDocumentStore implements DocumentStore {
         options.put("unique", Boolean.FALSE);
         this.journal.createIndex(index, options);
 
+        this.nodeLocks = new TreeNodeDocumentLocks();
+        this.nodesCache = builder.buildNodeDocumentCache(this, nodeLocks);
 
-        nodesCache = builder.buildDocumentCache(this);
-        cacheStats = new CacheStats(nodesCache, "Document-Documents", builder.getWeigher(),
-                builder.getDocumentCacheSize());
         LOG.info("Configuration maxReplicationLagMillis {}, " +
                 "maxDeltaForModTimeIdxSecs {}, disableIndexHint {}, {}",
                 maxReplicationLagMillis, maxDeltaForModTimeIdxSecs,
@@ -288,7 +261,7 @@ public class MongoDocumentStore implements DocumentStore {
         }
         return result;
     }
-    
+
     @Override
     public CacheInvalidationStats invalidateCache(Iterable<String> keys) {
         LOG.debug("invalidateCache: start");
@@ -301,7 +274,7 @@ public class MongoDocumentStore implements DocumentStore {
             final List<String> ids = new ArrayList<String>(IN_CLAUSE_BATCH_SIZE);
             while(it.hasNext() && ids.size() < IN_CLAUSE_BATCH_SIZE) {
                 final String id = it.next();
-                if (getCachedNodeDoc(id) != null) {
+                if (nodesCache.getIfPresent(id) != null) {
                     // only add those that we actually do have cached
                     ids.add(id);
                 }
@@ -320,21 +293,18 @@ public class MongoDocumentStore implements DocumentStore {
             DBCursor cursor = nodes.find(query.get(), fields);
             cursor.setReadPreference(ReadPreference.primary());
             result.queryCount++;
-            
+
+            Map<String, Number> modCounts = new HashMap<String, Number>();
             for (DBObject obj : cursor) {
-                result.cacheEntriesProcessedCount++;
                 String id = (String) obj.get(Document.ID);
                 Number modCount = (Number) obj.get(Document.MOD_COUNT);
-                
-                CachedNodeDocument cachedDoc = getCachedNodeDoc(id);
-                if (cachedDoc != null
-                        && !Objects.equal(cachedDoc.getModCount(), modCount)) {
-                    invalidateCache(Collection.NODES, id);
-                    result.invalidationCount++;
-                } else {
-                    result.upToDateCount++;
-                }
+                modCounts.put(id, modCount);
             }
+
+            int invalidated = nodesCache.invalidateOutdated(modCounts);
+            result.cacheEntriesProcessedCount += modCounts.size();
+            result.invalidationCount += invalidated;
+            result.upToDateCount = modCounts.size() - invalidated;
         }
 
         result.cacheSize = size;
@@ -345,21 +315,9 @@ public class MongoDocumentStore implements DocumentStore {
     @Override
     public <T extends Document> void invalidateCache(Collection<T> collection, String key) {
         if (collection == Collection.NODES) {
-            TreeLock lock = acquire(key, collection);
-            try {
-                nodesCache.invalidate(new StringValue(key));
-            } finally {
-                lock.unlock();
-            }
+            nodesCache.invalidate(key);
         }
     }
-
-    public <T extends Document> void invalidateCache(Collection<T> collection, List<String> keys) {
-        for(String key : keys){
-            invalidateCache(collection, key);
-        }
-    }
-
 
     @Override
     public <T extends Document> T find(Collection<T> collection, String key) {
@@ -388,11 +346,10 @@ public class MongoDocumentStore implements DocumentStore {
             return findUncachedWithRetry(collection, key,
                     DocumentReadPreference.PRIMARY, 2);
         }
-        CacheValue cacheKey = new StringValue(key);
         NodeDocument doc;
         if (maxCacheAge > 0 || preferCached) {
             // first try without lock
-            doc = nodesCache.getIfPresent(cacheKey);
+            doc = nodesCache.getIfPresent(key);
             if (doc != null) {
                 if (preferCached ||
                         getTime() - doc.getCreated() < maxCacheAge) {
@@ -405,12 +362,12 @@ public class MongoDocumentStore implements DocumentStore {
         }
         Throwable t;
         try {
-            TreeLock lock = acquire(key, collection);
+            Lock lock = nodeLocks.acquire(key);
             try {
                 if (maxCacheAge > 0 || preferCached) {
                     // try again some other thread may have populated
                     // the cache by now
-                    doc = nodesCache.getIfPresent(cacheKey);
+                    doc = nodesCache.getIfPresent(key);
                     if (doc != null) {
                         if (preferCached ||
                                 getTime() - doc.getCreated() < maxCacheAge) {
@@ -425,7 +382,7 @@ public class MongoDocumentStore implements DocumentStore {
                         collection, key,
                         getReadPreference(maxCacheAge), 2);
                 invalidateCache(collection, key);
-                doc = nodesCache.get(cacheKey, new Callable<NodeDocument>() {
+                doc = nodesCache.get(key, new Callable<NodeDocument>() {
                     @Override
                     public NodeDocument call() throws Exception {
                         return d == null ? NodeDocument.NULL : d;
@@ -608,7 +565,7 @@ public class MongoDocumentStore implements DocumentStore {
         String parentId = Utils.getParentIdFromLowerLimit(fromKey);
         long lockTime = -1;
         final long start = PERFLOG.start();
-        TreeLock lock = withLock ? acquireExclusive(parentId != null ? parentId : "") : null;
+        Lock lock = withLock ? nodeLocks.acquireExclusive(parentId != null ? parentId : "") : null;
         try {
             if (start != -1) {
                 lockTime = System.currentTimeMillis() - start;
@@ -639,26 +596,7 @@ public class MongoDocumentStore implements DocumentStore {
                     if (collection == Collection.NODES
                             && doc != null
                             && lock != null) {
-                        doc.seal();
-                        String id = doc.getId();
-                        CacheValue cacheKey = new StringValue(id);
-                        // do not overwrite document in cache if the
-                        // existing one in the cache is newer
-                        NodeDocument cached = nodesCache.getIfPresent(cacheKey);
-                        if (cached != null && cached != NodeDocument.NULL) {
-                            // check mod count
-                            Number cachedModCount = cached.getModCount();
-                            Number modCount = doc.getModCount();
-                            if (cachedModCount == null || modCount == null) {
-                                throw new IllegalStateException(
-                                        "Missing " + Document.MOD_COUNT);
-                            }
-                            if (modCount.longValue() > cachedModCount.longValue()) {
-                                nodesCache.put(cacheKey, (NodeDocument) doc);
-                            }
-                        } else {
-                            nodesCache.put(cacheKey, (NodeDocument) doc);
-                        }
+                        nodesCache.putIfNewer((NodeDocument) doc);
                     }
                     list.add(doc);
                 }
@@ -709,7 +647,11 @@ public class MongoDocumentStore implements DocumentStore {
                 } catch (Exception e) {
                     throw DocumentStoreException.convert(e, "Remove failed for " + keyBatch);
                 } finally {
-                    invalidateCache(collection, keyBatch);
+                    if (collection == Collection.NODES) {
+                        for (String key : keyBatch) {
+                            invalidateCache(collection, key);
+                        }
+                    }
                 }
             }
         } finally {
@@ -742,7 +684,9 @@ public class MongoDocumentStore implements DocumentStore {
                     } catch (Exception e) {
                         throw DocumentStoreException.convert(e, "Remove failed for " + batch);
                     } finally {
-                        invalidateCache(collection, Lists.newArrayList(batchIds));
+                        if (collection == Collection.NODES) {
+                            invalidateCache(batchIds);
+                        }
                     }
                     batchIds.clear();
                     batch.clear();
@@ -754,6 +698,7 @@ public class MongoDocumentStore implements DocumentStore {
         return num;
     }
 
+    @SuppressWarnings("unchecked")
     @CheckForNull
     private <T extends Document> T findAndModify(Collection<T> collection,
                                                  UpdateOp updateOp,
@@ -764,16 +709,17 @@ public class MongoDocumentStore implements DocumentStore {
         updateOp = updateOp.copy();
         DBObject update = createUpdate(updateOp);
 
-        TreeLock lock = acquire(updateOp.getId(), collection);
+        Lock lock = null;
+        if (collection == Collection.NODES) {
+            lock = nodeLocks.acquire(updateOp.getId());
+        }
         final long start = PERFLOG.start();
         try {
             // get modCount of cached document
             Number modCount = null;
             T cachedDoc = null;
             if (collection == Collection.NODES) {
-                @SuppressWarnings("unchecked")
-                T doc = (T) nodesCache.getIfPresent(new StringValue(updateOp.getId()));
-                cachedDoc = doc;
+                cachedDoc = (T) nodesCache.getIfPresent(updateOp.getId());
                 if (cachedDoc != null) {
                     modCount = cachedDoc.getModCount();
                 }
@@ -790,7 +736,10 @@ public class MongoDocumentStore implements DocumentStore {
                 WriteResult result = dbCollection.update(query.get(), update);
                 if (result.getN() > 0) {
                     // success, update cached document
-                    putToCache(collection, cachedDoc, updateOp);
+                    if (collection == Collection.NODES) {
+                        NodeDocument newDoc = (NodeDocument) applyChanges(collection, cachedDoc, updateOp);
+                        nodesCache.put(newDoc);
+                    }
                     // return previously cached document
                     return cachedDoc;
                 }
@@ -805,13 +754,16 @@ public class MongoDocumentStore implements DocumentStore {
             }
             T oldDoc = convertFromDBObject(collection, oldNode);
             if (oldDoc != null) {
-                putToCache(collection, oldDoc, updateOp);
+                if (collection == Collection.NODES) {
+                    NodeDocument newDoc = (NodeDocument) applyChanges(collection, oldDoc, updateOp);
+                    nodesCache.put(newDoc);
+                }
                 oldDoc.seal();
             } else if (upsert) {
                 if (collection == Collection.NODES) {
                     NodeDocument doc = (NodeDocument) collection.newDocument(this);
                     UpdateUtils.applyChanges(doc, updateOp);
-                    addToCache(doc);
+                    nodesCache.putIfAbsent(doc);
                 }
             } else {
                 // updateOp without conditions and not an upsert
@@ -821,7 +773,9 @@ public class MongoDocumentStore implements DocumentStore {
         } catch (Exception e) {
             throw DocumentStoreException.convert(e);
         } finally {
-            lock.unlock();
+            if (lock != null) {
+                lock.unlock();
+            }
             PERFLOG.end(start, 1, "findAndModify [{}]", updateOp.getId());
         }
     }
@@ -908,12 +862,7 @@ public class MongoDocumentStore implements DocumentStore {
                 dbCollection.insert(inserts);
                 if (collection == Collection.NODES) {
                     for (T doc : docs) {
-                        TreeLock lock = acquire(doc.getId(), collection);
-                        try {
-                            addToCache((NodeDocument) doc);
-                        } finally {
-                            lock.unlock();
-                        }
+                        nodesCache.putIfAbsent((NodeDocument) doc);
                     }
                 }
                 return true;
@@ -942,7 +891,7 @@ public class MongoDocumentStore implements DocumentStore {
             if (collection == Collection.NODES) {
                 cachedDocs = Maps.newHashMap();
                 for (String key : keys) {
-                    cachedDocs.put(key, nodesCache.getIfPresent(new StringValue(key)));
+                    cachedDocs.put(key, nodesCache.getIfPresent(key));
                 }
             }
             try {
@@ -950,14 +899,16 @@ public class MongoDocumentStore implements DocumentStore {
                 if (collection == Collection.NODES) {
                     // update cache
                     for (Entry<String, NodeDocument> entry : cachedDocs.entrySet()) {
-                        TreeLock lock = acquire(entry.getKey(), collection);
+                        // the cachedDocs is not empty, so the collection = NODES
+                        Lock lock = nodeLocks.acquire(entry.getKey());
                         try {
-                            if (entry.getValue() == null
-                                    || entry.getValue() == NodeDocument.NULL) {
-                                // make sure concurrently loaded document is invalidated
-                                nodesCache.invalidate(new StringValue(entry.getKey()));
+                            if (entry.getValue() == null || entry.getValue() == NodeDocument.NULL) {
+                                // make sure concurrently loaded document is
+                                // invalidated
+                                nodesCache.invalidate(entry.getKey());
                             } else {
-                                updateCache(Collection.NODES, entry.getValue(), updateOp.shallowCopy(entry.getKey()));
+                                NodeDocument newDoc = applyChanges(Collection.NODES, entry.getValue(), updateOp.shallowCopy(entry.getKey()));
+                                nodesCache.replaceCachedDocument(entry.getValue(), newDoc);
                             }
                         } finally {
                             lock.unlock();
@@ -1006,7 +957,7 @@ public class MongoDocumentStore implements DocumentStore {
                 ReadPreference readPreference = ReadPreference.primary();
                 if (parentId != null) {
                     long replicationSafeLimit = getTime() - maxReplicationLagMillis;
-                    NodeDocument cachedDoc = (NodeDocument) getIfCached(collection, parentId);
+                    NodeDocument cachedDoc = nodesCache.getIfPresent(parentId);
                     // FIXME: this is not quite accurate, because ancestors
                     // are updated in a background thread (_lastRev). We
                     // will need to revise this for low maxReplicationLagMillis
@@ -1090,20 +1041,16 @@ public class MongoDocumentStore implements DocumentStore {
     @Override
     public void dispose() {
         nodes.getDB().getMongo().close();
-
-        if (nodesCache instanceof Closeable) {
-            try {
-                ((Closeable) nodesCache).close();
-            } catch (IOException e) {
-
-                LOG.warn("Error occurred while closing Off Heap Cache", e);
-            }
+        try {
+            nodesCache.close();
+        } catch (IOException e) {
+            LOG.warn("Error occurred while closing Off Heap Cache", e);
         }
     }
 
     @Override
     public CacheStats getCacheStats() {
-        return cacheStats;
+        return nodesCache.getCacheStats();
     }
 
     @Override
@@ -1117,18 +1064,6 @@ public class MongoDocumentStore implements DocumentStore {
 
     boolean getDisableIndexHint() {
         return disableIndexHint;
-    }
-
-    Iterable<? extends Map.Entry<CacheValue, ? extends CachedNodeDocument>> getCacheEntries() {
-        return nodesCache.asMap().entrySet();
-    }
-
-    CachedNodeDocument getCachedNodeDoc(String id) {
-        return nodesCache.getIfPresent(new StringValue(id));
-    }
-
-    protected Cache<CacheValue, NodeDocument> getNodeDocumentCache() {
-        return nodesCache;
     }
 
     private static void log(String message, Object... args) {
@@ -1147,122 +1082,8 @@ public class MongoDocumentStore implements DocumentStore {
             return null;
         }
         @SuppressWarnings("unchecked")
-        T doc = (T) nodesCache.getIfPresent(new StringValue(key));
+        T doc = (T) nodesCache.getIfPresent(key);
         return doc;
-    }
-
-    /**
-     * Applies an update to the nodes cache. This method does not acquire
-     * a lock for the document. The caller must ensure it holds a lock for
-     * the updated document. See striped {@link #locks}.
-     *
-     * @param <T> the document type.
-     * @param collection the document collection.
-     * @param oldDoc the old document.
-     * @param updateOp the update operation.
-     */
-    private <T extends Document> void updateCache(@Nonnull Collection<T> collection,
-                                                  @Nonnull T oldDoc,
-                                                  @Nonnull UpdateOp updateOp) {
-        // cache the new document
-        if (collection == Collection.NODES) {
-            checkNotNull(oldDoc);
-            checkNotNull(updateOp);
-            // we can only update the cache based on the oldDoc if we
-            // still have the oldDoc in the cache, otherwise we may
-            // update the cache with an outdated document
-            CacheValue key = new StringValue(updateOp.getId());
-            NodeDocument cached = nodesCache.getIfPresent(key);
-            if (cached == null) {
-                // cannot use oldDoc to update cache
-                return;
-            }
-
-            // check if the currently cached document matches oldDoc
-            if (Objects.equal(cached.getModCount(), oldDoc.getModCount())) {
-                NodeDocument newDoc = (NodeDocument) collection.newDocument(this);
-                oldDoc.deepCopy(newDoc);
-
-                UpdateUtils.applyChanges(newDoc, updateOp);
-                newDoc.seal();
-
-                nodesCache.put(key, newDoc);
-            } else {
-                // the cache entry was modified by some other thread in
-                // the meantime. the updated cache entry may or may not
-                // include this update. we cannot just apply our update
-                // on top of the cached entry.
-                // therefore we must invalidate the cache entry
-                nodesCache.invalidate(key);
-            }
-        }
-    }
-
-    /**
-     * Adds a document to the {@link #nodesCache} iff there is no document
-     * in the cache with the document key. This method does not acquire a lock
-     * from {@link #locks}! The caller must ensure a lock is held for the
-     * given document.
-     *
-     * @param doc the document to add to the cache.
-     * @return either the given <code>doc</code> or the document already present
-     *          in the cache.
-     */
-    @Nonnull
-    private NodeDocument addToCache(@Nonnull final NodeDocument doc) {
-        if (doc == NodeDocument.NULL) {
-            throw new IllegalArgumentException("doc must not be NULL document");
-        }
-        doc.seal();
-        // make sure we only cache the document if it wasn't
-        // changed and cached by some other thread in the
-        // meantime. That is, use get() with a Callable,
-        // which is only used when the document isn't there
-        try {
-            CacheValue key = new StringValue(doc.getId());
-            for (;;) {
-                NodeDocument cached = nodesCache.get(key,
-                        new Callable<NodeDocument>() {
-                    @Override
-                    public NodeDocument call() {
-                        return doc;
-                    }
-                });
-                if (cached != NodeDocument.NULL) {
-                    return cached;
-                } else {
-                    nodesCache.invalidate(key);
-                }
-            }
-        } catch (ExecutionException e) {
-            // will never happen because call() just returns
-            // the already available doc
-            throw new IllegalStateException(e);
-        }
-    }
-
-    /**
-     * Unconditionally puts a document into the cache if {@code collection} is
-     * {@link Collection#NODES}. The document put into the cache is
-     * {@code oldDoc} with the {@code updateOp} applied. This method does not
-     * acquire a lock from {@link #locks}! The caller must ensure a lock is held
-     * for the given document.
-     *
-     * @param collection the collection where oldDoc belongs to.
-     * @param oldDoc how the document looked before the update.
-     * @param updateOp the update just applied to the document.
-     */
-    private <T extends Document> void putToCache(@Nonnull Collection<T> collection,
-                                                 @Nonnull T oldDoc,
-                                                 @Nonnull UpdateOp updateOp) {
-        if (collection == Collection.NODES) {
-            CacheValue key = new StringValue(oldDoc.getId());
-            NodeDocument newDoc = (NodeDocument) collection.newDocument(this);
-            oldDoc.deepCopy(newDoc);
-            UpdateUtils.applyChanges(newDoc, updateOp);
-            newDoc.seal();
-            nodesCache.put(key, newDoc);
-        }
     }
 
     @Nonnull
@@ -1351,50 +1172,13 @@ public class MongoDocumentStore implements DocumentStore {
         return update;
     }
 
-    /**
-     * Returns the parent id for the given id. An empty String is returned if
-     * the given value is the id of the root document or the id for a long path.
-     *
-     * @param id an id for a document.
-     * @return the id of the parent document or the empty String.
-     */
     @Nonnull
-    private static String getParentId(@Nonnull String id) {
-        String parentId = Utils.getParentId(checkNotNull(id));
-        if (parentId == null) {
-            parentId = "";
-        }
-        return parentId;
-    }
-
-    /**
-     * Acquires a log for the given key. The returned tree lock will also hold
-     * a shared lock on the parent key.
-     *
-     * @param key a key.
-     * @param collection the collection for which the lock is acquired.
-     * @return the acquired lock for the given key.
-     */
-    private TreeLock acquire(String key, Collection<?> collection) {
-        lockAcquisitionCounter.incrementAndGet();
-        if (collection == Collection.NODES) {
-            return TreeLock.shared(parentLocks.get(getParentId(key)), locks.get(key));
-        } else {
-            // return a dummy lock
-            return TreeLock.exclusive(new ReentrantReadWriteLock());
-        }
-    }
-
-    /**
-     * Acquires an exclusive lock on the given parent key. Use this method to
-     * block cache access for child keys of the given parent key.
-     *
-     * @param parentKey the parent key.
-     * @return the acquired lock for the given parent key.
-     */
-    private TreeLock acquireExclusive(String parentKey) {
-        lockAcquisitionCounter.incrementAndGet();
-        return TreeLock.exclusive(parentLocks.get(parentKey));
+    private <T extends Document> T applyChanges(Collection<T> collection, T oldDoc, UpdateOp update) {
+        T doc = collection.newDocument(this);
+        oldDoc.deepCopy(doc);
+        UpdateUtils.applyChanges(doc, update);
+        doc.seal();
+        return doc;
     }
 
     @Override
@@ -1438,42 +1222,16 @@ public class MongoDocumentStore implements DocumentStore {
         this.maxLockedQueryTimeMS = maxLockedQueryTimeMS;
     }
 
-    long getLockAcquisitionCount() {
-        return lockAcquisitionCounter.get();
+    void resetLockAcquisitionCount() {
+        nodeLocks.resetLockAcquisitionCount();
     }
 
-    private final static class TreeLock {
+    long getLockAcquisitionCount() {
+        return nodeLocks.getLockAcquisitionCount();
+    }
 
-        private final Lock parentLock;
-        private final Lock lock;
-
-        private TreeLock(Lock parentLock, Lock lock) {
-            this.parentLock = parentLock;
-            this.lock = lock;
-        }
-
-        static TreeLock shared(ReadWriteLock parentLock, Lock lock) {
-            return new TreeLock(parentLock.readLock(), lock).lock();
-        }
-
-        static TreeLock exclusive(ReadWriteLock parentLock) {
-            return new TreeLock(parentLock.writeLock(), null).lock();
-        }
-
-        private TreeLock lock() {
-            parentLock.lock();
-            if (lock != null) {
-                lock.lock();
-            }
-            return this;
-        }
-
-        private void unlock() {
-            if (lock != null) {
-                lock.unlock();
-            }
-            parentLock.unlock();
-        }
+    NodeDocumentCache getNodeDocumentCache() {
+        return nodesCache;
     }
 
     @Override

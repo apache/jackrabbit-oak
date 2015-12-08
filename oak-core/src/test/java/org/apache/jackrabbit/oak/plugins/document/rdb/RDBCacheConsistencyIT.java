@@ -25,18 +25,16 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.AbstractRDBConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
-import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
+import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocumentCache;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.cache.Cache;
 import com.google.common.collect.Lists;
 
 /**
@@ -165,19 +163,17 @@ public class RDBCacheConsistencyIT extends AbstractRDBConnectionTest {
         }, "reader");
         t3.start();
 
-        Cache<CacheValue, NodeDocument> cache = store.getNodeDocumentCache();
+        NodeDocumentCache cache = store.getNodeDocumentCache();
 
         // run for at most five seconds
         long end = System.currentTimeMillis() + 1000;
         String id = Utils.getIdFromPath("/test/foo");
-        CacheValue key = new StringValue(id);
         while (t1.isAlive() && t2.isAlive() && t3.isAlive()
                 && System.currentTimeMillis() < end) {
-            if (cache.getIfPresent(key) != null) {
+            if (cache.getIfPresent(id) != null) {
                 Thread.sleep(0, (int) (Math.random() * 100));
                 // simulate eviction
-                // System.out.println("EVICT");
-                cache.invalidate(key);
+                cache.invalidate(id);
             }
         }
         for (Throwable e : exceptions) {

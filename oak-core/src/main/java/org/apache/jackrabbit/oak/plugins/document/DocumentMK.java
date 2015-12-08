@@ -37,6 +37,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.mongodb.DB;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.cache.EmpiricalWeigher;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -46,6 +47,8 @@ import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState.Children;
+import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocumentCache;
+import org.apache.jackrabbit.oak.plugins.document.locks.NodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobReferenceIterator;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore;
@@ -936,6 +939,12 @@ public class DocumentMK {
 
         public Cache<CacheValue, NodeDocument> buildDocumentCache(DocumentStore docStore) {
             return buildCache(CacheType.DOCUMENT, getDocumentCacheSize(), null, docStore);
+        }
+
+        public NodeDocumentCache buildNodeDocumentCache(DocumentStore docStore, NodeDocumentLocks locks) {
+            Cache<CacheValue, NodeDocument> cache = buildDocumentCache(docStore);
+            CacheStats cacheStats = new CacheStats(cache, "Document-Documents", getWeigher(), getDocumentCacheSize());
+            return new NodeDocumentCache(cache, cacheStats, locks);
         }
 
         private <K extends CacheValue, V extends CacheValue> Cache<K, V> buildCache(
