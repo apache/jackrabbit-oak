@@ -89,7 +89,7 @@ public class VersionGarbageCollectorIT {
         this.fixture = fixture;
     }
 
-    @Parameterized.Parameters
+    @Parameterized.Parameters(name="{0}")
     public static Collection<Object[]> fixtures() throws IOException {
         List<Object[]> fixtures = Lists.newArrayList();
         if (getFixtures().contains(MEMORY_NS)) {
