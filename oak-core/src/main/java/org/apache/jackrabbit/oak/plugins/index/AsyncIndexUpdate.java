@@ -223,8 +223,8 @@ public class AsyncIndexUpdate implements Runnable {
             NodeBuilder builder = root.builder();
             NodeBuilder async = builder.child(ASYNC);
             async.setProperty(leaseName, lease);
-            mergeWithConcurrencyCheck(store, builder, checkpoint, beforeLease, name);
             updateTempCheckpoints(async, checkpoint, afterCheckpoint);
+            mergeWithConcurrencyCheck(store, builder, checkpoint, beforeLease, name);
 
             // reset updates counter
             indexStats.resetUpdates();
