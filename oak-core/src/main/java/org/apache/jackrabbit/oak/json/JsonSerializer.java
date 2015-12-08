@@ -41,9 +41,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * Utility class for serializing node and property states to JSON.
  */
 public class JsonSerializer {
+    public static final String DEFAULT_FILTER_EXPRESSION =
+        "{\"properties\":[\"*\", \"-:childNodeCount\"]}";
 
-    private static final JsonFilter DEFAULT_FILTER =
-            new JsonFilter("{\"properties\":[\"*\", \"-:childNodeCount\"]}");
+    private static final JsonFilter DEFAULT_FILTER = new JsonFilter(DEFAULT_FILTER_EXPRESSION);
 
     private final JsopBuilder json;
 
