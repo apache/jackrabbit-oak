@@ -19,10 +19,12 @@
 
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
+
 /**
  * This exception is thrown when there the segment does not exist in the store
  */
-public class SegmentNotFoundException extends IllegalStateException {
+public class SegmentNotFoundException extends IllegalRepositoryStateException {
 
     private final String segmentId;
 
