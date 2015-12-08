@@ -52,6 +52,7 @@ import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCach
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBVersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.util.RevisionsKey;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -872,6 +873,8 @@ public class DocumentMK implements MicroKernel {
             DocumentStore store = getDocumentStore();
             if (store instanceof MongoDocumentStore) {
                 return new MongoVersionGCSupport((MongoDocumentStore) store);
+            } else if (store instanceof RDBDocumentStore) {
+                return new RDBVersionGCSupport((RDBDocumentStore) store);
             } else {
                 return new VersionGCSupport(store);
             }
