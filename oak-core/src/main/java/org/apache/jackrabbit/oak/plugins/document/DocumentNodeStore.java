@@ -43,6 +43,7 @@ import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -1456,21 +1457,28 @@ public final class DocumentNodeStore
     }
 
     /**
-     * Suspends until the given revision is visible from the current
-     * headRevision or the given revision is canceled from the commit queue.
+     * Suspends until all given revisions are either visible from the current
+     * headRevision or canceled from the commit queue.
      *
-     * The thread will *not* be suspended if the given revision is from a
-     * foreign cluster node and async delay is set to zero.
+     * Only revisions from the local cluster node will be considered if the async
+     * delay is set to 0.
      *
-     * @param r the revision to become visible.
+     * @param conflictRevisions the revision to become visible.
      */
-    void suspendUntil(@Nonnull Revision r) {
+    void suspendUntilAll(@Nonnull Set<Revision> conflictRevisions) {
         // do not suspend if revision is from another cluster node
         // and background read is disabled
-        if (r.getClusterId() != getClusterId() && getAsyncDelay() == 0) {
-            return;
+        if (getAsyncDelay() == 0) {
+            Set<Revision> onlyLocal = new HashSet<Revision>(conflictRevisions.size());
+            for (Revision r : conflictRevisions) {
+                if (r.getClusterId() == getClusterId()) {
+                    onlyLocal.add(r);
+                }
+            }
+            commitQueue.suspendUntilAll(onlyLocal);
+        } else {
+            commitQueue.suspendUntilAll(conflictRevisions);
         }
-        commitQueue.suspendUntil(r);
     }
 
     //------------------------< Observable >------------------------------------

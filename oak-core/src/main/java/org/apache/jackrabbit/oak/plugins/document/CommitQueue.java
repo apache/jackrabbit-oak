@@ -20,8 +20,10 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -55,7 +57,7 @@ final class CommitQueue {
     /**
      * Map of currently suspended commits until a given Revision is visible.
      */
-    private final Map<Semaphore, Revision> suspendedCommits = Maps.newIdentityHashMap();
+    private final Map<Semaphore, SuspendedCommit> suspendedCommits = Maps.newIdentityHashMap();
 
     private final RevisionContext context;
 
@@ -103,7 +105,7 @@ final class CommitQueue {
     }
 
     /**
-     * Suspends until one of the following happens:
+     * Suspends until for each of given revisions one of the following happens:
      * <ul>
      *     <li>the given revision is visible from the current headRevision</li>
      *     <li>the given revision is canceled from the commit queue</li>
@@ -111,25 +113,32 @@ final class CommitQueue {
      *     <li>the thread is interrupted</li>
      * </ul>
      *
-     * @param r the revision to become visible.
+     * @param conflictRevisions the revisions to become visible.
      */
-    void suspendUntil(@Nonnull Revision r) {
+    void suspendUntilAll(@Nonnull Set<Revision> conflictRevisions) {
         Comparator<Revision> comparator = context.getRevisionComparator();
-        Semaphore s = null;
+        Semaphore s;
+        int addedRevisions;
         synchronized (suspendedCommits) {
             Revision headRevision = context.getHeadRevision();
-            if (comparator.compare(r, headRevision) > 0) {
-                s = new Semaphore(0);
-                suspendedCommits.put(s, r);
-            }
-        }
-        if (s != null) {
-            try {
-                s.tryAcquire(suspendTimeout, TimeUnit.MILLISECONDS);
-            } catch (InterruptedException e) {
-                synchronized (suspendedCommits) {
-                    suspendedCommits.remove(s);
+            Set<Revision> afterHead = new HashSet<Revision>(conflictRevisions.size());
+            for (Revision r : conflictRevisions) {
+                if (comparator.compare(r, headRevision) > 0) {
+                    afterHead.add(r);
                 }
+            }
+
+            s = new Semaphore(0);
+            suspendedCommits.put(s, new SuspendedCommit(s, afterHead));
+            addedRevisions = afterHead.size();
+        }
+        try {
+            s.tryAcquire(addedRevisions, suspendTimeout, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            LOG.debug("The suspended thread has been interrupted", e);
+        } finally {
+            synchronized (suspendedCommits) {
+                suspendedCommits.remove(s);
             }
         }
     }
@@ -153,7 +162,7 @@ final class CommitQueue {
 
     /**
      * Sets the suspend timeout in milliseconds.
-     * See also {@link #suspendUntil(Revision)}.
+     * See also {@link #suspendUntilAll(Set)}.
      *
      * @param timeout the timeout to set.
      */
@@ -173,15 +182,12 @@ final class CommitQueue {
             if (suspendedCommits.isEmpty()) {
                 return;
             }
-            Comparator<Revision> comparator = context.getRevisionComparator();
             Revision headRevision = context.getHeadRevision();
-            Iterator<Map.Entry<Semaphore, Revision>> it = suspendedCommits.entrySet().iterator();
+            Iterator<SuspendedCommit> it = suspendedCommits.values().iterator();
             while (it.hasNext()) {
-                Map.Entry<Semaphore, Revision> entry = it.next();
-                if (comparator.compare(entry.getValue(), headRevision) <= 0) {
-                    Semaphore s = entry.getKey();
+                SuspendedCommit suspended = it.next();
+                if (suspended.removeRevisionsYoungerThan(headRevision) && suspended.revisions.isEmpty()) {
                     it.remove();
-                    s.release();
                 }
             }
         }
@@ -193,13 +199,11 @@ final class CommitQueue {
             if (suspendedCommits.isEmpty()) {
                 return;
             }
-            Iterator<Map.Entry<Semaphore, Revision>> it = suspendedCommits.entrySet().iterator();
+            Iterator<SuspendedCommit> it = suspendedCommits.values().iterator();
             while (it.hasNext()) {
-                Map.Entry<Semaphore, Revision> entry = it.next();
-                if (revision.equals(entry.getValue())) {
-                    Semaphore s = entry.getKey();
+                SuspendedCommit suspended = it.next();
+                if (suspended.removeRevision(revision) && suspended.revisions.isEmpty()) {
                     it.remove();
-                    s.release();
                 }
             }
         }
@@ -289,6 +293,41 @@ final class CommitQueue {
                 } catch (InterruptedException e) {
                     // retry
                 }
+            }
+        }
+    }
+
+    private class SuspendedCommit {
+
+        private final Semaphore semaphore;
+
+        private final Set<Revision> revisions;
+
+        private SuspendedCommit(Semaphore semaphore, Set<Revision> revisions) {
+            this.semaphore = semaphore;
+            this.revisions = revisions;
+        }
+
+        private boolean removeRevisionsYoungerThan(Revision revision) {
+            Comparator<Revision> comparator = context.getRevisionComparator();
+            Iterator<Revision> it = revisions.iterator();
+            boolean removed = false;
+            while (it.hasNext()) {
+                if (comparator.compare(it.next(), revision) <= 0) {
+                    it.remove();
+                    semaphore.release();
+                    removed = true;
+                }
+            }
+            return removed;
+        }
+
+        private boolean removeRevision(Revision r) {
+            if (revisions.remove(r)) {
+                semaphore.release();
+                return true;
+            } else {
+                return false;
             }
         }
     }
