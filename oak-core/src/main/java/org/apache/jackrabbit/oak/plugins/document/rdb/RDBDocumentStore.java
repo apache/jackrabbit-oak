@@ -234,7 +234,17 @@ public class RDBDocumentStore implements DocumentStore {
     @Override
     public <T extends Document> List<T> query(Collection<T> collection, String fromKey, String toKey, String indexedProperty,
             long startValue, int limit) {
-        return internalQuery(collection, fromKey, toKey, indexedProperty, startValue, limit);
+        List<QueryCondition> conditions = Collections.emptyList();
+        if (indexedProperty != null) {
+            conditions = Collections.singletonList(new QueryCondition(indexedProperty, ">=", startValue));
+        }
+        return internalQuery(collection, fromKey, toKey, conditions, limit);
+    }
+
+    @Nonnull
+    protected <T extends Document> List<T> query(Collection<T> collection, String fromKey, String toKey,
+            List<QueryCondition> conditions, int limit) {
+        return internalQuery(collection, fromKey, toKey, conditions, limit);
     }
 
     @Override
@@ -1204,14 +1214,16 @@ public class RDBDocumentStore implements DocumentStore {
     private Map<Thread, QueryContext> qmap = new ConcurrentHashMap<Thread, QueryContext>();
 
     private <T extends Document> List<T> internalQuery(Collection<T> collection, String fromKey, String toKey,
-            String indexedProperty, long startValue, int limit) {
+            List<QueryCondition> conditions, int limit) {
         Connection connection = null;
         RDBTableMetaData tmd = getTable(collection);
-        if (indexedProperty != null && (!INDEXEDPROPERTIES.contains(indexedProperty))) {
-            String message = "indexed property " + indexedProperty + " not supported, query was '>= '" + startValue
-                    + "'; supported properties are " + INDEXEDPROPERTIES;
-            LOG.info(message);
-            throw new DocumentStoreException(message);
+        for (QueryCondition cond : conditions) {
+            if (!INDEXEDPROPERTIES.contains(cond.getPropertyName())) {
+                String message = "indexed property " + cond.getPropertyName() + " not supported, query was '" + cond.getOperator()
+                        + "'" + cond.getValue() + "'; supported properties are " + INDEXEDPROPERTIES;
+                LOG.info(message);
+                throw new DocumentStoreException(message);
+            }
         }
         try {
             long now = System.currentTimeMillis();
@@ -1223,7 +1235,7 @@ public class RDBDocumentStore implements DocumentStore {
             connection = this.ch.getROConnection();
             String from = collection == Collection.NODES && NodeDocument.MIN_ID_VALUE.equals(fromKey) ? null : fromKey;
             String to = collection == Collection.NODES && NodeDocument.MAX_ID_VALUE.equals(toKey) ? null : toKey;
-            List<RDBRow> dbresult = db.query(connection, tmd, from, to, indexedProperty, startValue, limit);
+            List<RDBRow> dbresult = db.query(connection, tmd, from, to, conditions, limit);
             connection.commit();
 
             int size = dbresult.size();
@@ -1667,5 +1679,35 @@ public class RDBDocumentStore implements DocumentStore {
 
     protected NodeDocumentCache getNodeDocumentCache() {
         return nodesCache;
+    }
+
+    // slightly extended query support
+    protected static class QueryCondition {
+
+        private final String propertyName, operator;
+        private final long value;
+
+        public QueryCondition(String propertyName, String operator, long value) {
+            this.propertyName = propertyName;
+            this.operator = operator;
+            this.value = value;
+        }
+
+        public String getPropertyName() {
+            return propertyName;
+        }
+
+        public String getOperator() {
+            return operator;
+        }
+
+        public long getValue() {
+            return value;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("%s %s %d", propertyName, operator, value);
+        }
     }
 }

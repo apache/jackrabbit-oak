@@ -29,9 +29,13 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -41,6 +45,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QueryCondition;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.RDBTableMetaData;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStoreDB.FETCHFIRSTSYNTAX;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStoreDB.PreparedStatementComponent;
@@ -318,9 +323,29 @@ public class RDBDocumentStoreJDBC {
         }
     }
 
+    private final static Map<String, String> INDEXED_PROP_MAPPING;
+    static {
+        Map<String, String> tmp = new HashMap<String, String>();
+        tmp.put(MODIFIED, "MODIFIED");
+        tmp.put(NodeDocument.HAS_BINARY_FLAG, "HASBINARY");
+        tmp.put(NodeDocument.DELETED_ONCE, "DELETEDONCE");
+        INDEXED_PROP_MAPPING = Collections.unmodifiableMap(tmp);
+    }
+
+    private final static Set<String> SUPPORTED_OPS;
+    static {
+        Set<String> tmp = new HashSet<String>();
+        tmp.add(">=");
+        tmp.add(">");
+        tmp.add("<=");
+        tmp.add("<");
+        tmp.add("=");
+        SUPPORTED_OPS = Collections.unmodifiableSet(tmp);
+    }
+
     @Nonnull
-    public List<RDBRow> query(Connection connection, RDBTableMetaData tmd, String minId, String maxId, String indexedProperty,
-            long startValue, int limit) throws SQLException {
+    public List<RDBRow> query(Connection connection, RDBTableMetaData tmd, String minId, String maxId,
+            List<QueryCondition> conditions, int limit) throws SQLException {
         long start = System.currentTimeMillis();
         StringBuilder selectClause = new StringBuilder();
         StringBuilder whereClause = new StringBuilder();
@@ -339,20 +364,16 @@ public class RDBDocumentStoreJDBC {
             whereClause.append(whereSep).append("ID < ?");
             whereSep = " and ";
         }
-
-        if (indexedProperty != null) {
-            if (MODIFIED.equals(indexedProperty)) {
-                whereClause.append(whereSep).append("MODIFIED >= ?");
-            } else if (NodeDocument.HAS_BINARY_FLAG.equals(indexedProperty)) {
-                if (startValue != NodeDocument.HAS_BINARY_VAL) {
-                    throw new DocumentStoreException("unsupported value for property " + NodeDocument.HAS_BINARY_FLAG);
-                }
-                whereClause.append(whereSep).append("HASBINARY = 1");
-            } else if (NodeDocument.DELETED_ONCE.equals(indexedProperty)) {
-                if (startValue != 1) {
-                    throw new DocumentStoreException("unsupported value for property " + NodeDocument.DELETED_ONCE);
-                }
-                whereClause.append(whereSep).append("DELETEDONCE = 1");
+        for (QueryCondition cond : conditions) {
+            String op = cond.getOperator();
+            if (!SUPPORTED_OPS.contains(op)) {
+                throw new DocumentStoreException("unsupported operator: " + op);
+            }
+            String indexedProperty = cond.getPropertyName();
+            String column = INDEXED_PROP_MAPPING.get(indexedProperty);
+            if (column != null) {
+                whereClause.append(whereSep).append(column).append(" ").append(op).append(" ?");
+                whereSep = " and ";
             } else {
                 throw new DocumentStoreException("unsupported indexed property: " + indexedProperty);
             }
@@ -390,9 +411,8 @@ public class RDBDocumentStoreJDBC {
             if (maxId != null) {
                 setIdInStatement(tmd, stmt, si++, maxId);
             }
-
-            if (MODIFIED.equals(indexedProperty)) {
-                stmt.setLong(si++, startValue);
+            for (QueryCondition cond : conditions) {
+                stmt.setLong(si++, cond.getValue());
             }
             if (limit != Integer.MAX_VALUE) {
                 stmt.setFetchSize(limit);
@@ -423,14 +443,13 @@ public class RDBDocumentStoreJDBC {
         long elapsed = System.currentTimeMillis() - start;
         if (this.queryHitsLimit != 0 && result.size() > this.queryHitsLimit) {
             String message = String.format(
-                    "Potentially excessive query with %d hits (limited to %d, configured QUERYHITSLIMIT %d), elapsed time %dms, params minid '%s' maxid '%s' indexedProperty %s startValue %d limit %d. Check calling method.",
-                    result.size(), limit, this.queryHitsLimit, elapsed, minId, maxId, indexedProperty, startValue, limit);
+                    "Potentially excessive query with %d hits (limited to %d, configured QUERYHITSLIMIT %d), elapsed time %dms, params minid '%s' maxid '%s' condition %s limit %d. Check calling method.",
+                    result.size(), limit, this.queryHitsLimit, elapsed, minId, maxId, conditions, limit);
             LOG.info(message, new Exception("call stack"));
         } else if (this.queryTimeLimit != 0 && elapsed > this.queryTimeLimit) {
             String message = String.format(
-                    "Long running query with %d hits (limited to %d), elapsed time %dms (configured QUERYTIMELIMIT %d), params minid '%s' maxid '%s' indexedProperty %s startValue %d limit %d. Read %d chars from DATA and %d bytes from BDATA. Check calling method.",
-                    result.size(), limit, elapsed, this.queryTimeLimit, minId, maxId, indexedProperty, startValue, limit, dataTotal,
-                    bdataTotal);
+                    "Long running query with %d hits (limited to %d), elapsed time %dms (configured QUERYTIMELIMIT %d), params minid '%s' maxid '%s' condition %s limit %d. Read %d chars from DATA and %d bytes from BDATA. Check calling method.",
+                    result.size(), limit, elapsed, this.queryTimeLimit, minId, maxId, conditions, limit, dataTotal, bdataTotal);
             LOG.info(message, new Exception("call stack"));
         }
 
