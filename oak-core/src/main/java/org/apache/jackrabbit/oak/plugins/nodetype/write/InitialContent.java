@@ -93,17 +93,25 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
         if (!builder.hasChildNode(IndexConstants.INDEX_DEFINITIONS_NAME)) {
             NodeBuilder index = IndexUtils.getOrCreateOakIndex(builder);
 
-            IndexUtils.createIndexDefinition(index, "uuid", true, true,
+            NodeBuilder uuid = IndexUtils.createIndexDefinition(index, "uuid", true, true,
                     ImmutableList.<String>of(JCR_UUID), null);
-            IndexUtils.createIndexDefinition(index, "nodetype", true, false,
+            uuid.setProperty("info",
+                    "Oak index for UUID lookup (direct lookup of nodes with the mixin 'mix:referenceable').");
+            NodeBuilder nodetype = IndexUtils.createIndexDefinition(index, "nodetype", true, false,
                     ImmutableList.of(JCR_PRIMARYTYPE, JCR_MIXINTYPES), null);
+            nodetype.setProperty("info", 
+                    "Oak index for queries with node type, and possibly path restrictions, " + 
+                    "for example \"/jcr:root/content//element(*, mix:language)\".");
             IndexUtils.createReferenceIndex(index);
             
             index.child("counter")
                     .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
                     .setProperty(TYPE_PROPERTY_NAME, NodeCounterEditorProvider.TYPE)
                     .setProperty(IndexConstants.ASYNC_PROPERTY_NAME, 
-                            IndexConstants.ASYNC_PROPERTY_NAME);
+                            IndexConstants.ASYNC_PROPERTY_NAME)
+                    .setProperty("info", "Oak index that allows to estimate " + 
+                            "how many nodes are stored below a given path, " + 
+                            "to decide whether traversing or using an index is faster.");
         }
 
         // squeeze node state before it is passed to store (OAK-2411)
