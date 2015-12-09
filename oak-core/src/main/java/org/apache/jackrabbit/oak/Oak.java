@@ -639,11 +639,14 @@ public class Oak {
         regs.add(registerMBean(whiteboard, RepositoryManagementMBean.class, repositoryManager,
                 RepositoryManagementMBean.TYPE, repositoryManager.getName()));
 
+        CommitHook composite = CompositeHook.compose(commitHooks);
+        regs.add(whiteboard.register(CommitHook.class, composite, Collections.emptyMap()));
+        
         final Tracker<Descriptors> t = whiteboard.track(Descriptors.class);
 
         return new ContentRepositoryImpl(
                 store,
-                CompositeHook.compose(commitHooks),
+                composite,
                 defaultWorkspaceName,
                 queryEngineSettings,
                 indexProvider,
