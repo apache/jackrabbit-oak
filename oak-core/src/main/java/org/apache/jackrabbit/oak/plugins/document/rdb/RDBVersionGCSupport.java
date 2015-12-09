@@ -16,15 +16,22 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import static com.google.common.collect.Iterables.filter;
+
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QueryCondition;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.AbstractIterator;
 
 /**
@@ -44,10 +51,28 @@ public class RDBVersionGCSupport extends VersionGCSupport {
         List<QueryCondition> conditions = new ArrayList<QueryCondition>();
         conditions.add(new QueryCondition(NodeDocument.DELETED_ONCE, "=", 1));
         conditions.add(new QueryCondition(NodeDocument.MODIFIED_IN_SECS, "<", NodeDocument.getModifiedInSecs(lastModifiedTime)));
-        return getIterator(conditions);
+        return getIterator(RDBDocumentStore.EMPTY_KEY_PATTERN, conditions);
     }
 
-    private Iterable<NodeDocument> getIterator(final List<QueryCondition> conditions) {
+    private Iterable<NodeDocument> getSplitDocuments() {
+        List<QueryCondition> conditions = Collections.emptyList();
+        // absent support for SDTYPE as indexed property: exclude those
+        // documents from the query which definitively aren't split documents
+        List<String> excludeKeyPatterns = Arrays.asList("_:/%", "__:/%", "___:/%");
+        return getIterator(excludeKeyPatterns, conditions);
+    }
+
+    @Override
+    protected Iterable<NodeDocument> identifyGarbage(final Set<SplitDocType> gcTypes, final long oldestRevTimeStamp) {
+        return filter(getSplitDocuments(), new Predicate<NodeDocument>() {
+            @Override
+            public boolean apply(NodeDocument doc) {
+                return gcTypes.contains(doc.getSplitDocType()) && doc.hasAllRevisionLessThan(oldestRevTimeStamp);
+            }
+        });
+    }
+
+    private Iterable<NodeDocument> getIterator(final List<String> excludeKeyPatterns, final List<QueryCondition> conditions) {
         return new Iterable<NodeDocument>() {
             @Override
             public Iterator<NodeDocument> iterator() {
@@ -76,8 +101,8 @@ public class RDBVersionGCSupport extends VersionGCSupport {
                     }
 
                     private Iterator<NodeDocument> nextBatch() {
-                        List<NodeDocument> result = store.query(Collection.NODES, startId, NodeDocument.MAX_ID_VALUE, conditions,
-                                BATCH_SIZE);
+                        List<NodeDocument> result = store.query(Collection.NODES, startId, NodeDocument.MAX_ID_VALUE,
+                                excludeKeyPatterns, conditions, BATCH_SIZE);
                         return result.iterator();
                     }
                 };

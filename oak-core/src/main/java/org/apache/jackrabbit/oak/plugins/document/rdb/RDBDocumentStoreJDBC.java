@@ -345,7 +345,7 @@ public class RDBDocumentStoreJDBC {
 
     @Nonnull
     public List<RDBRow> query(Connection connection, RDBTableMetaData tmd, String minId, String maxId,
-            List<QueryCondition> conditions, int limit) throws SQLException {
+            List<String> excludeKeyPatterns, List<QueryCondition> conditions, int limit) throws SQLException {
         long start = System.currentTimeMillis();
         StringBuilder selectClause = new StringBuilder();
         StringBuilder whereClause = new StringBuilder();
@@ -363,6 +363,16 @@ public class RDBDocumentStoreJDBC {
         if (maxId != null) {
             whereClause.append(whereSep).append("ID < ?");
             whereSep = " and ";
+        }
+        if (!excludeKeyPatterns.isEmpty()) {
+            whereClause.append(whereSep);
+            whereSep = " and ";
+            whereClause.append("not (");
+            for (int i = 0; i < excludeKeyPatterns.size(); i++) {
+                whereClause.append(i == 0 ? "" : " or ");
+                whereClause.append("ID like ?");
+            }
+            whereClause.append(")");
         }
         for (QueryCondition cond : conditions) {
             String op = cond.getOperator();
@@ -411,6 +421,9 @@ public class RDBDocumentStoreJDBC {
             if (maxId != null) {
                 setIdInStatement(tmd, stmt, si++, maxId);
             }
+            for (String keyPattern : excludeKeyPatterns) {
+                setIdInStatement(tmd, stmt, si++, keyPattern);
+            }
             for (QueryCondition cond : conditions) {
                 stmt.setLong(si++, cond.getValue());
             }
@@ -443,13 +456,14 @@ public class RDBDocumentStoreJDBC {
         long elapsed = System.currentTimeMillis() - start;
         if (this.queryHitsLimit != 0 && result.size() > this.queryHitsLimit) {
             String message = String.format(
-                    "Potentially excessive query with %d hits (limited to %d, configured QUERYHITSLIMIT %d), elapsed time %dms, params minid '%s' maxid '%s' condition %s limit %d. Check calling method.",
-                    result.size(), limit, this.queryHitsLimit, elapsed, minId, maxId, conditions, limit);
+                    "Potentially excessive query with %d hits (limited to %d, configured QUERYHITSLIMIT %d), elapsed time %dms, params minid '%s' maxid '%s' excludeKeyPatterns %s condition %s limit %d. Check calling method.",
+                    result.size(), limit, this.queryHitsLimit, elapsed, minId, maxId, excludeKeyPatterns, conditions, limit);
             LOG.info(message, new Exception("call stack"));
         } else if (this.queryTimeLimit != 0 && elapsed > this.queryTimeLimit) {
             String message = String.format(
-                    "Long running query with %d hits (limited to %d), elapsed time %dms (configured QUERYTIMELIMIT %d), params minid '%s' maxid '%s' condition %s limit %d. Read %d chars from DATA and %d bytes from BDATA. Check calling method.",
-                    result.size(), limit, elapsed, this.queryTimeLimit, minId, maxId, conditions, limit, dataTotal, bdataTotal);
+                    "Long running query with %d hits (limited to %d), elapsed time %dms (configured QUERYTIMELIMIT %d), params minid '%s' maxid '%s' excludeKeyPatterns %s conditions %s limit %d. Read %d chars from DATA and %d bytes from BDATA. Check calling method.",
+                    result.size(), limit, elapsed, this.queryTimeLimit, minId, maxId, excludeKeyPatterns, conditions, limit,
+                    dataTotal, bdataTotal);
             LOG.info(message, new Exception("call stack"));
         }
 
