@@ -59,9 +59,6 @@ public class OakUpgrade {
         } finally {
             closer.close();
         }
-        if (stores.isInPlaceUpgrade()) {
-            CliUtils.backupOldJcr2Files(stores.getSrcPaths()[0]);
-        }
     }
 
     private static void upgrade(MigrationFactory migrationFactory) throws IOException, RepositoryException {

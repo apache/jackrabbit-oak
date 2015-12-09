@@ -16,10 +16,8 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.regex.Pattern;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.CliArgumentException;
@@ -87,20 +85,5 @@ public class CliUtils {
                 }
             }
         });
-    }
-
-    public static void backupOldJcr2Files(String repositoryDirPath) {
-        // backup old jcr2 files when doing an in-place upgrade
-        File repositoryDir = new File(repositoryDirPath);
-        File crx2 = new File(repositoryDir, "crx2");
-        log.info("Moving existing repository under {}", crx2.getAbsolutePath());
-        crx2.mkdir();
-        Pattern pattern = Pattern.compile("crx2|segmentstore");
-        for (File file : repositoryDir.listFiles()) {
-            String name = file.getName();
-            if (!pattern.matcher(name).matches()) {
-                file.renameTo(new File(crx2, name));
-            }
-        }
     }
 }
