@@ -502,7 +502,8 @@ public class AsyncIndexUpdate implements Runnable {
                     throws CommitFailedException {
                 // check for concurrent updates by this async task
                 NodeState async = before.getChildNode(ASYNC);
-                if (checkpoint == null || Objects.equal(checkpoint, async.getString(name))
+                if ((checkpoint == null || Objects.equal(checkpoint,
+                        async.getString(name)))
                         && lease == async.getLong(leasify(name))) {
                     return after;
                 } else {
