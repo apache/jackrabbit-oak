@@ -38,7 +38,7 @@ import org.apache.jackrabbit.oak.query.QueryEngineSettings;
  */
 public class OakDocumentRDBRepositoryStub extends OakRepositoryStub {
 
-    protected static final String URL = System.getProperty("rdb.jdbc-url", "jdbc:h2:file:./{fname}oaktest");
+    protected static final String URL = System.getProperty("rdb.jdbc-url", "jdbc:h2:file:./{fname}oaktest;DB_CLOSE_ON_EXIT=FALSE");
 
     protected static final String USERNAME = System.getProperty("rdb.jdbc-user", "sa");
 
@@ -61,8 +61,18 @@ public class OakDocumentRDBRepositoryStub extends OakRepositoryStub {
         super(settings);
 
         Session session = null;
+        final DocumentNodeStore m;
         try {
-            this.repository = createRepository(OakDocumentRDBRepositoryStub.jdbcUrl, USERNAME, PASSWD);
+            String prefix = "T" + UUID.randomUUID().toString().replace("-",  "");
+            RDBOptions options = new RDBOptions().tablePrefix(prefix).dropTablesOnClose(true);
+            m = new DocumentMK.Builder().
+                    memoryCacheSize(64 * 1024 * 1024).
+                    setPersistentCache("target/persistentCache,time").
+                    setRDBConnection(RDBDataSourceFactory.forJdbcUrl(jdbcUrl, USERNAME, PASSWD), options).
+                    getNodeStore();
+            QueryEngineSettings qs = new QueryEngineSettings();
+            qs.setFullTextComparisonWithoutIndex(true);
+            this.repository = new Jcr(m).with(qs).createRepository();
             session = getRepository().login(superuser);
             TestContentLoader loader = new TestContentLoader();
             loader.loadTestContent(session);
@@ -73,20 +83,12 @@ public class OakDocumentRDBRepositoryStub extends OakRepositoryStub {
                 session.logout();
             }
         }
-        // Runtime.getRuntime().addShutdownHook(new Thread(new ShutdownHook(connection)));
-    }
-
-    protected Repository createRepository(String url, String username, String password) {
-        String prefix = "T" + UUID.randomUUID().toString().replace("-",  "");
-        RDBOptions options = new RDBOptions().tablePrefix(prefix).dropTablesOnClose(true);
-        DocumentNodeStore m = new DocumentMK.Builder().
-                memoryCacheSize(64 * 1024 * 1024).
-                setPersistentCache("target/persistentCache,time").
-                setRDBConnection(RDBDataSourceFactory.forJdbcUrl(url, username, password), options).
-                getNodeStore();
-        QueryEngineSettings qs = new QueryEngineSettings();
-        qs.setFullTextComparisonWithoutIndex(true);
-        return new Jcr(m).with(qs).createRepository();
+        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+            @Override
+            public void run() {
+                m.dispose();
+            }
+        }));
     }
 
     public static boolean isAvailable() {
