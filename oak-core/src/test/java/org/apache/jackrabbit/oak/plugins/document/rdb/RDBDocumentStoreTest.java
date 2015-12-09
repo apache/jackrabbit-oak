@@ -18,9 +18,9 @@ package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -39,7 +39,7 @@ public class RDBDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     @Test
-    public void testRDBQuery() {
+    public void testRDBQueryConditions() {
         if (ds instanceof RDBDocumentStore) {
             RDBDocumentStore rds = (RDBDocumentStore) ds;
             // create ten documents
@@ -61,8 +61,37 @@ public class RDBDocumentStoreTest extends AbstractDocumentStoreTest {
             conditions.add(new QueryCondition(NodeDocument.DELETED_ONCE, "=", 0));
             // matches first eight
             conditions.add(new QueryCondition(NodeDocument.MODIFIED_IN_SECS, "<", now - 2));
-            List<NodeDocument> result = rds.query(Collection.NODES, base, base + "A", conditions, 10);
+            List<NodeDocument> result = rds.query(Collection.NODES, base, base + "A", RDBDocumentStore.EMPTY_KEY_PATTERN,
+                    conditions, 10);
             assertEquals(4, result.size());
+        }
+    }
+
+    @Test
+    public void testRDBQueryKeyPatterns() {
+        if (ds instanceof RDBDocumentStore) {
+            RDBDocumentStore rds = (RDBDocumentStore) ds;
+            // create ten documents
+            String base = this.getClass().getName() + ".testRDBQuery-";
+            for (int i = 0; i < 10; i++) {
+                // every second is a "regular" path
+                String id = "1:" + (i % 2 == 1 ? "p" : "") + "/" + base + i;
+                UpdateOp up = new UpdateOp(id, true);
+                up.set("_id", id);
+                up.set("_test", base);
+                boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
+                assertTrue("document with " + id + " not created", success);
+                removeMe.add(id);
+            }
+            System.out.println(removeMe);
+            List<QueryCondition> conditions = new ArrayList<QueryCondition>();
+            List<NodeDocument> result = rds.query(Collection.NODES, NodeDocument.MIN_ID_VALUE, NodeDocument.MAX_ID_VALUE,
+                    Arrays.asList("_:/%", "__:/%", "___:/%"), conditions, 10000);
+            for (NodeDocument d : result) {
+                if (base.equals(d.get("_test"))) {
+                    assertTrue(d.getId().startsWith("1:p"));
+                }
+            }
         }
     }
 }
