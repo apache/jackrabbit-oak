@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import java.lang.ref.WeakReference;
 import java.util.Properties;
 
 import javax.jcr.Repository;
@@ -24,6 +23,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import com.mongodb.BasicDBObject;
+
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
@@ -55,9 +55,17 @@ public class OakMongoNSRepositoryStub extends OakRepositoryStub {
     public OakMongoNSRepositoryStub(Properties settings) throws RepositoryException {
         super(settings);
         Session session = null;
+        final DocumentNodeStore store;
         try {
             this.connection = new MongoConnection(HOST, PORT, DB);
-            this.repository = createRepository(connection);
+            store = new DocumentMK.Builder().
+                    memoryCacheSize(64 * 1024 * 1024).
+                    setPersistentCache("target/persistentCache,time").
+                    setMongoDB(connection.getDB()).
+                    getNodeStore();
+            QueryEngineSettings qs = new QueryEngineSettings();
+            qs.setFullTextComparisonWithoutIndex(true);
+            this.repository = new Jcr(store).with(qs).createRepository();
 
             session = getRepository().login(superuser);
             TestContentLoader loader = new TestContentLoader();
@@ -69,39 +77,12 @@ public class OakMongoNSRepositoryStub extends OakRepositoryStub {
                 session.logout();
             }
         }
-        Runtime.getRuntime().addShutdownHook(
-                new Thread(new ShutdownHook(connection)));
-    }
-
-    private static Repository createRepository(MongoConnection connection) {
-        DocumentNodeStore store = new DocumentMK.Builder().
-                memoryCacheSize(64 * 1024 * 1024).
-                setPersistentCache("target/persistentCache,time").
-                setMongoDB(connection.getDB()).
-                getNodeStore();
-        QueryEngineSettings qs = new QueryEngineSettings();
-        qs.setFullTextComparisonWithoutIndex(true);
-        return new Jcr(store).with(qs).createRepository();
-    }
-
-    /**
-     * A shutdown hook that closed the MongoDB connection if needed.
-     */
-    private static class ShutdownHook implements Runnable {
-
-        private final WeakReference<MongoConnection> reference;
-
-        public ShutdownHook(MongoConnection connection) {
-            this.reference = new WeakReference<MongoConnection>(connection);
-        }
-
-        @Override
-        public void run() {
-            MongoConnection connection = reference.get();
-            if (connection != null) {
-                connection.close();
+        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+            @Override
+            public void run() {
+                store.dispose();
             }
-        }
+        }));
     }
 
     public static boolean isMongoDBAvailable() {
