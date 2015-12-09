@@ -152,7 +152,7 @@ public class AccessControlAction extends AbstractAuthorizableAction {
         if (securityProvider == null) {
             throw new IllegalStateException("Not initialized");
         }
-        if (isSystemUser(authorizable)) {
+        if (isBuiltInUser(authorizable)) {
             log.debug("System user: " + authorizable.getID() + "; omit ac setup.");
             return;
         }
@@ -200,7 +200,7 @@ public class AccessControlAction extends AbstractAuthorizableAction {
         }
     }
 
-    private boolean isSystemUser(@Nonnull Authorizable authorizable) throws RepositoryException {
+    private boolean isBuiltInUser(@Nonnull Authorizable authorizable) throws RepositoryException {
         if (authorizable.isGroup()) {
             return false;
         }

@@ -257,8 +257,12 @@ public class UserManagerImpl implements UserManager {
      * @throws RepositoryException If an exception occurs.
      */
     void onCreate(@Nonnull User user, @CheckForNull String password) throws RepositoryException {
-        for (AuthorizableAction action : actionProvider.getAuthorizableActions(securityProvider)) {
-            action.onCreate(user, password, root, namePathMapper);
+        if (!user.isSystemUser()) {
+            for (AuthorizableAction action : actionProvider.getAuthorizableActions(securityProvider)) {
+                action.onCreate(user, password, root, namePathMapper);
+            }
+        } else {
+            log.debug("Omit onCreate action for system users.");
         }
     }
 
