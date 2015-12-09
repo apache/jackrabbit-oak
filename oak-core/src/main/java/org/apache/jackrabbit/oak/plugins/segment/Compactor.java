@@ -224,7 +224,7 @@ public class Compactor {
             if (path != null) {
                 log.trace("childNodeAdded {}/{}", path, name);
             }
-            progress.onNode();
+
             RecordId id = null;
             if (after instanceof SegmentNodeState) {
                 id = ((SegmentNodeState) after).getRecordId();
@@ -235,6 +235,7 @@ public class Compactor {
                 }
             }
 
+            progress.onNode();
             NodeBuilder child = EmptyNodeState.EMPTY_NODE.builder();
             boolean success = EmptyNodeState.compareAgainstEmptyState(after,
                     newCompactionDiff(child, path, name));
@@ -256,7 +257,6 @@ public class Compactor {
             if (path != null) {
                 log.trace("childNodeChanged {}/{}", path, name);
             }
-            progress.onNode();
 
             RecordId id = null;
             if (after instanceof SegmentNodeState) {
@@ -268,6 +268,7 @@ public class Compactor {
                 }
             }
 
+            progress.onNode();
             NodeBuilder child = builder.getChildNode(name);
             boolean success = after.compareAgainstBaseState(before,
                     newCompactionDiff(child, path, name));
@@ -320,14 +321,15 @@ public class Compactor {
     private Blob compact(Blob blob) {
         if (blob instanceof SegmentBlob) {
             SegmentBlob sb = (SegmentBlob) blob;
-            progress.onBinary();
             try {
-                // else check if we've already cloned this specific record
+                // Check if we've already cloned this specific record
                 RecordId id = sb.getRecordId();
                 RecordId compactedId = map.get(id);
                 if (compactedId != null) {
                     return new SegmentBlob(compactedId);
                 }
+
+                progress.onBinary();
 
                 // if the blob is inlined or external, just clone it
                 if (sb.isExternal() || sb.length() < Segment.MEDIUM_LIMIT) {
