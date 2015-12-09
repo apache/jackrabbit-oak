@@ -238,13 +238,13 @@ public class RDBDocumentStore implements DocumentStore {
         if (indexedProperty != null) {
             conditions = Collections.singletonList(new QueryCondition(indexedProperty, ">=", startValue));
         }
-        return internalQuery(collection, fromKey, toKey, conditions, limit);
+        return internalQuery(collection, fromKey, toKey, EMPTY_KEY_PATTERN, conditions, limit);
     }
 
     @Nonnull
     protected <T extends Document> List<T> query(Collection<T> collection, String fromKey, String toKey,
-            List<QueryCondition> conditions, int limit) {
-        return internalQuery(collection, fromKey, toKey, conditions, limit);
+            List<String> excludeKeyPatterns, List<QueryCondition> conditions, int limit) {
+        return internalQuery(collection, fromKey, toKey, excludeKeyPatterns, conditions, limit);
     }
 
     @Override
@@ -511,6 +511,8 @@ public class RDBDocumentStore implements DocumentStore {
 
     // utility class for performing low-level operations
     private RDBDocumentStoreJDBC db;
+
+    protected static final List<String> EMPTY_KEY_PATTERN = Collections.emptyList();
 
     private Map<String, String> metadata;
 
@@ -1214,7 +1216,7 @@ public class RDBDocumentStore implements DocumentStore {
     private Map<Thread, QueryContext> qmap = new ConcurrentHashMap<Thread, QueryContext>();
 
     private <T extends Document> List<T> internalQuery(Collection<T> collection, String fromKey, String toKey,
-            List<QueryCondition> conditions, int limit) {
+            List<String> excludeKeyPatterns, List<QueryCondition> conditions, int limit) {
         Connection connection = null;
         RDBTableMetaData tmd = getTable(collection);
         for (QueryCondition cond : conditions) {
@@ -1235,7 +1237,7 @@ public class RDBDocumentStore implements DocumentStore {
             connection = this.ch.getROConnection();
             String from = collection == Collection.NODES && NodeDocument.MIN_ID_VALUE.equals(fromKey) ? null : fromKey;
             String to = collection == Collection.NODES && NodeDocument.MAX_ID_VALUE.equals(toKey) ? null : toKey;
-            List<RDBRow> dbresult = db.query(connection, tmd, from, to, conditions, limit);
+            List<RDBRow> dbresult = db.query(connection, tmd, from, to, excludeKeyPatterns, conditions, limit);
             connection.commit();
 
             int size = dbresult.size();
