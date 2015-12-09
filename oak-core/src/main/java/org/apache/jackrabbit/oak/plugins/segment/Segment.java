@@ -22,6 +22,7 @@ import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newConcurrentMap;
+import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.V_11;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
 
@@ -41,6 +42,8 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
+import org.apache.commons.io.HexDump;
+import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
@@ -198,7 +201,7 @@ public class Segment {
         this(tracker, id, data, V_11);
     }
 
-    public Segment(SegmentTracker tracker, SegmentId id, ByteBuffer data, SegmentVersion version) {
+    public Segment(SegmentTracker tracker, final SegmentId id, final ByteBuffer data, SegmentVersion version) {
         this.tracker = checkNotNull(tracker);
         this.id = checkNotNull(id);
         if (tracker.getStringCache() == null) {
@@ -214,13 +217,32 @@ public class Segment {
             checkState(data.get(0) == '0'
                     && data.get(1) == 'a'
                     && data.get(2) == 'K'
-                    && SegmentVersion.isValid(segmentVersion));
+                    && SegmentVersion.isValid(segmentVersion),
+                new Object() {  // Defer evaluation of error message
+                    @Override
+                    public String toString() {
+                        return "Invalid segment format. Dumping segment " + id + "\n"
+                            + toHex(data.array());
+                    }
+            });
             this.refids = new SegmentId[getRefCount()];
             this.refids[0] = id;
             this.version = SegmentVersion.fromByte(segmentVersion);
         } else {
             this.refids = null;
             this.version = version;
+        }
+    }
+
+    private static String toHex(byte[] bytes) {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try {
+            HexDump.dump(bytes, 0, out, 0);
+            return out.toString(Charsets.UTF_8.name());
+        } catch (IOException e) {
+            return "Error dumping segment: " + e.getMessage();
+        } finally {
+            closeQuietly(out);
         }
     }
 
