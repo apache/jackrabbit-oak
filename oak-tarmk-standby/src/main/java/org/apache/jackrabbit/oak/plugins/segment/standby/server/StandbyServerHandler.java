@@ -30,6 +30,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
@@ -156,7 +157,7 @@ public class StandbyServerHandler extends SimpleChannelInboundHandler<String> {
                         s = store.readSegment(new SegmentId(store.getTracker(),
                                 uuid.getMostSignificantBits(), uuid
                                 .getLeastSignificantBits()));
-                    } catch (IllegalStateException e) {
+                    } catch (IllegalRepositoryStateException e) {
                         // segment not found
                         log.debug("waiting for segment. Got exception: " + e.getMessage());
                         TimeUnit.MILLISECONDS.sleep(2000);
