@@ -21,11 +21,11 @@ package org.apache.jackrabbit.oak.jcr;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.sql.DataSource;
-
-import com.mongodb.DB;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -38,6 +38,8 @@ import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
+import com.mongodb.DB;
+
 /**
  * NodeStore fixture for parametrized tests.
  */
@@ -49,7 +51,7 @@ public abstract class NodeStoreFixture {
 
     public static final NodeStoreFixture DOCUMENT_RDB = new NodeStoreFixture() {
 
-        private DataSource ds;
+        private Map<NodeStore, DataSource> dataSources = new ConcurrentHashMap<NodeStore, DataSource>();
         private String jdbcUrl;
         private String fname = (new File("target")).isDirectory() ? "target/" : "";
 
@@ -59,14 +61,15 @@ public abstract class NodeStoreFixture {
 
         @Override
         public NodeStore createNodeStore() {
-            String prefix = "T" + UUID.randomUUID().toString().replace("-",  "");
+            String prefix = "T" + UUID.randomUUID().toString().replace("-", "");
             RDBOptions options = new RDBOptions().tablePrefix(prefix).dropTablesOnClose(true);
             this.jdbcUrl = pUrl.replace("{fname}", fname);
-            this.ds = RDBDataSourceFactory.forJdbcUrl(jdbcUrl, pUser, pPasswd);
-            return new DocumentMK.Builder().
-                    setPersistentCache("target/persistentCache,time").
-                    setRDBConnection(this.ds, options).
-                    getNodeStore();
+            DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcUrl, pUser, pPasswd);
+
+            NodeStore result = new DocumentMK.Builder().setPersistentCache("target/persistentCache,time")
+                    .setRDBConnection(ds, options).getNodeStore();
+            this.dataSources.put(result, ds);
+            return result;
         }
 
         @Override
@@ -79,9 +82,10 @@ public abstract class NodeStoreFixture {
             if (nodeStore instanceof DocumentNodeStore) {
                 ((DocumentNodeStore) nodeStore).dispose();
             }
-            if (this.ds instanceof Closeable) {
+            DataSource ds = this.dataSources.remove(nodeStore);
+            if (ds instanceof Closeable) {
                 try {
-                    ((Closeable)this.ds).close();
+                    ((Closeable)ds).close();
                 } catch (IOException ex) {
                     throw new RuntimeException(ex);
                 }
