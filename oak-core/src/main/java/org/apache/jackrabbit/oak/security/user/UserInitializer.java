@@ -108,7 +108,9 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
             NodeUtil index = rootTree.getOrAddChild(IndexConstants.INDEX_DEFINITIONS_NAME, JcrConstants.NT_UNSTRUCTURED);
 
             if (!index.hasChild("authorizableId")) {
-                NodeUtil authorizableId = IndexUtils.createIndexDefinition(index, "authorizableId", true, new String[]{REP_AUTHORIZABLE_ID}, null);
+                NodeUtil authorizableId = IndexUtils.createIndexDefinition(index, "authorizableId", true, 
+                        new String[]{REP_AUTHORIZABLE_ID}, 
+                        new String[]{NT_REP_AUTHORIZABLE});
                 authorizableId.setString("info", 
                         "Oak index used by the user management " + 
                         "to enforce uniqueness of rep:authorizableId property values.");
