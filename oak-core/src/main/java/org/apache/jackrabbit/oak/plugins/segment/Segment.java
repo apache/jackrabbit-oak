@@ -652,6 +652,10 @@ public class Segment {
         int length = data.remaining();
 
         writer.format("Segment %s (%d bytes)%n", id, length);
+        String segmentInfo = getSegmentInfo();
+        if (segmentInfo != null) {
+            writer.format("Info: %s%n", segmentInfo);
+        }
         if (id.isDataSegmentId()) {
             writer.println("--------------------------------------------------------------------------");
             int refcount = getRefCount();
