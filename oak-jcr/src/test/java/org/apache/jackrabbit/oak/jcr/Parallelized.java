@@ -32,11 +32,10 @@ import org.slf4j.LoggerFactory;
 public class Parallelized extends Parameterized {
 
     /**
-     * Logger instance. Unused by this class, but present to force early
-     * auto-initialization of the logging system and thus to avoid warnings
-     * about concurrent initialization.
+     * Logger instance. Present to force early auto-initialization of the
+     * logging system and thus to avoid warnings about concurrent
+     * initialization.
      */
-    @SuppressWarnings("unused")
     private static final Logger log =
             LoggerFactory.getLogger(Parallelized.class);
 
@@ -53,7 +52,9 @@ public class Parallelized extends Parameterized {
         public void finished() {
             executor.shutdown();
             try {
-                executor.awaitTermination(10, TimeUnit.MINUTES);
+                while (!executor.awaitTermination(1, TimeUnit.MINUTES)) {
+                    log.info("Awaiting for the task termination in {}", executor);
+                }
             } catch (InterruptedException exc) {
                 throw new RuntimeException(exc);
             }
