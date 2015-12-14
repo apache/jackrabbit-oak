@@ -324,8 +324,7 @@ public class QueryTest extends AbstractRepositoryTest {
         NodeIterator it = r.getNodes();
         assertFalse(it.hasNext());
     }
-
-    @Ignore("OAK-3743")
+    
     @Test
     public void unicode() throws Exception {
         Session session = getAdminSession();
@@ -757,7 +756,6 @@ public class QueryTest extends AbstractRepositoryTest {
         }
     }
 
-    @Ignore("OAK-3743")
     @Test
     public void testOak1096() throws RepositoryException {
         Session writer = createAdminSession();

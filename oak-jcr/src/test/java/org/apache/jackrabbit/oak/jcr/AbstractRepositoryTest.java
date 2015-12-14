@@ -118,11 +118,8 @@ public abstract class AbstractRepositoryTest {
 
     protected Jcr initJcr(Jcr jcr) {
         QueryEngineSettings qs = new QueryEngineSettings();
-        // OAK-3743: fullTextComparisonWithoutIndex temporarily disabled
-        // qs.setFullTextComparisonWithoutIndex(true);
-        // OAK-3743: withAsyncIndexing temporarily disabled
-        // return jcr.withAsyncIndexing().with(qs);
-        return jcr.with(qs);
+        qs.setFullTextComparisonWithoutIndex(true);
+        return jcr.withAsyncIndexing().with(qs);
     }
 
     protected Session getAdminSession() throws RepositoryException {
