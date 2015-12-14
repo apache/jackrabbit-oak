@@ -43,8 +43,6 @@ under the License.
       <item href="nodestore/documentmk.html" name="DocumentNodeStore" />
       <item href="nodestore/segment/overview.html" name="Segment Node Store" />
       <item href="query/query.html" name="Query" />
-      <item href="query/lucene.html" name="Index - Lucene" />
-      <item href="query/solr.html" name="Index - Solr" />
       <item href="security/overview.html" name="Security" />
       <item href="clustering.html" name="Clustering" />
       <item href="nodestore/persistent-cache.html" name="Persistent Cache" />
