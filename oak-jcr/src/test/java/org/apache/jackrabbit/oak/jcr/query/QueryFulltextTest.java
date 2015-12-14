@@ -32,6 +32,7 @@ import javax.jcr.query.RowIterator;
 
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -42,7 +43,8 @@ public class QueryFulltextTest extends AbstractRepositoryTest {
     public QueryFulltextTest(NodeStoreFixture fixture) {
         super(fixture);
     }
-    
+
+    @Ignore("OAK-3743")
     @Test
     public void excerpt() throws Exception {
         Session session = getAdminSession();
@@ -93,7 +95,8 @@ public class QueryFulltextTest extends AbstractRepositoryTest {
         assertTrue(path + ":" + s + " (7)", s.indexOf("Hello World") >= 0);
         assertTrue(path + ":" + s + " (8)", s.indexOf("Description") < 0);
     }
-    
+
+    @Ignore("OAK-3743")
     @Test
     public void fulltextOrWithinText() throws Exception {
         Session session = getAdminSession();
