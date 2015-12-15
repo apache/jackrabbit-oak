@@ -57,8 +57,12 @@ public final class FileStoreHelper {
             Map<UUID, Set<Entry<UUID, String>>> links) throws IOException {
         Deque<UUID> todos = new ArrayDeque<UUID>();
         todos.add(uuidIn);
+        Set<UUID> visited = newHashSet();
         while (!todos.isEmpty()) {
             UUID uuid = todos.remove();
+            if (!visited.add(uuid)) {
+                continue;
+            }
             for (String f : getTarFiles(store)) {
                 Map<UUID, List<UUID>> graph = store.getTarGraph(f);
                 for (Entry<UUID, List<UUID>> g : graph.entrySet()) {
