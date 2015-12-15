@@ -169,7 +169,7 @@ class UserAuthentication implements Authentication, UserConstants {
                 }
             }
         } catch (PasswordHistoryException e) {
-            credentials.setAttribute(e.getClass().getName(), e.getMessage());
+            credentials.setAttribute(e.getClass().getSimpleName(), e.getMessage());
             log.error("Failed to change password for user " + userId, e.getMessage());
         } catch (RepositoryException e) {
             log.error("Failed to change password for user " + userId, e.getMessage());
