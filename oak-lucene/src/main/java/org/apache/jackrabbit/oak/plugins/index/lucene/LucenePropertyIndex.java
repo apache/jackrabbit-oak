@@ -18,23 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.jcr.PropertyType;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
-
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
@@ -46,7 +29,9 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexPlanner.PlanResult;
+import org.apache.jackrabbit.oak.plugins.index.lucene.indexAugment.IndexAugmentorFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.MoreLikeThisHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SpellcheckHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
@@ -124,6 +109,23 @@ import org.apache.lucene.util.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.jcr.PropertyType;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
@@ -142,7 +144,9 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPath
 import static org.apache.jackrabbit.oak.query.QueryImpl.JCR_PATH;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.NativeQueryIndex;
-import static org.apache.lucene.search.BooleanClause.Occur.*;
+import static org.apache.lucene.search.BooleanClause.Occur.MUST;
+import static org.apache.lucene.search.BooleanClause.Occur.MUST_NOT;
+import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
 
 /**
  * Provides a QueryIndex that does lookups against a Lucene-based index
@@ -207,14 +211,20 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
     private final Highlighter highlighter = new Highlighter(new SimpleHTMLFormatter("<strong>", "</strong>"),
             new SimpleHTMLEncoder(), null);
 
+    private final IndexAugmentorFactory augmentorFactory;
+
     public LucenePropertyIndex(IndexTracker tracker) {
-        this.tracker = tracker;
-        this.scorerProviderFactory = ScorerProviderFactory.DEFAULT;
+        this(tracker, ScorerProviderFactory.DEFAULT);
     }
 
     public LucenePropertyIndex(IndexTracker tracker, ScorerProviderFactory factory) {
+        this(tracker, factory, IndexAugmentorFactory.DEFAULT);
+    }
+
+    public LucenePropertyIndex(IndexTracker tracker, ScorerProviderFactory factory, IndexAugmentorFactory augmentorFactory) {
         this.tracker = tracker;
         this.scorerProviderFactory = factory;
+        this.augmentorFactory = augmentorFactory;
     }
 
     @Override
@@ -274,7 +284,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                     .append("(")
                     .append(path)
                     .append(") ");
-            sb.append(getLuceneRequest(plan, null));
+            sb.append(getLuceneRequest(plan, augmentorFactory, null));
             if (plan.getSortOrder() != null && !plan.getSortOrder().isEmpty()) {
                 sb.append(" ordering:").append(plan.getSortOrder());
             }
@@ -365,7 +375,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 checkState(indexNode != null);
                 try {
                     IndexSearcher searcher = indexNode.getSearcher();
-                    LuceneRequestFacade luceneRequestFacade = getLuceneRequest(plan, searcher.getIndexReader());
+                    LuceneRequestFacade luceneRequestFacade = getLuceneRequest(plan, augmentorFactory, searcher.getIndexReader());
                     if (luceneRequestFacade.getLuceneRequest() instanceof Query) {
                         Query query = (Query) luceneRequestFacade.getLuceneRequest();
 
@@ -547,7 +557,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 checkState(indexNode != null);
                 try {
                     IndexSearcher searcher = indexNode.getSearcher();
-                    LuceneRequestFacade luceneRequestFacade = getLuceneRequest(plan, searcher.getIndexReader());
+                    LuceneRequestFacade luceneRequestFacade = getLuceneRequest(plan, augmentorFactory, searcher.getIndexReader());
                     if (luceneRequestFacade.getLuceneRequest() instanceof Query) {
                         Query query = (Query) luceneRequestFacade.getLuceneRequest();
                         TotalHitCountCollector collector = new TotalHitCountCollector();
@@ -682,7 +692,8 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
      * @param reader the Lucene reader
      * @return the Lucene query
      */
-    private static LuceneRequestFacade getLuceneRequest(IndexPlan plan, IndexReader reader) {
+    private static LuceneRequestFacade getLuceneRequest(IndexPlan plan, IndexAugmentorFactory augmentorFactory, IndexReader reader) {
+        FulltextQueryTermsProvider augmentor = getIndexAgumentor(plan, augmentorFactory);
         List<Query> qs = new ArrayList<Query>();
         Filter filter = plan.getFilter();
         FullTextExpression ft = filter.getFullTextConstraint();
@@ -694,7 +705,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             // when using the LowCostLuceneIndexProvider
             // which is used for testing
         } else {
-            qs.add(getFullTextQuery(plan, ft, analyzer));
+            qs.add(getFullTextQuery(plan, ft, analyzer, augmentor));
         }
 
 
@@ -846,6 +857,16 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             return scorerProviderFactory.getScorerProvider(providerName)
                     .createCustomScoreQuery(subQuery);
         }
+        return null;
+    }
+    private static FulltextQueryTermsProvider getIndexAgumentor(IndexPlan plan, IndexAugmentorFactory augmentorFactory) {
+        PlanResult planResult = getPlanResult(plan);
+        IndexDefinition defn = planResult.indexDefinition;
+
+        if (defn.getVersion().isAtLeast(IndexFormatVersion.V2)){
+            return augmentorFactory.getFulltextQueryTermsProvider();
+        }
+
         return null;
     }
 
@@ -1194,7 +1215,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
     }
 
     static Query getFullTextQuery(final IndexPlan plan, FullTextExpression ft,
-                                  final Analyzer analyzer) {
+                                  final Analyzer analyzer, final FulltextQueryTermsProvider augmentor) {
         final PlanResult pr = getPlanResult(plan);
         // a reference to the query, so it can be set in the visitor
         // (a "non-local return")
@@ -1211,7 +1232,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             public boolean visit(FullTextOr or) {
                 BooleanQuery q = new BooleanQuery();
                 for (FullTextExpression e : or.list) {
-                    Query x = getFullTextQuery(plan, e, analyzer);
+                    Query x = getFullTextQuery(plan, e, analyzer, augmentor);
                     q.add(x, SHOULD);
                 }
                 result.set(q);
@@ -1222,7 +1243,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             public boolean visit(FullTextAnd and) {
                 BooleanQuery q = new BooleanQuery();
                 for (FullTextExpression e : and.list) {
-                    Query x = getFullTextQuery(plan, e, analyzer);
+                    Query x = getFullTextQuery(plan, e, analyzer, augmentor);
                     /* Only unwrap the clause if MUST_NOT(x) */
                     boolean hasMustNot = false;
                     if (x instanceof BooleanQuery) {
@@ -1249,7 +1270,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
 
             private boolean visitTerm(String propertyName, String text, String boost, boolean not) {
                 String p = getLuceneFieldName(propertyName, pr);
-                Query q = tokenToQuery(text, p, pr.indexingRule, analyzer);
+                Query q = tokenToQuery(text, p, pr.indexingRule, analyzer, augmentor);
                 if (q == null) {
                     return false;
                 }
@@ -1295,7 +1316,8 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         return p;
     }
 
-    private static Query tokenToQuery(String text, String fieldName, IndexingRule indexingRule, Analyzer analyzer) {
+    private static Query tokenToQuery(String text, String fieldName, IndexingRule indexingRule, Analyzer analyzer, FulltextQueryTermsProvider augmentor) {
+        Query ret;
         //Expand the query on fulltext field
         if (FieldNames.FULLTEXT.equals(fieldName) &&
                 !indexingRule.getNodeScopeAnalyzedProps().isEmpty()) {
@@ -1309,9 +1331,25 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             //Add the query for actual fulltext field also. That query would
             //not be boosted
             in.add(tokenToQuery(text, fieldName, analyzer), BooleanClause.Occur.SHOULD);
-            return in;
+            ret = in;
+        } else {
+            ret = tokenToQuery(text, fieldName, analyzer);
         }
-        return tokenToQuery(text, fieldName, analyzer);
+
+        //Augment query terms if available (as a 'SHOULD' clause)
+        if (augmentor != null && FieldNames.FULLTEXT.equals(fieldName)) {
+            Query subQuery = augmentor.getQueryTerm(text, analyzer);
+            if (subQuery != null) {
+                BooleanQuery query = new BooleanQuery();
+
+                query.add(ret, BooleanClause.Occur.SHOULD);
+                query.add(subQuery, BooleanClause.Occur.SHOULD);
+
+                ret = query;
+            }
+        }
+
+        return ret;
     }
 
     static Query tokenToQuery(String text, String fieldName, Analyzer analyzer) {

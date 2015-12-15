@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.lucene.indexAugment.IndexAugmentorFactory;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -39,6 +40,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 public class LuceneIndexEditorProvider implements IndexEditorProvider {
     private final IndexCopier indexCopier;
     private final ExtractedTextCache extractedTextCache;
+    private final IndexAugmentorFactory augmentorFactory;
 
     public LuceneIndexEditorProvider() {
         this(null);
@@ -51,8 +53,15 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
 
     public LuceneIndexEditorProvider(@Nullable IndexCopier indexCopier,
                                      ExtractedTextCache extractedTextCache) {
+        this(indexCopier, extractedTextCache, IndexAugmentorFactory.DEFAULT);
+    }
+
+    public LuceneIndexEditorProvider(@Nullable IndexCopier indexCopier,
+                                     ExtractedTextCache extractedTextCache,
+                                     IndexAugmentorFactory augmentorFactory) {
         this.indexCopier = indexCopier;
         this.extractedTextCache = extractedTextCache;
+        this.augmentorFactory = augmentorFactory;
     }
 
     @Override
@@ -61,7 +70,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
             @Nonnull IndexUpdateCallback callback)
             throws CommitFailedException {
         if (TYPE_LUCENE.equals(type)) {
-            return new LuceneIndexEditor(root, definition, callback, indexCopier, extractedTextCache);
+            return new LuceneIndexEditor(root, definition, callback, indexCopier, extractedTextCache, augmentorFactory);
         }
         return null;
     }
