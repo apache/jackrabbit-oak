@@ -120,6 +120,7 @@ a negative offset translating all timestamps into a valid int range.
                        (derived from journal.log if not
                        given)
     --output <File>  Output file (default: segments.gdf)
+    --gc             Write the gc generation graph instead of the full graph
 
 History
 -------
