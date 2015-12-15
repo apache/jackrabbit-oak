@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.lucene.indexAugment.IndexAugmentorFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -143,19 +144,23 @@ public class LuceneIndexEditorContext {
     private final TextExtractionStats textExtractionStats = new TextExtractionStats();
 
     private final ExtractedTextCache extractedTextCache;
+
+    private final IndexAugmentorFactory augmentorFactory;
     /**
      * The media types supported by the parser used.
      */
     private Set<MediaType> supportedMediaTypes;
 
     LuceneIndexEditorContext(NodeState root, NodeBuilder definition, IndexUpdateCallback updateCallback,
-                             @Nullable IndexCopier indexCopier, ExtractedTextCache extractedTextCache) {
+                             @Nullable IndexCopier indexCopier, ExtractedTextCache extractedTextCache,
+                             IndexAugmentorFactory augmentorFactory) {
         this.definitionBuilder = definition;
         this.indexCopier = indexCopier;
         this.definition = new IndexDefinition(root, definition);
         this.indexedNodes = 0;
         this.updateCallback = updateCallback;
         this.extractedTextCache = extractedTextCache;
+        this.augmentorFactory = augmentorFactory;
         if (this.definition.isOfOldFormat()){
             IndexDefinition.updateDefinition(definition);
         }
@@ -338,6 +343,10 @@ public class LuceneIndexEditorContext {
 
     ExtractedTextCache getExtractedTextCache() {
         return extractedTextCache;
+    }
+
+    IndexAugmentorFactory getAugmentorFactory() {
+        return augmentorFactory;
     }
 
     public boolean isReindex() {
