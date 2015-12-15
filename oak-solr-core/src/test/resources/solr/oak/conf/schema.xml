@@ -147,6 +147,9 @@
         <field name="path_depth" type="tint" indexed="true" stored="false"/>
         <field name="_version_" type="long" indexed="true" stored="true"/>
 
+        <!-- facet fields -->
+        <dynamicField name="*_facet" type="string" indexed="false" stored="false" docValues="true" multiValued="true"/>
+
         <!-- sorting dynamic fields -->
         <dynamicField name="*_double_sort" type="tdouble" indexed="false" stored="false" multiValued="false" docValues="true"/>
         <dynamicField name="*_string_sort" type="string" indexed="false" stored="false" multiValued="false" docValues="true"/>
@@ -160,6 +163,7 @@
     <copyField source="path_exact" dest="path_child"/>
     <copyField source="path_exact" dest=":path"/>
     <copyField source="*" dest="catch_all"/>
+    <copyField source="*" dest="*_facet"/>
     <copyField source="jcr:title" dest=":spellcheck"/>
     <copyField source="jcr:description" dest=":spellcheck"/>
     <copyField source="jcr:title" dest=":suggest"/>

@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -53,6 +54,7 @@ import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
+import org.apache.solr.client.solrj.response.FacetField;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.response.SpellCheckResponse;
 import org.apache.solr.common.SolrDocument;
@@ -237,6 +239,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
 
     private AbstractIterator<SolrResultRow> getIterator(final Filter filter, final List<OrderEntry> sortOrder, final String parent, final int parentDepth) {
         return new AbstractIterator<SolrResultRow>() {
+            public Collection<FacetField> facetFields = new LinkedList<FacetField>();
             private final Set<String> seenPaths = Sets.newHashSet();
             private final Deque<SolrResultRow> queue = Queues.newArrayDeque();
             private int offset = 0;
@@ -270,7 +273,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                 if (scoreObj != null) {
                     score = (Float) scoreObj;
                 }
-                return new SolrResultRow(path, score, doc);
+                return new SolrResultRow(path, score, doc, facetFields);
 
             }
 
@@ -343,6 +346,25 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                         }
                     }
 
+                    // get facets
+                    List<FacetField> returnedFieldFacet = queryResponse.getFacetFields();
+                    if (returnedFieldFacet != null) {
+                        facetFields.addAll(returnedFieldFacet);
+                    }
+
+                    // filter facets on doc paths
+                    if (!facetFields.isEmpty() && docs != null) {
+                        for (SolrDocument doc : docs) {
+                            String path = String.valueOf(doc.getFieldValue(configuration.getPathField()));
+                            // if facet path doesn't exist in the node state, filter the facets
+                            for (FacetField ff : facetFields) {
+                                if (!filter.isAccessible(path + "/" + ff.getName())) {
+                                    filterFacet(doc, ff);
+                                }
+                            }
+                        }
+                    }
+
                     // handle spellcheck
                     SpellCheckResponse spellCheckResponse = queryResponse.getSpellCheckResponse();
                     if (spellCheckResponse != null && spellCheckResponse.getSuggestions() != null &&
@@ -372,6 +394,36 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
             }
 
         };
+    }
+
+    private void filterFacet(SolrDocument doc, FacetField facetField) {
+        // facet filtering by value requires that the facet values match the stored values
+        // a *_facet field must exist, storing docValues to be used for faceting and at filtering time
+        if (doc.getFieldNames().contains(facetField.getName())) {
+            // decrease facet value
+            Collection<Object> docFieldValues = doc.getFieldValues(facetField.getName());
+            if (docFieldValues != null) {
+                for (Object docFieldValue : docFieldValues) {
+                    String valueString = String.valueOf(docFieldValue);
+                    List<FacetField.Count> toRemove = new LinkedList<FacetField.Count>();
+                    for (FacetField.Count count : facetField.getValues()) {
+                        long existingCount = count.getCount();
+                        if (valueString.equals(count.getName())) {
+                            if (existingCount > 1) {
+                                // decrease the count
+                                count.setCount(existingCount - 1);
+                            } else {
+                                // remove the entire entry
+                                toRemove.add(count);
+                            }
+                        }
+                    }
+                    for (FacetField.Count f : toRemove) {
+                        assert facetField.getValues().remove(f);
+                    }
+                }
+            }
+        }
     }
 
     private void putSpellChecks(SpellCheckResponse spellCheckResponse,
@@ -450,7 +502,9 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                 (!configuration.useForPropertyRestrictions() // Solr index not used for properties
                         || (configuration.getUsedProperties().size() > 0 && !configuration.getUsedProperties().contains(propertyName)) // not explicitly contained in the used properties
                         || propertyName.contains("/") // no child-level property restrictions
-                        || "rep:excerpt".equals(propertyName) // rep:excerpt is not handled at the property level
+                        || QueryImpl.REP_EXCERPT.equals(propertyName) // rep:excerpt is not handled at the property level
+                        || QueryImpl.OAK_SCORE_EXPLANATION.equals(propertyName) // score explain is not handled at the property level
+                        || QueryImpl.REP_FACET.equals(propertyName) // rep:facet is not handled at the property level
                         || QueryConstants.RESTRICTION_LOCAL_NAME.equals(propertyName)
                         || configuration.getIgnoredProperties().contains(propertyName));
     }
@@ -498,25 +552,31 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
         final String path;
         final double score;
         final SolrDocument doc;
+        final Collection<FacetField> facetFields;
         final String suggestion;
 
-        private SolrResultRow(String path, double score, SolrDocument doc, String suggestion) {
+        private SolrResultRow(String path, double score, SolrDocument doc, String suggestion, Collection<FacetField> facetFields) {
             this.path = path;
             this.score = score;
             this.doc = doc;
             this.suggestion = suggestion;
+            this.facetFields = facetFields;
         }
 
         SolrResultRow(String path, double score, SolrDocument doc) {
-            this (path, score, doc, null);
+            this (path, score, doc, null, null);
         }
 
         SolrResultRow(String suggestion, double score) {
-            this ("/", score, null, suggestion);
+            this ("/", score, null, suggestion, null);
         }
 
         SolrResultRow(String suggestion) {
-            this ("/", 1.0, null, suggestion);
+            this ("/", 1.0, null, suggestion, null);
+        }
+
+        SolrResultRow(String path, float score, SolrDocument doc, Collection<FacetField> facetFields) {
+            this(path, score, doc, null, facetFields);
         }
 
         @Override
@@ -592,6 +652,21 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                     // overlay the score
                     if (QueryImpl.JCR_SCORE.equals(columnName)) {
                         return PropertyValues.newDouble(currentRow.score);
+                    }
+                    if (columnName.startsWith(QueryImpl.REP_FACET)) {
+                        String facetFieldName = columnName.substring(QueryImpl.REP_FACET.length() + 1, columnName.length() - 1);
+                        FacetField facetField = null;
+                        for (FacetField ff : currentRow.facetFields) {
+                            if (ff.getName().equals(facetFieldName + "_facet")) {
+                                facetField = ff;
+                                break;
+                            }
+                        }
+                        if (facetField != null) {
+                            return PropertyValues.newString(facetFieldName + ":" + facetField.getValues().toString());
+                        } else {
+                            return null;
+                        }
                     }
                     if (QueryImpl.REP_SPELLCHECK.equals(columnName) || QueryImpl.REP_SUGGEST.equals(columnName)) {
                         return PropertyValues.newString(currentRow.suggestion);
