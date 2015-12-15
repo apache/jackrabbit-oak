@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.segment.file;
 
 import static com.google.common.base.Charsets.UTF_8;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newHashMap;
@@ -36,7 +37,6 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +52,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.segment.CompactionMap;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentGraph.SegmentGraphVisitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -675,32 +676,37 @@ class TarReader implements Closeable {
 
     /**
      * Build the graph of segments reachable from an initial set of segments
-     * @param referencedIds  the initial set of segments
+     * @param roots     the initial set of segments
+     * @param visitor   visitor receiving call back while following the segment graph
      * @throws IOException
      */
-    Map<UUID, Set<UUID>> getReferenceGraph(Set<UUID> referencedIds) throws IOException {
+    public void traverseSegmentGraph(
+        @Nonnull Set<UUID> roots,
+        @Nonnull SegmentGraphVisitor visitor) throws IOException {
+        checkNotNull(roots);
+        checkNotNull(visitor);
         Map<UUID, List<UUID>> graph = getGraph();
-        Map<UUID, Set<UUID>> refGraph = newHashMap();
 
         TarEntry[] entries = getEntries();
         for (int i = entries.length - 1; i >= 0; i--) {
             TarEntry entry = entries[i];
             UUID id = new UUID(entry.msb(), entry.lsb());
-            if (!referencedIds.remove(id)) {
-                // this segment is not referenced anywhere
-                entries[i] = null;
-            } else {
-                if (isDataSegmentId(entry.lsb())) {
-                    // this is a referenced data segment, so follow the graph
-                    List<UUID> refIds = getReferences(entry, id, graph);
-                    if (refIds != null) {
-                        refGraph.put(id, new HashSet<UUID>(refIds));
-                        referencedIds.addAll(refIds);
+            if (roots.remove(id) && isDataSegmentId(entry.lsb())) {
+                // this is a referenced data segment, so follow the graph
+                List<UUID> refIds = getReferences(entry, id, graph);
+                if (refIds != null) {
+                    for (UUID refId : refIds) {
+                        visitor.accept(id, refId);
+                        roots.add(refId);
                     }
+                } else {
+                    visitor.accept(id, null);
                 }
+            } else {
+                // this segment is not referenced anywhere
+                visitor.accept(id, null);
             }
         }
-        return refGraph;
     }
 
     /**

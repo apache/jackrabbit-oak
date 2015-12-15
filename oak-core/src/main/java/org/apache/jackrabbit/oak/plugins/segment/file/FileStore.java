@@ -69,6 +69,7 @@ import org.apache.jackrabbit.oak.plugins.segment.Compactor;
 import org.apache.jackrabbit.oak.plugins.segment.PersistedCompactionMap;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentGraph.SegmentGraphVisitor;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
@@ -1370,15 +1371,16 @@ public class FileStore implements SegmentStore {
 
         /**
          * Build the graph of segments reachable from an initial set of segments
-         * @param referencedIds  the initial set of segments
+         * @param roots     the initial set of segments
+         * @param visitor   visitor receiving call back while following the segment graph
          * @throws IOException
          */
-        public Map<UUID, Set<UUID>> getSegmentGraph(Set<UUID> referencedIds) throws IOException {
-            Map<UUID, Set<UUID>> graph = newHashMap();
+        public void traverseSegmentGraph(
+            @Nonnull Set<UUID> roots,
+            @Nonnull SegmentGraphVisitor visitor) throws IOException {
             for (TarReader reader : super.readers) {
-                graph.putAll(reader.getReferenceGraph(referencedIds));
+                reader.traverseSegmentGraph(checkNotNull(roots), checkNotNull(visitor));
             }
-            return graph;
         }
 
         @Override
@@ -1417,7 +1419,6 @@ public class FileStore implements SegmentStore {
         public boolean maybeCompact(boolean cleanup) {
             throw new UnsupportedOperationException("Read Only Store");
         }
-
     }
 
     private class SetHead implements Callable<Boolean> {
