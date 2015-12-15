@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,7 +53,11 @@ public class AstElementFactory {
     }
 
     public ColumnImpl column(String selectorName, String propertyName, String columnName) {
-        return new ColumnImpl(selectorName, propertyName, columnName);
+        if (propertyName.startsWith(QueryImpl.REP_FACET)) {
+            return new FacetColumnImpl(selectorName, propertyName, columnName);
+        } else {
+            return new ColumnImpl(selectorName, propertyName, columnName);
+        }
     }
 
     public ComparisonImpl comparison(DynamicOperandImpl operand1, Operator operator, StaticOperandImpl operand2) {

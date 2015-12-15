@@ -392,6 +392,8 @@ public class SelectorImpl extends SourceImpl {
                 String columnName = c.getColumnName();
                 if (columnName.equals(QueryImpl.REP_EXCERPT) || columnName.equals(QueryImpl.OAK_SCORE_EXPLANATION)) {
                     f.restrictProperty(columnName, Operator.NOT_EQUAL, null);
+                } else if (columnName.startsWith(QueryImpl.REP_FACET)) {
+                    f.restrictProperty(QueryImpl.REP_FACET, Operator.EQUAL, PropertyValues.newString(columnName));
                 }
             }
         }
@@ -668,6 +670,8 @@ public class SelectorImpl extends SourceImpl {
             result = currentRow.getValue(QueryImpl.REP_SPELLCHECK);
         } else if (oakPropertyName.equals(QueryImpl.REP_SUGGEST)) {
             result = currentRow.getValue(QueryImpl.REP_SUGGEST);
+        } else if (oakPropertyName.startsWith(QueryImpl.REP_FACET)) {
+            result = currentRow.getValue(oakPropertyName);
         } else {
             result = PropertyValues.create(t.getProperty(oakPropertyName));
         }
