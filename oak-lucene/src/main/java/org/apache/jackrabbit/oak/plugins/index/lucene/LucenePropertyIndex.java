@@ -24,10 +24,14 @@ import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -69,11 +73,21 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.CachingTokenFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.facet.FacetResult;
+import org.apache.lucene.facet.Facets;
+import org.apache.lucene.facet.FacetsCollector;
+import org.apache.lucene.facet.FacetsConfig;
+import org.apache.lucene.facet.LabelAndValue;
+import org.apache.lucene.facet.MultiFacets;
+import org.apache.lucene.facet.sortedset.DefaultSortedSetDocValuesReaderState;
+import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetCounts;
+import org.apache.lucene.facet.sortedset.SortedSetDocValuesReaderState;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.MultiFields;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queries.CustomScoreQuery;
@@ -105,6 +119,7 @@ import org.apache.lucene.search.highlight.SimpleHTMLFormatter;
 import org.apache.lucene.search.highlight.TextFragment;
 import org.apache.lucene.search.spell.SuggestWord;
 import org.apache.lucene.search.suggest.Lookup;
+import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -299,7 +314,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 return endOfData();
             }
 
-            private LuceneResultRow convertToRow(ScoreDoc doc, IndexSearcher searcher, String excerpt,
+            private LuceneResultRow convertToRow(ScoreDoc doc, IndexSearcher searcher, String excerpt,  Facets facets,
                                                  String explanation) throws IOException {
                 IndexReader reader = searcher.getIndexReader();
                 //TODO Look into usage of field cache for retrieving the path
@@ -329,7 +344,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                     }
 
                     LOG.trace("Matched path {}", path);
-                    return new LuceneResultRow(path, doc.score, excerpt, explanation);
+                    return new LuceneResultRow(path, doc.score, excerpt, facets, explanation);
                 }
                 return null;
             }
@@ -362,6 +377,15 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
 
                         checkForIndexVersionChange(searcher);
 
+                        List<String> facetFields = new LinkedList<String>();
+                        List<PropertyRestriction> facetRestriction = filter.getPropertyRestrictions(QueryImpl.REP_FACET);
+                        if (facetRestriction != null && facetRestriction.size() > 0) {
+                            for (PropertyRestriction pr : facetRestriction) {
+                                String value = pr.first.getValue(Type.STRING);
+                                facetFields.add(value.substring(QueryImpl.REP_FACET.length() + 1, value.length() - 1));
+                            }
+                        }
+
                         TopDocs docs;
                         long start = PERF_LOGGER.start();
                         while (true) {
@@ -383,6 +407,37 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                             PERF_LOGGER.end(start, -1, "{} ...", docs.scoreDocs.length);
                             nextBatchSize = (int) Math.min(nextBatchSize * 2L, 100000);
 
+                            Facets facets = null;
+                            if (facetFields.size() > 0) {
+                                Map<String, Facets> facetsMap = new HashMap<String, Facets>();
+
+                                long f = System.currentTimeMillis();
+                                for (String facetField : facetFields) {
+                                    FacetsCollector facetsCollector = new FacetsCollector();
+                                    try {
+                                        DefaultSortedSetDocValuesReaderState state = new DefaultSortedSetDocValuesReaderState(
+                                                searcher.getIndexReader(), facetField + "_facet"); // facets are indexed in *_facet fields
+                                        if (lastDoc != null) {
+                                            facetsCollector.searchAfter(searcher, lastDoc, query, 10, facetsCollector);
+                                        } else {
+                                            FacetsCollector.search(searcher, query, 10, facetsCollector);
+                                        }
+                                        facetsMap.put(facetField, indexNode.getDefinition().isSecureFacets() ?
+                                                new FilteredSortedSetDocValuesFacetCounts(state, facetsCollector, filter, docs) :
+                                                new SortedSetDocValuesFacetCounts(state, facetsCollector));
+
+                                    } catch (IllegalArgumentException iae) {
+                                        LOG.warn("facets for {} not yet indexed", facetField);
+                                    }
+                                }
+                                if (facetsMap.size() > 0) {
+                                    facets = new MultiFacets(facetsMap);
+                                    LOG.debug("facets retrieved in {}ms", (System.currentTimeMillis() - f));
+                                    LOG.info("facets in {}ms : {}", (System.currentTimeMillis() - f), facets.getTopChildren(10, facetFields.get(0)));
+                                }
+
+                            }
+
                             PropertyRestriction restriction = filter.getPropertyRestriction(QueryImpl.REP_EXCERPT);
                             boolean addExcerpt = restriction != null && restriction.isNotNullRestriction();
 
@@ -400,7 +455,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                                     explanation = searcher.explain(query, doc.doc).toString();
                                 }
 
-                                LuceneResultRow row = convertToRow(doc, searcher, excerpt, explanation);
+                                LuceneResultRow row = convertToRow(doc, searcher, excerpt, facets, explanation);
                                 if (row != null) {
                                     queue.add(row);
                                 }
@@ -842,7 +897,8 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
             String name = pr.propertyName;
 
-            if (QueryImpl.REP_EXCERPT.equals(name) || QueryImpl.OAK_SCORE_EXPLANATION.equals(name)) {
+            if (QueryImpl.REP_EXCERPT.equals(name) || QueryImpl.OAK_SCORE_EXPLANATION.equals(name)
+                    || QueryImpl.REP_FACET.equals(name)) {
                 continue;
             }
 
@@ -1336,10 +1392,12 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         final boolean isVirutal;
         final String excerpt;
         final String explanation;
+        final Facets facets;
 
-        LuceneResultRow(String path, double score, String excerpt, String explanation) {
+        LuceneResultRow(String path, double score, String excerpt, Facets facets, String explanation) {
             this.explanation = explanation;
             this.excerpt = excerpt;
+            this.facets = facets;
             this.isVirutal = false;
             this.path = path;
             this.score = score;
@@ -1352,6 +1410,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             this.score = weight;
             this.suggestion = suggestion;
             this.excerpt = null;
+            this.facets = null;
             this.explanation = null;
         }
 
@@ -1448,6 +1507,22 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                     if (QueryImpl.REP_EXCERPT.equals(columnName)) {
                         return PropertyValues.newString(currentRow.excerpt);
                     }
+                    if (columnName.startsWith(QueryImpl.REP_FACET)) {
+                        String facetFieldName = columnName.substring(QueryImpl.REP_FACET.length() + 1, columnName.length() - 1);
+                        Facets facets = currentRow.facets;
+                        try {
+                            if (facets != null) {
+                                FacetResult topChildren = facets.getTopChildren(10, facetFieldName);
+                                if (topChildren != null) {
+                                    return PropertyValues.newString(facetFieldName + ":" + Arrays.toString(topChildren.labelValues));
+                                } else {
+                                    return null;
+                                }
+                            }
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
                     return pathRow.getValue(columnName);
                 }
 
@@ -1491,4 +1566,79 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         }
     }
 
+    private class FilteredSortedSetDocValuesFacetCounts extends SortedSetDocValuesFacetCounts {
+        private final TopDocs docs;
+        private final Filter filter;
+        private final IndexReader reader;
+        private final SortedSetDocValuesReaderState state;
+
+        public FilteredSortedSetDocValuesFacetCounts(DefaultSortedSetDocValuesReaderState state, FacetsCollector facetsCollector, Filter filter, TopDocs docs) throws IOException {
+            super(state, facetsCollector);
+            this.reader = state.origReader;
+            this.filter = filter;
+            this.docs = docs;
+            this.state = state;
+        }
+
+        @Override
+        public FacetResult getTopChildren(int topN, String dim, String... path) throws IOException {
+            FacetResult topChildren = super.getTopChildren(topN, dim, path);
+
+            LabelAndValue[] labelAndValues = topChildren.labelValues;
+
+            for (ScoreDoc scoreDoc : docs.scoreDocs) {
+                labelAndValues = filterFacet(scoreDoc.doc, dim, labelAndValues);
+            }
+
+            int childCount = labelAndValues.length;
+            Number value = 0;
+            for (LabelAndValue lv : labelAndValues) {
+                value = value.longValue() + lv.value.longValue();
+            }
+
+            return new FacetResult(dim, path, value, labelAndValues, childCount);
+        }
+
+        private LabelAndValue[] filterFacet(int docId, String dimension, LabelAndValue[] labelAndValues) throws IOException {
+            boolean filterd = false;
+            Map<String, Long> newValues = new HashMap<String, Long>();
+
+            Document document = reader.document(docId);
+            SortedSetDocValues docValues = state.getDocValues();
+            docValues.setDocument(docId);
+
+            // filter using doc values (avoiding requiring stored values)
+            if (!filter.isAccessible(document.getField(PATH).stringValue() + "/" + dimension)) {
+                filterd = true;
+                for (LabelAndValue lv : labelAndValues) {
+                    long existingCount = lv.value.longValue();
+
+                    BytesRef key = new BytesRef(FacetsConfig.pathToString(dimension, new String[]{lv.label}));
+                    long l = docValues.lookupTerm(key);
+                    if (l >= 0) {
+                        if (existingCount > 0) {
+                            newValues.put(lv.label, existingCount - 1);
+                        } else {
+                            if (newValues.containsKey(lv.label)) {
+                                newValues.remove(lv.label);
+                            }
+                        }
+                    }
+                }
+            }
+            LabelAndValue[] filteredLVs;
+            if (filterd) {
+                filteredLVs = new LabelAndValue[newValues.size()];
+                int i = 0;
+                for (Map.Entry<String, Long> entry : newValues.entrySet()) {
+                    filteredLVs[i] = new LabelAndValue(entry.getKey(), entry.getValue());
+                    i++;
+                }
+            } else {
+                filteredLVs = labelAndValues;
+            }
+
+            return filteredLVs;
+        }
+    }
 }

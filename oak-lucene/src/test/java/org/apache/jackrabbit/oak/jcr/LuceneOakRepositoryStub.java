@@ -88,19 +88,23 @@ public class LuceneOakRepositoryStub extends OakTarMKRepositoryStub {
                         .setProperty(LuceneIndexConstants.EVALUATE_PATH_RESTRICTION, true)
                         .setProperty(LuceneIndexConstants.SUGGEST_UPDATE_FREQUENCY_MINUTES, 10);
 
-                NodeBuilder ntBase = index.child(LuceneIndexConstants.INDEX_RULES)
-                        .child("nt:base");
+                NodeBuilder rules = index.child(LuceneIndexConstants.INDEX_RULES);
+                rules.setProperty(JCR_PRIMARYTYPE, "nt:unstructured", NAME);
+                NodeBuilder ntBase = rules.child("nt:base");
+                ntBase.setProperty(JCR_PRIMARYTYPE, "nt:unstructured", NAME);
 
                 //Enable nodeName index support
                 ntBase.setProperty(LuceneIndexConstants.INDEX_NODE_NAME, true);
                 NodeBuilder props = ntBase.child(LuceneIndexConstants.PROP_NODE);
+                props.setProperty(JCR_PRIMARYTYPE, "nt:unstructured", NAME);
 
                 enableFulltextIndex(props.child("allProps"));
             }
         }
 
         private void enableFulltextIndex(NodeBuilder propNode){
-            propNode.setProperty(LuceneIndexConstants.PROP_ANALYZED, true)
+            propNode.setProperty(JCR_PRIMARYTYPE, "nt:unstructured", NAME)
+                    .setProperty(LuceneIndexConstants.PROP_ANALYZED, true)
                     .setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true)
                     .setProperty(LuceneIndexConstants.PROP_USE_IN_EXCERPT, true)
                     .setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true)

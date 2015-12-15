@@ -699,7 +699,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             }
 
             String name = pr.propertyName;
-            if (QueryImpl.REP_EXCERPT.equals(name)) {
+            if (QueryImpl.REP_EXCERPT.equals(name) || QueryImpl.OAK_SCORE_EXPLANATION.equals(name) || QueryImpl.REP_FACET.equals(name)) {
                 continue;
             }
             if (JCR_PRIMARYTYPE.equals(name)) {

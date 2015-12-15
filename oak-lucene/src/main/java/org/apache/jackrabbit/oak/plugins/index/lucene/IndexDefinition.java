@@ -220,6 +220,8 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
     private final boolean suggestAnalyzed;
 
+    private final boolean secureFacets;
+
     public IndexDefinition(NodeState root, NodeState defn) {
         this(root, defn, null);
     }
@@ -286,6 +288,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         this.queryPaths = getQueryPaths(defn);
         this.saveDirListing = getOptionalValue(defn, LuceneIndexConstants.SAVE_DIR_LISTING, true);
         this.suggestAnalyzed = getOptionalValue(defn, LuceneIndexConstants.SUGGEST_ANALYZED, false);
+        this.secureFacets = getOptionalValue(defn, LuceneIndexConstants.PROP_SECURE_FACETS, true);
     }
 
     public boolean isFullTextEnabled() {
@@ -629,6 +632,10 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
     public boolean isSuggestAnalyzed() {
         return suggestAnalyzed;
+    }
+
+    public boolean isSecureFacets() {
+        return secureFacets;
     }
 
     public class IndexingRule {
