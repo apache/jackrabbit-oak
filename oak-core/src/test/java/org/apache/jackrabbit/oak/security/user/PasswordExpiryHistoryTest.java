@@ -98,7 +98,7 @@ public class PasswordExpiryHistoryTest extends AbstractSecurityTest {
                 fail("User password changed in spite of enabled pw history");
             } catch (CredentialExpiredException c) {
                 // success, pw found in history
-                Object attr = pwChangeCreds.getAttribute(PasswordHistoryException.class.getName());
+                Object attr = pwChangeCreds.getAttribute(PasswordHistoryException.class.getSimpleName());
                 assertEquals(
                         "credentials should contain pw change failure reason",
                         "New password is identical to the current password.",
@@ -129,7 +129,7 @@ public class PasswordExpiryHistoryTest extends AbstractSecurityTest {
                 fail("User password changed in spite of enabled pw history");
             } catch (CredentialExpiredException c) {
                 // success, pw found in history
-                Object attr = pwChangeCreds.getAttribute(PasswordHistoryException.class.getName());
+                Object attr = pwChangeCreds.getAttribute(PasswordHistoryException.class.getSimpleName());
                 assertEquals(
                         "credentials should contain pw change failure reason",
                         "New password was found in password history.",
@@ -159,7 +159,7 @@ public class PasswordExpiryHistoryTest extends AbstractSecurityTest {
                 fail("User password changed in spite of expected validation failure");
             } catch (CredentialExpiredException c) {
                 // success, pw found in history
-                assertNull(pwChangeCreds.getAttribute(PasswordHistoryException.class.getName()));
+                assertNull(pwChangeCreds.getAttribute(PasswordHistoryException.class.getSimpleName()));
             }
         }
     }
