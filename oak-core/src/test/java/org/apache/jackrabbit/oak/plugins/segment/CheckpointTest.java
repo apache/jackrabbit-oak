@@ -21,6 +21,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -38,7 +39,7 @@ import org.junit.Test;
 public class CheckpointTest {
 
     @Test
-    public void testCheckpoint() throws CommitFailedException {
+    public void testCheckpoint() throws CommitFailedException, IOException {
         SegmentNodeStore store = new SegmentNodeStore(new MemoryStore());
         addTestNode(store, "test-checkpoint");
         verifyNS(store, true);
@@ -50,7 +51,7 @@ public class CheckpointTest {
     }
 
     @Test
-    public void testRelease() throws CommitFailedException {
+    public void testRelease() throws CommitFailedException, IOException {
         SegmentNodeStore store = new SegmentNodeStore(new MemoryStore());
         addTestNode(store, "test-checkpoint");
         String cp = verifyNS(store, true);

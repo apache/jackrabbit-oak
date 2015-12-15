@@ -35,6 +35,7 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Random;
 
@@ -74,14 +75,14 @@ public class RecordUsageAnalyserTest {
     }
 
     @Test
-    public void emptyNode() {
+    public void emptyNode() throws IOException {
         SegmentNodeState node = writer.writeNode(EMPTY_NODE);
         analyser.analyseNode(node.getRecordId());
         assertSizes(analyser, 0, 0, 0, 4, 3);
     }
 
     @Test
-    public void nodeWithInt() {
+    public void nodeWithInt() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("one", 1);
 
@@ -91,7 +92,7 @@ public class RecordUsageAnalyserTest {
     }
 
     @Test
-    public void nodeWithString() {
+    public void nodeWithString() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("two", "222");
 
@@ -101,7 +102,7 @@ public class RecordUsageAnalyserTest {
     }
 
     @Test
-    public void nodeWithMultipleProperties() {
+    public void nodeWithMultipleProperties() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("one", "11");
         builder.setProperty("two", "22");
@@ -117,7 +118,7 @@ public class RecordUsageAnalyserTest {
     }
 
     @Test
-    public void nodeWithMediumString() {
+    public void nodeWithMediumString() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("medium", repeat("a", SMALL_LIMIT + 1));
 
@@ -127,7 +128,7 @@ public class RecordUsageAnalyserTest {
     }
 
     @Test
-    public void nodeWithLargeString() {
+    public void nodeWithLargeString() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("large", repeat("b", MEDIUM_LIMIT + 1));
 
@@ -137,7 +138,7 @@ public class RecordUsageAnalyserTest {
     }
 
     @Test
-    public void nodeWithSameString() {
+    public void nodeWithSameString() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("two", "two");
 
@@ -147,7 +148,7 @@ public class RecordUsageAnalyserTest {
     }
 
     @Test
-    public void nodeWithInts() {
+    public void nodeWithInts() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("multi", ImmutableList.of(1L, 2L, 3L, 4L), LONGS);
 
@@ -157,7 +158,7 @@ public class RecordUsageAnalyserTest {
     }
 
     @Test
-    public void nodeWithManyInts() {
+    public void nodeWithManyInts() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("multi", nCopies(LEVEL_SIZE + 1, 1L), LONGS);
 
@@ -167,7 +168,7 @@ public class RecordUsageAnalyserTest {
     }
 
     @Test
-    public void nodeWithManyIntsAndOne() {
+    public void nodeWithManyIntsAndOne() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("multi", nCopies(LEVEL_SIZE + 2, 1L), LONGS);
 
@@ -177,7 +178,7 @@ public class RecordUsageAnalyserTest {
     }
 
     @Test
-    public void nodeWithStrings() {
+    public void nodeWithStrings() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("multi", ImmutableList.of("one", "one", "two", "two", "three"), STRINGS);
 
@@ -187,7 +188,7 @@ public class RecordUsageAnalyserTest {
     }
 
     @Test
-    public void nodeWithBlob() {
+    public void nodeWithBlob() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("blob", createRandomBlob(4));
 
@@ -197,7 +198,7 @@ public class RecordUsageAnalyserTest {
     }
 
     @Test
-    public void nodeWithMediumBlob() {
+    public void nodeWithMediumBlob() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("mediumBlob", createRandomBlob(SMALL_LIMIT + 1));
 
@@ -207,7 +208,7 @@ public class RecordUsageAnalyserTest {
     }
 
     @Test
-    public void nodeWithLargeBlob() {
+    public void nodeWithLargeBlob() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("largeBlob", createRandomBlob(MEDIUM_LIMIT + 1));
 
@@ -217,7 +218,7 @@ public class RecordUsageAnalyserTest {
     }
 
     @Test
-    public void nodeWithPrimaryType() {
+    public void nodeWithPrimaryType() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("jcr:primaryType", "type", NAME);
 
@@ -227,7 +228,7 @@ public class RecordUsageAnalyserTest {
     }
 
     @Test
-    public void nodeWithMixinTypes() {
+    public void nodeWithMixinTypes() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("jcr:mixinTypes", ImmutableList.of("type1", "type2"), NAMES);
 
@@ -237,7 +238,7 @@ public class RecordUsageAnalyserTest {
     }
 
     @Test
-    public void singleChild() {
+    public void singleChild() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setChildNode("child");
 
@@ -247,7 +248,7 @@ public class RecordUsageAnalyserTest {
     }
 
     @Test
-    public void multiChild() {
+    public void multiChild() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setChildNode("child1");
         builder.setChildNode("child2");
@@ -258,7 +259,7 @@ public class RecordUsageAnalyserTest {
     }
 
     @Test
-    public void manyChild() {
+    public void manyChild() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         for (int k = 0; k < MapRecord.BUCKETS_PER_LEVEL + 1; k++) {
             builder.setChildNode("child" + k);
@@ -270,7 +271,7 @@ public class RecordUsageAnalyserTest {
     }
 
     @Test
-    public void changedChild() {
+    public void changedChild() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setChildNode("child1");
         builder.setChildNode("child2");
@@ -290,7 +291,7 @@ public class RecordUsageAnalyserTest {
     }
 
     @Test
-    public void counts() {
+    public void counts() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setChildNode("child1");
         builder.setChildNode("child2");

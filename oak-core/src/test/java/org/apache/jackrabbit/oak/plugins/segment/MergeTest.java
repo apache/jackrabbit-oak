@@ -20,6 +20,7 @@ import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
 import static junit.framework.Assert.fail;
 
+import java.io.IOException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -38,7 +39,7 @@ import org.junit.Test;
 public class MergeTest {
 
     @Test
-    public void testSequentialMerge() throws CommitFailedException {
+    public void testSequentialMerge() throws CommitFailedException, IOException {
         NodeStore store = new SegmentNodeStore(new MemoryStore());
 
         assertFalse(store.getRoot().hasProperty("foo"));
@@ -60,7 +61,7 @@ public class MergeTest {
     }
 
     @Test
-    public void testOptimisticMerge() throws CommitFailedException {
+    public void testOptimisticMerge() throws CommitFailedException, IOException {
         NodeStore store = new SegmentNodeStore(new MemoryStore());
 
         NodeBuilder a = store.getRoot().builder();

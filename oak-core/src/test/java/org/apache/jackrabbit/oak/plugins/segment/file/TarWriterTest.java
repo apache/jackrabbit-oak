@@ -146,19 +146,24 @@ public class TarWriterTest {
         private final Map<SegmentId, ByteBuffer> segments = newHashMap();
         private final Map<UUID, Node> nodes = newHashMap();
 
-        private final SegmentStore store = new MemoryStore() {
-            @Override
-            public void writeSegment(SegmentId id, byte[] data, int offset, int length) {
-                super.writeSegment(id, data, offset, length);
-                ByteBuffer buffer = allocate(length);
-                buffer.put(data, offset, length);
-                buffer.rewind();
-                segments.put(id, buffer);
-            }
-        };
-        private final SegmentWriter writer = new SegmentWriter(store, V_11);
+        private final SegmentStore store;
+        private final SegmentWriter writer;
 
         private int nextNodeNo;
+
+        public SegmentGraphBuilder() throws IOException {
+            store = new MemoryStore() {
+                @Override
+                public void writeSegment(SegmentId id, byte[] data, int offset, int length) throws IOException {
+                    super.writeSegment(id, data, offset, length);
+                    ByteBuffer buffer = allocate(length);
+                    buffer.put(data, offset, length);
+                    buffer.rewind();
+                    segments.put(id, buffer);
+                }
+            };
+            writer = new SegmentWriter(store, V_11);
+        }
 
         public class Node {
             final String name;
@@ -201,14 +206,14 @@ public class TarWriterTest {
                 return name;
             }
 
-            void addReference(SegmentWriter writer) {
+            void addReference(SegmentWriter writer) throws IOException {
                 // Need to write a proper list as singleton lists are optimised
                 // to just returning the recordId of its single element
                 writer.writeList(ImmutableList.of(selfId, selfId));
             }
         }
 
-        public Node createNode(String name, Node... refs) {
+        public Node createNode(String name, Node... refs) throws IOException {
             RecordId selfId = writer.writeString("id-" + nextNodeNo++);
             for (Node ref : refs) {
                 ref.addReference(writer);

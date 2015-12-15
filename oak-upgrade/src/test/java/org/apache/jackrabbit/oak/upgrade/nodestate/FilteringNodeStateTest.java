@@ -16,20 +16,6 @@
  */
 package org.apache.jackrabbit.oak.upgrade.nodestate;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.Before;
-import org.junit.Test;
-
-import javax.jcr.RepositoryException;
-import java.util.Set;
-
 import static com.google.common.collect.ImmutableSet.of;
 import static com.google.common.collect.Lists.newArrayList;
 import static java.util.Arrays.asList;
@@ -50,6 +36,22 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
+import java.util.Set;
+
+import javax.jcr.RepositoryException;
+
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.Before;
+import org.junit.Test;
+
 public class FilteringNodeStateTest {
 
     private static final Set<String> DEFAULT_INCLUDES = FilteringNodeState.ALL;
@@ -59,7 +61,7 @@ public class FilteringNodeStateTest {
     private NodeState rootNodeState;
 
     @Before
-    public void setup() throws RepositoryException, CommitFailedException {
+    public void setup() throws RepositoryException, CommitFailedException, IOException {
         final NodeStore nodeStore = createNodeStoreWithContent(
                 "/content/foo/de",
                 "/content/foo/en",

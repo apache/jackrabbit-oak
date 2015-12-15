@@ -140,7 +140,11 @@ public abstract class NodeStoreFixture {
 
         @Override
         public NodeStore createNodeStore() {
-            return new SegmentNodeStore(store == null ? new MemoryStore() : store);
+            try {
+                return new SegmentNodeStore(store == null ? new MemoryStore() : store);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         @Override

@@ -18,10 +18,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import java.io.IOException;
 
 import javax.annotation.Nonnull;
+
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 public class DebugSegmentStore implements SegmentStore {
 
@@ -59,7 +61,7 @@ public class DebugSegmentStore implements SegmentStore {
     }
 
     @Override
-    public void writeSegment(SegmentId id, byte[] bytes, int offset, int length) {
+    public void writeSegment(SegmentId id, byte[] bytes, int offset, int length) throws IOException {
         this.target.writeSegment(id, bytes, offset, length);
     }
 

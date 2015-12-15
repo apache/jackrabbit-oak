@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.io.IOException;
+
 import com.google.common.collect.ImmutableMap;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -51,7 +53,7 @@ public class InitializerTest extends AbstractMongoConnectionTest {
     }
 
     @Test
-    public void testInitializerSegment() throws CommitFailedException {
+    public void testInitializerSegment() throws CommitFailedException, IOException {
         NodeStore store = new SegmentNodeStore(new MemoryStore());
 
         NodeBuilder builder = store.getRoot().builder();

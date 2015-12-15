@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static org.junit.Assert.fail;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -43,7 +44,7 @@ public class SegmentIdTableTest {
      * OAK-2752
      */
     @Test
-    public void endlessSearchLoop() {
+    public void endlessSearchLoop() throws IOException {
         SegmentTracker tracker = new MemoryStore().getTracker();
         final SegmentIdTable tbl = new SegmentIdTable(tracker);
 
@@ -73,7 +74,7 @@ public class SegmentIdTableTest {
     }
     
     @Test
-    public void randomized() {
+    public void randomized() throws IOException {
         SegmentTracker tracker = new MemoryStore().getTracker();
         final SegmentIdTable tbl = new SegmentIdTable(tracker);
 
@@ -96,7 +97,7 @@ public class SegmentIdTableTest {
     }
     
     @Test
-    public void clearTable() {
+    public void clearTable() throws IOException {
         SegmentTracker tracker = new MemoryStore().getTracker();
         final SegmentIdTable tbl = new SegmentIdTable(tracker);
 
@@ -142,7 +143,7 @@ public class SegmentIdTableTest {
     }
     
     @Test
-    public void justHashCollisions() {
+    public void justHashCollisions() throws IOException {
         SegmentTracker tracker = new MemoryStore().getTracker();
         final SegmentIdTable tbl = new SegmentIdTable(tracker);
 
@@ -166,7 +167,7 @@ public class SegmentIdTableTest {
     }
     
     @Test
-    public void gc() {
+    public void gc() throws IOException {
         SegmentTracker tracker = new MemoryStore().getTracker();
         final SegmentIdTable tbl = new SegmentIdTable(tracker);
 

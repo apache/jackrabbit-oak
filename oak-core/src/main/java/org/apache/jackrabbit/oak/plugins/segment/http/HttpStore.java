@@ -126,13 +126,13 @@ public class HttpStore implements SegmentStore {
         } catch (MalformedURLException e) {
             throw new SegmentNotFoundException(id, e);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new SegmentNotFoundException(id, e);
         }
     }
 
     @Override
     public void writeSegment(
-            SegmentId id, byte[] bytes, int offset, int length) {
+            SegmentId id, byte[] bytes, int offset, int length) throws IOException {
         try {
             URLConnection connection = get(id.toString());
             connection.setDoInput(false);
@@ -144,9 +144,7 @@ public class HttpStore implements SegmentStore {
                 stream.close();
             }
         } catch (MalformedURLException e) {
-            throw new IllegalStateException(e);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new IOException(e);
         }
     }
 

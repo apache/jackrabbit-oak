@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,9 +47,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 public abstract class AbstractRepositoryUpgradeTest {
 
     public static final Credentials CREDENTIALS = new SimpleCredentials("admin", "admin".toCharArray());
@@ -71,7 +71,11 @@ public abstract class AbstractRepositoryUpgradeTest {
     }
 
     protected NodeStore createTargetNodeStore() {
-        return new SegmentNodeStore();
+        try {
+            return new SegmentNodeStore();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Before

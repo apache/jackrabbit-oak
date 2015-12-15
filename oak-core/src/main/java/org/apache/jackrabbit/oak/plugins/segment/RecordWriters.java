@@ -32,6 +32,7 @@ import static org.apache.jackrabbit.oak.plugins.segment.RecordType.VALUE;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.SMALL_LIMIT;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.V_11;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -62,7 +63,7 @@ final class RecordWriters {
             this(type, size, Collections.<RecordId> emptyList());
         }
 
-        public final T write(SegmentBufferWriter writer) {
+        public final T write(SegmentBufferWriter writer) throws IOException {
             RecordId id = writer.prepare(type, size, ids);
             return writeRecordContent(id, writer);
         }

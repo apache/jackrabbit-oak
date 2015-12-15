@@ -104,7 +104,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
     /**
      * Flag controlling the commit lock fairness
      */
-    private boolean commitFairLock = Boolean
+    private final boolean commitFairLock = Boolean
             .getBoolean("oak.segmentNodeStore.commitFairLock");
 
     @Nonnull
@@ -132,7 +132,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
         this.changeDispatcher = new ChangeDispatcher(getRoot());
     }
 
-    public SegmentNodeStore() {
+    public SegmentNodeStore() throws IOException {
         this(new MemoryStore());
     }
 

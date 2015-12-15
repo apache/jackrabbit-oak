@@ -21,6 +21,7 @@ import static com.google.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,7 +39,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MultiBinaryPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
@@ -46,7 +46,6 @@ import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -129,9 +128,9 @@ public class Compactor {
         this.cancel = cancel;
     }
 
-    protected SegmentNodeBuilder process(NodeState before, NodeState after, NodeState onto) {
+    protected SegmentNodeBuilder process(NodeState before, NodeState after, NodeState onto) throws IOException {
         SegmentNodeBuilder builder = new SegmentNodeBuilder(writer.writeNode(onto), writer);
-        after.compareAgainstBaseState(before, newCompactionDiff(builder));
+        new CompactDiff(builder).diff(before, after);
         return builder;
     }
 
@@ -145,7 +144,7 @@ public class Compactor {
      * @param after   the after state
      * @return  the compacted state
      */
-    public SegmentNodeState compact(NodeState before, NodeState after) {
+    public SegmentNodeState compact(NodeState before, NodeState after) throws IOException {
         progress.start();
         SegmentNodeState compacted = process(before, after, before).getNodeState();
         writer.flush();
@@ -161,7 +160,7 @@ public class Compactor {
      * @param onto    the onto state
      * @return  the compacted state
      */
-    public SegmentNodeState compact(NodeState before, NodeState after, NodeState onto) {
+    public SegmentNodeState compact(NodeState before, NodeState after, NodeState onto) throws IOException {
         progress.start();
         SegmentNodeState compacted = process(before, after, onto).getNodeState();
         writer.flush();
@@ -175,6 +174,7 @@ public class Compactor {
     }
 
     private class CompactDiff extends ApplyDiff {
+        private IOException exception;
 
         /**
          * Current processed path, or null if the trace log is not enabled at
@@ -199,6 +199,14 @@ public class Compactor {
             } else {
                 this.path = null;
             }
+        }
+
+        boolean diff(NodeState before, NodeState after) throws IOException {
+            boolean success = after.compareAgainstBaseState(before, new CancelableDiff(this, cancel));
+            if (exception != null) {
+                throw new IOException(exception);
+            }
+            return success;
         }
 
         @Override
@@ -236,19 +244,21 @@ public class Compactor {
             }
 
             progress.onNode();
-            NodeBuilder child = EmptyNodeState.EMPTY_NODE.builder();
-            boolean success = EmptyNodeState.compareAgainstEmptyState(after,
-                    newCompactionDiff(child, path, name));
-
-            if (success) {
-                SegmentNodeState state = writer.writeNode(child.getNodeState());
-                builder.setChildNode(name, state);
-                if (id != null && includeInMap.apply(state)) {
-                    map.put(id, state.getRecordId());
+            try {
+                NodeBuilder child = EMPTY_NODE.builder();
+                boolean success =  new CompactDiff(child, path, name).diff(EMPTY_NODE, after);
+                if (success) {
+                    SegmentNodeState state = writer.writeNode(child.getNodeState());
+                    builder.setChildNode(name, state);
+                    if (id != null && includeInMap.apply(state)) {
+                        map.put(id, state.getRecordId());
+                    }
                 }
+                return success;
+            } catch (IOException e) {
+                exception = e;
+                return false;
             }
-
-            return success;
         }
 
         @Override
@@ -269,29 +279,21 @@ public class Compactor {
             }
 
             progress.onNode();
-            NodeBuilder child = builder.getChildNode(name);
-            boolean success = after.compareAgainstBaseState(before,
-                    newCompactionDiff(child, path, name));
-
-            if (success) {
-                RecordId compactedId = writer.writeNode(child.getNodeState())
-                        .getRecordId();
-                if (id != null) {
-                    map.put(id, compactedId);
+            try {
+                NodeBuilder child = builder.getChildNode(name);
+                boolean success = new CompactDiff(child, path, name).diff(before, after);
+                if (success) {
+                    RecordId compactedId = writer.writeNode(child.getNodeState()).getRecordId();
+                    if (id != null) {
+                        map.put(id, compactedId);
+                    }
                 }
+                return success;
+            } catch (IOException e) {
+                exception = e;
+                return false;
             }
-
-            return success;
         }
-
-    }
-
-    private NodeStateDiff newCompactionDiff(NodeBuilder builder) {
-        return new CancelableDiff(new CompactDiff(builder), cancel);
-    }
-
-    private NodeStateDiff newCompactionDiff(NodeBuilder child, String path, String name) {
-        return new CancelableDiff(new CompactDiff(child, path, name), cancel);
     }
 
     private PropertyState compact(PropertyState property) {
@@ -381,8 +383,7 @@ public class Compactor {
         }
     }
 
-    private class ProgressTracker {
-
+    private static class ProgressTracker {
         private final long logAt = Long.getLong("compaction-progress-log",
                 150000);
 

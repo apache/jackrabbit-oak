@@ -109,7 +109,7 @@ public class RefreshOnGCTest {
     }
 
     @Test
-    public void compactionCausesRefresh() throws RepositoryException, InterruptedException, ExecutionException {
+    public void compactionCausesRefresh() throws RepositoryException, InterruptedException, ExecutionException, IOException {
         Session session = repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
         try {
             Node root = session.getRootNode();

@@ -62,7 +62,7 @@ public class FileStoreRestore {
     }
 
     private static void restore(NodeState source, NodeStore store,
-            SegmentStore restore) throws CommitFailedException {
+            SegmentStore restore) throws CommitFailedException, IOException {
         long s = System.currentTimeMillis();
         NodeState current = store.getRoot();
         RestoreCompactor compactor = new RestoreCompactor(restore);
@@ -78,7 +78,7 @@ public class FileStoreRestore {
         }
 
         @Override
-        protected SegmentNodeBuilder process(NodeState before, NodeState after, NodeState onto) {
+        protected SegmentNodeBuilder process(NodeState before, NodeState after, NodeState onto) throws IOException {
             return super.process(before, after, onto);
         }
     }
