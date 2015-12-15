@@ -299,7 +299,7 @@ public class PartialCompactionMapTest {
         run(new GetBenchmark(1000000, 100));
     }
 
-    private static abstract class LoggingBenchmark extends Benchmark {
+    private abstract static class LoggingBenchmark extends Benchmark {
 
         @Override
         public void result(DescriptiveStatistics statistics) {
@@ -349,7 +349,7 @@ public class PartialCompactionMapTest {
         }
 
         @Override
-        public void run() {
+        public void run() throws IOException {
             for (Entry<RecordId, RecordId> tuple : putIds.entrySet()) {
                 map.put(tuple.getKey(), tuple.getValue());
             }

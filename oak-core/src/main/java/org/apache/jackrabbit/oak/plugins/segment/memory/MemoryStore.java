@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.segment.memory;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentMap;
 
@@ -50,7 +51,7 @@ public class MemoryStore implements SegmentStore {
     private final ConcurrentMap<SegmentId, Segment> segments =
             Maps.newConcurrentMap();
 
-    public MemoryStore(NodeState root) {
+    public MemoryStore(NodeState root) throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setChildNode("root", root);
 
@@ -59,7 +60,7 @@ public class MemoryStore implements SegmentStore {
         writer.flush();
     }
 
-    public MemoryStore() {
+    public MemoryStore() throws IOException {
         this(EMPTY_NODE);
     }
 
@@ -99,13 +100,13 @@ public class MemoryStore implements SegmentStore {
 
     @Override
     public void writeSegment(
-            SegmentId id, byte[] data, int offset, int length) {
+            SegmentId id, byte[] data, int offset, int length) throws IOException {
         ByteBuffer buffer = ByteBuffer.allocate(length);
         buffer.put(data, offset, length);
         buffer.rewind();
         Segment segment = new Segment(tracker, id, buffer);
         if (segments.putIfAbsent(id, segment) != null) {
-            throw new IllegalStateException("Segment override: " + id);
+            throw new IOException("Segment override: " + id);
         }
     }
 

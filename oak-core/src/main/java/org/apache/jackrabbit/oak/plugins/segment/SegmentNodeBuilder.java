@@ -24,6 +24,8 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A node builder that keeps track of the number of updates
@@ -32,6 +34,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * and that might persist the changes (if the segment is flushed).
  */
 public class SegmentNodeBuilder extends MemoryNodeBuilder {
+    private static final Logger LOG = LoggerFactory.getLogger(SegmentNodeBuilder.class);
 
     /**
      * Number of content updates that need to happen before the updates
@@ -103,13 +106,18 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
     @Nonnull
     @Override
     public SegmentNodeState getNodeState() {
-        NodeState state = super.getNodeState();
-        SegmentNodeState sstate = writer.writeNode(state);
-        if (state != sstate) {
-            set(sstate);
-            updateCount = 0;
+        try {
+            NodeState state = super.getNodeState();
+            SegmentNodeState sstate = writer.writeNode(state);
+            if (state != sstate) {
+                set(sstate);
+                updateCount = 0;
+            }
+            return sstate;
+        } catch (IOException e) {
+            LOG.error("Error flushing changes", e);
+            throw new IllegalStateException("Unexpected IOException", e);
         }
-        return sstate;
     }
 
     @Override

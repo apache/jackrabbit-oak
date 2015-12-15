@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import java.io.IOException;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -64,7 +66,7 @@ public interface SegmentStore {
      * @param offset start offset within the byte buffer
      * @param length length of the segment
      */
-    void writeSegment(SegmentId id, byte[] bytes, int offset, int length);
+    void writeSegment(SegmentId id, byte[] bytes, int offset, int length) throws IOException;
 
     void close();
 

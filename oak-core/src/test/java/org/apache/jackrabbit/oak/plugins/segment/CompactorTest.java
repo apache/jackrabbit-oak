@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static org.junit.Assert.assertFalse;
 
+import java.io.IOException;
+
 import com.google.common.base.Suppliers;
 import junit.framework.Assert;
 import org.apache.jackrabbit.oak.Oak;
@@ -38,7 +40,7 @@ public class CompactorTest {
     private SegmentStore segmentStore;
 
     @Before
-    public void openSegmentStore() {
+    public void openSegmentStore() throws IOException {
         segmentStore = new MemoryStore();
     }
 

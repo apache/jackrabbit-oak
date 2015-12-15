@@ -23,6 +23,7 @@ import static com.google.common.collect.Maps.newTreeMap;
 import static java.lang.Integer.getInteger;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.encode;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -35,6 +36,8 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A {@code PartialCompactionMap} implementation persisting its entries
@@ -43,6 +46,7 @@ import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
  * TODO In theory we could also compact the compaction map. Is there any need to do so?
  */
 public class PersistedCompactionMap implements PartialCompactionMap {
+    private static final Logger LOG = LoggerFactory.getLogger(PersistedCompactionMap.class);
 
     /**
      * Rough estimate of the number of bytes of disk space of a map entry.
@@ -174,66 +178,71 @@ public class PersistedCompactionMap implements PartialCompactionMap {
     }
 
     private void compress(@Nonnull Set<UUID> removed) {
-        if (recent.isEmpty() && removed.isEmpty()) {
-            return;
-        }
-
-        SegmentWriter writer = null;
-        Map<String, RecordId> segmentIdMap = newHashMap();
-        for (Entry<UUID, RecordIdMap> recentEntry : recent.entrySet()) {
-            UUID uuid = recentEntry.getKey();
-            RecordIdMap newSegment = recentEntry.getValue();
-
-            if (removed.contains(uuid)) {
-                continue;
+        try {
+            if (recent.isEmpty() && removed.isEmpty()) {
+                return;
             }
 
-            MapRecord base;
-            MapEntry baseEntry = entries == null ? null : entries.getEntry(uuid.toString());
-            base = baseEntry == null ? null : new MapRecord(baseEntry.getValue());
+            SegmentWriter writer = null;
+            Map<String, RecordId> segmentIdMap = newHashMap();
+            for (Entry<UUID, RecordIdMap> recentEntry : recent.entrySet()) {
+                UUID uuid = recentEntry.getKey();
+                RecordIdMap newSegment = recentEntry.getValue();
 
-            if (writer == null) {
-                writer = store.createSegmentWriter(createWid());
-            }
+                if (removed.contains(uuid)) {
+                    continue;
+                }
 
-            Map<String, RecordId> offsetMap = newHashMap();
-            for (int k = 0; k < newSegment.size(); k++) {
-                offsetMap.put(String.valueOf(newSegment.getKey(k)),
+                MapRecord base;
+                MapEntry baseEntry = entries == null ? null : entries.getEntry(uuid.toString());
+                base = baseEntry == null ? null : new MapRecord(baseEntry.getValue());
+
+                if (writer == null) {
+                    writer = store.createSegmentWriter(createWid());
+                }
+
+                Map<String, RecordId> offsetMap = newHashMap();
+                for (int k = 0; k < newSegment.size(); k++) {
+                    offsetMap.put(String.valueOf(newSegment.getKey(k)),
                         writer.writeString(newSegment.getRecordId(k).toString10()));
+                }
+                RecordId newEntryId = writer.writeMap(base, offsetMap).getRecordId();
+                segmentIdMap.put(uuid.toString(), newEntryId);
+                recordCount += offsetMap.size();
             }
-            RecordId newEntryId = writer.writeMap(base, offsetMap).getRecordId();
-            segmentIdMap.put(uuid.toString(), newEntryId);
-            recordCount += offsetMap.size();
-        }
 
-        if (entries != null) {
-            for (UUID uuid : removed) {
-                MapEntry toRemove = entries.getEntry(uuid.toString());
-                if (toRemove != null) {
-                    segmentIdMap.put(uuid.toString(), null);
-                    recordCount -= new MapRecord(toRemove.getValue()).size();
+            if (entries != null) {
+                for (UUID uuid : removed) {
+                    MapEntry toRemove = entries.getEntry(uuid.toString());
+                    if (toRemove != null) {
+                        segmentIdMap.put(uuid.toString(), null);
+                        recordCount -= new MapRecord(toRemove.getValue()).size();
+                    }
                 }
             }
-        }
 
-        if (!segmentIdMap.isEmpty()) {
-            if (writer == null) {
-                writer = store.createSegmentWriter(createWid());
-            }
+            if (!segmentIdMap.isEmpty()) {
+                if (writer == null) {
+                    writer = store.createSegmentWriter(createWid());
+                }
 
-            RecordId previousBaseId = entries == null ? null : entries.getRecordId();
-            entries = writer.writeMap(entries, segmentIdMap);
-            entries.getSegment().getSegmentId().pin();
-            String mapInfo = PERSISTED_COMPACTION_MAP + '{' +
+                RecordId previousBaseId = entries == null ? null : entries.getRecordId();
+                entries = writer.writeMap(entries, segmentIdMap);
+                entries.getSegment().getSegmentId().pin();
+                String mapInfo = PERSISTED_COMPACTION_MAP + '{' +
                     "id=" + entries.getRecordId() +
                     ", baseId=" + previousBaseId + '}';
-            writer.writeString(mapInfo);
-            writer.flush();
-        }
+                writer.writeString(mapInfo);
+                writer.flush();
+            }
 
-        recent.clear();
-        if (recordCount == 0) {
-            entries = null;
+            recent.clear();
+            if (recordCount == 0) {
+                entries = null;
+            }
+        } catch (IOException e) {
+            LOG.error("Error compression compaction map", e);
+            throw new IllegalStateException("Unexpected IOException", e);
         }
     }
 

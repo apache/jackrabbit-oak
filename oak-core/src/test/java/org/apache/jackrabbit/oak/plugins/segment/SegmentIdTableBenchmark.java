@@ -16,13 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.Random;
 
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 
 public class SegmentIdTableBenchmark {
-    public static void main(String... args) {
+    public static void main(String... args) throws IOException {
         test();
         test();
         test();
@@ -31,7 +32,7 @@ public class SegmentIdTableBenchmark {
         test();
     }
 
-    private static void test() {
+    private static void test() throws IOException {
         long time;
         int repeat = 10000;
         int count = 10000;

@@ -18,6 +18,17 @@
  */
 package org.apache.jackrabbit.oak.upgrade.util;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -31,23 +42,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 public class NodeStateTestUtils {
 
     private NodeStateTestUtils() {
         // no instances
     }
 
-    public static NodeStore createNodeStoreWithContent(String... paths) throws CommitFailedException {
+    public static NodeStore createNodeStoreWithContent(String... paths) throws CommitFailedException, IOException {
         final SegmentNodeStore store = new SegmentNodeStore();
         final NodeBuilder builder = store.getRoot().builder();
         for (String path : paths) {

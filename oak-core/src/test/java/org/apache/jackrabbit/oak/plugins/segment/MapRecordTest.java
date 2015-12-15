@@ -23,6 +23,7 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 
+import java.io.IOException;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -42,8 +43,11 @@ public class MapRecordTest {
     private final NodeStateDiff diff =
             createControl().createMock("diff", NodeStateDiff.class);
 
-    private NodeBuilder builder =
-            new MemoryStore().getTracker().getWriter().writeNode(EMPTY_NODE).builder();
+    private NodeBuilder builder;
+
+    public MapRecordTest() throws IOException {
+        builder = new MemoryStore().getTracker().getWriter().writeNode(EMPTY_NODE).builder();
+    }
 
     @Test
     public void testOak1104() {

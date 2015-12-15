@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Set;
 
@@ -27,7 +28,11 @@ import org.junit.Test;
 
 public class SegmentIdFactoryTest {
 
-    private final SegmentTracker factory = new MemoryStore().getTracker();
+    private final SegmentTracker factory;
+
+    public SegmentIdFactoryTest() throws IOException {
+        factory = new MemoryStore().getTracker();
+    }
 
     @Test
     public void segmentIdType() {

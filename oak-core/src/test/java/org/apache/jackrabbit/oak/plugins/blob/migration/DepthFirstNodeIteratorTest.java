@@ -19,6 +19,14 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.migration;
 
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertTrue;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
@@ -29,19 +37,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
 import org.junit.Test;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertTrue;
-
-import java.util.HashMap;
-import java.util.Map;
-
 public class DepthFirstNodeIteratorTest {
 
     private NodeStore store;
 
     @Before
-    public void setup() throws CommitFailedException {
+    public void setup() throws CommitFailedException, IOException {
         store = SegmentNodeStore.newSegmentNodeStore(new MemoryStore()).create();
         NodeBuilder rootBuilder = store.getRoot().builder();
         NodeBuilder countries = rootBuilder.child("countries");

@@ -22,6 +22,8 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 
+import java.io.IOException;
+
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -37,8 +39,11 @@ public class CompareAgainstBaseStateTest {
     private final NodeStateDiff diff =
             createControl().createMock("diff", NodeStateDiff.class);
 
-    private NodeBuilder builder =
-            new MemoryStore().getTracker().getWriter().writeNode(EMPTY_NODE).builder();
+    private NodeBuilder builder;
+
+    public CompareAgainstBaseStateTest() throws IOException {
+        builder = new MemoryStore().getTracker().getWriter().writeNode(EMPTY_NODE).builder();
+    }
 
     @Before
     public void setUp() {

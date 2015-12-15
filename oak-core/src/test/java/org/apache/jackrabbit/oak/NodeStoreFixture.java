@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak;
 
+import java.io.IOException;
+
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -38,7 +40,11 @@ public abstract class NodeStoreFixture {
 
         @Override
         public NodeStore createNodeStore() {
-            return new SegmentNodeStore(new MemoryStore());
+            try {
+                return new SegmentNodeStore(new MemoryStore());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         @Override

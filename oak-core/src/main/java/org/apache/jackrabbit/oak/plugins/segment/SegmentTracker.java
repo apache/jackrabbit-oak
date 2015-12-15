@@ -20,6 +20,7 @@ import static com.google.common.collect.Queues.newArrayDeque;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.Boolean.getBoolean;
 
+import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Queue;
 import java.util.Set;
@@ -271,22 +272,27 @@ public class SegmentTracker {
      * running.
      */
     public void collectBlobReferences(ReferenceCollector collector) {
-        Set<SegmentId> processed = newHashSet();
-        Queue<SegmentId> queue = newArrayDeque(getReferencedSegmentIds());
-        writer.flush(); // force the current segment to have root record info
-        while (!queue.isEmpty()) {
-            SegmentId id = queue.remove();
-            if (id.isDataSegmentId() && processed.add(id)) {
-                Segment segment = id.getSegment();
+        try {
+            Set<SegmentId> processed = newHashSet();
+            Queue<SegmentId> queue = newArrayDeque(getReferencedSegmentIds());
+            writer.flush(); // force the current segment to have root record info
+            while (!queue.isEmpty()) {
+                SegmentId id = queue.remove();
+                if (id.isDataSegmentId() && processed.add(id)) {
+                    Segment segment = id.getSegment();
 
-                segment.collectBlobReferences(collector);
+                    segment.collectBlobReferences(collector);
 
-                for (SegmentId refid : segment.getReferencedIds()) {
-                    if (refid.isDataSegmentId() && !processed.contains(refid)) {
-                        queue.add(refid);
+                    for (SegmentId refid : segment.getReferencedIds()) {
+                        if (refid.isDataSegmentId() && !processed.contains(refid)) {
+                            queue.add(refid);
+                        }
                     }
                 }
             }
+        } catch (IOException e) {
+            log.error("Error while flushing pending segments", e);
+            throw new IllegalStateException("Unexpected IOException", e);
         }
     }
 

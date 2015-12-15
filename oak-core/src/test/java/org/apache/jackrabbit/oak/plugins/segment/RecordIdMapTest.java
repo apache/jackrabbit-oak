@@ -30,6 +30,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
@@ -56,7 +57,7 @@ public class RecordIdMapTest {
     }
 
     @Test
-    public void testRecordIdMap() {
+    public void testRecordIdMap() throws IOException {
         int maxSegments = 1000;
         int maxEntriesPerSegment = 10;
         int seed = new Random().nextInt();

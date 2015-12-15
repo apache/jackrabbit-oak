@@ -35,6 +35,7 @@ import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ID_BYTES;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.SEGMENT_REFERENCE_LIMIT;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.align;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.HashSet;
@@ -108,7 +109,7 @@ class SegmentBufferWriter {
      */
     private int position;
 
-    public SegmentBufferWriter(SegmentStore store, SegmentVersion version, String wid) {
+    public SegmentBufferWriter(SegmentStore store, SegmentVersion version, String wid) throws IOException {
         this.store = store;
         this.version = version;
         this.wid = (wid == null
@@ -135,7 +136,7 @@ class SegmentBufferWriter {
      * The segment meta data is guaranteed to be the first string record in a segment.
      * @param wid  the writer id
      */
-    private void newSegment(String wid) {
+    private void newSegment(String wid) throws IOException {
         this.segment = new Segment(tracker, buffer);
         String metaInfo = "{\"wid\":\"" + wid + '"' +
                 ",\"sno\":" + tracker.getNextSegmentNo() +
@@ -230,7 +231,7 @@ class SegmentBufferWriter {
      * store. This is done automatically (called from prepare) when there is not
      * enough space for a record. It can also be called explicitly.
      */
-    public void flush() {
+    public void flush() throws IOException {
         if (length > 0) {
             int refcount = segment.getRefCount();
 
@@ -324,7 +325,7 @@ class SegmentBufferWriter {
      * @param ids the record ids
      * @return a new record id
      */
-    public RecordId prepare(RecordType type, int size, Collection<RecordId> ids) {
+    public RecordId prepare(RecordType type, int size, Collection<RecordId> ids) throws IOException {
         checkArgument(size >= 0);
         checkNotNull(ids);
 

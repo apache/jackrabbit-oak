@@ -205,7 +205,7 @@ public class StandbyStore implements SegmentStore {
     }
 
     @Override
-    public void writeSegment(SegmentId id, byte[] bytes, int offset, int length) {
+    public void writeSegment(SegmentId id, byte[] bytes, int offset, int length) throws IOException {
         delegate.writeSegment(id, bytes, offset, length);
     }
 
