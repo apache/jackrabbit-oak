@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.solr.query;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
@@ -60,6 +61,17 @@ class FilterQueryParser {
             Collection<String> fulltextConditions = filter.getFulltextConditions();
             for (String fulltextCondition : fulltextConditions) {
                 queryBuilder.append(fulltextCondition).append(" ");
+            }
+        }
+
+        // facet enable
+        List<Filter.PropertyRestriction> facetRestriction = filter.getPropertyRestrictions(QueryImpl.REP_FACET);
+        if (facetRestriction != null && facetRestriction.size() > 0) {
+            solrQuery.setFacetMinCount(1);
+            solrQuery.setFacet(true);
+            for (Filter.PropertyRestriction pr : facetRestriction) {
+                String value = pr.first.getValue(Type.STRING);
+                solrQuery.addFacetField(value.substring(QueryImpl.REP_FACET.length() + 1, value.length() - 1)+"_facet");
             }
         }
 
