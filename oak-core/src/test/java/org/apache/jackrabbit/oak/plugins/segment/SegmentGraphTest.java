@@ -51,8 +51,8 @@ public class SegmentGraphTest {
     private final Set<UUID> segments = newHashSet();
     private final Map<UUID, Set<UUID>> references = newHashMap();
 
-    private final Set<Integer> gcGenerations = newHashSet();
-    private final Map<Integer, Set<Integer>> gcReferences = newHashMap();
+    private final Set<String> gcGenerations = newHashSet();
+    private final Map<String, Set<String>> gcReferences = newHashMap();
 
     private File storeDir;
 
@@ -126,10 +126,10 @@ public class SegmentGraphTest {
 
         store.close();
 
-        gcGenerations.add(0);
-        gcGenerations.add(1);
-        gcReferences.put(0, singleton(0));
-        gcReferences.put(1, singleton(0));
+        gcGenerations.add("0");
+        gcGenerations.add("1");
+        gcReferences.put("0", singleton("0"));
+        gcReferences.put("1", singleton("0"));
     }
 
     @After
@@ -153,7 +153,7 @@ public class SegmentGraphTest {
     public void testGCGraph() throws IOException {
         ReadOnlyStore store = new ReadOnlyStore(storeDir);
         try {
-            Graph<Integer> gcGraph = SegmentGraph.parseGCGraph(store);
+            Graph<String> gcGraph = SegmentGraph.parseGCGraph(store);
             assertEquals(gcGenerations, gcGraph.vertices);
             assertEquals(gcReferences, gcGraph.edges);
         } finally {
