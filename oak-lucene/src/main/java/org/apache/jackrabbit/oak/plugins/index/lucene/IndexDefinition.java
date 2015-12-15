@@ -291,6 +291,10 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         this.secureFacets = getOptionalValue(defn, LuceneIndexConstants.PROP_SECURE_FACETS, true);
     }
 
+    public NodeState getDefinitionNodeState() {
+        return definition;
+    }
+
     public boolean isFullTextEnabled() {
         return fullTextEnabled;
     }
