@@ -433,7 +433,6 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                                 if (facetsMap.size() > 0) {
                                     facets = new MultiFacets(facetsMap);
                                     LOG.debug("facets retrieved in {}ms", (System.currentTimeMillis() - f));
-                                    LOG.info("facets in {}ms : {}", (System.currentTimeMillis() - f), facets.getTopChildren(10, facetFields.get(0)));
                                 }
 
                             }
