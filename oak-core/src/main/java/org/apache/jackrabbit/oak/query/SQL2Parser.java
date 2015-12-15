@@ -856,7 +856,7 @@ public class SQL2Parser {
                 if (readIf("*")) {
                     column.propertyName = null;
                 } else if (readIf("EXCERPT")) {
-                    column.propertyName = "rep:excerpt";
+                    column.propertyName = QueryImpl.REP_EXCERPT;
                     read("(");
                     if (!readIf(")")) {
                         if (!readIf(".")) {
@@ -867,12 +867,12 @@ public class SQL2Parser {
                     readOptionalAlias(column);
                 } else {                    
                     column.propertyName = readName();
-                    if (column.propertyName.equals("rep:spellcheck")) {
+                    if (column.propertyName.equals(QueryImpl.REP_SPELLCHECK)) {
                         if (readIf("(")) {
                             read(")");
                             column.propertyName = ":spellcheck";
                         }
-                        readOptionalAlias(column);                        
+                        readOptionalAlias(column);
                     } else if (readIf(".")) {
                         column.selectorName = column.propertyName;
                         if (readIf("*")) {
