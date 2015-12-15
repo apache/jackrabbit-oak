@@ -31,12 +31,14 @@ import static org.junit.Assert.assertEquals;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.Multiset;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentGraph.Graph;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType;
@@ -142,8 +144,8 @@ public class SegmentGraphTest {
         ReadOnlyStore store = new ReadOnlyStore(storeDir);
         try {
             Graph<UUID> segmentGraph = parseSegmentGraph(store);
-            assertEquals(segments, segmentGraph.vertices);
-            assertEquals(references, segmentGraph.edges);
+            assertEquals(segments, newHashSet(segmentGraph.vertices()));
+            assertEquals(references, toMap(segmentGraph.edges()));
         } finally {
             store.close();
         }
@@ -154,10 +156,18 @@ public class SegmentGraphTest {
         ReadOnlyStore store = new ReadOnlyStore(storeDir);
         try {
             Graph<String> gcGraph = SegmentGraph.parseGCGraph(store);
-            assertEquals(gcGenerations, gcGraph.vertices);
-            assertEquals(gcReferences, gcGraph.edges);
+            assertEquals(gcGenerations, newHashSet(gcGraph.vertices()));
+            assertEquals(gcReferences, toMap(gcGraph.edges()));
         } finally {
             store.close();
         }
+    }
+
+    private static <T> Map<T, Set<T>> toMap(Set<Entry<T, Multiset<T>>> entries) {
+        Map<T, Set<T>> map = newHashMap();
+        for (Entry<T, Multiset<T>> entry : entries) {
+            map.put(entry.getKey(), entry.getValue().elementSet());
+        }
+        return map;
     }
 }

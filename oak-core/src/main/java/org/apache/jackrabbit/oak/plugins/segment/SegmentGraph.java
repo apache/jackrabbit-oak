@@ -41,6 +41,8 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Multiset;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
@@ -74,22 +76,52 @@ public final class SegmentGraph {
      */
     public static class Graph<T> {
         /** The vertices of this graph */
-        public final Set<T> vertices = newHashSet();
+        private final Set<T> vertices = newHashSet();
 
         /** The edges of this graph */
-        public final Map<T, Set<T>> edges = newHashMap();
+        private final Map<T, Multiset<T>> edges = newHashMap();
 
         private void addVertex(T vertex) {
             vertices.add(vertex);
         }
 
         private void addEdge(T from, T to) {
-            Set<T> tos = edges.get(from);
+            Multiset<T> tos = edges.get(from);
             if (tos == null) {
-                tos = newHashSet();
+                tos = HashMultiset.create();
                 edges.put(from, tos);
             }
             tos.add(to);
+        }
+
+        /**
+         * @return  the vertices of this graph
+         */
+        public Iterable<T> vertices() {
+            return vertices;
+        }
+
+        /**
+         * @param vertex
+         * @return  {@code true} iff this graph contains {@code vertex}
+         */
+        public boolean containsVertex(T vertex) {
+            return vertices.contains(vertex);
+        }
+
+        /**
+         * @return  the edges of this graph
+         */
+        public Set<Entry<T, Multiset<T>>> edges() {
+            return edges.entrySet();
+        }
+
+        /**
+         * @param from
+         * @return  the edges from {@code from} or {@code null} if none.
+         */
+        public Multiset<T> getEdge(T from) {
+            return edges.get(from);
         }
     }
 
@@ -122,16 +154,16 @@ public final class SegmentGraph {
             Graph<UUID> headGraph = parseHeadGraph(root.getRecordId());
 
             writer.write("nodedef>name VARCHAR, label VARCHAR, type VARCHAR, wid VARCHAR, gc INT, t INT, head BOOLEAN\n");
-            for (UUID segment : segmentGraph.vertices) {
-                writeNode(segment, writer, headGraph.vertices.contains(segment), epoch, fileStore.getTracker());
+            for (UUID segment : segmentGraph.vertices()) {
+                writeNode(segment, writer, headGraph.containsVertex(segment), epoch, fileStore.getTracker());
             }
 
             writer.write("edgedef>node1 VARCHAR, node2 VARCHAR, head BOOLEAN\n");
-            for (Entry<UUID, Set<UUID>> edge : segmentGraph.edges.entrySet()) {
+            for (Entry<UUID, Multiset<UUID>> edge : segmentGraph.edges()) {
                 UUID from = edge.getKey();
                 for (UUID to : edge.getValue()) {
                     if (!from.equals(to)) {
-                        Set<UUID> he = headGraph.edges.get(from);
+                        Multiset<UUID> he = headGraph.getEdge(from);
                         boolean inHead = he != null && he.contains(to);
                         writer.write(from + "," + to + "," + inHead + "\n");
                     }
@@ -175,16 +207,17 @@ public final class SegmentGraph {
             Graph<String> gcGraph = parseGCGraph(checkNotNull(fileStore));
 
             writer.write("nodedef>name VARCHAR\n");
-            for (String gen : gcGraph.vertices) {
+            for (String gen : gcGraph.vertices()) {
                 writer.write(gen + "\n");
             }
 
-            writer.write("edgedef>node1 VARCHAR, node2 VARCHAR\n");
-            for (Entry<String, Set<String>> edge : gcGraph.edges.entrySet()) {
+            writer.write("edgedef>node1 VARCHAR, node2 VARCHAR, weight INT\n");
+            for (Entry<String, Multiset<String>> edge : gcGraph.edges()) {
                 String from = edge.getKey();
-                for (String to : edge.getValue()) {
+                Multiset<String> tos = edge.getValue();
+                for (String to : tos.elementSet()) {
                     if (!from.equals(to) && !to.isEmpty()) {
-                        writer.write(from + "," + to + "\n");
+                        writer.write(from + "," + to + "," + tos.count(to) + "\n");
                     }
                 }
             }
