@@ -47,6 +47,7 @@ import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.scalability.benchmarks.AggregateNodeSearcher;
 import org.apache.jackrabbit.oak.scalability.benchmarks.ConcurrentReader;
 import org.apache.jackrabbit.oak.scalability.benchmarks.ConcurrentWriter;
+import org.apache.jackrabbit.oak.scalability.benchmarks.FacetSearcher;
 import org.apache.jackrabbit.oak.scalability.benchmarks.FormatSearcher;
 import org.apache.jackrabbit.oak.scalability.benchmarks.FullTextSearcher;
 import org.apache.jackrabbit.oak.scalability.benchmarks.LastModifiedSearcher;
@@ -158,6 +159,7 @@ public class ScalabilityRunner {
                                 .addBenchmarks(new FullTextSearcher(),
                                         new NodeTypeSearcher(),
                                         new FormatSearcher(),
+                                        new FacetSearcher(),
                                         new LastModifiedSearcher(Date.LAST_2_HRS),
                                         new LastModifiedSearcher(Date.LAST_24_HRS),
                                         new LastModifiedSearcher(Date.LAST_7_DAYS),

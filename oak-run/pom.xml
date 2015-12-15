@@ -463,6 +463,11 @@
           <version>${lucene.version}</version>
         </dependency>
         <dependency>
+          <groupId>org.apache.lucene</groupId>
+          <artifactId>lucene-facet</artifactId>
+          <version>${lucene.version}</version>
+        </dependency>
+        <dependency>
           <groupId>org.apache.jackrabbit</groupId>
           <artifactId>oak-solr-osgi</artifactId> <!-- this is declared here to avoid having it in the jr2 profile too -->
           <version>${project.version}</version>
