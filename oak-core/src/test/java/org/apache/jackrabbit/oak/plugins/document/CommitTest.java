@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -43,7 +42,6 @@ public class CommitTest {
     }
 
     // OAK-3733
-    @Ignore("OAK-3733")
     @Test
     public void detectConflict() throws Exception {
         // prepare node store
