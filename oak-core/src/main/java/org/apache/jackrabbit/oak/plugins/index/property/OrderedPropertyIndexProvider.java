@@ -17,63 +17,44 @@
 
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import java.util.List;
-import java.util.concurrent.TimeUnit;
+import static com.google.common.collect.Lists.newArrayList;
 
-import javax.annotation.Nonnull;
+import java.util.List;
 
 import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableList;
-
-@Component
+@Component(policy = ConfigurationPolicy.REQUIRE)
 @Service(QueryIndexProvider.class)
 public class OrderedPropertyIndexProvider implements QueryIndexProvider {
-
-    private static final long DEFAULT_NO_INDEX_CACHE_TIMEOUT = TimeUnit.SECONDS.toMillis(30);
-
-    /**
-     * How often it should check for a new ordered property index.
-     */
-    private static long noIndexCacheTimeout = DEFAULT_NO_INDEX_CACHE_TIMEOUT;
-
-    /**
-     * The last time when it checked for the existence of an ordered property index AND could not find any.
-     */
-    private volatile long lastNegativeIndexCheck;
-
+    private static final Logger LOG = LoggerFactory.getLogger(OrderedPropertyIndexProvider.class);
+    private static int hits;
+    private static int threshold = OrderedIndex.TRACK_DEPRECATION_EVERY;
+    
     @Override
-    @Nonnull
     public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
-        return ImmutableList.<QueryIndex> of(new OrderedPropertyIndex(this));
+        if (getHits() % threshold == 0) {
+            LOG.warn(OrderedIndex.DEPRECATION_MESSAGE);            
+        }
+        return newArrayList();
     }
-
+    
+    private synchronized int getHits() {
+        return hits++;
+    }
+    
     /**
-     * @return <code>true</code> if there may be any ordered indexes below the root path
+     * used only for testing purposes. Not thread safe.
+     * 
+     * @param t
      */
-    boolean mayHaveRootIndexes() {
-        return System.currentTimeMillis() - lastNegativeIndexCheck > noIndexCacheTimeout;
+    static void setThreshold(int t) {
+        threshold = t;
     }
-
-    /**
-     * Indicates whether or not there are ordered indexes below the root path
-     *
-     * @param hasRootIndexes
-     */
-    void indicateRootIndexes(boolean hasRootIndexes) {
-        lastNegativeIndexCheck = hasRootIndexes ? 0 : System.currentTimeMillis();
-    }
-
-    public static void setCacheTimeoutForTesting(long timeout) {
-        noIndexCacheTimeout = timeout;
-    }
-
-    public static void resetCacheTimeoutForTesting() {
-        noIndexCacheTimeout = DEFAULT_NO_INDEX_CACHE_TIMEOUT;
-    }
-
 }
