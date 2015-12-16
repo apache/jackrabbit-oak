@@ -64,8 +64,6 @@ class PropertyDefinition {
 
     final boolean index;
 
-    final boolean skipDefaultIndexing;
-
     final boolean stored;
 
     final boolean nodeScopeIndex;
@@ -107,7 +105,6 @@ class PropertyDefinition {
 
         //By default if a property is defined it is indexed
         this.index = getOptionalValue(defn, LuceneIndexConstants.PROP_INDEX, true);
-        this.skipDefaultIndexing = getOptionalValue(defn, LuceneIndexConstants.PROP_SKIP_DEFAULT_INDEXING, false);
         this.stored = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_USE_IN_EXCERPT, false);
         this.nodeScopeIndex = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, false);
 
