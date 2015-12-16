@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
+import java.util.Iterator;
+import javax.annotation.Nonnull;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
@@ -41,6 +43,21 @@ public interface EffectiveNodeTypeProvider {
      * some other error occurs.
      */
     boolean isNodeType(Tree tree, String nodeTypeName) throws NoSuchNodeTypeException, RepositoryException;
+
+    /**
+     * Returns {@code true} if {@code typeName} is of the specified primary node
+     * type or mixin type, or a subtype thereof. Returns {@code false} otherwise.
+     *
+     * @param primaryTypeName  the internal oak name of the node to test
+     * @param mixinTypes the internal oak names of the node to test.
+     * @param nodeTypeName The internal oak name of the node type to be tested.
+     * @return {@code true} if the specified node type is of the given node type.
+     * @throws NoSuchNodeTypeException If the specified node type name doesn't
+     * refer to an existing node type.
+     * @throws RepositoryException If the given node type name is invalid or if
+     * some other error occurs.
+     */
+    boolean isNodeType(@Nonnull String primaryTypeName, @Nonnull Iterator<String> mixinTypes, @Nonnull String nodeTypeName) throws NoSuchNodeTypeException, RepositoryException;
 
     /**
      * Returns {@code true} if {@code typeName} is of the specified primary node
