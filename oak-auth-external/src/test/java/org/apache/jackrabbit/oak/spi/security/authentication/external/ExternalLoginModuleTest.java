@@ -231,7 +231,7 @@ public class ExternalLoginModuleTest extends ExternalLoginModuleTestBase {
                 cs.close();
             }
         }
-        // next login should get updated property
+        // next login should get updated membership
         try {
             cs = login(new SimpleCredentials(userId, new char[0]));
             root.refresh();
