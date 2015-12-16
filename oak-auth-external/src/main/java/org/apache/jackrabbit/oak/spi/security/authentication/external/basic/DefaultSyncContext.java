@@ -75,6 +75,40 @@ public class DefaultSyncContext implements SyncContext {
      * Name of the property that stores the time when an identity was synced.
      */
     public static final String REP_LAST_SYNCED = "rep:lastSynced";
+    
+    /**
+     * Name of the property that stores the time when the membership of an identity was synced.
+     */
+    public static final String REP_LAST_SYNCED_MEMBERSHIP = "rep:lastSyncedMembership";
+    
+    public static enum SyncType {
+        USER_PROPERTIES_SYNC(REP_LAST_SYNCED, "User Properties"),
+        GROUP_PROPERTIES_SYNC(REP_LAST_SYNCED, "Group Properties"),
+        USER_MEMBERSHIP_SYNC(REP_LAST_SYNCED_MEMBERSHIP, "User Membership");
+        
+        /**
+         * Name of the property that stores the time of the last sync
+         */
+        private final String propertyName;
+        
+        /**
+         * A descriptive text for what is supposed to be synced with this type
+         */
+        private final String realm;
+        
+        private SyncType(String propertyName, String realm) {
+            this.propertyName = propertyName;
+            this.realm = realm;
+        }
+
+        public String getPropertyName() {
+            return propertyName;
+        }
+
+        public String getRealm() {
+            return realm;
+        }
+    };
 
     protected final DefaultSyncConfig config;
 
@@ -419,7 +453,7 @@ public class DefaultSyncContext implements SyncContext {
     @Nonnull
     protected DefaultSyncResultImpl syncUser(@Nonnull ExternalUser external, @Nonnull User user) throws RepositoryException {
         // first check if user is expired
-        if (!forceUserSync && !isExpired(user, config.user().getExpirationTime(), "Properties")) {
+        if (!forceUserSync && !isExpired(user, config.user().getExpirationTime(), SyncType.USER_PROPERTIES_SYNC)) {
             DefaultSyncedIdentity syncId = DefaultSyncContext.createSyncedIdentity(user);
             return new DefaultSyncResultImpl(syncId, SyncResult.Status.NOP);
         }
@@ -430,8 +464,13 @@ public class DefaultSyncContext implements SyncContext {
         // synchronize auto-group membership
         applyMembership(user, config.user().getAutoMembership());
 
-        // synchronize external memberships
-        syncMembership(external, user, config.user().getMembershipNestingDepth());
+        if (isExpired(user, config.user().getMembershipExpirationTime(), SyncType.USER_MEMBERSHIP_SYNC)) {
+            // synchronize external memberships
+            syncMembership(external, user, config.user().getMembershipNestingDepth());
+            
+            // finally "touch" the sync property
+            user.setProperty(REP_LAST_SYNCED_MEMBERSHIP, nowValue);
+        }
 
         // finally "touch" the sync property
         user.setProperty(REP_LAST_SYNCED, nowValue);
@@ -442,7 +481,7 @@ public class DefaultSyncContext implements SyncContext {
     @Nonnull
     protected DefaultSyncResultImpl syncGroup(@Nonnull ExternalGroup external, @Nonnull Group group) throws RepositoryException {
         // first check if user is expired
-        if (!forceGroupSync && !isExpired(group, config.group().getExpirationTime(), "Properties")) {
+        if (!forceGroupSync && !isExpired(group, config.group().getExpirationTime(), SyncType.GROUP_PROPERTIES_SYNC)) {
             DefaultSyncedIdentity syncId = DefaultSyncContext.createSyncedIdentity(group);
             return new DefaultSyncResultImpl(syncId, SyncResult.Status.NOP);
         }
@@ -621,26 +660,26 @@ public class DefaultSyncContext implements SyncContext {
      * Checks if the given authorizable needs syncing based on the {@link #REP_LAST_SYNCED} property.
      * @param auth the authorizable to check
      * @param expirationTime the expiration time to compare to.
-     * @param type debug message type
+     * @param type the sync type
      * @return {@code true} if the authorizable needs sync
      */
-    protected boolean isExpired(Authorizable auth, long expirationTime, String type) throws RepositoryException {
-        Value[] values = auth.getProperty(REP_LAST_SYNCED);
+    protected boolean isExpired(Authorizable auth, long expirationTime, SyncType type) throws RepositoryException {
+        Value[] values = auth.getProperty(type.getPropertyName());
         if (values == null || values.length == 0) {
             if (log.isDebugEnabled()) {
-                log.debug("{} of {} '{}' need sync. " + REP_LAST_SYNCED + " not set.",
-                        type, auth.isGroup() ? "group" : "user", auth.getID());
+                log.debug("{} of '{}' need sync. " + type.getPropertyName() + " not set.",
+                        type.getRealm(), auth.getID());
             }
             return true;
         } else if (now - values[0].getLong() > expirationTime) {
             if (log.isDebugEnabled()) {
-                log.debug("{} of {} '{}' need sync. " + REP_LAST_SYNCED + " expired ({} > {})",
-                        type, auth.isGroup() ? "group" : "user", auth.getID(), now - values[0].getLong(), expirationTime);
+                log.debug("{} of '{}' need sync. " + type.getPropertyName() + " expired ({} > {})",
+                        type.getRealm(), auth.getID(), now - values[0].getLong(), expirationTime);
             }
             return true;
         } else {
             if (log.isDebugEnabled()) {
-                log.debug("{} of {} '{}' do not need sync.", type, auth.isGroup() ? "group" : "user", auth.getID());
+                log.debug("{} of '{}' do not need sync.", type.getRealm(), auth.getID());
             }
             return false;
         }

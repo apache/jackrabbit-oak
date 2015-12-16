@@ -16,14 +16,26 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 
+import javax.jcr.RepositoryException;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.Value;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -32,12 +44,6 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.Defa
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 /**
  * ExternalLoginModuleTest...
@@ -126,11 +132,10 @@ public class ExternalLoginModuleTest extends ExternalLoginModuleTestBase {
             assertNull(userManager.getAuthorizable(userId));
 
             cs = login(new SimpleCredentials(userId, new char[0]));
-
             root.refresh();
 
             Authorizable a = userManager.getAuthorizable(userId);
-            // still the old value (because expiration time not yet reached)
+            // initial value
             assertEquals(TEST_AGE_PROPERTY_VALUE_OLD, a.getProperty(TEST_AGE_PROPERTY_NAME)[0].getString());
         } finally {
             if (cs != null) {
@@ -143,11 +148,10 @@ public class ExternalLoginModuleTest extends ExternalLoginModuleTestBase {
         idp.setUserProperty(userId, TEST_AGE_PROPERTY_NAME, TEST_AGE_PROPERTY_VALUE_NEW);
         try {
             cs = login(new SimpleCredentials(userId, new char[0]));
-
             root.refresh();
 
             Authorizable a = userManager.getAuthorizable(userId);
-            // still the old value (because expiration time not yet reached)
+            // still the initial value (because expiration time not yet reached)
             assertEquals(TEST_AGE_PROPERTY_VALUE_OLD, a.getProperty(TEST_AGE_PROPERTY_NAME)[0].getString());
         
             // now move last synchronisation timestamp back in time (beyond the expiration time)
@@ -164,12 +168,77 @@ public class ExternalLoginModuleTest extends ExternalLoginModuleTestBase {
         // next login should get updated property
         try {
             cs = login(new SimpleCredentials(userId, new char[0]));
-
             root.refresh();
 
             Authorizable a = userManager.getAuthorizable(userId);
             // now the new value
             assertEquals(TEST_AGE_PROPERTY_VALUE_NEW, a.getProperty(TEST_AGE_PROPERTY_NAME)[0].getString());
+        } finally {
+            if (cs != null) {
+                cs.close();
+            }
+        }
+    }
+
+    @Test
+    public void testSyncUserMembershipChangesWithExpiration() throws Exception {
+        syncConfig.user().setMembershipExpirationTime(60*1000); // expiration of user properties = 1 hour
+        syncConfig.user().setMembershipExpirationTime(24*60*1000); // expiration of user membership = 1 day
+        UserManager userManager = getUserManager(root);
+        ContentSession cs = null;
+        try {
+            assertNull(userManager.getAuthorizable(userId));
+
+            cs = login(new SimpleCredentials(userId, new char[0]));
+            root.refresh();
+
+            Authorizable a = userManager.getAuthorizable(userId);
+            // check memberships (inital ones)
+            assertAuthorizableIsDeclaredMemberOf(a, "a", "b", "c");
+            
+            // now move last synchronisation timestamp back in time (beyond the user properties expiration time)
+            Calendar calendar = Calendar.getInstance();
+            calendar.add(Calendar.HOUR, -2);
+            Value calendarValue = new ValueFactoryImpl(root, NamePathMapper.DEFAULT).createValue(calendar);
+            a.setProperty(DefaultSyncContext.REP_LAST_SYNCED, calendarValue);
+            
+        } finally {
+            if (cs != null) {
+                cs.close();
+            }
+            options.clear();
+        }
+        
+        // modify a group membership on the external user
+        idp.setUserGroup(userId, "d");
+        try {
+            cs = login(new SimpleCredentials(userId, new char[0]));
+            root.refresh();
+
+            Authorizable a = userManager.getAuthorizable(userId);
+            // check memberships (still the inital ones)
+            assertAuthorizableIsDeclaredMemberOf(a, "a", "b", "c");
+            
+            // now move last synchronisation timestamp back in time (beyond the expiration time)
+            Calendar calendar = Calendar.getInstance();
+            calendar.add(Calendar.MONTH, -1);
+            Value calendarValue = new ValueFactoryImpl(root, NamePathMapper.DEFAULT).createValue(calendar);
+            a.setProperty(DefaultSyncContext.REP_LAST_SYNCED, calendarValue);
+            a.setProperty(DefaultSyncContext.REP_LAST_SYNCED_MEMBERSHIP, calendarValue);
+            root.commit();
+        } finally {
+            if (cs != null) {
+                cs.close();
+            }
+        }
+        // next login should get updated property
+        try {
+            cs = login(new SimpleCredentials(userId, new char[0]));
+            root.refresh();
+
+            Authorizable a = userManager.getAuthorizable(userId);
+            // check memberships (now also the new one)
+            assertAuthorizableIsDeclaredMemberOf(a, "a", "b", "c", "d");
         } finally {
             if (cs != null) {
                 cs.close();
@@ -273,4 +342,12 @@ public class ExternalLoginModuleTest extends ExternalLoginModuleTestBase {
         }
     }
 
+    private void assertAuthorizableIsDeclaredMemberOf(Authorizable authorizable, String... expectedGroupIds) throws RepositoryException {
+        List<String> actualGroupIds = new ArrayList<String>();
+        Iterator<Group> groupIterator = authorizable.declaredMemberOf();
+        while (groupIterator.hasNext()) {
+            actualGroupIds.add(groupIterator.next().getID());
+        }
+        assertArrayEquals("User not member of the expected groups", expectedGroupIds, actualGroupIds.toArray());
+    }
 }

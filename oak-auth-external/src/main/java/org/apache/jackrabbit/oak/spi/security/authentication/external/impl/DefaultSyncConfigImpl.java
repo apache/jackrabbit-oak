@@ -119,6 +119,21 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
     public static final String PARAM_USER_PATH_PREFIX = "user.pathPrefix";
 
     /**
+     * @see DefaultSyncConfigImpl.User#getMembershipExpirationTime()
+     */
+    public static final String PARAM_USER_MEMBERSHIP_EXPIRATION_TIME_DEFAULT = "1h";
+
+    /**
+     * @see DefaultSyncConfigImpl.User#getMembershipExpirationTime()
+     */
+    @Property(
+            label = "User Membership Expiration",
+            description = "Time after which membership expires (eg. '1h 30m' or '1d'). Can not be less than 'User Expiration Time'.",
+            value = PARAM_USER_MEMBERSHIP_EXPIRATION_TIME_DEFAULT
+    )
+    public static final String PARAM_USER_MEMBERSHIP_EXPIRATION_TIME = "user.membershipExpTime";
+
+    /**
      * @see User#getMembershipNestingDepth()
      */
     public static final int PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT = 0;

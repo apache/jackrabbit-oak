@@ -197,7 +197,34 @@ public class DefaultSyncConfig {
      */
     public static class User extends Authorizable {
 
+        private long membershipExpirationTime;
+
         private long membershipNestingDepth;
+
+        /**
+         * Returns the duration in milliseconds until the group membership of a user is expired. If the
+         * membership information is expired it is re-synced according to the maximum nesting depth.
+         * Note that the membership is the groups an authorizable is member of, not the list of members of a group.
+         * Also note, that the group membership expiration time can not be lower than the user expiration time itself and
+         * that value has no effect when syncing individual groups only when syncing a users membership ancestry.
+         *
+         * @return the expiration time in milliseconds.
+         */
+        public long getMembershipExpirationTime() {
+            return membershipExpirationTime;
+        }
+
+        /**
+         * Sets the membership expiration time
+         * @param membershipExpirationTime the time in milliseconds.
+         * @return {@code this}
+         * @see #getMembershipExpirationTime()
+         */
+        @Nonnull
+        public User setMembershipExpirationTime(long membershipExpirationTime) {
+            this.membershipExpirationTime = membershipExpirationTime;
+            return this;
+        }
 
         /**
          * Returns the maximum depth of group nesting when membership relations are synced. A value of 0 effectively

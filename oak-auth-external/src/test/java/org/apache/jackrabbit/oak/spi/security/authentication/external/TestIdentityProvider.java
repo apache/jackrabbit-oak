@@ -39,7 +39,8 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
         addGroup(new TestGroup("a").withGroups("aa", "aaa"));
         addGroup(new TestGroup("b").withGroups("a"));
         addGroup(new TestGroup("c"));
-
+        addGroup(new TestGroup("d"));
+        
         addUser(new TestUser("testUser")
                 .withProperty("name", "Test User")
                 .withProperty("profile/name", "Public Name")
@@ -63,6 +64,14 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
             throw new IllegalArgumentException("Could not find user with id " + userId);
         }
         user.withProperty(name, value);
+    }
+    
+    public void setUserGroup(String userId, String groupId) throws ExternalIdentityException {
+        TestIdentity user = (TestIdentity) getUser(userId);
+        if (user == null) {
+            throw new IllegalArgumentException("Could not find user with id " + userId);
+        }
+        user.withGroups(groupId);
     }
 
     @Nonnull
