@@ -795,15 +795,14 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             }
             if (!fullScan) {
                 // check if we can stop going through changes
-                if (isRevisionNewer(context, lower, r)
+                if (clusterIds.contains(r.getClusterId())
+                        && isRevisionNewer(context, lower, r)
                         && newestRevs.containsKey(r.getClusterId())) {
-                    if (isRevisionNewer(context, lower, r)) {
-                        clusterIds.remove(r.getClusterId());
-                        if (clusterIds.isEmpty()) {
-                            // all remaining revisions are older than
-                            // the lower bound
-                            break;
-                        }
+                    clusterIds.remove(r.getClusterId());
+                    if (clusterIds.isEmpty()) {
+                        // all remaining revisions are older than
+                        // the lower bound
+                        break;
                     }
                 }
             }
