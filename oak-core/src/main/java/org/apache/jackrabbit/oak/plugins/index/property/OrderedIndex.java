@@ -29,6 +29,20 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 public interface OrderedIndex {
     /**
+     * Deprecation message tracked when using the ordered index.
+     */
+    String DEPRECATION_MESSAGE = 
+        "Ordered Index has been deprecated since Oak 1.1.8. " +
+        "Please replace the index definitions with Lucene Property index " +
+        "and remove the index providers from the repository. " + 
+        "See docs at http://jackrabbit.apache.org/oak/docs";
+
+    /**
+     * the deprecation message will be tracked every N times
+     */
+    int TRACK_DEPRECATION_EVERY = 10000;
+    
+    /**
      * enum for easing the order direction of the index
      */
     enum OrderDirection {
@@ -123,35 +137,5 @@ public interface OrderedIndex {
     /**
      * the default direction for sorting the index
      */
-    OrderDirection DEFAULT_DIRECTION = OrderDirection.ASC;
-    
-    /**
-     * defines the default distribution of items across the skip list. It's with a factor of 10%
-     * having therefore
-     * 
-     * <dl>
-     *  <dt>lane 0:</dt> <dd>100.0% (the base linked list)</dd>
-     *  <dt>lane 1:</dt> <dd>10.0%</dd>
-     *  <dt>lane 2:</dt> <dd>1.0%</dd>
-     *  <dt>lane 3:</dt> <dd>0.1%</dd>
-     * </dl>
-     */
-    double DEFAULT_PROBABILITY = Integer.getInteger("oak.orderedIndex.prob", 3) / 10.0;
-    
-    /**
-     * the number of lanes used in the SkipList 
-     */
-    int LANES = Integer.getInteger("oak.orderedIndex.lanes", 15);
-    
-    /**
-     * Convenience Predicate that will force the implementor to expose what we're searching for
-     *
-     * @param <T>
-     */
-    interface Predicate<T> extends com.google.common.base.Predicate<T> {
-        /**
-         * @return the string we're searching for during this predicate
-         */
-        String getSearchFor();
-    }
+    OrderDirection DEFAULT_DIRECTION = OrderDirection.ASC;    
 }
