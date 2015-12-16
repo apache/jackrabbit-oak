@@ -16,9 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
+import java.util.Calendar;
 import java.util.HashMap;
 
 import javax.jcr.SimpleCredentials;
+import javax.jcr.Value;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -26,6 +28,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -49,6 +52,12 @@ public class ExternalLoginModuleTest extends ExternalLoginModuleTestBase {
 
     private final static String TEST_CONSTANT_PROPERTY_VALUE = "constant-value";
 
+    private final static String TEST_AGE_PROPERTY_NAME = "profile/age";
+
+    private final static String TEST_AGE_PROPERTY_VALUE_OLD = "72";
+
+    private final static String TEST_AGE_PROPERTY_VALUE_NEW = "100";
+
     @Before
     public void before() throws Exception {
         super.before();
@@ -59,7 +68,7 @@ public class ExternalLoginModuleTest extends ExternalLoginModuleTestBase {
         super.after();
     }
 
-    protected ExternalIdentityProvider createIDP() {
+    protected TestIdentityProvider createIDP() {
         return new TestIdentityProvider();
     }
 
@@ -105,6 +114,66 @@ public class ExternalLoginModuleTest extends ExternalLoginModuleTestBase {
                 cs.close();
             }
             options.clear();
+        }
+    }
+
+    @Test
+    public void testSyncUserChangesWithExpiration() throws Exception {
+        syncConfig.user().setExpirationTime(24*60*1000); // expiration of user properties = 1 day
+        UserManager userManager = getUserManager(root);
+        ContentSession cs = null;
+        try {
+            assertNull(userManager.getAuthorizable(userId));
+
+            cs = login(new SimpleCredentials(userId, new char[0]));
+
+            root.refresh();
+
+            Authorizable a = userManager.getAuthorizable(userId);
+            // still the old value (because expiration time not yet reached)
+            assertEquals(TEST_AGE_PROPERTY_VALUE_OLD, a.getProperty(TEST_AGE_PROPERTY_NAME)[0].getString());
+        } finally {
+            if (cs != null) {
+                cs.close();
+            }
+            options.clear();
+        }
+        
+        // modify a property on the external user
+        idp.setUserProperty(userId, TEST_AGE_PROPERTY_NAME, TEST_AGE_PROPERTY_VALUE_NEW);
+        try {
+            cs = login(new SimpleCredentials(userId, new char[0]));
+
+            root.refresh();
+
+            Authorizable a = userManager.getAuthorizable(userId);
+            // still the old value (because expiration time not yet reached)
+            assertEquals(TEST_AGE_PROPERTY_VALUE_OLD, a.getProperty(TEST_AGE_PROPERTY_NAME)[0].getString());
+        
+            // now move last synchronisation timestamp back in time (beyond the expiration time)
+            Calendar calendar = Calendar.getInstance();
+            calendar.add(Calendar.MONTH, -1);
+            Value calendarValue = new ValueFactoryImpl(root, NamePathMapper.DEFAULT).createValue(calendar);
+            a.setProperty(DefaultSyncContext.REP_LAST_SYNCED, calendarValue);
+            root.commit();
+        } finally {
+            if (cs != null) {
+                cs.close();
+            }
+        }
+        // next login should get updated property
+        try {
+            cs = login(new SimpleCredentials(userId, new char[0]));
+
+            root.refresh();
+
+            Authorizable a = userManager.getAuthorizable(userId);
+            // now the new value
+            assertEquals(TEST_AGE_PROPERTY_VALUE_NEW, a.getProperty(TEST_AGE_PROPERTY_NAME)[0].getString());
+        } finally {
+            if (cs != null) {
+                cs.close();
+            }
         }
     }
 
