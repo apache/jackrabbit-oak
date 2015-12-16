@@ -190,7 +190,6 @@ class PropertyDefinition {
                 ", boost=" + boost +
                 ", isRegexp=" + isRegexp +
                 ", index=" + index +
-                ", skipDefaultIndexing=" + skipDefaultIndexing +
                 ", stored=" + stored +
                 ", nodeScopeIndex=" + nodeScopeIndex +
                 ", propertyIndex=" + propertyIndex +
