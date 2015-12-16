@@ -349,7 +349,6 @@ public class DocumentNodeStoreTest {
     }
 
     // OAK-3798
-    @Ignore("OAK-3798")
     @Test
     public void getNewestRevision2() throws Exception {
         DocumentStore docStore = new MemoryDocumentStore();
