@@ -874,16 +874,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             @Override
             public NodeType perform() throws RepositoryException {
                 Tree tree = node.getTree();
-
-                String primaryTypeName = null;
-                if (tree.hasProperty(JcrConstants.JCR_PRIMARYTYPE)) {
-                    primaryTypeName = TreeUtil.getPrimaryTypeName(tree);
-                } else if (tree.getStatus() != Status.NEW) {
-                    // OAK-2441: for backwards compatibility with Jackrabbit 2.x try to
-                    // read the primary type from the underlying node state.
-                    primaryTypeName = TreeUtil.getPrimaryTypeName(RootFactory.createReadOnlyRoot(sessionDelegate.getRoot()).getTree(tree.getPath()));
-                }
-
+                String primaryTypeName = getPrimaryTypeName(tree);
                 if (primaryTypeName != null) {
                     return getNodeTypeManager().getNodeType(sessionContext.getJcrName(primaryTypeName));
                 } else {
@@ -905,17 +896,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             public NodeType[] perform() throws RepositoryException {
                 Tree tree = node.getTree();
 
-                Iterator<String> mixinNames = Iterators.emptyIterator();
-                if (tree.hasProperty(JcrConstants.JCR_MIXINTYPES) || canReadProperty(tree, JcrConstants.JCR_MIXINTYPES)) {
-                    mixinNames = TreeUtil.getNames(tree, JcrConstants.JCR_MIXINTYPES).iterator();
-                } else if (tree.getStatus() != Status.NEW) {
-                    // OAK-2441: for backwards compatibility with Jackrabbit 2.x try to
-                    // read the primary type from the underlying node state.
-                    mixinNames = TreeUtil.getNames(
-                            RootFactory.createReadOnlyRoot(sessionDelegate.getRoot()).getTree(tree.getPath()),
-                            JcrConstants.JCR_MIXINTYPES).iterator();
-                }
-
+                Iterator<String> mixinNames = getMixinTypeNames(tree);
                 if (mixinNames.hasNext()) {
                     NodeTypeManager ntMgr = getNodeTypeManager();
                     List<NodeType> mixinTypes = Lists.newArrayList();
@@ -937,7 +918,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             @Nonnull
             @Override
             public Boolean perform() throws RepositoryException {
-                return getNodeTypeManager().isNodeType(node.getTree(), oakName);
+                Tree tree = node.getTree();
+                return getNodeTypeManager().isNodeType(getPrimaryTypeName(tree), getMixinTypeNames(tree), oakName);
             }
         });
     }
@@ -1281,6 +1263,34 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     //------------------------------------------------------------< internal >---
+    @CheckForNull
+    private String getPrimaryTypeName(@Nonnull Tree tree) {
+        String primaryTypeName = null;
+        if (tree.hasProperty(JcrConstants.JCR_PRIMARYTYPE)) {
+            primaryTypeName = TreeUtil.getPrimaryTypeName(tree);
+        } else if (tree.getStatus() != Status.NEW) {
+            // OAK-2441: for backwards compatibility with Jackrabbit 2.x try to
+            // read the primary type from the underlying node state.
+            primaryTypeName = TreeUtil.getPrimaryTypeName(RootFactory.createReadOnlyRoot(sessionDelegate.getRoot()).getTree(tree.getPath()));
+        }
+        return primaryTypeName;
+    }
+
+    @Nonnull
+    private Iterator<String> getMixinTypeNames(@Nonnull Tree tree) throws RepositoryException {
+        Iterator<String> mixinNames = Iterators.emptyIterator();
+        if (tree.hasProperty(JcrConstants.JCR_MIXINTYPES) || canReadProperty(tree, JcrConstants.JCR_MIXINTYPES)) {
+            mixinNames = TreeUtil.getNames(tree, JcrConstants.JCR_MIXINTYPES).iterator();
+        } else if (tree.getStatus() != Status.NEW) {
+            // OAK-2441: for backwards compatibility with Jackrabbit 2.x try to
+            // read the primary type from the underlying node state.
+            mixinNames = TreeUtil.getNames(
+                    RootFactory.createReadOnlyRoot(sessionDelegate.getRoot()).getTree(tree.getPath()),
+                    JcrConstants.JCR_MIXINTYPES).iterator();
+        }
+        return mixinNames;
+    }
+
     private boolean canReadProperty(@Nonnull Tree tree, @Nonnull String propName) throws RepositoryException {
         String propPath = PathUtils.concat(tree.getPath(), propName);
         String permName = Permissions.PERMISSION_NAMES.get(Permissions.READ_PROPERTY);

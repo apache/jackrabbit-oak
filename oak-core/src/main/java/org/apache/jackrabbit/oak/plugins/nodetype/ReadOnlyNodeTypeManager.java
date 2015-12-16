@@ -25,6 +25,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.dropIndexFromName;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_SUPERTYPES;
 
+import java.util.Iterator;
 import java.util.List;
 
 import javax.annotation.CheckForNull;
@@ -54,6 +55,9 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
+import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
+import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
+import org.apache.jackrabbit.oak.util.TreeUtil;
 
 /**
  * Base implementation of a {@link NodeTypeManager} with support for reading
@@ -275,6 +279,25 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
             }
         }
 
+        return false;
+    }
+
+    @Override
+    public boolean isNodeType(@CheckForNull String primaryTypeName, @Nonnull Iterator<String> mixinTypes,
+                              @Nonnull String nodeTypeName) throws NoSuchNodeTypeException, RepositoryException {
+        // shortcut
+        if (JcrConstants.NT_BASE.equals(nodeTypeName)) {
+            return true;
+        }
+        Tree types = getTypes();
+        if (primaryTypeName != null && isa(types, primaryTypeName, nodeTypeName)) {
+            return true;
+        }
+        while (mixinTypes.hasNext()) {
+            if (isa(types, mixinTypes.next(), nodeTypeName)) {
+                return true;
+            }
+        }
         return false;
     }
 
