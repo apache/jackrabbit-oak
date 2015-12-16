@@ -139,8 +139,6 @@ public interface LuceneIndexConstants {
 
     String PROP_ORDERED = "ordered";
 
-    String PROP_SKIP_DEFAULT_INDEXING = "skipDefaultIndexing";
-
     String PROP_SCORER_PROVIDER = "scorerProviderName";
 
     /**

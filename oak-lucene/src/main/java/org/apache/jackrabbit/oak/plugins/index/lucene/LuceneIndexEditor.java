@@ -484,43 +484,41 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                                   String pname,
                                   PropertyDefinition pd) {
         boolean includeTypeForFullText = indexingRule.includePropertyType(property.getType().tag());
+        if (Type.BINARY.tag() == property.getType().tag()
+                && includeTypeForFullText) {
+            fields.addAll(newBinary(property, state, null, path + "@" + pname));
+            return true;
+        }  else {
+            boolean dirty = false;
 
-        boolean dirty = false;
-        if (!pd.skipDefaultIndexing) {
-            if (Type.BINARY.tag() == property.getType().tag()
-                    && includeTypeForFullText) {
-                fields.addAll(newBinary(property, state, null, path + "@" + pname));
-                dirty = true;
-            } else {
-                if (pd.propertyIndex && pd.includePropertyType(property.getType().tag())) {
-                    dirty |= addTypedFields(fields, property, pname);
-                }
+            if (pd.propertyIndex && pd.includePropertyType(property.getType().tag())){
+                dirty |= addTypedFields(fields, property, pname);
+            }
 
-                if (pd.fulltextEnabled() && includeTypeForFullText) {
-                    for (String value : property.getValue(Type.STRINGS)) {
-                        if (pd.analyzed && pd.includePropertyType(property.getType().tag())) {
-                            String analyzedPropName = constructAnalyzedPropertyName(pname);
-                            fields.add(newPropertyField(analyzedPropName, value, !pd.skipTokenization(pname), pd.stored));
-                        }
-
-                        if (pd.useInSuggest) {
-                            fields.add(FieldFactory.newSuggestField(value));
-                        }
-
-                        if (pd.useInSpellcheck) {
-                            fields.add(newPropertyField(FieldNames.SPELLCHECK, value, true, false));
-                        }
-
-                        if (pd.nodeScopeIndex) {
-                            Field field = newFulltextField(value);
-                            fields.add(field);
-                        }
-                        dirty = true;
+            if (pd.fulltextEnabled() && includeTypeForFullText) {
+                for (String value : property.getValue(Type.STRINGS)) {
+                    if (pd.analyzed && pd.includePropertyType(property.getType().tag())) {
+                        String analyzedPropName = constructAnalyzedPropertyName(pname);
+                        fields.add(newPropertyField(analyzedPropName, value, !pd.skipTokenization(pname), pd.stored));
                     }
+
+                    if (pd.useInSuggest) {
+                        fields.add(FieldFactory.newSuggestField(value));
+                    }
+
+                    if (pd.useInSpellcheck) {
+                        fields.add(newPropertyField(FieldNames.SPELLCHECK, value, true, false));
+                    }
+
+                    if (pd.nodeScopeIndex) {
+                        Field field = newFulltextField(value);
+                        fields.add(field);
+                    }
+                    dirty = true;
                 }
             }
+            return dirty;
         }
-        return dirty;
     }
 
     private String constructAnalyzedPropertyName(String pname) {
