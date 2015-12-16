@@ -309,6 +309,36 @@ public class DocumentNodeStoreTest {
         ns2.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
+    // OAK-3798
+    @Test
+    public void getNewestRevision2() throws Exception {
+        DocumentStore docStore = new MemoryDocumentStore();
+        DocumentNodeStore ns1 = builderProvider.newBuilder()
+                .setDocumentStore(docStore).setAsyncDelay(0)
+                .setClusterId(1).getNodeStore();
+        ns1.getRoot();
+        Revision r1 = ns1.getHeadRevision();
+        ns1.runBackgroundOperations();
+        DocumentNodeStore ns2 = builderProvider.newBuilder()
+                .setDocumentStore(docStore).setAsyncDelay(0)
+                .setClusterId(2).getNodeStore();
+        ns2.getRoot();
+
+        NodeBuilder b1 = ns1.getRoot().builder();
+        for (int i = 0; i < NodeDocument.NUM_REVS_THRESHOLD; i++) {
+            b1.setProperty("p", String.valueOf(i));
+            ns1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        }
+        ns1.runBackgroundOperations();
+
+        NodeDocument doc = docStore.find(NODES, Utils.getIdFromPath("/"));
+        assertNotNull(doc);
+        Revision newest = doc.getNewestRevision(ns2, ns2.getHeadRevision(),
+                Revision.newRevision(ns2.getClusterId()),
+                null, Sets.<Revision>newHashSet());
+        assertEquals(r1, newest);
+    }
+
     @Test
     public void commitHookChangesOnBranch() throws Exception {
         final int NUM_NODES = DocumentRootBuilder.UPDATE_LIMIT / 2;
