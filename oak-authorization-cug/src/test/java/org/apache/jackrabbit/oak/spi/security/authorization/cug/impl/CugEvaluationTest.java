@@ -62,6 +62,15 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
     public void before() throws Exception {
         super.before();
 
+        // create cugs
+        // - /content/a     : allow testGroup, deny everyone
+        // - /content/aa/bb : allow testGroup, deny everyone
+        // - /content/a/b/c : allow everyone,  deny testGroup (isolated)
+        // - /content2      : allow everyone,  deny testGroup (isolated)
+
+        // regular acl:
+        // - /content       : allow testUser, jcr:read
+        // - /content       : allow testGroup, jcr:read, jcr:write, jcr:readAccessControl
         setupCugsAndAcls();
 
         testGroupPrincipal = getTestGroupPrincipal();

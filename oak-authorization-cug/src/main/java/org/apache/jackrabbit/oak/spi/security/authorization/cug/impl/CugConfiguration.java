@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.util.Collections;
@@ -30,6 +31,7 @@ import javax.jcr.security.AccessControlManager;
 import com.google.common.collect.ImmutableList;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Properties;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
@@ -37,11 +39,16 @@ import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.write.NodeTypeRegistry;
 import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
@@ -66,7 +73,8 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 
 @Component(metatype = true,
         label = "Apache Jackrabbit Oak CUG Configuration",
-        description = "Authorization configuration dedicated to setup and evaluate 'Closed User Group' permissions.")
+        description = "Authorization configuration dedicated to setup and evaluate 'Closed User Group' permissions.",
+        policy = ConfigurationPolicy.REQUIRE)
 @Service({AuthorizationConfiguration.class, SecurityConfiguration.class})
 @Properties({
         @Property(name = CugConstants.PARAM_CUG_SUPPORTED_PATHS,
@@ -143,12 +151,18 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
                 Root root = RootFactory.createSystemRoot(store,
                         new EditorHook(new CompositeEditorProvider(new NamespaceEditorProvider(), new TypeEditorProvider())),
                         null, null, null, null);
-                if (CugUtil.registerCugNodeTypes(root)) {
+                if (registerCugNodeTypes(root)) {
                     NodeState target = store.getRoot();
                     target.compareAgainstBaseState(base, new ApplyDiff(builder));
                 }
             }
         };
+    }
+
+    @Nonnull
+    @Override
+    public List<? extends CommitHook> getCommitHooks(@Nonnull String workspaceName) {
+        return Collections.singletonList(new NestedCugHook());
     }
 
     @Nonnull
@@ -180,5 +194,30 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
     @Nonnull
     private CugExclude getExclude() {
         return (exclude == null) ? new CugExclude.Default() : exclude;
+    }
+
+    static boolean registerCugNodeTypes(@Nonnull final Root root) {
+        try {
+            ReadOnlyNodeTypeManager ntMgr = new ReadOnlyNodeTypeManager() {
+                @Override
+                protected Tree getTypes() {
+                    return root.getTree(NodeTypeConstants.NODE_TYPES_PATH);
+                }
+            };
+            if (!ntMgr.hasNodeType(NT_REP_CUG_POLICY)) {
+                InputStream stream = CugConfiguration.class.getResourceAsStream("cug_nodetypes.cnd");
+                try {
+                    NodeTypeRegistry.register(root, stream, "cug node types");
+                    return true;
+                } finally {
+                    stream.close();
+                }
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException("Unable to read cug node types", e);
+        } catch (RepositoryException e) {
+            throw new IllegalStateException("Unable to read cug node types", e);
+        }
+        return false;
     }
 }

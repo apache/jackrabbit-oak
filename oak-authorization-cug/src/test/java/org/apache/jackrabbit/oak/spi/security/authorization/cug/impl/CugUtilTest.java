@@ -16,11 +16,16 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.plugins.tree.impl.AbstractTree;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.Test;
@@ -49,32 +54,60 @@ public class CugUtilTest extends AbstractCugTest {
         }
     }
 
+    @Nonnull
+    private static NodeState getNodeState(@Nonnull Tree tree) {
+        return ((AbstractTree) tree).getNodeState();
+    }
+
     @Test
     public void testHasCug() throws Exception {
-        assertFalse(CugUtil.hasCug(root.getTree("/")));
-        assertFalse(CugUtil.hasCug(root.getTree(INVALID_PATH)));
-        assertFalse(CugUtil.hasCug(root.getTree(UNSUPPORTED_PATH)));
-        assertFalse(CugUtil.hasCug(root.getTree(SUPPORTED_PATH + "/subtree")));
-        assertFalse(CugUtil.hasCug(root.getTree(SUPPORTED_PATH2)));
-
         assertTrue(CugUtil.hasCug(root.getTree(SUPPORTED_PATH)));
+
+        for (String path : new String[] {PathUtils.ROOT_PATH, INVALID_PATH, UNSUPPORTED_PATH, SUPPORTED_PATH + "/subtree", SUPPORTED_PATH2, SUPPORTED_PATH3}) {
+            assertFalse(CugUtil.hasCug(root.getTree(path)));
+        }
 
         new NodeUtil(root.getTree(SUPPORTED_PATH2)).addChild(REP_CUG_POLICY, NodeTypeConstants.NT_OAK_UNSTRUCTURED).getTree();
         assertTrue(CugUtil.hasCug(root.getTree(SUPPORTED_PATH2)));
     }
 
     @Test
-    public void testGetCug() throws Exception {
-        assertNull(CugUtil.getCug(root.getTree("/")));
-        assertNull(CugUtil.getCug(root.getTree(INVALID_PATH)));
-        assertNull(CugUtil.getCug(root.getTree(UNSUPPORTED_PATH)));
-        assertNull(CugUtil.getCug(root.getTree(SUPPORTED_PATH + "/subtree")));
-        assertNull(CugUtil.getCug(root.getTree(SUPPORTED_PATH2)));
+    public void testHasCugNodeState() throws Exception {
+        assertTrue(CugUtil.hasCug(getNodeState(root.getTree(SUPPORTED_PATH))));
 
+        assertFalse(CugUtil.hasCug((NodeState) null));
+
+        for (String path : new String[] {PathUtils.ROOT_PATH, INVALID_PATH, UNSUPPORTED_PATH, SUPPORTED_PATH + "/subtree", SUPPORTED_PATH2, SUPPORTED_PATH3}) {
+            assertFalse(CugUtil.hasCug(getNodeState(root.getTree(path))));
+        }
+
+        new NodeUtil(root.getTree(SUPPORTED_PATH2)).addChild(REP_CUG_POLICY, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        assertTrue(CugUtil.hasCug(getNodeState(root.getTree(SUPPORTED_PATH2))));
+    }
+
+    @Test
+    public void testHasCugNodeBuilder() throws Exception {
+        assertTrue(CugUtil.hasCug(getNodeState(root.getTree(SUPPORTED_PATH)).builder()));
+
+        assertFalse(CugUtil.hasCug((NodeBuilder) null));
+        for (String path : new String[] {PathUtils.ROOT_PATH, INVALID_PATH, UNSUPPORTED_PATH, SUPPORTED_PATH + "/subtree", SUPPORTED_PATH2, SUPPORTED_PATH3}) {
+            assertFalse(CugUtil.hasCug(getNodeState(root.getTree(path)).builder()));
+        }
+
+        new NodeUtil(root.getTree(SUPPORTED_PATH2)).addChild(REP_CUG_POLICY, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        assertTrue(CugUtil.hasCug(getNodeState(root.getTree(SUPPORTED_PATH2)).builder()));
+    }
+
+    @Test
+    public void testGetCug() throws Exception {
         assertNotNull(CugUtil.getCug(root.getTree(SUPPORTED_PATH)));
 
-        Tree invalid = new NodeUtil(root.getTree(SUPPORTED_PATH2)).addChild(REP_CUG_POLICY, NodeTypeConstants.NT_OAK_UNSTRUCTURED).getTree();
-        assertNull(CugUtil.getCug(invalid));
+        for (String path : new String[] {PathUtils.ROOT_PATH, INVALID_PATH, UNSUPPORTED_PATH, SUPPORTED_PATH + "/subtree", SUPPORTED_PATH2, SUPPORTED_PATH3}) {
+            assertNull(CugUtil.getCug(root.getTree(path)));
+        }
+
+        new NodeUtil(root.getTree(SUPPORTED_PATH2)).addChild(REP_CUG_POLICY, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        assertNull(CugUtil.getCug(root.getTree(SUPPORTED_PATH2)));
     }
 
     @Test

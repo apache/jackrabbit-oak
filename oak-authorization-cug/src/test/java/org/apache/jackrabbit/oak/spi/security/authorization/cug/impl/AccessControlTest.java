@@ -82,7 +82,7 @@ public class AccessControlTest extends AbstractCugTest {
                 "/content2/rep:cugPolicy"
         );
 
-        pp = createCugPermissionProvider(ImmutableSet.of("/"), EveryonePrincipal.getInstance(), getTestGroupPrincipal(), getTestUser().getPrincipal());
+        pp = createCugPermissionProvider(ImmutableSet.of(PathUtils.ROOT_PATH), EveryonePrincipal.getInstance(), getTestGroupPrincipal(), getTestUser().getPrincipal());
     }
 
     @Test

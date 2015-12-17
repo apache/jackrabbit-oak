@@ -16,20 +16,16 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import java.io.IOException;
-import java.io.InputStream;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
-import org.apache.jackrabbit.oak.plugins.nodetype.write.NodeTypeRegistry;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.oak.util.TreeUtil;
@@ -46,6 +42,14 @@ final class CugUtil implements CugConstants {
         return tree.exists() && tree.hasChild(REP_CUG_POLICY);
     }
 
+    public static boolean hasCug(@CheckForNull NodeState state) {
+        return state != null && state.hasChildNode(REP_CUG_POLICY);
+    }
+
+    public static boolean hasCug(@CheckForNull NodeBuilder builder) {
+        return builder != null && builder.hasChildNode(REP_CUG_POLICY);
+    }
+
     @CheckForNull
     public static Tree getCug(@Nonnull Tree tree) {
         Tree cugTree = (CugUtil.hasCug(tree)) ? tree.getChild(REP_CUG_POLICY) : null;
@@ -60,8 +64,16 @@ final class CugUtil implements CugConstants {
         return tree.exists() && REP_CUG_POLICY.equals(tree.getName()) && NT_REP_CUG_POLICY.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 
+    public static boolean definesCug(@Nonnull String name, @Nonnull NodeState state) {
+        return REP_CUG_POLICY.equals(name) && NT_REP_CUG_POLICY.equals(NodeStateUtils.getPrimaryTypeName(state));
+    }
+
     public static boolean definesCug(@Nonnull Tree tree, @Nonnull PropertyState property) {
         return REP_PRINCIPAL_NAMES.equals(property.getName()) && definesCug(tree);
+    }
+
+    public static boolean hasNestedCug(@Nonnull Tree cugTree) {
+        return cugTree.hasProperty(CugConstants.HIDDEN_NESTED_CUGS);
     }
 
     public static boolean isSupportedPath(@Nullable String oakPath, @Nonnull ConfigurationParameters config) {
@@ -80,30 +92,5 @@ final class CugUtil implements CugConstants {
     public static int getImportBehavior(ConfigurationParameters config) {
         String importBehaviorStr = config.getConfigValue(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_ABORT);
         return ImportBehavior.valueFromString(importBehaviorStr);
-    }
-
-    public static boolean registerCugNodeTypes(@Nonnull final Root root) {
-        try {
-            ReadOnlyNodeTypeManager ntMgr = new ReadOnlyNodeTypeManager() {
-                @Override
-                protected Tree getTypes() {
-                    return root.getTree(NodeTypeConstants.NODE_TYPES_PATH);
-                }
-            };
-            if (!ntMgr.hasNodeType(NT_REP_CUG_POLICY)) {
-                InputStream stream = CugConfiguration.class.getResourceAsStream("cug_nodetypes.cnd");
-                try {
-                    NodeTypeRegistry.register(root, stream, "cug node types");
-                    return true;
-                } finally {
-                    stream.close();
-                }
-            }
-        } catch (IOException e) {
-            throw new IllegalStateException("Unable to read cug node types", e);
-        } catch (RepositoryException e) {
-            throw new IllegalStateException("Unable to read cug node types", e);
-        }
-        return false;
     }
 }

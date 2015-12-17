@@ -346,9 +346,7 @@ public class VersionTest extends AbstractCugTest implements NodeTypeConstants, V
         String vhPath = checkNotNull(versionManager.getVersionHistory(versionable)).getPath();
 
         try {
-            NodeUtil rootnode = new NodeUtil(root.getTree("/"));
-            rootnode.setNames(JCR_MIXINTYPES, MIX_REP_CUG_MIXIN);
-            rootnode.addChild(REP_CUG_POLICY, NT_REP_CUG_POLICY).setStrings(REP_PRINCIPAL_NAMES, EveryonePrincipal.NAME);
+            createCug(root, PathUtils.ROOT_PATH, EveryonePrincipal.NAME);
             root.commit();
 
             CugPermissionProvider pp = createCugPermissionProvider(ImmutableSet.of("/"));
