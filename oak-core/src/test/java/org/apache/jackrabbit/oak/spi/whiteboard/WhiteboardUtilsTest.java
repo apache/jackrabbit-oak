@@ -32,8 +32,6 @@ import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.junit.After;
 import org.junit.Test;
 
-import static junit.framework.TestCase.assertEquals;
-import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertNotNull;
 
 public class WhiteboardUtilsTest {
@@ -65,13 +63,6 @@ public class WhiteboardUtilsTest {
         //Second one would trigger a warning log but no affect on caller
         regs.add(WhiteboardUtils.registerMBean(wb, HelloMBean.class, hello, "test", "hello"));
         assertNotNull(server.getObjectInstance(new ObjectName("org.apache.jackrabbit.oak:type=test,name=hello")));
-    }
-
-    @Test
-    public void quotation() throws Exception{
-        assertEquals("text", WhiteboardUtils.quoteIfRequired("text"));
-        assertEquals("", WhiteboardUtils.quoteIfRequired(""));
-        assertTrue(WhiteboardUtils.quoteIfRequired("text*with?chars").startsWith("\""));
     }
 
     @Test

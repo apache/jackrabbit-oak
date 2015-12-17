@@ -17,15 +17,27 @@
  * under the License.
  */
 
-/**
- * Provides annotation support to produce JMX metadata.
- *
- * @version 1.0
- */
-@Version("1.1.0")
-@Export(optional = "provide:=true")
 package org.apache.jackrabbit.oak.commons.jmx;
 
-import aQute.bnd.annotation.Export;
-import aQute.bnd.annotation.Version;
+import junit.framework.TestCase;
+import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+public class JmxUtilTest {
+
+    @Test
+    public void quotation() throws Exception{
+        assertEquals("text", JmxUtil.quoteValueIfRequired("text"));
+        TestCase.assertEquals("", JmxUtil.quoteValueIfRequired(""));
+        assertTrue(JmxUtil.quoteValueIfRequired("text*with?chars").startsWith("\""));
+    }
+
+    @Test
+    public void quoteAndComma() throws Exception{
+        assertTrue(JmxUtil.quoteValueIfRequired("text,withComma").startsWith("\""));
+        assertTrue(JmxUtil.quoteValueIfRequired("text=withEqual").startsWith("\""));
+    }
+
+}

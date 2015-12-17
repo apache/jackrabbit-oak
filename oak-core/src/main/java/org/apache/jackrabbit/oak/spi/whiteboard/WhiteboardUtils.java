@@ -30,6 +30,7 @@ import javax.annotation.Nullable;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
+import org.apache.jackrabbit.oak.commons.jmx.JmxUtil;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 
 import com.google.common.base.Predicate;
@@ -74,8 +75,8 @@ public class WhiteboardUtils {
         try {
 
             Hashtable<String, String> table = new Hashtable<String, String>(attrs);
-            table.put("type", quoteIfRequired(type));
-            table.put("name", quoteIfRequired(name));
+            table.put("type", JmxUtil.quoteValueIfRequired(type));
+            table.put("name", JmxUtil.quoteValueIfRequired(name));
             return whiteboard.register(iface, bean, ImmutableMap.of(
                     "jmx.objectname",
                     new ObjectName(JMX_OAK_DOMAIN, table)));
@@ -167,14 +168,6 @@ public class WhiteboardUtils {
             tracker.stop();
         }
 
-    }
-
-    static String quoteIfRequired(String text) {
-        String quoted = ObjectName.quote(text);
-        if (quoted.substring(1, quoted.length() - 1).equals(text)) {
-            return text;
-        }
-        return quoted;
     }
 
 }
