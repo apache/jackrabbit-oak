@@ -43,7 +43,7 @@ public class ClusterConflictTest extends AbstractMongoConnectionTest {
     @Override
     public void setUpConnection() throws Exception {
         super.setUpConnection();
-        ns2 = newBuilder(connectionFactory.getConnection().getDB()).getNodeStore();
+        ns2 = newBuilder(connectionFactory.getConnection().getDB()).setClusterId(2).getNodeStore();
     }
 
     @Override

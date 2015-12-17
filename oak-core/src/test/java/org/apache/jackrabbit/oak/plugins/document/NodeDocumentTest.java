@@ -180,7 +180,7 @@ public class NodeDocumentTest {
         for (int i = 0; i < NUM_CLUSTER_NODES; i++) {
             DocumentNodeStore ns = new DocumentMK.Builder()
                     .setDocumentStore(store)
-                    .setAsyncDelay(0).getNodeStore();
+                    .setAsyncDelay(0).setClusterId(i + 1).getNodeStore();
             docStores.add(ns);
         }
         Random r = new Random(42);
@@ -337,8 +337,8 @@ public class NodeDocumentTest {
     @Test
     public void getNewestRevision() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
-        DocumentNodeStore ns1 = createTestStore(store, 0);
-        DocumentNodeStore ns2 = createTestStore(store, 0);
+        DocumentNodeStore ns1 = createTestStore(store, 1, 0);
+        DocumentNodeStore ns2 = createTestStore(store, 2, 0);
 
         NodeBuilder b1 = ns1.getRoot().builder();
         b1.child("test");
@@ -425,7 +425,7 @@ public class NodeDocumentTest {
     @Test
     public void getNewestRevisionCheckArgument() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
-        DocumentNodeStore ns = createTestStore(store, 0);
+        DocumentNodeStore ns = createTestStore(store, 0, 0);
 
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("test");
@@ -473,8 +473,8 @@ public class NodeDocumentTest {
         final int numChanges = 200;
         Random random = new Random();
         MemoryDocumentStore store = new MemoryDocumentStore();
-        DocumentNodeStore ns1 = createTestStore(store, 0);
-        DocumentNodeStore ns2 = createTestStore(store, 0);
+        DocumentNodeStore ns1 = createTestStore(store, 1, 0);
+        DocumentNodeStore ns2 = createTestStore(store, 2, 0);
         List<DocumentNodeStore> nodeStores = Lists.newArrayList(ns1, ns2);
 
         for (int i = 0; i < numChanges; i++) {
@@ -522,7 +522,7 @@ public class NodeDocumentTest {
                 return super.find(collection, key);
             }
         };
-        DocumentNodeStore ns = createTestStore(store, numChanges);
+        DocumentNodeStore ns = createTestStore(store, 0, numChanges);
         NodeDocument doc = getRootDocument(store);
         Map<Revision, String> valueMap = doc.getValueMap("p");
         assertEquals(200, valueMap.size());
@@ -539,14 +539,15 @@ public class NodeDocumentTest {
     }
 
     private DocumentNodeStore createTestStore(int numChanges) throws Exception {
-        return createTestStore(new MemoryDocumentStore(), numChanges);
+        return createTestStore(new MemoryDocumentStore(), 0, numChanges);
     }
 
     private DocumentNodeStore createTestStore(DocumentStore store,
+                                              int clusterId,
                                               int numChanges) throws Exception {
         DocumentNodeStore ns = new DocumentMK.Builder()
                 .setDocumentStore(store)
-                .setAsyncDelay(0).getNodeStore();
+                .setAsyncDelay(0).setClusterId(clusterId).getNodeStore();
         for (int i = 0; i < numChanges; i++) {
             NodeBuilder builder = ns.getRoot().builder();
             builder.setProperty("p", i);

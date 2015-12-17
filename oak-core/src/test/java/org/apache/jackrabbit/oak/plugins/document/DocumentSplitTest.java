@@ -751,7 +751,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         ns1.runBackgroundOperations();
 
         DocumentNodeStore ns2 = new DocumentMK.Builder().setDocumentStore(store)
-                .setAsyncDelay(0).getNodeStore();
+                .setAsyncDelay(0).setClusterId(ns1.getClusterId() + 1).getNodeStore();
         // prevent merge retries
         ns2.setMaxBackOffMillis(0);
         assertTrue(ns2.getRoot().hasChildNode("test"));

@@ -43,10 +43,10 @@ public class DocumentMKConcurrentAddTest extends AbstractMongoConnectionTest {
 
     private List<DocumentMK> mks = new ArrayList<DocumentMK>();
 
-    private DocumentMK createMicroKernel() throws Exception {
+    private DocumentMK createMicroKernel(int clusterId) throws Exception {
         MongoConnection connection = connectionFactory.getConnection();
         DB mongoDB = connection.getDB();
-        return new DocumentMK.Builder().memoryCacheSize(CACHE_SIZE).setMongoDB(mongoDB).open();
+        return new DocumentMK.Builder().memoryCacheSize(CACHE_SIZE).setMongoDB(mongoDB).setClusterId(clusterId).open();
     }
 
     @After
@@ -58,7 +58,7 @@ public class DocumentMKConcurrentAddTest extends AbstractMongoConnectionTest {
     }
 
     /**
-     * Creates NB_THREADS microkernels, each commiting two nodes (one parent,
+     * Creates NB_THREADS microkernels, each committing two nodes (one parent,
      * one child) in its own thread. The nodes being committed by separate
      * threads do not overlap / conflict.
      *
@@ -70,7 +70,8 @@ public class DocumentMKConcurrentAddTest extends AbstractMongoConnectionTest {
         List<Callable<String>> cs = new LinkedList<Callable<String>>();
         for (int i = 0; i < NB_THREADS; i++) {
             // each callable has its own microkernel
-            final DocumentMK mk = createMicroKernel();
+            // (try to assign a cluster id different from all other already existing nodes stores)
+            final DocumentMK mk = createMicroKernel(super.mk.getNodeStore().getClusterId() + 1 + i);
             mks.add(mk);
             // diff for adding one node and one child node
             final List<String> stmts = new LinkedList<String>();

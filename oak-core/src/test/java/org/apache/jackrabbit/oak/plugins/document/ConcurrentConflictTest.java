@@ -59,13 +59,13 @@ public class ConcurrentConflictTest extends BaseDocumentMKTest {
     public void initDocumentMK() {
         logBuffer.setLength(0);
         this.store = new MemoryDocumentStore();
-        DocumentMK mk = openDocumentMK();
+        DocumentMK mk = openDocumentMK(1);
         for (int i = 0; i < NUM_NODES; i++) {
             mk.commit("/", "+\"node-" + i + "\":{\"value\":100}", null, null);
         }
         mk.dispose();
         for (int i = 0; i < NUM_WRITERS; i++) {
-            kernels.add(openDocumentMK());
+            kernels.add(openDocumentMK(i + 2));
         }
     }
 
@@ -79,8 +79,8 @@ public class ConcurrentConflictTest extends BaseDocumentMKTest {
         kernels.clear();
     }
 
-    private DocumentMK openDocumentMK() {
-        return new DocumentMK.Builder().setAsyncDelay(10).setDocumentStore(store).open();
+    private DocumentMK openDocumentMK(int clusterId) {
+        return new DocumentMK.Builder().setAsyncDelay(10).setDocumentStore(store).setClusterId(clusterId).open();
     }
 
     @Ignore
@@ -201,7 +201,7 @@ public class ConcurrentConflictTest extends BaseDocumentMKTest {
         for (DocumentMK mk : kernels) {
             mk.dispose();
         }
-        DocumentMK mk = openDocumentMK();
+        DocumentMK mk = openDocumentMK(1);
         String rev = mk.getHeadRevision();
         long sum = calculateSum(mk, rev);
         log("Conflict rate: " + conflicts.get() +

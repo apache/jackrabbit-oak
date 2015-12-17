@@ -25,6 +25,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 
+import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.ClusterNodeState;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
@@ -49,10 +50,12 @@ public class ClusterInfoTest {
         DocumentNodeStore ns1 = new DocumentMK.Builder().
                 setDocumentStore(mem).
                 setAsyncDelay(0).
+                setClusterId(1).
                 getNodeStore();
         DocumentNodeStore ns2 = new DocumentMK.Builder().
                 setDocumentStore(mem).
                 setAsyncDelay(0).
+                setClusterId(2).
                 getNodeStore();
         // Bring the current time forward to after the leaseTime which would have been 
         // updated in the DocumentNodeStore initialization.
@@ -133,6 +136,42 @@ public class ClusterInfoTest {
                 String.valueOf(nodeStore.getClusterId()));
         assertNotNull(doc);
         return doc.getLeaseEndTime();
+    }
+
+    @Test
+    public void useAbandoned() throws InterruptedException {
+
+        MemoryDocumentStore mem = new MemoryDocumentStore();
+
+        DocumentNodeStore ns1 = new DocumentMK.Builder().
+                setDocumentStore(mem).
+                setAsyncDelay(0).
+                getNodeStore();
+
+        DocumentStore ds = ns1.getDocumentStore();
+        int cid = ns1.getClusterId();
+
+        ClusterNodeInfoDocument cnid = ds.find(Collection.CLUSTER_NODES, "" + cid);
+        assertNotNull(cnid);
+        assertEquals(ClusterNodeState.ACTIVE.toString(), cnid.get(ClusterNodeInfo.STATE));
+        ns1.dispose();
+
+        long waitFor = 2000;
+        // modify record to indicate "active" with a lease end in the future
+        UpdateOp up = new UpdateOp("" + cid, false);
+        up.set(Document.ID, "" + cid);
+        up.set(ClusterNodeInfo.STATE, ClusterNodeState.ACTIVE.toString());
+        long now = System.currentTimeMillis();
+        up.set(ClusterNodeInfo.LEASE_END_KEY, now + waitFor);
+        ds.findAndUpdate(Collection.CLUSTER_NODES, up);
+
+        // try restart
+        ns1 = new DocumentMK.Builder().
+                setDocumentStore(mem).
+                setAsyncDelay(0).
+                getNodeStore();
+ 
+        assertEquals("should have re-used existing cluster id", cid, ns1.getClusterId());
     }
 
     @After
