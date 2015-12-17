@@ -164,14 +164,6 @@ public class ClusterTest {
     }
 
     @Test
-    public void clusterNodeId() {
-        DocumentMK mk1 = createMK(0);
-        DocumentMK mk2 = createMK(0);
-        assertEquals(1, mk1.getClusterInfo().getId());
-        assertEquals(2, mk2.getClusterInfo().getId());
-    }
-
-    @Test
     public void clusterBranchInVisibility() throws InterruptedException {
         DocumentMK mk1 = createMK(1);
         mk1.commit("/", "+\"regular\": {}", null, null);

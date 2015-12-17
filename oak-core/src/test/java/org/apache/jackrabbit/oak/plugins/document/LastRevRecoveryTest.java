@@ -67,6 +67,7 @@ public class LastRevRecoveryTest {
                 .setLeaseCheck(leaseCheck)
                 .setAsyncDelay(0)
                 .setDocumentStore(sharedStore)
+                .setClusterId(1)
                 .getNodeStore();
         c1Id = ds1.getClusterId();
 
@@ -75,6 +76,7 @@ public class LastRevRecoveryTest {
                 .setLeaseCheck(leaseCheck)
                 .setAsyncDelay(0)
                 .setDocumentStore(sharedStore)
+                .setClusterId(2)
                 .getNodeStore();
         c2Id = ds2.getClusterId();
     }
