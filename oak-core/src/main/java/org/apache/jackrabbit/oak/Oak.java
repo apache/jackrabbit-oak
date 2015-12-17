@@ -95,6 +95,7 @@ import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.state.Clusterable;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -150,6 +151,8 @@ public class Oak {
     private final Closer closer = Closer.create();
 
     private ContentRepository contentRepository;
+    
+    private Clusterable clusterable;
 
     /**
      * Default {@code ScheduledExecutorService} used for scheduling background tasks.
@@ -338,7 +341,19 @@ public class Oak {
         // this(new DocumentMK.Builder().open());
         // this(new LogWrapper(new DocumentMK.Builder().open()));
     }
-
+    
+    /**
+     * Define the current repository as being a {@link Clusterable} one.
+     * 
+     * @param c
+     * @return
+     */
+    @Nonnull
+    public Oak with(@Nonnull Clusterable c) {
+        this.clusterable = checkNotNull(c);
+        return this;
+    }
+    
     /**
      * Sets the default workspace name that should be used in case of login
      * with {@code null} workspace name. If this method has not been called
