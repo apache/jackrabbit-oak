@@ -64,6 +64,13 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
         PATH_INCUG_MAP.put("/content/a/b/c/jcr:primaryType", true);
         PATH_INCUG_MAP.put("/content/aa", false);
         PATH_INCUG_MAP.put("/content/aa/bb/cc", true);
+
+        // path below supported-path but which never contains a cug
+        PATH_INCUG_MAP.put("/content/no", false);
+        PATH_INCUG_MAP.put("/content/no/cug", false);
+        PATH_INCUG_MAP.put("/content/no/cug/in", false);
+        PATH_INCUG_MAP.put("/content/no/cug/in/subtree", false);
+
         // paths that may not contain cugs anyway
         PATH_INCUG_MAP.put(NODE_TYPES_PATH, false);
         PATH_INCUG_MAP.put("/", false);
@@ -86,7 +93,8 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
             "/content/aa", "/content/aa/jcr:primaryType",
             "/content/bb", "/content/bb/jcr:primaryType",
             "/content/aa/bb/rep:cugPolicy", "/content/aa/bb/rep:cugPolicy/jcr:primaryType", "/content/aa/bb/rep:cugPolicy/rep:principalNames",
-            "/content/nonExisting", "/content/nonExisting/jcr:primaryType");
+            "/content/nonExisting", "/content/nonExisting/jcr:primaryType",
+            "/content/no","/content/no/cug","/content/no/cug/in","/content/no/cug/in/subtree");
 
     private Principal testGroupPrincipal;
     private CugPermissionProvider cugPermProvider;
@@ -102,6 +110,7 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
         NodeUtil n = new NodeUtil(root.getTree(SUPPORTED_PATH));
         n.addChild("a", NT_OAK_UNSTRUCTURED).addChild("b", NT_OAK_UNSTRUCTURED).addChild("c", NT_OAK_UNSTRUCTURED);
         n.addChild("aa", NT_OAK_UNSTRUCTURED).addChild("bb", NT_OAK_UNSTRUCTURED).addChild("cc", NT_OAK_UNSTRUCTURED);
+        n.addChild("no", NT_OAK_UNSTRUCTURED).addChild("cug", NT_OAK_UNSTRUCTURED).addChild("in", NT_OAK_UNSTRUCTURED).addChild("subtree", NT_OAK_UNSTRUCTURED);
 
         createCug("/content/a", testGroupPrincipal);
         createCug("/content/a/b/c", EveryonePrincipal.getInstance());

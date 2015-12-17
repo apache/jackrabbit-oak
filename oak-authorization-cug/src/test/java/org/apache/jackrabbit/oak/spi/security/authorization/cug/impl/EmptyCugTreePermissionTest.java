@@ -90,8 +90,7 @@ public class EmptyCugTreePermissionTest extends AbstractCugTest {
         String name = Text.getName(SUPPORTED_PATH2);
         NodeState ns = rootState.getChildNode(name);
         TreePermission child = tp.getChildPermission(name, ns);
-        assertCugPermission(child, true);
-        assertFalse(((CugTreePermission) child).isInCug());
+        assertSame(TreePermission.NO_RECOURSE, child);
 
         name = Text.getName(SUPPORTED_PATH);
         ns = rootState.getChildNode(name);

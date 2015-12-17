@@ -25,6 +25,7 @@ import java.util.List;
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -244,6 +245,12 @@ public class PropertyBuilder<T> {
     @Nonnull
     public PropertyBuilder<T> addValue(T value) {
         values.add(value);
+        return this;
+    }
+
+    @Nonnull
+    public PropertyBuilder<T> addValues(Iterable<T> values) {
+        Iterables.addAll(this.values, values);
         return this;
     }
 

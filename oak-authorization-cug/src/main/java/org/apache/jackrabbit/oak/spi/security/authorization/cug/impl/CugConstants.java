@@ -37,6 +37,18 @@ interface CugConstants {
     String REP_CUG_POLICY = "rep:cugPolicy";
 
     /**
+     * The name of the hidden property that stores information about nested
+     * CUG policy nodes.
+     */
+    String HIDDEN_NESTED_CUGS = ":nestedCugs";
+
+    /**
+     * The name of the hidden property that stores information about the number
+     * of CUG roots located close to the root node.
+     */
+    String HIDDEN_TOP_CUG_CNT = ":topCugCnt";
+
+    /**
      * The name of the property that stores the principal names that are allowed
      * to access the restricted area defined by the CUG (closed user group).
      */
