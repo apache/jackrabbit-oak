@@ -70,6 +70,7 @@ import org.apache.jackrabbit.oak.plugins.identifier.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStoreWrapper;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
+import org.apache.jackrabbit.oak.spi.state.Clusterable;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.RevisionGC;
 import org.apache.jackrabbit.oak.spi.state.RevisionGCMBean;
@@ -488,7 +489,13 @@ public class DocumentNodeStoreService {
         // OAK-2844: in order to allow DocumentDiscoveryLiteService to directly
         // require a service DocumentNodeStore (instead of having to do an 'instanceof')
         // the registration is now done for both NodeStore and DocumentNodeStore here.
-        reg = context.getBundleContext().registerService(new String[]{NodeStore.class.getName(), DocumentNodeStore.class.getName()}, store, props);
+        reg = context.getBundleContext().registerService(
+            new String[]{
+                 NodeStore.class.getName(), 
+                 DocumentNodeStore.class.getName(), 
+                 Clusterable.class.getName()
+            }, 
+            store, props);
     }
 
     @Deactivate
