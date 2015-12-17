@@ -48,12 +48,14 @@ public class LastRevRecoveryTest {
         ds1 = builderProvider.newBuilder()
                 .setAsyncDelay(0)
                 .setDocumentStore(sharedStore)
+                .setClusterId(1)
                 .getNodeStore();
         c1Id = ds1.getClusterId();
 
         ds2 = builderProvider.newBuilder()
                 .setAsyncDelay(0)
                 .setDocumentStore(sharedStore)
+                .setClusterId(2)
                 .getNodeStore();
         c2Id = ds2.getClusterId();
     }

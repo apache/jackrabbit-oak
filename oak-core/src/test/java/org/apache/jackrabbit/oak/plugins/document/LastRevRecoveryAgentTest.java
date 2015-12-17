@@ -98,6 +98,7 @@ public class LastRevRecoveryAgentTest {
                 .setAsyncDelay(0)
                 .clock(clock)
                 .setDocumentStore(store)
+                .setClusterId(1)
                 .getNodeStore();
         c1Id = ds1.getClusterId();
 
@@ -105,6 +106,7 @@ public class LastRevRecoveryAgentTest {
                 .setAsyncDelay(0)
                 .clock(clock)
                 .setDocumentStore(store)
+                .setClusterId(2)
                 .getNodeStore();
         c2Id = ds2.getClusterId();
     }
