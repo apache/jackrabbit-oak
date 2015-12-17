@@ -374,7 +374,7 @@ public class ClusterNodeInfo {
 
         int retries = 10;
         for (int i = 0; i < retries; i++) {
-            ClusterNodeInfo clusterNode = createInstance(store, machineId, instanceId, configuredClusterId);
+            ClusterNodeInfo clusterNode = createInstance(store, machineId, instanceId, configuredClusterId, i == 0);
             String key = String.valueOf(clusterNode.id);
             UpdateOp update = new UpdateOp(key, true);
             update.set(ID, key);
@@ -409,7 +409,7 @@ public class ClusterNodeInfo {
     }
 
     private static ClusterNodeInfo createInstance(DocumentStore store, String machineId,
-            String instanceId, int configuredClusterId) {
+            String instanceId, int configuredClusterId, boolean waitForLease) {
 
         long now = getCurrentTime();
         int clusterNodeId = 0;
@@ -447,15 +447,24 @@ public class ClusterNodeInfo {
             }
 
             Long leaseEnd = (Long) doc.get(LEASE_END_KEY);
+            String mId = "" + doc.get(MACHINE_ID_KEY);
+            String iId = "" + doc.get(INSTANCE_ID_KEY);
 
             if (leaseEnd != null && leaseEnd > now) {
-                // TODO wait for lease end, see OAK-3449
+                // wait if (a) instructed to, and (b) also the remaining time
+                // time is not much bigger than the lease interval (in which
+                // case something is very very wrong anyway)
+                if (waitForLease && (leaseEnd - now) < (DEFAULT_LEASE_DURATION_MILLIS + 5000) && mId.equals(machineId)
+                        && iId.equals(instanceId)) {
+                    boolean worthRetrying = waitForLeaseExpiry(store, doc, leaseEnd.longValue(), machineId, instanceId);
+                    if (worthRetrying) {
+                        return createInstance(store, machineId, instanceId, configuredClusterId, false);
+                    }
+                }
+
                 reuseFailureReason = "leaseEnd " + leaseEnd + " > " + now + " - " + (leaseEnd - now) + "ms in the future";
                 continue;
             }
-
-            String mId = "" + doc.get(MACHINE_ID_KEY);
-            String iId = "" + doc.get(INSTANCE_ID_KEY);
 
             // remove entries with "random:" keys if not in use (no lease at all) 
             if (mId.startsWith(RANDOM_PREFIX) && leaseEnd == null) {
@@ -504,6 +513,51 @@ public class ClusterNodeInfo {
         // that _lastRev recovery if needed is done.
         return new ClusterNodeInfo(clusterNodeId, store, machineId, instanceId, state,
                 RecoverLockState.NONE, prevLeaseEnd, newEntry);
+    }
+
+    private static boolean waitForLeaseExpiry(DocumentStore store, ClusterNodeInfoDocument cdoc, long leaseEnd, String machineId,
+            String instanceId) {
+        String key = cdoc.getId();
+        LOG.info("Found an existing possibly active cluster node info (" + key + ") for this instance: " + machineId + "/"
+                + instanceId + ", will try use it.");
+
+        // wait until lease expiry plus 2s
+        long waitUntil = leaseEnd + 2000;
+
+        while (getCurrentTime() < waitUntil) {
+            LOG.info("Waiting for cluster node " + key + "'s lease to expire: " + (waitUntil - getCurrentTime()) / 1000 + "s left");
+
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                // ignored
+            }
+
+            try {
+                // check state of cluster node info
+                ClusterNodeInfoDocument reread = store.find(Collection.CLUSTER_NODES, key);
+                if (reread == null) {
+                    LOG.info("Cluster node info " + key + ": gone; continueing.");
+                    return true;
+                } else {
+                    Long newLeaseEnd = (Long) reread.get(LEASE_END_KEY);
+                    if (newLeaseEnd == null) {
+                        LOG.info("Cluster node " + key + ": lease end information missing, aborting.");
+                        return false;
+                    } else {
+                        if (newLeaseEnd.longValue() != leaseEnd) {
+                            LOG.info("Cluster node " + key + " seems to be still active (lease end changed from " + leaseEnd
+                                    + " to " + newLeaseEnd + ", will not try to use it.");
+                            return false;
+                        }
+                    }
+                }
+            } catch (DocumentStoreException ex) {
+                LOG.info("Error reading cluster node info for key " + key, ex);
+                return false;
+            }
+        }
+        return true;
     }
 
     public void performLeaseCheck() {

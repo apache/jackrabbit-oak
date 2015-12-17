@@ -57,17 +57,18 @@ public class ClusterConflictTest {
     @Before
     public void setUp() {
         MemoryDocumentStore store = new MemoryDocumentStore();
-        ns1 = newDocumentNodeStore(store);
-        ns2 = newDocumentNodeStore(store);
+        ns1 = newDocumentNodeStore(store, 1);
+        ns2 = newDocumentNodeStore(store, 2);
     }
 
-    private DocumentNodeStore newDocumentNodeStore(DocumentStore store) {
+    private DocumentNodeStore newDocumentNodeStore(DocumentStore store, int clusterId) {
         // use high async delay and run background ops manually
         // asyncDelay set to zero prevents commits from suspending
         return builderProvider.newBuilder()
                 .setAsyncDelay(60000)
                 .setDocumentStore(store)
                 .setLeaseCheck(false) // disabled for debugging purposes
+                .setClusterId(clusterId)
                 .getNodeStore();
     }
 

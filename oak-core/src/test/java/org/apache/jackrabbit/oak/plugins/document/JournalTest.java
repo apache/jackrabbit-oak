@@ -327,10 +327,10 @@ public class JournalTest extends AbstractJournalTest {
     }
     
     private void doLastRevRecoveryJournalTest(boolean testConcurrency) throws Exception {
-        DocumentMK mk1 = createMK(0 /*clusterId via clusterNodes collection*/, 0);
+        DocumentMK mk1 = createMK(1, 0);
         DocumentNodeStore ds1 = mk1.getNodeStore();
         int c1Id = ds1.getClusterId();
-        DocumentMK mk2 = createMK(0 /*clusterId via clusterNodes collection*/, 0);
+        DocumentMK mk2 = createMK(2, 0);
         DocumentNodeStore ds2 = mk2.getNodeStore();
         final int c2Id = ds2.getClusterId();
         

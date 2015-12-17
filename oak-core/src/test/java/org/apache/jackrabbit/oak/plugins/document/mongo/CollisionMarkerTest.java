@@ -50,7 +50,7 @@ public class CollisionMarkerTest extends AbstractMongoConnectionTest {
     public void setUpConnection() throws Exception {
         mongoConnection = connectionFactory.getConnection();
         MongoUtils.dropCollections(mongoConnection.getDB());
-        mk = newDocumentMK(mongoConnection.getDB());
+        mk = newDocumentMK(mongoConnection.getDB(), 2);
         ns1 = mk.getNodeStore();
     }
 
@@ -69,7 +69,7 @@ public class CollisionMarkerTest extends AbstractMongoConnectionTest {
         ns1.runBackgroundOperations();
         // initialize second node store after background ops
         // on ns1. this makes sure ns2 sees all changes done so far
-        ns2 = newDocumentMK(connectionFactory.getConnection().getDB()).getNodeStore();
+        ns2 = newDocumentMK(connectionFactory.getConnection().getDB(), 3).getNodeStore();
 
         b1 = ns1.getRoot().builder();
         b1.child("node").child("foo");
@@ -93,10 +93,12 @@ public class CollisionMarkerTest extends AbstractMongoConnectionTest {
                 " committed revision", root.getValueMap(COLLISIONS).containsKey(head));
     }
 
-    private static DocumentMK newDocumentMK(DB db) {
+    private static DocumentMK newDocumentMK(DB db, int clusterId) {
         DocumentMK mk = new DocumentMK.Builder().setAsyncDelay(0)
                 .setLeaseCheck(false)
-                .setMongoDB(db).open();
+                .setMongoDB(db)
+                .setClusterId(clusterId)
+                .open();
         // do not retry on conflicts
         mk.getNodeStore().setMaxBackOffMillis(0);
         return mk;
