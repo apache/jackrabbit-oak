@@ -16,19 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
-import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
-import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
-import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newDepthField;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newFulltextField;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newAncestorsField;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPropertyField;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil.getPrimaryTypeName;
-
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -36,11 +24,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.annotation.Nullable;
-
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-
 import com.google.common.collect.Sets;
 import com.google.common.io.CountingInputStream;
 import org.apache.jackrabbit.JcrConstants;
@@ -71,7 +56,6 @@ import org.apache.lucene.document.LongField;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.SortedDocValuesField;
 import org.apache.lucene.document.StringField;
-import org.apache.lucene.facet.FacetsConfig;
 import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.search.PrefixQuery;
@@ -81,6 +65,13 @@ import org.apache.tika.parser.ParseContext;
 import org.apache.tika.sax.WriteOutContentHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.*;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil.getPrimaryTypeName;
 
 /**
  * {@link IndexEditor} implementation that is responsible for keeping the
@@ -127,8 +118,6 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
     private final MatcherState matcherState;
 
     private final PathFilter.Result pathFilterResult;
-
-    private static final FacetsConfig facetsConfig = new FacetsConfig();
 
     LuceneIndexEditor(NodeState root, NodeBuilder definition,
                         IndexUpdateCallback updateCallback,
@@ -343,12 +332,9 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                 dirty |= addTypedOrderedFields(fields, property, pname, pd);
             }
 
-            if (pd.facet) {
-                dirty |= addFacetFields(fields, property, pname, pd);
-                facet = true;
-            }
-
             dirty |= indexProperty(path, fields, state, property, pname, pd);
+
+            facet |= pd.facet;
         }
 
         dirty |= indexAggregates(path, fields, state);
@@ -408,7 +394,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         }
 
         if (facet) {
-            document = facetsConfig.build(document);
+            document = context.getFacetsConfig().build(document);
         }
 
         //TODO Boost at document level
@@ -417,64 +403,46 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
     }
 
     private boolean addFacetFields(List<Field> fields, PropertyState property, String pname, PropertyDefinition pd) {
-        // force skipping some JCR properties whose faceting wouldn't make sense (unique or possibly very large values)
-        if (!pname.equals(JCR_DATA) && !pname.equals(JCR_CREATED) && !pname.equals(JCR_UUID)) {
-            String facetFieldName = pname + "_facet";
-            facetsConfig.setIndexFieldName(pname, facetFieldName); // facets are indexed in *_facet fields
-            int tag = property.getType().tag();
-            int idxDefinedTag = pd.getType();
-            // Try converting type to the defined type in the index definition
-            if (tag != idxDefinedTag) {
-                log.debug("[{}] Facet property defined with type {} differs from property {} with type {} in "
-                                + "path {}",
-                        getIndexName(),
-                        Type.fromTag(idxDefinedTag, false), property.toString(),
-                        Type.fromTag(tag, false), getPath());
-                tag = idxDefinedTag;
-            }
+        String facetFieldName = FieldNames.createFacetFieldName(pname);
+        context.getFacetsConfig().setIndexFieldName(pname, facetFieldName);
+        int tag = property.getType().tag();
+        int idxDefinedTag = pd.getType();
+        // Try converting type to the defined type in the index definition
+        if (tag != idxDefinedTag) {
+            log.debug("[{}] Facet property defined with type {} differs from property {} with type {} in "
+                            + "path {}",
+                    getIndexName(),
+                    Type.fromTag(idxDefinedTag, false), property.toString(),
+                    Type.fromTag(tag, false), getPath());
+            tag = idxDefinedTag;
+        }
 
-            boolean fieldAdded = false;
-            try {
-                if (tag == Type.LONG.tag()) {
-                    fields.add(new SortedSetDocValuesFacetField(pname, property.getValue(Type.LONG).toString()));
-                    fieldAdded = true;
-                } else if (tag == Type.DATE.tag()) {
-                    String date = property.getValue(Type.DATE);
-                    fields.add(new SortedSetDocValuesFacetField(pname, date));
-                    fieldAdded = true;
-                } else if (tag == Type.DOUBLE.tag()) {
-                    fields.add(new DoubleDocValuesField(pname, property.getValue(Type.DOUBLE)));
-                    fieldAdded = true;
-                } else if (tag == Type.BOOLEAN.tag()) {
-                    fields.add(new SortedSetDocValuesFacetField(pname, property.getValue(Type.BOOLEAN).toString()));
-                    fieldAdded = true;
-                } else if (tag == Type.STRINGS.tag() && property.isArray()) {
-                    facetsConfig.setMultiValued(pname, true);
-                    Iterable<String> values = property.getValue(Type.STRINGS);
-                    for (String value : values) {
-                        if (value != null && value.length() > 0) {
-                            fields.add(new SortedSetDocValuesFacetField(pname, value));
-                        }
-                    }
-                    fieldAdded = true;
-                } else if (tag == Type.STRING.tag()) {
-                    String value = property.getValue(Type.STRING);
-                    if (value.length() > 0) {
+        boolean fieldAdded = false;
+        try {
+            if (tag == Type.STRINGS.tag() && property.isArray()) {
+                context.getFacetsConfig().setMultiValued(pname, true);
+                Iterable<String> values = property.getValue(Type.STRINGS);
+                for (String value : values) {
+                    if (value != null && value.length() > 0) {
                         fields.add(new SortedSetDocValuesFacetField(pname, value));
-                        fieldAdded = true;
                     }
                 }
-
-            } catch (Throwable e) {
-                log.warn("[{}] Ignoring facet property. Could not convert property {} of type {} to type {} for path {}",
-                        getIndexName(), pname,
-                        Type.fromTag(property.getType().tag(), false),
-                        Type.fromTag(tag, false), getPath(), e);
+                fieldAdded = true;
+            } else if (tag == Type.STRING.tag()) {
+                String value = property.getValue(Type.STRING);
+                if (value.length() > 0) {
+                    fields.add(new SortedSetDocValuesFacetField(pname, value));
+                    fieldAdded = true;
+                }
             }
-            return fieldAdded;
-        } else {
-            return false;
+
+        } catch (Throwable e) {
+            log.warn("[{}] Ignoring facet property. Could not convert property {} of type {} to type {} for path {}",
+                    getIndexName(), pname,
+                    Type.fromTag(property.getType().tag(), false),
+                    Type.fromTag(tag, false), getPath(), e);
         }
+        return fieldAdded;
     }
 
     private boolean indexProperty(String path,
@@ -517,6 +485,10 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                     dirty = true;
                 }
             }
+            if (pd.facet) {
+                dirty |= addFacetFields(fields, property, pname, pd);
+            }
+
             return dirty;
         }
     }

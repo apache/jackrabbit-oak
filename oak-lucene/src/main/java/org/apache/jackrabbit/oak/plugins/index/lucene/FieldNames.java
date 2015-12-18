@@ -119,4 +119,8 @@ public final class FieldNames {
         }
         return FULLTEXT_RELATIVE_NODE + nodeRelativePath;
     }
+
+    public static String createFacetFieldName(String pname) {
+        return pname + "_facet";
+    }
 }

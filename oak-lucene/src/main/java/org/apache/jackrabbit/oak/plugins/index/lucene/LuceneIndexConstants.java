@@ -287,8 +287,7 @@ public interface LuceneIndexConstants {
     String INDEX_PATH = "indexPath";
 
     /**
-     * Optional (property definition) property indicating facet can be retrieved together with plain queries.
-     * Default is false
+     * Optional property definition subnode holding configuration for facets.
      */
     String PROP_FACET = "facets";
 

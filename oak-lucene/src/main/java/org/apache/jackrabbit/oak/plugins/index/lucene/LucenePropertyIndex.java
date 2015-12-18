@@ -47,6 +47,7 @@ import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexPlanner.PlanResult;
 import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.FacetHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.MoreLikeThisHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SpellcheckHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
@@ -377,15 +378,6 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
 
                         checkForIndexVersionChange(searcher);
 
-                        List<String> facetFields = new LinkedList<String>();
-                        List<PropertyRestriction> facetRestriction = filter.getPropertyRestrictions(QueryImpl.REP_FACET);
-                        if (facetRestriction != null && facetRestriction.size() > 0) {
-                            for (PropertyRestriction pr : facetRestriction) {
-                                String value = pr.first.getValue(Type.STRING);
-                                facetFields.add(value.substring(QueryImpl.REP_FACET.length() + 1, value.length() - 1));
-                            }
-                        }
-
                         TopDocs docs;
                         long start = PERF_LOGGER.start();
                         while (true) {
@@ -407,35 +399,9 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                             PERF_LOGGER.end(start, -1, "{} ...", docs.scoreDocs.length);
                             nextBatchSize = (int) Math.min(nextBatchSize * 2L, 100000);
 
-                            Facets facets = null;
-                            if (facetFields.size() > 0) {
-                                Map<String, Facets> facetsMap = new HashMap<String, Facets>();
-
-                                long f = System.currentTimeMillis();
-                                for (String facetField : facetFields) {
-                                    FacetsCollector facetsCollector = new FacetsCollector();
-                                    try {
-                                        DefaultSortedSetDocValuesReaderState state = new DefaultSortedSetDocValuesReaderState(
-                                                searcher.getIndexReader(), facetField + "_facet"); // facets are indexed in *_facet fields
-                                        if (lastDoc != null) {
-                                            facetsCollector.searchAfter(searcher, lastDoc, query, 10, facetsCollector);
-                                        } else {
-                                            FacetsCollector.search(searcher, query, 10, facetsCollector);
-                                        }
-                                        facetsMap.put(facetField, indexNode.getDefinition().isSecureFacets() ?
-                                                new FilteredSortedSetDocValuesFacetCounts(state, facetsCollector, filter, docs) :
-                                                new SortedSetDocValuesFacetCounts(state, facetsCollector));
-
-                                    } catch (IllegalArgumentException iae) {
-                                        LOG.warn("facets for {} not yet indexed", facetField);
-                                    }
-                                }
-                                if (facetsMap.size() > 0) {
-                                    facets = new MultiFacets(facetsMap);
-                                    LOG.debug("facets retrieved in {}ms", (System.currentTimeMillis() - f));
-                                }
-
-                            }
+                            long f = PERF_LOGGER.start();
+                            Facets facets = FacetHelper.getFacets(searcher, query, docs, plan, indexNode.getDefinition().isSecureFacets());
+                            PERF_LOGGER.end(f, -1, "facets retrieved");
 
                             PropertyRestriction restriction = filter.getPropertyRestriction(QueryImpl.REP_EXCERPT);
                             boolean addExcerpt = restriction != null && restriction.isNotNullRestriction();
@@ -529,6 +495,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
 
                 return !queue.isEmpty();
             }
+
 
             private void checkForIndexVersionChange(IndexSearcher searcher) {
                 long currentVersion = getVersion(searcher);
@@ -1507,7 +1474,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                         return PropertyValues.newString(currentRow.excerpt);
                     }
                     if (columnName.startsWith(QueryImpl.REP_FACET)) {
-                        String facetFieldName = columnName.substring(QueryImpl.REP_FACET.length() + 1, columnName.length() - 1);
+                        String facetFieldName = FacetHelper.parseFacetField(columnName);
                         Facets facets = currentRow.facets;
                         try {
                             if (facets != null) {
@@ -1565,79 +1532,4 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         }
     }
 
-    private class FilteredSortedSetDocValuesFacetCounts extends SortedSetDocValuesFacetCounts {
-        private final TopDocs docs;
-        private final Filter filter;
-        private final IndexReader reader;
-        private final SortedSetDocValuesReaderState state;
-
-        public FilteredSortedSetDocValuesFacetCounts(DefaultSortedSetDocValuesReaderState state, FacetsCollector facetsCollector, Filter filter, TopDocs docs) throws IOException {
-            super(state, facetsCollector);
-            this.reader = state.origReader;
-            this.filter = filter;
-            this.docs = docs;
-            this.state = state;
-        }
-
-        @Override
-        public FacetResult getTopChildren(int topN, String dim, String... path) throws IOException {
-            FacetResult topChildren = super.getTopChildren(topN, dim, path);
-
-            LabelAndValue[] labelAndValues = topChildren.labelValues;
-
-            for (ScoreDoc scoreDoc : docs.scoreDocs) {
-                labelAndValues = filterFacet(scoreDoc.doc, dim, labelAndValues);
-            }
-
-            int childCount = labelAndValues.length;
-            Number value = 0;
-            for (LabelAndValue lv : labelAndValues) {
-                value = value.longValue() + lv.value.longValue();
-            }
-
-            return new FacetResult(dim, path, value, labelAndValues, childCount);
-        }
-
-        private LabelAndValue[] filterFacet(int docId, String dimension, LabelAndValue[] labelAndValues) throws IOException {
-            boolean filterd = false;
-            Map<String, Long> newValues = new HashMap<String, Long>();
-
-            Document document = reader.document(docId);
-            SortedSetDocValues docValues = state.getDocValues();
-            docValues.setDocument(docId);
-
-            // filter using doc values (avoiding requiring stored values)
-            if (!filter.isAccessible(document.getField(PATH).stringValue() + "/" + dimension)) {
-                filterd = true;
-                for (LabelAndValue lv : labelAndValues) {
-                    long existingCount = lv.value.longValue();
-
-                    BytesRef key = new BytesRef(FacetsConfig.pathToString(dimension, new String[]{lv.label}));
-                    long l = docValues.lookupTerm(key);
-                    if (l >= 0) {
-                        if (existingCount > 0) {
-                            newValues.put(lv.label, existingCount - 1);
-                        } else {
-                            if (newValues.containsKey(lv.label)) {
-                                newValues.remove(lv.label);
-                            }
-                        }
-                    }
-                }
-            }
-            LabelAndValue[] filteredLVs;
-            if (filterd) {
-                filteredLVs = new LabelAndValue[newValues.size()];
-                int i = 0;
-                for (Map.Entry<String, Long> entry : newValues.entrySet()) {
-                    filteredLVs[i] = new LabelAndValue(entry.getKey(), entry.getValue());
-                    i++;
-                }
-            } else {
-                filteredLVs = labelAndValues;
-            }
-
-            return filteredLVs;
-        }
-    }
 }

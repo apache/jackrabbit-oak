@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.FacetHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -41,6 +42,7 @@ import org.apache.jackrabbit.util.ISO8601;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper;
 import org.apache.lucene.analysis.shingle.ShingleAnalyzerWrapper;
+import org.apache.lucene.facet.FacetsConfig;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
@@ -68,6 +70,8 @@ public class LuceneIndexEditorContext {
 
     private static final PerfLogger PERF_LOGGER =
             new PerfLogger(LoggerFactory.getLogger(LuceneIndexEditorContext.class.getName() + ".perf"));
+
+    private final FacetsConfig facetsConfig;
 
     static IndexWriterConfig getIndexWriterConfig(IndexDefinition definition, boolean remoteDir) {
         // FIXME: Hack needed to make Lucene work in an OSGi environment
@@ -159,6 +163,7 @@ public class LuceneIndexEditorContext {
         if (this.definition.isOfOldFormat()){
             IndexDefinition.updateDefinition(definition);
         }
+        this.facetsConfig = FacetHelper.getFacetsConfig(definition);
     }
 
     Parser getParser() {
@@ -324,6 +329,10 @@ public class LuceneIndexEditorContext {
 
     public IndexDefinition getDefinition() {
         return definition;
+    }
+
+    FacetsConfig getFacetsConfig() {
+        return facetsConfig;
     }
 
     @Deprecated
