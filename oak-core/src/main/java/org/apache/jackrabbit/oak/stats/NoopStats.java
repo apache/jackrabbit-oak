@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.stats;
 
 import java.util.concurrent.TimeUnit;
 
-public final class NoopStats implements TimerStats, MeterStats, CounterStats {
+public final class NoopStats implements TimerStats, MeterStats, CounterStats, HistogramStats {
 
     public static final NoopStats INSTANCE = new NoopStats();
 
@@ -62,6 +62,11 @@ public final class NoopStats implements TimerStats, MeterStats, CounterStats {
     @Override
     public Context time() {
         return NoopContext.INSTANCE;
+    }
+
+    @Override
+    public void update(long value) {
+
     }
 
     private static final class NoopContext implements Context {

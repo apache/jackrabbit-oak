@@ -24,12 +24,10 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.ExponentiallyDecayingReservoir;
+import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
-import org.apache.jackrabbit.oak.stats.Clock;
-import org.apache.jackrabbit.oak.stats.CounterStats;
-import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.SimpleStats;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.junit.Test;
@@ -98,6 +96,22 @@ public class CompositeStatsTest {
         assertTrue(timerStats.isTimer());
         assertFalse(timerStats.isCounter());
         assertNotNull(timerStats.getTimer());
+    }
+
+    @Test
+    public void histogram() throws Exception {
+        Histogram histo = registry.histogram("test");
+        CompositeStats histoStats = new CompositeStats(simpleStats, histo);
+
+        histoStats.update(100);
+        assertEquals(1, histo.getCount());
+        assertEquals(100, histo.getSnapshot().getMax());
+
+        assertFalse(histoStats.isMeter());
+        assertFalse(histoStats.isTimer());
+        assertFalse(histoStats.isCounter());
+        assertTrue(histoStats.isHistogram());
+        assertNotNull(histoStats.getHistogram());
     }
 
     @Test

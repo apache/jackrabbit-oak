@@ -45,6 +45,11 @@ public interface StatisticsProvider {
         public TimerStats getTimer(String name) {
             return NoopStats.INSTANCE;
         }
+
+        @Override
+        public HistogramStats getHistogram(String name) {
+            return NoopStats.INSTANCE;
+        }
     };
 
 
@@ -55,4 +60,6 @@ public interface StatisticsProvider {
     CounterStats getCounterStats(String name);
 
     TimerStats getTimer(String name);
+
+    HistogramStats getHistogram(String name);
 }

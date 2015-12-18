@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.stats;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-public final class SimpleStats implements TimerStats, MeterStats, CounterStats {
+public final class SimpleStats implements TimerStats, MeterStats, CounterStats, HistogramStats {
     private final AtomicLong statsHolder;
 
     public SimpleStats(AtomicLong statsHolder) {
@@ -62,6 +62,11 @@ public final class SimpleStats implements TimerStats, MeterStats, CounterStats {
     @Override
     public Context time() {
         return new SimpleContext(this);
+    }
+
+    @Override
+    public void update(long value) {
+        statsHolder.getAndAdd(value);
     }
 
     private static final class SimpleContext implements Context {
