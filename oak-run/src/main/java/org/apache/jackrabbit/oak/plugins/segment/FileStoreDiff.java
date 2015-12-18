@@ -59,7 +59,7 @@ public class FileStoreDiff {
     public static void main(String[] args) throws Exception {
         if (args.length == 0) {
             System.out
-                    .println("java -jar oak-diff-*.jar <path/to/repository> [--list] [--diff=R0..R1] [--incremental] [--ignore-snfes] [--output=/path/to/output/file]");
+                    .println("java -jar oak-run-*.jar tarmkdiff <path/to/repository> [--list] [--diff=R0..R1] [--incremental] [--ignore-snfes] [--output=/path/to/output/file]");
             System.exit(0);
         }
         OptionParser parser = new OptionParser();
