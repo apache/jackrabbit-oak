@@ -38,7 +38,6 @@ public class FacetTest extends AbstractQueryTest {
 
     public void testFacetRetrieval() throws Exception {
         Session session = superuser;
-        QueryManager qm = session.getWorkspace().getQueryManager();
         Node n1 = testRootNode.addNode("node1");
         n1.setProperty("text", "hello");
         Node n2 = testRootNode.addNode("node2");
@@ -47,6 +46,7 @@ public class FacetTest extends AbstractQueryTest {
         n3.setProperty("text", "oh hallo");
         session.save();
 
+        QueryManager qm = session.getWorkspace().getQueryManager();
         String sql2 = "select [jcr:path], [rep:facet(text)] from [nt:base] " +
                 "where contains([text], 'hello OR hallo') order by [jcr:path]";
         Query q = qm.createQuery(sql2, Query.JCR_SQL2);
@@ -57,7 +57,6 @@ public class FacetTest extends AbstractQueryTest {
 
     public void testFacetRetrievalMV() throws Exception {
         Session session = superuser;
-        QueryManager qm = session.getWorkspace().getQueryManager();
         Node n1 = testRootNode.addNode("node1");
         n1.setProperty("jcr:title", "apache jackrabbit oak");
         n1.setProperty("tags", new String[]{"software", "repository", "apache"});
@@ -72,6 +71,7 @@ public class FacetTest extends AbstractQueryTest {
         n4.setProperty("tags", new String[]{"software", "repository", "aem"});
         session.save();
 
+        QueryManager qm = session.getWorkspace().getQueryManager();
         String sql2 = "select [jcr:path], [rep:facet(tags)] from [nt:base] " +
                 "where contains([jcr:title], 'oak') order by [jcr:path]";
         Query q = qm.createQuery(sql2, Query.JCR_SQL2);
@@ -92,8 +92,8 @@ public class FacetTest extends AbstractQueryTest {
         session.save();
 
         session = getHelper().getReadOnlySession();
-        QueryManager qm = session.getWorkspace().getQueryManager();
 
+        QueryManager qm = session.getWorkspace().getQueryManager();
         String sql2 = "select [jcr:path], [rep:facet(text)] from [nt:base] " +
                 "where contains([text], 'hello OR hallo') order by [jcr:path]";
         Query q = qm.createQuery(sql2, Query.JCR_SQL2);
@@ -104,7 +104,6 @@ public class FacetTest extends AbstractQueryTest {
 
     public void testFacetRetrieval2() throws Exception {
         Session session = superuser;
-        QueryManager qm = session.getWorkspace().getQueryManager();
         Node n1 = testRootNode.addNode("node1");
         String pn = "jcr:title";
         n1.setProperty(pn, "hello");
@@ -114,6 +113,7 @@ public class FacetTest extends AbstractQueryTest {
         n3.setProperty(pn, "oh hallo");
         session.save();
 
+        QueryManager qm = session.getWorkspace().getQueryManager();
         String sql2 = "select [jcr:path], [rep:facet(" + pn + ")] from [nt:base] " +
                 "where contains([" + pn + "], 'hallo') order by [jcr:path]";
         Query q = qm.createQuery(sql2, Query.JCR_SQL2);
@@ -124,7 +124,6 @@ public class FacetTest extends AbstractQueryTest {
 
     public void testMultipleFacetsRetrieval() throws Exception {
         Session session = superuser;
-        QueryManager qm = session.getWorkspace().getQueryManager();
         Node n1 = testRootNode.addNode("node1");
         String pn = "jcr:title";
         String pn2 = "jcr:description";
@@ -138,6 +137,7 @@ public class FacetTest extends AbstractQueryTest {
         n3.setProperty(pn2, "a");
         session.save();
 
+        QueryManager qm = session.getWorkspace().getQueryManager();
         String sql2 = "select [jcr:path], [rep:facet(" + pn + ")], [rep:facet(" + pn2 + ")] from [nt:base] " +
                 "where contains([" + pn + "], 'hallo') order by [jcr:path]";
         Query q = qm.createQuery(sql2, Query.JCR_SQL2);

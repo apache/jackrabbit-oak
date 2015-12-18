@@ -163,7 +163,10 @@
     <copyField source="path_exact" dest="path_child"/>
     <copyField source="path_exact" dest=":path"/>
     <copyField source="*" dest="catch_all"/>
-    <copyField source="*" dest="*_facet"/>
+    <copyField source="jcr:description" dest="jcr:description_facet"/>
+    <copyField source="jcr:title" dest="jcr:title_facet"/>
+    <copyField source="text" dest="text_facet"/>
+    <copyField source="tags" dest="tags_facet"/>
     <copyField source="jcr:title" dest=":spellcheck"/>
     <copyField source="jcr:description" dest=":spellcheck"/>
     <copyField source="jcr:title" dest=":suggest"/>

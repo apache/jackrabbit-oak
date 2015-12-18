@@ -356,7 +356,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                     if (!facetFields.isEmpty() && docs != null) {
                         for (SolrDocument doc : docs) {
                             String path = String.valueOf(doc.getFieldValue(configuration.getPathField()));
-                            // if facet path doesn't exist in the node state, filter the facets
+                            // if facet path doesn't exist for the calling user, filter the facet for this doc
                             for (FacetField ff : facetFields) {
                                 if (!filter.isAccessible(path + "/" + ff.getName())) {
                                     filterFacet(doc, ff);
@@ -398,7 +398,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
 
     private void filterFacet(SolrDocument doc, FacetField facetField) {
         // facet filtering by value requires that the facet values match the stored values
-        // a *_facet field must exist, storing docValues to be used for faceting and at filtering time
+        // a *_facet field must exist, stored (or /w docValues) to be used for faceting and at filtering time
         if (doc.getFieldNames().contains(facetField.getName())) {
             // decrease facet value
             Collection<Object> docFieldValues = doc.getFieldValues(facetField.getName());
