@@ -45,6 +45,7 @@ public final class JmxUtil {
         //Check if some chars are escaped or not. In that case
         //length of quoted string (excluding quotes) would differ
         if (quotedValue.substring(1, quotedValue.length() - 1).equals(unquotedValue)) {
+            ObjectName on = null;
             try {
                 //Quoting logic in ObjectName does not escape ',', '='
                 //etc. So try now by constructing ObjectName. If that
@@ -52,9 +53,14 @@ public final class JmxUtil {
 
                 //Also we cannot just rely on ObjectName as it treats
                 //*, ? as pattern chars and which should ideally be escaped
-                new ObjectName("dummy", "dummy", unquotedValue);
+                on = new ObjectName("dummy", "dummy", unquotedValue);
+            } catch (MalformedObjectNameException ignore) {
+                //ignore
+            }
+
+            if (on != null){
                 result = unquotedValue;
-            } catch (MalformedObjectNameException e) {
+            } else {
                 result = quotedValue;
             }
         } else {
