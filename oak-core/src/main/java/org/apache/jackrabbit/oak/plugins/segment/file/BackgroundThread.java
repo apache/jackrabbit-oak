@@ -100,7 +100,7 @@ class BackgroundThread extends Thread implements Closeable {
             log.error("Unhandled exception in background thread", e);
             throw e;
         }
-}
+    }
 
     void trigger() {
         trigger(false);
