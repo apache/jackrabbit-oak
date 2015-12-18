@@ -46,7 +46,7 @@ public class SolrOakRepositoryStub extends OakTarMKRepositoryStub {
 
     @Override
     protected void preCreateRepository(Jcr jcr) {
-        String path = getClass().getResource("/").getFile() + "/queryjcrtest";
+        String path = getClass().getResource("/").getFile() + "/queryjcrtest" ;
         File f = new File(path);
         final SolrServer solrServer;
         try {

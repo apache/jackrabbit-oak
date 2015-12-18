@@ -64,17 +64,6 @@ class FilterQueryParser {
             }
         }
 
-        // facet enable
-        List<Filter.PropertyRestriction> facetRestriction = filter.getPropertyRestrictions(QueryImpl.REP_FACET);
-        if (facetRestriction != null && facetRestriction.size() > 0) {
-            solrQuery.setFacetMinCount(1);
-            solrQuery.setFacet(true);
-            for (Filter.PropertyRestriction pr : facetRestriction) {
-                String value = pr.first.getValue(Type.STRING);
-                solrQuery.addFacetField(value.substring(QueryImpl.REP_FACET.length() + 1, value.length() - 1)+"_facet");
-            }
-        }
-
         if (sortOrder != null) {
             for (QueryIndex.OrderEntry orderEntry : sortOrder) {
                 SolrQuery.ORDER order;
@@ -102,6 +91,14 @@ class FilterQueryParser {
                     // can not use full "x is null"
                     continue;
                 }
+                // facets
+                if (QueryImpl.REP_FACET.equals(pr.propertyName)) {
+                    solrQuery.setFacetMinCount(1);
+                    solrQuery.setFacet(true);
+                    String value = pr.first.getValue(Type.STRING);
+                    solrQuery.addFacetField(value.substring(QueryImpl.REP_FACET.length() + 1, value.length() - 1)+"_facet");
+                } 
+
                 // native query support
                 if (SolrQueryIndex.NATIVE_SOLR_QUERY.equals(pr.propertyName) || SolrQueryIndex.NATIVE_LUCENE_QUERY.equals(pr.propertyName)) {
                     String nativeQueryString = String.valueOf(pr.first.getValue(pr.first.getType()));
