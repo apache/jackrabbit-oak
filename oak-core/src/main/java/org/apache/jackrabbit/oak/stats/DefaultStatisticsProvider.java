@@ -55,6 +55,11 @@ public final class DefaultStatisticsProvider implements StatisticsProvider {
         return getStats(name, true);
     }
 
+    @Override
+    public HistogramStats getHistogram(String name) {
+        return getStats(name, true);
+    }
+
     private synchronized SimpleStats getStats(String type, boolean resetValueEachSecond){
         Type enumType = Type.getType(type);
         SimpleStats stats = statsMeters.get(type);

@@ -34,6 +34,7 @@ import javax.management.QueryExp;
 import com.codahale.metrics.JmxReporter;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
 import org.apache.jackrabbit.oak.stats.CounterStats;
+import org.apache.jackrabbit.oak.stats.HistogramStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.NoopStats;
 import org.apache.jackrabbit.oak.stats.SimpleStats;
@@ -95,6 +96,16 @@ public class MetricStatisticsProviderTest {
         assertNotNull(timerStats);
         assertNotNull(statsProvider.getRegistry().getTimers().containsKey("test"));
         assertTrue(((CompositeStats) timerStats).isTimer());
+    }
+
+    @Test
+    public void histogram() throws Exception {
+        statsProvider = new MetricStatisticsProvider(server, executorService);
+        HistogramStats histoStats = statsProvider.getHistogram("test");
+
+        assertNotNull(histoStats);
+        assertNotNull(statsProvider.getRegistry().getHistograms().containsKey("test"));
+        assertTrue(((CompositeStats) histoStats).isHistogram());
     }
 
     @Test

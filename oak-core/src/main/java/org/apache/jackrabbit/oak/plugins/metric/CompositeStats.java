@@ -22,9 +22,11 @@ package org.apache.jackrabbit.oak.plugins.metric;
 import java.util.concurrent.TimeUnit;
 
 import com.codahale.metrics.Counter;
+import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
 import org.apache.jackrabbit.oak.stats.CounterStats;
+import org.apache.jackrabbit.oak.stats.HistogramStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.SimpleStats;
 import org.apache.jackrabbit.oak.stats.TimerStats;
@@ -34,30 +36,36 @@ import org.apache.jackrabbit.oak.stats.TimerStats;
  * and Metrics based meters so as to allow both systems to collect
  * stats
  */
-final class CompositeStats implements CounterStats, MeterStats, TimerStats {
+final class CompositeStats implements CounterStats, MeterStats, TimerStats, HistogramStats {
     private final SimpleStats delegate;
     private final Counter counter;
     private final Timer timer;
     private final Meter meter;
+    private final Histogram histogram;
 
     public CompositeStats(SimpleStats delegate, Counter counter) {
-        this(delegate, counter, null, null);
+        this(delegate, counter, null, null, null);
     }
 
     public CompositeStats(SimpleStats delegate, Timer timer) {
-        this(delegate, null, timer, null);
+        this(delegate, null, timer, null, null);
     }
 
     public CompositeStats(SimpleStats delegate, Meter meter) {
-        this(delegate, null, null, meter);
+        this(delegate, null, null, meter, null);
+    }
+
+    public CompositeStats(SimpleStats delegate, Histogram histogram) {
+        this(delegate, null, null, null, histogram);
     }
 
     private CompositeStats(SimpleStats delegate, Counter counter,
-                           Timer timer, Meter meter) {
+                           Timer timer, Meter meter, Histogram histogram) {
         this.delegate = delegate;
         this.counter = counter;
         this.timer = timer;
         this.meter = meter;
+        this.histogram = histogram;
     }
 
     @Override
@@ -96,20 +104,30 @@ final class CompositeStats implements CounterStats, MeterStats, TimerStats {
     }
 
     @Override
+    public void update(long value) {
+        delegate.update(value);
+        histogram.update(value);
+    }
+
+    @Override
     public Context time() {
         return new StatsContext(timer.time(), delegate);
     }
 
     boolean isMeter() {
-        return meter != null && timer == null && counter == null;
+        return meter != null;
     }
 
     boolean isTimer() {
-        return meter == null && timer != null && counter == null;
+        return timer != null;
     }
 
     boolean isCounter() {
-        return meter == null && timer == null && counter != null;
+        return counter != null;
+    }
+
+    boolean isHistogram(){
+        return histogram != null;
     }
 
     Counter getCounter() {
@@ -123,6 +141,11 @@ final class CompositeStats implements CounterStats, MeterStats, TimerStats {
     Meter getMeter() {
         return meter;
     }
+
+    Histogram getHistogram(){
+        return histogram;
+    }
+
 
     private static final class StatsContext implements Context {
         private final Timer.Context context ;
