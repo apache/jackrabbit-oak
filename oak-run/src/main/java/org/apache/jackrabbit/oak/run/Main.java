@@ -113,6 +113,7 @@ import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
+import org.apache.jackrabbit.oak.plugins.segment.file.FileStoreRevisionRecovery;
 import org.apache.jackrabbit.oak.plugins.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.plugins.segment.file.tooling.RevisionHistory;
 import org.apache.jackrabbit.oak.plugins.segment.file.tooling.RevisionHistory.HistoryElement;
@@ -222,6 +223,9 @@ public final class Main {
                 break;
             case TARMKDIFF:
                 FileStoreDiff.main(args);
+                break;
+            case TARMKRECOVERY:
+                FileStoreRevisionRecovery.main(args);
                 break;
             case HELP:
             default:
@@ -1326,7 +1330,8 @@ public final class Main {
         REPAIR("repair"),
         TIKA("tika"),
         GARBAGE("garbage"),
-        TARMKDIFF("tarmkdiff");
+        TARMKDIFF("tarmkdiff"),
+        TARMKRECOVERY("tarmkrecovery");
 
         private final String name;
 

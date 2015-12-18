@@ -5,27 +5,28 @@ This jar contains everything you need for a simple Oak installation.
 
 The following runmodes are currently available:
 
-    * backup      : Backup an existing Oak repository.
-    * restore     : Restore a backup of an Oak repository.
-    * benchmark   : Run benchmark tests against different Oak repository fixtures.
-    * debug       : Print status information about an Oak repository.
-    * compact     : Segment compaction on a TarMK repository.
-    * upgrade     : Migrate existing Jackrabbit 2.x repository to Oak.
-    * server      : Run the Oak Server.
-    * console     : Start an interactive console.
-    * explore     : Starts a GUI browser based on java swing.
-    * graph       : Export the segment graph of a segment store to a file.
-    * history     : Trace the history of a node
-    * check       : Check the FileStore for inconsistencies
-    * primary     : Run a TarMK Cold Standby primary instance
-    * standby     : Run a TarMK Cold Standby standby instance
-    * scalability : Run scalability tests against different Oak repository fixtures.
-    * recovery    : Run a _lastRev recovery on a MongoMK repository
-    * checkpoints : Manage checkpoints
-    * tika        : Performs text extraction
-    * garbage     : Identifies blob garbage on a DocumentMK repository
-    * tarmkdiff   : Show changes between revisions on TarMk
-    * help        : Print a list of available runmodes
+    * backup          : Backup an existing Oak repository.
+    * restore         : Restore a backup of an Oak repository.
+    * benchmark       : Run benchmark tests against different Oak repository fixtures.
+    * debug           : Print status information about an Oak repository.
+    * compact         : Segment compaction on a TarMK repository.
+    * upgrade         : Migrate existing Jackrabbit 2.x repository to Oak.
+    * server          : Run the Oak Server.
+    * console         : Start an interactive console.
+    * explore         : Starts a GUI browser based on java swing.
+    * graph           : Export the segment graph of a segment store to a file.
+    * history         : Trace the history of a node
+    * check           : Check the FileStore for inconsistencies
+    * primary         : Run a TarMK Cold Standby primary instance
+    * standby         : Run a TarMK Cold Standby standby instance
+    * scalability     : Run scalability tests against different Oak repository fixtures.
+    * recovery        : Run a _lastRev recovery on a MongoMK repository
+    * checkpoints     : Manage checkpoints
+    * tika            : Performs text extraction
+    * garbage         : Identifies blob garbage on a DocumentMK repository
+    * tarmkdiff       : Show changes between revisions on TarMk
+    * tarmkrecovery   : Lists candidates for head journal entries
+    * help            : Print a list of available runmodes
     
 
 Some of the features related to Jackrabbit 2.x are provided by oak-run-jr2 jar. See
@@ -931,6 +932,19 @@ Output sample
         ^ lastUpdated
           - lastUpdated<DATE> = 2015-11-19T10:45:18.027-05:00
           + lastUpdated<DATE> = 2015-11-19T10:47:25.167-05:00
+
+<a name="tarmkrecovery"></a>
+Oak TarMK Revision Recovery
+---------------------------
+
+Lists candidates for head journal entries. Uses a read-only store, so no updates will be performed on target repository.
+
+    $ java -jar oak-run-*.jar tarmkrecovery path/to/repository [--version-v10]
+
+The following options are available:
+
+    --version-v10           - Uses V10 version repository reading (see OAK-2527)
+
 
 License
 -------
