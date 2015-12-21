@@ -47,7 +47,7 @@ import com.google.common.collect.Lists;
 @RunWith(Parameterized.class)
 public class RDBBlobStoreTest extends AbstractBlobStoreTest {
 
-    @Parameterized.Parameters
+    @Parameterized.Parameters(name="{0}")
     public static Collection<Object[]> fixtures() {
         Collection<Object[]> result = new ArrayList<Object[]>();
         RDBBlobStoreFixture candidates[] = new RDBBlobStoreFixture[] { RDBBlobStoreFixture.RDB_DB2, RDBBlobStoreFixture.RDB_H2,
