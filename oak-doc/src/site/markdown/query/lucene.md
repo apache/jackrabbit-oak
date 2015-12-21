@@ -578,9 +578,9 @@ Points to note
 
 1. Name of filters, charFilters and tokenizer are formed by removing the
    factory suffixes. So
-    * org.apache.lucene.analysis.standard.StandardTokenizerFactory -> standard
-    * org.apache.lucene.analysis.charfilter.MappingCharFilterFactory -> Mapping
-    * org.apache.lucene.analysis.core.StopFilterFactory -> Stop
+    * org.apache.lucene.analysis.standard.StandardTokenizerFactory -> `Standard`
+    * org.apache.lucene.analysis.charfilter.MappingCharFilterFactory -> `Mapping`
+    * org.apache.lucene.analysis.core.StopFilterFactory -> `Stop`
 2. Any config parameter required for the factory is specified as property of
    that node
     * If the factory requires to load a file e.g. stop words from some file then
