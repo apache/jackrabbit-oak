@@ -181,7 +181,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     @Test
-    public void testConditionalupdateForbidden() {
+    public void testConditionalUpdateForbidden() {
         String id = this.getClass().getName() + ".testConditionalupdateForbidden";
 
         // remove if present
@@ -211,6 +211,17 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             up.set("_id", id);
             up.equals("foo", "bar");
             super.ds.createOrUpdate(Collection.NODES, up);
+            fail("conditional createOrUpdate should fail");
+        }
+        catch (IllegalArgumentException expected) {
+            // reported by DocumentStore
+        }
+
+        try {
+            UpdateOp up = new UpdateOp(id, false);
+            up.set("_id", id);
+            up.equals("foo", "bar");
+            super.ds.createOrUpdate(Collection.NODES, Collections.singletonList(up));
             fail("conditional createOrUpdate should fail");
         }
         catch (IllegalArgumentException expected) {
