@@ -439,7 +439,7 @@ public abstract class AbstractBlobStoreTest {
         assertEquals(ids.size(), count);
     }
 
-    private Set<String> createArtifacts() throws Exception {
+    protected Set<String> createArtifacts() throws Exception {
         Set<String> ids = Sets.newHashSet();
         int number = 10;
         for (int i = 0; i < number; i++) {

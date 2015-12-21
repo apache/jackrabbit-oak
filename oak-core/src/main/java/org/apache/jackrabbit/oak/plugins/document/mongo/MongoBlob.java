@@ -27,6 +27,8 @@ public class MongoBlob extends BasicDBObject {
     public static final String KEY_DATA = "data";
     public static final String KEY_LAST_MOD = "lastMod";
     public static final String KEY_LEVEL = "level";
+    //anchor field for better sharding locality
+    public static final String KEY_ANCHOR = "_anchor"; 
 
     private static final long serialVersionUID = 5119970546251968672L;
 
@@ -66,5 +68,13 @@ public class MongoBlob extends BasicDBObject {
 
     public void setLastMod(long lastMod) {
         put(KEY_LAST_MOD, lastMod);
+    }
+    
+    public int getAnchor(){
+    	return getInt(KEY_ANCHOR);
+    }
+    
+    public void setAnchor(int anchor){
+    	put(KEY_ANCHOR, anchor);
     }
 }
