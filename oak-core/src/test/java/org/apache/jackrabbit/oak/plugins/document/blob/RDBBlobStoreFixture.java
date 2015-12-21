@@ -59,6 +59,10 @@ public abstract class RDBBlobStoreFixture {
             "jdbc:postgresql:oak"), System.getProperty("rdb-postgres-jdbc-user", "postgres"), System.getProperty(
             "rdb-postgres-jdbc-passwd", "geheim"));
 
+    public String toString() {
+        return getClass().getSimpleName() + ": "+ getName();
+    }
+
     private static class MyFixture extends RDBBlobStoreFixture {
 
         private String name;
