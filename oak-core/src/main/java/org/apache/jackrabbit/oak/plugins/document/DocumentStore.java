@@ -217,6 +217,24 @@ public interface DocumentStore {
     <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update);
 
     /**
+     * Create or unconditionally update a number of documents.
+     * <p>
+     * An implementation does not have to guarantee that all changes are applied
+     * atomically, together. In case of an exception (e.g. when a communication
+     * error occurs) only some changes may have been applied. In this case it is the
+     * responsibility of the caller to check which {@linkplain UpdateOp}s were applied and
+     * take appropriate action.
+     *
+     * @param <T> the document type
+     * @param collection the collection
+     * @param updateOps the update operation list
+     * @return the list containing old documents or <code>null</code> values if they didn't exist
+     *         before (see {@linkplain #createOrUpdate(Collection, UpdateOp)}), where the order
+     *         reflects the order in the "updateOps" parameter
+     */
+    <T extends Document> List<T> createOrUpdate(Collection<T> collection, List<UpdateOp> updateOps);
+
+    /**
      * Performs a conditional update (e.g. using
      * {@link UpdateOp.Condition.Type#EXISTS} and only updates the
      * document if the condition is <code>true</code>. The returned document is
