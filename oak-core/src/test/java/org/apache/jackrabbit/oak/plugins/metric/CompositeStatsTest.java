@@ -59,6 +59,14 @@ public class CompositeStatsTest {
         assertEquals(2, simpleStats.getCount());
         assertEquals(2, counter.getCount());
 
+        counterStats.inc(7);
+        assertEquals(9, simpleStats.getCount());
+        assertEquals(9, counter.getCount());
+
+        counterStats.dec(5);
+        assertEquals(4, simpleStats.getCount());
+        assertEquals(4, counter.getCount());
+
         assertFalse(counterStats.isMeter());
         assertFalse(counterStats.isTimer());
         assertTrue(counterStats.isCounter());
