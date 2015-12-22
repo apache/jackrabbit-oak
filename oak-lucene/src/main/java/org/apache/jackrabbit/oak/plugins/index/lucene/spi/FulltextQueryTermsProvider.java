@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.spi;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.search.Query;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import java.util.Collections;
 import java.util.Set;
@@ -48,6 +49,7 @@ public interface FulltextQueryTermsProvider {
      * @param analyzer {@link Analyzer} being used while forming the query. Can be used to analyze text consistently.
      * @return {@link Query} object to be OR'ed with query being prepared. {@code null}, if nothing is to be added.
      */
+    @CheckForNull
     Query getQueryTerm(String text, Analyzer analyzer);
 
     /**
