@@ -273,7 +273,7 @@ class IndexDefinition implements Aggregate.AggregateMapper {
         this.queryPaths = getQueryPaths(defn);
         this.saveDirListing = getOptionalValue(defn, LuceneIndexConstants.SAVE_DIR_LISTING, true);
         this.suggestAnalyzed = getOptionalValue(defn, LuceneIndexConstants.SUGGEST_ANALYZED, false);
-        this.secureFacets = defn.hasChildNode(PROP_FACET) && getOptionalValue(defn.getChildNode(PROP_FACET), PROP_SECURE_FACETS, true);
+        this.secureFacets = defn.hasChildNode(FACETS) && getOptionalValue(defn.getChildNode(FACETS), PROP_SECURE_FACETS, true);
     }
 
     public NodeState getDefinitionNodeState() {
