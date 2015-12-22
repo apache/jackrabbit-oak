@@ -38,15 +38,14 @@ import javax.jcr.query.RowIterator;
  */
 public class FacetTest extends AbstractQueryTest {
 
-    public static final String FACET_CONFING_NODE_PATH = "/oak:index/luceneGlobal/indexRules/nt:base/properties/allProps/facets";
+    public static final String FACET_CONFING_PROP_PATH = "/oak:index/luceneGlobal/indexRules/nt:base/properties/allProps/facets";
 
     @Before
     protected void setUp() throws Exception {
         super.setUp();
-        if (!superuser.nodeExists(FACET_CONFING_NODE_PATH)) {
+        if (!superuser.itemExists(FACET_CONFING_PROP_PATH)) {
             Node node = superuser.getNode("/oak:index/luceneGlobal/indexRules/nt:base/properties/allProps");
-            Node facetConfig = node.addNode(LuceneIndexConstants.PROP_FACET, "nt:unstructured");
-            facetConfig.setProperty("enabled", true);
+            node.setProperty(LuceneIndexConstants.PROP_FACETS, true);
             superuser.save();
             superuser.refresh(true);
         }
@@ -54,8 +53,8 @@ public class FacetTest extends AbstractQueryTest {
 
     @After
     protected void tearDown() throws Exception {
-        if (superuser.nodeExists(FACET_CONFING_NODE_PATH)) {
-            superuser.getNode(FACET_CONFING_NODE_PATH).remove();
+        if (superuser.nodeExists(FACET_CONFING_PROP_PATH)) {
+            superuser.getProperty(LuceneIndexConstants.PROP_FACETS).remove();
             superuser.save();
             superuser.refresh(true);
         }
@@ -63,8 +62,8 @@ public class FacetTest extends AbstractQueryTest {
     }
 
     public void testFacetsNA() throws Exception {
-        if (superuser.nodeExists(FACET_CONFING_NODE_PATH)) {
-            superuser.getNode(FACET_CONFING_NODE_PATH).remove();
+        if (superuser.itemExists(FACET_CONFING_PROP_PATH)) {
+            superuser.getItem(FACET_CONFING_PROP_PATH).remove();
         }
         Session session = superuser;
         QueryManager qm = session.getWorkspace().getQueryManager();
