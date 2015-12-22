@@ -45,6 +45,16 @@ public final class NoopStats implements TimerStats, MeterStats, CounterStats, Hi
     }
 
     @Override
+    public void inc(long n) {
+
+    }
+
+    @Override
+    public void dec(long n) {
+
+    }
+
+    @Override
     public void mark() {
 
     }

@@ -86,6 +86,18 @@ final class CompositeStats implements CounterStats, MeterStats, TimerStats, Hist
     }
 
     @Override
+    public void inc(long n) {
+        delegate.inc(n);
+        counter.inc(n);
+    }
+
+    @Override
+    public void dec(long n) {
+        delegate.dec(n);
+        counter.dec(n);
+    }
+
+    @Override
     public void mark() {
         delegate.mark();
         meter.mark();

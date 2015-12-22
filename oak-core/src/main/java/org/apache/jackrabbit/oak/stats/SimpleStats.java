@@ -45,6 +45,16 @@ public final class SimpleStats implements TimerStats, MeterStats, CounterStats, 
     }
 
     @Override
+    public void inc(long n) {
+        statsHolder.getAndAdd(n);
+    }
+
+    @Override
+    public void dec(long n) {
+        statsHolder.getAndAdd(-n);
+    }
+
+    @Override
     public void mark() {
         inc();
     }

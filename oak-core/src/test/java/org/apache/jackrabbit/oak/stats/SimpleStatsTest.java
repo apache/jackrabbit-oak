@@ -46,6 +46,12 @@ public class SimpleStatsTest {
         stats.dec();
         assertEquals(1, counter.get());
 
+        stats.inc(7);
+        assertEquals(8, counter.get());
+
+        stats.dec(7);
+        assertEquals(1, counter.get());
+
         stats.mark(2);
         assertEquals(3, counter.get());
 
@@ -75,6 +81,12 @@ public class SimpleStatsTest {
         assertEquals(0, noop.getCount());
 
         noop.inc();
+        assertEquals(0, noop.getCount());
+
+        noop.inc(5);
+        assertEquals(0, noop.getCount());
+
+        noop.dec(7);
         assertEquals(0, noop.getCount());
 
         noop.update(100, TimeUnit.SECONDS);
