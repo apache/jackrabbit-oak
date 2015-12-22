@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@Version("3.0.0")
+@Version("1.0.0")
 @Export(optional = "provide:=true")
-package org.apache.jackrabbit.oak.plugins.index.lucene;
+package org.apache.jackrabbit.oak.plugins.index.lucene.spi;
 
-import aQute.bnd.annotation.Version;
 import aQute.bnd.annotation.Export;
+import aQute.bnd.annotation.Version;
