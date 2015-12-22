@@ -382,7 +382,9 @@ class OakDirectory extends Directory {
             // seek() may be called with pos == length
             // see https://issues.apache.org/jira/browse/LUCENE-1196
             if (pos < 0 || pos > length) {
-                throw new IOException("Invalid seek request");
+                String msg = String.format("Invalid seek request for [%s], " + 
+                        "position: %d, file length: %d", name, pos, length);
+                throw new IOException(msg);                
             } else {
                 position = pos;
             }
@@ -393,8 +395,8 @@ class OakDirectory extends Directory {
             checkPositionIndexes(offset, offset + len, checkNotNull(b).length);
 
             if (len < 0 || position + len > length) {
-                String msg = String.format("Invalid byte range request [%s] : position : %d, length : " +
-                                "%d, len : %d", name, position, length, len);
+                String msg = String.format("Invalid byte range request for [%s], " + 
+                        "position: %d, file length: %d, len: %d", name, position, length, len);
                 throw new IOException(msg);
             }
 
