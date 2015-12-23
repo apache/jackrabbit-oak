@@ -110,7 +110,26 @@ public class SimpleStatsTest {
         assertNotNull(ts.getValuePerSecond());
         assertNotNull(ts.getValuePerWeek());
         assertEquals(0, ts.getMissingValue());
+    }
+
+    @Test
+    public void meterResetAndCount() throws Exception{
+        AtomicLong counter = new AtomicLong();
+        MeterStats stats = new SimpleStats(counter, SimpleStats.Type.METER);
+
+        stats.mark();
+        assertEquals(1, stats.getCount());
+
+        stats.mark();
+        assertEquals(2, stats.getCount());
+
+        stats.mark(5);
+        assertEquals(7, stats.getCount());
+
+        counter.set(0);
+        assertEquals(7, stats.getCount());
 
     }
+
 
 }

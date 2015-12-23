@@ -25,7 +25,22 @@ import java.util.concurrent.atomic.AtomicLong;
 public final class SimpleStats implements TimerStats, MeterStats, CounterStats, HistogramStats {
     public enum Type {COUNTER, METER, TIMER, HISTOGRAM}
     private final AtomicLong statsHolder;
-    private final AtomicLong counter = new AtomicLong();
+    private long counter;
+
+    /*
+        Using 2 different variables for managing the sum in meter calls
+        1. Primitive variant is used for just increment
+        2. AtomicLong variant is used for increment by 'n'
+
+        This is done to ensure that more frequent mark() is fast (used for Session reads)
+        and overhead of AtomicLong is used only for less critical flows
+
+        Once we move to JDK 8 we can probably use LongAdder from that has lesser
+        impact on performance
+     */
+    private long meterSum;
+    private final AtomicLong meterSumRef = new AtomicLong();
+
     private final Type type;
 
     public SimpleStats(AtomicLong statsHolder, Type type) {
@@ -40,12 +55,15 @@ public final class SimpleStats implements TimerStats, MeterStats, CounterStats, 
             case TIMER:
                 //For timer and histogram we need to manage explicit
                 //invocation count
-                return counter.get();
-            default :
-                //For meter and counter the statsHolder value is
-                //same as count
+                return counter;
+            case COUNTER:
                 return statsHolder.get();
+            case METER:
+                //For Meter it can happen that backing statsHolder gets
+                //reset each second. So need to manage that sum separately
+                return meterSum + meterSumRef.get();
         }
+        throw new IllegalStateException();
     }
 
     @Override
@@ -71,16 +89,18 @@ public final class SimpleStats implements TimerStats, MeterStats, CounterStats, 
     @Override
     public void mark() {
         inc();
+        meterSum++;
     }
 
     @Override
     public void mark(long n) {
+        meterSumRef.getAndAdd(n);
         statsHolder.getAndAdd(n);
     }
 
     @Override
     public void update(long duration, TimeUnit unit) {
-        counter.incrementAndGet();
+        counter++;
         statsHolder.getAndAdd(unit.toMillis(duration));
     }
 
@@ -91,7 +111,7 @@ public final class SimpleStats implements TimerStats, MeterStats, CounterStats, 
 
     @Override
     public void update(long value) {
-        counter.incrementAndGet();
+        counter++;
         statsHolder.getAndAdd(value);
     }
 
