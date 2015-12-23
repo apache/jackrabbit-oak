@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.metric;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Counting;
@@ -38,30 +39,30 @@ import org.apache.jackrabbit.oak.stats.TimerStats;
  * stats
  */
 final class CompositeStats implements CounterStats, MeterStats, TimerStats, HistogramStats {
-    private final SimpleStats delegate;
+    private final AtomicLong delegate;
     private final Counter counter;
     private final Timer timer;
     private final Meter meter;
     private final Histogram histogram;
     private final Counting counting;
 
-    public CompositeStats(SimpleStats delegate, Counter counter) {
+    public CompositeStats(AtomicLong delegate, Counter counter) {
         this(delegate, counter, null, null, null, counter);
     }
 
-    public CompositeStats(SimpleStats delegate, Timer timer) {
+    public CompositeStats(AtomicLong delegate, Timer timer) {
         this(delegate, null, timer, null, null, timer);
     }
 
-    public CompositeStats(SimpleStats delegate, Meter meter) {
+    public CompositeStats(AtomicLong delegate, Meter meter) {
         this(delegate, null, null, meter, null, meter);
     }
 
-    public CompositeStats(SimpleStats delegate, Histogram histogram) {
+    public CompositeStats(AtomicLong delegate, Histogram histogram) {
         this(delegate, null, null, null, histogram, histogram);
     }
 
-    private CompositeStats(SimpleStats delegate, Counter counter,
+    private CompositeStats(AtomicLong delegate, Counter counter,
                            Timer timer, Meter meter, Histogram histogram, Counting counting) {
         this.delegate = delegate;
         this.counter = counter;
@@ -78,49 +79,49 @@ final class CompositeStats implements CounterStats, MeterStats, TimerStats, Hist
 
     @Override
     public void inc() {
-        delegate.inc();
+        delegate.getAndIncrement();
         counter.inc();
     }
 
     @Override
     public void dec() {
-        delegate.dec();
+        delegate.getAndDecrement();
         counter.dec();
     }
 
     @Override
     public void inc(long n) {
-        delegate.inc(n);
+        delegate.getAndAdd(n);
         counter.inc(n);
     }
 
     @Override
     public void dec(long n) {
-        delegate.dec(n);
+        delegate.getAndAdd(-n);
         counter.dec(n);
     }
 
     @Override
     public void mark() {
-        delegate.mark();
+        delegate.getAndIncrement();
         meter.mark();
     }
 
     @Override
     public void mark(long n) {
-        delegate.mark(n);
+        delegate.getAndAdd(n);
         meter.mark(n);
     }
 
     @Override
     public void update(long duration, TimeUnit unit) {
-        delegate.update(duration, unit);
+        delegate.getAndAdd(unit.toMillis(duration));
         timer.update(duration, unit);
     }
 
     @Override
     public void update(long value) {
-        delegate.update(value);
+        delegate.getAndAdd(value);
         histogram.update(value);
     }
 
@@ -164,16 +165,16 @@ final class CompositeStats implements CounterStats, MeterStats, TimerStats, Hist
 
     private static final class StatsContext implements Context {
         private final Timer.Context context ;
-        private final SimpleStats simpleStats;
+        private final AtomicLong delegate;
 
-        private StatsContext(Timer.Context context, SimpleStats delegate) {
+        private StatsContext(Timer.Context context, AtomicLong delegate) {
             this.context = context;
-            this.simpleStats = delegate;
+            this.delegate = delegate;
         }
 
         public long stop() {
             long nanos = context.stop();
-            simpleStats.update(nanos, TimeUnit.NANOSECONDS);
+            delegate.getAndAdd(TimeUnit.NANOSECONDS.toMillis(nanos));
             return nanos;
         }
 

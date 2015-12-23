@@ -131,7 +131,7 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
             if (options.isOnlyMetricEnabled()) {
                 stats = builder.newMetric(this, name);
             } else if (options.isOnlyTimeSeriesEnabled()){
-                stats = getTimerSeriesStats(name, builder);
+                stats = new SimpleStats(getTimerSeriesStats(name, builder), builder.getType());
             } else {
                 stats = builder.newComposite(getTimerSeriesStats(name, builder), this, name);
             }
@@ -146,7 +146,7 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
         throw new IllegalStateException();
     }
 
-    private SimpleStats getTimerSeriesStats(String name, StatsBuilder builder){
+    private AtomicLong getTimerSeriesStats(String name, StatsBuilder builder){
         AtomicLong counter;
         Type enumType = Type.getType(name);
         if (enumType != null) {
@@ -155,7 +155,7 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
             boolean resetValueEachSecond = builder != StatsBuilder.COUNTERS;
             counter = repoStats.getCounter(name, resetValueEachSecond);
         }
-        return new SimpleStats(counter, builder.getType());
+        return counter;
     }
 
     private void registerAverages() {
@@ -173,7 +173,7 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
     private interface StatsBuilder<T extends Stats> {
         StatsBuilder<CounterStats> COUNTERS = new StatsBuilder<CounterStats>() {
             @Override
-            public CompositeStats newComposite(SimpleStats delegate, MetricStatisticsProvider provider,String name) {
+            public CompositeStats newComposite(AtomicLong delegate, MetricStatisticsProvider provider, String name) {
                 return new CompositeStats(delegate, provider.registry.counter(name));
             }
 
@@ -195,7 +195,7 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
 
         StatsBuilder<MeterStats> METERS = new StatsBuilder<MeterStats>() {
             @Override
-            public CompositeStats newComposite(SimpleStats delegate, MetricStatisticsProvider provider,String name) {
+            public CompositeStats newComposite(AtomicLong delegate, MetricStatisticsProvider provider, String name) {
                 return new CompositeStats(delegate, getMeter(provider, name));
             }
 
@@ -224,7 +224,7 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
         StatsBuilder<TimerStats> TIMERS = new StatsBuilder<TimerStats>() {
 
             @Override
-            public CompositeStats newComposite(SimpleStats delegate, MetricStatisticsProvider provider,String name) {
+            public CompositeStats newComposite(AtomicLong delegate, MetricStatisticsProvider provider, String name) {
                 return new CompositeStats(delegate, provider.registry.timer(name));
             }
 
@@ -247,7 +247,7 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
         StatsBuilder<HistogramStats> HISTOGRAMS = new StatsBuilder<HistogramStats>() {
 
             @Override
-            public CompositeStats newComposite(SimpleStats delegate, MetricStatisticsProvider provider,String name) {
+            public CompositeStats newComposite(AtomicLong delegate, MetricStatisticsProvider provider, String name) {
                 return new CompositeStats(delegate, provider.registry.histogram(name));
             }
 
@@ -267,7 +267,7 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
             }
         };
 
-        CompositeStats newComposite(SimpleStats delegate, MetricStatisticsProvider provider,String name);
+        CompositeStats newComposite(AtomicLong delegate, MetricStatisticsProvider provider, String name);
 
         Stats newMetric(MetricStatisticsProvider provider,String name);
 
