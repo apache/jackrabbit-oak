@@ -111,7 +111,7 @@ public class IndexAugmentorFactoryTest {
 
     void validateComposedQueryTerms(String type, String ... expected) {
         FulltextQueryTermsProvider compositeQueryTermsProvider = indexAugmentorFactory.getFulltextQueryTermsProvider(type);
-        Query q = compositeQueryTermsProvider.getQueryTerm(null, null);
+        Query q = compositeQueryTermsProvider.getQueryTerm(null, null, null);
         if (q == null) {
             assertEquals("No query terms generated for " + type + ".", 0, expected.length);
         } else {
@@ -172,7 +172,7 @@ public class IndexAugmentorFactoryTest {
         }
 
         @Override
-        public Query getQueryTerm(String text, Analyzer analyzer) {
+        public Query getQueryTerm(String text, Analyzer analyzer, NodeState indexDefinition) {
             return id;
         }
 

@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
@@ -100,7 +101,7 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
         final String realSearchText = "bar";
         factory.fulltextQueryTermsProvider = new FulltextQueryTermsProvider() {
             @Override
-            public Query getQueryTerm(String text, Analyzer analyzer) {
+            public Query getQueryTerm(String text, Analyzer analyzer, NodeState indexDefinition) {
                 assertEquals("Full text term passed to provider isn't same as the one passed in query",
                         testSearchText, text);
                 return new TermQuery(new Term(":fulltext", realSearchText));
@@ -237,7 +238,7 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
         //Set a very sad query augmentor
         factory.fulltextQueryTermsProvider = new FulltextQueryTermsProvider() {
             @Override
-            public Query getQueryTerm(String text, Analyzer analyzer) {
+            public Query getQueryTerm(String text, Analyzer analyzer, NodeState indexDefinition) {
                 return null;
             }
 
@@ -252,7 +253,7 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
         //Set query augmentor... with null query
         factory.fulltextQueryTermsProvider = new FulltextQueryTermsProvider() {
             @Override
-            public Query getQueryTerm(String text, Analyzer analyzer) {
+            public Query getQueryTerm(String text, Analyzer analyzer, NodeState indexDefinition) {
                 return null;
             }
 
@@ -267,7 +268,7 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
         //Set query augmentor... with some query
         factory.fulltextQueryTermsProvider = new FulltextQueryTermsProvider() {
             @Override
-            public Query getQueryTerm(String text, Analyzer analyzer) {
+            public Query getQueryTerm(String text, Analyzer analyzer, NodeState indexDefinition) {
                 return new TermQuery(new Term("bar", "baz"));
             }
 
@@ -353,7 +354,7 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
         final AtomicInteger queryingCounter = new AtomicInteger(0);
         factory.fulltextQueryTermsProvider = new FulltextQueryTermsProvider() {
             @Override
-            public Query getQueryTerm(String text, Analyzer analyzer) {
+            public Query getQueryTerm(String text, Analyzer analyzer, NodeState indexDefinition) {
                 queryingCounter.set(1);
                 return null;
             }
@@ -416,7 +417,7 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
         final AtomicInteger queryingCounter = new AtomicInteger(0);
         factory.fulltextQueryTermsProvider = new FulltextQueryTermsProvider() {
             @Override
-            public Query getQueryTerm(String text, Analyzer analyzer) {
+            public Query getQueryTerm(String text, Analyzer analyzer, NodeState indexDefinition) {
                 queryingCounter.set(1);
                 return null;
             }
@@ -483,7 +484,7 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
         final AtomicInteger queryingCounter = new AtomicInteger(0);
         factory.fulltextQueryTermsProvider = new FulltextQueryTermsProvider() {
             @Override
-            public Query getQueryTerm(String text, Analyzer analyzer) {
+            public Query getQueryTerm(String text, Analyzer analyzer, NodeState indexDefinition) {
                 queryingCounter.set(1);
                 return null;
             }
@@ -588,7 +589,7 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
         final AtomicInteger indexingCounter2 = new AtomicInteger(0);
         factory.registerQueryTermsProvider(new FulltextQueryTermsProvider() {
             @Override
-            public Query getQueryTerm(String text, Analyzer analyzer) {
+            public Query getQueryTerm(String text, Analyzer analyzer, NodeState indexDefinition) {
                 indexingCounter1.set(1);
                 return null;
             }
@@ -601,7 +602,7 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
         });
         factory.registerQueryTermsProvider(new FulltextQueryTermsProvider() {
             @Override
-            public Query getQueryTerm(String text, Analyzer analyzer) {
+            public Query getQueryTerm(String text, Analyzer analyzer, NodeState indexDefinition) {
                 indexingCounter2.set(1);
                 return null;
             }
