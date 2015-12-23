@@ -46,6 +46,7 @@
             </Import-Package>
             <Export-Package>
               org.apache.jackrabbit.oak.spi.blob,
+              org.apache.jackrabbit.oak.spi.blob.stats,
               org.apache.jackrabbit.oak.spi.blob.split
             </Export-Package>
           </instructions>
@@ -146,6 +147,11 @@
       <artifactId>oak-commons</artifactId>
       <version>${project.version}</version>
       <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
