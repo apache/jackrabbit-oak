@@ -22,9 +22,9 @@ package org.apache.jackrabbit.oak.plugins.metric;
 import java.io.Closeable;
 import java.util.Hashtable;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
@@ -36,7 +36,6 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.ObjectNameFactory;
 import com.codahale.metrics.RatioGauge;
 import com.codahale.metrics.Timer;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
@@ -49,6 +48,7 @@ import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.SimpleStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.Stats;
+import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.apache.jackrabbit.stats.RepositoryStatisticsImpl;
 import org.slf4j.Logger;
@@ -58,17 +58,6 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
     private static final Logger log = LoggerFactory.getLogger(MetricStatisticsProvider.class);
 
     private static final String JMX_TYPE_METRICS = "Metrics";
-
-    /**
-     * Types for which Metrics based stats would not be collected
-     * and only default stats would be collected
-     */
-    private static final Set<String> NOOP_METRIC_TYPES = ImmutableSet.of(
-            Type.SESSION_READ_COUNTER.name(),
-            Type.SESSION_READ_DURATION.name(),
-            Type.SESSION_WRITE_DURATION.name(),
-            Type.QUERY_COUNT.name()
-    );
 
     private final Map<String, Stats> statsRegistry = Maps.newHashMap();
     private final MetricRegistry registry;
@@ -109,23 +98,23 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
     }
 
     @Override
-    public MeterStats getMeter(String name) {
-        return getStats(name, StatsBuilder.METERS);
+    public MeterStats getMeter(String name, StatsOptions options) {
+        return getStats(name, StatsBuilder.METERS, options);
     }
 
     @Override
-    public CounterStats getCounterStats(String name) {
-        return getStats(name, StatsBuilder.COUNTERS);
+    public CounterStats getCounterStats(String name, StatsOptions options) {
+        return getStats(name, StatsBuilder.COUNTERS, options);
     }
 
     @Override
-    public TimerStats getTimer(String name) {
-        return getStats(name, StatsBuilder.TIMERS);
+    public TimerStats getTimer(String name, StatsOptions options) {
+        return getStats(name, StatsBuilder.TIMERS, options);
     }
 
     @Override
-    public HistogramStats getHistogram(String name) {
-        return getStats(name, StatsBuilder.HISTOGRAMS);
+    public HistogramStats getHistogram(String name, StatsOptions options) {
+        return getStats(name, StatsBuilder.HISTOGRAMS, options);
     }
 
     public MetricRegistry getRegistry() {
@@ -136,27 +125,17 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
         return repoStats;
     }
 
-    private synchronized <T extends Stats> T getStats(String type, StatsBuilder<T> builder) {
-        String name = type;
-        Type enumType = Type.getType(type);
-        Stats stats = statsRegistry.get(type);
+    private synchronized <T extends Stats> T getStats(String name, StatsBuilder<T> builder, StatsOptions options) {
+        Stats stats = statsRegistry.get(name);
         if (stats == null) {
-            SimpleStats delegate;
-            if (enumType != null) {
-                delegate = new SimpleStats(repoStats.getCounter(enumType), builder.getType());
-                name = typeToName(enumType);
+            if (options.isOnlyMetricEnabled()) {
+                stats = builder.newMetric(this, name);
+            } else if (options.isOnlyTimeSeriesEnabled()){
+                stats = getTimerSeriesStats(name, builder);
             } else {
-                boolean resetValueEachSecond = builder != StatsBuilder.COUNTERS;
-                delegate = new SimpleStats(repoStats.getCounter(type, resetValueEachSecond), builder.getType());
+                stats = builder.newComposite(getTimerSeriesStats(name, builder), this, name);
             }
-
-            if (NOOP_METRIC_TYPES.contains(name)) {
-                stats = delegate;
-            } else {
-                stats = builder.newComposite(delegate, this, name);
-            }
-
-            statsRegistry.put(type, stats);
+            statsRegistry.put(name, stats);
         }
 
         if (builder.isInstance(stats)) {
@@ -167,6 +146,18 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
         throw new IllegalStateException();
     }
 
+    private SimpleStats getTimerSeriesStats(String name, StatsBuilder builder){
+        AtomicLong counter;
+        Type enumType = Type.getType(name);
+        if (enumType != null) {
+            counter = repoStats.getCounter(enumType);
+        } else {
+            boolean resetValueEachSecond = builder != StatsBuilder.COUNTERS;
+            counter = repoStats.getCounter(name, resetValueEachSecond);
+        }
+        return new SimpleStats(counter, builder.getType());
+    }
+
     private void registerAverages() {
         registry.register(typeToName(Type.OBSERVATION_EVENT_AVERAGE),
                 new AvgGauge(compStats(Type.OBSERVATION_EVENT_COUNTER, StatsBuilder.METERS).getMeter(),
@@ -174,7 +165,7 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
     }
 
     private CompositeStats compStats(Type type, StatsBuilder builder){
-        Stats stats = getStats(typeToName(type), builder);
+        Stats stats = getStats(typeToName(type), builder, StatsOptions.DEFAULT);
         return (CompositeStats) stats;
     }
 
@@ -184,6 +175,11 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
             @Override
             public CompositeStats newComposite(SimpleStats delegate, MetricStatisticsProvider provider,String name) {
                 return new CompositeStats(delegate, provider.registry.counter(name));
+            }
+
+            @Override
+            public Stats newMetric(MetricStatisticsProvider provider, String name) {
+                return new CounterImpl(provider.registry.counter(name));
             }
 
             @Override
@@ -200,9 +196,12 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
         StatsBuilder<MeterStats> METERS = new StatsBuilder<MeterStats>() {
             @Override
             public CompositeStats newComposite(SimpleStats delegate, MetricStatisticsProvider provider,String name) {
-                Meter meter = new Meter(provider.metricsClock);
-                provider.registry.register(name, meter);
-                return new CompositeStats(delegate, meter);
+                return new CompositeStats(delegate, getMeter(provider, name));
+            }
+
+            @Override
+            public Stats newMetric(MetricStatisticsProvider provider, String name) {
+                return new MeterImpl(getMeter(provider, name));
             }
 
             @Override
@@ -214,6 +213,12 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
             public SimpleStats.Type getType() {
                 return SimpleStats.Type.METER;
             }
+
+            private Meter getMeter(MetricStatisticsProvider provider, String name) {
+                Meter meter = new Meter(provider.metricsClock);
+                provider.registry.register(name, meter);
+                return meter;
+            }
         };
 
         StatsBuilder<TimerStats> TIMERS = new StatsBuilder<TimerStats>() {
@@ -221,6 +226,11 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
             @Override
             public CompositeStats newComposite(SimpleStats delegate, MetricStatisticsProvider provider,String name) {
                 return new CompositeStats(delegate, provider.registry.timer(name));
+            }
+
+            @Override
+            public Stats newMetric(MetricStatisticsProvider provider, String name) {
+                return new TimerImpl(provider.registry.timer(name));
             }
 
             @Override
@@ -242,6 +252,11 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
             }
 
             @Override
+            public Stats newMetric(MetricStatisticsProvider provider, String name) {
+                return new HistogramImpl(provider.registry.histogram(name));
+            }
+
+            @Override
             public boolean isInstance(Stats metric) {
                 return HistogramStats.class.isInstance(metric);
             }
@@ -253,6 +268,8 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
         };
 
         CompositeStats newComposite(SimpleStats delegate, MetricStatisticsProvider provider,String name);
+
+        Stats newMetric(MetricStatisticsProvider provider,String name);
 
         boolean isInstance(Stats stats);
 
