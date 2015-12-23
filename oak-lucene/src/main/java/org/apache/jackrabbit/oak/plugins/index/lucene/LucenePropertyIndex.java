@@ -825,10 +825,9 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
     }
     private static FulltextQueryTermsProvider getIndexAgumentor(IndexPlan plan, IndexAugmentorFactory augmentorFactory) {
         PlanResult planResult = getPlanResult(plan);
-        IndexDefinition defn = planResult.indexDefinition;
 
-        if (augmentorFactory != null && defn.getVersion().isAtLeast(IndexFormatVersion.V2)){
-            return augmentorFactory.getFulltextQueryTermsProvider(getPlanResult(plan).indexingRule.getNodeTypeName());
+        if (augmentorFactory != null){
+            return augmentorFactory.getFulltextQueryTermsProvider(planResult.indexingRule.getNodeTypeName());
         }
 
         return null;
@@ -1234,7 +1233,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
 
             private boolean visitTerm(String propertyName, String text, String boost, boolean not) {
                 String p = getLuceneFieldName(propertyName, pr);
-                Query q = tokenToQuery(text, p, pr.indexingRule, analyzer, augmentor);
+                Query q = tokenToQuery(text, p, pr, analyzer, augmentor);
                 if (q == null) {
                     return false;
                 }
@@ -1280,8 +1279,10 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         return p;
     }
 
-    private static Query tokenToQuery(String text, String fieldName, IndexingRule indexingRule, Analyzer analyzer, FulltextQueryTermsProvider augmentor) {
+    private static Query tokenToQuery(String text, String fieldName, PlanResult pr, Analyzer analyzer,
+                                      FulltextQueryTermsProvider augmentor) {
         Query ret;
+        IndexingRule indexingRule = pr.indexingRule;
         //Expand the query on fulltext field
         if (FieldNames.FULLTEXT.equals(fieldName) &&
                 !indexingRule.getNodeScopeAnalyzedProps().isEmpty()) {
@@ -1302,7 +1303,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
 
         //Augment query terms if available (as a 'SHOULD' clause)
         if (augmentor != null && FieldNames.FULLTEXT.equals(fieldName)) {
-            Query subQuery = augmentor.getQueryTerm(text, analyzer);
+            Query subQuery = augmentor.getQueryTerm(text, analyzer, pr.indexDefinition.getDefinitionNodeState());
             if (subQuery != null) {
                 BooleanQuery query = new BooleanQuery();
 

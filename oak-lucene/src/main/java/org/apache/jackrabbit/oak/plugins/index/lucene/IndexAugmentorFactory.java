@@ -162,11 +162,11 @@ public class IndexAugmentorFactory {
         }
 
         @Override
-        public Query getQueryTerm(final String text, final Analyzer analyzer) {
+        public Query getQueryTerm(final String text, final Analyzer analyzer, NodeState indexDefinition) {
             List<Query> subQueries = Lists.newArrayList();
             for (FulltextQueryTermsProvider fulltextQueryTermsProvider : providers) {
                 final long start = PERFLOG.start();
-                Query subQuery = fulltextQueryTermsProvider.getQueryTerm(text, analyzer);
+                Query subQuery = fulltextQueryTermsProvider.getQueryTerm(text, analyzer, indexDefinition);
                 PERFLOG.end(start, 1, "fulltextQueryTermsProvider: {}, text: {}", fulltextQueryTermsProvider, text);
                 if (subQuery != null) {
                     subQueries.add(subQuery);

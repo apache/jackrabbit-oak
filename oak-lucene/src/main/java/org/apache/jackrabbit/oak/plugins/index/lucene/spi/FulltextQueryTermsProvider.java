@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.spi;
 
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.search.Query;
 
@@ -33,7 +34,7 @@ public interface FulltextQueryTermsProvider {
      */
     FulltextQueryTermsProvider DEFAULT = new FulltextQueryTermsProvider() {
         @Override
-        public Query getQueryTerm(String text, Analyzer analyzer) {
+        public Query getQueryTerm(String text, Analyzer analyzer, NodeState indexDefinition) {
             return null;
         }
 
@@ -47,10 +48,11 @@ public interface FulltextQueryTermsProvider {
      * field.
      * @param text full text term
      * @param analyzer {@link Analyzer} being used while forming the query. Can be used to analyze text consistently.
+     * @param indexDefinition {@link NodeState} of index definition
      * @return {@link Query} object to be OR'ed with query being prepared. {@code null}, if nothing is to be added.
      */
     @CheckForNull
-    Query getQueryTerm(String text, Analyzer analyzer);
+    Query getQueryTerm(String text, Analyzer analyzer, NodeState indexDefinition);
 
     /**
      * This method is used to find which node types are supported by the implementation. Based, on the index
