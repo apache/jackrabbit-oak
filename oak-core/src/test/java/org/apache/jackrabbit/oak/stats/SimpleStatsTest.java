@@ -34,7 +34,7 @@ public class SimpleStatsTest {
     @Test
     public void usageTest() throws Exception {
         AtomicLong counter = new AtomicLong();
-        SimpleStats stats = new SimpleStats(counter);
+        SimpleStats stats = new SimpleStats(counter, SimpleStats.Type.COUNTER);
 
         stats.mark();
         assertEquals(1, counter.get());

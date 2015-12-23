@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.stats;
 import aQute.bnd.annotation.ProviderType;
 
 @ProviderType
-public interface MeterStats extends Stats{
+public interface MeterStats extends Stats, Counting{
     /**
      * Mark the occurrence of an event.
      */

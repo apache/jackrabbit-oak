@@ -23,15 +23,29 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 public final class SimpleStats implements TimerStats, MeterStats, CounterStats, HistogramStats {
+    public enum Type {COUNTER, METER, TIMER, HISTOGRAM}
     private final AtomicLong statsHolder;
+    private final AtomicLong counter = new AtomicLong();
+    private final Type type;
 
-    public SimpleStats(AtomicLong statsHolder) {
+    public SimpleStats(AtomicLong statsHolder, Type type) {
         this.statsHolder = statsHolder;
+        this.type = type;
     }
 
     @Override
     public long getCount() {
-        return statsHolder.get();
+        switch(type){
+            case HISTOGRAM:
+            case TIMER:
+                //For timer and histogram we need to manage explicit
+                //invocation count
+                return counter.get();
+            default :
+                //For meter and counter the statsHolder value is
+                //same as count
+                return statsHolder.get();
+        }
     }
 
     @Override
@@ -66,6 +80,7 @@ public final class SimpleStats implements TimerStats, MeterStats, CounterStats, 
 
     @Override
     public void update(long duration, TimeUnit unit) {
+        counter.incrementAndGet();
         statsHolder.getAndAdd(unit.toMillis(duration));
     }
 
@@ -76,6 +91,7 @@ public final class SimpleStats implements TimerStats, MeterStats, CounterStats, 
 
     @Override
     public void update(long value) {
+        counter.incrementAndGet();
         statsHolder.getAndAdd(value);
     }
 

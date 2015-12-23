@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 import aQute.bnd.annotation.ProviderType;
 
 @ProviderType
-public interface TimerStats extends Stats{
+public interface TimerStats extends Stats, Counting{
     /**
      * A timing context.
      *

@@ -42,32 +42,32 @@ public final class DefaultStatisticsProvider implements StatisticsProvider {
 
     @Override
     public MeterStats getMeter(String name) {
-        return getStats(name, true);
+        return getStats(name, true, SimpleStats.Type.METER);
     }
 
     @Override
     public CounterStats getCounterStats(String name) {
-        return getStats(name, false);
+        return getStats(name, false, SimpleStats.Type.COUNTER);
     }
 
     @Override
     public TimerStats getTimer(String name) {
-        return getStats(name, true);
+        return getStats(name, true, SimpleStats.Type.TIMER);
     }
 
     @Override
     public HistogramStats getHistogram(String name) {
-        return getStats(name, true);
+        return getStats(name, true, SimpleStats.Type.HISTOGRAM);
     }
 
-    private synchronized SimpleStats getStats(String type, boolean resetValueEachSecond){
+    private synchronized SimpleStats getStats(String type, boolean resetValueEachSecond, SimpleStats.Type statsType){
         Type enumType = Type.getType(type);
         SimpleStats stats = statsMeters.get(type);
         if (stats == null){
             if (enumType != null) {
-                stats = new SimpleStats(repoStats.getCounter(enumType));
+                stats = new SimpleStats(repoStats.getCounter(enumType), statsType);
             } else {
-                stats = new SimpleStats(repoStats.getCounter(type, resetValueEachSecond));
+                stats = new SimpleStats(repoStats.getCounter(type, resetValueEachSecond), statsType);
             }
             statsMeters.put(type, stats);
         }
