@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.stats.HistogramStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.NoopStats;
 import org.apache.jackrabbit.oak.stats.SimpleStats;
+import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.junit.After;
 import org.junit.Test;
@@ -46,16 +47,15 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class MetricStatisticsProviderTest {
     private MBeanServer server = ManagementFactory.getPlatformMBeanServer();
     private ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
-    private MetricStatisticsProvider statsProvider;
+    private MetricStatisticsProvider statsProvider = new MetricStatisticsProvider(server, executorService);
 
     @Test
     public void basicSetup() throws Exception {
-        statsProvider = new MetricStatisticsProvider(server, executorService);
-
         //By default avg counters would be configured. So check if they are
         //configured
         assertEquals(1, statsProvider.getRegistry().getMeters().size());
@@ -70,8 +70,7 @@ public class MetricStatisticsProviderTest {
 
     @Test
     public void meter() throws Exception {
-        statsProvider = new MetricStatisticsProvider(server, executorService);
-        MeterStats meterStats = statsProvider.getMeter("test");
+        MeterStats meterStats = statsProvider.getMeter("test", StatsOptions.DEFAULT);
 
         assertNotNull(meterStats);
         assertNotNull(statsProvider.getRegistry().getMeters().containsKey("test"));
@@ -80,8 +79,7 @@ public class MetricStatisticsProviderTest {
 
     @Test
     public void counter() throws Exception {
-        statsProvider = new MetricStatisticsProvider(server, executorService);
-        CounterStats counterStats = statsProvider.getCounterStats("test");
+        CounterStats counterStats = statsProvider.getCounterStats("test", StatsOptions.DEFAULT);
 
         assertNotNull(counterStats);
         assertNotNull(statsProvider.getRegistry().getCounters().containsKey("test"));
@@ -90,8 +88,7 @@ public class MetricStatisticsProviderTest {
 
     @Test
     public void timer() throws Exception {
-        statsProvider = new MetricStatisticsProvider(server, executorService);
-        TimerStats timerStats = statsProvider.getTimer("test");
+        TimerStats timerStats = statsProvider.getTimer("test", StatsOptions.DEFAULT);
 
         assertNotNull(timerStats);
         assertNotNull(statsProvider.getRegistry().getTimers().containsKey("test"));
@@ -100,8 +97,7 @@ public class MetricStatisticsProviderTest {
 
     @Test
     public void histogram() throws Exception {
-        statsProvider = new MetricStatisticsProvider(server, executorService);
-        HistogramStats histoStats = statsProvider.getHistogram("test");
+        HistogramStats histoStats = statsProvider.getHistogram("test", StatsOptions.DEFAULT);
 
         assertNotNull(histoStats);
         assertNotNull(statsProvider.getRegistry().getHistograms().containsKey("test"));
@@ -110,8 +106,7 @@ public class MetricStatisticsProviderTest {
 
     @Test
     public void timeSeriesIntegration() throws Exception {
-        statsProvider = new MetricStatisticsProvider(server, executorService);
-        MeterStats meterStats = statsProvider.getMeter(Type.SESSION_COUNT.name());
+        MeterStats meterStats = statsProvider.getMeter(Type.SESSION_COUNT.name(), StatsOptions.DEFAULT);
 
         meterStats.mark(5);
         assertEquals(5, statsProvider.getRepoStats().getCounter(Type.SESSION_COUNT).get());
@@ -119,18 +114,32 @@ public class MetricStatisticsProviderTest {
 
     @Test
     public void jmxNaming() throws Exception {
-        statsProvider = new MetricStatisticsProvider(server, executorService);
-        TimerStats timerStats = statsProvider.getTimer("hello");
+        TimerStats timerStats = statsProvider.getTimer("hello", StatsOptions.DEFAULT);
         assertNotNull(server.getObjectInstance(new ObjectName("org.apache.jackrabbit.oak:type=Metrics,name=hello")));
     }
 
     @Test
     public void noopMeter() throws Exception {
-        statsProvider = new MetricStatisticsProvider(server, executorService);
-        assertTrue(statsProvider.getTimer(Type.SESSION_READ_DURATION.name()) instanceof SimpleStats);
-        assertTrue(statsProvider.getTimer(Type.SESSION_WRITE_DURATION.name()) instanceof SimpleStats);
-        assertTrue(statsProvider.getTimer(Type.QUERY_COUNT.name()) instanceof SimpleStats);
-        assertNotEquals(statsProvider.getMeter(Type.OBSERVATION_EVENT_COUNTER.name()), NoopStats.INSTANCE);
+        assertInstanceOf(statsProvider.getTimer(Type.SESSION_READ_DURATION.name(), StatsOptions.TIME_SERIES_ONLY), SimpleStats.class);
+        assertNotEquals(statsProvider.getMeter(Type.OBSERVATION_EVENT_COUNTER.name(), StatsOptions.TIME_SERIES_ONLY), NoopStats.INSTANCE);
+    }
+
+    @Test
+    public void statsOptions_MetricOnly() throws Exception{
+        assertInstanceOf(statsProvider.getTimer("fooTimer", StatsOptions.METRICS_ONLY), TimerImpl.class);
+        assertInstanceOf(statsProvider.getCounterStats("fooCounter", StatsOptions.METRICS_ONLY), CounterImpl.class);
+        assertInstanceOf(statsProvider.getMeter("fooMeter", StatsOptions.METRICS_ONLY), MeterImpl.class);
+        assertInstanceOf(statsProvider.getHistogram("fooHisto", StatsOptions.METRICS_ONLY), HistogramImpl.class);
+    }
+
+    @Test
+    public void statsOptions_TimeSeriesOnly() throws Exception{
+        assertInstanceOf(statsProvider.getTimer("fooTimer", StatsOptions.TIME_SERIES_ONLY), SimpleStats.class);
+    }
+
+    @Test
+    public void statsOptions_Default() throws Exception{
+        assertInstanceOf(statsProvider.getTimer("fooTimer", StatsOptions.DEFAULT), CompositeStats.class);
     }
 
     @After
@@ -142,6 +151,12 @@ public class MetricStatisticsProviderTest {
     private Set<ObjectInstance> getMetricMbeans() throws MalformedObjectNameException {
         QueryExp q = Query.isInstanceOf(Query.value(JmxReporter.MetricMBean.class.getName()));
         return server.queryMBeans(new ObjectName("org.apache.jackrabbit.oak:*"), q);
+    }
+
+    private void assertInstanceOf(Object o, Class<?> clazz){
+        if (!clazz.isInstance(o)){
+            fail(String.format("%s is not an instance of %s", o.getClass(), clazz));
+        }
     }
 
 }

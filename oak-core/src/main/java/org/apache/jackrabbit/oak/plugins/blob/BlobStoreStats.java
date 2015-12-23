@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
 import org.apache.jackrabbit.oak.stats.HistogramStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.stats.TimeSeriesStatsUtil;
 
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
@@ -49,15 +50,15 @@ public class BlobStoreStats implements BlobStoreStatsMBean, BlobStatsCollector {
     public BlobStoreStats(StatisticsProvider sp) {
         this.statisticsProvider = sp;
 
-        this.uploadHisto = sp.getHistogram(BLOB_UPLOADS);
+        this.uploadHisto = sp.getHistogram(BLOB_UPLOADS, StatsOptions.DEFAULT);
         //TODO Need to expose an API in StatisticsProvider to register for avg
         //That would give us upload and download *rate*
-        this.uploadSizeMeter = sp.getMeter("BLOB_UPLOAD_SIZE");
-        this.uploadTimeMeter = sp.getMeter("BLOB_UPLOAD_TIME");
+        this.uploadSizeMeter = sp.getMeter("BLOB_UPLOAD_SIZE", StatsOptions.DEFAULT);
+        this.uploadTimeMeter = sp.getMeter("BLOB_UPLOAD_TIME", StatsOptions.DEFAULT);
 
-        this.downloadHisto = sp.getHistogram(BLOB_DOWNLOADS);
-        this.downloadSizeMeter = sp.getMeter("BLOB_DOWNLOAD_SIZE");
-        this.downloadTimeMeter = sp.getMeter("BLOB_DOWNLOAD_TIME");
+        this.downloadHisto = sp.getHistogram(BLOB_DOWNLOADS, StatsOptions.DEFAULT);
+        this.downloadSizeMeter = sp.getMeter("BLOB_DOWNLOAD_SIZE", StatsOptions.DEFAULT);
+        this.downloadTimeMeter = sp.getMeter("BLOB_DOWNLOAD_TIME", StatsOptions.DEFAULT);
     }
 
     @Override

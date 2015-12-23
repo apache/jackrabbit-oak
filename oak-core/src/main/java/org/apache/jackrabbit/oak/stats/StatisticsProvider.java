@@ -24,7 +24,6 @@ import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 
 @ProviderType
 public interface StatisticsProvider {
-
     StatisticsProvider NOOP = new StatisticsProvider() {
         @Override
         public RepositoryStatistics getStats() {
@@ -32,22 +31,22 @@ public interface StatisticsProvider {
         }
 
         @Override
-        public MeterStats getMeter(String name) {
+        public MeterStats getMeter(String name, StatsOptions options) {
             return NoopStats.INSTANCE;
         }
 
         @Override
-        public CounterStats getCounterStats(String name) {
+        public CounterStats getCounterStats(String name, StatsOptions options) {
             return NoopStats.INSTANCE;
         }
 
         @Override
-        public TimerStats getTimer(String name) {
+        public TimerStats getTimer(String name, StatsOptions options) {
             return NoopStats.INSTANCE;
         }
 
         @Override
-        public HistogramStats getHistogram(String name) {
+        public HistogramStats getHistogram(String name, StatsOptions options) {
             return NoopStats.INSTANCE;
         }
     };
@@ -55,11 +54,11 @@ public interface StatisticsProvider {
 
     RepositoryStatistics getStats();
 
-    MeterStats getMeter(String name);
+    MeterStats getMeter(String name, StatsOptions options);
 
-    CounterStats getCounterStats(String name);
+    CounterStats getCounterStats(String name, StatsOptions options);
 
-    TimerStats getTimer(String name);
+    TimerStats getTimer(String name, StatsOptions options);
 
-    HistogramStats getHistogram(String name);
+    HistogramStats getHistogram(String name, StatsOptions options);
 }

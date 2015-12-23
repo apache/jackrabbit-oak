@@ -22,8 +22,9 @@ package org.apache.jackrabbit.oak.stats;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
 
+import java.util.EnumSet;
+import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.jackrabbit.api.jmx.QueryStatManagerMBean;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
@@ -45,6 +46,17 @@ public class StatisticManager {
     private final StatisticsProvider repoStats;
     private final TimeSeriesMax maxQueueLength;
     private final CompositeRegistration registration;
+
+    /**
+     * Types for which Metrics based stats would not be collected
+     * and only default stats would be collected
+     */
+    private static final EnumSet<Type> NOOP_METRIC_TYPES = EnumSet.of(
+            Type.SESSION_READ_COUNTER,
+            Type.SESSION_READ_DURATION,
+            Type.SESSION_WRITE_DURATION,
+            Type.QUERY_COUNT
+    );
 
     /**
      * Create a new instance of this class registering all repository wide
@@ -80,15 +92,15 @@ public class StatisticManager {
     }
 
     public MeterStats getMeter(Type type){
-        return repoStats.getMeter(type.name());
+        return repoStats.getMeter(type.name(), getOption(type));
     }
 
     public CounterStats getStatsCounter(Type type){
-        return repoStats.getCounterStats(type.name());
+        return repoStats.getCounterStats(type.name(), getOption(type));
     }
 
     public TimerStats getTimer(Type type){
-        return repoStats.getTimer(type.name());
+        return repoStats.getTimer(type.name(), getOption(type));
     }
 
 
@@ -111,6 +123,13 @@ public class StatisticManager {
             provider = new DefaultStatisticsProvider(executor);
         }
         return provider;
+    }
+
+    private static StatsOptions getOption(Type type){
+        if (NOOP_METRIC_TYPES.contains(type)){
+            return StatsOptions.TIME_SERIES_ONLY;
+        }
+        return StatsOptions.DEFAULT;
     }
 
 }

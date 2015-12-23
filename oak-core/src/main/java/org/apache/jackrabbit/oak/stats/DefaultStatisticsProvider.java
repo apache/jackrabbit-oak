@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.stats;
 
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
@@ -41,33 +42,36 @@ public final class DefaultStatisticsProvider implements StatisticsProvider {
     }
 
     @Override
-    public MeterStats getMeter(String name) {
-        return getStats(name, true, SimpleStats.Type.METER);
+    public MeterStats getMeter(String name, StatsOptions options) {
+        return getStats(name, true, SimpleStats.Type.METER, options);
     }
 
     @Override
-    public CounterStats getCounterStats(String name) {
-        return getStats(name, false, SimpleStats.Type.COUNTER);
+    public CounterStats getCounterStats(String name, StatsOptions options) {
+        return getStats(name, false, SimpleStats.Type.COUNTER, options);
     }
 
     @Override
-    public TimerStats getTimer(String name) {
-        return getStats(name, true, SimpleStats.Type.TIMER);
+    public TimerStats getTimer(String name, StatsOptions options) {
+        return getStats(name, true, SimpleStats.Type.TIMER, options);
     }
 
     @Override
-    public HistogramStats getHistogram(String name) {
-        return getStats(name, true, SimpleStats.Type.HISTOGRAM);
+    public HistogramStats getHistogram(String name, StatsOptions options) {
+        return getStats(name, true, SimpleStats.Type.HISTOGRAM, options);
     }
 
-    private synchronized SimpleStats getStats(String type, boolean resetValueEachSecond, SimpleStats.Type statsType){
+    private synchronized SimpleStats getStats(String type, boolean resetValueEachSecond, SimpleStats.Type statsType,
+                                              StatsOptions options){
         Type enumType = Type.getType(type);
         SimpleStats stats = statsMeters.get(type);
         if (stats == null){
             if (enumType != null) {
                 stats = new SimpleStats(repoStats.getCounter(enumType), statsType);
-            } else {
+            } else if (options.isTimeSeriesEnabled()) {
                 stats = new SimpleStats(repoStats.getCounter(type, resetValueEachSecond), statsType);
+            } else {
+                stats = new SimpleStats(new AtomicLong(), statsType);
             }
             statsMeters.put(type, stats);
         }
