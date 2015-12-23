@@ -25,11 +25,18 @@ import java.util.Map;
 
 import javax.jcr.RepositoryException;
 
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Reference;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
+import org.apache.jackrabbit.oak.spi.blob.stats.BlobStoreStatsMBean;
+import org.apache.jackrabbit.oak.plugins.blob.BlobStoreStats;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
+import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
@@ -37,7 +44,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.PROP_SPLIT_BLOBSTORE;
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
+@Component(componentAbstract = true)
 public abstract class AbstractDataStoreService {
     private static final String PROP_HOME = "repository.home";
 
@@ -47,7 +56,12 @@ public abstract class AbstractDataStoreService {
 
     private ServiceRegistration reg;
 
+    private Registration mbeanReg;
+
     private Logger log = LoggerFactory.getLogger(getClass());
+
+    @Reference
+    private StatisticsProvider statisticsProvider;
 
     private DataStore dataStore;
 
@@ -61,7 +75,8 @@ public abstract class AbstractDataStoreService {
         }
         PropertiesUtil.populate(ds, config, false);
         ds.init(homeDir);
-        this.dataStore = new DataStoreBlobStore(ds, encodeLengthInId, cacheSizeInMB);
+        BlobStoreStats stats = new BlobStoreStats(getStatisticsProvider());
+        this.dataStore = new DataStoreBlobStore(ds, encodeLengthInId, cacheSizeInMB, stats);
         PropertiesUtil.populate(dataStore, config, false);
 
         Dictionary<String, Object> props = new Hashtable<String, Object>();
@@ -75,6 +90,12 @@ public abstract class AbstractDataStoreService {
                 BlobStore.class.getName(),
                 GarbageCollectableBlobStore.class.getName()
         }, dataStore , props);
+
+        mbeanReg = registerMBean(new OsgiWhiteboard(context.getBundleContext()),
+                BlobStoreStatsMBean.class,
+                stats,
+                BlobStoreStatsMBean.TYPE,
+                ds.getClass().getSimpleName());
     }
 
     protected void deactivate() throws DataStoreException {
@@ -82,10 +103,18 @@ public abstract class AbstractDataStoreService {
             reg.unregister();
         }
 
+        if (mbeanReg != null){
+            mbeanReg.unregister();
+        }
+
         dataStore.close();
     }
 
     protected abstract DataStore createDataStore(ComponentContext context, Map<String, Object> config);
+
+    protected StatisticsProvider getStatisticsProvider(){
+        return statisticsProvider;
+    }
 
     protected String[] getDescription(){
         return new String[] {"type=unknown"};
