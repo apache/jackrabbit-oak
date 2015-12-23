@@ -26,7 +26,6 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
@@ -635,6 +634,7 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
 
     private Tree createIndex(Tree root, String nodeType) throws Exception {
         Tree index = createTestIndexNode(root, LuceneIndexConstants.TYPE_LUCENE);
+        TestUtil.useV2(index);
         return TestUtil.newRulePropTree(index, nodeType);
     }
 
