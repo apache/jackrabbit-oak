@@ -46,7 +46,7 @@ public class DataStoreTextWriterTest {
     @Test
     public void basicOperation() throws Exception {
         File fdsDir = temporaryFolder.newFolder();
-        FileDataStore fds = createFDS(fdsDir);
+        FileDataStore fds = DataStoreUtils.createFDS(fdsDir, 0);
         ByteArrayInputStream is = new ByteArrayInputStream("hello".getBytes());
         DataRecord dr = fds.addRecord(is);
 
@@ -54,7 +54,7 @@ public class DataStoreTextWriterTest {
         TextWriter writer = new DataStoreTextWriter(writerDir, false);
         writer.write(dr.getIdentifier().toString(), "hello");
 
-        FileDataStore fds2 = createFDS(writerDir);
+        FileDataStore fds2 = DataStoreUtils.createFDS(writerDir, 0);
         DataRecord dr2 = fds2.getRecordIfStored(dr.getIdentifier());
 
         is.reset();
@@ -88,7 +88,7 @@ public class DataStoreTextWriterTest {
     @Test
     public void nonExistingEntry() throws Exception{
         File fdsDir = temporaryFolder.newFolder();
-        FileDataStore fds = createFDS(fdsDir);
+        FileDataStore fds = DataStoreUtils.createFDS(fdsDir, 0);
         ByteArrayInputStream is = new ByteArrayInputStream("hello".getBytes());
         DataRecord dr = fds.addRecord(is);
 
@@ -107,14 +107,6 @@ public class DataStoreTextWriterTest {
         w.markEmpty("a");
         assertTrue(w.isProcessed("a"));
 
-    }
-
-    private FileDataStore createFDS(File root) {
-        FileDataStore fds = new FileDataStore();
-        fds.setPath(root.getAbsolutePath());
-        fds.setMinRecordLength(0);
-        fds.init(null);
-        return fds;
     }
 
     private static class IdBlob extends ArrayBasedBlob {

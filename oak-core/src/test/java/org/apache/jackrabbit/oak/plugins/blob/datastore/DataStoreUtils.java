@@ -96,6 +96,14 @@ public class DataStoreUtils {
             (time == -1 ? 0 : time));
     }
 
+    public static FileDataStore createFDS(File root, int minRecordLength) {
+        FileDataStore fds = new FileDataStore();
+        fds.setPath(root.getAbsolutePath());
+        fds.setMinRecordLength(minRecordLength);
+        fds.init(null);
+        return fds;
+    }
+
     @Test
     public void testPropertySetup() throws Exception {
         System.setProperty(DS_CLASS_NAME, FileDataStore.class.getName());
