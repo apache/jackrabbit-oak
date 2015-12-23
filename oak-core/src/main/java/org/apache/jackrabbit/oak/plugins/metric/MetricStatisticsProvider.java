@@ -143,11 +143,11 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
         if (stats == null) {
             SimpleStats delegate;
             if (enumType != null) {
-                delegate = new SimpleStats(repoStats.getCounter(enumType));
+                delegate = new SimpleStats(repoStats.getCounter(enumType), builder.getType());
                 name = typeToName(enumType);
             } else {
                 boolean resetValueEachSecond = builder != StatsBuilder.COUNTERS;
-                delegate = new SimpleStats(repoStats.getCounter(type, resetValueEachSecond));
+                delegate = new SimpleStats(repoStats.getCounter(type, resetValueEachSecond), builder.getType());
             }
 
             if (NOOP_METRIC_TYPES.contains(name)) {
@@ -190,6 +190,11 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
             public boolean isInstance(Stats metric) {
                 return CounterStats.class.isInstance(metric);
             }
+
+            @Override
+            public SimpleStats.Type getType() {
+                return SimpleStats.Type.COUNTER;
+            }
         };
 
         StatsBuilder<MeterStats> METERS = new StatsBuilder<MeterStats>() {
@@ -204,6 +209,11 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
             public boolean isInstance(Stats metric) {
                 return MeterStats.class.isInstance(metric);
             }
+
+            @Override
+            public SimpleStats.Type getType() {
+                return SimpleStats.Type.METER;
+            }
         };
 
         StatsBuilder<TimerStats> TIMERS = new StatsBuilder<TimerStats>() {
@@ -216,6 +226,11 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
             @Override
             public boolean isInstance(Stats metric) {
                 return TimerStats.class.isInstance(metric);
+            }
+
+            @Override
+            public SimpleStats.Type getType() {
+                return SimpleStats.Type.TIMER;
             }
         };
 
@@ -230,11 +245,18 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
             public boolean isInstance(Stats metric) {
                 return HistogramStats.class.isInstance(metric);
             }
+
+            @Override
+            public SimpleStats.Type getType() {
+                return SimpleStats.Type.HISTOGRAM;
+            }
         };
 
         CompositeStats newComposite(SimpleStats delegate, MetricStatisticsProvider provider,String name);
 
         boolean isInstance(Stats stats);
+
+        SimpleStats.Type getType();
     }
 
     private static class AvgGauge extends RatioGauge {

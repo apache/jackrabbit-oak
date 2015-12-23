@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.metric;
 import java.util.concurrent.TimeUnit;
 
 import com.codahale.metrics.Counter;
+import com.codahale.metrics.Counting;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
@@ -42,35 +43,37 @@ final class CompositeStats implements CounterStats, MeterStats, TimerStats, Hist
     private final Timer timer;
     private final Meter meter;
     private final Histogram histogram;
+    private final Counting counting;
 
     public CompositeStats(SimpleStats delegate, Counter counter) {
-        this(delegate, counter, null, null, null);
+        this(delegate, counter, null, null, null, counter);
     }
 
     public CompositeStats(SimpleStats delegate, Timer timer) {
-        this(delegate, null, timer, null, null);
+        this(delegate, null, timer, null, null, timer);
     }
 
     public CompositeStats(SimpleStats delegate, Meter meter) {
-        this(delegate, null, null, meter, null);
+        this(delegate, null, null, meter, null, meter);
     }
 
     public CompositeStats(SimpleStats delegate, Histogram histogram) {
-        this(delegate, null, null, null, histogram);
+        this(delegate, null, null, null, histogram, histogram);
     }
 
     private CompositeStats(SimpleStats delegate, Counter counter,
-                           Timer timer, Meter meter, Histogram histogram) {
+                           Timer timer, Meter meter, Histogram histogram, Counting counting) {
         this.delegate = delegate;
         this.counter = counter;
         this.timer = timer;
         this.meter = meter;
         this.histogram = histogram;
+        this.counting = counting;
     }
 
     @Override
     public long getCount() {
-        return delegate.getCount();
+        return counting.getCount();
     }
 
     @Override

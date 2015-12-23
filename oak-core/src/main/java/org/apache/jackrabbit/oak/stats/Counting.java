@@ -19,19 +19,11 @@
 
 package org.apache.jackrabbit.oak.stats;
 
-import aQute.bnd.annotation.ProviderType;
-
-/**
- * /**
- * A metric which calculates the distribution of a value.
- */
-@ProviderType
-public interface HistogramStats extends Stats, Counting{
-
+public interface Counting {
     /**
-     * Adds a recorded value.
+     * Returns the current count.
      *
-     * @param value the length of the value
+     * @return the current count
      */
-    void update(long value);
+    long getCount();
 }
