@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
 import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.util.AbstractAnalysisFactory;
 import org.apache.lucene.analysis.util.CharArraySet;
@@ -201,6 +202,7 @@ final class NodeStateAnalyzerFactory{
             String name = ps.getName();
             if (ps.getType() != Type.BINARY
                     && !ps.isArray()
+                    && !(name != null && NodeStateUtils.isHidden(name))
                     && !IGNORE_PROP_NAMES.contains(name)) {
                 result.put(name, ps.getValue(Type.STRING));
             }
