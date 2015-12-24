@@ -32,7 +32,7 @@ class NodeStateFacetsConfig extends FacetsConfig {
     private final NodeBuilder nodeBuilder;
 
     NodeStateFacetsConfig(NodeBuilder nodeBuilder) {
-        this.nodeBuilder = nodeBuilder.child("config");
+        this.nodeBuilder = nodeBuilder.child(":facet-config");
         for (String child : this.nodeBuilder.getChildNodeNames()) {
             super.setMultiValued(child, this.nodeBuilder.child(child).getProperty(MULTIVALUED).getValue(Type.BOOLEAN));
         }
