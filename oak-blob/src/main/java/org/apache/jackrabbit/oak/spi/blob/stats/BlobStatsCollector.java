@@ -39,6 +39,16 @@ public interface BlobStatsCollector {
         public void downloaded(String blobId, long timeTaken, TimeUnit unit, long size) {
 
         }
+
+        @Override
+        public void uploadCompleted(String blobId) {
+
+        }
+
+        @Override
+        public void downloadCompleted(String blobId) {
+
+        }
     };
 
     /**
@@ -60,4 +70,22 @@ public interface BlobStatsCollector {
      * @param size size of binary content being read
      */
     void downloaded(String blobId, long timeTaken, TimeUnit unit, long size);
+
+    /**
+     * Invoked when upload for a binary file get completed. In case of chunked
+     * BlobStore this invoked when all the chunks have been uploaded
+     *
+     * @param blobId id of the blob which got uploaded. Even in case of chunked
+     *               blobStores its the id of main blob
+     */
+    void uploadCompleted(String blobId);
+
+    /**
+     * Invoked when download for a binary file get completed. In case of chunked
+     * BlobStore this invoked when all the chunks have been downloaded
+     *
+     * @param blobId id of the blob which got downloaded. Even in case of chunked
+     *               blobStores its the id of main blob
+     */
+    void downloadCompleted(String blobId);
 }

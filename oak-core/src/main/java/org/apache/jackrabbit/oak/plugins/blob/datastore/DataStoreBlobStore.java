@@ -201,6 +201,7 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
             String id = getBlobId(dr);
             threw = false;
             stats.uploaded(System.nanoTime() - start, TimeUnit.NANOSECONDS, dr.getLength());
+            stats.uploadCompleted(id);
             return id;
         } catch (DataStoreException e) {
             throw new IOException(e);

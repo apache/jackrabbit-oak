@@ -46,6 +46,7 @@ public final class StatsCollectingStreams {
                 //overhead would add to the download time
 
                 collector.downloaded(blobId, System.nanoTime() - startTime, TimeUnit.NANOSECONDS, cin.getCount());
+                collector.downloadCompleted(blobId);
             }
         };
     }

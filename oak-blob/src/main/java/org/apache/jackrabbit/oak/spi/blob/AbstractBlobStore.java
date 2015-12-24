@@ -197,6 +197,7 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
             // System.out.println("    write blob " +  StringUtils.convertBytesToHex(id));
             String blobId = StringUtils.convertBytesToHex(id);
             usesBlobId(blobId);
+            statsCollector.uploadCompleted(blobId);
             return blobId;
         } finally {
             try {
@@ -433,6 +434,7 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
         while (true) {
             int type = idStream.read();
             if (type == -1) {
+                statsCollector.downloadCompleted(blobId);
                 return -1;
             } else if (type == TYPE_DATA) {
                 int len = IOUtils.readVarInt(idStream);

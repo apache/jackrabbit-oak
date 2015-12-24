@@ -50,11 +50,13 @@ public class StatsCollectingStreamsTest {
 
         wrappedStream.close();
         assertEquals(1042, stats.size);
+        assertEquals(1, stats.downloadCompletedCount);
     }
 
     private static class TestCollector implements BlobStatsCollector {
         long size = -1;
         int callbackCount;
+        int downloadCompletedCount;
 
         @Override
         public void uploaded(long timeTaken, TimeUnit unit, long size) {
@@ -65,6 +67,16 @@ public class StatsCollectingStreamsTest {
         public void downloaded(String blobId, long timeTaken, TimeUnit unit, long size) {
             callbackCount++;
             this.size = size;
+        }
+
+        @Override
+        public void uploadCompleted(String blobId) {
+
+        }
+
+        @Override
+        public void downloadCompleted(String blobId) {
+            downloadCompletedCount++;
         }
     }
 }
