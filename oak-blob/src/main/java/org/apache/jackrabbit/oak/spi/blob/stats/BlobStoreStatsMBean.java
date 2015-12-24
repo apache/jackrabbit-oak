@@ -44,4 +44,12 @@ public interface BlobStoreStatsMBean {
     CompositeData getUploadSizeHistory();
 
     CompositeData getDownloadSizeHistory();
+
+    CompositeData getUploadRateHistory();
+
+    CompositeData getDownloadRateHistory();
+
+    CompositeData getUploadCountHistory();
+
+    CompositeData getDownloadCountHistory();
 }
