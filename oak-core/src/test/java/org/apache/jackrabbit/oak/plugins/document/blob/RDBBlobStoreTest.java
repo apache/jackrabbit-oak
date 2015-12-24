@@ -47,6 +47,11 @@ import com.google.common.collect.Lists;
 @RunWith(Parameterized.class)
 public class RDBBlobStoreTest extends AbstractBlobStoreTest {
 
+    @Override
+    protected boolean supportsStatsCollection() {
+        return true;
+    }
+
     @Parameterized.Parameters(name="{0}")
     public static Collection<Object[]> fixtures() {
         Collection<Object[]> result = new ArrayList<Object[]>();

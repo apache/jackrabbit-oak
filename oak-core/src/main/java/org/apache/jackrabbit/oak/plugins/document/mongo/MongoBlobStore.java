@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
@@ -97,6 +98,7 @@ public class MongoBlobStore extends CachingBlobStore {
         String id = StringUtils.convertBytesToHex(blockId.getDigest());
         byte[] data = cache.get(id);
         if (data == null) {
+            long start = System.nanoTime();
             MongoBlob blobMongo = getBlob(id, 0);
             if (blobMongo == null) {
                 String message = "Did not find block " + id;
@@ -104,6 +106,7 @@ public class MongoBlobStore extends CachingBlobStore {
                 throw new IOException(message);
             }
             data = blobMongo.getData();
+            getStatsCollector().downloaded(id, System.nanoTime() - start, TimeUnit.NANOSECONDS, data.length);
             cache.put(id, data);
         }
         if (blockId.getPos() == 0) {

@@ -36,6 +36,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import javax.sql.DataSource;
 
@@ -364,7 +365,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
         if (data == null) {
             Connection con = this.ch.getROConnection();
-
+            long start = System.nanoTime();
             try {
                 PreparedStatement prep = con.prepareStatement("select DATA from " + this.tnData + " where ID = ?");
                 try {
@@ -377,6 +378,8 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                 } finally {
                     prep.close();
                 }
+
+                getStatsCollector().downloaded(id, System.nanoTime() - start, TimeUnit.NANOSECONDS, data.length);
                 cache.put(id, data);
             } finally {
                 con.commit();

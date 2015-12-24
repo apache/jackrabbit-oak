@@ -75,7 +75,7 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
 
     private final DataStore delegate;
 
-    private final BlobStatsCollector stats;
+    private BlobStatsCollector stats;
 
     /**
      * If set to true then the blob length information would be encoded as part of blobId
@@ -476,6 +476,10 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
 
     public void setMaxCachedBinarySize(int maxCachedBinarySize) {
         this.maxCachedBinarySize = maxCachedBinarySize;
+    }
+
+    public void setBlobStatsCollector(BlobStatsCollector stats) {
+        this.stats = stats;
     }
 
     //~---------------------------------------------< Internal >

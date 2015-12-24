@@ -46,12 +46,10 @@ import javax.crypto.spec.SecretKeySpec;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.BaseEncoding;
-import com.google.common.io.CountingInputStream;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.cache.Cache;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.StringUtils;
-import org.apache.jackrabbit.oak.spi.blob.stats.StatsCollectingStreams;
 import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -139,7 +137,7 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private BlobStatsCollector stats = BlobStatsCollector.NOOP;
+    private BlobStatsCollector statsCollector = BlobStatsCollector.NOOP;
 
     public void setBlockSizeMin(int x) {
         validateBlockSize(x);
@@ -158,7 +156,11 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
     }
 
     public void setStatsCollector(BlobStatsCollector stats) {
-        this.stats = stats;
+        this.statsCollector = stats;
+    }
+
+    protected BlobStatsCollector getStatsCollector() {
+        return statsCollector;
     }
 
     private static void validateBlockSize(int x) {
@@ -189,16 +191,12 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
     @Override
     public String writeBlob(InputStream in) throws IOException {
         try {
-            long start = System.nanoTime();
-            CountingInputStream cin = new CountingInputStream(in);
             ByteArrayOutputStream idStream = new ByteArrayOutputStream();
-            convertBlobToId(cin, idStream, 0, 0);
+            convertBlobToId(in, idStream, 0, 0);
             byte[] id = idStream.toByteArray();
             // System.out.println("    write blob " +  StringUtils.convertBytesToHex(id));
             String blobId = StringUtils.convertBytesToHex(id);
             usesBlobId(blobId);
-
-            stats.uploaded(System.nanoTime() - start, TimeUnit.NANOSECONDS, cin.getCount());
             return blobId;
         } finally {
             try {
@@ -212,7 +210,7 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
     @Override
     public InputStream getInputStream(String blobId) throws IOException {
         //Marking would handled by next call to store.readBlob
-        return StatsCollectingStreams.wrap(stats, blobId , new BlobStoreInputStream(this, blobId, 0));
+        return new BlobStoreInputStream(this, blobId, 0);
     }
 
     //--------------------------------------------< Blob Reference >
@@ -368,7 +366,10 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
                 totalLength += blockLen;
                 IOUtils.writeVarInt(idStream, digest.length);
                 idStream.write(digest);
+
+                long start = System.nanoTime();
                 storeBlock(digest, level, Arrays.copyOf(block, blockLen));
+                statsCollector.uploaded(System.nanoTime() - start, TimeUnit.NANOSECONDS, blockLen);
             }
             if (idStream.size() > blockSize / 2) {
                 // convert large ids to a block, but ensure it can be stored as
