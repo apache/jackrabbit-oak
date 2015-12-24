@@ -75,7 +75,7 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
 
     private final DataStore delegate;
 
-    private BlobStatsCollector stats;
+    private BlobStatsCollector stats = BlobStatsCollector.NOOP;
 
     /**
      * If set to true then the blob length information would be encoded as part of blobId
