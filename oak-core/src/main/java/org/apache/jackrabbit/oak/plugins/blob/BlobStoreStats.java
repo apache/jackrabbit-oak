@@ -21,44 +21,61 @@ package org.apache.jackrabbit.oak.plugins.blob;
 
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
 
+import org.apache.jackrabbit.api.stats.TimeSeries;
+import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.spi.blob.stats.BlobStoreStatsMBean;
 import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
 import org.apache.jackrabbit.oak.stats.HistogramStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
+import org.apache.jackrabbit.stats.TimeSeriesAverage;
 import org.apache.jackrabbit.stats.TimeSeriesStatsUtil;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
-public class BlobStoreStats implements BlobStoreStatsMBean, BlobStatsCollector {
+@SuppressWarnings("Duplicates")
+public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreStatsMBean, BlobStatsCollector {
+    private static final String BLOB_DOWNLOAD_COUNT = "BLOB_DOWNLOAD_COUNT";
     private static final String BLOB_UPLOADS = "BLOB_UPLOADS";
     private static final String BLOB_DOWNLOADS = "BLOB_DOWNLOADS";
+    private static final String BLOB_UPLOAD_COUNT = "BLOB_UPLOAD_COUNT";
 
     private final StatisticsProvider statisticsProvider;
 
     private final HistogramStats uploadHisto;
-    private final MeterStats uploadSizeMeter;
-    private final MeterStats uploadTimeMeter;
+    private final MeterStats uploadCount;
+    private final MeterStats uploadSizeSeries;
+    private final MeterStats uploadTimeSeries;
+    private final TimeSeries uploadRateSeries;
 
     private final HistogramStats downloadHisto;
-    private final MeterStats downloadSizeMeter;
-    private final MeterStats downloadTimeMeter;
+    private final MeterStats downloadCount;
+    private final MeterStats downloadSizeSeries;
+    private final MeterStats downloadTimeSeries;
+    private final TimeSeries downloadRateSeries;
 
-    public BlobStoreStats(StatisticsProvider sp) {
-        this.statisticsProvider = sp;
+    private final TimeUnit recordedTimeUnit = TimeUnit.NANOSECONDS;
+
+    public BlobStoreStats(@Nonnull  StatisticsProvider sp) {
+        super(BlobStoreStatsMBean.class);
+        this.statisticsProvider = checkNotNull(sp);
 
         this.uploadHisto = sp.getHistogram(BLOB_UPLOADS, StatsOptions.DEFAULT);
-        //TODO Need to expose an API in StatisticsProvider to register for avg
-        //That would give us upload and download *rate*
-        this.uploadSizeMeter = sp.getMeter("BLOB_UPLOAD_SIZE", StatsOptions.DEFAULT);
-        this.uploadTimeMeter = sp.getMeter("BLOB_UPLOAD_TIME", StatsOptions.DEFAULT);
+        this.uploadCount = sp.getMeter(BLOB_UPLOAD_COUNT, StatsOptions.DEFAULT);
+        this.uploadSizeSeries = sp.getMeter("BLOB_UPLOAD_SIZE", StatsOptions.TIME_SERIES_ONLY);
+        this.uploadTimeSeries = sp.getMeter("BLOB_UPLOAD_TIME", StatsOptions.TIME_SERIES_ONLY);
+        this.uploadRateSeries = getAvgTimeSeries("BLOB_UPLOAD_SIZE", "BLOB_UPLOAD_TIME");
 
         this.downloadHisto = sp.getHistogram(BLOB_DOWNLOADS, StatsOptions.DEFAULT);
-        this.downloadSizeMeter = sp.getMeter("BLOB_DOWNLOAD_SIZE", StatsOptions.DEFAULT);
-        this.downloadTimeMeter = sp.getMeter("BLOB_DOWNLOAD_TIME", StatsOptions.DEFAULT);
+        this.downloadCount = sp.getMeter(BLOB_DOWNLOAD_COUNT, StatsOptions.DEFAULT);
+        this.downloadSizeSeries = sp.getMeter("BLOB_DOWNLOAD_SIZE", StatsOptions.TIME_SERIES_ONLY);
+        this.downloadTimeSeries = sp.getMeter("BLOB_DOWNLOAD_TIME", StatsOptions.TIME_SERIES_ONLY);
+        this.downloadRateSeries = getAvgTimeSeries("BLOB_DOWNLOAD_SIZE", "BLOB_DOWNLOAD_TIME");
     }
 
     @Override
@@ -70,22 +87,25 @@ public class BlobStoreStats implements BlobStoreStatsMBean, BlobStatsCollector {
         //That would however add quite a bit of overhead
         //Approach below would record an upload/download at moment when
         //it got completed. So acts like a rough approximation
-        uploadSizeMeter.mark(size);
-        uploadTimeMeter.mark(TimeUnit.NANOSECONDS.convert(timeTaken, unit));
+        uploadSizeSeries.mark(size);
+        uploadTimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
+        uploadCount.mark();
     }
 
     @Override
     public void downloaded(String blobId, long timeTaken, TimeUnit unit, long size) {
         downloadHisto.update(size);
-        downloadSizeMeter.mark(size);
-        downloadTimeMeter.mark(TimeUnit.NANOSECONDS.convert(timeTaken, unit));
+
+        downloadSizeSeries.mark(size);
+        downloadTimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
+        downloadCount.mark();
     }
 
     //~--------------------------------------< BlobStoreMBean >
 
     @Override
     public long getUploadTotalSize() {
-        return uploadSizeMeter.getCount();
+        return uploadSizeSeries.getCount();
     }
 
     @Override
@@ -95,12 +115,12 @@ public class BlobStoreStats implements BlobStoreStatsMBean, BlobStatsCollector {
 
     @Override
     public long getUploadTotalSeconds() {
-        return TimeUnit.NANOSECONDS.toSeconds(uploadTimeMeter.getCount());
+        return recordedTimeUnit.toSeconds(uploadTimeSeries.getCount());
     }
 
     @Override
     public long getDownloadTotalSize() {
-        return downloadSizeMeter.getCount();
+        return downloadSizeSeries.getCount();
     }
 
     @Override
@@ -110,7 +130,7 @@ public class BlobStoreStats implements BlobStoreStatsMBean, BlobStatsCollector {
 
     @Override
     public long getDownloadTotalSeconds() {
-        return TimeUnit.NANOSECONDS.toSeconds(downloadTimeMeter.getCount());
+        return recordedTimeUnit.toSeconds(downloadTimeSeries.getCount());
     }
 
     @Override
@@ -125,16 +145,92 @@ public class BlobStoreStats implements BlobStoreStatsMBean, BlobStatsCollector {
 
     @Override
     public CompositeData getUploadSizeHistory() {
-        return getTimeSeries(BLOB_UPLOADS);
+        return getTimeSeriesData(BLOB_UPLOADS, "Blob Uploads (bytes)");
     }
 
     @Override
     public CompositeData getDownloadSizeHistory() {
-        return getTimeSeries(BLOB_DOWNLOADS);
+        return getTimeSeriesData(BLOB_DOWNLOADS, "Blob Downloads (bytes)");
     }
 
-    private CompositeData getTimeSeries(String name){
-        return TimeSeriesStatsUtil.asCompositeData(statisticsProvider.getStats().getTimeSeries(name, true),
-                name);
+    @Override
+    public CompositeData getUploadRateHistory() {
+        return TimeSeriesStatsUtil.asCompositeData(uploadRateSeries, "Blob uploads bytes/secs");
+    }
+
+    @Override
+    public CompositeData getDownloadRateHistory() {
+        return TimeSeriesStatsUtil.asCompositeData(downloadRateSeries, "Blob downloads bytes/secs");
+    }
+
+    @Override
+    public CompositeData getUploadCountHistory() {
+        return getTimeSeriesData(BLOB_UPLOAD_COUNT, "Blob Upload Counts");
+    }
+
+    @Override
+    public CompositeData getDownloadCountHistory() {
+        return getTimeSeriesData(BLOB_DOWNLOAD_COUNT, "Blob Download Counts");
+    }
+
+    private CompositeData getTimeSeriesData(String name, String desc){
+        return TimeSeriesStatsUtil.asCompositeData(getTimeSeries(name), desc);
+    }
+
+    private TimeSeries getTimeSeries(String name) {
+        return statisticsProvider.getStats().getTimeSeries(name, true);
+    }
+
+    private TimeSeries getAvgTimeSeries(String nameValue, String nameCounter){
+        return new TimeSeriesAverage(getTimeSeries(nameValue),
+                new UnitConvertingTimeSeries(getTimeSeries(nameCounter), recordedTimeUnit, TimeUnit.SECONDS));
+    }
+
+    /**
+     * TimeSeries which converts a Nanonsecond based time to Seconds for
+     * calculating bytes/sec rate for upload and download
+     */
+    private static class UnitConvertingTimeSeries implements TimeSeries {
+        private final TimeSeries series;
+        private final TimeUnit source;
+        private final TimeUnit dest;
+
+        public UnitConvertingTimeSeries(TimeSeries series, TimeUnit source, TimeUnit dest) {
+            this.series = series;
+            this.source = source;
+            this.dest = dest;
+        }
+
+        @Override
+        public long[] getValuePerSecond() {
+            return convert(series.getValuePerSecond());
+        }
+
+        @Override
+        public long[] getValuePerMinute() {
+            return convert(series.getValuePerMinute());
+        }
+
+        @Override
+        public long[] getValuePerHour() {
+            return convert(series.getValuePerHour());
+        }
+
+        @Override
+        public long[] getValuePerWeek() {
+            return convert(series.getValuePerWeek());
+        }
+
+        @Override
+        public long getMissingValue() {
+            return 0;
+        }
+
+        private long[] convert(long[] timings){
+            for (int i = 0; i < timings.length; i++) {
+                timings[i] = dest.convert(timings[i], source);
+            }
+            return timings;
+        }
     }
 }
