@@ -37,6 +37,11 @@ public class MongoBlobStoreTest extends AbstractBlobStoreTest {
         Assume.assumeTrue(MongoUtils.isAvailable());
     }
 
+    @Override
+    protected boolean supportsStatsCollection() {
+        return true;
+    }
+
     @Before
     @Override
     public void setUp() throws Exception {
