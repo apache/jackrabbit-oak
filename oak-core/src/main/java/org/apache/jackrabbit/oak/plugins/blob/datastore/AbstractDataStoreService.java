@@ -63,7 +63,7 @@ public abstract class AbstractDataStoreService {
     @Reference
     private StatisticsProvider statisticsProvider;
 
-    private DataStore dataStore;
+    private DataStoreBlobStore dataStore;
 
     protected void activate(ComponentContext context, Map<String, Object> config) throws RepositoryException {
         DataStore ds = createDataStore(context, config);
@@ -76,7 +76,8 @@ public abstract class AbstractDataStoreService {
         PropertiesUtil.populate(ds, config, false);
         ds.init(homeDir);
         BlobStoreStats stats = new BlobStoreStats(getStatisticsProvider());
-        this.dataStore = new DataStoreBlobStore(ds, encodeLengthInId, cacheSizeInMB, stats);
+        this.dataStore = new DataStoreBlobStore(ds, encodeLengthInId, cacheSizeInMB);
+        this.dataStore.setBlobStatsCollector(stats);
         PropertiesUtil.populate(dataStore, config, false);
 
         Dictionary<String, Object> props = new Hashtable<String, Object>();

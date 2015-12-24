@@ -101,18 +101,16 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
 
 
     public DataStoreBlobStore(DataStore delegate) {
-        this(delegate, true, DEFAULT_CACHE_SIZE, BlobStatsCollector.NOOP);
+        this(delegate, true, DEFAULT_CACHE_SIZE);
     }
 
     public DataStoreBlobStore(DataStore delegate, boolean encodeLengthInId) {
-        this(delegate, encodeLengthInId, DEFAULT_CACHE_SIZE, BlobStatsCollector.NOOP);
+        this(delegate, encodeLengthInId, DEFAULT_CACHE_SIZE);
     }
 
-    public DataStoreBlobStore(DataStore delegate, boolean encodeLengthInId, int cacheSizeInMB,
-                              BlobStatsCollector stats) {
+    public DataStoreBlobStore(DataStore delegate, boolean encodeLengthInId, int cacheSizeInMB) {
         this.delegate = delegate;
         this.encodeLengthInId = encodeLengthInId;
-        this.stats = stats;
 
         this.cache = CacheLIRS.<String, byte[]>newBuilder()
                 .module("DataStoreBlobStore")
