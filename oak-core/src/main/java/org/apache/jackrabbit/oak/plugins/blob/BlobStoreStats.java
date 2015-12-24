@@ -89,7 +89,6 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
         //it got completed. So acts like a rough approximation
         uploadSizeSeries.mark(size);
         uploadTimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
-        uploadCount.mark();
     }
 
     @Override
@@ -98,6 +97,15 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
 
         downloadSizeSeries.mark(size);
         downloadTimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
+    }
+
+    @Override
+    public void uploadCompleted(String blobId) {
+        uploadCount.mark();
+    }
+
+    @Override
+    public void downloadCompleted(String blobId) {
         downloadCount.mark();
     }
 
@@ -110,7 +118,7 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
 
     @Override
     public long getUploadCount() {
-        return uploadHisto.getCount();
+        return uploadCount.getCount();
     }
 
     @Override
@@ -125,7 +133,7 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
 
     @Override
     public long getDownloadCount() {
-        return downloadHisto.getCount();
+        return downloadCount.getCount();
     }
 
     @Override

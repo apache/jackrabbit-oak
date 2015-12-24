@@ -454,6 +454,7 @@ public abstract class AbstractBlobStoreTest {
         store.writeBlob(randomStream(42, size));
         //For chunked storage the actual stored size is greater than the file size
         assertCollectedSize(collector.size, size);
+        assertEquals(1, collector.uploadCount);
     }
 
     @Test
@@ -476,6 +477,7 @@ public abstract class AbstractBlobStoreTest {
 
         //For chunked storage the actual stored size is greater than the file size
         assertCollectedSize(collector.size, size);
+        assertEquals(1, collector.downloadCount);
     }
 
     protected void setupCollector(BlobStatsCollector statsCollector) {
@@ -516,6 +518,8 @@ public abstract class AbstractBlobStoreTest {
 
     private static class TestCollector implements BlobStatsCollector {
         long size;
+        int uploadCount;
+        int downloadCount;
 
         @Override
         public void uploaded(long timeTaken, TimeUnit unit, long size) {
@@ -527,8 +531,20 @@ public abstract class AbstractBlobStoreTest {
             this.size += size;
         }
 
+        @Override
+        public void uploadCompleted(String blobId) {
+            uploadCount++;
+        }
+
+        @Override
+        public void downloadCompleted(String blobId) {
+            downloadCount++;
+        }
+
         void reset(){
             size = 0;
+            downloadCount = 0;
+            uploadCount = 0;
         }
     }
 }

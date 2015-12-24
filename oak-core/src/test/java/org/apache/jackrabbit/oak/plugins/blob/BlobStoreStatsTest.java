@@ -46,11 +46,16 @@ public class BlobStoreStatsTest {
         stats.uploaded(103, TimeUnit.SECONDS, 1079);
         assertEquals(103, stats.getUploadTotalSeconds());
         assertEquals(1079, stats.getUploadTotalSize());
+        assertEquals(0, stats.getUploadCount());
+
+        stats.uploadCompleted("foo");
         assertEquals(1, stats.getUploadCount());
 
         stats.uploaded(53, TimeUnit.SECONDS, 47);
         assertEquals(103 + 53, stats.getUploadTotalSeconds());
         assertEquals(1079 + 47, stats.getUploadTotalSize());
+
+        stats.uploadCompleted("foo");
         assertEquals(2, stats.getUploadCount());
     }
 
@@ -59,11 +64,16 @@ public class BlobStoreStatsTest {
         stats.downloaded("foo", 103, TimeUnit.SECONDS, 1079);
         assertEquals(103, stats.getDownloadTotalSeconds());
         assertEquals(1079, stats.getDownloadTotalSize());
+        assertEquals(0, stats.getDownloadCount());
+
+        stats.downloadCompleted("foo");
         assertEquals(1, stats.getDownloadCount());
 
         stats.downloaded("foo", 53, TimeUnit.SECONDS, 47);
         assertEquals(103 + 53, stats.getDownloadTotalSeconds());
         assertEquals(1079 + 47, stats.getDownloadTotalSize());
+
+        stats.downloadCompleted("foo");
         assertEquals(2, stats.getDownloadCount());
     }
 }
