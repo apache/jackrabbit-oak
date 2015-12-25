@@ -33,6 +33,7 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.model.Region;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.S3ClientOptions;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 
@@ -102,6 +103,7 @@ public final class Utils {
          */
         s3service.setEndpoint(endpoint);
         LOG.info("S3 service endpoint [{}] ", endpoint);
+        s3service.setS3ClientOptions(getS3ClientOptions(prop));
         return s3service;
     }
 
@@ -168,6 +170,12 @@ public final class Utils {
         }
     }
 
+    private static S3ClientOptions getS3ClientOptions(Properties prop) {
+        return new S3ClientOptions().withPathStyleAccess(
+            Boolean.parseBoolean(prop.getProperty(S3Constants.S3_PATH_STYLE_ACCESS))
+        );
+    }
+    
     private static ClientConfiguration getClientConfiguration(Properties prop) {
         int connectionTimeOut = Integer.parseInt(prop.getProperty(S3Constants.S3_CONN_TIMEOUT));
         int socketTimeOut = Integer.parseInt(prop.getProperty(S3Constants.S3_SOCK_TIMEOUT));

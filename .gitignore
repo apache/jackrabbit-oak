@@ -9,3 +9,4 @@ oak-run/*.csv
 *.iml
 atlassian-ide-plugin.xml
 .checkstyle
+.DS_Store
