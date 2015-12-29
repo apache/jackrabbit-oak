@@ -28,6 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
+import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStoreFriend;
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStoreTest;
@@ -138,6 +139,29 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
 
         int expected = Math.max(blobStore.getBlockSize(), 2 * 1024 * 1024);
         assertTrue(blobStoreName + ": expected supported block size is " + expected + ", but measured: " + test, test >= expected);
+    }
+
+    @Test
+    public void testDeleteManyBlobs() throws Exception {
+        // see https://issues.apache.org/jira/browse/OAK-3807
+        int count = 2000;
+        List<String> toDelete = new ArrayList<String>();
+
+        for (int i = 0; i < count; i++) {
+            byte[] data = new byte[256];
+            Random r = new Random(0);
+            r.nextBytes(data);
+            byte[] digest = getDigest(data);
+            RDBBlobStoreFriend.storeBlock(blobStore, digest, 0, data);
+            byte[] data2 = RDBBlobStoreFriend.readBlockFromBackend(blobStore, digest);
+            if (!Arrays.equals(data, data2)) {
+                throw new Exception("data mismatch for length " + data.length);
+            }
+            String id = StringUtils.convertBytesToHex(digest);
+            toDelete.add(id);
+        }
+
+        RDBBlobStoreFriend.deleteChunks(blobStore, toDelete, System.currentTimeMillis() + 1000);
     }
 
     @Test

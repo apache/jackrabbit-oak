@@ -48,7 +48,7 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QueryCondition;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.RDBTableMetaData;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStoreDB.FETCHFIRSTSYNTAX;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStoreDB.PreparedStatementComponent;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.PreparedStatementComponent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -120,19 +120,13 @@ public class RDBDocumentStoreJDBC {
             boolean setModifiedConditionally, String appendData) throws SQLException {
         String appendDataWithComma = "," + appendData;
         PreparedStatementComponent stringAppend = this.dbInfo.getConcatQuery(appendDataWithComma, tmd.getDataLimitInOctets());
+        PreparedStatementComponent inClause = RDBJDBCTools.createInStatement("ID", ids, tmd.isIdBinary());
         StringBuilder t = new StringBuilder();
         t.append("update " + tmd.getName() + " set ");
         t.append(setModifiedConditionally ? "MODIFIED = case when ? > MODIFIED then ? else MODIFIED end, " : "MODIFIED = ?, ");
         t.append("MODCOUNT = MODCOUNT + 1, DSIZE = DSIZE + ?, ");
         t.append("DATA = " + stringAppend.getStatementComponent() + " ");
-        t.append("where ID in (");
-        for (int i = 0; i < ids.size(); i++) {
-            if (i != 0) {
-                t.append(',');
-            }
-            t.append('?');
-        }
-        t.append(")");
+        t.append("where ").append(inClause.getStatementComponent());
         PreparedStatement stmt = connection.prepareStatement(t.toString());
         try {
             int si = 1;
@@ -142,9 +136,7 @@ public class RDBDocumentStoreJDBC {
             }
             stmt.setObject(si++, appendDataWithComma.length(), Types.BIGINT);
             si = stringAppend.setParameters(stmt, si);
-            for (String id : ids) {
-                setIdInStatement(tmd, stmt, si++, id);
-            }
+            si = inClause.setParameters(stmt,  si);
             int result = stmt.executeUpdate();
             if (result != ids.size()) {
                 LOG.debug("DB update failed: only " + result + " of " + ids.size() + " updated. Table: " + tmd.getName() + ", IDs:"
@@ -159,24 +151,12 @@ public class RDBDocumentStoreJDBC {
     public int delete(Connection connection, RDBTableMetaData tmd, List<String> ids) throws SQLException {
         PreparedStatement stmt;
         int cnt = ids.size();
-
-        if (cnt == 1) {
-            stmt = connection.prepareStatement("delete from " + tmd.getName() + " where ID=?");
-        } else {
-            StringBuilder inClause = new StringBuilder();
-            for (int i = 0; i < cnt; i++) {
-                inClause.append('?');
-                if (i != cnt - 1) {
-                    inClause.append(',');
-                }
-            }
-            stmt = connection.prepareStatement("delete from " + tmd.getName() + " where ID in (" + inClause.toString() + ")");
-        }
+        PreparedStatementComponent inClause = RDBJDBCTools.createInStatement("ID", ids, tmd.isIdBinary());
+        String sql = "delete from " + tmd.getName() + " where " + inClause.getStatementComponent();
+        stmt = connection.prepareStatement(sql);
 
         try {
-            for (int i = 0; i < cnt; i++) {
-                setIdInStatement(tmd, stmt, i + 1, ids.get(i));
-            }
+            inClause.setParameters(stmt, 1);
             int result = stmt.executeUpdate();
             if (result != cnt) {
                 LOG.debug("DB delete failed for " + tmd.getName() + "/" + ids);
