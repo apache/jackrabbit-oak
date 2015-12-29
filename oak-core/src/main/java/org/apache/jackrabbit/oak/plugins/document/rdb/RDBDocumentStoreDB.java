@@ -33,6 +33,7 @@ import java.util.Map;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.PreparedStatementComponent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -368,29 +369,6 @@ public enum RDBDocumentStoreDB {
     public enum FETCHFIRSTSYNTAX {
         FETCHFIRST, LIMIT, TOP
     };
-
-
-    /**
-     * Provides a component for a {@link PreparedStatement} and a method for setting the
-     * parameters within this component
-     */
-    public interface PreparedStatementComponent {
-
-        /**
-         * @return a string suitable for inclusion into a {@link PreparedStatement}
-         */
-        @Nonnull
-        public String getStatementComponent();
-
-        /**
-         * Set the parameters need by the statement component returned by {@link #getStatementComponent()}
-         * @param stmt the statement
-         * @param index of first parameter to set
-         * @return index of next parameter to set
-         * @throws SQLException
-         */
-        public int setParameters(PreparedStatement stmt, int startIndex) throws SQLException;
-    }
 
     /**
      * Check the database brand and version

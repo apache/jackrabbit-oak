@@ -16,8 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import static com.google.common.collect.Iterables.cycle;
+import static com.google.common.collect.Iterables.limit;
+
+import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -32,7 +37,10 @@ import java.util.TreeMap;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Joiner;
 
 /**
  * Convenience methods dealing with JDBC specifics.
@@ -239,5 +247,115 @@ public class RDBJDBCTools {
         }
 
         return null;
+    }
+
+    /**
+     * Provides a component for a {@link PreparedStatement} and a method for
+     * setting the parameters within this component
+     */
+    public interface PreparedStatementComponent {
+
+        /**
+         * @return a string suitable for inclusion into a
+         *         {@link PreparedStatement}
+         */
+        @Nonnull
+        public String getStatementComponent();
+
+        /**
+         * Set the parameters need by the statement component returned by
+         * {@link #getStatementComponent()}
+         * 
+         * @param stmt
+         *            the statement
+         * @param index
+         *            of first parameter to set
+         * @return index of next parameter to set
+         * @throws SQLException
+         */
+        public int setParameters(PreparedStatement stmt, int startIndex) throws SQLException;
+    }
+
+    /**
+     * Appends following SQL condition to the builder: {@code ID in (?,?,?)}.
+     * The field name {@code ID} and the number of place holders is
+     * configurable. If the number of place holders is greater than
+     * {@code maxListLength}, then the condition will have following form:
+     * {@code (ID in (?,?,?) or ID in (?,?,?) or ID in (?,?))}
+     *
+     * @param builder
+     *            the condition will be appended here
+     * @param field
+     *            name of the field
+     * @param placeholdersCount
+     *            how many ? should be included
+     * @param maxListLength
+     *            what's the max number of ? in one list
+     */
+    protected static void appendInCondition(StringBuilder builder, String field, int placeholdersCount, int maxListLength) {
+        if (placeholdersCount == 1) {
+            builder.append(field).append(" = ?");
+        } else if (placeholdersCount > 0) {
+
+            if (placeholdersCount > maxListLength) {
+                builder.append('(');
+            }
+
+            int i;
+            for (i = 0; i < placeholdersCount / maxListLength; i++) {
+                if (i > 0) {
+                    builder.append(" or ");
+                }
+                appendInCondition(builder, field, maxListLength);
+            }
+
+            if (placeholdersCount % maxListLength > 0) {
+                if (i > 0) {
+                    builder.append(" or ");
+                }
+                appendInCondition(builder, field, placeholdersCount % maxListLength);
+            }
+
+            if (placeholdersCount > maxListLength) {
+                builder.append(')');
+            }
+        }
+    }
+
+    private static void appendInCondition(StringBuilder builder, String field, int placeholdersCount) {
+        builder.append(field).append(" in (");
+        Joiner.on(',').appendTo(builder, limit(cycle('?'), placeholdersCount));
+        builder.append(')');
+    }
+
+    public static PreparedStatementComponent createInStatement(final String fieldName, final List<String> values,
+            final boolean binary) {
+        return new PreparedStatementComponent() {
+
+            @Override
+            public String getStatementComponent() {
+                StringBuilder sb = new StringBuilder(values.size() * 3);
+                // maximum "in" statement in Oracle takes 1000 values
+                appendInCondition(sb, fieldName, values.size(), 1000);
+                return sb.toString();
+            }
+
+            @Override
+            public int setParameters(PreparedStatement stmt, int startIndex) throws SQLException {
+                for (String value : values) {
+                    if (binary) {
+                        try {
+                            stmt.setBytes(startIndex++, value.getBytes("UTF-8"));
+                        } catch (UnsupportedEncodingException ex) {
+                            LOG.error("UTF-8 not supported??", ex);
+                            throw new DocumentStoreException(ex);
+                        }
+                    } else {
+                        stmt.setString(startIndex++, value);
+                    }
+                }
+                return startIndex;
+            }
+        };
     }
 }
