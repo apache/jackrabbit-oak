@@ -21,6 +21,7 @@ import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeS
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.util.List;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
 
@@ -47,5 +48,9 @@ public class RDBBlobStoreFriend {
             con.commit();
             ds.ch.closeConnection(con);
         }
+    }
+
+    public static void deleteChunks(RDBBlobStore ds, List<String> chunkIds, long maxLastModifiedTime) throws Exception {
+        ds.deleteChunks(chunkIds, maxLastModifiedTime);
     }
 }
