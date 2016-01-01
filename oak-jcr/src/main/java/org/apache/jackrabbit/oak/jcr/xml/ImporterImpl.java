@@ -482,13 +482,11 @@ public class ImporterImpl implements Importer {
             if (pnImporter != null) {
                 pnImporter.endChildInfo();
             }
-        } else if (getDefinition(parent).isProtected()) {
-            if (pnImporter != null) {
-                pnImporter.end(parent);
-                // and reset the pnImporter field waiting for the next protected
-                // parent -> selecting again from available importers
-                pnImporter = null;
-            }
+        } else if ((pnImporter != null) && getDefinition(parent).isProtected()) {
+            pnImporter.end(parent);
+            // and reset the pnImporter field waiting for the next protected
+            // parent -> selecting again from available importers
+            pnImporter = null;
         }
 
         idLookup.rememberImportedUUIDs(parent);
