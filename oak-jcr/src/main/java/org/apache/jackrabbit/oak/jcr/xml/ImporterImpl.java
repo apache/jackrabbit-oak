@@ -280,7 +280,7 @@ public class ImporterImpl implements Importer {
             PropertyDefinition def = pi.getPropertyDef(effectiveNodeTypeProvider.getEffectiveNodeType(tree));
             if (def.isProtected()) {
                 // skip protected property
-                log.debug("Protected property " + pi.getName());
+                log.debug("Protected property {}", pi.getName());
 
                 // notify the ProtectedPropertyImporter.
                 for (ProtectedPropertyImporter ppi : getPropertyImporters()) {
@@ -344,7 +344,7 @@ public class ImporterImpl implements Importer {
         String ntName = nodeInfo.getPrimaryTypeName();
 
         if (parent == null) {
-            log.debug("Skipping node: " + nodeName);
+            log.debug("Skipping node: {}", nodeName);
             // parent node was skipped, skip this child node too
             parents.push(null); // push null onto stack for skipped node
             // notify the p-i-importer
@@ -358,7 +358,7 @@ public class ImporterImpl implements Importer {
         if (parentDef.isProtected()) {
             // skip protected node
             parents.push(null);
-            log.debug("Skipping protected node: " + nodeName);
+            log.debug("Skipping protected node: {}", nodeName);
 
             if (pnImporter != null) {
                 // pnImporter was already started (current nodeInfo is a sibling)
@@ -406,7 +406,7 @@ public class ImporterImpl implements Importer {
                         is the a leaf in the tree to be imported 'end' will
                         not have an effect on the importer, that was never started.
                     */
-                    log.debug("Skipping protected node: " + existing);
+                    log.debug("Skipping protected node: {}", existing);
                     parents.push(existing);
                     /**
                      * let ProtectedPropertyImporters handle the properties
@@ -456,7 +456,7 @@ public class ImporterImpl implements Importer {
                     if (tree == null) {
                         // no new node has been created, so skip this node
                         parents.push(null); // push null onto stack for skipped node
-                        log.debug("Skipping existing node " + nodeInfo.getName());
+                        log.debug("Skipping existing node {}", nodeInfo.getName());
                         return;
                     }
                 } else {
