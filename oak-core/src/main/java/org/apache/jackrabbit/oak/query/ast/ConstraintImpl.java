@@ -61,7 +61,7 @@ public abstract class ConstraintImpl extends AstElement {
      * is the case for example for full-text constraints if there is no
      * full-text index (unless FullTextComparisonWithoutIndex is enabled). This
      * will also allow is to add conditions that stop further processing for
-     * other reasons, similar to "WHERE ROWNUM < 10" in Oracle.
+     * other reasons, similar to {@code "WHERE ROWNUM < 10"} in Oracle.
      * 
      * @return true if further processing should be stopped
      */

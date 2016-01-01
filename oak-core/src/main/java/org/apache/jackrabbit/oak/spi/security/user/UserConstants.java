@@ -204,7 +204,7 @@ public interface UserConstants {
 
     /**
      * Optional configuration parameter indicating the maximum age in days a password may have
-     * before it expires. If the value specified is > 0, password expiry is implicitly enabled.
+     * before it expires. If the value specified is {@code > 0}, password expiry is implicitly enabled.
      */
     String PARAM_PASSWORD_MAX_AGE = "passwordMaxAge";
 
@@ -232,7 +232,7 @@ public interface UserConstants {
 
     /**
      * Optional configuration parameter indicating the maximum number of passwords recorded for a user after
-     * password changes. If the value specified is > 0, password history checking during password change is implicitly
+     * password changes. If the value specified is {@code > 0}, password history checking during password change is implicitly
      * enabled and the new password provided during a password change must not be found in the already recorded
      * history.
      *
