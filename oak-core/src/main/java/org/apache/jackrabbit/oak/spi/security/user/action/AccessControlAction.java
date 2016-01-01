@@ -48,7 +48,7 @@ import org.slf4j.LoggerFactory;
  * granted on it's own 'home directory' being represented by the new node
  * associated with that new authorizable.
  *
- * <p>The following to configuration parameters are available with this implementation:
+ * <p>The following to configuration parameters are available with this implementation:</p>
  * <ul>
  *    <li><strong>groupPrivilegeNames</strong>: the value is expected to be a
  *    comma separated list of privileges that will be granted to the new group on
@@ -57,16 +57,14 @@ import org.slf4j.LoggerFactory;
  *    comma separated list of privileges that will be granted to the new user on
  *    the user node.</li>
  * </ul>
- * </p>
  * <p>Example configuration:
  * <pre>
  *    groupPrivilegeNames : ["jcr:read"]
  *    userPrivilegeNames  : ["jcr:read,rep:write"]
  * </pre>
- * </p>
  * <p>This configuration could for example lead to the following content
  * structure upon user or group creation. Note however that the resulting
- * structure depends on the actual access control management being in place:
+ * structure depends on the actual access control management being in place:</p>
  *
  * <pre>
  *     UserManager umgr = ((JackrabbitSession) session).getUserManager();
@@ -96,7 +94,6 @@ import org.slf4j.LoggerFactory;
  *               - rep:privileges    = ["jcr:read"]
  *           - rep:principalName     = "testGroup"
  * </pre>
- * </p>
  */
 public class AccessControlAction extends AbstractAuthorizableAction {
 

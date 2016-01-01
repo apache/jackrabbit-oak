@@ -111,7 +111,7 @@ public final class PathUtils {
      * Get the nth ancestor of a path. The 1st ancestor is the parent path,
      * 2nd ancestor the grandparent path, and so on...
      * <p>
-     * If nth <= 0, the path argument is returned as is.
+     * If {@code nth <= 0}, the path argument is returned as is.
      *
      * @param path the path
      * @param nth  indicates the ancestor level for which the path should be

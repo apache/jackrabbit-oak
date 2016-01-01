@@ -108,7 +108,7 @@ public class AuthenticationConfigurationImpl extends ConfigurationBase implement
      *     related validation is omitted</li>
      * </ul>
      *
-     * <h4>Configuration Options</h4>
+     * <h3>Configuration Options</h3>
      * <ul>
      *     <li>{@link #PARAM_APP_NAME}: The appName passed to
      *     {@code Configuration#getAppConfigurationEntry(String)}. The default

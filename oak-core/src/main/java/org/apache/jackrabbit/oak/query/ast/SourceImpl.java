@@ -130,7 +130,7 @@ public abstract class SourceImpl extends AstElement {
     public abstract boolean next();
 
     /**
-     * <b>!Test purpose only! <b>
+     * <b>!Test purpose only! </b>
      * 
      * this creates a filter for the given query
      * 

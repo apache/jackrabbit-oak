@@ -106,7 +106,7 @@ public class Cursors {
      * returned cursor guarantees distinct rows.
      *
      * @param c the cursor to wrap.
-     * @param level the ancestor level. Must be >= 1.
+     * @param level the ancestor level. Must be {@code >= 1}.
      * @return cursor over the ancestors of <code>c</code> at <code>level</code>.
      */
     public static Cursor newAncestorCursor(Cursor c, int level, QueryEngineSettings settings) {

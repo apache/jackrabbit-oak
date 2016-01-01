@@ -39,7 +39,7 @@ public class AnnotatedStandardMBean extends StandardMBean {
      * Make a DynamicMBean out of the object implementation, using the specified
      * mbeanInterface class.
      *
-     * @see {@link javax.management.StandardMBean#StandardMBean(Object, Class)}
+     * @see javax.management.StandardMBean#StandardMBean(Object, Class)
      */
     public <T> AnnotatedStandardMBean(T implementation, Class<T> mbeanInterface){
         super(implementation, mbeanInterface, false);
