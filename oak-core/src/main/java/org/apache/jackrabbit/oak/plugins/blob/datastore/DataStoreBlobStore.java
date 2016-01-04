@@ -55,6 +55,7 @@ import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.MultiDataStoreAware;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -99,6 +100,16 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
      */
     private int maxCachedBinarySize = 1024 * 1024;
 
+    private final Weigher<String, byte[]> weigher = new Weigher<String, byte[]>() {
+        @Override
+        public int weigh(@Nonnull String key, @Nonnull byte[] value) {
+            return StringUtils.estimateMemoryUsage(key) + value.length;
+        }
+    };
+
+    private final CacheStats cacheStats;
+
+    public static final String MEM_CACHE_NAME = "BlobStore-MemCache";
 
     public DataStoreBlobStore(DataStore delegate) {
         this(delegate, true, DEFAULT_CACHE_SIZE);
@@ -112,16 +123,14 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
         this.delegate = delegate;
         this.encodeLengthInId = encodeLengthInId;
 
+        long cacheSize = (long) cacheSizeInMB * FileUtils.ONE_MB;
         this.cache = CacheLIRS.<String, byte[]>newBuilder()
-                .module("DataStoreBlobStore")
-                .maximumWeight((long) cacheSizeInMB * FileUtils.ONE_MB)
-                .weigher(new Weigher<String, byte[]>() {
-                    @Override
-                    public int weigh(@Nonnull String key, @Nonnull byte[] value) {
-                        return StringUtils.estimateMemoryUsage(key) + value.length;
-                    }
-                })
+                .module(MEM_CACHE_NAME)
+                .recordStats()
+                .maximumWeight(cacheSize)
+                .weigher(weigher)
                 .build();
+        this.cacheStats = new CacheStats(cache, MEM_CACHE_NAME, weigher, cacheSize);
     }
 
     //~----------------------------------< DataStore >
@@ -471,6 +480,10 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
 
     public DataStore getDataStore() {
         return delegate;
+    }
+
+    public CacheStats getCacheStats() {
+        return cacheStats;
     }
 
     public void setMaxCachedBinarySize(int maxCachedBinarySize) {

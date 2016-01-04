@@ -29,14 +29,18 @@ import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.blob.stats.BlobStoreStatsMBean;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreStats;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
+import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
@@ -92,11 +96,7 @@ public abstract class AbstractDataStoreService {
                 GarbageCollectableBlobStore.class.getName()
         }, dataStore , props);
 
-        mbeanReg = registerMBean(new OsgiWhiteboard(context.getBundleContext()),
-                BlobStoreStatsMBean.class,
-                stats,
-                BlobStoreStatsMBean.TYPE,
-                ds.getClass().getSimpleName());
+        mbeanReg = registerMBeans(context.getBundleContext(), dataStore, stats);
     }
 
     protected void deactivate() throws DataStoreException {
@@ -121,6 +121,10 @@ public abstract class AbstractDataStoreService {
         return new String[] {"type=unknown"};
     }
 
+    void setStatisticsProvider(StatisticsProvider statisticsProvider) {
+        this.statisticsProvider = statisticsProvider;
+    }
+
     protected static String lookup(ComponentContext context, String property) {
         //Prefer property from BundleContext first
         if (context.getBundleContext().getProperty(property) != null) {
@@ -131,5 +135,21 @@ public abstract class AbstractDataStoreService {
             return context.getProperties().get(property).toString();
         }
         return null;
+    }
+
+    private static Registration registerMBeans(BundleContext context, DataStoreBlobStore ds, BlobStoreStats stats){
+        Whiteboard wb = new OsgiWhiteboard(context);
+        return new CompositeRegistration(
+                registerMBean(wb,
+                        BlobStoreStatsMBean.class,
+                        stats,
+                        BlobStoreStatsMBean.TYPE,
+                        ds.getClass().getSimpleName()),
+                registerMBean(wb,
+                        CacheStatsMBean.class,
+                        ds.getCacheStats(),
+                        CacheStatsMBean.TYPE,
+                        ds.getCacheStats().getName())
+        );
     }
 }

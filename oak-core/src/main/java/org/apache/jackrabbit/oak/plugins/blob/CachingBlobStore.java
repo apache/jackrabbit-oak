@@ -16,7 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
+import com.sun.javafx.beans.annotations.NonNull;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
+import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStore;
 
 import com.google.common.cache.Weigher;
@@ -32,19 +35,28 @@ public abstract class CachingBlobStore extends AbstractBlobStore {
 
     protected final long blobCacheSize;
 
+    private final Weigher<String, byte[]> weigher = new Weigher<String, byte[]>() {
+        @Override
+        public int weigh(@NonNull String key, @NonNull byte[] value) {
+            return StringUtils.estimateMemoryUsage(key) + value.length;
+        }
+    };
+
+    private final CacheStats cacheStats;
+
+    public static final String MEM_CACHE_NAME = "BlobStore-MemCache";
+
     public CachingBlobStore(long cacheSize) {
         this.blobCacheSize = cacheSize;
         cache = CacheLIRS.<String, byte[]>newBuilder().
-                module("CachingBlobStore").
+                recordStats().
+                module(MEM_CACHE_NAME).
                 maximumWeight(cacheSize).
                 averageWeight(getBlockSize() / 2).
-                weigher(new Weigher<String, byte[]>() {
-                    @Override
-                    public int weigh(String key, byte[] value) {
-                        return value.length;
-                    }
-                }).build();
+                weigher(weigher).
+                build();
 
+        cacheStats = new CacheStats(cache, MEM_CACHE_NAME, weigher, cacheSize);
     }
 
     public CachingBlobStore() {
@@ -59,5 +71,9 @@ public abstract class CachingBlobStore extends AbstractBlobStore {
     public long getBlobCacheSize() {
         //Required for testcase to validate the configured cache size
         return blobCacheSize;
+    }
+
+    public CacheStats getCacheStats() {
+        return cacheStats;
     }
 }

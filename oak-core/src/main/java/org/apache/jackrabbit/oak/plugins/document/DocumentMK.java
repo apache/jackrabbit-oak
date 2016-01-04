@@ -47,6 +47,7 @@ import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreStats;
+import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState.Children;
 import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocumentCache;
@@ -518,6 +519,7 @@ public class DocumentMK {
         private LeaseFailureHandler leaseFailureHandler;
         private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
         private BlobStoreStats blobStoreStats;
+        private CacheStats blobStoreCacheStats;
 
         public Builder() {
         }
@@ -568,7 +570,7 @@ public class DocumentMK {
 
             if (this.blobStore == null) {
                 GarbageCollectableBlobStore s = new MongoBlobStore(db, blobCacheSizeMB * 1024 * 1024L);
-                configureStatsCollector(s);
+                configureBlobStore(s);
                 PersistentCache p = getPersistentCache();
                 if (p != null) {
                     s = p.wrapBlobStore(s);
@@ -598,7 +600,7 @@ public class DocumentMK {
             this.documentStore = new RDBDocumentStore(ds, this);
             if(this.blobStore == null) {
                 this.blobStore = new RDBBlobStore(ds);
-                configureStatsCollector(blobStore);
+                configureBlobStore(blobStore);
             }
             return this;
         }
@@ -613,7 +615,7 @@ public class DocumentMK {
             this.documentStore = new RDBDocumentStore(ds, this, options);
             if(this.blobStore == null) {
                 this.blobStore = new RDBBlobStore(ds, options);
-                configureStatsCollector(blobStore);
+                configureBlobStore(blobStore);
             }
             return this;
         }
@@ -637,7 +639,7 @@ public class DocumentMK {
         public Builder setRDBConnection(DataSource documentStoreDataSource, DataSource blobStoreDataSource) {
             this.documentStore = new RDBDocumentStore(documentStoreDataSource, this);
             this.blobStore = new RDBBlobStore(blobStoreDataSource);
-            configureStatsCollector(blobStore);
+            configureBlobStore(blobStore);
             return this;
         }
 
@@ -734,7 +736,7 @@ public class DocumentMK {
         public BlobStore getBlobStore() {
             if (blobStore == null) {
                 blobStore = new MemoryBlobStore();
-                configureStatsCollector(blobStore);
+                configureBlobStore(blobStore);
             }
             return blobStore;
         }
@@ -875,6 +877,11 @@ public class DocumentMK {
         @CheckForNull
         public BlobStoreStats getBlobStoreStats() {
             return blobStoreStats;
+        }
+
+        @CheckForNull
+        public CacheStats getBlobStoreCacheStats() {
+            return blobStoreCacheStats;
         }
 
         public Clock getClock() {
@@ -1037,10 +1044,21 @@ public class DocumentMK {
                     build();
         }
 
-        private void configureStatsCollector(BlobStore blobStore) {
+        /**
+         * BlobStore which are created by builder might get wrapped.
+         * So here we perform any configuration and also access any
+         * service exposed by the store
+         *
+         * @param blobStore store to config
+         */
+        private void configureBlobStore(BlobStore blobStore) {
             if (blobStore instanceof AbstractBlobStore){
                 this.blobStoreStats = new BlobStoreStats(statisticsProvider);
                 ((AbstractBlobStore) blobStore).setStatsCollector(blobStoreStats);
+            }
+
+            if (blobStore instanceof CachingBlobStore){
+                blobStoreCacheStats = ((CachingBlobStore) blobStore).getCacheStats();
             }
         }
 
