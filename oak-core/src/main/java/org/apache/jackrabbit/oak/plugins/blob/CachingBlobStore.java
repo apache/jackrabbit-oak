@@ -16,7 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
-import com.sun.javafx.beans.annotations.NonNull;
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.StringUtils;
@@ -37,7 +38,7 @@ public abstract class CachingBlobStore extends AbstractBlobStore {
 
     private final Weigher<String, byte[]> weigher = new Weigher<String, byte[]>() {
         @Override
-        public int weigh(@NonNull String key, @NonNull byte[] value) {
+        public int weigh(@Nonnull String key, @Nonnull byte[] value) {
             return StringUtils.estimateMemoryUsage(key) + value.length;
         }
     };
