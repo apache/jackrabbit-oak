@@ -631,6 +631,16 @@ public class DocumentNodeStoreService {
                         "Document node store management")
         );
 
+        if (mkBuilder.getBlobStoreCacheStats() != null) {
+            registrations.add(
+                    registerMBean(whiteboard,
+                            CacheStatsMBean.class,
+                            mkBuilder.getBlobStoreCacheStats(),
+                            CacheStatsMBean.TYPE,
+                            mkBuilder.getBlobStoreCacheStats().getName())
+            );
+        }
+
         final long versionGcMaxAgeInSecs = toLong(prop(PROP_VER_GC_MAX_AGE), DEFAULT_VER_GC_MAX_AGE);
         final long blobGcMaxAgeInSecs = toLong(prop(PROP_BLOB_GC_MAX_AGE), DEFAULT_BLOB_GC_MAX_AGE);
 
@@ -662,7 +672,6 @@ public class DocumentNodeStoreService {
                     BlobStoreStatsMBean.TYPE,
                     ds.getClass().getSimpleName()));
         }
-        //TODO Register JMX bean for Off Heap Cache stats
     }
 
     private void registerLastRevRecoveryJob(final DocumentNodeStore nodeStore) {

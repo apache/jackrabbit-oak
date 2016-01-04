@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.run.osgi
 
 import org.apache.felix.connect.launch.PojoServiceRegistry
 import org.apache.jackrabbit.oak.api.Blob
+import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean
+import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection
@@ -32,6 +34,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore
 import org.h2.jdbcx.JdbcDataSource
 import org.junit.After
 import org.junit.Test
+import org.osgi.framework.ServiceReference
 import org.osgi.framework.ServiceRegistration
 
 import javax.sql.DataSource
@@ -270,6 +273,9 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
 
         assert stats.downloadCount > 0
         assert stats.downloadTotalSize > 0
+
+        assertCacheStatsMBean(CachingBlobStore.MEM_CACHE_NAME)
+
     }
 
     @Override
@@ -333,5 +339,17 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
         byte[] data = new byte[size];
         new Random().nextBytes(data);
         return new ByteArrayInputStream(data);
+    }
+
+    private void assertCacheStatsMBean(String name){
+        ServiceReference[] refs = registry.getServiceReferences(CacheStatsMBean.class.name,null);
+        def names = []
+        def cacheStatsRef = refs.find { ServiceReference ref ->
+            CacheStatsMBean mbean = registry.getService(ref);
+            names << mbean.name
+            return mbean.name == name
+        }
+
+        assert  cacheStatsRef : "No CacheStat found for [$name]. Registered cache stats $names"
     }
 }
