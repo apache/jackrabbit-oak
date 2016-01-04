@@ -511,12 +511,13 @@ public class Commit {
             }
             String conflictMessage = null;
             if (newestRev == null) {
-                if ((op.isDelete() || !op.isNew()) && isConflicting(before, op)) {
+                if ((op.isDelete() || !op.isNew())
+                        && !allowConcurrentAddRemove(before, op)) {
                     conflictMessage = "The node " +
                             op.getId() + " does not exist or is already deleted";
                 }
             } else {
-                if (op.isNew() && isConflicting(before, op)) {
+                if (op.isNew() && !allowConcurrentAddRemove(before, op)) {
                     conflictMessage = "The node " +
                             op.getId() + " was already added in revision\n" +
                             formatConflictRevision(newestRev);
@@ -593,6 +594,25 @@ public class Commit {
         }
         return doc.isConflicting(op, baseRevision, revision, nodeStore,
                 nodeStore.getEnableConcurrentAddRemove());
+    }
+
+    /**
+     * Checks whether a concurrent add/remove operation is allowed with the
+     * given before document and update operation. This method will first check
+     * if the concurrent add/remove feature is enable and return {@code false}
+     * immediately if it is disabled. Only when enabled will this method check
+     * if there is a conflict based on the given document and update operation.
+     * See also {@link #isConflicting(NodeDocument, UpdateOp)}.
+     *
+     * @param before the contents of the document before the update.
+     * @param op the update to perform.
+     * @return {@code true} is a concurrent add/remove update is allowed;
+     *      {@code false} otherwise.
+     */
+    private boolean allowConcurrentAddRemove(@Nullable NodeDocument before,
+                                             @Nonnull UpdateOp op) {
+        return nodeStore.getEnableConcurrentAddRemove()
+                && !isConflicting(before, op);
     }
 
     /**
