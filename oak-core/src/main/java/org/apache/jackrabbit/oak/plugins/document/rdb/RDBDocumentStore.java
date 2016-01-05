@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Lists.partition;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateUtils.checkConditions;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeResultSet;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeStatement;
@@ -40,6 +42,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -81,6 +84,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.common.hash.BloomFilter;
 import com.google.common.hash.Funnel;
 import com.google.common.hash.PrimitiveSink;
@@ -290,11 +294,170 @@ public class RDBDocumentStore implements DocumentStore {
 
     @Override
     public <T extends Document> List<T> createOrUpdate(Collection<T> collection, List<UpdateOp> updateOps) {
-        List<T> result = new ArrayList<T>(updateOps.size());
-        for (UpdateOp update : updateOps) {
-            result.add(createOrUpdate(collection, update));
+        List<T> result = null;
+        Map<String, UpdateOp> operationsToCover = new LinkedHashMap<String, UpdateOp>();
+
+        for (UpdateOp updateOp : updateOps) {
+            UpdateUtils.assertUnconditional(updateOp);
+            UpdateOp clone = updateOp.copy();
+            addUpdateCounters(clone);
+            operationsToCover.put(clone.getId(), clone);
+        }
+
+        Map<String, T> oldDocs = new HashMap<String, T>();
+        if (collection == Collection.NODES) {
+            oldDocs.putAll((Map<String, T>) readDocumentCached(collection, operationsToCover.keySet()));
+        }
+
+        int i = 0; // iteration count
+
+        // bulk update requires two DB requests, so if we have <= 2 operations
+        // it's better to send them sequentially
+        while (operationsToCover.size() > 2) {
+            // We should try to insert documents only during the first
+            // iteration. In the 2nd and 3rd iterations we only deal with
+            // conflicting documents, so they already exist in the database
+            // and there's no point in inserting them.
+            boolean upsert = i == 0;
+
+            if (i++ == 3) {
+                // operations that conflicted in 3 consecutive bulk
+                // updates should be applied sequentially
+                break;
+            }
+
+            for (List<UpdateOp> partition : partition(newArrayList(operationsToCover.values()), CHUNKSIZE)) {
+                Set<String> successfulUpdates = bulkUpdate(collection, partition, oldDocs, upsert);
+                operationsToCover.keySet().removeAll(successfulUpdates);
+            }
+        }
+
+        // if there are some changes left, we'll apply them one after another
+        for (UpdateOp updateOp : updateOps) {
+            if (operationsToCover.remove(updateOp.getId()) != null) {
+                // work on the original update operation
+                T oldDoc = createOrUpdate(collection, updateOp.copy()); 
+                if (oldDoc != null) {
+                    oldDocs.put(oldDoc.getId(), oldDoc);
+                }
+            }
+        }
+
+        result = new ArrayList<T>(updateOps.size());
+        for (UpdateOp op : updateOps) {
+            result.add(oldDocs.get(op.getId()));
+        }
+
+        return result;
+    }
+
+    private <T extends Document> Map<String, T> readDocumentCached(Collection<T> collection, Set<String> keys) {
+        Map<String, T> documents = new HashMap<String, T>();
+
+        if (collection == Collection.NODES) {
+            for (String key : keys) {
+                NodeDocument cached = nodesCache.getIfPresent(key);
+                if (cached != null && cached != NodeDocument.NULL) {
+                    T doc = castAsT(unwrap(cached));
+                    documents.put(doc.getId(), doc);
+                }
+            }
+        }
+
+        Set<String> documentsToRead = Sets.difference(keys, documents.keySet());
+        Map<String, T> readDocuments = readDocumentsUncached(collection, documentsToRead);
+        documents.putAll(readDocuments);
+
+        if (collection == Collection.NODES) {
+            for (T doc : readDocuments.values()) {
+                nodesCache.putIfAbsent((NodeDocument) doc);
+            }
+        }
+
+        return documents;
+    }
+
+    private <T extends Document> Map<String, T> readDocumentsUncached(Collection<T> collection, Set<String> keys) {
+        Map<String, T> result = new HashMap<String, T>();
+
+        Connection connection = null;
+        RDBTableMetaData tmd = getTable(collection);
+        try {
+            connection = this.ch.getROConnection();
+            List<RDBRow> rows = db.read(connection, tmd, keys);
+
+            int size = rows.size();
+            for (int i = 0; i < size; i++) {
+                RDBRow row = rows.set(i, null);
+                T document = convertFromDBObject(collection, row);
+                result.put(document.getId(), document);
+            }
+            connection.commit();
+        } catch (Exception ex) {
+            throw new DocumentStoreException(ex);
+        } finally {
+            this.ch.closeConnection(connection);
         }
         return result;
+    }
+
+    private <T extends Document> Set<String> bulkUpdate(Collection<T> collection, List<UpdateOp> updates, Map<String, T> oldDocs, boolean upsert) {
+        Set<String> missingDocs = new HashSet<String>();
+        for (UpdateOp op : updates) {
+            if (!oldDocs.containsKey(op.getId())) {
+                missingDocs.add(op.getId());
+            }
+        }
+        for (T doc : readDocumentsUncached(collection, missingDocs).values()) {
+            oldDocs.put(doc.getId(), doc);
+            if (collection == Collection.NODES) {
+                nodesCache.putIfAbsent((NodeDocument) doc);
+            }
+        }
+
+        List<T> docsToUpdate = new ArrayList<T>(updates.size());
+        Set<String> keysToUpdate = new HashSet<String>();
+        for (UpdateOp update : updates) {
+            String id = update.getId();
+            T modifiedDoc = collection.newDocument(this);
+            if (oldDocs.containsKey(id)) {
+                oldDocs.get(id).deepCopy(modifiedDoc);
+            }
+            UpdateUtils.applyChanges(modifiedDoc, update);
+            docsToUpdate.add(modifiedDoc);
+            keysToUpdate.add(id);
+        }
+
+        Connection connection = null;
+        RDBTableMetaData tmd = getTable(collection);
+        try {
+            connection = this.ch.getRWConnection();
+            Set<String> successfulUpdates = db.update(connection, tmd, docsToUpdate, upsert);
+            connection.commit();
+
+            Set<String> failedUpdates = Sets.difference(keysToUpdate, successfulUpdates);
+            oldDocs.keySet().removeAll(failedUpdates);
+
+            if (collection == Collection.NODES) {
+                for (T doc : docsToUpdate) {
+                    String id = doc.getId();
+                    if (successfulUpdates.contains(id)) {
+                        if (oldDocs.containsKey(id)) {
+                            nodesCache.replaceCachedDocument((NodeDocument) oldDocs.get(id), (NodeDocument) doc);
+                        } else {
+                            nodesCache.putIfAbsent((NodeDocument) doc);
+                        }
+                    }
+                }
+            }
+
+            return successfulUpdates;
+        } catch (SQLException ex) {
+            this.ch.rollbackConnection(connection);
+            throw new DocumentStoreException(ex);
+        } finally {
+            this.ch.closeConnection(connection);
+        }
     }
 
     @Override
@@ -1463,9 +1626,9 @@ public class RDBDocumentStore implements DocumentStore {
         RDBTableMetaData tmd = getTable(collection);
         try {
             connection = this.ch.getRWConnection();
-            boolean result = db.insert(connection, tmd, documents);
+            Set<String> insertedKeys = db.insert(connection, tmd, documents);
             connection.commit();
-            return result;
+            return insertedKeys.size() == documents.size();
         } catch (SQLException ex) {
             this.ch.rollbackConnection(connection);
 

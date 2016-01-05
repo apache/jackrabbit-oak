@@ -29,9 +29,11 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -51,6 +53,9 @@ import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStoreDB.FETCHFI
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.PreparedStatementComponent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 /**
  * Implements (most) DB interactions used in {@link RDBDocumentStore}.
@@ -150,7 +155,6 @@ public class RDBDocumentStoreJDBC {
 
     public int delete(Connection connection, RDBTableMetaData tmd, List<String> ids) throws SQLException {
         PreparedStatement stmt;
-        int cnt = ids.size();
         PreparedStatementComponent inClause = RDBJDBCTools.createInStatement("ID", ids, tmd.isIdBinary());
         String sql = "delete from " + tmd.getName() + " where " + inClause.getStatementComponent();
         stmt = connection.prepareStatement(sql);
@@ -158,7 +162,7 @@ public class RDBDocumentStoreJDBC {
         try {
             inClause.setParameters(stmt, 1);
             int result = stmt.executeUpdate();
-            if (result != cnt) {
+            if (result != ids.size()) {
                 LOG.debug("DB delete failed for " + tmd.getName() + "/" + ids);
             }
             return result;
@@ -256,7 +260,7 @@ public class RDBDocumentStoreJDBC {
         }
     }
 
-    public <T extends Document> boolean insert(Connection connection, RDBTableMetaData tmd, List<T> documents) throws SQLException {
+    public <T extends Document> Set<String> insert(Connection connection, RDBTableMetaData tmd, List<T> documents) throws SQLException {
         PreparedStatement stmt = connection.prepareStatement(
                 "insert into " + tmd.getName() + "(ID, MODIFIED, HASBINARY, DELETEDONCE, MODCOUNT, CMODCOUNT, DSIZE, DATA, BDATA) "
                         + "values (?, ?, ?, ?, ?, ?, ?, ?, ?)");
@@ -289,18 +293,139 @@ public class RDBDocumentStoreJDBC {
                 stmt.addBatch();
             }
             int[] results = stmt.executeBatch();
-            boolean success = true;
+
+            Set<String> succesfullyInserted = new HashSet<String>();
             for (int i = 0; i < documents.size(); i++) {
                 int result = results[i];
                 if (result != 1 && result != Statement.SUCCESS_NO_INFO) {
                     LOG.error("DB insert failed for {}: {}", tmd.getName(), documents.get(i).getId());
-                    success = false;
+                } else {
+                    succesfullyInserted.add(documents.get(i).getId());
                 }
             }
-            return success;
+            return succesfullyInserted;
         } finally {
             stmt.close();
         }
+    }
+
+    /**
+     * Update a list of documents using JDBC batches. Some of the updates may fail because of the concurrent
+     * changes. The method returns a set of successfully updated documents. It's the caller responsibility
+     * to compare the set with the list of input documents, find out which documents conflicted and take
+     * appropriate action.
+     * <p>
+     * If the {@code upsert} parameter is set to true, the method will also try to insert new documents, those
+     * which modcount equals to 1.
+     *
+     * @param connection JDBC connection
+     * @param tmd Table metadata
+     * @param documents List of documents to update
+     * @param upsert Insert new documents
+     * @return set containing ids of successfully updated documents
+     * @throws SQLException
+     */
+    public <T extends Document> Set<String> update(Connection connection, RDBTableMetaData tmd, List<T> documents, boolean upsert)
+            throws SQLException {
+        Set<String> successfulUpdates = new HashSet<String>();
+
+        PreparedStatement stmt = connection.prepareStatement("update " + tmd.getName()
+            + " set MODIFIED = ?, HASBINARY = ?, DELETEDONCE = ?, MODCOUNT = ?, CMODCOUNT = ?, DSIZE = ?, DATA = ?, BDATA = ? where ID = ? and MODCOUNT = ?");
+        try {
+            List<String> updatedKeys = new ArrayList<String>();
+            for (T document : documents) {
+                Long modcount = (Long) document.get(MODCOUNT);
+                if (modcount == 1) {
+                    continue; // This is a new document. We'll deal with the inserts later.
+                }
+
+                String data = this.ser.asString(document);
+                Number hasBinary = (Number) document.get(NodeDocument.HAS_BINARY_FLAG);
+                Boolean deletedOnce = (Boolean) document.get(NodeDocument.DELETED_ONCE);
+                Long cmodcount = (Long) document.get(COLLISIONSMODCOUNT);
+
+                int si = 1;
+                stmt.setObject(si++, document.get(MODIFIED), Types.BIGINT);
+                stmt.setObject(si++, (hasBinary != null && hasBinary.intValue() == NodeDocument.HAS_BINARY_VAL) ? 1 : 0,
+                        Types.SMALLINT);
+                stmt.setObject(si++, (deletedOnce != null && deletedOnce) ? 1 : 0, Types.SMALLINT);
+                stmt.setObject(si++, modcount, Types.BIGINT);
+                stmt.setObject(si++, cmodcount == null ? Long.valueOf(0) : cmodcount, Types.BIGINT);
+                stmt.setObject(si++, data.length(), Types.BIGINT);
+
+                if (data.length() < tmd.getDataLimitInOctets() / CHAR2OCTETRATIO) {
+                    stmt.setString(si++, data);
+                    stmt.setBinaryStream(si++, null, 0);
+                } else {
+                    stmt.setString(si++, "\"blob\"");
+                    byte[] bytes = asBytes(data);
+                    stmt.setBytes(si++, bytes);
+                }
+
+                setIdInStatement(tmd, stmt, si++, document.getId());
+                stmt.setObject(si++, modcount - 1, Types.BIGINT);
+                stmt.addBatch();
+                updatedKeys.add(document.getId());
+            }
+
+            int[] batchResults = stmt.executeBatch();
+
+            for (int i = 0; i < batchResults.length; i++) {
+                int result = batchResults[i];
+                if (result == 1 || result == Statement.SUCCESS_NO_INFO) {
+                    successfulUpdates.add(updatedKeys.get(i));
+                }
+            }
+        } finally {
+            stmt.close();
+        }
+
+        if (upsert) {
+            List<T> remainingDocuments = new ArrayList<T>(documents.size() - successfulUpdates.size());
+            for (T doc : documents) {
+                if (!successfulUpdates.contains(doc.getId())) {
+                    remainingDocuments.add(doc);
+                }
+            }
+
+            if (!remainingDocuments.isEmpty()) {
+                List<String> remainingDocumentIds = Lists.transform(remainingDocuments, idExtractor);
+                PreparedStatementComponent inClause = RDBJDBCTools.createInStatement("ID", remainingDocumentIds, tmd.isIdBinary());
+                StringBuilder sql = new StringBuilder("select ID from ").append(tmd.getName());
+                sql.append(" where ").append(inClause.getStatementComponent());
+
+                Set<String> documentsWithUpdatedModcount = new HashSet<String>();
+
+                PreparedStatement selectStmt = null;
+                ResultSet rs = null;
+                try {
+                    selectStmt = connection.prepareStatement(sql.toString());
+                    selectStmt.setPoolable(false);
+                    inClause.setParameters(selectStmt, 1);
+                    rs = selectStmt.executeQuery();
+                    while (rs.next()) {
+                        documentsWithUpdatedModcount.add(getIdFromRS(tmd, rs, 1));
+                    }
+                } finally {
+                    closeResultSet(rs);
+                    closeStatement(selectStmt);
+                }
+
+                Iterator<T> it = remainingDocuments.iterator();
+                while (it.hasNext()) {
+                    if (documentsWithUpdatedModcount.contains(it.next().getId())) {
+                        it.remove();
+                    }
+                }
+
+                if (!remainingDocuments.isEmpty()) {
+                    for (String id : insert(connection, tmd, remainingDocuments)) {
+                        successfulUpdates.add(id);
+                    }
+                }
+            }
+        }
+        return successfulUpdates;
     }
 
     private final static Map<String, String> INDEXED_PROP_MAPPING;
@@ -450,6 +575,58 @@ public class RDBDocumentStoreJDBC {
         return result;
     }
 
+    public List<RDBRow> read(Connection connection, RDBTableMetaData tmd, Collection<String> keys) throws SQLException {
+        if (keys.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        PreparedStatementComponent inClause = RDBJDBCTools.createInStatement("ID", keys, tmd.isIdBinary());
+        StringBuilder query = new StringBuilder();
+        query.append("select ID, MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, DATA, BDATA from ");
+        query.append(tmd.getName());
+        query.append(" where ").append(inClause.getStatementComponent());
+
+        PreparedStatement stmt = connection.prepareStatement(query.toString());
+        stmt.setPoolable(false);
+        try {
+            inClause.setParameters(stmt,  1);
+            ResultSet rs = stmt.executeQuery();
+
+            List<RDBRow> rows = new ArrayList<RDBRow>();
+            while (rs.next()) {
+                int col = 1;
+                String id = getIdFromRS(tmd, rs, col++);
+                long modified = rs.getLong(col++);
+                long modcount = rs.getLong(col++);
+                long cmodcount = rs.getLong(col++);
+                long hasBinary = rs.getLong(col++);
+                long deletedOnce = rs.getLong(col++);
+                String data = rs.getString(col++);
+                byte[] bdata = rs.getBytes(col++);
+                RDBRow row = new RDBRow(id, hasBinary == 1, deletedOnce == 1, modified, modcount, cmodcount, data, bdata);
+                rows.add(row);
+            }
+
+            return rows;
+        } catch (SQLException ex) {
+            LOG.error("attempting to read " + keys, ex);
+            // DB2 throws an SQLException for invalid keys; handle this more
+            // gracefully
+            if ("22001".equals(ex.getSQLState())) {
+                try {
+                    connection.rollback();
+                } catch (SQLException ex2) {
+                    LOG.debug("failed to rollback", ex2);
+                }
+                return null;
+            } else {
+                throw (ex);
+            }
+        } finally {
+            stmt.close();
+        }
+    }
+
     @CheckForNull
     public RDBRow read(Connection connection, RDBTableMetaData tmd, String id, long lastmodcount) throws SQLException {
         PreparedStatement stmt;
@@ -574,4 +751,11 @@ public class RDBDocumentStoreJDBC {
             stmt.setString(idx, id);
         }
     }
+
+    private static final Function<Document, String> idExtractor = new Function<Document, String>() {
+        @Override
+        public String apply(Document input) {
+            return input.getId();
+        }
+    };
 }

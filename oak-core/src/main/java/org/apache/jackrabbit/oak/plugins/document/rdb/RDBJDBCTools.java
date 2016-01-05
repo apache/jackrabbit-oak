@@ -29,6 +29,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -328,7 +329,7 @@ public class RDBJDBCTools {
         builder.append(')');
     }
 
-    public static PreparedStatementComponent createInStatement(final String fieldName, final List<String> values,
+    public static PreparedStatementComponent createInStatement(final String fieldName, final Collection<String> values,
             final boolean binary) {
         return new PreparedStatementComponent() {
 

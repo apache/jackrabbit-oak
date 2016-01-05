@@ -53,6 +53,7 @@ public class RDBDataSourceWrapper implements DataSource, Closeable {
     // }
 
     private final DataSource ds;
+    private boolean batchResultPrecise = true;
 
     // Logging
 
@@ -82,6 +83,17 @@ public class RDBDataSourceWrapper implements DataSource, Closeable {
      */
     public List<RDBLogEntry> stopLog() {
         return stopLog(Thread.currentThread());
+    }
+
+    /**
+     * Set to {@code false} to simulate drivers/DBs that do not return the number of affected rows in {@link Statement#executeBatch()}.
+     */
+    public void setBatchResultPrecise(boolean precise) {
+        this.batchResultPrecise = precise;
+    }
+
+    public boolean isBatchResultPrecise() {
+        return this.batchResultPrecise;
     }
 
     // DataSource

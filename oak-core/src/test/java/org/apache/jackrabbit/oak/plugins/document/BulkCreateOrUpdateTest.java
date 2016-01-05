@@ -23,12 +23,20 @@ import static org.junit.Assert.assertNull;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.sql.DataSource;
+
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceWrapper;
 import org.junit.Test;
 
 public class BulkCreateOrUpdateTest extends AbstractDocumentStoreTest {
 
     public BulkCreateOrUpdateTest(DocumentStoreFixture dsf) {
         super(dsf);
+        DataSource ds = dsf.getRDBDataSource();
+        if (ds instanceof RDBDataSourceWrapper) {
+            // test drivers that do not return precise batch results
+            ((RDBDataSourceWrapper)ds).setBatchResultPrecise(false);
+        }
     }
 
     /**
