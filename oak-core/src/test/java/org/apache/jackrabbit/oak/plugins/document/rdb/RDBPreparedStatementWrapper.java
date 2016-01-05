@@ -36,6 +36,7 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
+import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -125,6 +126,14 @@ public class RDBPreparedStatementWrapper implements PreparedStatement {
         SQLException x = null;
         try {
             results = statement.executeBatch();
+            // not all JDBC drivers return the number of affected rows
+            if (!datasource.isBatchResultPrecise()) {
+                for (int i = 0; i < results.length; i++) {
+                    if (results[i] >= 0) {
+                        results[i] = Statement.SUCCESS_NO_INFO;
+                    }
+                }
+            }
             return results;
         } catch (SQLException ex) {
             x = ex;

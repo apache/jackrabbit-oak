@@ -18,9 +18,12 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 import org.junit.Test;
 
@@ -207,6 +210,68 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
         nd1 = super.ds1.find(Collection.NODES, id);
         assertEquals("modcount should have incremented again", firstVersion + 2, nd1.getModCount().longValue());
         assertTrue(nd1.getLastCheckTime() > ds1checktime);
+    }
+
+    @Test
+    public void testInterleavedBatchUpdate() {
+        int amount = 10;
+        int halfAmount = amount / 2;
+        String baseId = this.getClass().getName() + ".testInterleavedBatchUpdate";
+
+        // remove if present
+        for (int i = 0; i < amount; i++) {
+            String id = baseId + "-" + i;
+            NodeDocument nd = super.ds1.find(Collection.NODES, id);
+            if (nd != null) {
+                super.ds1.remove(Collection.NODES, id);
+            }
+            removeMe.add(id);
+        }
+
+        {
+            // create half of the entries in ds1
+            List<UpdateOp> ops = new ArrayList<UpdateOp>();
+            for (int i = 0; i < halfAmount; i++) {
+                String id = baseId + "-" + i;
+                UpdateOp up = new UpdateOp(id, true);
+                up.set(Document.ID, id);
+                up.set("_createdby", "ds1");
+                ops.add(up);
+            }
+            List<NodeDocument> result = super.ds1.createOrUpdate(Collection.NODES, ops);
+            assertEquals(halfAmount, result.size());
+            for (NodeDocument doc : result) {
+                assertNull(doc);
+            }
+        }
+
+        {
+            // create all of the entries in ds2
+            List<UpdateOp> ops = new ArrayList<UpdateOp>();
+            for (int i = 0; i < amount; i++) {
+                String id = baseId + "-" + i;
+                UpdateOp up = new UpdateOp(id, true);
+                up.set(Document.ID, id);
+                up.set("_createdby", "ds2");
+                ops.add(up);
+            }
+            List<NodeDocument> result = super.ds2.createOrUpdate(Collection.NODES, ops);
+            assertEquals(amount, result.size());
+            for (NodeDocument doc : result) {
+                // documents are either new or have been created by ds1
+                if (doc != null) {
+                    assertEquals("ds1", doc.get("_createdby"));
+                }
+            }
+        }
+
+        // final check: does DS1 see all documents including the changes made by DS2?
+        for (int i = 0; i < amount; i++) {
+            String id = baseId + "-" + i;
+            NodeDocument doc = super.ds1.find(Collection.NODES, id, 0);
+            assertNotNull(doc);
+            assertEquals("ds2", doc.get("_createdby"));
+        }
     }
 
     private static long letTimeElapse() {
