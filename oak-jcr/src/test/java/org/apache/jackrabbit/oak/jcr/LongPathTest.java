@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import javax.jcr.Node;
 import javax.jcr.Session;
 
+import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.Test;
 
 public class LongPathTest extends AbstractRepositoryTest {

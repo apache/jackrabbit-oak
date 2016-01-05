@@ -16,11 +16,6 @@
  */
 package org.apache.jackrabbit.oak;
 
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_NS;
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.MEMORY_NS;
-import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_MK;
-
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Set;
 
@@ -28,6 +23,7 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.commons.FixturesHelper;
 import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
+import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
@@ -46,19 +42,8 @@ public abstract class OakBaseTest {
 
     @Parameterized.Parameters(name="{0}")
     public static Collection<Object[]> fixtures() {
-        Collection<Object[]> result = new ArrayList<Object[]>();
-        if (FIXTURES.contains(DOCUMENT_NS)) {
-            result.add(new Object[] { NodeStoreFixture.MONGO_NS });
-        }
-        if (FIXTURES.contains(SEGMENT_MK)) {
-            result.add(new Object[] { NodeStoreFixture.SEGMENT_MK });
-        }
-        if (FIXTURES.contains(MEMORY_NS)) {
-            result.add(new Object[] { NodeStoreFixture.MEMORY_NS });
-        }
-        return result;
+        return NodeStoreFixture.asJunitParameters(FIXTURES);
     }
-
 
     protected final NodeStoreFixture fixture;
     protected final NodeStore store;

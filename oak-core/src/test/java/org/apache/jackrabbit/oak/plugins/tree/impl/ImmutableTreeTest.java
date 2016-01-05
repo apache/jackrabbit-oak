@@ -18,30 +18,30 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree.impl;
 
-import java.util.List;
-
-import com.google.common.collect.Lists;
-import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.NodeStoreFixture;
-import org.apache.jackrabbit.oak.OakBaseTest;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
 import static org.apache.jackrabbit.oak.OakAssert.assertSequence;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+
+import java.util.List;
+
+import com.google.common.collect.Lists;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.OakBaseTest;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 
 public class ImmutableTreeTest extends OakBaseTest {

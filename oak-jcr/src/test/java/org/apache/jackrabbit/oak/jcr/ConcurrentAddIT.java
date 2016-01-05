@@ -31,6 +31,8 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import com.google.common.collect.Iterators;
+
+import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;

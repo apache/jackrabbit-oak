@@ -61,8 +61,9 @@ import org.apache.commons.math3.exception.NullArgumentException;
 import org.apache.commons.math3.exception.OutOfRangeException;
 import org.apache.commons.math3.exception.util.LocalizedFormats;
 import org.apache.jackrabbit.api.JackrabbitRepository;
-import org.apache.jackrabbit.oak.jcr.NodeStoreFixture.DocumentFixture;
-import org.apache.jackrabbit.oak.jcr.NodeStoreFixture.SegmentFixture;
+import org.apache.jackrabbit.oak.fixture.DocumentMongoFixture;
+import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
+import org.apache.jackrabbit.oak.fixture.SegmentFixture;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
@@ -142,7 +143,7 @@ public class LargeOperationIT {
         if (segmentFixture.isAvailable()) {
             fixtures.add(new Object[] {segmentFixture, SEGMENT_SCALES});
         }
-        DocumentFixture documentFixture = new DocumentFixture();
+        DocumentMongoFixture documentFixture = new DocumentMongoFixture();
         if (documentFixture.isAvailable()) {
             fixtures.add(new Object[]{documentFixture, MONGO_SCALES});
         }
@@ -293,7 +294,7 @@ public class LargeOperationIT {
             executionTimes.add(t);
             LOG.info("Copying {} node took {} ns/node", scale, t);
         }
-        boolean knownIssue = fixture.getClass() == DocumentFixture.class;  // FIXME OAK-1698
+        boolean knownIssue = fixture.getClass() == DocumentMongoFixture.class;  // FIXME OAK-1698
         assertOnLgn("large copy", scales, executionTimes, knownIssue);
     }
 
@@ -325,7 +326,7 @@ public class LargeOperationIT {
             executionTimes.add(t);
             LOG.info("Moving {} node took {} ns/node", scale, t);
         }
-        boolean knownIssue = fixture.getClass() == DocumentFixture.class;  // FIXME OAK-1698
+        boolean knownIssue = fixture.getClass() == DocumentMongoFixture.class;  // FIXME OAK-1698
         assertOnLgn("large move", scales, executionTimes, knownIssue);
     }
 
@@ -353,7 +354,7 @@ public class LargeOperationIT {
             executionTimes.add(t);
             LOG.info("Removing {} node took {} ns/node", scale, t);
         }
-        boolean knownIssue = fixture.getClass() == DocumentFixture.class;  // FIXME OAK-1698
+        boolean knownIssue = fixture.getClass() == DocumentMongoFixture.class;  // FIXME OAK-1698
         assertOnLgn("large remove", scales, executionTimes, knownIssue);
     }
 
@@ -390,7 +391,7 @@ public class LargeOperationIT {
             executionTimes.add(t);
             LOG.info("Adding 100 siblings next to {} siblings took {} ns/node", scale, t);
         }
-        boolean knownIssue = fixture.getClass() == DocumentFixture.class;  // FIXME OAK-1698
+        boolean knownIssue = fixture.getClass() == DocumentMongoFixture.class;  // FIXME OAK-1698
         assertOnLgn("many siblings", scales, executionTimes, knownIssue);
     }
 
@@ -429,7 +430,7 @@ public class LargeOperationIT {
                 } catch (Exception ignore) {}
             }
         }
-        boolean knownIssue = fixture.getClass() == DocumentFixture.class;  // FIXME OAK-1698
+        boolean knownIssue = fixture.getClass() == DocumentMongoFixture.class;  // FIXME OAK-1698
         assertOnLgn("large number of pending events", scales, executionTimes, knownIssue);
     }
 
@@ -452,7 +453,7 @@ public class LargeOperationIT {
                 executionTimes.add(t);
                 LOG.info("Adding {} nodes took {} ns/node", scale, t);
             }
-            boolean knownIssue = fixture.getClass() == DocumentFixture.class;  // FIXME OAK-1698
+            boolean knownIssue = fixture.getClass() == DocumentMongoFixture.class;  // FIXME OAK-1698
             assertOnLgn("slow listeners", scales, executionTimes, knownIssue);
         } finally {
             delayedEventHandling.stop();
