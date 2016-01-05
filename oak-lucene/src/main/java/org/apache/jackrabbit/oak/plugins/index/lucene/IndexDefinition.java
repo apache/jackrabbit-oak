@@ -207,6 +207,10 @@ class IndexDefinition implements Aggregate.AggregateMapper {
 
     private final boolean secureFacets;
 
+    private final boolean suggestEnabled;
+
+    private final boolean spellcheckEnabled;
+
     public IndexDefinition(NodeState root, NodeState defn) {
         this(root, defn, null);
     }
@@ -274,6 +278,8 @@ class IndexDefinition implements Aggregate.AggregateMapper {
         this.saveDirListing = getOptionalValue(defn, LuceneIndexConstants.SAVE_DIR_LISTING, true);
         this.suggestAnalyzed = getOptionalValue(defn, LuceneIndexConstants.SUGGEST_ANALYZED, false);
         this.secureFacets = defn.hasChildNode(FACETS) && getOptionalValue(defn.getChildNode(FACETS), PROP_SECURE_FACETS, true);
+        this.suggestEnabled = evaluateSuggestionEnabled();
+        this.spellcheckEnabled = evaluateSpellcheckEnabled();
     }
 
     public NodeState getDefinitionNodeState() {
@@ -595,7 +601,7 @@ class IndexDefinition implements Aggregate.AggregateMapper {
         return ntBaseRule != null;
     }
 
-    public boolean isSuggestEnabled() {
+    private boolean evaluateSuggestionEnabled() {
         boolean suggestEnabled = false;
         for (IndexingRule indexingRule : definedRules) {
             for (PropertyDefinition propertyDefinition : indexingRule.propConfigs.values()) {
@@ -612,6 +618,33 @@ class IndexDefinition implements Aggregate.AggregateMapper {
             }
         }
         return suggestEnabled;
+    }
+
+    public boolean isSuggestEnabled() {
+        return suggestEnabled;
+    }
+
+    private boolean evaluateSpellcheckEnabled() {
+        boolean spellcheckEnabled = false;
+        for (IndexingRule indexingRule : definedRules) {
+            for (PropertyDefinition propertyDefinition : indexingRule.propConfigs.values()) {
+                if (propertyDefinition.useInSpellcheck) {
+                    spellcheckEnabled = true;
+                    break;
+                }
+            }
+            for (NamePattern np : indexingRule.namePatterns) {
+                if (np.getConfig().useInSpellcheck) {
+                    spellcheckEnabled = true;
+                    break;
+                }
+            }
+        }
+        return spellcheckEnabled;
+    }
+
+    public boolean isSpellcheckEnabled() {
+        return spellcheckEnabled;
     }
 
     @CheckForNull
@@ -728,6 +761,13 @@ class IndexDefinition implements Aggregate.AggregateMapper {
          */
         public String getNodeTypeName() {
             return nodeTypeName;
+        }
+
+        /**
+         * @return name of the base node type.
+         */
+        public String getBaseNodeType() {
+            return baseNodeType;
         }
 
         public List<PropertyDefinition> getNullCheckEnabledProperties() {
