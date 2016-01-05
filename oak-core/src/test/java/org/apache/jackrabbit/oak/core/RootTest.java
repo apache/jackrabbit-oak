@@ -18,10 +18,15 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.jackrabbit.oak.NodeStoreFixture;
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -30,15 +35,10 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 public class RootTest extends OakBaseTest {
 

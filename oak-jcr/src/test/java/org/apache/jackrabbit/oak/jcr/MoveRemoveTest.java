@@ -24,6 +24,7 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
+import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.Test;
 
 public class MoveRemoveTest extends AbstractRepositoryTest {

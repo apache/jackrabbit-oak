@@ -26,18 +26,19 @@ import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.Save;
 import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.SetProperty;
 import static org.junit.Assert.assertEquals;
 
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.Random;
 
-import org.apache.jackrabbit.oak.NodeStoreFixture;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.Rebase;
+import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
@@ -59,11 +60,7 @@ public class RootFuzzIT {
 
     @Parameters
     public static Collection<Object[]> fixtures() {
-        Object[][] fixtures = new Object[][] {
-                {NodeStoreFixture.MONGO_NS},
-                {NodeStoreFixture.SEGMENT_MK},
-        };
-        return Arrays.asList(fixtures);
+        return NodeStoreFixture.asJunitParameters(EnumSet.of(Fixture.DOCUMENT_NS, Fixture.SEGMENT_MK));
     }
 
     private static final int OP_COUNT = 5000;

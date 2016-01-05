@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static org.junit.Assume.assumeTrue;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -25,12 +27,10 @@ import javax.jcr.Node;
 import javax.jcr.Session;
 
 import com.google.common.collect.Lists;
-
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import static org.junit.Assume.assumeTrue;
 
 public class ConcurrentIndexUpdateIT extends AbstractRepositoryTest {
 

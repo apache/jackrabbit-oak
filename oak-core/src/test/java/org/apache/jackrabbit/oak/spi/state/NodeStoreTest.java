@@ -39,10 +39,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.apache.jackrabbit.oak.NodeStoreFixture;
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
@@ -100,7 +100,7 @@ public class NodeStoreTest extends OakBaseTest {
     @Test
     public void addExistingNode() throws CommitFailedException {
         // FIXME OAK-1550 Incorrect handling of addExistingNode conflict in NodeStore
-        assumeTrue(fixture != NodeStoreFixture.MONGO_NS);
+        assumeTrue(fixture != NodeStoreFixture.DOCUMENT_NS);
 
         CommitHook hook = new CompositeHook(
                 new ConflictHook(JcrConflictHandler.createJcrConflictHandler()),

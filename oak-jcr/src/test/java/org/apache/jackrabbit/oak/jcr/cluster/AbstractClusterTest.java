@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.cluster;
 
+import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
+
 import java.util.Iterator;
 
 import javax.jcr.Repository;
@@ -24,15 +26,12 @@ import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
 import junit.framework.Assert;
-
+import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
-
-import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
 
 /**
  * A base class for DocumentMK cluster tests.

@@ -18,13 +18,13 @@
  */
 package org.apache.jackrabbit.oak.api;
 
-import org.apache.jackrabbit.oak.NodeStoreFixture;
+import static org.apache.jackrabbit.oak.OakAssert.assertSequence;
+
 import org.apache.jackrabbit.oak.OakBaseTest;
+import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.apache.jackrabbit.oak.OakAssert.assertSequence;
 
 /**
  * Contains tests related to {@link Root}

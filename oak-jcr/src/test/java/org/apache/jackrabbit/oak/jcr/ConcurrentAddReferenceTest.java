@@ -31,6 +31,8 @@ import javax.jcr.Session;
 import javax.jcr.nodetype.NodeType;
 
 import com.google.common.collect.Iterators;
+
+import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
