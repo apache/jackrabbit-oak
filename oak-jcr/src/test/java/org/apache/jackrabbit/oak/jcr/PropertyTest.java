@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.jcr;
 
 import javax.jcr.Node;
 import javax.jcr.Property;
+import javax.jcr.PropertyIterator;
 import javax.jcr.PropertyType;
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
@@ -26,6 +27,7 @@ import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
+import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
@@ -249,5 +251,27 @@ public class PropertyTest extends AbstractJCRTest {
         } catch (ValueFormatException e) {
             // success
         }
+    }
+
+    public void testPropertyIteratorSize() throws Exception{
+        Node n = testRootNode.addNode("unstructured", JcrConstants.NT_UNSTRUCTURED);
+        n.setProperty("foo", "a");
+        n.setProperty("foo-1", "b");
+        n.setProperty("bar", "b");
+        n.setProperty("cat", "c");
+        superuser.save();
+
+        //Extra 1 for jcr:primaryType
+        PropertyIterator pitr = n.getProperties();
+        assertEquals(4 + 1, pitr.getSize());
+        assertEquals(4 + 1, Iterators.size(pitr));
+
+        pitr = n.getProperties("foo*");
+        assertEquals(2, pitr.getSize());
+        assertEquals(2, Iterators.size(pitr));
+
+        pitr = n.getProperties(new String[] {"foo*", "cat*"});
+        assertEquals(3, pitr.getSize());
+        assertEquals(3, Iterators.size(pitr));
     }
 }
