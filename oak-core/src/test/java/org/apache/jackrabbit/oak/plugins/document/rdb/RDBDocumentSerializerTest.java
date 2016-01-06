@@ -55,7 +55,7 @@ public class RDBDocumentSerializerTest  {
         assertEquals("_foo", doc.getId());
         assertEquals(true, doc.hasBinary());
         assertEquals(true, doc.get(NodeDocument.DELETED_ONCE));
-        assertEquals(2L, doc.getModCount());
+        assertEquals(2L, doc.getModCount().longValue());
     }
 
     @Test
@@ -64,7 +64,7 @@ public class RDBDocumentSerializerTest  {
         NodeDocument doc = this.ser.fromRow(Collection.NODES, row);
         assertEquals("_foo", doc.getId());
         assertEquals(false, doc.hasBinary());
-        assertEquals(2L, doc.getModCount());
+        assertEquals(2L, doc.getModCount().longValue());
     }
 
     @Test
@@ -73,7 +73,7 @@ public class RDBDocumentSerializerTest  {
         NodeDocument doc = this.ser.fromRow(Collection.NODES, row);
         assertEquals("_foo", doc.getId());
         assertEquals(false, doc.hasBinary());
-        assertEquals(2L, doc.getModCount());
+        assertEquals(2L, doc.getModCount().longValue());
         assertEquals("string", doc.get("s"));
         assertEquals(Boolean.TRUE, doc.get("b"));
         assertEquals(1L, doc.get("i"));
