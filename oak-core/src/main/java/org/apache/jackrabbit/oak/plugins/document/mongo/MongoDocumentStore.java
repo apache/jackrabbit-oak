@@ -152,8 +152,8 @@ public class MongoDocumentStore implements DocumentStore {
     /**
      * Duration in milliseconds after a mongo query with an additional
      * constraint (e.g. _modified) on the NODES collection times out and is
-     * executed again without holding a {@link TreeLock} and without updating
-     * the cache with data retrieved from MongoDB.
+     * executed again without holding a {@link TreeNodeDocumentLocks.TreeLock}
+     * and without updating the cache with data retrieved from MongoDB.
      * <p>
      * Default is 3000 (three seconds).
      */
