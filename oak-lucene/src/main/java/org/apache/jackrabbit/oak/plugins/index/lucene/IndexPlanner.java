@@ -30,7 +30,6 @@ import javax.annotation.CheckForNull;
 
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
@@ -140,30 +139,9 @@ class IndexPlanner {
 
         if (definition.hasFunctionDefined()
                 && filter.getPropertyRestriction(definition.getFunctionName()) != null) {
-            boolean canHandleNativeFunction = true;
-
-            PropertyValue pv = filter.getPropertyRestriction(definition.getFunctionName()).first;
-            String query = String.valueOf(pv.getValue(pv.getType()));
-
-            if (query.startsWith("suggest?term=")) {
-                if (definition.isSuggestEnabled()) {
-                    canHandleNativeFunction =
-                            indexingRule.getBaseNodeType().equals(filter.getSelector().getNodeTypeName());
-                } else {
-                    canHandleNativeFunction = false;
-                }
-            } else if (query.startsWith("spellcheck?term=")) {
-                if (definition.isSpellcheckEnabled()) {
-                    canHandleNativeFunction =
-                            indexingRule.getBaseNodeType().equals(filter.getSelector().getNodeTypeName());
-                } else {
-                    canHandleNativeFunction = false;
-                }
-            }
-
-            //If native function can be handled by this index then ensure
+            //If native function is handled by this index then ensure
             // that lowest cost if returned
-            return canHandleNativeFunction ? defaultPlan().setEstimatedEntryCount(1) : null;
+            return defaultPlan().setEstimatedEntryCount(1);
         }
 
         List<String> indexedProps = newArrayListWithCapacity(filter.getPropertyRestrictions().size());
