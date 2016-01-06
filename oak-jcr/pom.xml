@@ -358,5 +358,10 @@
       <groupId>org.apache.sling</groupId>
       <artifactId>org.apache.sling.testing.osgi-mock</artifactId>
     </dependency>
+    <dependency>
+      <groupId>commons-lang</groupId>
+      <artifactId>commons-lang</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 </project>
