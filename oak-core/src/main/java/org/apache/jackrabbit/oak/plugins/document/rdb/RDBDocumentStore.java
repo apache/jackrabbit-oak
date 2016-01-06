@@ -531,6 +531,10 @@ public class RDBDocumentStore implements DocumentStore {
     private static final Set<String> INDEXEDPROPERTIES = new HashSet<String>(Arrays.asList(new String[] { MODIFIED,
             NodeDocument.HAS_BINARY_FLAG, NodeDocument.DELETED_ONCE }));
 
+    // set of required table columns
+    private static final Set<String> REQUIREDCOLUMNS = Collections.unmodifiableSet(new HashSet<String>(Arrays.asList(
+            new String[] { "id", "dsize", "deletedonce", "bdata", "data", "cmodcount", "modcount", "hasbinary", "modified" })));
+
     // set of properties not serialized to JSON
     private static final Set<String> COLUMNPROPERTIES = new HashSet<String>(Arrays.asList(new String[] { ID,
             NodeDocument.HAS_BINARY_FLAG, NodeDocument.DELETED_ONCE, COLLISIONSMODCOUNT, MODIFIED, MODCOUNT }));
@@ -782,6 +786,29 @@ public class RDBDocumentStore implements DocumentStore {
             // try to discover size of DATA column and binary-ness of ID
             ResultSetMetaData met = checkResultSet.getMetaData();
             obtainFlagsFromResultSetMeta(met, tmd);
+
+            // check that all required columns are present
+            Set<String> requiredColumns = new HashSet<String>(REQUIREDCOLUMNS);
+            Set<String> unknownColumns = new HashSet<String>();
+            for (int i = 1; i <= met.getColumnCount(); i++) {
+                String cname = met.getColumnName(i).toLowerCase(Locale.ENGLISH);
+                if (!requiredColumns.remove(cname)) {
+                    unknownColumns.add(cname);
+                }
+            }
+
+            if (!requiredColumns.isEmpty()) {
+                String message = String.format("Table %s: the following required columns are missing: %s", tableName,
+                        requiredColumns.toString());
+                LOG.error(message);
+                throw new DocumentStoreException(message);
+            }
+
+            if (!unknownColumns.isEmpty()) {
+                String message = String.format("Table %s: the following columns are unknown and will not be maintained: %s",
+                        tableName, unknownColumns.toString());
+                LOG.info(message);
+            }
 
             if (col == Collection.NODES) {
                 String tableInfo = RDBJDBCTools.dumpResultSetMeta(met);
