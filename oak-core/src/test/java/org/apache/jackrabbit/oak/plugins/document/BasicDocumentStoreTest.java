@@ -414,6 +414,35 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     @Test
+    public void testModifyModified() {
+        // https://issues.apache.org/jira/browse/OAK-2940
+        String id = this.getClass().getName() + ".testModifyModified";
+        // create a test node
+        UpdateOp up = new UpdateOp(id, true);
+        up.set("_id", id);
+        up.set("_modified", 1000L);
+        boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
+        assertTrue(success);
+        removeMe.add(id);
+
+        // update with "max" operation
+        up = new UpdateOp(id, false);
+        up.set("_id", id);
+        up.max("_modified", 2000L);
+        super.ds.update(Collection.NODES, Collections.singletonList(id), up);
+        NodeDocument nd = super.ds.find(Collection.NODES, id, 0);
+        assertEquals(((Number)nd.get("_modified")).longValue(), 2000L);
+
+        // update with "set" operation
+        up = new UpdateOp(id, false);
+        up.set("_id", id);
+        up.set("_modified", 1500L);
+        super.ds.update(Collection.NODES, Collections.singletonList(id), up);
+        nd = super.ds.find(Collection.NODES, id, 0);
+        assertEquals(((Number)nd.get("_modified")).longValue(), 1500L);
+    }
+
+    @Test
     public void testInterestingStrings() {
         // test case  "gclef:\uD834\uDD1E" will fail on MySQL unless properly configured to use utf8mb4 charset        // Assume.assumeTrue(!(super.dsname.equals("RDB-MySQL")));
 
