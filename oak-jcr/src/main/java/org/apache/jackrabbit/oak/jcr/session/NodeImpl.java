@@ -659,16 +659,19 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             @Nonnull
             @Override
             public PropertyIterator perform() throws RepositoryException {
-                Iterator<PropertyDelegate> properties = Iterators.filter(
-                        node.getProperties(),
-                        new Predicate<PropertyDelegate>() {
-                            @Override
-                            public boolean apply(PropertyDelegate entry) {
-                                // TODO: use Oak names
-                                return ItemNameMatcher.matches(toJcrPath(entry.getName()), namePattern);
-                            }
-                        });
-                return new PropertyIteratorAdapter(propertyIterator(properties));
+                final PropertyIteratorDelegate delegate = new PropertyIteratorDelegate(node, new Predicate<PropertyDelegate>() {
+                    @Override
+                    public boolean apply(PropertyDelegate entry) {
+                        // TODO: use Oak names
+                        return ItemNameMatcher.matches(toJcrPath(entry.getName()), namePattern);
+                    }
+                });
+                return new PropertyIteratorAdapter(propertyIterator(delegate.iterator())){
+                    @Override
+                    public long getSize() {
+                        return delegate.getSize();
+                    }
+                };
             }
         });
     }
@@ -680,16 +683,19 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             @Nonnull
             @Override
             public PropertyIterator perform() throws RepositoryException {
-                Iterator<PropertyDelegate> propertyNames = Iterators.filter(
-                        node.getProperties(),
-                        new Predicate<PropertyDelegate>() {
-                            @Override
-                            public boolean apply(PropertyDelegate entry) {
-                                // TODO: use Oak names
-                                return ItemNameMatcher.matches(toJcrPath(entry.getName()), nameGlobs);
-                            }
-                        });
-                return new PropertyIteratorAdapter(propertyIterator(propertyNames));
+                final PropertyIteratorDelegate delegate = new PropertyIteratorDelegate(node, new Predicate<PropertyDelegate>() {
+                    @Override
+                    public boolean apply(PropertyDelegate entry) {
+                        // TODO: use Oak names
+                        return ItemNameMatcher.matches(toJcrPath(entry.getName()), nameGlobs);
+                    }
+                });
+                return new PropertyIteratorAdapter(propertyIterator(delegate.iterator())){
+                    @Override
+                    public long getSize() {
+                        return delegate.getSize();
+                    }
+                };
             }
         });
     }
@@ -1571,5 +1577,29 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 dlg.setMixins(oakTypeNames);
             }
         });
+    }
+
+    private static class PropertyIteratorDelegate {
+        private final NodeDelegate node;
+        private final Predicate<PropertyDelegate> predicate;
+
+        PropertyIteratorDelegate(NodeDelegate node, Predicate<PropertyDelegate> predicate) {
+            this.node = node;
+            this.predicate = predicate;
+        }
+
+        public Iterator<PropertyDelegate> iterator() throws InvalidItemStateException {
+            return Iterators.filter(node.getProperties(), predicate);
+        }
+
+        public long getSize() {
+            try {
+                return Iterators.size(iterator());
+            } catch (InvalidItemStateException e) {
+                throw new IllegalStateException(
+                        "This iterator is no longer valid", e);
+            }
+        }
+
     }
 }
