@@ -30,11 +30,15 @@ import java.util.Random;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-import org.junit.Ignore;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
+
+    private static final Logger LOG = LoggerFactory.getLogger(MultiDocumentStoreTest.class);
 
     public MultiDocumentStoreTest(DocumentStoreFixture dsf) {
         super(dsf);
@@ -52,7 +56,7 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
 
         UpdateOp up = new UpdateOp(id, true);
         up.set("_id", id);
-        up.set("_foo", 0l);
+        up.set("_foo", 0);
         assertTrue(super.ds1.create(Collection.NODES, Collections.singletonList(up)));
         removeMe.add(id);
 
@@ -61,7 +65,7 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
         for (int i = 0; i < increments; i++) {
             up = new UpdateOp(id, true);
             up.set("_id", id);
-            up.increment("_foo", 1l);
+            up.increment("_foo", 1);
             if (i % 2 == 0) {
                 super.ds1.update(Collection.NODES, Collections.singletonList(id), up);
             }
@@ -73,82 +77,6 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
         // read uncached
         nd = super.ds1.find(Collection.NODES, id, 0);
         assertEquals("_foo should have been incremented 10 times", increments, nd.get("_foo"));
-    }
-
-    @Test
-    public void testInterleavedUpdate2() {
-        String id = this.getClass().getName() + ".testInterleavedUpdate2";
-
-        // remove if present
-        NodeDocument nd1 = super.ds1.find(Collection.NODES, id);
-        if (nd1 != null) {
-            super.ds1.remove(Collection.NODES, id);
-        }
-
-        UpdateOp up = new UpdateOp(id, true);
-        up.set("_id", id);
-        up.set("_modified", 1L);
-        assertTrue(super.ds1.create(Collection.NODES, Collections.singletonList(up)));
-        removeMe.add(id);
-
-        nd1 = super.ds1.find(Collection.NODES, id, 0);
-        Number n = nd1.getModCount();
-        if (n != null) {
-            // Document store uses modCount
-            int n1 = n.intValue();
-
-            // get the document into ds2's cache
-            NodeDocument nd2 = super.ds2.find(Collection.NODES, id, 0);
-            int n2 = nd2.getModCount().intValue();
-            assertEquals(n1, n2);
-
-            UpdateOp upds1 = new UpdateOp(id, true);
-            upds1.set("_id", id);
-            upds1.set("foo", "bar");
-            upds1.set("_modified", 2L);
-            super.ds1.update(Collection.NODES, Collections.singletonList(id), upds1);
-            nd1 = super.ds1.find(Collection.NODES, id);
-            int oldn1 = n1;
-            n1 = nd1.getModCount().intValue();
-            assertEquals(oldn1 + 1, n1);
-            assertEquals("bar", nd1.get("foo"));
-
-            // modify in DS2
-            UpdateOp upds2 = new UpdateOp(id, true);
-            upds2.set("_id", id);
-            upds2.set("foo", "qux");
-            upds2.set("_modified", 3L);
-            super.ds2.update(Collection.NODES, Collections.singletonList(id), upds2);
-            nd2 = super.ds2.find(Collection.NODES, id);
-            n2 = nd2.getModCount().intValue();
-            assertEquals(oldn1 + 1, n2);
-            assertEquals("qux", nd2.get("foo"));
-
-            // both stores are now at the same modCount with different contents
-            upds1 = new UpdateOp(id, true);
-            upds1.set("_id", id);
-            upds1.set("foo", "barbar");
-            upds1.max("_modified", 0L);
-            NodeDocument prev = super.ds1.findAndUpdate(Collection.NODES, upds1);
-            // prev document should contain mod from DS2
-            assertEquals("qux", prev.get("foo"));
-            assertEquals(oldn1 + 2, prev.getModCount().intValue());
-            assertEquals(3L, prev.getModified().intValue());
-
-            // the new document must not have a _modified time smaller than
-            // before the update
-            nd1 = super.ds1.find(Collection.NODES, id, 0);
-            assertEquals(super.dsname + ": _modified value must never ever get smaller", 3L, nd1.getModified().intValue());
-
-            // verify that _modified can indeed be *set* to a smaller value, see
-            // https://issues.apache.org/jira/browse/OAK-2940
-            upds1 = new UpdateOp(id, true);
-            upds1.set("_id", id);
-            upds1.set("_modified", 0L);
-            super.ds1.findAndUpdate(Collection.NODES, upds1);
-            nd1 = super.ds1.find(Collection.NODES, id, 0);
-            assertEquals(super.dsname + ": _modified value must be set to 0", 0L, nd1.getModified().intValue());
-        }
     }
 
     @Test
@@ -281,7 +209,6 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
         }
     }
 
-    @Ignore("OAK-3634")
     @Test
     public void testChangeVisibility() {
         String id = this.getClass().getName() + ".testChangeVisibility";
@@ -319,7 +246,6 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
         }
     }
 
-    @Ignore("OAK-3634")
     @Test
     public void concurrentUpdate() throws Exception {
         String id = Utils.getIdFromPath("/foo");
@@ -422,14 +348,19 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
         @Override
         public void run() {
             String p = Thread.currentThread().getName();
-            try {
-                for (int i = 0; i < 1000; i++) {
-                    UpdateOp op = new UpdateOp(id, false);
-                    op.set(p, counter++);
+            for (int i = 0; i < 1000; i++) {
+                UpdateOp op = new UpdateOp(id, false);
+                op.set(p, counter++);
+                try {
                     ds.update(Collection.NODES, Collections.singletonList(id), op);
+                } catch (Exception e) {
+                    if (ds instanceof RDBDocumentStore
+                            && e.getMessage().contains("race?")) {
+                        LOG.warn(e.toString());
+                    } else {
+                        exceptions.add(e);
+                    }
                 }
-            } catch (Exception e) {
-                exceptions.add(e);
             }
         }
     }
