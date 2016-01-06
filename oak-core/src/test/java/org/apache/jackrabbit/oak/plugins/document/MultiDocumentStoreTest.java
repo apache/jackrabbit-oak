@@ -24,7 +24,14 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
@@ -271,6 +278,159 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
             NodeDocument doc = super.ds1.find(Collection.NODES, id, 0);
             assertNotNull(doc);
             assertEquals("ds2", doc.get("_createdby"));
+        }
+    }
+
+    @Ignore("OAK-3634")
+    @Test
+    public void testChangeVisibility() {
+        String id = this.getClass().getName() + ".testChangeVisibility";
+
+        super.ds1.remove(Collection.NODES, id);
+
+        UpdateOp up = new UpdateOp(id, true);
+        up.set("_id", id);
+        up.set("_foo", 0);
+        up.set("_bar", 0);
+        assertTrue(super.ds1.create(Collection.NODES, Collections.singletonList(up)));
+        removeMe.add(id);
+        NodeDocument orig = super.ds1.find(Collection.NODES, id);
+
+        // only run test if DS supports modcount
+        if (orig.getModCount() != null) {
+            long origMc = orig.getModCount().longValue();
+
+            UpdateOp up2 = new UpdateOp(id, false);
+            up2.set("_id", id);
+            up2.increment("_foo", 1L);
+            super.ds2.update(Collection.NODES, Collections.singletonList(id), up2);
+            NodeDocument ds2doc = super.ds2.find(Collection.NODES, id);
+            long ds2Mc = ds2doc.getModCount().longValue();
+            assertTrue("_modCount needs to be > " + origMc + " but was " + ds2Mc, ds2Mc > origMc);
+
+            UpdateOp up1 = new UpdateOp(id, false);
+            up1.set("_id", id);
+            up1.increment("_bar", 1L);
+            super.ds1.update(Collection.NODES, Collections.singletonList(id), up1);
+
+            NodeDocument ds1doc = super.ds1.find(Collection.NODES, id);
+            long ds1Mc = ds1doc.getModCount().longValue();
+            assertTrue("_modCount needs to be > " + ds2Mc + " but was " + ds1Mc, ds1Mc > ds2Mc);
+        }
+    }
+
+    @Ignore("OAK-3634")
+    @Test
+    public void concurrentUpdate() throws Exception {
+        String id = Utils.getIdFromPath("/foo");
+        ds1.remove(Collection.NODES, id);
+        ds2.invalidateCache();
+        removeMe.add(id);
+        UpdateOp op = new UpdateOp(id, true);
+        op.set(Document.ID, id);
+        ds1.create(Collection.NODES, Collections.singletonList(op));
+
+        List<Exception> exceptions = Collections.synchronizedList(new ArrayList<Exception>());
+        List<Thread> threads = Lists.newArrayList();
+        threads.add(new Thread(new Updater(ds1, id, exceptions)));
+        threads.add(new Thread(new Updater(ds2, id, exceptions)));
+        Reader r = new Reader(id, exceptions, ds1, ds2);
+        Thread reader = new Thread(r);
+        for (Thread t : threads) {
+            t.start();
+        }
+        reader.start();
+        for (Thread t : threads) {
+            t.join();
+        }
+        r.terminate();
+        reader.join();
+        for (Exception e : exceptions) {
+            throw e;
+        }
+    }
+
+    private static final class Reader implements Runnable {
+
+        private final String id;
+        private final List<Exception> exceptions;
+        private final List<DocumentStore> stores;
+        private volatile boolean terminate = false;
+        private final Map<Long, NodeDocument> docs = Maps.newHashMap();
+
+        public Reader(String id, List<Exception> exceptions, DocumentStore... stores) {
+            this.id = id;
+            this.exceptions = exceptions;
+            this.stores = Lists.newArrayList(stores);
+        }
+
+        void terminate() {
+            terminate = true;
+        }
+
+        @Override
+        public void run() {
+            Random random = new Random();
+            while (!terminate) {
+                try {
+                    DocumentStore ds = stores.get(random.nextInt(stores.size()));
+                    NodeDocument d = ds.find(Collection.NODES, id);
+                    long modCount = d.getModCount().longValue();
+                    NodeDocument seen = docs.get(modCount);
+                    if (seen == null) {
+                        docs.put(modCount, d);
+                    } else {
+                        Map<String, Object> expected = getPropertyValues(seen);
+                        Map<String, Object> actual = getPropertyValues(d);
+                        assertEquals(expected, actual);
+                    }
+                    Thread.sleep(random.nextInt(1));
+                } catch (AssertionError e) {
+                    exceptions.add(new Exception(e.getMessage()));
+                    break;
+                } catch (Exception e) {
+                    exceptions.add(e);
+                    break;
+                }
+            }
+        }
+
+        static Map<String, Object> getPropertyValues(NodeDocument doc) {
+            Map<String, Object> props = Maps.newHashMap();
+            for (String k : doc.keySet()) {
+                if (Utils.isPropertyName(k)) {
+                    props.put(k, doc.get(k));
+                }
+            }
+            return props;
+        }
+    }
+
+    private static final class Updater implements Runnable {
+
+        private final DocumentStore ds;
+        private final String id;
+        private final List<Exception> exceptions;
+        private long counter = 0;
+
+        public Updater(DocumentStore ds, String id, List<Exception> exceptions) {
+            this.ds = ds;
+            this.id = id;
+            this.exceptions = exceptions;
+        }
+
+        @Override
+        public void run() {
+            String p = Thread.currentThread().getName();
+            try {
+                for (int i = 0; i < 1000; i++) {
+                    UpdateOp op = new UpdateOp(id, false);
+                    op.set(p, counter++);
+                    ds.update(Collection.NODES, Collections.singletonList(id), op);
+                }
+            } catch (Exception e) {
+                exceptions.add(e);
+            }
         }
     }
 
