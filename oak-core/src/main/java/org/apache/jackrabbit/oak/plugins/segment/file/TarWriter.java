@@ -116,6 +116,8 @@ class TarWriter implements Closeable {
      */
     private final File file;
 
+    private final FileStoreMonitor monitor;
+
     /**
      * File handle. Initialized lazily in
      * {@link #writeEntry(long, long, byte[], int, int)} to avoid creating
@@ -151,7 +153,12 @@ class TarWriter implements Closeable {
     private final SortedMap<UUID, List<UUID>> graph = newTreeMap();
 
     TarWriter(File file) {
+        this(file, FileStoreMonitor.DEFAULT);
+    }
+
+    TarWriter(File file, FileStoreMonitor monitor) {
         this.file = file;
+        this.monitor = monitor;
     }
 
     /**
@@ -223,6 +230,7 @@ class TarWriter implements Closeable {
             channel = access.getChannel();
         }
 
+        long initialLength = access.getFilePointer();
         access.write(header);
         access.write(data, offset, size);
         int padding = getPaddingSize(size);
@@ -230,11 +238,11 @@ class TarWriter implements Closeable {
             access.write(ZERO_BYTES, 0, padding);
         }
 
-        long length = access.getFilePointer();
-        checkState(length <= Integer.MAX_VALUE);
+        long currentLength = access.getFilePointer();
+        checkState(currentLength <= Integer.MAX_VALUE);
         TarEntry entry = new TarEntry(
                 uuid.getMostSignificantBits(), uuid.getLeastSignificantBits(),
-                (int) (length - size - padding), size);
+                (int) (currentLength - size - padding), size);
         index.put(uuid, entry);
 
         if (isDataSegmentId(uuid.getLeastSignificantBits())) {
@@ -258,7 +266,8 @@ class TarWriter implements Closeable {
             }
         }
 
-        return length;
+        monitor.written(currentLength - initialLength);
+        return currentLength;
     }
 
     /**
@@ -314,13 +323,19 @@ class TarWriter implements Closeable {
         // trailing two zero blocks. This code is synchronized on the file
         // instance to  ensure that no concurrent thread is still flushing
         // the file when we close the file handle.
+        long initialPosition, currentPosition;
         synchronized (file) {
+            initialPosition = access.getFilePointer();
             writeGraph();
             writeIndex();
             access.write(ZERO_BYTES);
             access.write(ZERO_BYTES);
+
+            currentPosition = access.getFilePointer();
             access.close();
         }
+
+        monitor.written(currentPosition - initialPosition);
     }
 
     private void writeGraph() throws IOException {

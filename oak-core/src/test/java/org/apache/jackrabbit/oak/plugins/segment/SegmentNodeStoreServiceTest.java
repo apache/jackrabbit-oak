@@ -29,7 +29,9 @@ import java.util.Map;
 
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -42,6 +44,11 @@ public class SegmentNodeStoreServiceTest {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
+
+    @Before
+    public void setUp(){
+        context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
+    }
 
     /**
      * A NodeStore service should be registered when a BlobStore service is not

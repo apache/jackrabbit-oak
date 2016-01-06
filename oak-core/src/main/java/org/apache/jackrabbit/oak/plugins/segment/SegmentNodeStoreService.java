@@ -72,6 +72,7 @@ import org.apache.jackrabbit.oak.plugins.segment.compaction.DefaultCompactionStr
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.Builder;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStoreGCMonitor;
+import org.apache.jackrabbit.oak.plugins.segment.file.FileStoreStatsMBean;
 import org.apache.jackrabbit.oak.plugins.segment.file.GCMonitorMBean;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
@@ -87,6 +88,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
@@ -254,6 +256,9 @@ public class SegmentNodeStoreService extends ProxyNodeStore
             policy = ReferencePolicy.DYNAMIC, target = ONLY_STANDALONE_TARGET)
     private volatile BlobStore blobStore;
 
+    @Reference
+    private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
+
     private ServiceRegistration storeRegistration;
     private ServiceRegistration providerRegistration;
     private Registration checkpointRegistration;
@@ -263,6 +268,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     private Registration segmentCacheMBean;
     private Registration stringCacheMBean;
     private Registration fsgcMonitorMBean;
+    private Registration fileStoreStatsMBean;
     private WhiteboardExecutor executor;
     private boolean customBlobStore;
 
@@ -384,7 +390,8 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                 .withCacheSize(Integer.parseInt(cache))
                 .withMaxFileSize(Integer.parseInt(size))
                 .withMemoryMapping("64".equals(mode))
-                .withGCMonitor(gcMonitor);
+                .withGCMonitor(gcMonitor)
+                .withStatisticsProvider(statisticsProvider);
         if (customBlobStore) {
             log.info("Initializing SegmentNodeStore with BlobStore [{}]", blobStore);
             store = storeBuilder.withBlobStore(blobStore).create();
@@ -467,6 +474,12 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                 CompactionStrategyMBean.TYPE,
                 "Segment node store compaction strategy settings");
 
+        fileStoreStatsMBean = registerMBean(whiteboard,
+                FileStoreStatsMBean.class,
+                store.getStats(),
+                FileStoreStatsMBean.TYPE,
+                "FileStore statistics");
+
         log.info("SegmentNodeStore initialized");
         return true;
     }
@@ -541,6 +554,10 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         if (fsgcMonitorMBean != null) {
             fsgcMonitorMBean.unregister();
             fsgcMonitorMBean = null;
+        }
+        if (fileStoreStatsMBean != null) {
+            fileStoreStatsMBean.unregister();
+            fileStoreStatsMBean = null;
         }
         if (executor != null) {
             executor.stop();
