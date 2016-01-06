@@ -102,7 +102,7 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
         NodeDocument nd2 = super.ds2.find(Collection.NODES, id);
         assertNotNull(nd1);
         assertNotNull(nd2);
-        long firstVersion = nd1.getModCount().longValue();
+        long firstVersion = nd1.getModCount();
         assertEquals(firstVersion, nd2.getModCount().longValue());
 
         // letTimeElapse();
@@ -225,14 +225,14 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
 
         // only run test if DS supports modcount
         if (orig.getModCount() != null) {
-            long origMc = orig.getModCount().longValue();
+            long origMc = orig.getModCount();
 
             UpdateOp up2 = new UpdateOp(id, false);
             up2.set("_id", id);
             up2.increment("_foo", 1L);
             super.ds2.update(Collection.NODES, Collections.singletonList(id), up2);
             NodeDocument ds2doc = super.ds2.find(Collection.NODES, id);
-            long ds2Mc = ds2doc.getModCount().longValue();
+            long ds2Mc = ds2doc.getModCount();
             assertTrue("_modCount needs to be > " + origMc + " but was " + ds2Mc, ds2Mc > origMc);
 
             UpdateOp up1 = new UpdateOp(id, false);
@@ -241,7 +241,7 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
             super.ds1.update(Collection.NODES, Collections.singletonList(id), up1);
 
             NodeDocument ds1doc = super.ds1.find(Collection.NODES, id);
-            long ds1Mc = ds1doc.getModCount().longValue();
+            long ds1Mc = ds1doc.getModCount();
             assertTrue("_modCount needs to be > " + ds2Mc + " but was " + ds1Mc, ds1Mc > ds2Mc);
         }
     }
@@ -301,7 +301,7 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
                 try {
                     DocumentStore ds = stores.get(random.nextInt(stores.size()));
                     NodeDocument d = ds.find(Collection.NODES, id);
-                    long modCount = d.getModCount().longValue();
+                    long modCount = d.getModCount();
                     NodeDocument seen = docs.get(modCount);
                     if (seen == null) {
                         docs.put(modCount, d);

@@ -154,7 +154,7 @@ public class RDBCacheConsistencyIT extends AbstractRDBConnectionTest {
                                 q = (Long) value;
                             }
                         }
-                        mc = doc.getModCount().longValue();
+                        mc = doc.getModCount();
                     } catch (Throwable e) {
                         exceptions.add(e);
                     }
