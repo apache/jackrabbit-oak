@@ -1705,6 +1705,26 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertQuery(propabQuery, asList("/test/a"));
     }
 
+    @Test
+    public void fulltextQueryWithSpecialChars() throws Exception{
+        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree props = TestUtil.newRulePropTree(idx, "nt:base");
+        Tree prop1 = props.addChild(TestUtil.unique("prop"));
+        prop1.setProperty(LuceneIndexConstants.PROP_NAME, "tag");
+        prop1.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        test.setProperty("tag", "stockphotography:business/business_abstract");
+        root.commit();
+
+        String propabQuery = "select * from [nt:base] where CONTAINS(tag, " +
+                "'stockphotography:business/business_abstract')";
+        assertThat(explain(propabQuery), containsString("lucene:test1(/oak:index/test1)"));
+        assertQuery(propabQuery, asList("/test"));
+
+    }
+
     private static Tree createNodeWithMixinType(Tree t, String nodeName, String typeName){
         t = t.addChild(nodeName);
         t.setProperty(JcrConstants.JCR_MIXINTYPES, Collections.singleton(typeName), Type.NAMES);

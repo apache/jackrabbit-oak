@@ -1266,7 +1266,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
     /**
      * Following logic is taken from org.apache.jackrabbit.core.query.lucene.JackrabbitQueryParser#parse(java.lang.String)
      */
-    private static String rewriteQueryText(String textsearch) {
+    static String rewriteQueryText(String textsearch) {
         // replace escaped ' with just '
         StringBuilder rewritten = new StringBuilder();
         // the default lucene query parser recognizes 'AND' and 'NOT' as
@@ -1275,27 +1275,30 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         textsearch = textsearch.replaceAll("NOT", "not");
         boolean escaped = false;
         for (int i = 0; i < textsearch.length(); i++) {
-            if (textsearch.charAt(i) == '\\') {
+            char c = textsearch.charAt(i);
+            if (c == '\\') {
                 if (escaped) {
                     rewritten.append("\\\\");
                     escaped = false;
                 } else {
                     escaped = true;
                 }
-            } else if (textsearch.charAt(i) == '\'') {
+            } else if (c == '\'') {
                 if (escaped) {
                     escaped = false;
                 }
-                rewritten.append(textsearch.charAt(i));
-            } else if (textsearch.charAt(i) == ':') {
-                // fields as known in lucene are not supported
-                rewritten.append("\\:");
+                rewritten.append(c);
+            } else if (c == ':' || c == '/') {
+                //TODO Some other chars are also considered special See OAK-3769 for details
+                //':' fields as known in lucene are not supported
+                //'/' its a special char used for regex search in Lucene
+                rewritten.append('\\').append(c);
             } else {
                 if (escaped) {
                     rewritten.append('\\');
                     escaped = false;
                 }
-                rewritten.append(textsearch.charAt(i));
+                rewritten.append(c);
             }
         }
         return rewritten.toString();
