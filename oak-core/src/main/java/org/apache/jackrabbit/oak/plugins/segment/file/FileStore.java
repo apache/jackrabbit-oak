@@ -82,6 +82,7 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -209,6 +210,8 @@ public class FileStore implements SegmentStore {
 
     private final ReadWriteLock fileStoreLock = new ReentrantReadWriteLock();
 
+    private final FileStoreStats stats;
+
     /**
      * Create a new instance of a {@link Builder} for a file store.
      * @param directory  directory where the tar files are stored
@@ -230,6 +233,7 @@ public class FileStore implements SegmentStore {
         private int cacheSize;   // 0 -> DEFAULT_MEMORY_CACHE_SIZE
         private boolean memoryMapping;
         private final LoggingGCMonitor gcMonitor = new LoggingGCMonitor();
+        private StatisticsProvider statsProvider = StatisticsProvider.NOOP;
 
         private Builder(File directory) {
             this.directory = directory;
@@ -312,6 +316,19 @@ public class FileStore implements SegmentStore {
         }
 
         /**
+         * {@link StatisticsProvider} for collecting statistics related to FileStore
+         * @param statisticsProvider
+         * @return this instance
+         */
+        @Nonnull
+        public Builder withStatisticsProvider(@Nonnull StatisticsProvider statisticsProvider) {
+            this.statsProvider = checkNotNull(statisticsProvider);
+            return this;
+        }
+
+        /**
+
+        /**
          * Create a new {@link FileStore} instance with the settings specified in this
          * builder. If none of the {@code with} methods have been called before calling
          * this method, a file store with the following default settings is returned:
@@ -322,6 +339,7 @@ public class FileStore implements SegmentStore {
          * <li>cache size: 256MB</li>
          * <li>memory mapping: on for 64 bit JVMs off otherwise</li>
          * <li>whiteboard: none. No {@link GCMonitor} tracking</li>
+         * <li>statsProvider: StatisticsProvider.NOOP</li>
          * </ul>
          *
          * @return a new file store instance
@@ -330,14 +348,15 @@ public class FileStore implements SegmentStore {
         @Nonnull
         public FileStore create() throws IOException {
             return new FileStore(
-                    blobStore, directory, root, maxFileSize, cacheSize, memoryMapping, gcMonitor, false);
+                    blobStore, directory, root, maxFileSize, cacheSize, memoryMapping, gcMonitor, statsProvider, false);
         }
     }
 
     @Deprecated
     public FileStore(BlobStore blobStore, File directory, int maxFileSizeMB, boolean memoryMapping)
             throws IOException {
-        this(blobStore, directory, EMPTY_NODE, maxFileSizeMB, 0, memoryMapping, GCMonitor.EMPTY, false);
+        this(blobStore, directory, EMPTY_NODE, maxFileSizeMB, 0, memoryMapping,
+                GCMonitor.EMPTY, StatisticsProvider.NOOP, false);
     }
 
     @Deprecated
@@ -355,24 +374,28 @@ public class FileStore implements SegmentStore {
     @Deprecated
     public FileStore(File directory, int maxFileSizeMB, int cacheSizeMB,
             boolean memoryMapping) throws IOException {
-        this(null, directory, EMPTY_NODE, maxFileSizeMB, cacheSizeMB, memoryMapping, GCMonitor.EMPTY, false);
+        this(null, directory, EMPTY_NODE, maxFileSizeMB, cacheSizeMB, memoryMapping,
+                GCMonitor.EMPTY, StatisticsProvider.NOOP, false);
     }
 
     @Deprecated
     FileStore(File directory, NodeState initial, int maxFileSize) throws IOException {
-        this(null, directory, initial, maxFileSize, -1, MEMORY_MAPPING_DEFAULT, GCMonitor.EMPTY, false);
+        this(null, directory, initial, maxFileSize, -1, MEMORY_MAPPING_DEFAULT,
+                GCMonitor.EMPTY, StatisticsProvider.NOOP, false);
     }
 
     @Deprecated
     public FileStore(
             BlobStore blobStore, final File directory, NodeState initial, int maxFileSizeMB,
             int cacheSizeMB, boolean memoryMapping) throws IOException {
-        this(blobStore, directory, initial, maxFileSizeMB, cacheSizeMB, memoryMapping, GCMonitor.EMPTY, false);
+        this(blobStore, directory, initial, maxFileSizeMB, cacheSizeMB, memoryMapping,
+                GCMonitor.EMPTY, StatisticsProvider.NOOP,false);
     }
 
     private FileStore(
             BlobStore blobStore, final File directory, NodeState initial, int maxFileSizeMB,
-            int cacheSizeMB, boolean memoryMapping, GCMonitor gcMonitor, boolean readonly)
+            int cacheSizeMB, boolean memoryMapping, GCMonitor gcMonitor, StatisticsProvider statsProvider,
+            boolean  readonly)
             throws IOException {
 
         if (readonly) {
@@ -419,6 +442,10 @@ public class FileStore implements SegmentStore {
             }
         }
 
+        long initialSize = size();
+        this.approximateSize = new AtomicLong(initialSize);
+        this.stats = new FileStoreStats(statsProvider, this, initialSize);
+
         if (!readonly) {
             if (indices.length > 0) {
                 this.writeNumber = indices[indices.length - 1] + 1;
@@ -427,7 +454,7 @@ public class FileStore implements SegmentStore {
             }
             this.writeFile = new File(directory, String.format(
                     FILE_NAME_FORMAT, writeNumber, "a"));
-            this.writer = new TarWriter(writeFile);
+            this.writer = new TarWriter(writeFile, stats);
         }
 
         RecordId id = null;
@@ -512,13 +539,10 @@ public class FileStore implements SegmentStore {
                 }
 
             });
-
-            approximateSize = new AtomicLong(size());
         } else {
             flushThread = null;
             compactionThread = null;
             diskSpaceThread = null;
-            approximateSize = null;
         }
 
         sufficientDiskSpace = new AtomicBoolean(true);
@@ -691,11 +715,20 @@ public class FileStore implements SegmentStore {
     public long size() {
         fileStoreLock.readLock().lock();
         try {
-            long size = writeFile.length();
+            long size = writeFile != null ? writeFile.length() : 0;
             for (TarReader reader : readers) {
                 size += reader.size();
             }
             return size;
+        } finally {
+            fileStoreLock.readLock().unlock();
+        }
+    }
+
+    public int readerCount(){
+        fileStoreLock.readLock().lock();
+        try {
+            return readers.size();
         } finally {
             fileStoreLock.readLock().unlock();
         }
@@ -742,6 +775,10 @@ public class FileStore implements SegmentStore {
             fileStoreLock.readLock().unlock();
         }
         return estimate;
+    }
+
+    public FileStoreStats getStats() {
+        return stats;
     }
 
     public void flush() throws IOException {
@@ -883,6 +920,7 @@ public class FileStore implements SegmentStore {
         cm.remove(cleanedIds);
         long finalSize = size();
         approximateSize.set(finalSize);
+        stats.reclaimed(initialSize - finalSize);
         gcMonitor.cleaned(initialSize - finalSize, finalSize);
         gcMonitor.info("TarMK GC #{}: cleanup completed in {} ({} ms). Post cleanup size is {} ({} bytes)" +
                 " and space reclaimed {} ({} bytes). Compaction map weight/depth is {}/{} ({} bytes/{}).",
@@ -1255,7 +1293,7 @@ public class FileStore implements SegmentStore {
             writeFile = new File(
                     directory,
                     String.format(FILE_NAME_FORMAT, writeNumber, "a"));
-            writer = new TarWriter(writeFile);
+            writer = new TarWriter(writeFile, stats);
         }
     }
 
@@ -1352,13 +1390,13 @@ public class FileStore implements SegmentStore {
 
         public ReadOnlyStore(File directory) throws IOException {
             super(null, directory, EMPTY_NODE, -1, 0, MEMORY_MAPPING_DEFAULT,
-                    GCMonitor.EMPTY, true);
+                    GCMonitor.EMPTY, StatisticsProvider.NOOP, true);
         }
 
         public ReadOnlyStore(File directory, BlobStore blobStore)
                 throws IOException {
             super(blobStore, directory, EMPTY_NODE, -1, 0,
-                    MEMORY_MAPPING_DEFAULT, GCMonitor.EMPTY, true);
+                    MEMORY_MAPPING_DEFAULT, GCMonitor.EMPTY, StatisticsProvider.NOOP, true);
         }
 
         /**
