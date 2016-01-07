@@ -33,7 +33,7 @@ class MergeCommit extends Commit {
     private final Set<Revision> branchCommits = Sets.newHashSet();
 
     MergeCommit(DocumentNodeStore nodeStore,
-                Revision baseRevision,
+                RevisionVector baseRevision,
                 SortedSet<Revision> revisions) {
         super(nodeStore, revisions.last(), baseRevision, null);
         this.mergeRevs = revisions;
@@ -52,7 +52,7 @@ class MergeCommit extends Commit {
     }
 
     @Override
-    public void applyToCache(Revision before, boolean isBranchCommit) {
+    public void applyToCache(RevisionVector before, boolean isBranchCommit) {
         // do nothing for a merge commit, only notify node
         // store about merged revisions
         nodeStore.revisionsMerged(branchCommits);

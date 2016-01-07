@@ -49,8 +49,8 @@ abstract class DiffCache {
      * @return the diff or {@code null} if unknown and no loader was passed.
      */
     @CheckForNull
-    abstract String getChanges(@Nonnull Revision from,
-                               @Nonnull Revision to,
+    abstract String getChanges(@Nonnull RevisionVector from,
+                               @Nonnull RevisionVector to,
                                @Nonnull String path,
                                @Nullable Loader loader);
 
@@ -65,8 +65,8 @@ abstract class DiffCache {
      * @return the cache entry.
      */
     @Nonnull
-    abstract Entry newEntry(@Nonnull Revision from,
-                            @Nonnull Revision to,
+    abstract Entry newEntry(@Nonnull RevisionVector from,
+                            @Nonnull RevisionVector to,
                             boolean local);
 
     /**
@@ -77,7 +77,7 @@ abstract class DiffCache {
 
     /**
      * Parses the jsop diff returned by
-     * {@link #getChanges(Revision, Revision, String, Loader)} and reports the
+     * {@link #getChanges(RevisionVector, RevisionVector, String, Loader)} and reports the
      * changes by calling the appropriate methods on {@link Diff}.
      *
      * @param jsop the jsop diff to parse.

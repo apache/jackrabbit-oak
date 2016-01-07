@@ -83,7 +83,8 @@ class CommitDiff implements NodeStateDiff {
     @Override
     public boolean childNodeAdded(String name, NodeState after) {
         String p = PathUtils.concat(path, name);
-        commit.addNode(new DocumentNodeState(store, p, commit.getRevision()));
+        commit.addNode(new DocumentNodeState(store, p,
+                new RevisionVector(commit.getRevision())));
         return after.compareAgainstBaseState(EMPTY_NODE,
                 new CommitDiff(store, commit, p, builder, blobs));
     }
@@ -100,7 +101,7 @@ class CommitDiff implements NodeStateDiff {
     @Override
     public boolean childNodeDeleted(String name, NodeState before) {
         String p = PathUtils.concat(path, name);
-        commit.removeNode(p);
+        commit.removeNode(p, before);
         return MISSING_NODE.compareAgainstBaseState(before,
                 new CommitDiff(store, commit, p, builder, blobs));
     }

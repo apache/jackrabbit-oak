@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 import javax.annotation.CheckForNull;
@@ -28,17 +29,19 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 /**
  * Helper class to track when a node was last modified.
  */
-final class LastRevs {
+final class LastRevs implements Iterable<Revision> {
 
     private final Map<Integer, Revision> revs;
 
-    private final Revision readRevision;
+    private final RevisionVector readRevision;
 
     private final Branch branch;
 
     private Revision branchRev;
 
-    LastRevs(Map<Integer, Revision> revs, Revision readRevision, Branch branch) {
+    LastRevs(Map<Integer, Revision> revs,
+             RevisionVector readRevision,
+             Branch branch) {
         this.revs = new HashMap<Integer, Revision>(revs);
         this.readRevision = readRevision;
         this.branch = branch;
@@ -60,7 +63,7 @@ final class LastRevs {
         }
         rev = rev.asBranchRevision();
         if (branch != null && branch.containsCommit(rev)
-                && readRevision.compareRevisionTime(rev) >= 0) {
+                && readRevision.getBranchRevision().compareRevisionTime(rev) >= 0) {
             branchRev = Utils.max(branchRev, rev);
         }
     }
@@ -70,8 +73,8 @@ final class LastRevs {
         return branchRev;
     }
 
-    @Nonnull
-    Map<Integer, Revision> get() {
-        return revs;
+    @Override
+    public Iterator<Revision> iterator() {
+        return revs.values().iterator();
     }
 }

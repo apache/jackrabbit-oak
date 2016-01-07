@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
@@ -116,14 +115,13 @@ final class CommitQueue {
      * @param conflictRevisions the revisions to become visible.
      */
     void suspendUntilAll(@Nonnull Set<Revision> conflictRevisions) {
-        Comparator<Revision> comparator = context.getRevisionComparator();
         Semaphore s;
         int addedRevisions;
         synchronized (suspendedCommits) {
-            Revision headRevision = context.getHeadRevision();
+            RevisionVector headRevision = context.getHeadRevision();
             Set<Revision> afterHead = new HashSet<Revision>(conflictRevisions.size());
             for (Revision r : conflictRevisions) {
-                if (comparator.compare(r, headRevision) > 0) {
+                if (headRevision.isRevisionNewer(r)) {
                     afterHead.add(r);
                 }
             }
@@ -182,11 +180,11 @@ final class CommitQueue {
             if (suspendedCommits.isEmpty()) {
                 return;
             }
-            Revision headRevision = context.getHeadRevision();
+            RevisionVector headRevision = context.getHeadRevision();
             Iterator<SuspendedCommit> it = suspendedCommits.values().iterator();
             while (it.hasNext()) {
                 SuspendedCommit suspended = it.next();
-                if (suspended.removeRevisionsYoungerThan(headRevision) && suspended.revisions.isEmpty()) {
+                if (suspended.removeRevisionsVisibleFrom(headRevision) && suspended.revisions.isEmpty()) {
                     it.remove();
                 }
             }
@@ -308,12 +306,11 @@ final class CommitQueue {
             this.revisions = revisions;
         }
 
-        private boolean removeRevisionsYoungerThan(Revision revision) {
-            Comparator<Revision> comparator = context.getRevisionComparator();
+        private boolean removeRevisionsVisibleFrom(RevisionVector revision) {
             Iterator<Revision> it = revisions.iterator();
             boolean removed = false;
             while (it.hasNext()) {
-                if (comparator.compare(it.next(), revision) <= 0) {
+                if (!revision.isRevisionNewer(it.next())) {
                     it.remove();
                     semaphore.release();
                     removed = true;

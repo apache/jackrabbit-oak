@@ -32,6 +32,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.plugins.document.PathRev;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
+import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
@@ -57,7 +58,7 @@ public class CacheTest {
                 Thread.yield();
             }
             for (int i = 0; i < 100; i++) {
-                PathRev k = new PathRev("/" + counter, new Revision(0, 0, i));
+                PathRev k = new PathRev("/" + counter, new RevisionVector(new Revision(0, 0, i)));
                 map.getIfPresent(k);
                 map.put(k, new StringValue(largeString));
             }

@@ -46,7 +46,7 @@ import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
-import org.apache.jackrabbit.oak.plugins.document.RevisionContext;
+import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -467,19 +467,6 @@ public class Utils {
     }
 
     /**
-     * Checks that revision x is newer than another revision.
-     *
-     * @param x the revision to check
-     * @param previous the presumed earlier revision
-     * @return true if x is newer
-     */
-    public static boolean isRevisionNewer(@Nonnull RevisionContext context,
-                                          @Nonnull Revision x,
-                                          @Nonnull Revision previous) {
-        return context.getRevisionComparator().compare(x, previous) > 0;
-    }
-
-    /**
      * Returns the revision with the newer timestamp or {@code null} if both
      * revisions are {@code null}. The implementation will return the first
      * revision if both have the same timestamp.
@@ -514,6 +501,43 @@ public class Utils {
             return a;
         }
         return c.compare(a, b) >= 0 ? a : b;
+    }
+
+    /**
+     * Returns the revision with the older timestamp or {@code null} if both
+     * revisions are {@code null}. The implementation will return the first
+     * revision if both have the same timestamp.
+     *
+     * @param a the first revision (or {@code null}).
+     * @param b the second revision (or {@code null}).
+     * @return the revision with the older timestamp.
+     */
+    @CheckForNull
+    public static Revision min(@Nullable Revision a, @Nullable Revision b) {
+        return min(a, b, StableRevisionComparator.INSTANCE);
+    }
+
+    /**
+     * Returns the revision which is considered older or {@code null} if
+     * both revisions are {@code null}. The implementation will return the first
+     * revision if both are considered equal. The comparison is done using the
+     * provided comparator.
+     *
+     * @param a the first revision (or {@code null}).
+     * @param b the second revision (or {@code null}).
+     * @param c the comparator.
+     * @return the revision considered more recent.
+     */
+    @CheckForNull
+    public static Revision min(@Nullable Revision a,
+                               @Nullable Revision b,
+                               @Nonnull Comparator<Revision> c) {
+        if (a == null) {
+            return b;
+        } else if (b == null) {
+            return a;
+        }
+        return c.compare(a, b) <= 0 ? a : b;
     }
 
     /**
@@ -685,5 +709,35 @@ public class Utils {
         } else {
             return n.longValue();
         }
+    }
+
+    /**
+     * Returns the minimum timestamp to use for a query for child documents that
+     * have been modified between {@code fromRev} and {@code toRev}.
+     *
+     * @param fromRev the from revision.
+     * @param toRev the to revision.
+     * @param minRevisions the minimum revisions of foreign cluster nodes. These
+     *                     are derived from the startTime of a cluster node.
+     * @return the minimum timestamp.
+     */
+    public static long getMinTimestampForDiff(@Nonnull RevisionVector fromRev,
+                                              @Nonnull RevisionVector toRev,
+                                              @Nonnull RevisionVector minRevisions) {
+        // make sure we have minimum revisions for all known cluster nodes
+        fromRev = fromRev.pmax(minRevisions);
+        toRev = toRev.pmax(minRevisions);
+        // keep only revision entries that changed
+        RevisionVector from = fromRev.difference(toRev);
+        RevisionVector to = toRev.difference(fromRev);
+        // now calculate minimum timestamp
+        long min = Long.MAX_VALUE;
+        for (Revision r : from) {
+            min = Math.min(r.getTimestamp(), min);
+        }
+        for (Revision r : to) {
+            min = Math.min(r.getTimestamp(), min);
+        }
+        return min;
     }
 }

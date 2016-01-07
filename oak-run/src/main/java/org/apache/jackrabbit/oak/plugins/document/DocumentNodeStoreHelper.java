@@ -102,7 +102,7 @@ public class DocumentNodeStoreHelper {
         int numBlobs = 0;
 
         List<Blob> blobs = Lists.newArrayList();
-        Revision head = ns.getHeadRevision();
+        RevisionVector head = ns.getHeadRevision();
         boolean exists = doc.getNodeAtRevision(ns, head, null) != null;
         for (String key : doc.keySet()) {
             if (!Utils.isPropertyName(key)) {

@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -95,7 +94,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
             assertTrue(doc.isCommitted(rev));
         }
         // check if document is still there
-        assertNotNull(ns.getNode("/", Revision.fromString(head)));
+        assertNotNull(ns.getNode("/", RevisionVector.fromString(head)));
 
         NodeDocument prevDoc = Iterators.getOnlyElement(doc.getAllPreviousDocs());
         assertEquals(SplitDocType.DEFAULT, prevDoc.getSplitDocType());
@@ -135,7 +134,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
                     || doc.getCommitRootPath(rev) != null);
             assertTrue(doc.isCommitted(rev));
         }
-        DocumentNodeState node = ns.getNode("/foo", Revision.fromString(head));
+        DocumentNodeState node = ns.getNode("/foo", RevisionVector.fromString(head));
         // check status of node
         if (create) {
             assertNull(node);
@@ -290,7 +289,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
             // read current value
             NodeDocument doc = ds.find(NODES, Utils.getIdFromPath("/test"));
             assertNotNull(doc);
-            Revision head = ns.getHeadRevision();
+            RevisionVector head = ns.getHeadRevision();
             Revision lastRev = ns.getPendingModifications().get("/test");
             DocumentNodeState n = doc.getNodeAtRevision(mk.getNodeStore(), head, lastRev);
             assertNotNull(n);
@@ -326,7 +325,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         doc = store.find(NODES, Utils.getIdFromPath("/test/foo"));
         assertNotNull(doc);
         DocumentNodeState node = doc.getNodeAtRevision(ns,
-                Revision.fromString(rev), null);
+                RevisionVector.fromString(rev), null);
         assertNotNull(node);
     }
 
@@ -473,7 +472,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         Map<Revision, String> valueMap = doc.getValueMap("prop");
         for (Map.Entry<Revision, String> entry : valueMap.entrySet()) {
             if (previous != null) {
-                assertTrue(ns.isRevisionNewer(previous, entry.getKey()));
+                assertTrue(previous.compareRevisionTime(entry.getKey()) > 0);
             }
             previous = entry.getKey();
             numValues++;
@@ -482,7 +481,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         assertEquals(revs.size(), numValues);
         assertEquals(revs.size(), valueMap.size());
 
-        assertNotNull(doc.getNodeAtRevision(ns, Revision.fromString(rev), null));
+        assertNotNull(doc.getNodeAtRevision(ns, RevisionVector.fromString(rev), null));
     }
 
     @Test
@@ -525,7 +524,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         }
         // some fake previous doc references to trigger UpdateOp
         // for an intermediate document
-        TreeSet<Revision> prev = Sets.newTreeSet(mk.getNodeStore().getRevisionComparator());
+        TreeSet<Revision> prev = Sets.newTreeSet(StableRevisionComparator.INSTANCE);
         for (int i = 0; i < PREV_SPLIT_FACTOR; i++) {
             Revision low = Revision.newRevision(clusterId);
             Revision high = Revision.newRevision(clusterId);
@@ -669,7 +668,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         NodeDocument doc = new NodeDocument(mk.getDocumentStore());
         doc.put(NodeDocument.ID, Utils.getIdFromPath("/test"));
         doc.put(NodeDocument.SD_TYPE, NodeDocument.SplitDocType.DEFAULT.type);
-        Revision head = mk.getNodeStore().getHeadRevision();
+        RevisionVector head = mk.getNodeStore().getHeadRevision();
         SplitOperations.forDocument(doc, DummyRevisionContext.INSTANCE, head, NUM_REVS_THRESHOLD);
     }
 
@@ -780,7 +779,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         final DocumentStore store = mk.getDocumentStore();
         final DocumentNodeStore ns = mk.getNodeStore();
         final List<Exception> exceptions = Lists.newArrayList();
-        final List<Revision> revisions = Lists.newArrayList();
+        final List<RevisionVector> revisions = Lists.newArrayList();
 
         Thread t = new Thread(new Runnable() {
             @Override
@@ -811,7 +810,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         RevisionContext rc = new TestRevisionContext(ns);
         while (t.isAlive()) {
             for (String id : ns.getSplitCandidates()) {
-                Revision head = ns.getHeadRevision();
+                RevisionVector head = ns.getHeadRevision();
                 NodeDocument doc = store.find(NODES, id);
                 List<UpdateOp> ops = SplitOperations.forDocument(doc, rc, head, NUM_REVS_THRESHOLD);
                 Set<Revision> removed = Sets.newHashSet();
@@ -842,7 +841,10 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
             if (doc.isSplitDocument() || Utils.getDepthFromId(doc.getId()) < 2) {
                 continue;
             }
-            Set<Revision> revs = Sets.newHashSet(revisions);
+            Set<Revision> revs = Sets.newHashSet();
+            for (RevisionVector rv : revisions) {
+                Iterables.addAll(revs, rv);
+            }
             revs.removeAll(doc.getValueMap("_deleted").keySet());
             assertTrue("Missing _deleted entries on " + doc.getId() + ": " + revs, revs.isEmpty());
         }
@@ -867,18 +869,13 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         }
 
         @Override
-        public Comparator<Revision> getRevisionComparator() {
-            return rc.getRevisionComparator();
-        }
-
-        @Override
         public int getClusterId() {
             return rc.getClusterId();
         }
 
         @Nonnull
         @Override
-        public Revision getHeadRevision() {
+        public RevisionVector getHeadRevision() {
             try {
                 Thread.sleep((long) (Math.random() * 100));
             } catch (InterruptedException e) {

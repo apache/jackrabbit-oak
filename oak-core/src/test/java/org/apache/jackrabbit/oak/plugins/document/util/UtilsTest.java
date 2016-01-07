@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
+import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -126,6 +127,20 @@ public class UtilsTest {
     }
 
     @Test
+    public void min() {
+        Revision a = new Revision(42, 1, 1);
+        Revision b = new Revision(43, 0, 1);
+        assertSame(a, Utils.min(a, b));
+
+        Revision a1 = new Revision(42, 0, 1);
+        assertSame(a1, Utils.min(a, a1));
+
+        assertSame(a, Utils.min(a, null));
+        assertSame(a, Utils.min(null, a));
+        assertNull(Utils.max(null, null));
+    }
+
+    @Test
     public void getAllDocuments() throws CommitFailedException {
         DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
         try {
@@ -178,5 +193,25 @@ public class UtilsTest {
                 Revision.fromString("r2-0-3"));
         revTime = Utils.getMaxExternalTimestamp(revs, localClusterId);
         assertEquals(3, revTime);
+    }
+
+    @Test
+    public void getMinTimestampForDiff() {
+        RevisionVector from = new RevisionVector(new Revision(17, 0, 1));
+        RevisionVector to = new RevisionVector(new Revision(19, 0, 1));
+        assertEquals(17, Utils.getMinTimestampForDiff(from, to, new RevisionVector()));
+        assertEquals(17, Utils.getMinTimestampForDiff(to, from, new RevisionVector()));
+
+        RevisionVector minRevs = new RevisionVector(
+                new Revision(7, 0, 1),
+                new Revision(4, 0, 2));
+        assertEquals(17, Utils.getMinTimestampForDiff(from, to, minRevs));
+        assertEquals(17, Utils.getMinTimestampForDiff(to, from, minRevs));
+
+        to = to.update(new Revision(15, 0, 2));
+        // must return min revision of clusterId 2
+        assertEquals(4, Utils.getMinTimestampForDiff(from, to, minRevs));
+        assertEquals(4, Utils.getMinTimestampForDiff(to, from, minRevs));
+
     }
 }

@@ -32,6 +32,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.plugins.document.PathRev;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
+import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.Broadcaster;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.TCPBroadcaster;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
@@ -64,7 +65,7 @@ public class BroadcastTest {
             PersistentCache pc = new PersistentCache("target/broadcastTest/p" + nodes + ",broadcast=" + type);
             Cache<PathRev, StringValue> cache = openCache(pc);
             String key = "/test" + Math.random();
-            PathRev k = new PathRev(key, new Revision(0, 0, 0));
+            PathRev k = new PathRev(key, new RevisionVector(new Revision(0, 0, 0)));
             long time = System.currentTimeMillis();
             for (int i = 0; i < 2000; i++) {
                 cache.put(k, new StringValue("Hello World " + i));
@@ -196,7 +197,7 @@ public class BroadcastTest {
         Cache<PathRev, StringValue> c1 = openCache(p1);
         Cache<PathRev, StringValue> c2 = openCache(p2);
         String key = "/test" + Math.random();
-        PathRev k = new PathRev(key, new Revision(0, 0, 0));
+        PathRev k = new PathRev(key, new RevisionVector(new Revision(0, 0, 0)));
         int correct = 0;
         for (int i = 0; i < 50; i++) {
             c1.put(k, new StringValue("Hello World " + i));

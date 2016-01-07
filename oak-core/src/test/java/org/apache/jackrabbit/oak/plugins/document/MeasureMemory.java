@@ -167,8 +167,46 @@ public class MeasureMemory {
             @Override
             public Object[] call() {
                 RevisionsKey k = new RevisionsKey(
-                        Revision.newRevision(0), Revision.newRevision(0));
+                        new RevisionVector(Revision.newRevision(0)),
+                        new RevisionVector(Revision.newRevision(0)));
                 return new Object[]{k, k.getMemory() + OVERHEAD};
+            }
+        });
+    }
+
+    @Test
+    public void revisionVector() throws Exception {
+        measureMemory(new Callable<Object[]>() {
+            @Override
+            public Object[] call() throws Exception {
+                RevisionVector rv = new RevisionVector(
+                        Revision.newRevision(0),
+                        Revision.newRevision(1),
+                        Revision.newRevision(2),
+                        Revision.newRevision(3));
+                return new Object[]{rv, rv.getMemory() + OVERHEAD};
+            }
+        });
+    }
+
+    @Test
+    public void revisionVectorSingle() throws Exception {
+        measureMemory(new Callable<Object[]>() {
+            @Override
+            public Object[] call() throws Exception {
+                RevisionVector rv = new RevisionVector(Revision.newRevision(0));
+                return new Object[]{rv, rv.getMemory() + OVERHEAD};
+            }
+        });
+    }
+
+    @Test
+    public void revision() throws Exception {
+        measureMemory(new Callable<Object[]>() {
+            @Override
+            public Object[] call() throws Exception {
+                Revision r = Revision.newRevision(0);
+                return new Object[]{r, r.getMemory() + OVERHEAD};
             }
         });
     }
@@ -201,11 +239,11 @@ public class MeasureMemory {
 
     static DocumentNodeState generateNode(int propertyCount) {
         DocumentNodeState n = new DocumentNodeState(STORE, new String("/hello/world"),
-                new Revision(1, 2, 3));
+                new RevisionVector(new Revision(1, 2, 3)));
         for (int i = 0; i < propertyCount; i++) {
             n.setProperty("property" + i, "\"values " + i + "\"");
         }
-        n.setLastRevision(new Revision(1, 2, 3));
+        n.setLastRevision(new RevisionVector(new Revision(1, 2, 3)));
         return n;
     }
 

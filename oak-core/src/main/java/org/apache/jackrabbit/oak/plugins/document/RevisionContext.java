@@ -37,11 +37,6 @@ public interface RevisionContext {
     UnsavedModifications getPendingModifications();
 
     /**
-     * @return the revision comparator.
-     */
-    Comparator<Revision> getRevisionComparator();
-
-    /**
      * @return the cluster id of the local DocumentMK instance.
      */
     int getClusterId();
@@ -50,7 +45,7 @@ public interface RevisionContext {
      * @return the current head revision.
      */
     @Nonnull
-    Revision getHeadRevision();
+    RevisionVector getHeadRevision();
 
     /**
      * @return a new revision for the local document node store instance.

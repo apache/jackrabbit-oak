@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.lang.ref.ReferenceQueue;
-import java.util.Comparator;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -64,15 +63,6 @@ class UnmergedBranches {
     private final AtomicBoolean initialized = new AtomicBoolean(false);
 
     /**
-     * The revision comparator.
-     */
-    private final Comparator<Revision> comparator;
-
-    UnmergedBranches(@Nonnull Comparator<Revision> comparator) {
-        this.comparator = checkNotNull(comparator);
-    }
-
-    /**
      * Initialize with un-merged branches from <code>store</code> for this
      * <code>clusterId</code>.
      *
@@ -112,14 +102,14 @@ class UnmergedBranches {
      *          or {@code initial} is not a branch revision.
      */
     @Nonnull
-    Branch create(@Nonnull Revision base,
+    Branch create(@Nonnull RevisionVector base,
                   @Nonnull Revision initial,
                   @Nullable Object guard) {
         checkArgument(!checkNotNull(base).isBranch(),
                 "base is not a trunk revision: %s", base);
         checkArgument(checkNotNull(initial).isBranch(),
                 "initial is not a branch revision: %s", initial);
-        SortedSet<Revision> commits = new TreeSet<Revision>(comparator);
+        SortedSet<Revision> commits = new TreeSet<Revision>(StableRevisionComparator.INSTANCE);
         commits.add(initial);
         Branch b = new Branch(commits, base, queue, guard);
         branches.add(b);
@@ -134,9 +124,13 @@ class UnmergedBranches {
      * @return the branch containing the given revision or <code>null</code>.
      */
     @CheckForNull
-    Branch getBranch(@Nonnull Revision r) {
+    Branch getBranch(@Nonnull RevisionVector r) {
+        if (!r.isBranch()) {
+            return null;
+        }
+        Revision branchRev = r.getBranchRevision();
         for (Branch b : branches) {
-            if (b.containsCommit(r)) {
+            if (b.containsCommit(branchRev)) {
                 return b;
             }
         }

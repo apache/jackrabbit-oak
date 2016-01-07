@@ -85,7 +85,7 @@ public class VersionGarbageCollector {
         Stopwatch sw = Stopwatch.createStarted();
         VersionGCStats stats = new VersionGCStats();
         final long oldestRevTimeStamp = nodeStore.getClock().getTime() - maxRevisionAgeInMillis;
-        final Revision headRevision = nodeStore.getHeadRevision();
+        final RevisionVector headRevision = nodeStore.getHeadRevision();
 
         log.info("Starting revision garbage collection. Revisions older than [{}] will be " +
                 "removed", Utils.timestampToString(oldestRevTimeStamp));
@@ -121,7 +121,7 @@ public class VersionGarbageCollector {
     }
 
     private void collectDeletedDocuments(VersionGCStats stats,
-                                         Revision headRevision,
+                                         RevisionVector headRevision,
                                          long oldestRevTimeStamp)
             throws IOException {
         int docsTraversed = 0;
@@ -190,13 +190,13 @@ public class VersionGarbageCollector {
      */
     private class DeletedDocsGC implements Closeable {
 
-        private final Revision headRevision;
+        private final RevisionVector headRevision;
         private final StringSort docIdsToDelete = newStringSort();
         private final StringSort prevDocIdsToDelete = newStringSort();
         private final Set<String> exclude = Sets.newHashSet();
         private boolean sorted = false;
 
-        public DeletedDocsGC(@Nonnull Revision headRevision) {
+        public DeletedDocsGC(@Nonnull RevisionVector headRevision) {
             this.headRevision = checkNotNull(headRevision);
         }
 

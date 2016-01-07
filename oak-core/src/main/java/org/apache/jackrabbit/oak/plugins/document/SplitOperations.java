@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -55,7 +54,6 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.setHasBina
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.setPrevious;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.PROPERTY_OR_DELETED;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getPreviousIdFor;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isRevisionNewer;
 
 /**
  * Utility class to create document split operations.
@@ -86,13 +84,13 @@ class SplitOperations {
 
     private SplitOperations(@Nonnull NodeDocument doc,
                             @Nonnull RevisionContext context,
-                            @Nonnull Revision headRevision,
+                            @Nonnull RevisionVector headRevision,
                             int numRevsThreshold) {
         this.doc = checkNotNull(doc);
         this.context = checkNotNull(context);
         this.path = doc.getPath();
         this.id = doc.getId();
-        this.headRevision = checkNotNull(headRevision);
+        this.headRevision = checkNotNull(headRevision).getRevision(context.getClusterId());
         this.numRevsThreshold = numRevsThreshold;
     }
 
@@ -117,7 +115,7 @@ class SplitOperations {
     @Nonnull
     static List<UpdateOp> forDocument(@Nonnull NodeDocument doc,
                                       @Nonnull RevisionContext context,
-                                      @Nonnull Revision headRevision,
+                                      @Nonnull RevisionVector headRevision,
                                       int numRevsThreshold) {
         if (doc.isSplitDocument()) {
             throw new IllegalArgumentException(
@@ -208,7 +206,7 @@ class SplitOperations {
      */
     private void collectRevisionsAndCommitRoot() {
         NavigableMap<Revision, String> revisions =
-                new TreeMap<Revision, String>(context.getRevisionComparator());
+                new TreeMap<Revision, String>(StableRevisionComparator.INSTANCE);
         for (Map.Entry<Revision, String> entry : doc.getLocalRevisions().entrySet()) {
             if (splitRevs.contains(entry.getKey())) {
                 revisions.put(entry.getKey(), entry.getValue());
@@ -232,7 +230,7 @@ class SplitOperations {
         }
         committedChanges.put(REVISIONS, revisions);
         NavigableMap<Revision, String> commitRoot =
-                new TreeMap<Revision, String>(context.getRevisionComparator());
+                new TreeMap<Revision, String>(StableRevisionComparator.INSTANCE);
         boolean mostRecent = true;
         for (Map.Entry<Revision, String> entry : doc.getLocalCommitRoot().entrySet()) {
             Revision r = entry.getKey();
@@ -269,10 +267,10 @@ class SplitOperations {
                 Revision h = null;
                 Revision l = null;
                 for (Range r : entry.getValue()) {
-                    if (h == null || isRevisionNewer(context, r.high, h)) {
+                    if (h == null || r.high.compareRevisionTime(h) > 0) {
                         h = r.high;
                     }
-                    if (l == null || isRevisionNewer(context, l, r.low)) {
+                    if (l == null || l.compareRevisionTime(r.low) > 0) {
                         l = r.low;
                     }
                     removePrevious(main, r);
@@ -391,7 +389,7 @@ class SplitOperations {
             Set<Revision> changes) {
         for (String property : filter(doc.keySet(), PROPERTY_OR_DELETED)) {
             NavigableMap<Revision, String> splitMap
-                    = new TreeMap<Revision, String>(context.getRevisionComparator());
+                    = new TreeMap<Revision, String>(StableRevisionComparator.INSTANCE);
             committedLocally.put(property, splitMap);
             Map<Revision, String> valueMap = doc.getLocalMap(property);
             // collect committed changes of this cluster node
@@ -411,10 +409,9 @@ class SplitOperations {
     }
     
     private boolean isGarbage(Revision rev) {
-        Comparator<Revision> comp = context.getRevisionComparator();
         // use headRevision as passed in the constructor instead
         // of the head revision from the RevisionContext. see OAK-3081
-        if (comp.compare(headRevision, rev) <= 0) {
+        if (headRevision.compareRevisionTime(rev) <= 0) {
             // this may be an in-progress commit
             return false;
         }
@@ -489,13 +486,13 @@ class SplitOperations {
     }
 
     private void trackHigh(Revision r) {
-        if (high == null || isRevisionNewer(context, r, high)) {
+        if (high == null || r.compareRevisionTime(high) > 0) {
             high = r;
         }
     }
 
     private void trackLow(Revision r) {
-        if (low == null || isRevisionNewer(context, low, r)) {
+        if (low == null || low.compareRevisionTime(r) > 0) {
             low = r;
         }
     }

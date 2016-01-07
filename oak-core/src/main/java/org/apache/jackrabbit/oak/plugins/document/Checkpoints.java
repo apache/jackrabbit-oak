@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
@@ -37,12 +38,17 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 
 /**
  * Checkpoints provide details around which revision are to be kept. These
  * are stored in Settings collection.
  */
 class Checkpoints {
+
+    private static final Logger LOG = LoggerFactory.getLogger(Checkpoints.class);
+
     private static final String ID = "checkpoint";
 
     /**
@@ -76,10 +82,11 @@ class Checkpoints {
     public Revision create(long lifetimeInMillis, Map<String, String> info) {
         // create a unique dummy commit we can use as checkpoint revision
         Revision r = nodeStore.commitQueue.createRevision();
+        final RevisionVector[] rv = new RevisionVector[1];
         nodeStore.commitQueue.done(r, new CommitQueue.Callback() {
             @Override
             public void headOfQueue(@Nonnull Revision revision) {
-                // do nothing
+                rv[0] = nodeStore.getHeadRevision();
             }
         });
         createCounter.getAndIncrement();
@@ -88,7 +95,7 @@ class Checkpoints {
         long endTime = BigInteger.valueOf(nodeStore.getClock().getTime())
                 .add(BigInteger.valueOf(lifetimeInMillis))
                 .min(BigInteger.valueOf(Long.MAX_VALUE)).longValue();
-        op.setMapEntry(PROP_CHECKPOINT, r, new Info(endTime, info).toString());
+        op.setMapEntry(PROP_CHECKPOINT, r, new Info(endTime, rv[0], info).toString());
         store.createOrUpdate(Collection.SETTINGS, op);
         return r;
     }
@@ -113,7 +120,7 @@ class Checkpoints {
         //Get uncached doc
         SortedMap<Revision, Info> checkpoints = getCheckpoints();
 
-        if(checkpoints == null){
+        if(checkpoints.isEmpty()){
             log.debug("No checkpoint registered so far");
             return null;
         }
@@ -142,24 +149,53 @@ class Checkpoints {
     }
 
     @SuppressWarnings("unchecked")
-    @CheckForNull
+    @Nonnull
     SortedMap<Revision, Info> getCheckpoints() {
         Document cdoc = store.find(Collection.SETTINGS, ID, 0);
-        SortedMap<Revision, String> data =
-                (SortedMap<Revision, String>) cdoc.get(PROP_CHECKPOINT);
-        if (data == null) {
-            return null;
+        SortedMap<Revision, String> data = null;
+        if (cdoc != null) {
+            data = (SortedMap<Revision, String>) cdoc.get(PROP_CHECKPOINT);
         }
-        SortedMap<Revision, Info> checkpoints = Maps.newTreeMap(data.comparator());
-        for (Map.Entry<Revision, String> entry : data.entrySet()) {
-            checkpoints.put(entry.getKey(), Info.fromString(entry.getValue()));
+        SortedMap<Revision, Info> checkpoints = Maps.newTreeMap(StableRevisionComparator.REVERSE);
+        if (data != null) {
+            for (Map.Entry<Revision, String> entry : data.entrySet()) {
+                checkpoints.put(entry.getKey(), Info.fromString(entry.getValue()));
+            }
         }
         return checkpoints;
     }
 
-    int size(){
-        SortedMap<Revision, Info> checkpoints = getCheckpoints();
-        return checkpoints == null ? 0 : checkpoints.size();
+    /**
+     * Retrieves the head revision for the given {@code checkpoint}.
+     *
+     * @param checkpoint the checkpoint reference.
+     * @return the head revision associated with the checkpoint or {@code null}
+     *      if there is no such checkpoint.
+     * @throws IllegalArgumentException if the checkpoint is malformed.
+     */
+    @CheckForNull
+    RevisionVector retrieve(@Nonnull String checkpoint)
+            throws IllegalArgumentException {
+        Revision r;
+        try {
+            r = Revision.fromString(checkNotNull(checkpoint));
+        } catch (IllegalArgumentException e) {
+            LOG.warn("Malformed checkpoint reference: {}", checkpoint);
+            return null;
+        }
+        Info info = getCheckpoints().get(r);
+        if (info == null) {
+            return null;
+        }
+        RevisionVector rv = info.getCheckpoint();
+        if (rv == null) {
+            rv = expand(r);
+        }
+        return rv;
+    }
+
+    int size() {
+        return getCheckpoints().size();
     }
 
     /**
@@ -182,21 +218,47 @@ class Checkpoints {
         }
     }
 
+    private RevisionVector expand(Revision checkpoint) {
+        LOG.warn("Expanding {} single revision checkpoint into a " +
+                "RevisionVector. Please make sure all cluster nodes run " +
+                "with the same Oak version.", checkpoint);
+        // best effort conversion
+        Map<Integer, Revision> revs = Maps.newHashMap();
+        RevisionVector head = nodeStore.getHeadRevision();
+        for (Revision r : head) {
+            int cId = r.getClusterId();
+            if (cId == checkpoint.getClusterId()) {
+                revs.put(cId, r);
+            } else {
+                revs.put(cId, new Revision(checkpoint.getTimestamp(), 0, cId));
+            }
+        }
+        return head.pmin(new RevisionVector(revs.values()));
+    }
+
     static final class Info {
 
         private static final String EXPIRES = "expires";
 
+        private static final String REVISION_VECTOR = "rv";
+
         private final long expiryTime;
+
+        private final RevisionVector checkpoint;
 
         private final Map<String, String> info;
 
-        private Info(long expiryTime, Map<String, String> info) {
+        private Info(long expiryTime,
+                     @Nullable  RevisionVector checkpoint,
+                     @Nonnull Map<String, String> info) {
             this.expiryTime = expiryTime;
+            this.checkpoint = checkpoint;
             this.info = Collections.unmodifiableMap(info);
         }
 
         static Info fromString(String info) {
             long expiryTime;
+            RevisionVector rv = null;
             Map<String, String> map;
             if (info.startsWith("{")) {
                 map = Maps.newHashMap();
@@ -212,7 +274,19 @@ class Checkpoints {
                 while (reader.matches(',')) {
                     key = reader.readString();
                     reader.read(':');
-                    map.put(key, reader.readString());
+                    String value = reader.readString();
+                    // second entry is potentially checkpoint revision vector
+                    if (rv == null && map.isEmpty() && REVISION_VECTOR.equals(key)) {
+                        // try to read checkpoint
+                        try {
+                            rv = RevisionVector.fromString(value);
+                        } catch (IllegalArgumentException e) {
+                            // not a revision vector, read as regular info entry
+                            map.put(key, value);
+                        }
+                    } else {
+                        map.put(key, value);
+                    }
                 }
                 reader.read('}');
                 reader.read(JsopReader.END);
@@ -221,7 +295,7 @@ class Checkpoints {
                 map = Collections.emptyMap();
                 expiryTime = Long.parseLong(info);
             }
-            return new Info(expiryTime, map);
+            return new Info(expiryTime, rv, map);
         }
 
         Map<String, String> get() {
@@ -232,11 +306,26 @@ class Checkpoints {
             return expiryTime;
         }
 
+        /**
+         * The revision vector associated with this checkpoint or {@code null}
+         * if this checkpoint was created with a version of Oak, which did not
+         * yet support revision vectors.
+         *
+         * @return the revision vector checkpoint or {@code null}.
+         */
+        @CheckForNull
+        RevisionVector getCheckpoint() {
+            return checkpoint;
+        }
+
         @Override
         public String toString() {
             JsopWriter writer = new JsopBuilder();
             writer.object();
             writer.key(EXPIRES).value(Long.toString(expiryTime));
+            if (checkpoint != null) {
+                writer.key(REVISION_VECTOR).value(checkpoint.toString());
+            }
             for (Map.Entry<String, String> entry : info.entrySet()) {
                 writer.key(entry.getKey()).value(entry.getValue());
             }
