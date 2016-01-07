@@ -329,8 +329,17 @@ public class RDBJDBCTools {
         builder.append(')');
     }
 
+    // see <https://issues.apache.org/jira/browse/OAK-3843>
+    public static final int MAX_IN_CLAUSE = Integer
+            .getInteger("org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.MAX_IN_CLAUSE", 2048);
+
     public static PreparedStatementComponent createInStatement(final String fieldName, final Collection<String> values,
             final boolean binary) {
+
+        if (values.size() > MAX_IN_CLAUSE) {
+            throw new IllegalArgumentException("Maximum size of IN clause allowed is " + MAX_IN_CLAUSE + ", but " + values.size() + " was requested");
+        }
+
         return new PreparedStatementComponent() {
 
             @Override
