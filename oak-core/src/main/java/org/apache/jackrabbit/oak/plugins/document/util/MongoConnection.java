@@ -162,6 +162,9 @@ public class MongoConnection {
         int w;
         if (wObj instanceof Number) {
             w = ((Number) wObj).intValue();
+        } else if (wObj == null) {
+            // default acknowledged
+            w = 1;
         } else if (WriteConcern.MAJORITY.getWString().equals(wObj)) {
             // majority in a replica set means at least w=2
             w = 2;
