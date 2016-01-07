@@ -30,6 +30,7 @@ import javax.annotation.CheckForNull;
 
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
@@ -139,9 +140,7 @@ class IndexPlanner {
 
         if (definition.hasFunctionDefined()
                 && filter.getPropertyRestriction(definition.getFunctionName()) != null) {
-            //If native function is handled by this index then ensure
-            // that lowest cost if returned
-            return defaultPlan().setEstimatedEntryCount(1);
+            return getNativeFunctionPlanBuilder(indexingRule.getBaseNodeType());
         }
 
         List<String> indexedProps = newArrayListWithCapacity(filter.getPropertyRestrictions().size());
@@ -225,6 +224,31 @@ class IndexPlanner {
         //TODO Support for property existence queries
 
         return null;
+    }
+
+    private IndexPlan.Builder getNativeFunctionPlanBuilder(String indexingRuleBaseNodeType) {
+        boolean canHandleNativeFunction = true;
+
+        PropertyValue pv = filter.getPropertyRestriction(definition.getFunctionName()).first;
+        String query = pv.getValue(Type.STRING);
+
+        if (query.startsWith("suggest?term=")) {
+            if (definition.isSuggestEnabled()) {
+                canHandleNativeFunction = indexingRuleBaseNodeType.equals(filter.getNodeType());
+            } else {
+                canHandleNativeFunction = false;
+            }
+        } else if (query.startsWith("spellcheck?term=")) {
+            if (definition.isSpellcheckEnabled()) {
+                canHandleNativeFunction = indexingRuleBaseNodeType.equals(filter.getNodeType());
+            } else {
+                canHandleNativeFunction = false;
+            }
+        }
+
+        //If native function can be handled by this index then ensure
+        // that lowest cost if returned
+        return canHandleNativeFunction ? defaultPlan().setEstimatedEntryCount(1) : null;
     }
 
     /**

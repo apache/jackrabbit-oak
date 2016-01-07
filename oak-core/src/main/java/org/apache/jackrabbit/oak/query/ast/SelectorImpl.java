@@ -193,6 +193,10 @@ public class SelectorImpl extends SourceImpl {
         return selectorName;
     }
 
+    public String getNodeType() {
+        return nodeTypeName;
+    }
+
     public boolean matchesAllTypes() {
         return matchesAllTypes;
     }
