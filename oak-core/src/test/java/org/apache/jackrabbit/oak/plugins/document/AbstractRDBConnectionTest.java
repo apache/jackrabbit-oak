@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.io.Closeable;
 import java.io.File;
 import java.util.UUID;
 
@@ -68,6 +69,9 @@ public class AbstractRDBConnectionTest extends DocumentMKTestBase {
     public void tearDownConnection() throws Exception {
         if (mk != null) {
             mk.dispose();
+        }
+        if (dataSource instanceof Closeable) {
+            ((Closeable)dataSource).close();
         }
         Revision.resetClockToDefault();
     }
