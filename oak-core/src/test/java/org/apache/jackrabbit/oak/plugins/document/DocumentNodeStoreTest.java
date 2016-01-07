@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore.REMEMBER_REVISION_ORDER_MILLIS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS_RESOLUTION;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
@@ -99,7 +98,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -266,7 +264,7 @@ public class DocumentNodeStoreTest {
         builder.child("deletedNode").remove();
         merge(store, builder);
 
-        final Revision head = store.getHeadRevision();
+        final RevisionVector head = store.getHeadRevision();
 
         Thread writer = new Thread(new Runnable() {
             @Override
@@ -274,8 +272,8 @@ public class DocumentNodeStoreTest {
                 try {
                     Revision r = store.newRevision();
                     Commit c = new Commit(store, r, head, null);
-                    c.addNode(new DocumentNodeState(store, "/newConflictingNode", r));
-                    c.addNode(new DocumentNodeState(store, "/deletedNode", r));
+                    c.addNode(new DocumentNodeState(store, "/newConflictingNode", new RevisionVector(r)));
+                    c.addNode(new DocumentNodeState(store, "/deletedNode", new RevisionVector(r)));
                     c.updateProperty("/updateNode", "foo", "baz");
                     c.apply();
                 } catch (DocumentStoreException e) {
@@ -292,8 +290,8 @@ public class DocumentNodeStoreTest {
         // commit will succeed and add collision marker to writer commit
         Revision r = store.newRevision();
         Commit c = new Commit(store, r, head, null);
-        c.addNode(new DocumentNodeState(store, "/newConflictingNode", r));
-        c.addNode(new DocumentNodeState(store, "/newNonConflictingNode", r));
+        c.addNode(new DocumentNodeState(store, "/newConflictingNode", new RevisionVector(r)));
+        c.addNode(new DocumentNodeState(store, "/newNonConflictingNode", new RevisionVector(r)));
         c.apply();
         // allow writer to continue
         s.release();
@@ -356,7 +354,7 @@ public class DocumentNodeStoreTest {
                 .setDocumentStore(docStore).setAsyncDelay(0)
                 .setClusterId(1).getNodeStore();
         ns1.getRoot();
-        Revision r1 = ns1.getHeadRevision();
+        Revision r1 = ns1.getHeadRevision().getRevision(ns1.getClusterId());
         ns1.runBackgroundOperations();
         DocumentNodeStore ns2 = builderProvider.newBuilder()
                 .setDocumentStore(docStore).setAsyncDelay(0)
@@ -432,48 +430,6 @@ public class DocumentNodeStoreTest {
                 assertEquals("test", p.getValue(Type.STRING));
             }
         }
-    }
-
-    // OAK-1814
-    @Test
-    public void visibilityAfterRevisionComparatorPurge() throws Exception {
-        Clock clock = new Clock.Virtual();
-        clock.waitUntil(System.currentTimeMillis());
-        Revision.setClock(clock);
-        MemoryDocumentStore docStore = new MemoryDocumentStore();
-        DocumentNodeStore nodeStore1 = builderProvider.newBuilder()
-                .setDocumentStore(docStore).setClusterId(1)
-                .setAsyncDelay(0).clock(clock).getNodeStore();
-        nodeStore1.runBackgroundOperations();
-        DocumentNodeStore nodeStore2 = builderProvider.newBuilder()
-                .setDocumentStore(docStore).setClusterId(2)
-                .setAsyncDelay(0).clock(clock).getNodeStore();
-        DocumentNodeStore nodeStore3 = builderProvider.newBuilder()
-                .setDocumentStore(docStore).setClusterId(3)
-                .setAsyncDelay(0).clock(clock).getNodeStore();
-
-        NodeDocument doc = docStore.find(NODES, Utils.getIdFromPath("/"));
-        assertNotNull(doc);
-        Revision created = doc.getLocalDeleted().firstKey();
-        assertEquals(1, created.getClusterId());
-
-        clock.waitUntil(System.currentTimeMillis() +
-                REMEMBER_REVISION_ORDER_MILLIS / 2);
-
-        NodeBuilder builder = nodeStore2.getRoot().builder();
-        builder.setProperty("prop", "value");
-        nodeStore2.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        nodeStore2.runBackgroundOperations();
-
-        clock.waitUntil(System.currentTimeMillis() +
-                REMEMBER_REVISION_ORDER_MILLIS + 1000);
-        nodeStore3.runBackgroundOperations();
-
-        doc = docStore.find(NODES, Utils.getIdFromPath("/"));
-        assertNotNull(doc);
-        NodeState state = doc.getNodeAtRevision(nodeStore3,
-                nodeStore3.getHeadRevision(), null);
-        assertNotNull(state);
     }
 
     @Test
@@ -580,7 +536,7 @@ public class DocumentNodeStoreTest {
         builder.child("test").setProperty("prop", "value");
         ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        Revision rev = ns.getHeadRevision();
+        RevisionVector rev = ns.getHeadRevision();
         NodeDocument doc = docStore.find(NODES, Utils.getIdFromPath("/test"));
         assertNotNull(doc);
         DocumentNodeState state = doc.getNodeAtRevision(ns, rev, null);
@@ -677,28 +633,30 @@ public class DocumentNodeStoreTest {
         DocumentNodeStore ns1 = builderProvider.newBuilder().setAsyncDelay(0)
                 .setClusterId(1).setDocumentStore(docStore)
                 .getNodeStore();
+        int cId1 = ns1.getClusterId();
         DocumentNodeStore ns2 = builderProvider.newBuilder().setAsyncDelay(0)
                 .setClusterId(2).setDocumentStore(docStore)
                 .getNodeStore();
+        int cId2 = ns2.getClusterId();
 
         ns1.updateClusterState();
         ns2.updateClusterState();
 
-        assertEquals(0, ns1.getInactiveClusterNodes().size());
-        assertEquals(0, ns2.getInactiveClusterNodes().size());
-        assertEquals(2, ns1.getActiveClusterNodes().size());
-        assertEquals(2, ns2.getActiveClusterNodes().size());
+        assertEquals(0, ns1.getMBean().getInactiveClusterNodes().length);
+        assertEquals(0, ns2.getMBean().getInactiveClusterNodes().length);
+        assertEquals(2, ns1.getMBean().getActiveClusterNodes().length);
+        assertEquals(2, ns2.getMBean().getActiveClusterNodes().length);
 
         ns1.dispose();
 
         ns2.updateClusterState();
 
-        Map<Integer, Long> inactive = ns2.getInactiveClusterNodes();
-        Map<Integer, Long> active = ns2.getActiveClusterNodes();
-        assertEquals(1, inactive.size());
-        assertEquals(1, (int) inactive.keySet().iterator().next());
-        assertEquals(1, active.size());
-        assertEquals(2, (int) active.keySet().iterator().next());
+        String[] inactive = ns2.getMBean().getInactiveClusterNodes();
+        String[] active = ns2.getMBean().getActiveClusterNodes();
+        assertEquals(1, inactive.length);
+        assertTrue(inactive[0].startsWith(cId1 + "="));
+        assertEquals(1, active.length);
+        assertTrue(active[0].startsWith(cId2 + "="));
     }
 
     // OAK-2288
@@ -723,7 +681,7 @@ public class DocumentNodeStoreTest {
 
         NodeDocument doc = docStore.find(NODES, id);
         assertNotNull(doc);
-        Revision rev = doc.getLocalDeleted().firstKey();
+        RevisionVector rev = new RevisionVector(doc.getLocalDeleted().firstKey());
 
         merge(store, builder1);
 
@@ -829,41 +787,6 @@ public class DocumentNodeStoreTest {
         }
     }
 
-    // OAK-2345
-    @Test
-    public void inactiveClusterId() throws Exception {
-        Clock clock = new Clock.Virtual();
-        clock.waitUntil(System.currentTimeMillis());
-        Revision.setClock(clock);
-        MemoryDocumentStore docStore = new MemoryDocumentStore();
-        DocumentNodeStore ns1 = builderProvider.newBuilder()
-                .setDocumentStore(docStore).setClusterId(1)
-                .setAsyncDelay(0).clock(clock).getNodeStore();
-        NodeBuilder builder = ns1.getRoot().builder();
-        builder.child("test");
-        merge(ns1, builder);
-        Revision r = ns1.getHeadRevision();
-        ns1.dispose();
-
-        // start other cluster node
-        DocumentNodeStore ns2 = builderProvider.newBuilder()
-                .setDocumentStore(docStore).setClusterId(2)
-                .setAsyncDelay(0).clock(clock).getNodeStore();
-        assertNotNull(ns2.getRevisionComparator().getRevisionSeen(r));
-        ns2.dispose();
-
-        // wait until revision is old
-        clock.waitUntil(System.currentTimeMillis()
-                + REMEMBER_REVISION_ORDER_MILLIS + 1000);
-
-        // start cluster 2 again
-        ns2 = builderProvider.newBuilder()
-                .setDocumentStore(docStore).setClusterId(2)
-                .setAsyncDelay(0).clock(clock).getNodeStore();
-        // now r is considered old and revisionSeen is null
-        assertNull(ns2.getRevisionComparator().getRevisionSeen(r));
-    }
-
     // OAK-1782
     @Test
     public void diffOnce() throws Exception {
@@ -892,9 +815,11 @@ public class DocumentNodeStoreTest {
         }
         merge(ns, builder);
 
-        final Revision head = ns.getHeadRevision();
-        final Revision to = new Revision(
-                head.getTimestamp() + 1000, 0, head.getClusterId());
+        final RevisionVector head = ns.getHeadRevision();
+        Revision localHead = head.getRevision(ns.getClusterId());
+        assertNotNull(localHead);
+        final RevisionVector to = new RevisionVector(new Revision(
+                localHead.getTimestamp() + 1000, 0, localHead.getClusterId()));
         int numReaders = 10;
         final CountDownLatch ready = new CountDownLatch(numReaders);
         final CountDownLatch go = new CountDownLatch(1);
@@ -954,7 +879,7 @@ public class DocumentNodeStoreTest {
         builder.child("test").remove();
         merge(store, builder);
 
-        Revision removedAt = store.getHeadRevision();
+        RevisionVector removedAt = store.getHeadRevision();
 
         String id = Utils.getIdFromPath("/test");
         int count = 0;
@@ -973,7 +898,7 @@ public class DocumentNodeStoreTest {
         assertNoPreviousDocs(reads);
 
         reads.clear();
-        doc.getValueMap("foo").get(removedAt);
+        doc.getValueMap("foo").get(removedAt.getRevision(store.getClusterId()));
         assertNoPreviousDocs(reads);
     }
 
@@ -1244,7 +1169,7 @@ public class DocumentNodeStoreTest {
         String parentPath = "/:hidden/parent";
         NodeDocument parentDoc = docStore.find(Collection.NODES, Utils.getIdFromPath(parentPath));
         assertFalse("parent node of unseen children must not get deleted",
-                isDocDeleted(parentDoc, store1.getRevisionComparator()));
+                isDocDeleted(parentDoc));
 
         //Test 2 - parent shouldn't be removable if order of operation is:
         //# N1 and N2 know about /:hidden
@@ -1262,7 +1187,7 @@ public class DocumentNodeStoreTest {
 
         parentDoc = docStore.find(Collection.NODES, Utils.getIdFromPath(parentPath));
         assertFalse("parent node of unseen children must not get deleted",
-                isDocDeleted(parentDoc, store2.getRevisionComparator()));
+                isDocDeleted(parentDoc));
 
         store1.runBackgroundOperations();
         store2.runBackgroundOperations();
@@ -1296,7 +1221,7 @@ public class DocumentNodeStoreTest {
         parentPath = "/:hidden/parent1";
         parentDoc = docStore.find(Collection.NODES, Utils.getIdFromPath(parentPath));
         assertFalse("parent node of unseen children must not get deleted",
-                isDocDeleted(parentDoc, store1.getRevisionComparator()));
+                isDocDeleted(parentDoc));
 
         //Test 4 - parent shouldn't be removable if order of operation is:
         //# N1 and N2 know about /:hidden/parent1
@@ -1313,7 +1238,7 @@ public class DocumentNodeStoreTest {
 
         parentDoc = docStore.find(Collection.NODES, Utils.getIdFromPath(parentPath));
         assertFalse("parent node of unseen children must not get deleted",
-                isDocDeleted(parentDoc, store2.getRevisionComparator()));
+                isDocDeleted(parentDoc));
     }
 
     @Test
@@ -1699,7 +1624,6 @@ public class DocumentNodeStoreTest {
     }
 
     // OAK-3646
-    @Ignore("OAK-3646")
     @Test
     public void concurrentChildOperations() throws Exception {
         Clock clock = new Clock.Virtual();
@@ -1742,7 +1666,7 @@ public class DocumentNodeStoreTest {
         // on cluster node 2, remove of child-0 is not yet visible
         List<ChildNodeEntry> children = Lists.newArrayList(ns2.getRoot().getChildNode("foo").getChildNode("bar").getChildNodeEntries());
         assertEquals(2, Iterables.size(children));
-        Revision invalidate = null;
+        RevisionVector invalidate = null;
         for (ChildNodeEntry entry : children) {
             if (entry.getName().equals("child-0")) {
                 invalidate = asDocumentNodeState(entry.getNodeState()).getRevision();
@@ -1753,16 +1677,12 @@ public class DocumentNodeStoreTest {
         // this will make changes from cluster node 1 visible
         ns2.runBackgroundOperations();
 
-        // wait twice the time we remember revision order
-        clock.waitUntil(clock.getTime() + 2 * REMEMBER_REVISION_ORDER_MILLIS);
-        // collect everything older than one hour (time revision order is remembered)
+        // wait two hours
+        clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(2));
+        // collect everything older than one hour
         // this will remove child-0 and child-1 doc
-        ns1.getVersionGarbageCollector().gc(REMEMBER_REVISION_ORDER_MILLIS, TimeUnit.MILLISECONDS);
+        ns1.getVersionGarbageCollector().gc(1, TimeUnit.HOURS);
 
-        // trigger purge of revisions older than one hour in RevisionComparator
-        // this is usually done by the background read operation, but we
-        // do it explicitly here to make sure it really happens in this test
-        ns2.getRevisionComparator().purge(clock.getTime() - REMEMBER_REVISION_ORDER_MILLIS);
         // forget cache entry for deleted node
         ns2.invalidateNodeCache("/foo/bar/child-0", invalidate);
 
@@ -1772,7 +1692,6 @@ public class DocumentNodeStoreTest {
 
     // OAK-3646
     // similar to previous test but both cluster nodes add a child node
-    @Ignore("OAK-3646")
     @Test
     public void concurrentChildOperations2() throws Exception {
         Clock clock = new Clock.Virtual();
@@ -1813,14 +1732,6 @@ public class DocumentNodeStoreTest {
 
         // this will make changes from cluster node 1 visible
         ns2.runBackgroundOperations();
-
-        // wait twice the time we remember revision order
-        clock.waitUntil(clock.getTime() + 2 * REMEMBER_REVISION_ORDER_MILLIS);
-
-        // trigger purge of revisions older than one hour in RevisionComparator
-        // this is usually done by the background read operation, but we
-        // do it explicitly here to make sure it really happens in this test
-        ns2.getRevisionComparator().purge(clock.getTime() - REMEMBER_REVISION_ORDER_MILLIS);
 
         children = Lists.newArrayList(ns2.getRoot().getChildNode("foo").getChildNodeEntries());
         assertEquals(2, Iterables.size(children));
@@ -2156,11 +2067,11 @@ public class DocumentNodeStoreTest {
     public void dispatch() throws Exception {
         DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
 
-        Revision from = ns.getHeadRevision();
+        RevisionVector from = ns.getHeadRevision();
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("test");
         merge(ns, builder);
-        Revision to = ns.getHeadRevision();
+        RevisionVector to = ns.getHeadRevision();
 
         DiffCache.Entry entry = ns.getDiffCache().newEntry(from, to, true);
         entry.append("/", "-\"foo\"");
@@ -2188,7 +2099,7 @@ public class DocumentNodeStoreTest {
         builder.child("foo").child("child").child("node");
         merge(ns, builder);
 
-        Revision head = ns.getHeadRevision();
+        RevisionVector head = ns.getHeadRevision();
         NodeState child = ns.getRoot().getChildNode("bar").getChildNode("child");
         assertTrue(child instanceof DocumentNodeState);
         DocumentNodeState state = (DocumentNodeState) child;
@@ -2304,7 +2215,9 @@ public class DocumentNodeStoreTest {
         afterTest.compareAgainstBaseState(beforeTest, new DefaultNodeStateDiff());
 
         assertEquals(1, startValues.size());
-        long beforeModified = getModifiedInSecs(before.getRevision().getTimestamp());
+        Revision localHead = before.getRevision().getRevision(ns.getClusterId());
+        assertNotNull(localHead);
+        long beforeModified = getModifiedInSecs(localHead.getTimestamp());
         // startValue must be based on the revision of the before state
         // and not when '/test' was last modified
         assertEquals(beforeModified, (long) startValues.get(0));
@@ -2444,7 +2357,7 @@ public class DocumentNodeStoreTest {
         final List<Commit> commits = new ArrayList<Commit>();
         for (int i = 0; i < 10; i++) {
             Revision revision = ds.newRevision();
-            Commit commit = ds.newCommit(revision, ds.createBranch(root));
+            Commit commit = ds.newCommit(new RevisionVector(revision), ds.createBranch(root));
             commits.add(commit);
             revisions.add(revision);
         }
@@ -2655,6 +2568,80 @@ public class DocumentNodeStoreTest {
         assertTrue(diff.modified.contains("/parent/node-x/child"));
     }
 
+    @Test
+    public void lastRevWithRevisionVector() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ns1 = builderProvider.newBuilder()
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+        DocumentNodeStore ns2 = builderProvider.newBuilder()
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+
+        NodeBuilder b1 = ns1.getRoot().builder();
+        b1.child("parent");
+        merge(ns1, b1);
+        b1 = ns1.getRoot().builder();
+        NodeBuilder parent = b1.child("parent");
+        parent.setProperty("p", 1);
+        parent.child("child");
+        merge(ns1, b1);
+        ns1.runBackgroundOperations();
+        ns2.runBackgroundOperations();
+
+        NodeBuilder b2 = ns2.getRoot().builder();
+        b2.child("parent").setProperty("p", 2);
+        merge(ns2, b2);
+        ns2.runBackgroundOperations();
+        ns1.runBackgroundOperations();
+
+        assertTrue(ns1.getRoot().getChildNode("parent").hasChildNode("child"));
+    }
+
+    @Test
+    public void branchBaseBeforeClusterJoin() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ns1 = builderProvider.newBuilder()
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+
+        NodeBuilder b1 = ns1.getRoot().builder();
+        b1.child("parent");
+        merge(ns1, b1);
+        ns1.runBackgroundOperations();
+
+        DocumentNodeStore ns2 = builderProvider.newBuilder()
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+        NodeBuilder b2 = ns2.getRoot().builder();
+        b2.child("parent").child("baz");
+        merge(ns2, b2);
+        ns2.runBackgroundOperations();
+
+        DocumentNodeState root = ns1.getRoot();
+        DocumentNodeStoreBranch b = ns1.createBranch(root);
+        // branch state is now Unmodified
+        NodeBuilder builder = root.builder();
+        builder.child("parent").child("foo");
+        b.setRoot(builder.getNodeState());
+        // branch state is now InMemory
+        builder.child("parent").child("bar");
+        b.setRoot(builder.getNodeState());
+        // branch state is now Persisted
+
+        b.rebase();
+        NodeState parent = b.getHead().getChildNode("parent");
+        assertTrue(parent.exists());
+        assertTrue(parent.hasChildNode("foo"));
+        assertTrue(parent.hasChildNode("bar"));
+        assertFalse(parent.hasChildNode("baz"));
+
+        ns1.runBackgroundOperations();
+
+        b.merge(EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        parent = ns1.getRoot().getChildNode("parent");
+        assertTrue(parent.exists());
+        assertTrue(parent.hasChildNode("foo"));
+        assertTrue(parent.hasChildNode("bar"));
+        assertTrue(parent.hasChildNode("baz"));
+    }
+
     private static DocumentNodeState asDocumentNodeState(NodeState state) {
         if (!(state instanceof DocumentNodeState)) {
             throw new IllegalArgumentException("Not a DocumentNodeState");
@@ -2768,11 +2755,10 @@ public class DocumentNodeStoreTest {
      * @param doc the document to be tested
      * @return latest committed value of _deleted map
      */
-    private boolean isDocDeleted(NodeDocument doc,
-                                 Comparator<Revision> comparator) {
+    private boolean isDocDeleted(NodeDocument doc) {
         boolean latestDeleted = false;
-        SortedMap<Revision, String> localDeleted = Maps.newTreeMap(
-                Collections.reverseOrder(comparator));
+        SortedMap<Revision, String> localDeleted =
+                Maps.newTreeMap(StableRevisionComparator.REVERSE);
         localDeleted.putAll(doc.getLocalDeleted());
 
         for (Map.Entry<Revision, String> entry : localDeleted.entrySet()) {

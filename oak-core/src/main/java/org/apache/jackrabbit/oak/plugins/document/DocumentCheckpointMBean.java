@@ -44,9 +44,6 @@ public class DocumentCheckpointMBean extends AbstractCheckpointMBean {
     @Override
     protected void collectCheckpoints(TabularDataSupport tab) throws OpenDataException {
         Map<Revision, Info> checkpoints = store.getCheckpoints().getCheckpoints();
-        if (checkpoints == null) {
-            checkpoints = Collections.emptyMap();
-        }
 
         for (Entry<Revision, Info> checkpoint : checkpoints.entrySet()) {
             String id = checkpoint.getKey().toString();

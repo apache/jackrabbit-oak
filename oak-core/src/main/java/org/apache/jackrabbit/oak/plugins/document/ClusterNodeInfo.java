@@ -71,6 +71,11 @@ public class ClusterNodeInfo {
     public static final String LEASE_END_KEY = "leaseEnd";
 
     /**
+     * The start time.
+     */
+    public static final String START_TIME_KEY = "startTime";
+
+    /**
      * The key for the root-revision of the last background write (of unsaved
      * modifications) - that is: the last root-revision written by the instance
      * in case of a clear shutdown or via recovery of another instance in case
@@ -385,6 +390,7 @@ public class ClusterNodeInfo {
             } else {
                 update.set(LEASE_END_KEY, clusterNode.leaseEndTime);
             }
+            update.set(START_TIME_KEY, clusterNode.startTime);
             update.set(INFO_KEY, clusterNode.toString());
             update.set(STATE, clusterNode.state.name());
             update.set(REV_RECOVERY_LOCK, clusterNode.revRecoveryLock.name());

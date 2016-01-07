@@ -92,8 +92,6 @@ public class ClusterRevisionComparisonTest {
         c1.invalidateNodeCache("/a/c2" , ((DocumentNodeState)c1ns1.getChildNode("a")).getLastRevision());
         c1.invalidateNodeCache("/a/c3" , ((DocumentNodeState)c1ns1.getChildNode("a")).getLastRevision());
 
-        //Revision comparator purge by moving in future
-        clock.waitUntil(clock.getTime() + DocumentNodeStore.REMEMBER_REVISION_ORDER_MILLIS * 2);
         runBgOps(c1);
 
         NodeState a = c1ns1.getChildNode("a");
@@ -139,8 +137,6 @@ public class ClusterRevisionComparisonTest {
         c1.invalidateNodeCache("/a/c1" , ((DocumentNodeState)a).getLastRevision());
         c1.invalidateNodeCache("/a/c2" , ((DocumentNodeState)a).getLastRevision());
 
-        //Revision comparator purge by moving in future
-        clock.waitUntil(clock.getTime() + DocumentNodeStore.REMEMBER_REVISION_ORDER_MILLIS * 2);
         runBgOps(c1);
 
         assertTrue("/a/c1 disappeared", a.hasChildNode("c1"));

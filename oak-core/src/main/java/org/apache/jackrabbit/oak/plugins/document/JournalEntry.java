@@ -93,8 +93,8 @@ public final class JournalEntry extends Document {
 
     static void applyTo(@Nonnull StringSort externalSort,
                         @Nonnull DiffCache diffCache,
-                        @Nonnull Revision from,
-                        @Nonnull Revision to) throws IOException {
+                        @Nonnull RevisionVector from,
+                        @Nonnull RevisionVector to) throws IOException {
         LOG.debug("applyTo: starting for {} to {}", from, to);
         // note that it is not de-duplicated yet
         LOG.debug("applyTo: sorting done.");

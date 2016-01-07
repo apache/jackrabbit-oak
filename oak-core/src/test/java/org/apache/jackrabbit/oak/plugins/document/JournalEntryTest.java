@@ -53,8 +53,8 @@ public class JournalEntryTest {
         addRandomPaths(paths);
         StringSort sort = JournalEntry.newSorter();
         add(sort, paths);
-        Revision from = new Revision(1, 0, 1);
-        Revision to = new Revision(2, 0, 1);
+        RevisionVector from = new RevisionVector(new Revision(1, 0, 1));
+        RevisionVector to = new RevisionVector(new Revision(2, 0, 1));
         sort.sort();
         JournalEntry.applyTo(sort, cache, from, to);
 
@@ -72,9 +72,9 @@ public class JournalEntryTest {
     @Test
     public void useParentDiff() throws Exception {
         DiffCache cache = new MemoryDiffCache(new DocumentMK.Builder());
-        Revision from = new Revision(1, 0, 1);
-        Revision to = new Revision(2, 0, 1);
-        Revision unjournalled = new Revision(3, 0, 1);
+        RevisionVector from = new RevisionVector(new Revision(1, 0, 1));
+        RevisionVector to = new RevisionVector(new Revision(2, 0, 1));
+        RevisionVector unjournalled = new RevisionVector(new Revision(3, 0, 1));
 
         //Put one entry for (from, to, "/a/b")->["c1", "c2"] manually
         DiffCache.Entry entry = cache.newEntry(from, to, false);
@@ -190,7 +190,11 @@ public class JournalEntryTest {
         }
     }
 
-    private void validateCacheUsage(DiffCache cache, Revision from, Revision to, String path, boolean cacheExpected) {
+    private void validateCacheUsage(DiffCache cache,
+                                    RevisionVector from,
+                                    RevisionVector to,
+                                    String path,
+                                    boolean cacheExpected) {
         String nonLoaderDiff = cache.getChanges(from, to, path, null);
         final AtomicBoolean loaderCalled = new AtomicBoolean(false);
         cache.getChanges(from, to, path, new DiffCache.Loader() {

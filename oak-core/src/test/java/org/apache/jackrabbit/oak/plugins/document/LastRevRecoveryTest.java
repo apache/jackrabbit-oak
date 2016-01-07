@@ -122,7 +122,7 @@ public class LastRevRecoveryTest {
         Revision zlastRev2 = z1.getLastRev().get(c2Id);
         // /x/y/z is a new node and does not have a _lastRev
         assertNull(zlastRev2);
-        Revision head2 = ds2.getHeadRevision();
+        Revision head2 = ds2.getHeadRevision().getRevision(c2Id);
 
         //lastRev should not be updated for C #2
         assertNull(y1.getLastRev().get(c2Id));

@@ -28,9 +28,9 @@ public class BranchTest {
 
     @Test
     public void getModifiedPathsUntil() {
-        UnmergedBranches branches = new UnmergedBranches(StableRevisionComparator.INSTANCE);
+        UnmergedBranches branches = new UnmergedBranches();
 
-        Revision base = Revision.newRevision(1);
+        RevisionVector base = new RevisionVector(Revision.newRevision(1));
         Revision c1 = Revision.newRevision(1).asBranchRevision();
         Branch b = branches.create(base, c1, null);
 
@@ -43,7 +43,7 @@ public class BranchTest {
         bc2.track("/bar");
 
         Revision c3 = Revision.newRevision(1).asBranchRevision();
-        b.rebase(c3, Revision.newRevision(1));
+        b.rebase(c3, new RevisionVector(Revision.newRevision(1)));
 
         Revision c4 = Revision.newRevision(1).asBranchRevision();
         b.addCommit(c4);

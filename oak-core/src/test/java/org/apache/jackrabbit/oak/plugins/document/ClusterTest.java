@@ -216,9 +216,9 @@ public class ClusterTest {
 
         mk3.runBackgroundOperations(); // pick up changes from mk2
 
-        DocumentNodeState base = ns3.getNode("/", Revision.fromString(base3));
+        DocumentNodeState base = ns3.getNode("/", RevisionVector.fromString(base3));
         assertNotNull(base);
-        NodeState branchHead = ns3.getNode("/", Revision.fromString(b3));
+        NodeState branchHead = ns3.getNode("/", RevisionVector.fromString(b3));
         assertNotNull(branchHead);
         TrackingDiff diff = new TrackingDiff();
         branchHead.compareAgainstBaseState(base, diff);

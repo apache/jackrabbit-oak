@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.commons.jmx.Name;
 public interface DocumentNodeStoreMBean {
     String TYPE = "DocumentNodeStore";
 
+    @Deprecated
     String getRevisionComparatorState();
 
     String getHead();

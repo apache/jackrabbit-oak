@@ -57,7 +57,8 @@ public class CommitTest {
         // this commit should fail
         Commit c = ns.newCommit(ns.getHeadRevision(), null);
         try {
-            c.addNode(new DocumentNodeState(ns, "/foo/baz", c.getRevision()));
+            c.addNode(new DocumentNodeState(ns, "/foo/baz",
+                    new RevisionVector(c.getRevision())));
             UpdateOp op = c.getUpdateOperationForNode("/bar");
             op.setMapEntry("p", c.getRevision(), "v");
             try {

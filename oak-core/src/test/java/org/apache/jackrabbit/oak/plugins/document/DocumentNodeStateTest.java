@@ -14,25 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.document.util;
+package org.apache.jackrabbit.oak.plugins.document;
 
-import org.apache.jackrabbit.oak.plugins.document.Revision;
-import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
+import org.junit.Rule;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-/**
- * <code>RevisionsKeyTest</code>...
- */
-public class RevisionsKeyTest {
+public class DocumentNodeStateTest {
+
+    @Rule
+    public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
     @Test
-    public void fromAsString() {
-        RevisionsKey k1 = new RevisionsKey(
-                new RevisionVector(new Revision(1, 0, 1)),
-                new RevisionVector(new Revision(2, 1, 2)));
-        RevisionsKey k2 = RevisionsKey.fromString(k1.asString());
-        assertEquals(k1, k2);
+    public void getMemory() {
+        DocumentNodeStore store = builderProvider.newBuilder().getNodeStore();
+        RevisionVector rv = new RevisionVector(Revision.newRevision(1));
+        DocumentNodeState state = new DocumentNodeState(store, "/foo", rv);
+        assertEquals(232, state.getMemory());
     }
 }

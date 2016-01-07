@@ -56,8 +56,8 @@ public class MemoryDiffCache extends DiffCache {
 
     @CheckForNull
     @Override
-    public String getChanges(@Nonnull final Revision from,
-                             @Nonnull final Revision to,
+    public String getChanges(@Nonnull final RevisionVector from,
+                             @Nonnull final RevisionVector to,
                              @Nonnull final String path,
                              @Nullable final Loader loader) {
         PathRev key = diffCacheKey(path, from, to);
@@ -89,8 +89,8 @@ public class MemoryDiffCache extends DiffCache {
 
     @Nonnull
     @Override
-    public Entry newEntry(@Nonnull Revision from,
-                          @Nonnull Revision to,
+    public Entry newEntry(@Nonnull RevisionVector from,
+                          @Nonnull RevisionVector to,
                           boolean local /*ignored*/) {
         return new MemoryEntry(from, to);
     }
@@ -103,10 +103,10 @@ public class MemoryDiffCache extends DiffCache {
 
     protected class MemoryEntry implements Entry {
 
-        private final Revision from;
-        private final Revision to;
+        private final RevisionVector from;
+        private final RevisionVector to;
 
-        protected MemoryEntry(Revision from, Revision to) {
+        protected MemoryEntry(RevisionVector from, RevisionVector to) {
             this.from = checkNotNull(from);
             this.to = checkNotNull(to);
         }
@@ -124,8 +124,8 @@ public class MemoryDiffCache extends DiffCache {
     }
 
     private static PathRev diffCacheKey(@Nonnull String path,
-                                        @Nonnull Revision from,
-                                        @Nonnull Revision to) {
+                                        @Nonnull RevisionVector from,
+                                        @Nonnull RevisionVector to) {
         return new PathRev(from + path, to);
     }
 
@@ -142,15 +142,15 @@ public class MemoryDiffCache extends DiffCache {
      * @return {@code true} if there are cache entries that indicate the node
      *      at the given path was modified between the two revisions.
      */
-    private boolean isUnchanged(@Nonnull final Revision from,
-                                @Nonnull final Revision to,
+    private boolean isUnchanged(@Nonnull final RevisionVector from,
+                                @Nonnull final RevisionVector to,
                                 @Nonnull final String path) {
         return !denotesRoot(path)
                 && isChildUnchanged(from, to, getParentPath(path), getName(path));
     }
 
-    private boolean isChildUnchanged(@Nonnull final Revision from,
-                                     @Nonnull final Revision to,
+    private boolean isChildUnchanged(@Nonnull final RevisionVector from,
+                                     @Nonnull final RevisionVector to,
                                      @Nonnull final String parent,
                                      @Nonnull final String name) {
         PathRev parentKey = diffCacheKey(parent, from, to);

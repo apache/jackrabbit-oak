@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.util.Comparator;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
@@ -49,12 +48,8 @@ final class BatchCommitQueue {
 
     private final DocumentStore store;
 
-    private final Comparator<Revision> comparator;
-
-    BatchCommitQueue(@Nonnull DocumentStore store,
-                     @Nonnull Comparator<Revision> comparator) {
+    BatchCommitQueue(@Nonnull DocumentStore store) {
         this.store = checkNotNull(store);
-        this.comparator = checkNotNull(comparator);
     }
 
     Callable<NodeDocument> updateDocument(UpdateOp op) {
@@ -102,9 +97,5 @@ final class BatchCommitQueue {
 
     DocumentStore getStore() {
         return store;
-    }
-
-    Comparator<Revision> getComparator() {
-        return comparator;
     }
 }

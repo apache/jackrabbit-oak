@@ -34,6 +34,8 @@ import java.util.concurrent.locks.ReadWriteLock;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -279,7 +281,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             CommitInfo info) {
         boolean success = false;
         Commit c = store.newCommit(base.getRevision(), this);
-        Revision rev;
+        RevisionVector rev;
         try {
             op.with(c);
             if (c.isEmpty()) {
@@ -287,12 +289,11 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 // finally clause cancel the commit
                 return base;
             }
-            rev = c.apply();
+            c.apply();
+            rev = store.done(c, base.getRevision().isBranch(), info);
             success = true;
         } finally {
-            if (success) {
-                store.done(c, base.getRevision().isBranch(), info);
-            } else {
+            if (!success) {
                 store.canceled(c);
             }
         }
@@ -546,7 +547,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
          * @return the branch state.
          */
         final DocumentNodeState createBranch(DocumentNodeState state) {
-            return store.getRoot(state.getRevision().asBranchRevision());
+            return store.getRoot(state.getRevision().asBranchRevision(store.getClusterId()));
         }
 
         @Override
@@ -641,8 +642,15 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 return;
             }
             NodeDocument doc = Utils.getRootDocument(store.getDocumentStore());
-            Set<Revision> collisions = doc.getLocalMap(COLLISIONS).keySet();
-            Set<Revision> conflicts = Sets.intersection(collisions, b.getCommits());
+            Set<Revision> collisions = Sets.newHashSet(doc.getLocalMap(COLLISIONS).keySet());
+            Set<Revision> commits = Sets.newHashSet(Iterables.transform(b.getCommits(),
+                    new Function<Revision, Revision>() {
+                        @Override
+                        public Revision apply(Revision input) {
+                            return input.asTrunkRevision();
+                        }
+                    }));
+            Set<Revision> conflicts = Sets.intersection(collisions, commits);
             if (!conflicts.isEmpty()) {
                 throw new CommitFailedException(STATE, 2,
                         "Conflicting concurrent change on branch commits " + conflicts);

@@ -75,7 +75,7 @@ public class CollisionMarkerTest extends AbstractMongoConnectionTest {
         b1.child("node").child("foo");
         b1.child("test").setProperty("p", 1);
         merge(ns1, b1);
-        Revision head = ns1.getHeadRevision();
+        Revision head = ns1.getHeadRevision().getRevision(ns1.getClusterId());
 
         NodeBuilder b2 = ns2.getRoot().builder();
         b2.child("node").child("bar");

@@ -56,8 +56,8 @@ public class CountingTieredDiffCache extends TieredDiffCache {
     }
 
     @Override
-    public String getChanges(@Nonnull Revision from,
-                             @Nonnull Revision to,
+    public String getChanges(@Nonnull RevisionVector from,
+                             @Nonnull RevisionVector to,
                              @Nonnull String path,
                              @Nullable Loader loader) {
         return super.getChanges(from, to, path, new CountingLoader(loader));

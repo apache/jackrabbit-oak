@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.cache.CacheValue;
+import org.apache.jackrabbit.oak.commons.StringUtils;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -32,18 +33,18 @@ public final class PathRev implements CacheValue {
 
     private final String path;
 
-    private final Revision revision;
+    private final RevisionVector revision;
 
-    public PathRev(@Nonnull String path, @Nonnull Revision revision) {
+    public PathRev(@Nonnull String path, @Nonnull RevisionVector revision) {
         this.path = checkNotNull(path);
         this.revision = checkNotNull(revision);
     }
 
     @Override
     public int getMemory() {
-        return 24                           // shallow size
-                + 40 + path.length() * 2    // path
-                + 32;                       // revision
+        return 24                                       // shallow size
+                + StringUtils.estimateMemoryUsage(path) // path
+                + revision.getMemory();                 // revision
     }
 
     //----------------------------< Object >------------------------------------
@@ -76,7 +77,8 @@ public final class PathRev implements CacheValue {
 
     public static PathRev fromString(String s) {
         int index = s.lastIndexOf('@');
-        return new PathRev(s.substring(0, index), Revision.fromString(s.substring(index + 1)));
+        return new PathRev(s.substring(0, index),
+                RevisionVector.fromString(s.substring(index + 1)));
     }
 
     public int compareTo(PathRev b) {

@@ -53,7 +53,7 @@ class Branch {
     /**
      * The initial base revision of this branch.
      */
-    private final Revision base;
+    private final RevisionVector base;
 
     /**
      * The branch reference.
@@ -76,7 +76,7 @@ class Branch {
      * @throws IllegalArgumentException if base is a branch revision.
      */
     Branch(@Nonnull SortedSet<Revision> commits,
-           @Nonnull Revision base,
+           @Nonnull RevisionVector base,
            @Nonnull ReferenceQueue<Object> queue,
            @Nullable Object guard) {
         checkArgument(!checkNotNull(base).isBranch(), "base is not a trunk revision: %s", base);
@@ -97,7 +97,7 @@ class Branch {
      * @return the initial base of this branch.
      */
     @Nonnull
-    Revision getBase() {
+    RevisionVector getBase() {
         return base;
     }
 
@@ -110,7 +110,7 @@ class Branch {
      *                                  this branch.
      */
     @Nonnull
-    Revision getBase(@Nonnull Revision r) {
+    RevisionVector getBase(@Nonnull Revision r) {
         BranchCommit c = commits.get(checkNotNull(r).asBranchRevision());
         if (c == null) {
             throw new IllegalArgumentException(
@@ -127,11 +127,11 @@ class Branch {
      * @throws IllegalArgumentException if head is a trunk revision or base is a
      *                                  branch revision.
      */
-    void rebase(@Nonnull Revision head, @Nonnull Revision base) {
+    void rebase(@Nonnull Revision head, @Nonnull RevisionVector base) {
         checkArgument(checkNotNull(head).isBranch(), "Not a branch revision: %s", head);
         checkArgument(!checkNotNull(base).isBranch(), "Not a trunk revision: %s", base);
         Revision last = commits.lastKey();
-        checkArgument(commits.comparator().compare(head, last) > 0);
+        checkArgument(head.compareRevisionTime(last) > 0);
         commits.put(head, new RebaseCommit(base, head, commits));
     }
 
@@ -294,15 +294,15 @@ class Branch {
      */
     abstract static class BranchCommit implements LastRevTracker {
 
-        protected final Revision base;
+        protected final RevisionVector base;
         protected final Revision commit;
 
-        BranchCommit(Revision base, Revision commit) {
+        BranchCommit(RevisionVector base, Revision commit) {
             this.base = base;
             this.commit = commit;
         }
 
-        Revision getBase() {
+        RevisionVector getBase() {
             return base;
         }
 
@@ -322,7 +322,7 @@ class Branch {
 
         private final Set<String> modifications = Sets.newHashSet();
 
-        BranchCommitImpl(Revision base, Revision commit) {
+        BranchCommitImpl(RevisionVector base, Revision commit) {
             super(base, commit);
         }
 
@@ -365,7 +365,7 @@ class Branch {
 
         private final NavigableMap<Revision, BranchCommit> previous;
 
-        RebaseCommit(Revision base, Revision commit,
+        RebaseCommit(RevisionVector base, Revision commit,
                      NavigableMap<Revision, BranchCommit> previous) {
             super(base, commit);
             this.previous = squash(previous);

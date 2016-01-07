@@ -40,7 +40,9 @@ public class UnmergedBranchTest {
     public void purgeUnmergedBranch() throws Exception {
         DocumentStore testStore = new MemoryDocumentStore();
         DocumentMK mk1 = create(testStore, 1);
+        int cId1 = mk1.getNodeStore().getClusterId();
         DocumentMK mk2 = create(testStore, 2);
+        int cId2 = mk2.getNodeStore().getClusterId();
 
         //1. Create branch commits on both cluster nodes
         String rev1 = mk1.commit("", "+\"/child1\":{}", null, "");
@@ -51,12 +53,12 @@ public class UnmergedBranchTest {
         String branchRev2 = mk2.branch(rev2);
         String brev2 = mk2.commit("/child2", "^\"foo\":1", branchRev2, "");
 
-        Map<Revision, Revision> revs1 = getUncommittedRevisions(mk1);
-        Map<Revision, Revision> revs2 = getUncommittedRevisions(mk2);
+        Map<Revision, RevisionVector> revs1 = getUncommittedRevisions(mk1);
+        Map<Revision, RevisionVector> revs2 = getUncommittedRevisions(mk2);
 
         //2. Assert that branch rev are uncommited
-        assertTrue(revs1.containsKey(Revision.fromString(brev1).asTrunkRevision()));
-        assertTrue(revs2.containsKey(Revision.fromString(brev2).asTrunkRevision()));
+        assertTrue(revs1.containsKey(RevisionVector.fromString(brev1).asTrunkRevision().getRevision(cId1)));
+        assertTrue(revs2.containsKey(RevisionVector.fromString(brev2).asTrunkRevision().getRevision(cId2)));
 
         //3. Restart cluster 1 so that purge happens but only for cluster 1
         mk1.dispose();
@@ -65,23 +67,23 @@ public class UnmergedBranchTest {
         revs2 = getUncommittedRevisions(mk2);
 
         //4. Assert that post restart unmerged branch rev for c1 are purged
-        assertFalse(revs1.containsKey(Revision.fromString(brev1).asTrunkRevision()));
-        assertTrue(revs2.containsKey(Revision.fromString(brev2).asTrunkRevision()));
+        assertFalse(revs1.containsKey(RevisionVector.fromString(brev1).asTrunkRevision().getRevision(cId1)));
+        assertTrue(revs2.containsKey(RevisionVector.fromString(brev2).asTrunkRevision().getRevision(cId2)));
 
     }
 
-    public SortedMap<Revision, Revision> getUncommittedRevisions(DocumentMK mk) {
+    public SortedMap<Revision, RevisionVector> getUncommittedRevisions(DocumentMK mk) {
         // only look at revisions in this document.
         // uncommitted revisions are not split off
         NodeDocument doc = getRootDoc(mk);
         Map<Revision, String> valueMap = doc.getLocalMap(NodeDocument.REVISIONS);
-        SortedMap<Revision, Revision> revisions =
-                new TreeMap<Revision, Revision>(mk.getNodeStore().getRevisionComparator());
+        SortedMap<Revision, RevisionVector> revisions =
+                new TreeMap<Revision, RevisionVector>(StableRevisionComparator.INSTANCE);
         for (Map.Entry<Revision, String> commit : valueMap.entrySet()) {
             if (!Utils.isCommitted(commit.getValue())) {
                 Revision r = commit.getKey();
                 if (r.getClusterId() == mk.getNodeStore().getClusterId()) {
-                    Revision b = Revision.fromString(commit.getValue());
+                    RevisionVector b = RevisionVector.fromString(commit.getValue());
                     revisions.put(r, b);
                 }
             }

@@ -22,9 +22,7 @@ import java.util.Comparator;
 /**
  * <code>StableRevisionComparator</code> implements a revision comparator, which
  * is only based on stable information available in the two revisions presented
- * to this comparator. This is different from {@link Revision.RevisionComparator},
- * which also takes the time into account when a foreign revision (from another
- * cluster nodes) was first seen. This class is used in sorted collections where
+ * to this comparator. This class is used in sorted collections where
  * revision keys must have a stable ordering independent from the time when
  * a revision was seen.
  * <p>

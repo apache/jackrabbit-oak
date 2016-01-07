@@ -54,8 +54,8 @@ public class LocalDiffCache extends DiffCache {
     }
 
     @Override
-    public String getChanges(@Nonnull Revision from,
-                             @Nonnull Revision to,
+    public String getChanges(@Nonnull RevisionVector from,
+                             @Nonnull RevisionVector to,
                              @Nonnull String path,
                              @Nullable Loader loader) {
         RevisionsKey key = new RevisionsKey(from, to);
@@ -72,8 +72,8 @@ public class LocalDiffCache extends DiffCache {
 
     @Nonnull
     @Override
-    public Entry newEntry(final @Nonnull Revision from,
-                          final @Nonnull Revision to,
+    public Entry newEntry(final @Nonnull RevisionVector from,
+                          final @Nonnull RevisionVector to,
                           boolean local /*ignored*/) {
         return new Entry() {
             private final Map<String, String> changesPerPath = Maps.newHashMap();

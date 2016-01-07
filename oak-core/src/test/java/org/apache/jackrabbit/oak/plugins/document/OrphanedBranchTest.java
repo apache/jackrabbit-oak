@@ -58,7 +58,7 @@ public class OrphanedBranchTest {
         this.fixture = fixture;
     }
 
-    @Parameterized.Parameters
+    @Parameterized.Parameters(name="{0}")
     public static java.util.Collection<Object[]> fixtures() throws IOException {
         List<Object[]> fixtures = Lists.newArrayList();
         fixtures.add(new Object[] {new DocumentStoreFixture.MemoryFixture()});
@@ -185,7 +185,7 @@ public class OrphanedBranchTest {
         assertFalse(valueMap.isEmpty());
         UnmergedBranches branches = store.getBranches();
         Revision branchRev = doc.getLocalMap("prop").firstKey();
-        Branch b = branches.getBranch(branchRev);
+        Branch b = branches.getBranch(new RevisionVector(branchRev.asBranchRevision()));
         assertNotNull(b);
         branches.remove(b);
         
