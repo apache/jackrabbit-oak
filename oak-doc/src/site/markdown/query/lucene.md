@@ -573,6 +573,9 @@ Analyzers can also be composed based on `Tokenizers`, `TokenFilters` and
                         + stop1.txt (nt:file)
                         + stop2.txt (nt:file)
                     + PorterStem
+                    + Synonym
+                        - synonyms = "synonym.txt"
+                        + synonym.txt (nt:file)
 
 Points to note
 
@@ -586,6 +589,16 @@ Points to note
     * If the factory requires to load a file e.g. stop words from some file then
       file content can be provided via creating child `nt:file` node of the
       filename
+3. The analyzer-chain processes text from nodes as well text passed in query. So,
+   do take care that any mapping configuration (e.g. synonym mappings) factor in
+   the chain of analyzers.
+   E.g a common mistake for synonym mapping would be to have `domain => Range` while
+   there's a lower case filter configured as well (see the example above). For such
+   a setup an indexed value `domain` would actually get indexed as `Range` (mapped
+   value doesn't have lower case filter below it) but a query for `Range` would actually
+   query for `range` (due to lower case filter) and won't give the result (as might be
+   expected). An easy work-around for this example could be to have lower case mappings
+   i.e. just use `domain => range`.
 
 <a name="codec"></a>
 #### Codec
