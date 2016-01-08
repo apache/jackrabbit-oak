@@ -23,11 +23,16 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
+import static java.util.Collections.singletonMap;
+import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentId.isDataSegmentId;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Map;
@@ -244,7 +249,12 @@ public final class SegmentGraph {
             public String apply(UUID segmentId) {
                 Map<String, String> info = getSegmentInfo(segmentId, fileStore.getTracker());
                 if (info != null) {
-                    return info.get("gc");
+                    String error = info.get("error");
+                    if (error != null) {
+                        return "Error";
+                    } else {
+                        return info.get("gc");
+                    }
                 } else {
                     return "";
                 }
@@ -296,73 +306,89 @@ public final class SegmentGraph {
     public static Graph<UUID> parseHeadGraph(@Nonnull RecordId root) {
         final Graph<UUID> graph = new Graph<UUID>();
 
-        new SegmentParser() {
-            private void addEdge(RecordId from, RecordId to) {
-                graph.addVertex(from.asUUID());
-                graph.addVertex(to.asUUID());
-                graph.addEdge(from.asUUID(), to.asUUID());
-            }
-            @Override
-            protected void onNode(RecordId parentId, RecordId nodeId) {
-                super.onNode(parentId, nodeId);
-                addEdge(parentId, nodeId);
-            }
-            @Override
-            protected void onTemplate(RecordId parentId, RecordId templateId) {
-                super.onTemplate(parentId, templateId);
-                addEdge(parentId, templateId);
-            }
-            @Override
-            protected void onMap(RecordId parentId, RecordId mapId, MapRecord map) {
-                super.onMap(parentId, mapId, map);
-                addEdge(parentId, mapId);
-            }
-            @Override
-            protected void onMapDiff(RecordId parentId, RecordId mapId, MapRecord map) {
-                super.onMapDiff(parentId, mapId, map);
-                addEdge(parentId, mapId);
-            }
-            @Override
-            protected void onMapLeaf(RecordId parentId, RecordId mapId, MapRecord map) {
-                super.onMapLeaf(parentId, mapId, map);
-                addEdge(parentId, mapId);
-            }
-            @Override
-            protected void onMapBranch(RecordId parentId, RecordId mapId, MapRecord map) {
-                super.onMapBranch(parentId, mapId, map);
-                addEdge(parentId, mapId);
-            }
-            @Override
-            protected void onProperty(RecordId parentId, RecordId propertyId, PropertyTemplate template) {
-                super.onProperty(parentId, propertyId, template);
-                addEdge(parentId, propertyId);
-            }
-            @Override
-            protected void onValue(RecordId parentId, RecordId valueId, Type<?> type) {
-                super.onValue(parentId, valueId, type);
-                addEdge(parentId, valueId);
-            }
-            @Override
-            protected void onBlob(RecordId parentId, RecordId blobId) {
-                super.onBlob(parentId, blobId);
-                addEdge(parentId, blobId);
-            }
-            @Override
-            protected void onString(RecordId parentId, RecordId stringId) {
-                super.onString(parentId, stringId);
-                addEdge(parentId, stringId);
-            }
-            @Override
-            protected void onList(RecordId parentId, RecordId listId, int count) {
-                super.onList(parentId, listId, count);
-                addEdge(parentId, listId);
-            }
-            @Override
-            protected void onListBucket(RecordId parentId, RecordId listId, int index, int count, int capacity) {
-                super.onListBucket(parentId, listId, index, count, capacity);
-                addEdge(parentId, listId);
-            }
-        }.parseNode(checkNotNull(root));
+        try {
+            new SegmentParser() {
+                private void addEdge(RecordId from, RecordId to) {
+                    graph.addVertex(from.asUUID());
+                    graph.addVertex(to.asUUID());
+                    graph.addEdge(from.asUUID(), to.asUUID());
+                }
+
+                @Override
+                protected void onNode(RecordId parentId, RecordId nodeId) {
+                    super.onNode(parentId, nodeId);
+                    addEdge(parentId, nodeId);
+                }
+
+                @Override
+                protected void onTemplate(RecordId parentId, RecordId templateId) {
+                    super.onTemplate(parentId, templateId);
+                    addEdge(parentId, templateId);
+                }
+
+                @Override
+                protected void onMap(RecordId parentId, RecordId mapId, MapRecord map) {
+                    super.onMap(parentId, mapId, map);
+                    addEdge(parentId, mapId);
+                }
+
+                @Override
+                protected void onMapDiff(RecordId parentId, RecordId mapId, MapRecord map) {
+                    super.onMapDiff(parentId, mapId, map);
+                    addEdge(parentId, mapId);
+                }
+
+                @Override
+                protected void onMapLeaf(RecordId parentId, RecordId mapId, MapRecord map) {
+                    super.onMapLeaf(parentId, mapId, map);
+                    addEdge(parentId, mapId);
+                }
+
+                @Override
+                protected void onMapBranch(RecordId parentId, RecordId mapId, MapRecord map) {
+                    super.onMapBranch(parentId, mapId, map);
+                    addEdge(parentId, mapId);
+                }
+
+                @Override
+                protected void onProperty(RecordId parentId, RecordId propertyId, PropertyTemplate template) {
+                    super.onProperty(parentId, propertyId, template);
+                    addEdge(parentId, propertyId);
+                }
+
+                @Override
+                protected void onValue(RecordId parentId, RecordId valueId, Type<?> type) {
+                    super.onValue(parentId, valueId, type);
+                    addEdge(parentId, valueId);
+                }
+
+                @Override
+                protected void onBlob(RecordId parentId, RecordId blobId) {
+                    super.onBlob(parentId, blobId);
+                    addEdge(parentId, blobId);
+                }
+
+                @Override
+                protected void onString(RecordId parentId, RecordId stringId) {
+                    super.onString(parentId, stringId);
+                    addEdge(parentId, stringId);
+                }
+
+                @Override
+                protected void onList(RecordId parentId, RecordId listId, int count) {
+                    super.onList(parentId, listId, count);
+                    addEdge(parentId, listId);
+                }
+
+                @Override
+                protected void onListBucket(RecordId parentId, RecordId listId, int index, int count, int capacity) {
+                    super.onListBucket(parentId, listId, index, count, capacity);
+                    addEdge(parentId, listId);
+                }
+            }.parseNode(checkNotNull(root));
+        } catch (SegmentNotFoundException e) {
+            System.err.println("Error head graph parsing: " + e);
+        }
         return graph;
     }
 
@@ -371,19 +397,37 @@ public final class SegmentGraph {
         if (sInfo == null) {
             writer.write(node + ",b,bulk,b,-1,-1," + inHead + "\n");
         } else {
-            long t = asLong(sInfo.get("t"));
-            long ts = t - epoch.getTime();
-            checkArgument(ts >= Integer.MIN_VALUE && ts <= Integer.MAX_VALUE,
+            String error = sInfo.get("error");
+            if (error != null) {
+                writer.write(node +
+                    "," + firstLine(error) +
+                    ",error,e,-1,-1," + inHead + "\n");
+            } else {
+                long t = asLong(sInfo.get("t"));
+                long ts = t - epoch.getTime();
+                checkArgument(ts >= Integer.MIN_VALUE && ts <= Integer.MAX_VALUE,
                     "Time stamp (" + new Date(t) + ") not in epoch (" +
-                    new Date(epoch.getTime() + Integer.MIN_VALUE) + " - " +
-                    new Date(epoch.getTime() + Integer.MAX_VALUE) + ")");
-            writer.write(node +
+                        new Date(epoch.getTime() + Integer.MIN_VALUE) + " - " +
+                        new Date(epoch.getTime() + Integer.MAX_VALUE) + ")");
+                writer.write(node +
                     "," + sInfo.get("sno") +
                     ",data" +
                     "," + sInfo.get("wid") +
                     "," + sInfo.get("gc") +
                     "," + ts +
                     "," + inHead + "\n");
+            }
+        }
+    }
+
+    private static String firstLine(String string) {
+        BufferedReader reader = new BufferedReader(new StringReader(string));
+        try {
+            return reader.readLine();
+        } catch (IOException e) {
+            return string;
+        } finally {
+            closeQuietly(reader);
         }
     }
 
@@ -394,16 +438,31 @@ public final class SegmentGraph {
     private static Map<String, String> getSegmentInfo(UUID node, SegmentTracker tracker) {
         if (isDataSegmentId(node.getLeastSignificantBits())) {
             SegmentId id = tracker.getSegmentId(node.getMostSignificantBits(), node.getLeastSignificantBits());
-            String info = id.getSegment().getSegmentInfo();
-            if (info != null) {
-                JsopTokenizer tokenizer = new JsopTokenizer(info);
-                tokenizer.read('{');
-                return JsonObject.create(tokenizer).getProperties();
-            } else {
-                return null;
+            try {
+                String info = id.getSegment().getSegmentInfo();
+                if (info != null) {
+                    JsopTokenizer tokenizer = new JsopTokenizer(info);
+                    tokenizer.read('{');
+                    return JsonObject.create(tokenizer).getProperties();
+                } else {
+                    return null;
+                }
+            } catch (SegmentNotFoundException e) {
+                return singletonMap("error", toString(e));
             }
         } else {
             return null;
+        }
+    }
+
+    private static String toString(Throwable e) {
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw, true);
+        try {
+            e.printStackTrace(pw);
+            return sw.toString();
+        } finally {
+            pw.close();
         }
     }
 
