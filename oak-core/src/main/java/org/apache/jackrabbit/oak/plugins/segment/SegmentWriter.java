@@ -126,7 +126,7 @@ public class SegmentWriter {
     private final String wid;
 
     public SegmentWriter(SegmentStore store, SegmentVersion version) {
-        this(store, version, null);
+        this(store, version, "");
     }
 
     /**
