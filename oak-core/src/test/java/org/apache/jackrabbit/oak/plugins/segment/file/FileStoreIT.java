@@ -162,7 +162,7 @@ public class FileStoreIT {
         store = new FileStore(directory, 1, false);
         head = store.getHead();
         assertTrue(store.size() > largeBinarySize);
-        writer = new SegmentWriter(store, V_11);
+        writer = new SegmentWriter(store, V_11, "");
         compactor = new Compactor(store);
         compacted = compactor.compact(EMPTY_NODE, head, EMPTY_NODE);
         builder = head.builder();
