@@ -589,7 +589,12 @@ public class FileStore implements SegmentStore {
 
         byte gainThreshold = compactionStrategy.getGainThreshold();
         boolean runCompaction = true;
-        if (gainThreshold > 0) {
+        if (gainThreshold <= 0) {
+            gcMonitor.info("TarMK GC #{}: estimation skipped because gain threshold value ({} <= 0)", gcCount,
+                gainThreshold);
+        } else if (compactionStrategy.isPaused()) {
+            gcMonitor.info("TarMK GC #{}: estimation skipped because compaction is paused", gcCount);
+        } else {
             gcMonitor.info("TarMK GC #{}: estimation started", gcCount);
             Supplier<Boolean> shutdown = newShutdownSignal();
             CompactionGainEstimate estimate = estimateCompactionGain(shutdown);
@@ -622,9 +627,6 @@ public class FileStore implements SegmentStore {
                             estimate.getReachableSize(), estimate.getTotalSize());
                 }
             }
-        } else {
-            gcMonitor.info("TarMK GC #{}: estimation skipped due to gain threshold value ({}). Running compaction",
-                    gcCount, gainThreshold);
         }
 
         if (runCompaction) {
