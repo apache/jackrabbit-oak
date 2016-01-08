@@ -125,10 +125,6 @@ public class SegmentWriter {
 
     private final String wid;
 
-    public SegmentWriter(SegmentStore store, SegmentVersion version) {
-        this(store, version, "");
-    }
-
     /**
      * @param store     store to write to
      * @param version   segment version to write

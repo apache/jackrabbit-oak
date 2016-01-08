@@ -162,7 +162,7 @@ public class TarWriterTest {
                     segments.put(id, buffer);
                 }
             };
-            writer = new SegmentWriter(store, V_11);
+            writer = new SegmentWriter(store, V_11, "");
         }
 
         public class Node {
