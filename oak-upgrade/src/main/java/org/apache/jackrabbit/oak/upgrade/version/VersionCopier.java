@@ -24,7 +24,9 @@ import static org.apache.jackrabbit.JcrConstants.NT_VERSION;
 import java.util.Calendar;
 import java.util.Iterator;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -33,6 +35,7 @@ import org.apache.jackrabbit.oak.upgrade.DescendantsIterator;
 import org.apache.jackrabbit.oak.upgrade.nodestate.NodeStateCopier;
 import org.apache.jackrabbit.util.ISO8601;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.VERSION_STORE_PATH;
 
 import static org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil.getVersionHistoryPath;
@@ -61,17 +64,22 @@ public class VersionCopier {
         final Iterator<NodeState> versionStorageIterator = new DescendantsIterator(versionStorage, 3);
         final VersionCopier versionCopier = new VersionCopier(sourceRoot, targetRoot);
 
+        boolean versionsCopied = false;
         while (versionStorageIterator.hasNext()) {
             final NodeState versionHistoryBucket = versionStorageIterator.next();
             for (String versionHistory : versionHistoryBucket.getChildNodeNames()) {
-                versionCopier.copyVersionHistory(versionHistory, config.getOrphanedMinDate());
+                versionsCopied |= versionCopier.doCopyVersionHistory(versionHistory, config.getOrphanedMinDate());
             }
+        }
+
+        if (versionsCopied) {
+            versionCopier.markUuidToReindex();
         }
     }
 
     /**
-     * Copy history filtering versions using passed date and returns @{code
-     * true} if at least one version has been copied.
+     * Copy history filtering versions using passed date and returns {@code
+     * true} if the history has been copied.
      * 
      * @param versionableUuid
      *            Name of the version history node
@@ -80,6 +88,14 @@ public class VersionCopier {
      * @return {@code true} if at least one version has been copied
      */
     public boolean copyVersionHistory(String versionableUuid, Calendar minDate) {
+        boolean copied = doCopyVersionHistory(versionableUuid, minDate);
+        if (copied) {
+            markUuidToReindex();
+        }
+        return copied;
+    }
+
+    private boolean doCopyVersionHistory(String versionableUuid, Calendar minDate) {
         final String versionHistoryPath = getVersionHistoryPath(versionableUuid);
         final NodeState versionHistory = getVersionHistoryNodeState(sourceRoot, versionableUuid);
         final Calendar lastModified = getVersionHistoryLastModified(versionHistory);
@@ -110,5 +126,13 @@ public class VersionCopier {
             }
         }
         return youngest;
+    }
+
+    private void markUuidToReindex() {
+        final NodeBuilder uuidIndexDefinition = IndexUtils.getOrCreateOakIndex(targetRoot).getChildNode("uuid");
+        final PropertyState reindex = uuidIndexDefinition.getProperty(REINDEX_PROPERTY_NAME);
+        if (reindex == null || !reindex.getValue(Type.BOOLEAN)) {
+            uuidIndexDefinition.setProperty(REINDEX_PROPERTY_NAME, true);
+        }
     }
 }
