@@ -255,8 +255,10 @@ public final class SegmentGraph {
                     } else {
                         return info.get("gc");
                     }
+                } else if (!isDataSegmentId(segmentId.getLeastSignificantBits())) {
+                    return "bulk";
                 } else {
-                    return "";
+                    return "null";
                 }
             }
         });
