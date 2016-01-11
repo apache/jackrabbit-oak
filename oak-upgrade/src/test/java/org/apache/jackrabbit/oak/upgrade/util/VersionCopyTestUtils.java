@@ -24,27 +24,50 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
+import javax.jcr.version.VersionIterator;
 import javax.jcr.version.VersionManager;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.commons.JcrUtils;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.upgrade.version.VersionCopyConfiguration;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 public class VersionCopyTestUtils {
 
-    public static String createVersionableNode(Session session, String versionablePath)
+    public static List<String> LABELS = ImmutableList.of("1.0", "1.1", "1.2");
+
+    public static Node getOrAddNode(Node parent, String relPath) throws RepositoryException {
+        Node currentParent = parent;
+        for (final String name : PathUtils.elements(relPath)) {
+            if (!currentParent.hasNode(name)) {
+                currentParent.addNode(name, JcrConstants.NT_UNSTRUCTURED);
+            }
+            currentParent = currentParent.getNode(name);
+        }
+        return currentParent;
+    }
+
+    public static Node getOrAddNodeWithMixins(Node parent, String name, String mixinType)
+            throws RepositoryException {
+        final Node node = getOrAddNode(parent, name);
+        node.addMixin(mixinType);
+        return node;
+    }
+
+    public static String createLabeledVersions(Node node)
             throws RepositoryException, InterruptedException {
+        final Session session = node.getSession();
         final VersionManager versionManager = session.getWorkspace().getVersionManager();
-        final Node versionable = JcrUtils.getOrCreateUniqueByPath(session.getRootNode(), versionablePath,
-                JcrConstants.NT_UNSTRUCTURED);
-        versionable.addMixin("mix:versionable");
-        versionable.setProperty("version", "root");
+        node.setProperty("version", "root");
         session.save();
 
-        final String path = versionable.getPath();
+        final String path = node.getPath();
         final List<String> versionNames = new ArrayList<String>();
-        for (int i = 0; i < 3; i++) {
-            versionable.setProperty("version", "1." + i);
+        for (final String label : LABELS) {
+            node.setProperty("version", label);
             session.save();
             final Version v = versionManager.checkpoint(path);
             versionNames.add(v.getName());
@@ -57,8 +80,12 @@ public class VersionCopyTestUtils {
         return history.getPath();
     }
 
-    public static boolean isVersionable(Session session, String path) throws RepositoryException {
-        return session.getNode(path).isNodeType(JcrConstants.MIX_VERSIONABLE);
+    public static void assertLabeledVersions(VersionHistory history) throws RepositoryException {
+        final VersionIterator versions = history.getAllVersions();
+        assertFalse(versions.nextVersion().getFrozenNode().hasProperty("version")); // root
+        for (final String label : LABELS) {
+            assertEquals(label, versions.nextVersion().getFrozenNode().getProperty("version").getString());
+        }
     }
 
     public interface VersionCopySetup {
