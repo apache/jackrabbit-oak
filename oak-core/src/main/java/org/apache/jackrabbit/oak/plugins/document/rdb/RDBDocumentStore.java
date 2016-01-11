@@ -1264,7 +1264,7 @@ public class RDBDocumentStore implements DocumentStore {
     @CheckForNull
     private <T extends Document> void internalUpdate(Collection<T> collection, List<String> ids, UpdateOp update) {
 
-        if (isAppendableUpdate(update) && !requiresPreviousState(update)) {
+        if (isAppendableUpdate(update, true) && !requiresPreviousState(update)) {
             Operation modOperation = update.getChanges().get(MODIFIEDKEY);
             long modified = getModifiedFromOperation(modOperation);
             boolean modifiedIsConditional = modOperation == null || modOperation.type != UpdateOp.Operation.Type.SET;
@@ -1566,7 +1566,7 @@ public class RDBDocumentStore implements DocumentStore {
             boolean shouldRetry = true;
 
             // every 16th update is a full rewrite
-            if (isAppendableUpdate(update) && modcount % 16 != 0) {
+            if (isAppendableUpdate(update, false) && modcount % 16 != 0) {
                 String appendData = ser.asString(update);
                 if (appendData.length() < tmd.getDataLimitInOctets() / CHAR2OCTETRATIO) {
                     try {
@@ -1621,13 +1621,13 @@ public class RDBDocumentStore implements DocumentStore {
     private static final Set<Key> UNHANDLEDPROPS = new HashSet<Key>(
             Arrays.asList(new Key[] { new Key(NodeDocument.HAS_BINARY_FLAG, null), new Key(NodeDocument.DELETED_ONCE, null) }));
 
-    /*
-     * Detect update operations that contains changes to column properties not handled by the current appending code.
-     */
-    private static boolean isAppendableUpdate(UpdateOp update) {
-        for (Key key : update.getChanges().keySet()) {
-            if (UNHANDLEDPROPS.contains(key)) {
-                return false;
+    private static boolean isAppendableUpdate(UpdateOp update, boolean batched) {
+        if (batched) {
+            // Detect update operations not supported when doing batch updates
+            for (Key key : update.getChanges().keySet()) {
+                if (UNHANDLEDPROPS.contains(key)) {
+                    return false;
+                }
             }
         }
         return true;
