@@ -34,6 +34,7 @@ import org.junit.Test;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.PropertyType;
+import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.version.VersionHistory;
@@ -59,8 +60,6 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
 
     private static final String VERSIONABLES_PATH_PREFIX = "/versionables/";
 
-    private static final String[] MIXINS = { "mix:simpleVersionable", MIX_VERSIONABLE };
-
     private static final String VERSIONABLES_OLD = "old";
 
     private static final String VERSIONABLES_OLD_ORPHANED = "oldOrphaned";
@@ -82,8 +81,17 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
      */
     private static File source;
 
+    private static String[] MIXINS;
+
     @Override
     protected void createSourceContent(Session session) throws Exception {
+
+        if (hasSimpleVersioningSupport(session.getRepository())) {
+            MIXINS = new String[] { "mix:simpleVersionable", MIX_VERSIONABLE };
+        } else {
+            MIXINS = new String[] { MIX_VERSIONABLE };
+        }
+
         final Node root = session.getRootNode();
 
         for (final String mixinType : MIXINS) {
@@ -115,6 +123,10 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
         }
 
         session.save();
+    }
+
+    private boolean hasSimpleVersioningSupport(final Repository repository) {
+        return Boolean.parseBoolean(repository.getDescriptor(Repository.OPTION_SIMPLE_VERSIONING_SUPPORTED));
     }
 
     @Override
