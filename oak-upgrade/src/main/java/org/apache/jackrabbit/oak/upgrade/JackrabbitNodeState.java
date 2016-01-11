@@ -394,6 +394,11 @@ class JackrabbitNodeState extends AbstractNodeState {
                 mixins.add(createName(mixin));
             }
         }
+
+        if (mixins.remove("mix:simpleVersionable")) {
+            mixins.add(MIX_VERSIONABLE);
+        }
+
         if (!mixins.isEmpty()) {
             properties.put(JCR_MIXINTYPES, PropertyStates.createProperty(
                     JCR_MIXINTYPES, mixins, Type.NAMES));
