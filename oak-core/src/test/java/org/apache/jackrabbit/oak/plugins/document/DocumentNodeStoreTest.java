@@ -1698,10 +1698,10 @@ public class DocumentNodeStoreTest {
         Revision.setClock(clock);
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns1 = builderProvider.newBuilder()
-                .setAsyncDelay(0).clock(clock)
+                .setClusterId(1).setAsyncDelay(0).clock(clock)
                 .setDocumentStore(store).getNodeStore();
         DocumentNodeStore ns2 = builderProvider.newBuilder()
-                .setAsyncDelay(0).clock(clock)
+                .setClusterId(2).setAsyncDelay(0).clock(clock)
                 .setDocumentStore(store).getNodeStore();
 
         // create initial /foo
@@ -2572,9 +2572,11 @@ public class DocumentNodeStoreTest {
     public void lastRevWithRevisionVector() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns1 = builderProvider.newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+                .setClusterId(1).setDocumentStore(store)
+                .setAsyncDelay(0).getNodeStore();
         DocumentNodeStore ns2 = builderProvider.newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+                .setClusterId(2).setDocumentStore(store)
+                .setAsyncDelay(0).getNodeStore();
 
         NodeBuilder b1 = ns1.getRoot().builder();
         b1.child("parent");
@@ -2600,7 +2602,8 @@ public class DocumentNodeStoreTest {
     public void branchBaseBeforeClusterJoin() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns1 = builderProvider.newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+                .setClusterId(1).setDocumentStore(store)
+                .setAsyncDelay(0).getNodeStore();
 
         NodeBuilder b1 = ns1.getRoot().builder();
         b1.child("parent");
@@ -2608,7 +2611,8 @@ public class DocumentNodeStoreTest {
         ns1.runBackgroundOperations();
 
         DocumentNodeStore ns2 = builderProvider.newBuilder()
-                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+                .setClusterId(2).setDocumentStore(store)
+                .setAsyncDelay(0).getNodeStore();
         NodeBuilder b2 = ns2.getRoot().builder();
         b2.child("parent").child("baz");
         merge(ns2, b2);
