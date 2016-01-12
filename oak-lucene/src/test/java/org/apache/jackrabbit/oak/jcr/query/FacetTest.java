@@ -96,7 +96,7 @@ public class FacetTest extends AbstractQueryTest {
                 "where contains([text], 'hello OR hallo') order by [jcr:path]";
         Query q = qm.createQuery(sql2, Query.JCR_SQL2);
         QueryResult result = q.execute();
-        String facetResult = "text:[hallo (1), hello (1), oh hallo (1)]";
+        String facetResult = "{\"text\":[\"hallo\":1,\"hello\":1,\"oh hallo\":1]}";
         assertEquals(facetResult + ", " + facetResult + ", " + facetResult, getResult(result, "rep:facet(text)"));
     }
 
@@ -121,7 +121,7 @@ public class FacetTest extends AbstractQueryTest {
                 "where contains([jcr:title], 'oak') order by [jcr:path]";
         Query q = qm.createQuery(sql2, Query.JCR_SQL2);
         QueryResult result = q.execute();
-        String facetResult = "tags:[repository (2), software (2), aem (1), apache (1), cosmetics (1), furniture (1)], tags:[repository (2), software (2), aem (1), apache (1), cosmetics (1), furniture (1)], tags:[repository (2), software (2), aem (1), apache (1), cosmetics (1), furniture (1)], tags:[repository (2), software (2), aem (1), apache (1), cosmetics (1), furniture (1)]";
+        String facetResult = "{\"tags\":[\"repository\":2,\"software\":2,\"aem\":1,\"apache\":1,\"cosmetics\":1,\"furniture\":1]}, {\"tags\":[\"repository\":2,\"software\":2,\"aem\":1,\"apache\":1,\"cosmetics\":1,\"furniture\":1]}, {\"tags\":[\"repository\":2,\"software\":2,\"aem\":1,\"apache\":1,\"cosmetics\":1,\"furniture\":1]}, {\"tags\":[\"repository\":2,\"software\":2,\"aem\":1,\"apache\":1,\"cosmetics\":1,\"furniture\":1]}";
         assertEquals(facetResult, getResult(result, "rep:facet(tags)"));
     }
 
@@ -143,7 +143,7 @@ public class FacetTest extends AbstractQueryTest {
                 "where contains([text], 'hello OR hallo') order by [jcr:path]";
         Query q = qm.createQuery(sql2, Query.JCR_SQL2);
         QueryResult result = q.execute();
-        String facetResult = "text:[hallo (1), hello (1), oh hallo (1)]";
+        String facetResult = "{\"text\":[\"hallo\":1,\"hello\":1,\"oh hallo\":1]}";
         assertEquals(facetResult + ", " + facetResult + ", " + facetResult, getResult(result, "rep:facet(text)"));
     }
 
@@ -163,7 +163,7 @@ public class FacetTest extends AbstractQueryTest {
                 "where contains([" + pn + "], 'hallo') order by [jcr:path]";
         Query q = qm.createQuery(sql2, Query.JCR_SQL2);
         QueryResult result = q.execute();
-        String facetResult = pn + ":[hallo (1), oh hallo (1)]";
+        String facetResult = "{\"jcr:title\":[\"hallo\":1,\"oh hallo\":1]}";
         assertEquals(facetResult + ", " + facetResult, getResult(result, "rep:facet(" + pn + ")"));
     }
 
@@ -187,8 +187,8 @@ public class FacetTest extends AbstractQueryTest {
                 "where contains([" + pn + "], 'hallo') order by [jcr:path]";
         Query q = qm.createQuery(sql2, Query.JCR_SQL2);
         QueryResult result = q.execute();
-        String facetResult = pn + ":[hallo (1), oh hallo (1)], " + pn2 + ":[a (1), b (1)], " + pn + ":[hallo (1), oh hallo (1)], " + pn2 + ":[a (1), b (1)]";
-        assertEquals(facetResult, getResult(result, "rep:facet(" + pn + ")", "rep:facet(" + pn2 + ")"));
+        String facetResult = "{\"jcr:title\":[\"hallo\":1,\"oh hallo\":1]}, {\"jcr:description\":[\"a\":1,\"b\":1]}";
+        assertEquals(facetResult + ", " + facetResult, getResult(result, "rep:facet(" + pn + ")", "rep:facet(" + pn2 + ")"));
     }
 
     static String getResult(QueryResult result, String... propertyNames) throws RepositoryException {

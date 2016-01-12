@@ -43,6 +43,8 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
+import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexPlanner.PlanResult;
@@ -1519,7 +1521,15 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                             if (facets != null) {
                                 FacetResult topChildren = facets.getTopChildren(10, facetFieldName);
                                 if (topChildren != null) {
-                                    return PropertyValues.newString(facetFieldName + ":" + Arrays.toString(topChildren.labelValues));
+                                    JsopWriter writer = new JsopBuilder();
+                                    writer.object();
+                                    writer.key(facetFieldName).array();
+                                    for (LabelAndValue lav : topChildren.labelValues) {
+                                        writer.key(lav.label).value(lav.value.intValue());
+                                    }
+                                    writer.endArray();
+                                    writer.endObject();
+                                    return PropertyValues.newString(writer.toString());
                                 } else {
                                     return null;
                                 }

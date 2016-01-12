@@ -42,6 +42,7 @@ import org.apache.lucene.util.BytesRef;
  * ACL filtered version of {@link SortedSetDocValuesFacetCounts}
  */
 class FilteredSortedSetDocValuesFacetCounts extends SortedSetDocValuesFacetCounts {
+
     private final TopDocs docs;
     private final Filter filter;
     private final IndexReader reader;
