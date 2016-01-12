@@ -66,7 +66,7 @@ import org.apache.jackrabbit.test.NotExecutableException;
  *   Create an new ACE with a single valued restriction like e.g. the path globbing
  *   restriction.
  *
- * - {@link #testAddEntryWithMultipleRestrictions()}
+ * - {@link #testAddEntryWithMultiValuedRestriction()}
  *   Create an new ACE with multiple restrictions mixing both single and multi-
  *   valued restrictions.
  *

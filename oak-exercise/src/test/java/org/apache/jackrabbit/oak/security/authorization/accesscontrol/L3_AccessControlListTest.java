@@ -55,7 +55,7 @@ import org.apache.jackrabbit.test.NotExecutableException;
  *   Use this test to play with the different ways of adding one (or multiple) ACE
  *   to the list. Verify your expectations and keep an eye on the size of the ACL.
  *
- * - {@link #testRemoveEntries()}
+ * - {@link #testRemoveEntry()}
  *   Remove one ACE that has been added to the policy before and verify the result.
  *
  * - {@link #testReorderEntries()}

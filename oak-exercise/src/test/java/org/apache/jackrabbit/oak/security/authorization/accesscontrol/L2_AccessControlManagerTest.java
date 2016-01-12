@@ -125,7 +125,7 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  * policies, the specification defines the nature of access control policies an
  * implementation detail.
  *
- * - {@link testPoliciesAtNullPath()}
+ * - {@link #testPoliciesAtNullPath()}
  *   All test above use a regular, absolute path pointing to a Node to read and
  *   write access control policies.
  *   As of JSR 283 it is also allowed to use 'null' instead. Use this exercise
