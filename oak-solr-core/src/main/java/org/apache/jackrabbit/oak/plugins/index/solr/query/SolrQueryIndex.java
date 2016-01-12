@@ -34,6 +34,8 @@ import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
+import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
@@ -663,7 +665,15 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                             }
                         }
                         if (facetField != null) {
-                            return PropertyValues.newString(facetFieldName + ":" + facetField.getValues().toString());
+                            JsopWriter writer = new JsopBuilder();
+                            writer.object();
+                            writer.key(facetFieldName).array();
+                            for (FacetField.Count count : facetField.getValues()) {
+                                writer.key(count.getName()).value(count.getCount());
+                            }
+                            writer.endArray();
+                            writer.endObject();
+                            return PropertyValues.newString(writer.toString());
                         } else {
                             return null;
                         }
