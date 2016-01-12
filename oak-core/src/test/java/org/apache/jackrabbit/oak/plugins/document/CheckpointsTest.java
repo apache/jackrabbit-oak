@@ -242,9 +242,9 @@ public class CheckpointsTest {
         // this test
         final int asyncDelay = (int) TimeUnit.MINUTES.toMillis(1);
         DocumentStore store = new MemoryDocumentStore();
-        final DocumentNodeStore ns1 = builderProvider.newBuilder()
+        final DocumentNodeStore ns1 = builderProvider.newBuilder().setClusterId(1)
                 .setDocumentStore(store).setAsyncDelay(asyncDelay).getNodeStore();
-        final DocumentNodeStore ns2 = builderProvider.newBuilder()
+        final DocumentNodeStore ns2 = builderProvider.newBuilder().setClusterId(2)
                 .setDocumentStore(store).setAsyncDelay(asyncDelay).getNodeStore();
 
         // create node on ns1
@@ -287,7 +287,7 @@ public class CheckpointsTest {
     @Test
     public void crossClusterCheckpointNewClusterNode() throws Exception {
         DocumentStore store = new MemoryDocumentStore();
-        DocumentNodeStore ns1 = builderProvider.newBuilder()
+        DocumentNodeStore ns1 = builderProvider.newBuilder().setClusterId(1)
                 .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
 
         // create 'foo' on ns1
@@ -307,7 +307,7 @@ public class CheckpointsTest {
         ns1.runBackgroundOperations();
 
         // now start second node store
-        DocumentNodeStore ns2 = builderProvider.newBuilder()
+        DocumentNodeStore ns2 = builderProvider.newBuilder().setClusterId(2)
                 .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
         NodeBuilder b2 = ns2.getRoot().builder();
         b2.child("baz");
@@ -323,7 +323,7 @@ public class CheckpointsTest {
     @Test
     public void crossClusterReadOldCheckpoint() throws Exception {
         DocumentStore store = new MemoryDocumentStore();
-        DocumentNodeStore ns1 = builderProvider.newBuilder()
+        DocumentNodeStore ns1 = builderProvider.newBuilder().setClusterId(1)
                 .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
 
         NodeBuilder b1 = ns1.getRoot().builder();
@@ -340,7 +340,7 @@ public class CheckpointsTest {
         store.createOrUpdate(Collection.SETTINGS, update);
 
         // now start second node store
-        DocumentNodeStore ns2 = builderProvider.newBuilder()
+        DocumentNodeStore ns2 = builderProvider.newBuilder().setClusterId(2)
                 .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
         NodeBuilder b2 = ns2.getRoot().builder();
         b2.child("baz");
