@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.run.osgi
 import org.apache.felix.connect.launch.PojoServiceRegistry
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName
@@ -49,6 +50,15 @@ class SecurityProviderRegistrationTest extends AbstractRepositoryFactoryTest {
     @Test
     public void testDefaultSetup() {
         assert securityProviderServiceReferences != null
+    }
+
+    /**
+     * A SecurityProvider shouldn't start without a required
+     * AuthorizationConfiguration service.
+     */
+    @Test
+    public void testRequiredAuthorizationConfigurationNotAvailable() {
+        testRequiredService(AuthorizationConfiguration, mock(AuthorizationConfiguration))
     }
 
     /**
@@ -114,12 +124,15 @@ class SecurityProviderRegistrationTest extends AbstractRepositoryFactoryTest {
 
         // Set up the SecurityProvider to require three services
 
-        setRequiredServicePids("test.RequiredPrincipalConfiguration", "test.RequiredTokenConfiguration", "test.AuthorizableNodeName")
+        setRequiredServicePids("test.RequiredAuthorizationConfiguration", "test.RequiredPrincipalConfiguration", "test.RequiredTokenConfiguration", "test.AuthorizableNodeName")
         TimeUnit.MILLISECONDS.sleep(500)
         assert securityProviderServiceReferences == null
 
         // Start the services and verify that only at the end the
         // SecurityProvider registers itself
+
+        registry.registerService(AuthorizationConfiguration.class.name, mock(AuthorizationConfiguration), dict("service.pid": "test.RequiredAuthorizationConfiguration"))
+        assert securityProviderServiceReferences == null
 
         registry.registerService(PrincipalConfiguration.class.name, mock(PrincipalConfiguration), dict("service.pid": "test.RequiredPrincipalConfiguration"))
         assert securityProviderServiceReferences == null
