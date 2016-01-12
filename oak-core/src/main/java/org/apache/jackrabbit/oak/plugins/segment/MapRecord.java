@@ -358,21 +358,17 @@ class MapRecord extends Record {
             return concat(entries);
         }
 
-        RecordId[] keys = new RecordId[size];
-        RecordId[] values = new RecordId[size];
-        for (int i = 0; i < size; i++) {
-            keys[i] = segment.readRecordId(getOffset(4 + size * 4, i * 2));
-            if (keys[i].equals(diffKey)) {
-                values[i] = diffValue;
-            } else {
-                values[i] = segment.readRecordId(getOffset(4 + size * 4, i * 2 + 1));
-            }
-        }
-
         MapEntry[] entries = new MapEntry[size];
         for (int i = 0; i < size; i++) {
-            String name = Segment.readString(keys[i]);
-            entries[i] = new MapEntry(name, keys[i], values[i]);
+            RecordId key = segment.readRecordId(getOffset(4 + size * 4, i * 2));
+            RecordId value;
+            if (key.equals(diffKey)) {
+                value = diffValue;
+            } else {
+                value = segment.readRecordId(getOffset(4 + size * 4, i * 2 + 1));
+            }
+            String name = Segment.readString(key);
+            entries[i] = new MapEntry(name, key, value);
         }
         return Arrays.asList(entries);
     }
