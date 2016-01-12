@@ -327,7 +327,7 @@ public class RDBDocumentStore implements DocumentStore {
         Connection connection = null;
         try {
             connection = this.ch.getROConnection();
-            long result = this.db.determineServerTimeDifferenceMillis(connection, getTable(Collection.NODES));
+            long result = this.db.determineServerTimeDifferenceMillis(connection);
             connection.commit();
             return result;
         } catch (SQLException ex) {
