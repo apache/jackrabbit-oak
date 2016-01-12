@@ -420,6 +420,8 @@ public class CompactionAndCleanupIT {
 
         traverse(fileStore.getHead());
         fileStore.cleanup();
+
+        // Traversal after cleanup might result in an SNFE
         traverse(fileStore.getHead());
 
         fileStore.close();
