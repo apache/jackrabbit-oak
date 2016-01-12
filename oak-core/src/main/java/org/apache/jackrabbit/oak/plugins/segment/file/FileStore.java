@@ -76,7 +76,6 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentVersion;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
@@ -935,13 +934,6 @@ public class FileStore implements SegmentStore {
     }
 
     /**
-     * @return  a new {@link SegmentWriter} instance for writing to this store.
-     */
-    public SegmentWriter createSegmentWriter(String wid) {
-        return new SegmentWriter(this, getVersion(), wid);
-    }
-
-    /**
      * Returns the cancellation policy for the compaction phase. If the disk
      * space was considered insufficient at least once during compaction (or if
      * the space was never sufficient to begin with), compaction is considered
@@ -1009,7 +1001,7 @@ public class FileStore implements SegmentStore {
         gcMonitor.info("TarMK GC #{}: compaction started, strategy={}", gcCount, compactionStrategy);
         Stopwatch watch = Stopwatch.createStarted();
         Supplier<Boolean> compactionCanceled = newCancelCompactionCondition();
-        Compactor compactor = new Compactor(this, compactionStrategy, compactionCanceled);
+        Compactor compactor = new Compactor(tracker, compactionStrategy, compactionCanceled);
         SegmentNodeState before = getHead();
         long existing = before.getChildNode(SegmentNodeStore.CHECKPOINTS)
                 .getChildNodeCount(Long.MAX_VALUE);

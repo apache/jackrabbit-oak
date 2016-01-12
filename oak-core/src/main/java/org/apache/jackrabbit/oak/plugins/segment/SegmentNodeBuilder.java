@@ -69,7 +69,7 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
         this.updateCount = 0;
     }
 
-    SegmentNodeBuilder(SegmentNodeBuilder parent, String name,
+    private SegmentNodeBuilder(SegmentNodeBuilder parent, String name,
             SegmentWriter writer) {
         super(parent, name);
         this.writer = writer;

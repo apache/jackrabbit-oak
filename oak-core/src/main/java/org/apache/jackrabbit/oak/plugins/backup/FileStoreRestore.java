@@ -74,7 +74,7 @@ public class FileStoreRestore {
     private static class RestoreCompactor extends Compactor {
 
         public RestoreCompactor(SegmentStore store) {
-            super(store);
+            super(store.getTracker());
         }
 
         @Override

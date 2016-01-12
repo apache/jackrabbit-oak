@@ -42,7 +42,6 @@ import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MultiBinaryPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -98,28 +97,28 @@ public class Compactor {
      */
     private final Supplier<Boolean> cancel;
 
-    public Compactor(SegmentStore store) {
-        this(store, Suppliers.ofInstance(false));
+    public Compactor(SegmentTracker tracker) {
+        this(tracker, Suppliers.ofInstance(false));
     }
 
-    public Compactor(SegmentStore store, Supplier<Boolean> cancel) {
-        this.writer = store.getTracker().getWriter();
-        this.map = new InMemoryCompactionMap(store.getTracker());
+    public Compactor(SegmentTracker tracker, Supplier<Boolean> cancel) {
+        this.writer = tracker.getWriter();
+        this.map = new InMemoryCompactionMap(tracker);
         this.cloneBinaries = false;
         this.cancel = cancel;
     }
 
-    public Compactor(FileStore store, CompactionStrategy compactionStrategy) {
-        this(store, compactionStrategy, Suppliers.ofInstance(false));
+    public Compactor(SegmentTracker tracker, CompactionStrategy compactionStrategy) {
+        this(tracker, compactionStrategy, Suppliers.ofInstance(false));
     }
 
-    public Compactor(FileStore store, CompactionStrategy compactionStrategy, Supplier<Boolean> cancel) {
-        String wid = "c-" + store.getTracker().getCompactionMap().getGeneration() + 1;
-        this.writer = store.createSegmentWriter(wid);
+    public Compactor(SegmentTracker tracker, CompactionStrategy compactionStrategy, Supplier<Boolean> cancel) {
+        String wid = "c-" + tracker.getCompactionMap().getGeneration() + 1;
+        this.writer = tracker.createSegmentWriter(wid);
         if (compactionStrategy.getPersistCompactionMap()) {
-            this.map = new PersistedCompactionMap(store);
+            this.map = new PersistedCompactionMap(tracker);
         } else {
-            this.map = new InMemoryCompactionMap(store.getTracker());
+            this.map = new InMemoryCompactionMap(tracker);
         }
         this.cloneBinaries = compactionStrategy.cloneBinaries();
         if (compactionStrategy.isOfflineCompaction()) {

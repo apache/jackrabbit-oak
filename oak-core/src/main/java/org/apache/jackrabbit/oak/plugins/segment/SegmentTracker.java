@@ -113,8 +113,12 @@ public class SegmentTracker {
      */
     private final AtomicInteger segmentCounter = new AtomicInteger();
 
+    private final SegmentVersion segmentVersion;
+
     public SegmentTracker(SegmentStore store, int cacheSizeMB,
             SegmentVersion version) {
+        this.segmentVersion = version;
+
         for (int i = 0; i < tables.length; i++) {
             tables[i] = new SegmentIdTable(this);
         }
@@ -122,7 +126,7 @@ public class SegmentTracker {
         this.store = store;
         this.compactionMap = new AtomicReference<CompactionMap>(
                 CompactionMap.EMPTY);
-        this.writer = new SegmentWriter(store, version, "sys");
+        this.writer = createSegmentWriter("sys");
         StringCache c;
         if (DISABLE_STRING_CACHE) {
             c = null;
@@ -159,6 +163,13 @@ public class SegmentTracker {
      */
     int getNextSegmentNo() {
         return segmentCounter.incrementAndGet();
+    }
+
+    /**
+     * @return  a new {@link SegmentWriter} instance for writing to this store.
+     */
+    public final SegmentWriter createSegmentWriter(String wid) {
+        return new SegmentWriter(store, segmentVersion, wid);
     }
 
     @Nonnull
