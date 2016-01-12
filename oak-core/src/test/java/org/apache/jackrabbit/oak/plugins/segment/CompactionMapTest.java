@@ -84,7 +84,7 @@ public class CompactionMapTest {
 
     private PartialCompactionMap createCompactionMap(boolean persisted) {
         if (persisted) {
-            return new PersistedCompactionMap(store);
+            return new PersistedCompactionMap(store.getTracker());
         } else {
             return new InMemoryCompactionMap(store.getTracker());
         }

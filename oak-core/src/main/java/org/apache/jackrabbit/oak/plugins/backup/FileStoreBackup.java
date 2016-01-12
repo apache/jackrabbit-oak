@@ -77,7 +77,7 @@ public class FileStoreBackup {
                 }
             }
 
-            Compactor compactor = new Compactor(backup);
+            Compactor compactor = new Compactor(backup.getTracker());
             SegmentNodeState after = compactor.compact(before, current);
 
             // 4. commit the backup

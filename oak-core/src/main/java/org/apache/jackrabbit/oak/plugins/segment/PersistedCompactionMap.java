@@ -35,7 +35,6 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,13 +67,13 @@ public class PersistedCompactionMap implements PartialCompactionMap {
 
     private final TreeMap<UUID, RecordIdMap> recent = newTreeMap();
 
-    private final FileStore store;
+    private final SegmentTracker tracker;
 
     private long recordCount;
     private MapRecord entries;
 
-    PersistedCompactionMap(@Nonnull FileStore store) {
-        this.store = store;
+    PersistedCompactionMap(@Nonnull SegmentTracker tracker) {
+        this.tracker = tracker;
     }
 
     @Override
@@ -103,7 +102,7 @@ public class PersistedCompactionMap implements PartialCompactionMap {
             return recordId;
         }
 
-        return get(store.getTracker(), entries, uuid, offset);
+        return get(tracker, entries, uuid, offset);
     }
 
     @CheckForNull
@@ -198,7 +197,7 @@ public class PersistedCompactionMap implements PartialCompactionMap {
                 base = baseEntry == null ? null : new MapRecord(baseEntry.getValue());
 
                 if (writer == null) {
-                    writer = store.createSegmentWriter(createWid());
+                    writer = tracker.createSegmentWriter(createWid());
                 }
 
                 Map<String, RecordId> offsetMap = newHashMap();
@@ -223,7 +222,7 @@ public class PersistedCompactionMap implements PartialCompactionMap {
 
             if (!segmentIdMap.isEmpty()) {
                 if (writer == null) {
-                    writer = store.createSegmentWriter(createWid());
+                    writer = tracker.createSegmentWriter(createWid());
                 }
 
                 RecordId previousBaseId = entries == null ? null : entries.getRecordId();
@@ -248,7 +247,7 @@ public class PersistedCompactionMap implements PartialCompactionMap {
 
     @Nonnull
     private String createWid() {
-        return "cm-" + store.getTracker().getCompactionMap().getGeneration() + 1;
+        return "cm-" + tracker.getCompactionMap().getGeneration() + 1;
     }
 
     /**

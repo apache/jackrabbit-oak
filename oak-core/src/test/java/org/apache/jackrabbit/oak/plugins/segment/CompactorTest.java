@@ -54,7 +54,7 @@ public class CompactorTest {
         NodeStore store = new SegmentNodeStore(segmentStore);
         init(store);
 
-        Compactor compactor = new Compactor(segmentStore);
+        Compactor compactor = new Compactor(segmentStore.getTracker());
         addTestContent(store, 0);
 
         NodeState initial = store.getRoot();
@@ -75,7 +75,7 @@ public class CompactorTest {
         // doesn't have the child named "b".
 
         NodeStore store = SegmentNodeStore.newSegmentNodeStore(segmentStore).create();
-        Compactor compactor = new Compactor(segmentStore, Suppliers.ofInstance(true));
+        Compactor compactor = new Compactor(segmentStore.getTracker(), Suppliers.ofInstance(true));
         SegmentNodeState sns = compactor.compact(store.getRoot(), addChild(store.getRoot(), "b"), store.getRoot());
         assertFalse(sns.hasChildNode("b"));
     }
