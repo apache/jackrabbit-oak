@@ -23,6 +23,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 
 import javax.jcr.query.Query;
@@ -525,6 +527,71 @@ import org.junit.rules.TestName;
         Iterator<String> results = executeQuery(statement, Query.JCR_SQL2, true).iterator();
         assertTrue(results.hasNext());
         assertEquals("/content/a", results.next());
+        assertFalse(results.hasNext());
+    }
+
+    @Test
+    public void testOrderByMVProperty() throws Exception {
+        Tree index = root.getTree("/oak:index/" + TEST_INDEX_NAME);
+        assertTrue(index.exists());
+
+        index.setProperty("rows", 10000);
+        index.setProperty("reindex", true);
+        root.commit();
+
+        Tree content = root.getTree("/").addChild("content");
+        Tree a = content.addChild("a");
+        a.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
+        a.setProperty("type", Arrays.asList("a", "z"), Type.STRINGS);
+        a.setProperty("text", "a doc");
+        Tree aContent = a.addChild("jcr:content");
+        aContent.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
+        aContent.setProperty("type", Collections.singletonList("3"), Type.STRINGS);
+        Tree b = content.addChild("b");
+        b.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
+        b.setProperty("type", Arrays.asList("b", "y"), Type.STRINGS);
+        b.setProperty("text", "b doc");
+        Tree bContent = b.addChild("jcr:content");
+        bContent.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
+        bContent.setProperty("type", Collections.singletonList("1"), Type.STRINGS);
+        root.commit();
+        Tree c = content.addChild("c");
+        c.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
+        c.setProperty("type", Arrays.asList("c", "x"), Type.STRINGS);
+        c.setProperty("text", "c doc");
+        Tree cContent = c.addChild("jcr:content");
+        cContent.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
+        cContent.setProperty("type", Collections.singletonList("2"), Type.STRINGS);
+        root.commit();
+
+        String statement = "select [jcr:path], [jcr:score] " +
+                "from [nt:unstructured] as a " +
+                "where contains(*, 'doc') " +
+                "and isdescendantnode(a, '/content') " +
+                "order by [type] desc";
+
+        Iterator<String> results = executeQuery(statement, Query.JCR_SQL2, true).iterator();
+        assertTrue(results.hasNext());
+        assertEquals("/content/c", results.next());
+        assertTrue(results.hasNext());
+        assertEquals("/content/b", results.next());
+        assertTrue(results.hasNext());
+        assertEquals("/content/a", results.next());
+        assertFalse(results.hasNext());
+
+        statement = "select [jcr:path], [jcr:score] " +
+                "from [nt:unstructured] as a " +
+                "where contains(*, 'doc') " +
+                "and isdescendantnode(a, '/content') " +
+                "order by [type] asc";
+
+        results = executeQuery(statement, Query.JCR_SQL2, true).iterator();
+        assertTrue(results.hasNext());
+        assertEquals("/content/a", results.next());
+        assertTrue(results.hasNext());
+        assertEquals("/content/b", results.next());
+        assertTrue(results.hasNext());
+        assertEquals("/content/c", results.next());
         assertFalse(results.hasNext());
     }
 

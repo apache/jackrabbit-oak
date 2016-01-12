@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.solr.query;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.query.QueryImpl;
@@ -73,14 +74,18 @@ class FilterQueryParser {
                     order = SolrQuery.ORDER.desc;
                 }
                 String sortingField;
-                if ("jcr:path".equals(orderEntry.getPropertyName())) {
-                    sortingField = configuration.getPathField();
-                } else if ("jcr:score".equals(orderEntry.getPropertyName())) {
+                if (JcrConstants.JCR_PATH.equals(orderEntry.getPropertyName())) {
+                    sortingField = partialEscape(configuration.getPathField()).toString();
+                } else if (JcrConstants.JCR_SCORE.equals(orderEntry.getPropertyName())) {
                     sortingField = "score";
                 } else {
-                    sortingField = getSortingField(orderEntry.getPropertyType().tag(), orderEntry.getPropertyName());
+                    if (orderEntry.getPropertyName().indexOf('/') >= 0) {
+                        log.warn("cannot sort on relative properties, ignoring {} clause", orderEntry);
+                        continue; // sorting by relative properties not supported until index time aggregation is supported
+                    }
+                    sortingField = partialEscape(getSortingField(orderEntry.getPropertyType().tag(), orderEntry.getPropertyName())).toString();
                 }
-                solrQuery.addOrUpdateSort(partialEscape(sortingField).toString(), order);
+                solrQuery.addOrUpdateSort(sortingField, order);
             }
         }
 
@@ -96,8 +101,8 @@ class FilterQueryParser {
                     solrQuery.setFacetMinCount(1);
                     solrQuery.setFacet(true);
                     String value = pr.first.getValue(Type.STRING);
-                    solrQuery.addFacetField(value.substring(QueryImpl.REP_FACET.length() + 1, value.length() - 1)+"_facet");
-                } 
+                    solrQuery.addFacetField(value.substring(QueryImpl.REP_FACET.length() + 1, value.length() - 1) + "_facet");
+                }
 
                 // native query support
                 if (SolrQueryIndex.NATIVE_SOLR_QUERY.equals(pr.propertyName) || SolrQueryIndex.NATIVE_LUCENE_QUERY.equals(pr.propertyName)) {
