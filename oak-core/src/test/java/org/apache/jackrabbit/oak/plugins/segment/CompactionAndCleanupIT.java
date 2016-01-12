@@ -27,6 +27,7 @@ import static org.apache.commons.io.FileUtils.deleteDirectory;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_MK;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore.newSegmentNodeStore;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType.CLEAN_ALL;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType.CLEAN_NONE;
@@ -47,6 +48,8 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -63,6 +66,7 @@ import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.NonCachingFileStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -375,6 +379,62 @@ public class CompactionAndCleanupIT {
         } finally {
             store.close();
         }
+    }
+
+    /**
+     * Set a root node referring to a child node that lives in a different segments. Depending
+     * on the order how the SegmentBufferWriters associated with the threads used to create the
+     * nodes are flushed, this will introduce a forward reference between the segments.
+     * The current cleanup mechanism cannot handle forward references and removes the referenced
+     * segment causing a SNFE.
+     * This is a regression introduced with OAK-1828.
+     */
+    @Test
+    @Ignore("OAK-3864")  // FIXME OAK-3864
+    public void cleanupCyclicGraph() throws IOException, ExecutionException, InterruptedException {
+        FileStore fileStore = newFileStore(directory).create();
+        final SegmentWriter writer = fileStore.getTracker().getWriter();
+        final SegmentNodeState oldHead = fileStore.getHead();
+
+        final SegmentNodeState child = run(new Callable<SegmentNodeState>() {
+            @Override
+            public SegmentNodeState call() throws Exception {
+                NodeBuilder builder = EMPTY_NODE.builder();
+                return writer.writeNode(EMPTY_NODE);
+            }
+        });
+        SegmentNodeState newHead = run(new Callable<SegmentNodeState>() {
+            @Override
+            public SegmentNodeState call() throws Exception {
+                NodeBuilder builder = oldHead.builder();
+                builder.setChildNode("child", child);
+                return writer.writeNode(builder.getNodeState());
+            }
+        });
+
+        writer.flush();
+        fileStore.setHead(oldHead, newHead);
+        fileStore.close();
+
+        fileStore = newFileStore(directory).create();
+
+        traverse(fileStore.getHead());
+        fileStore.cleanup();
+        traverse(fileStore.getHead());
+
+        fileStore.close();
+    }
+
+    private static void traverse(NodeState node) {
+        for (ChildNodeEntry childNodeEntry : node.getChildNodeEntries()) {
+            traverse(childNodeEntry.getNodeState());
+        }
+    }
+
+    private static <T> T run(Callable<T> callable) throws InterruptedException, ExecutionException {
+        FutureTask<T> task = new FutureTask<T>(callable);
+        new Thread(task).start();
+        return task.get();
     }
 
     /**
