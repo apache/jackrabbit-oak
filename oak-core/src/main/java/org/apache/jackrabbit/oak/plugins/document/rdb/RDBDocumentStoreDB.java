@@ -50,17 +50,22 @@ public enum RDBDocumentStoreDB {
         public String checkVersion(DatabaseMetaData md) throws SQLException {
             return RDBJDBCTools.versionCheck(md, 1, 4, description);
         }
+
+        @Override
+        public String getInitializationStatement() {
+            return "create alias if not exists unix_timestamp as $$ long unix_timestamp() { return System.currentTimeMillis()/1000L; } $$;";
+        }
+
+        @Override
+        public String getCurrentTimeStampInSecondsSyntax() {
+            return "select unix_timestamp()";
+        }
     },
 
     DERBY("Apache Derby") {
         @Override
         public String checkVersion(DatabaseMetaData md) throws SQLException {
             return RDBJDBCTools.versionCheck(md, 10, 11, description);
-        }
-
-        @Override
-        public String getCurrentTimeStampInMsSyntax() {
-            return "CURRENT_TIMESTAMP";
         }
 
         @Override
@@ -73,6 +78,11 @@ public enum RDBDocumentStoreDB {
         @Override
         public String checkVersion(DatabaseMetaData md) throws SQLException {
             return RDBJDBCTools.versionCheck(md, 9, 3, description);
+        }
+
+        @Override
+        public String getCurrentTimeStampInSecondsSyntax() {
+            return "select extract(epoch from now())::integer";
         }
 
         @Override
@@ -113,6 +123,11 @@ public enum RDBDocumentStoreDB {
         @Override
         public String checkVersion(DatabaseMetaData md) throws SQLException {
             return RDBJDBCTools.versionCheck(md, 10, 1, description);
+        }
+
+        @Override
+        public String getCurrentTimeStampInSecondsSyntax() {
+            return "select cast (days(current_timestamp - current_timezone) - days('1970-01-01') as integer) * 86400 + midnight_seconds(current_timestamp - current_timezone) from sysibm.sysdummy1";
         }
 
         public String getTableCreationStatement(String tableName) {
@@ -182,6 +197,11 @@ public enum RDBDocumentStoreDB {
         }
 
         @Override
+        public String getCurrentTimeStampInSecondsSyntax() {
+            return "select (trunc(sys_extract_utc(systimestamp)) - to_date('01/01/1970', 'MM/DD/YYYY')) * 24 * 60 * 60 + to_number(to_char(sys_extract_utc(systimestamp), 'SSSSS')) from dual";
+        }
+
+        @Override
         public String getInitializationStatement() {
             // see https://issues.apache.org/jira/browse/OAK-1914
             // for some reason, the default for NLS_SORT is incorrect
@@ -225,6 +245,11 @@ public enum RDBDocumentStoreDB {
         @Override
         public String checkVersion(DatabaseMetaData md) throws SQLException {
             return RDBJDBCTools.versionCheck(md, 5, 5, description);
+        }
+
+        @Override
+        public String getCurrentTimeStampInSecondsSyntax() {
+            return "select unix_timestamp()";
         }
 
         @Override
@@ -328,8 +353,8 @@ public enum RDBDocumentStoreDB {
         }
 
         @Override
-        public String getCurrentTimeStampInMsSyntax() {
-            return "CURRENT_TIMESTAMP";
+        public String getCurrentTimeStampInSecondsSyntax() {
+            return "select datediff(second, dateadd(second, datediff(second, getutcdate(), getdate()), '1970-01-01'), getdate())";
         }
 
         @Override
@@ -392,10 +417,13 @@ public enum RDBDocumentStoreDB {
     }
 
     /**
-     * Query syntax for current time in ms
+     * Query syntax for current time in ms since the epoch
+     * 
+     * @return the query syntax or empty string when no such syntax is available
      */
-    public String getCurrentTimeStampInMsSyntax() {
-        return "CURRENT_TIMESTAMP(4)";
+    public String getCurrentTimeStampInSecondsSyntax() {
+        // unfortunately, we don't have a portable statement for this
+        return "";
     }
 
     /**

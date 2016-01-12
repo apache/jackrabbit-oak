@@ -207,52 +207,42 @@ public class RDBDocumentStoreJDBC {
         }
     }
 
-    public long determineServerTimeDifferenceMillis(Connection connection, RDBTableMetaData tmd) {
-        PreparedStatement stmt = null;
-        ResultSet rs = null;
-        long result;
-        try {
-            String t = "select ";
-            if (this.dbInfo.getFetchFirstSyntax() == FETCHFIRSTSYNTAX.TOP) {
-                t += "TOP 1 ";
-            }
-            t += this.dbInfo.getCurrentTimeStampInMsSyntax() + " from " + tmd.getName();
-            switch (this.dbInfo.getFetchFirstSyntax()) {
-                case LIMIT:
-                    t += " LIMIT 1";
-                    break;
-                case FETCHFIRST:
-                    t += " FETCH FIRST 1 ROWS ONLY";
-                    break;
-                default:
-                    break;
-            }
+    public long determineServerTimeDifferenceMillis(Connection connection) {
+        String sql = this.dbInfo.getCurrentTimeStampInSecondsSyntax();
 
-            stmt = connection.prepareStatement(t);
-            long start = System.currentTimeMillis();
-            rs = stmt.executeQuery();
-            if (rs.next()) {
-                long roundtrip = System.currentTimeMillis() - start;
-                long serverTime = rs.getTimestamp(1).getTime();
-                long roundedTime = start + roundtrip / 2;
-                result = roundedTime - serverTime;
-                String msg = String.format("instance timestamp: %d, DB timestamp: %d, difference: %d", roundedTime, serverTime,
-                        result);
-                if (Math.abs(result) >= 2000) {
-                    LOG.info(msg);
+        if (sql.isEmpty()) {
+            LOG.debug("{}: unsupported database, skipping DB server time check", this.dbInfo.toString());
+            return 0;
+        } else {
+            PreparedStatement stmt = null;
+            ResultSet rs = null;
+            try {
+                stmt = connection.prepareStatement(sql);
+                long start = System.currentTimeMillis();
+                rs = stmt.executeQuery();
+                if (rs.next()) {
+                    long roundtrip = System.currentTimeMillis() - start;
+                    long serverTimeSec = rs.getInt(1);
+                    long roundedTimeSec = ((start + roundtrip / 2) + 500) / 1000;
+                    long resultSec = roundedTimeSec - serverTimeSec;
+                    String message = String.format("instance timestamp: %d, DB timestamp: %d, difference: %d", roundedTimeSec,
+                            serverTimeSec, resultSec);
+                    if (Math.abs(resultSec) >= 2) {
+                        LOG.info(message);
+                    } else {
+                        LOG.debug(message);
+                    }
+                    return resultSec * 1000;
                 } else {
-                    LOG.debug(msg);
+                    throw new DocumentStoreException("failed to determine server timestamp");
                 }
-            } else {
-                throw new DocumentStoreException("failed to determine server timestamp");
+            } catch (Exception ex) {
+                LOG.error("Trying to determine time difference to server", ex);
+                throw new DocumentStoreException(ex);
+            } finally {
+                closeResultSet(rs);
+                closeStatement(stmt);
             }
-            return result;
-        } catch (Exception ex) {
-            LOG.error("Trying to determine time difference to server", ex);
-            throw new DocumentStoreException(ex);
-        } finally {
-            closeResultSet(rs);
-            closeStatement(stmt);
         }
     }
 
