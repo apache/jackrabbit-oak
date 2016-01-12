@@ -41,7 +41,7 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
  *   Question: Where is the access control manager being used for?
  *   Question: Who is the expected API consumer?
  *   Question: What are the characteristics of this areas?
- *   Question: Can identify areas where oak-jcr and oak-core actually make use of the access control management API?
+ *   Question: Can you identify areas where oak-jcr and oak-core actually make use of the access control management API?
  *
  * - Configuration
  *   Look at the default implementation(s) of the {@link org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration}
@@ -57,7 +57,7 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
  *
  *   Question: What means does Oak provide to change or extend the access control management?
  *   Question: Can you identify the interfaces that you needed to implement?
- *   Question: Would it be possible to only replace the implementation of {@link AccessControlManager}?
+ *   Question: Would it be possible to only replace the implementation of {@link javax.jcr.security.AccessControlManager}?
  *             How could you achieve this?
  *             And what would be the consequences for the whole authorization module?
  *
