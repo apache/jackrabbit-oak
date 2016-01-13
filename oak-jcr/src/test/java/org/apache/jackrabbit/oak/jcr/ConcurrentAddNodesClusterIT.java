@@ -89,6 +89,7 @@ public class ConcurrentAddNodesClusterIT {
         dropDB();
     }
 
+    @Ignore("OAK-3848")
     @Test
     public void addNodesConcurrent() throws Exception {
         for (int i = 0; i < NUM_CLUSTER_NODES; i++) {
