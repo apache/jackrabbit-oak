@@ -41,7 +41,6 @@ public class SegmentSizeTest {
     @Test
     public void testNodeSize() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
-        System.out.println("testNodeSize");
         expectSize(96, builder);
         expectAmortizedSize(4, builder);
 
@@ -120,7 +119,6 @@ public class SegmentSizeTest {
     public void testAccessControlNodes() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("jcr:primaryType", "rep:ACL", Type.NAME);
-        System.out.println("testAccessControlNodes");
         expectSize(96, builder);
         expectAmortizedSize(4, builder);
 
@@ -188,7 +186,6 @@ public class SegmentSizeTest {
         RecordId id = writer.writeNode(builder.getNodeState()).getRecordId();
         writer.flush();
         Segment segment = id.getSegment();
-        System.out.println(segment.getSegmentInfo());
         assertEquals("Unexpected size of segment " + id + " info=" + segment.getSegmentInfo(),
             expectedSize, segment.size());
     }
