@@ -36,19 +36,15 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
-import org.apache.jackrabbit.oak.commons.json.JsopReader;
-import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
@@ -66,6 +62,8 @@ public class RDBExport {
     private enum Format {
         JSON, JSONARRAY, CSV
     };
+
+    private static final RDBJSONSupport JSON = new RDBJSONSupport(false);
 
     public static void main(String[] args) throws ClassNotFoundException, SQLException, IOException {
 
@@ -348,8 +346,7 @@ public class RDBExport {
         if (fieldNames.isEmpty()) {
             return fulljson;
         } else {
-            JsopTokenizer t = new JsopTokenizer(fulljson.toString());
-            Map<String, Object> doc = (Map<String, Object>) readValueFromJson(t);
+            Map<String, Object> doc = (Map<String, Object>) JSON.parse(fulljson.toString());
             StringBuilder buf = new StringBuilder();
             buf.append('{');
             String delim = "";
@@ -359,7 +356,7 @@ public class RDBExport {
                 String[] fn = field.split("\\.");
                 if (doc.containsKey(fn[0])) {
                     Object o = doc.get(fn[0]);
-                    appendJsonMember(buf, fn[0], o);
+                    RDBJSONSupport.appendJsonMember(buf, fn[0], o);
                 }
             }
             buf.append('}');
@@ -367,51 +364,9 @@ public class RDBExport {
         }
     }
 
-    private static void appendJsonMember(StringBuilder sb, String key, Object value) {
-        appendJsonString(sb, key);
-        sb.append(":");
-        appendJsonValue(sb, value);
-    }
-
-    private static void appendJsonString(StringBuilder sb, String s) {
-        sb.append('"');
-        JsopBuilder.escape(s, sb);
-        sb.append('"');
-    }
-
-    private static void appendJsonMap(StringBuilder sb, Map<Object, Object> map) {
-        sb.append("{");
-        boolean needComma = false;
-        for (Map.Entry<Object, Object> e : map.entrySet()) {
-            if (needComma) {
-                sb.append(",");
-            }
-            appendJsonMember(sb, e.getKey().toString(), e.getValue());
-            needComma = true;
-        }
-        sb.append("}");
-    }
-
-    private static void appendJsonValue(StringBuilder sb, Object value) {
-        if (value == null) {
-            sb.append("null");
-        } else if (value instanceof Number) {
-            sb.append(value.toString());
-        } else if (value instanceof Boolean) {
-            sb.append(value.toString());
-        } else if (value instanceof String) {
-            appendJsonString(sb, (String) value);
-        } else if (value instanceof Map) {
-            appendJsonMap(sb, (Map<Object, Object>) value);
-        } else {
-            throw new IllegalArgumentException("unexpected type: " + value.getClass());
-        }
-    }
-
     @Nonnull
     private static StringBuilder asCSV(List<String> csvFieldNames, StringBuilder fulljson) {
-        JsopTokenizer t = new JsopTokenizer(fulljson.toString());
-        Map<String, Object> doc = (Map<String, Object>) readValueFromJson(t);
+        Map<String, Object> doc = (Map<String, Object>) JSON.parse(fulljson.toString());
         StringBuilder buf = new StringBuilder();
         String delim = "";
         for (String field : csvFieldNames) {
@@ -447,49 +402,6 @@ public class RDBExport {
             buf.append('"');
             buf.append(o.toString().replace("\"", "\"\""));
             buf.append('"');
-        }
-    }
-
-    @Nullable
-    private static Object readValueFromJson(@Nonnull JsopTokenizer json) {
-        switch (json.read()) {
-            case JsopReader.NULL:
-                return null;
-            case JsopReader.TRUE:
-                return true;
-            case JsopReader.FALSE:
-                return false;
-            case JsopReader.NUMBER:
-                return Long.parseLong(json.getToken());
-            case JsopReader.STRING:
-                return json.getToken();
-            case '{':
-                Map<String, Object> map = new HashMap<String, Object>();
-                while (true) {
-                    if (json.matches('}')) {
-                        break;
-                    }
-                    String k = json.readString();
-                    if (k == null) {
-                        throw new IllegalArgumentException();
-                    }
-                    json.read(':');
-                    map.put(k, readValueFromJson(json));
-                    json.matches(',');
-                }
-                return map;
-            case '[':
-                List<Object> list = new ArrayList<Object>();
-                while (true) {
-                    if (json.matches(']')) {
-                        break;
-                    }
-                    list.add(readValueFromJson(json));
-                    json.matches(',');
-                }
-                return list;
-            default:
-                throw new IllegalArgumentException(json.readRawValue());
         }
     }
 

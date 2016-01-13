@@ -16,9 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJSONSupport.appendJsonMember;
+import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJSONSupport.appendJsonString;
+import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJSONSupport.appendJsonValue;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -27,10 +30,8 @@ import java.util.TreeMap;
 import java.util.zip.GZIPInputStream;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -65,6 +66,8 @@ public class RDBDocumentSerializer {
 
     private static final Logger LOG = LoggerFactory.getLogger(RDBDocumentSerializer.class);
 
+    private static final RDBJSONSupport JSON = new RDBJSONSupport(true);
+
     public RDBDocumentSerializer(DocumentStore store, Set<String> columnProperties) {
         this.store = store;
         this.columnProperties = columnProperties;
@@ -84,7 +87,7 @@ public class RDBDocumentSerializer {
                 if (needComma) {
                     sb.append(",");
                 }
-                appendMember(sb, key, entry.getValue());
+                appendJsonMember(sb, key, entry.getValue());
                 needComma = true;
             }
         }
@@ -122,59 +125,18 @@ public class RDBDocumentSerializer {
             } else {
                 throw new DocumentStoreException("Can't serialize " + update.toString() + " for JSON append");
             }
-            appendString(sb, key.getName());
+            appendJsonString(sb, key.getName());
             sb.append(",");
             Revision rev = key.getRevision();
             if (rev != null) {
-                appendString(sb, rev.toString());
+                appendJsonString(sb, rev.toString());
                 sb.append(",");
             }
-            appendValue(sb, op.value);
+            appendJsonValue(sb, op.value);
             sb.append("]");
             needComma = true;
         }
         return sb.append("]").toString();
-    }
-
-    private static void appendMember(StringBuilder sb, String key, Object value) {
-        appendString(sb, key);
-        sb.append(":");
-        appendValue(sb, value);
-    }
-
-    private static void appendValue(StringBuilder sb, Object value) {
-        if (value == null) {
-            sb.append("null");
-        } else if (value instanceof Number) {
-            sb.append(value.toString());
-        } else if (value instanceof Boolean) {
-            sb.append(value.toString());
-        } else if (value instanceof String) {
-            appendString(sb, (String) value);
-        } else if (value instanceof Map) {
-            appendMap(sb, (Map<Object, Object>) value);
-        } else {
-            throw new DocumentStoreException("unexpected type: " + value.getClass());
-        }
-    }
-
-    private static void appendMap(StringBuilder sb, Map<Object, Object> map) {
-        sb.append("{");
-        boolean needComma = false;
-        for (Map.Entry<Object, Object> e : map.entrySet()) {
-            if (needComma) {
-                sb.append(",");
-            }
-            appendMember(sb, e.getKey().toString(), e.getValue());
-            needComma = true;
-        }
-        sb.append("}");
-    }
-
-    private static void appendString(StringBuilder sb, String s) {
-        sb.append('"');
-        JsopBuilder.escape(s, sb);
-        sb.append('"');
     }
 
     /**
@@ -241,7 +203,7 @@ public class RDBDocumentSerializer {
             next = json.read();
             if (next == ',') {
                 do {
-                    Object ob = readValueFromJson(json);
+                    Object ob = JSON.parse(json);
                     if (!(ob instanceof List)) {
                         throw new DocumentStoreException("expected array but got: " + ob);
                     }
@@ -336,53 +298,10 @@ public class RDBDocumentSerializer {
             do {
                 String key = json.readString();
                 json.read(':');
-                Object value = readValueFromJson(json);
+                Object value = JSON.parse(json);
                 doc.put(key, value);
             } while (json.matches(','));
             json.read('}');
-        }
-    }
-
-    @Nullable
-    private static Object readValueFromJson(@Nonnull JsopTokenizer json) {
-        switch (json.read()) {
-            case JsopReader.NULL:
-                return null;
-            case JsopReader.TRUE:
-                return true;
-            case JsopReader.FALSE:
-                return false;
-            case JsopReader.NUMBER:
-                return Long.parseLong(json.getToken());
-            case JsopReader.STRING:
-                return json.getToken();
-            case '{':
-                TreeMap<Revision, Object> map = new TreeMap<Revision, Object>(StableRevisionComparator.REVERSE);
-                while (true) {
-                    if (json.matches('}')) {
-                        break;
-                    }
-                    String k = json.readString();
-                    if (k == null) {
-                        throw new IllegalArgumentException("unexpected null revision");
-                    }
-                    json.read(':');
-                    map.put(Revision.fromString(k), readValueFromJson(json));
-                    json.matches(',');
-                }
-                return map;
-            case '[':
-                List<Object> list = new ArrayList<Object>();
-                while (true) {
-                    if (json.matches(']')) {
-                        break;
-                    }
-                    list.add(readValueFromJson(json));
-                    json.matches(',');
-                }
-                return list;
-            default:
-                throw new IllegalArgumentException(json.readRawValue());
         }
     }
 

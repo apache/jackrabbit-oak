@@ -16,11 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -31,7 +37,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class RDBDocumentSerializerTest  {
+public class RDBDocumentSerializerTest {
 
     private DocumentStoreFixture fixture = DocumentStoreFixture.RDB_H2;
     private DocumentStore store;
@@ -69,7 +75,8 @@ public class RDBDocumentSerializerTest  {
 
     @Test
     public void testSimpleBlob2() throws UnsupportedEncodingException {
-        RDBRow row = new RDBRow("_foo", false, false, 1, 2, 3, "\"blob\"", "{\"s\":\"string\", \"b\":true, \"i\":1}".getBytes("UTF-8"));
+        RDBRow row = new RDBRow("_foo", false, false, 1, 2, 3, "\"blob\"",
+                "{\"s\":\"string\", \"b\":true, \"i\":1}".getBytes("UTF-8"));
         NodeDocument doc = this.ser.fromRow(Collection.NODES, row);
         assertEquals("_foo", doc.getId());
         assertEquals(false, doc.hasBinary());
@@ -85,14 +92,15 @@ public class RDBDocumentSerializerTest  {
             RDBRow row = new RDBRow("_foo", true, false, 1, 2, 3, "{}", "{}".getBytes("UTF-8"));
             this.ser.fromRow(Collection.NODES, row);
             fail("should fail");
-        }
-        catch (DocumentStoreException expected) {
+        } catch (DocumentStoreException expected) {
         }
     }
 
     @Test
     public void testBlobAndDiff() throws UnsupportedEncodingException {
-        RDBRow row = new RDBRow("_foo", true, false, 1, 2, 3, "\"blob\", [[\"=\", \"foo\", \"bar\"],[\"M\", \"m1\", 1],[\"M\", \"m2\", 3]]", "{\"m1\":2, \"m2\":2}".getBytes("UTF-8"));
+        RDBRow row = new RDBRow("_foo", true, false, 1, 2, 3,
+                "\"blob\", [[\"=\", \"foo\", \"bar\"],[\"M\", \"m1\", 1],[\"M\", \"m2\", 3]]",
+                "{\"m1\":2, \"m2\":2}".getBytes("UTF-8"));
         NodeDocument doc = this.ser.fromRow(Collection.NODES, row);
         assertEquals("bar", doc.get("foo"));
         assertEquals(2L, doc.get("m1"));
@@ -105,8 +113,7 @@ public class RDBDocumentSerializerTest  {
             RDBRow row = new RDBRow("_foo", true, false, 1, 2, 3, "[[\"\", \"\", \"\"]]", "{}".getBytes("UTF-8"));
             this.ser.fromRow(Collection.NODES, row);
             fail("should fail");
-        }
-        catch (DocumentStoreException expected) {
+        } catch (DocumentStoreException expected) {
         }
     }
 
@@ -116,8 +123,7 @@ public class RDBDocumentSerializerTest  {
             RDBRow row = new RDBRow("_foo", true, false, 1, 2, 3, "{ \"x\" : 1, }", null);
             this.ser.fromRow(Collection.NODES, row);
             fail("should fail");
-        }
-        catch (DocumentStoreException expected) {
+        } catch (DocumentStoreException expected) {
         }
     }
 
@@ -127,8 +133,7 @@ public class RDBDocumentSerializerTest  {
             RDBRow row = new RDBRow("_foo", true, false, 1, 2, 3, "{ x : 1, }", null);
             this.ser.fromRow(Collection.NODES, row);
             fail("should fail");
-        }
-        catch (DocumentStoreException expected) {
+        } catch (DocumentStoreException expected) {
         }
     }
 
@@ -138,5 +143,47 @@ public class RDBDocumentSerializerTest  {
         NodeDocument doc = this.ser.fromRow(Collection.NODES, row);
         assertEquals("_foo", doc.getId());
         assertEquals("\u20ac\uD834\uDD1E", doc.get("x"));
+    }
+
+    @Test
+    public void testValidJsonSimple() {
+        RDBJSONSupport json = new RDBJSONSupport(false);
+        assertNull(json.parse("null"));
+        assertTrue((Boolean) json.parse("true"));
+        assertFalse((Boolean) json.parse("false"));
+        assertEquals(123.45, (Number) json.parse("123.45"));
+        assertEquals("\r\n\t\u00e0", (String) json.parse("\"\r\n\t\u00e0\""));
+    }
+
+    @Test
+    public void testValidJsonArray() {
+        RDBJSONSupport json = new RDBJSONSupport(false);
+        assertArrayEquals("", new Object[] { Boolean.TRUE }, ((List<Object>) json.parse("[true]")).toArray());
+        assertArrayEquals("", new Object[] { Boolean.TRUE, null, 123L, "foobar" },
+                ((List<Object>) json.parse("[true, null, 123, \"foobar\"]")).toArray());
+    }
+
+    @Test
+    public void testValidJsonMap() {
+        RDBJSONSupport json = new RDBJSONSupport(false);
+        Map<String, Object> map = (Map<String, Object>)json.parse("{\"a\":true,\"b\":null,\"c\":123,\"d\":\"foobar\"}");
+        assertEquals(4, map.size());
+        assertTrue((Boolean)map.get("a"));
+        assertTrue(map.containsKey("b"));
+        assertNull(map.get("b"));
+        assertEquals(123l, ((Long)map.get("c")).longValue());
+        assertEquals("foobar", (String)map.get("d"));
+    }
+
+    @Test
+    public void testInvalidJson() {
+        RDBJSONSupport json = new RDBJSONSupport(false);
+        String tests[] = new String[] { "x", "\"", "{a:1}", "[false,]" };
+        for (String test : tests) {
+            try {
+                json.parse(test);
+            } catch (IllegalArgumentException expected) {
+            }
+        }
     }
 }
