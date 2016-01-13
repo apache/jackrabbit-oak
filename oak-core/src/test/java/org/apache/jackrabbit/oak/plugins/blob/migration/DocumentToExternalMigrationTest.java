@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.blob.migration;
 import java.io.File;
 import java.io.IOException;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
@@ -41,6 +42,23 @@ public class DocumentToExternalMigrationTest extends AbstractMigratorTest {
     public MongoConnectionFactory connectionFactory = new MongoConnectionFactory();
 
     private DocumentNodeStore nodeStore;
+
+    @Override
+    public void setup() throws CommitFailedException, IllegalArgumentException,
+            IOException {
+        dropDB();
+        super.setup();
+    }
+
+    @Override
+    public void teardown() throws IOException {
+        super.teardown();
+        dropDB();
+    }
+
+    private void dropDB() {
+        connectionFactory.getConnection().getDB().dropDatabase();
+    }
 
     @Override
     protected NodeStore createNodeStore(BlobStore blobStore, File repository) throws IOException {
