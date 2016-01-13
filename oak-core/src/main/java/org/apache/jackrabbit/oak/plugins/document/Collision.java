@@ -16,13 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.Map;
+
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isPropertyName;
 
 /**
  * A <code>Collision</code> happens when a commit modifies a node, which was
@@ -65,6 +70,8 @@ class Collision {
      * @param store the document store.
      * @return the revision that was marked. Either our or their.
      * @throws DocumentStoreException if the mark operation fails.
+     * @throws IllegalStateException if neither their nor our revision can be
+     *              marked because both are already committed.
      */
     @Nonnull
     Revision mark(DocumentStore store) throws DocumentStoreException {
@@ -83,6 +90,38 @@ class Collision {
         }
         return ourRev;
     }
+
+    /**
+     * Returns {@code true} if this is a conflicting collision, {@code false}
+     * otherwise.
+     *
+     * @return {@code true} if this is a conflicting collision, {@code false}
+     *              otherwise.
+     * @throws DocumentStoreException
+     */
+    boolean isConflicting() throws DocumentStoreException {
+        // did their revision create or delete the node?
+        if (document.getDeleted().containsKey(theirRev)) {
+            return true;
+        }
+
+        for (Map.Entry<Key, Operation> entry : ourOp.getChanges().entrySet()) {
+            String name = entry.getKey().getName();
+            if (NodeDocument.isDeletedEntry(name)) {
+                // always conflicts because existence changed
+                return true;
+            }
+            if (isPropertyName(name)) {
+                if (document.getValueMap(name).containsKey(theirRev)) {
+                    // concurrent change on the property
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    //--------------------------< internal >------------------------------------
 
     /**
      * Marks the commit root of the change to the given <code>document</code> in

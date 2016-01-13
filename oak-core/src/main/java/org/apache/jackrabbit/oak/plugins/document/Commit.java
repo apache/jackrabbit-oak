@@ -517,17 +517,18 @@ public class Commit {
                         nodeStore, base, revision, getBranch(), collisions);
             }
             String conflictMessage = null;
-            Revision conflictRevision = newestRev;
+            Set<Revision> conflictRevisions = Sets.newHashSet();
             if (newestRev == null) {
                 if ((op.isDelete() || !op.isNew())
                         && !allowConcurrentAddRemove(before, op)) {
                     conflictMessage = "The node " +
                             op.getId() + " does not exist or is already deleted";
                     if (before != null && !before.getLocalDeleted().isEmpty()) {
-                        conflictRevision = before.getLocalDeleted().firstKey();
+                        conflictRevisions.add(before.getLocalDeleted().firstKey());
                     }
                 }
             } else {
+                conflictRevisions.add(newestRev);
                 if (op.isNew() && !allowConcurrentAddRemove(before, op)) {
                     conflictMessage = "The node " +
                             op.getId() + " was already added in revision\n" +
@@ -541,15 +542,16 @@ public class Commit {
                             baseRevision;
                 }
             }
-            if (conflictMessage == null) {
+            if (conflictMessage == null && before != null) {
                 // the modification was successful
                 // -> check for collisions and conflict (concurrent updates
                 // on a node are possible if property updates do not overlap)
                 // TODO: unify above conflict detection and isConflicting()
-                if (!collisions.isEmpty() && isConflicting(before, op)) {
-                    for (Revision r : collisions) {
+                boolean allowConflictingDeleteChange = allowConcurrentAddRemove(before, op);
+                for (Revision r : collisions) {
+                    Collision c = new Collision(before, r, op, revision);
+                    if (c.isConflicting() && !allowConflictingDeleteChange) {
                         // mark collisions on commit root
-                        Collision c = new Collision(before, r, op, revision);
                         if (c.mark(store).equals(revision)) {
                             // our revision was marked
                             if (baseRevision.isBranch()) {
@@ -562,7 +564,7 @@ public class Commit {
                                         formatConflictRevision(r) +
                                         ", which was applied after the base revision\n" +
                                         baseRevision;
-                                conflictRevision = r;
+                                conflictRevisions.add(r);
                             }
                         }
                     }
@@ -574,7 +576,7 @@ public class Commit {
                     LOG.debug(conflictMessage  + "; document:\n" +
                             (before == null ? "" : before.format()));
                 }
-                throw new ConflictException(conflictMessage, conflictRevision);
+                throw new ConflictException(conflictMessage, conflictRevisions);
             }
         }
     }

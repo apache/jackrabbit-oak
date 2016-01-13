@@ -803,7 +803,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                 // of the branch if this is for a commit on a branch
                 if (branch != null && !branch.containsCommit(r)) {
                     // change does not belong to the branch
-                    if (branch.getBase().isRevisionNewer(r)) {
+                    if (branch.getBase(changeRev).isRevisionNewer(r)) {
                         // and happened after the base of the branch
                         collisions.add(r);
                     }
@@ -2065,7 +2065,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     }
 
     @Nonnull
-    private Map<Revision, String> getDeleted() {
+    Map<Revision, String> getDeleted() {
         return ValueMap.create(this, DELETED);
     }
     
