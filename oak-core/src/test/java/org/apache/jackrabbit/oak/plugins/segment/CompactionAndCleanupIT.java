@@ -390,7 +390,6 @@ public class CompactionAndCleanupIT {
      * This is a regression introduced with OAK-1828.
      */
     @Test
-    @Ignore("OAK-3864")  // FIXME OAK-3864
     public void cleanupCyclicGraph() throws IOException, ExecutionException, InterruptedException {
         FileStore fileStore = newFileStore(directory).create();
         final SegmentWriter writer = fileStore.getTracker().getWriter();

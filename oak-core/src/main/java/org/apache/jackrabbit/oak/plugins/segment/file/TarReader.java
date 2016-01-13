@@ -709,6 +709,33 @@ class TarReader implements Closeable {
     }
 
     /**
+     * Calculate the ids of the segments directly referenced from {@code referenceIds}
+     * through forward references.
+     *
+     * @param referencedIds  The initial set of ids to start from. On return it
+     *                       contains the set of direct forward references.
+     *
+     * @throws IOException
+     */
+    void calculateForwardReferences(Set<UUID> referencedIds) throws IOException {
+        Map<UUID, List<UUID>> graph = getGraph();
+        TarEntry[] entries = getEntries();
+        for (int i = entries.length - 1; i >= 0; i--) {
+            TarEntry entry = entries[i];
+            UUID id = new UUID(entry.msb(), entry.lsb());
+            if (referencedIds.remove(id)) {
+                if (isDataSegmentId(entry.lsb())) {
+                    // this is a referenced data segment, so follow the graph
+                    List<UUID> refIds = getReferences(entry, id, graph);
+                    if (refIds != null) {
+                        referencedIds.addAll(refIds);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * Garbage collects segments in this file. First it collects the set of
      * segments that are referenced / reachable, then (if more than 25% is
      * garbage) creates a new generation of the file.

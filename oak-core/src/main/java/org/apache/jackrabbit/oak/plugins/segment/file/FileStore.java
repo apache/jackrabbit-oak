@@ -874,6 +874,7 @@ public class FileStore implements SegmentStore {
 
         // Do actual cleanup outside of the lock to prevent blocking
         // concurrent writers for a long time
+        includeForwardReferences(cleaned.keySet(), referencedIds);
         LinkedList<File> toRemove = newLinkedList();
         Set<UUID> cleanedIds = newHashSet();
         for (TarReader reader : cleaned.keySet()) {
@@ -931,6 +932,28 @@ public class FileStore implements SegmentStore {
                 humanReadableByteCount(sum(cm.getEstimatedWeights())), cm.getDepth(),
                 sum(cm.getEstimatedWeights()), cm.getDepth());
         return toRemove;
+    }
+
+    /**
+     * Include the ids of all segments transitively reachable through forward references from
+     * {@code referencedIds}. See OAK-3864.
+     */
+    private void includeForwardReferences(Iterable<TarReader> readers, Set<UUID> referencedIds)
+            throws IOException {
+        Set<UUID> fRefs = newHashSet(referencedIds);
+        do {
+            // Add direct forward references
+            for (TarReader reader : readers) {
+                reader.calculateForwardReferences(fRefs);
+                if (fRefs.isEmpty()) {
+                    break;  // Optimisation: bail out if no references left
+                }
+            }
+            if (!fRefs.isEmpty()) {
+                gcMonitor.info("TarMK GC #{}: cleanup found forward references to {}", gcCount, fRefs);
+            }
+            // ... as long as new forward references are found.
+        } while (referencedIds.addAll(fRefs));
     }
 
     /**
