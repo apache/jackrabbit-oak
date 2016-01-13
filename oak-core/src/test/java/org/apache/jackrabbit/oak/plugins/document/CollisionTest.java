@@ -18,6 +18,13 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.annotation.Nonnull;
+
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -25,6 +32,9 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COLLISIONS;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class CollisionTest {
 
@@ -69,6 +79,92 @@ public class CollisionTest {
         // must purge collision for clusterId 2
         assertEquals(0, store.find(NODES, id).getLocalMap(COLLISIONS).size());
         ns2.dispose();
+    }
+
+    @Test
+    public void isConflicting() throws CommitFailedException {
+        DocumentNodeStore ns = builderProvider.newBuilder()
+                .setAsyncDelay(0).getNodeStore();
+        DocumentStore store = ns.getDocumentStore();
+        String id = Utils.getIdFromPath("/test");
+
+        NodeBuilder b = ns.getRoot().builder();
+        b.child("test").setProperty("p", "a");
+        // test:{p:"a"}
+        Revision r1 = merge(ns, b).getRevision(ns.getClusterId());
+        assertNotNull(r1);
+
+        NodeDocument doc = getDocument(store, id);
+        // concurrent create
+        Revision c = ns.newRevision();
+        UpdateOp op = new UpdateOp(id, true);
+        NodeDocument.setDeleted(op, c, false);
+        Collision col = new Collision(doc, r1, op, c);
+        assertTrue(col.isConflicting());
+        // concurrent change
+        op = new UpdateOp(id, false);
+        op.setMapEntry("p", c, "b");
+        col = new Collision(doc, r1, op, c);
+        assertTrue(col.isConflicting());
+
+        b = ns.getRoot().builder();
+        b.child("test").setProperty("p", "b");
+        // test:{p:"b"}
+        Revision r2 = merge(ns, b).getRevision(ns.getClusterId());
+        assertNotNull(r2);
+
+        doc = getDocument(store, id);
+        // concurrent delete
+        c = ns.newRevision();
+        op = new UpdateOp(id, false);
+        op.setDelete(true);
+        NodeDocument.setDeleted(op, c, true);
+        col = new Collision(doc, r2, op, c);
+        assertTrue(col.isConflicting());
+        // concurrent conflicting property set
+        op = new UpdateOp(id, false);
+        op.setMapEntry("p", c, "c");
+        col = new Collision(doc, r2, op, c);
+        assertTrue(col.isConflicting());
+        // concurrent non-conflicting property set
+        op = new UpdateOp(id, false);
+        op.setMapEntry("q", c, "a");
+        col = new Collision(doc, r2, op, c);
+        assertFalse(col.isConflicting());
+
+        b = ns.getRoot().builder();
+        b.child("test").remove();
+        // test (removed)
+        Revision r3 = merge(ns, b).getRevision(ns.getClusterId());
+        assertNotNull(r3);
+
+        doc = getDocument(store, id);
+        // concurrent delete
+        c = ns.newRevision();
+        op = new UpdateOp(id, false);
+        op.setDelete(true);
+        NodeDocument.setDeleted(op, c, true);
+        col = new Collision(doc, r3, op, c);
+        assertTrue(col.isConflicting());
+        // concurrent conflicting property set
+        op = new UpdateOp(id, false);
+        op.setMapEntry("p", c, "d");
+        col = new Collision(doc, r3, op, c);
+        assertTrue(col.isConflicting());
+    }
+
+    @Nonnull
+    private static RevisionVector merge(DocumentNodeStore ns, NodeBuilder nb)
+            throws CommitFailedException {
+        ns.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        return ns.getHeadRevision();
+    }
+
+    @Nonnull
+    private static NodeDocument getDocument(DocumentStore store, String id) {
+        NodeDocument doc = store.find(NODES, id);
+        assertNotNull(doc);
+        return doc;
     }
 
     private void createCollision(DocumentMK mk) throws Exception {

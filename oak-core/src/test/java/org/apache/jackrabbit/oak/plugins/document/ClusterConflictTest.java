@@ -38,7 +38,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -144,7 +143,6 @@ public class ClusterConflictTest {
     }
 
     // OAK-3859
-    @Ignore("OAK-3859")
     @Test
     public void mixedConflictAndCollision() throws Exception {
         NodeBuilder b1 = ns1.getRoot().builder();
