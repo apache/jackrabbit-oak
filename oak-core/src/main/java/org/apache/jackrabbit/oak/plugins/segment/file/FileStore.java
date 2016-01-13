@@ -874,11 +874,10 @@ public class FileStore implements SegmentStore {
 
         // Do actual cleanup outside of the lock to prevent blocking
         // concurrent writers for a long time
-        CompactionMap cm = tracker.getCompactionMap();
         LinkedList<File> toRemove = newLinkedList();
         Set<UUID> cleanedIds = newHashSet();
         for (TarReader reader : cleaned.keySet()) {
-            cleaned.put(reader, reader.cleanup(referencedIds, cm, cleanedIds));
+            cleaned.put(reader, reader.cleanup(referencedIds, cleanedIds));
             if (shutdown) {
                 gcMonitor.info("TarMK GC #{}: cleanup interrupted", gcCount);
                 break;
@@ -918,6 +917,7 @@ public class FileStore implements SegmentStore {
             toRemove.addLast(file);
         }
 
+        CompactionMap cm = tracker.getCompactionMap();
         cm.remove(cleanedIds);
         long finalSize = size();
         approximateSize.set(finalSize);
