@@ -28,11 +28,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStoreFriend;
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStoreTest;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -162,6 +164,29 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
         }
 
         RDBBlobStoreFriend.deleteChunks(blobStore, toDelete, System.currentTimeMillis() + 1000);
+    }
+
+    @Test
+    public void testUpdateAndDelete() throws Exception {
+        byte[] data = new byte[256];
+        Random r = new Random(0);
+        r.nextBytes(data);
+        byte[] digest = getDigest(data);
+        RDBBlobStoreFriend.storeBlock(blobStore, digest, 0, data);
+        String id = StringUtils.convertBytesToHex(digest);
+        long until = System.currentTimeMillis() + 1000;
+        while (System.currentTimeMillis() < until) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+            }
+        }
+        // Force update to update timestamp
+        RDBBlobStoreFriend.storeBlock(blobStore, digest, 0, data);
+        // Metadata row should not have been touched
+        Assert.assertFalse(blobStore.deleteChunks(ImmutableList.of(id), System.currentTimeMillis() - 100));
+        // Actual data row should still be present
+        Assert.assertNotNull(RDBBlobStoreFriend.readBlockFromBackend(blobStore, digest));
     }
 
     @Test
