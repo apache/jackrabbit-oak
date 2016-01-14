@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -151,6 +152,48 @@ public class BulkCreateOrUpdateTest extends AbstractDocumentStoreTest {
                 assertEquals("The result list order is incorrect", updates.get(i).getId(), oldDoc.getId());
             }
             assertEquals("The document hasn't been updated", 200l, newDoc.get("prop"));
+        }
+    }
+
+    /**
+     * This method adds a few updateOperations modifying the same document.
+     */
+    @Test
+    public void testUpdateSameDocument() {
+        final int amount = 5;
+        List<UpdateOp> updates = new ArrayList<UpdateOp>(amount);
+        String id = this.getClass().getName() + ".testUpdateSameDocument";
+        removeMe.add(id);
+
+        for (int i = 0; i < amount; i++) {
+            UpdateOp up = new UpdateOp(id, true);
+            up.set("_id", id);
+            up.set("update_id", i);
+            up.set("prop_" + i, 100);
+            updates.add(up);
+        }
+
+        List<NodeDocument> docs = ds.createOrUpdate(Collection.NODES, updates);
+        assertEquals(amount, docs.size());
+        assertNull("The old value should be null for the first update", docs.get(0));
+        Long prevModCount = null;
+        for (int i = 1; i < amount; i++) {
+            Long modCount = docs.get(i).getModCount();
+            if (prevModCount != null) {
+                assertNotNull(modCount);
+                assertTrue("_modCount, when present, must be increasing, but changed from " + prevModCount + " to " + modCount,
+                        prevModCount.longValue() < modCount.longValue());
+            }
+            prevModCount = modCount;
+            assertEquals("The old value is not correct", Long.valueOf(i - 1), docs.get(i).get("update_id"));
+        }
+
+        NodeDocument newDoc = ds.find(Collection.NODES, id);
+        if (newDoc.getModCount() != null) {
+            assertEquals("The final mod count is not correct", Long.valueOf(5), newDoc.getModCount());
+        }
+        for (int i = 0; i < amount; i++) {
+            assertEquals("The value is not correct", 100l, newDoc.get("prop_" + i));
         }
     }
 }

@@ -294,19 +294,26 @@ public class RDBDocumentStore implements DocumentStore {
 
     @Override
     public <T extends Document> List<T> createOrUpdate(Collection<T> collection, List<UpdateOp> updateOps) {
-        List<T> result = null;
+        Map<UpdateOp, T> results = new LinkedHashMap<UpdateOp, T>();
         Map<String, UpdateOp> operationsToCover = new LinkedHashMap<String, UpdateOp>();
+        Set<UpdateOp> duplicates = new HashSet<UpdateOp>();
 
         for (UpdateOp updateOp : updateOps) {
             UpdateUtils.assertUnconditional(updateOp);
-            UpdateOp clone = updateOp.copy();
-            addUpdateCounters(clone);
-            operationsToCover.put(clone.getId(), clone);
+            if (operationsToCover.containsKey(updateOp.getId())) {
+                duplicates.add(updateOp);
+                results.put(updateOp, null);
+            } else {
+                UpdateOp clone = updateOp.copy();
+                addUpdateCounters(clone);
+                operationsToCover.put(clone.getId(), clone);
+                results.put(clone, null);
+            }
         }
 
         Map<String, T> oldDocs = new HashMap<String, T>();
         if (collection == Collection.NODES) {
-            oldDocs.putAll((Map<String, T>) readDocumentCached(collection, operationsToCover.keySet()));
+            oldDocs.putAll(readDocumentCached(collection, operationsToCover.keySet()));
         }
 
         int i = 0; // iteration count
@@ -327,28 +334,23 @@ public class RDBDocumentStore implements DocumentStore {
             }
 
             for (List<UpdateOp> partition : partition(newArrayList(operationsToCover.values()), CHUNKSIZE)) {
-                Set<String> successfulUpdates = bulkUpdate(collection, partition, oldDocs, upsert);
-                operationsToCover.keySet().removeAll(successfulUpdates);
+                Map<UpdateOp, T> successfulUpdates = bulkUpdate(collection, partition, oldDocs, upsert);
+                results.putAll(successfulUpdates);
+                operationsToCover.values().removeAll(successfulUpdates.keySet());
             }
         }
 
         // if there are some changes left, we'll apply them one after another
         for (UpdateOp updateOp : updateOps) {
-            if (operationsToCover.remove(updateOp.getId()) != null) {
-                // work on the original update operation
-                T oldDoc = createOrUpdate(collection, updateOp.copy()); 
-                if (oldDoc != null) {
-                    oldDocs.put(oldDoc.getId(), oldDoc);
-                }
+            UpdateOp conflictedOp = operationsToCover.remove(updateOp.getId());
+            if (conflictedOp != null) {
+                results.put(conflictedOp, createOrUpdate(collection, updateOp));
+            } else if (duplicates.contains(updateOp)) {
+                results.put(updateOp, createOrUpdate(collection, updateOp));
             }
         }
 
-        result = new ArrayList<T>(updateOps.size());
-        for (UpdateOp op : updateOps) {
-            result.add(oldDocs.get(op.getId()));
-        }
-
-        return result;
+        return new ArrayList<T>(results.values());
     }
 
     private <T extends Document> Map<String, T> readDocumentCached(Collection<T> collection, Set<String> keys) {
@@ -401,7 +403,7 @@ public class RDBDocumentStore implements DocumentStore {
         return result;
     }
 
-    private <T extends Document> Set<String> bulkUpdate(Collection<T> collection, List<UpdateOp> updates, Map<String, T> oldDocs, boolean upsert) {
+    private <T extends Document> Map<UpdateOp, T> bulkUpdate(Collection<T> collection, List<UpdateOp> updates, Map<String, T> oldDocs, boolean upsert) {
         Set<String> missingDocs = new HashSet<String>();
         for (UpdateOp op : updates) {
             if (!oldDocs.containsKey(op.getId())) {
@@ -451,7 +453,13 @@ public class RDBDocumentStore implements DocumentStore {
                 }
             }
 
-            return successfulUpdates;
+            Map<UpdateOp, T> result = new HashMap<UpdateOp, T>();
+            for (UpdateOp op : updates) {
+                if (successfulUpdates.contains(op.getId())) {
+                    result.put(op, oldDocs.get(op.getId()));
+                }
+            }
+            return result;
         } catch (SQLException ex) {
             this.ch.rollbackConnection(connection);
             throw new DocumentStoreException(ex);
