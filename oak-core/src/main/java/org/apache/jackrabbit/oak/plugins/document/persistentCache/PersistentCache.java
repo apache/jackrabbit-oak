@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.DynamicBroadcastConfig;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.Broadcaster;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.InMemoryBroadcaster;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.TCPBroadcaster;
@@ -79,6 +80,7 @@ public class PersistentCache implements Broadcaster.Listener {
     private Broadcaster broadcaster;
     private ThreadLocal<WriteBuffer> writeBuffer = new ThreadLocal<WriteBuffer>();
     private final byte[] broadcastId;
+    private DynamicBroadcastConfig broadcastConfig;
     
     {
         ByteBuffer bb = ByteBuffer.wrap(new byte[16]);
@@ -94,7 +96,7 @@ public class PersistentCache implements Broadcaster.Listener {
         LOG.info("start, url={}", url);
         String[] parts = url.split(",");
         String dir = parts[0];
-        String broadcast = null;
+        String broadcast = "tcp:";
         for (String p : parts) {
             if (p.equals("+docs")) {
                 cacheDocs = true;
@@ -193,7 +195,9 @@ public class PersistentCache implements Broadcaster.Listener {
         if (broadcast == null) {
             return;
         }
-        if (broadcast.equals("inMemory")) {
+        if (broadcast.equals("disabled")) {
+            return;
+        } else if (broadcast.equals("inMemory")) {
             broadcaster = InMemoryBroadcaster.INSTANCE;
         } else if (broadcast.startsWith("udp:")) {
             String config = broadcast.substring("udp:".length(), broadcast.length());
@@ -512,6 +516,17 @@ public class PersistentCache implements Broadcaster.Listener {
             return;
         }
         cache.receive(buff);
+    }
+    
+    public DynamicBroadcastConfig getBroadcastConfig() {
+        return broadcastConfig;
+    }
+
+    public void setBroadcastConfig(DynamicBroadcastConfig broadcastConfig) {
+        this.broadcastConfig = broadcastConfig;
+        if (broadcaster != null) {
+            broadcaster.setBroadcastConfig(broadcastConfig);
+        }
     }
 
     interface GenerationCache {

@@ -251,4 +251,9 @@ public class UDPBroadcaster implements Broadcaster, Runnable {
         return !stop;
     }
 
+    @Override
+    public void setBroadcastConfig(DynamicBroadcastConfig broadcastConfig) {
+        // not yet implemented
+    }
+
 }

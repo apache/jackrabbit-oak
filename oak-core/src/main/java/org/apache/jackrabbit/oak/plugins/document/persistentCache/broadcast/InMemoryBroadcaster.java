@@ -51,5 +51,10 @@ public class InMemoryBroadcaster implements Broadcaster {
     public void close() {
         // ignore
     }
+    
+    @Override
+    public void setBroadcastConfig(DynamicBroadcastConfig broadcastConfig) {
+        // not yet implemented
+    }
 
 }

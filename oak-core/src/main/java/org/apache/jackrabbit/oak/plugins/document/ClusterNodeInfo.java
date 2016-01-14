@@ -25,6 +25,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.UUID;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
@@ -89,6 +91,16 @@ public class ClusterNodeInfo {
      * @see org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.ClusterNodeState
      */
     public static final String STATE = "state";
+    
+    /**
+     * The broadcast id. If the broadcasting cache is used, a new id is set after startup.
+     */
+    public static final String BROADCAST_ID = "broadcastId";
+
+    /**
+     * The broadcast listener (host:port). If the broadcasting cache is used, this is set after startup.
+     */
+    public static final String BROADCAST_LISTENER = "broadcastListener";
 
     public static enum ClusterNodeState {
         NONE,
@@ -775,6 +787,22 @@ public class ClusterNodeInfo {
         }
         renewed = true;
         return true;
+    }
+    
+    /**
+     * Update the cluster node info.
+     * 
+     * @param info the map of changes
+     */
+    public void setInfo(Map<String, String> info) {
+        // synchronized, because renewLease is also synchronized 
+        synchronized(this) {
+            UpdateOp update = new UpdateOp("" + id, false);
+            for(Entry<String, String> e : info.entrySet()) {
+                update.set(e.getKey(), e.getValue());
+            }
+            store.findAndUpdate(Collection.CLUSTER_NODES, update);
+        }
     }
 
     /** for testing purpose only, not to be changed at runtime! */
