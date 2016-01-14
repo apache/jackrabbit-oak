@@ -37,7 +37,6 @@ import javax.annotation.Nullable;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.AbstractIterator;
-import com.mongodb.BasicDBObject;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -157,17 +156,12 @@ public class Utils {
             }
         }
 
-        if (map instanceof BasicDBObject) {
-            // Based on empirical testing using JAMM
-            size += 176;
-            size += map.size() * 136;
-        } else {
-            // overhead for some other kind of map
-            // TreeMap (80) + unmodifiable wrapper (32)
-            size += 112;
-            // 64 bytes per entry
-            size += map.size() * 64;
-        }
+        // overhead for map object
+        // TreeMap (80) + unmodifiable wrapper (32)
+        size += 112;
+        // 64 bytes per entry
+        size += map.size() * 64;
+
         return size;
     }
 
