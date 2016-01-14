@@ -995,7 +995,7 @@ public class DocumentMK {
             return cache;
         }
         
-        private PersistentCache getPersistentCache() {
+        public PersistentCache getPersistentCache() {
             if (persistentCacheURI == null) {
                 return null;
             }

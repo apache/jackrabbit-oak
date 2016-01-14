@@ -143,7 +143,7 @@ public class BroadcastTest {
     
     @Test
     public void broadcastTCP() throws Exception {
-        broadcast("tcp:key 123", 90);
+        broadcast("tcp:sendTo localhost;key 123", 90);
     }
 
     @Test

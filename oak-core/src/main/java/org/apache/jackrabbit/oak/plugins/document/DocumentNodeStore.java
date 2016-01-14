@@ -83,6 +83,7 @@ import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
+import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.DynamicBroadcastConfig;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
@@ -502,6 +503,12 @@ public final class DocumentNodeStore
         // on a very busy machine - so as to prevent lease timeout.
         leaseUpdateThread.setPriority(Thread.MAX_PRIORITY);
         leaseUpdateThread.start();
+        
+        PersistentCache pc = builder.getPersistentCache();
+        if (pc != null) {
+            DynamicBroadcastConfig broadcastConfig = new DocumentBroadcastConfig(this);
+            pc.setBroadcastConfig(broadcastConfig);
+        }
 
         this.mbean = createMBean();
         LOG.info("Initialized DocumentNodeStore with clusterNodeId: {} ({})", clusterId,

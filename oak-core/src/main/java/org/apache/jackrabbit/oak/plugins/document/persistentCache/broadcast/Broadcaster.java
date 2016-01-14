@@ -24,6 +24,13 @@ import java.nio.ByteBuffer;
 public interface Broadcaster {
     
     /**
+     * Change the dynamic broadcasting configuration.
+     * 
+     * @param broadcastConfig the new configuration
+     */
+    void setBroadcastConfig(DynamicBroadcastConfig broadcastConfig);
+    
+    /**
      * Send a message.
      * 
      * @param buff the buffer
