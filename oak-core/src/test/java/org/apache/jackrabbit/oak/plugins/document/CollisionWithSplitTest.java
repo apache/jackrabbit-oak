@@ -103,14 +103,19 @@ public class CollisionWithSplitTest extends AbstractMongoConnectionTest {
             }
         }
 
+        // attempt to set a property on a removed node
+        String id = Utils.getIdFromPath("/node-0");
+        UpdateOp op = new UpdateOp(id, false);
+        Revision ourRev = ns2.newRevision();
+        op.setMapEntry("p", ourRev, "v");
+        NodeDocument.setModified(op, ourRev);
+        NodeDocument.setCommitRoot(op, ourRev, 0);
+        ns2.getDocumentStore().findAndUpdate(NODES, op);
+
         // now try to set a collision marker for the
         // committed revision on ns2
-        String id = Utils.getIdFromPath("/node-0");
-        doc = ns2.getDocumentStore().find(NODES, id, 0);
+        doc = ns2.getDocumentStore().find(NODES, id);
         assertTrue(doc.getLocalCommitRoot().containsKey(conflictRev));
-        Revision ourRev = ns2.newRevision();
-        UpdateOp op = new UpdateOp(id, false);
-        op.setMapEntry("p", ourRev, "v");
         Collision c = new Collision(doc, conflictRev, op, ourRev);
         assertEquals("Collision must match our revision (" + ourRev + "). " +
                 "The conflict revision " + conflictRev + " is already committed.",
