@@ -36,8 +36,6 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
-import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -318,6 +316,22 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
                 return Collections.singleton(TestUtil.NT_TEST);
             }
         };
+        checkSimpleBehavior(rootTree, testIndex++);
+
+        //setup composite query term provider with one returning null query
+        factory.registerQueryTermsProvider(new FulltextQueryTermsProvider() {
+            @Override
+            public Query getQueryTerm(String text, Analyzer analyzer, NodeState indexDefinition) {
+                return null;
+            }
+
+            @Nonnull
+            @Override
+            public Set<String> getSupportedTypes() {
+                return Collections.singleton(TestUtil.NT_TEST);
+            }
+        });
+        factory.useSuperBehavior = true;
         checkSimpleBehavior(rootTree, testIndex++);
     }
 
@@ -642,25 +656,13 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
         IndexFieldProvider indexFieldProvider = null;
         FulltextQueryTermsProvider fulltextQueryTermsProvider = null;
         private boolean useSuperBehavior = false;
-        private final Whiteboard whiteboard;
-
-        SimpleIndexAugmentorFactory() {
-            this(new DefaultWhiteboard());
-        }
-
-        SimpleIndexAugmentorFactory(Whiteboard whiteboard) {
-            super(whiteboard);
-            this.whiteboard = whiteboard;
-        }
 
         void registerIndexFieldProvider(IndexFieldProvider provider) {
-            whiteboard.register(IndexFieldProvider.class, provider, null);
-            refreshServices();
+            bindIndexFieldProvider(provider);
         }
 
         void registerQueryTermsProvider(FulltextQueryTermsProvider provider) {
-            whiteboard.register(FulltextQueryTermsProvider.class, provider, null);
-            refreshServices();
+            bindFulltextQueryTermsProvider(provider);
         }
 
         @Nonnull

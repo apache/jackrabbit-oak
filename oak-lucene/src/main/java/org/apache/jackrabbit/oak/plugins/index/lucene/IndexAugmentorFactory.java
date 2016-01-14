@@ -16,15 +16,23 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Deactivate;
+import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.ReferenceCardinality;
+import org.apache.felix.scr.annotations.ReferencePolicy;
+import org.apache.felix.scr.annotations.References;
+import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.IndexFieldProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
-import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Field;
@@ -39,23 +47,40 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+@SuppressWarnings("UnusedDeclaration")
+@Component
+@Service(value = IndexAugmentorFactory.class)
+@References({
+        @Reference(name = "IndexFieldProvider",
+                policy = ReferencePolicy.DYNAMIC,
+                cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE,
+                referenceInterface = IndexFieldProvider.class),
+        @Reference(name = "FulltextQueryTermsProvider",
+                policy = ReferencePolicy.DYNAMIC,
+                cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE,
+                referenceInterface = FulltextQueryTermsProvider.class)
+})
 public class IndexAugmentorFactory {
 
     private static final PerfLogger PERFLOG = new PerfLogger(
             LoggerFactory.getLogger(IndexAugmentorFactory.class.getName() + ".perf"));
 
-    private final Tracker<IndexFieldProvider> indexFieldProviderTracker;
-    private final Tracker<FulltextQueryTermsProvider> fulltextQueryTermsProviderTracker;
+    private final Set<IndexFieldProvider> indexFieldProviders;
+    private final Set<FulltextQueryTermsProvider> fulltextQueryTermsProviders;
 
     private volatile Map<String, CompositeIndexFieldProvider> indexFieldProviderMap;
     private volatile Map<String, CompositeFulltextQueryTermsProvider> fulltextQueryTermsProviderMap;
 
-    public IndexAugmentorFactory(Whiteboard whiteboard) {
-        indexFieldProviderTracker = whiteboard.track(IndexFieldProvider.class);
-        fulltextQueryTermsProviderTracker = whiteboard.track(FulltextQueryTermsProvider.class);
+    public IndexAugmentorFactory() {
+        indexFieldProviders = Sets.newIdentityHashSet();
+        fulltextQueryTermsProviders = Sets.newIdentityHashSet();
 
-        indexFieldProviderMap = Maps.newHashMap();
-        fulltextQueryTermsProviderMap = Maps.newHashMap();
+        resetState();
+    }
+
+    @Deactivate
+    private synchronized void deactivate() {
+        resetState();
     }
 
     @Nonnull
@@ -70,51 +95,81 @@ public class IndexAugmentorFactory {
         return (provider != null) ? provider : FulltextQueryTermsProvider.DEFAULT;
     }
 
-    public void refreshServices() {
-        refreshIndexFieldProviderServices();
-        refreshFulltextQueryTermsProviderServices();
+    synchronized void bindIndexFieldProvider(IndexFieldProvider indexFieldProvider) {
+        indexFieldProviders.add(indexFieldProvider);
+        refreshIndexFieldProviders();
     }
 
-    private void refreshIndexFieldProviderServices() {
-        ListMultimap<String, IndexFieldProvider> indexFieldProviderListMultimap =
+    synchronized void unbindIndexFieldProvider(IndexFieldProvider indexFieldProvider) {
+        indexFieldProviders.remove(indexFieldProvider);
+        refreshIndexFieldProviders();
+    }
+
+    synchronized void bindFulltextQueryTermsProvider(FulltextQueryTermsProvider fulltextQueryTermsProvider) {
+        fulltextQueryTermsProviders.add(fulltextQueryTermsProvider);
+        refreshFulltextQueryTermsProviders();
+    }
+
+    synchronized void unbindFulltextQueryTermsProvider(FulltextQueryTermsProvider fulltextQueryTermsProvider) {
+        fulltextQueryTermsProviders.remove(fulltextQueryTermsProvider);
+        refreshFulltextQueryTermsProviders();
+    }
+
+    private void refreshIndexFieldProviders() {
+        ListMultimap<String, IndexFieldProvider> providerMultimap =
                 LinkedListMultimap.create();
-        for (IndexFieldProvider provider : indexFieldProviderTracker.getServices()) {
+        for (IndexFieldProvider provider : indexFieldProviders) {
             Set<String> supportedNodeTypes = provider.getSupportedTypes();
             for (String nodeType : supportedNodeTypes) {
-                indexFieldProviderListMultimap.put(nodeType, provider);
+                providerMultimap.put(nodeType, provider);
             }
         }
 
-        Map<String, CompositeIndexFieldProvider> tempMap = Maps.newHashMap();
-        for (String nodeType : indexFieldProviderListMultimap.keySet()) {
-            List<IndexFieldProvider> providers = indexFieldProviderListMultimap.get(nodeType);
+        Map<String, CompositeIndexFieldProvider> providerMap = Maps.newHashMap();
+        for (String nodeType : providerMultimap.keySet()) {
+            List<IndexFieldProvider> providers = providerMultimap.get(nodeType);
             CompositeIndexFieldProvider compositeIndexFieldProvider =
                     new CompositeIndexFieldProvider(nodeType, providers);
-            tempMap.put(nodeType, compositeIndexFieldProvider);
+            providerMap.put(nodeType, compositeIndexFieldProvider);
         }
 
-        indexFieldProviderMap = tempMap;
+        indexFieldProviderMap = ImmutableMap.copyOf(providerMap);
     }
 
-    private void refreshFulltextQueryTermsProviderServices() {
-        ListMultimap<String, FulltextQueryTermsProvider> fulltextQueryTermsProviderLinkedListMultimap =
+    private void refreshFulltextQueryTermsProviders() {
+        ListMultimap<String, FulltextQueryTermsProvider> providerMultimap =
                 LinkedListMultimap.create();
-        for (FulltextQueryTermsProvider provider : fulltextQueryTermsProviderTracker.getServices()) {
+        for (FulltextQueryTermsProvider provider : fulltextQueryTermsProviders) {
             Set<String> supportedNodeTypes = provider.getSupportedTypes();
             for (String nodeType : supportedNodeTypes) {
-                fulltextQueryTermsProviderLinkedListMultimap.put(nodeType, provider);
+                providerMultimap.put(nodeType, provider);
             }
         }
 
-        Map<String, CompositeFulltextQueryTermsProvider> tempMap = Maps.newHashMap();
-        for (String nodeType : fulltextQueryTermsProviderLinkedListMultimap.keySet()) {
-            List<FulltextQueryTermsProvider> providers = fulltextQueryTermsProviderLinkedListMultimap.get(nodeType);
+        Map<String, CompositeFulltextQueryTermsProvider> providerMap = Maps.newHashMap();
+        for (String nodeType : providerMultimap.keySet()) {
+            List<FulltextQueryTermsProvider> providers = providerMultimap.get(nodeType);
             CompositeFulltextQueryTermsProvider compositeFulltextQueryTermsProvider =
                     new CompositeFulltextQueryTermsProvider(nodeType, providers);
-            tempMap.put(nodeType, compositeFulltextQueryTermsProvider);
+            providerMap.put(nodeType, compositeFulltextQueryTermsProvider);
         }
 
-        fulltextQueryTermsProviderMap = tempMap;
+        fulltextQueryTermsProviderMap = ImmutableMap.copyOf(providerMap);
+    }
+
+    private void resetState() {
+        indexFieldProviders.clear();
+        fulltextQueryTermsProviders.clear();
+
+        indexFieldProviderMap = Collections.EMPTY_MAP;
+        fulltextQueryTermsProviderMap = Collections.EMPTY_MAP;
+    }
+
+    boolean isStateEmpty() {
+        return indexFieldProviders.size() == 0 &&
+                indexFieldProviderMap.size() == 0 &&
+                fulltextQueryTermsProviders.size() == 0 &&
+                fulltextQueryTermsProviderMap.size() == 0;
     }
 
     class CompositeIndexFieldProvider implements IndexFieldProvider {
@@ -124,7 +179,7 @@ public class IndexAugmentorFactory {
 
         CompositeIndexFieldProvider(String nodeType, List<IndexFieldProvider> providers) {
             this.nodeType = nodeType;
-            this.providers = providers;
+            this.providers = ImmutableList.copyOf(providers);
         }
 
         @Nonnull
@@ -158,7 +213,7 @@ public class IndexAugmentorFactory {
 
         CompositeFulltextQueryTermsProvider(String nodeType, List<FulltextQueryTermsProvider> providers) {
             this.nodeType = nodeType;
-            this.providers = providers;
+            this.providers = ImmutableList.copyOf(providers);
         }
 
         @Override

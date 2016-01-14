@@ -45,7 +45,6 @@ import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.ReferencePolicyOption;
-import org.apache.felix.scr.annotations.References;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
@@ -53,8 +52,6 @@ import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
-import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
-import org.apache.jackrabbit.oak.plugins.index.lucene.spi.IndexFieldProvider;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserverMBean;
@@ -77,20 +74,6 @@ import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerM
 
 @SuppressWarnings("UnusedDeclaration")
 @Component(metatype = true, label = "Apache Jackrabbit Oak LuceneIndexProvider")
-@References({
-        @Reference(name = "IndexFieldProvider",
-                policy = ReferencePolicy.DYNAMIC,
-                cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE,
-                referenceInterface = IndexFieldProvider.class,
-                bind = "indexFieldProviderServiceUpdated",
-                unbind = "indexFieldProviderServiceUpdated"),
-        @Reference(name = "FulltextQueryTermsProvider",
-                policy = ReferencePolicy.DYNAMIC,
-                cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE,
-                referenceInterface = FulltextQueryTermsProvider.class,
-                bind = "indexFulltextQueryTermsProviderServiceUpdated",
-                unbind = "indexFulltextQueryTermsProviderServiceUpdated")
-})
 public class LuceneIndexProviderService {
     public static final String REPOSITORY_HOME = "repository.home";
 
@@ -194,6 +177,7 @@ public class LuceneIndexProviderService {
     @Reference
     ScorerProviderFactory scorerFactory;
 
+    @Reference
     private IndexAugmentorFactory augmentorFactory;
 
     @Reference(policy = ReferencePolicy.DYNAMIC,
@@ -226,7 +210,6 @@ public class LuceneIndexProviderService {
         whiteboard = new OsgiWhiteboard(bundleContext);
         threadPoolSize = PropertiesUtil.toInteger(config.get(PROP_THREAD_POOL_SIZE), PROP_THREAD_POOL_SIZE_DEFAULT);
         initializeExtractedTextCache(bundleContext, config);
-        augmentorFactory = new IndexAugmentorFactory(whiteboard);
         indexProvider = new LuceneIndexProvider(createTracker(bundleContext, config), scorerFactory, augmentorFactory);
         initializeLogging(config);
         initialize();
@@ -489,13 +472,5 @@ public class LuceneIndexProviderService {
     protected void unbindExtractedTextProvider(PreExtractedTextProvider preExtractedTextProvider){
         this.extractedTextProvider = null;
         registerExtractedTextProvider(null);
-    }
-
-    private void indexFieldProviderServiceUpdated(IndexFieldProvider indexFieldProvider) {
-        augmentorFactory.refreshServices();
-    }
-
-    private void indexFulltextQueryTermsProviderServiceUpdated(FulltextQueryTermsProvider fulltextQueryTermsProvider) {
-        augmentorFactory.refreshServices();
     }
 }
