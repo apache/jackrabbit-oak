@@ -69,7 +69,7 @@ public class FacetResult {
         List<Facet> facets = new LinkedList<Facet>();
         int c;
         String label = null;
-        Integer count;
+        int count;
         while ((c = jsopTokenizer.read()) != JsopReader.END) {
             if (JsopReader.STRING == c) {
                 label = jsopTokenizer.getEscapedToken();
@@ -100,9 +100,9 @@ public class FacetResult {
     public static class Facet {
 
         private final String label;
-        private final Integer count;
+        private final int count;
 
-        private Facet(String label, Integer count) {
+        private Facet(String label, int count) {
             this.label = label;
             this.count = count;
         }
@@ -120,8 +120,7 @@ public class FacetResult {
          * get the facet count
          * @return an integer
          */
-        @Nonnull
-        public Integer getCount() {
+        public int getCount() {
             return count;
         }
     }
