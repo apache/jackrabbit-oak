@@ -21,8 +21,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.List;
 
-import javax.annotation.Nullable;
-
 public interface DocumentStoreStatsCollector {
     /**
      * Called when a document with given key is found from the cache
@@ -44,17 +42,17 @@ public interface DocumentStoreStatsCollector {
 
     /**
      * Called when query with given parameters is performed
-     *  @param timeTakenNanos watch for determining time taken
+     * @param timeTakenNanos watch for determining time taken
      * @param collection the collection
      * @param fromKey the start value (excluding)
      * @param toKey the end value (excluding)
-     * @param indexedProperty the name of the indexed property (optional)
+     * @param indexedProperty true if indexProperty was specified
      * @param resultSize number of documents found for given query
      * @param lockTime time in millis to acquire any lock. If no lock was required then its -1
      * @param isSlaveOk true if find was performed against a secondary instance
      */
     void doneQuery(long timeTakenNanos, Collection collection, String fromKey, String toKey,
-                   @Nullable String indexedProperty, int resultSize, long lockTime, boolean isSlaveOk);
+                   boolean indexedProperty, int resultSize, long lockTime, boolean isSlaveOk);
 
     /**
      * Called when a document is created in the given collection
@@ -76,10 +74,13 @@ public interface DocumentStoreStatsCollector {
     /**
      * Called when a update operation was completed which affected single
      * document.
-     *  @param timeTakenNanos watch for determining time taken
+     * @param timeTakenNanos watch for determining time taken
      * @param collection the collection
      * @param key collection which got updated or inserted
      * @param newEntry true if the document was newly created due to given operation
+     * @param success true if the update was success
+     * @param retryCount number of retries done to get the update
      */
-    void doneFindAndModify(long timeTakenNanos, Collection collection, String key, boolean newEntry);
+    void doneFindAndModify(long timeTakenNanos, Collection collection, String key,
+                           boolean newEntry, boolean success, int retryCount);
 }

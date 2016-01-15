@@ -168,10 +168,10 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
 
     @Override
     public void doneQuery(long timeTakenNanos, Collection collection, String fromKey, String toKey,
-                          String indexedProperty, int resultSize, long lockTime, boolean isSlaveOk) {
+                          boolean indexedProperty, int resultSize, long lockTime, boolean isSlaveOk) {
         if (collection == Collection.NODES){
             //Distinguish between query done with filter and without filter
-            TimerStats timer = indexedProperty != null ? queryNodesWithFilterTimer : queryNodesTimer;
+            TimerStats timer = indexedProperty ? queryNodesWithFilterTimer : queryNodesTimer;
             timer.update(timeTakenNanos, TimeUnit.NANOSECONDS);
 
             //Number of nodes read
@@ -223,8 +223,10 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     }
 
     @Override
-    public void doneFindAndModify(long timeTakenNanos, Collection collection, String key, boolean newEntry) {
+    public void doneFindAndModify(long timeTakenNanos, Collection collection, String key, boolean newEntry,
+                                  boolean success, int retryCount) {
         if (collection == Collection.NODES){
+            //TODO Meter for success and retryCount
             if (newEntry){
                 createNodeUpsertMeter.mark();
                 createNodeUpsertTimer.update(timeTakenNanos, TimeUnit.NANOSECONDS);
