@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.jcr.query;
 
 import javax.jcr.Node;
+import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
@@ -28,7 +29,10 @@ import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
 
+import java.util.List;
+
 import org.apache.jackrabbit.core.query.AbstractQueryTest;
+import org.apache.jackrabbit.oak.query.facet.FacetResult;
 
 /**
  * Test for faceting capabilities via JCR API
@@ -50,8 +54,28 @@ public class FacetTest extends AbstractQueryTest {
                 "where contains([text], 'hello OR hallo') order by [jcr:path]";
         Query q = qm.createQuery(sql2, Query.JCR_SQL2);
         QueryResult result = q.execute();
-        String facetResult = "{\"text\":[\"hallo\":1,\"hello\":1,\"oh hallo\":1]}";
-        assertEquals(facetResult + ", " + facetResult + ", " + facetResult, getResult(result, "rep:facet(text)"));
+        FacetResult facetResult = new FacetResult(result);
+        assertNotNull(facetResult);
+        assertNotNull(facetResult.getDimensions());
+        assertEquals(1, facetResult.getDimensions().size());
+        assertTrue(facetResult.getDimensions().contains("text"));
+        List<FacetResult.Facet> facets = facetResult.getFacets("text");
+        assertNotNull(facets);
+        assertEquals("hallo", facets.get(0).getLabel());
+        assertEquals(1, facets.get(0).getCount(), 0);
+        assertEquals("hello", facets.get(1).getLabel());
+        assertEquals(1, facets.get(1).getCount(), 0);
+        assertEquals("oh hallo", facets.get(2).getLabel());
+        assertEquals(1, facets.get(2).getCount(), 0);
+
+        NodeIterator nodes = result.getNodes();
+        assertTrue(nodes.hasNext());
+        assertNotNull(nodes.nextNode());
+        assertTrue(nodes.hasNext());
+        assertNotNull(nodes.nextNode());
+        assertTrue(nodes.hasNext());
+        assertNotNull(nodes.nextNode());
+        assertFalse(nodes.hasNext());
     }
 
     public void testFacetRetrievalMV() throws Exception {
@@ -75,8 +99,37 @@ public class FacetTest extends AbstractQueryTest {
                 "where contains([jcr:title], 'oak') order by [jcr:path]";
         Query q = qm.createQuery(sql2, Query.JCR_SQL2);
         QueryResult result = q.execute();
-        String facetResult = "{\"tags\":[\"repository\":2,\"software\":2,\"aem\":1,\"apache\":1,\"cosmetics\":1,\"furniture\":1]}, {\"tags\":[\"repository\":2,\"software\":2,\"aem\":1,\"apache\":1,\"cosmetics\":1,\"furniture\":1]}, {\"tags\":[\"repository\":2,\"software\":2,\"aem\":1,\"apache\":1,\"cosmetics\":1,\"furniture\":1]}, {\"tags\":[\"repository\":2,\"software\":2,\"aem\":1,\"apache\":1,\"cosmetics\":1,\"furniture\":1]}";
-        assertEquals(facetResult, getResult(result, "rep:facet(tags)"));
+        FacetResult facetResult = new FacetResult(result);
+        assertNotNull(facetResult);
+        assertNotNull(facetResult.getDimensions());
+        assertEquals(1, facetResult.getDimensions().size());
+        assertTrue(facetResult.getDimensions().contains("tags"));
+        List<FacetResult.Facet> facets = facetResult.getFacets("tags");
+        assertNotNull(facets);
+        assertEquals("repository", facets.get(0).getLabel());
+        assertEquals(2, facets.get(0).getCount(), 0);
+        assertEquals("software", facets.get(1).getLabel());
+        assertEquals(2, facets.get(1).getCount(), 0);
+        assertEquals("aem", facets.get(2).getLabel());
+        assertEquals(1, facets.get(2).getCount(), 0);
+        assertEquals("apache", facets.get(3).getLabel());
+        assertEquals(1, facets.get(3).getCount(), 0);
+        assertEquals("cosmetics", facets.get(4).getLabel());
+        assertEquals(1, facets.get(4).getCount(), 0);
+        assertEquals("furniture", facets.get(5).getLabel());
+        assertEquals(1, facets.get(5).getCount(), 0);
+
+
+        NodeIterator nodes = result.getNodes();
+        assertTrue(nodes.hasNext());
+        assertNotNull(nodes.nextNode());
+        assertTrue(nodes.hasNext());
+        assertNotNull(nodes.nextNode());
+        assertTrue(nodes.hasNext());
+        assertNotNull(nodes.nextNode());
+        assertTrue(nodes.hasNext());
+        assertNotNull(nodes.nextNode());
+        assertFalse(nodes.hasNext());
     }
 
     public void testFacetRetrievalWithAnonymousUser() throws Exception {
@@ -97,8 +150,28 @@ public class FacetTest extends AbstractQueryTest {
                 "where contains([text], 'hello OR hallo') order by [jcr:path]";
         Query q = qm.createQuery(sql2, Query.JCR_SQL2);
         QueryResult result = q.execute();
-        String facetResult = "{\"text\":[\"hallo\":1,\"hello\":1,\"oh hallo\":1]}";
-        assertEquals(facetResult + ", " + facetResult + ", " + facetResult, getResult(result, "rep:facet(text)"));
+        FacetResult facetResult = new FacetResult(result);
+        assertNotNull(facetResult);
+        assertNotNull(facetResult.getDimensions());
+        assertEquals(1, facetResult.getDimensions().size());
+        assertTrue(facetResult.getDimensions().contains("text"));
+        List<FacetResult.Facet> facets = facetResult.getFacets("text");
+        assertNotNull(facets);
+        assertEquals("hallo", facets.get(0).getLabel());
+        assertEquals(1, facets.get(0).getCount(), 0);
+        assertEquals("hello", facets.get(1).getLabel());
+        assertEquals(1, facets.get(1).getCount(), 0);
+        assertEquals("oh hallo", facets.get(2).getLabel());
+        assertEquals(1, facets.get(2).getCount(), 0);
+
+        NodeIterator nodes = result.getNodes();
+        assertTrue(nodes.hasNext());
+        assertNotNull(nodes.nextNode());
+        assertTrue(nodes.hasNext());
+        assertNotNull(nodes.nextNode());
+        assertTrue(nodes.hasNext());
+        assertNotNull(nodes.nextNode());
+        assertFalse(nodes.hasNext());
     }
 
     public void testFacetRetrieval2() throws Exception {
@@ -117,8 +190,24 @@ public class FacetTest extends AbstractQueryTest {
                 "where contains([" + pn + "], 'hallo') order by [jcr:path]";
         Query q = qm.createQuery(sql2, Query.JCR_SQL2);
         QueryResult result = q.execute();
-        String facetResult = "{\"jcr:title\":[\"hallo\":1,\"oh hallo\":1]}";
-        assertEquals(facetResult + ", " + facetResult, getResult(result, "rep:facet(" + pn + ")"));
+        FacetResult facetResult = new FacetResult(result);
+        assertNotNull(facetResult);
+        assertNotNull(facetResult.getDimensions());
+        assertEquals(1, facetResult.getDimensions().size());
+        assertTrue(facetResult.getDimensions().contains(pn));
+        List<FacetResult.Facet> facets = facetResult.getFacets(pn);
+        assertNotNull(facets);
+        assertEquals("hallo", facets.get(0).getLabel());
+        assertEquals(1, facets.get(0).getCount(), 0);
+        assertEquals("oh hallo", facets.get(1).getLabel());
+        assertEquals(1, facets.get(1).getCount(), 0);
+
+        NodeIterator nodes = result.getNodes();
+        assertTrue(nodes.hasNext());
+        assertNotNull(nodes.nextNode());
+        assertTrue(nodes.hasNext());
+        assertNotNull(nodes.nextNode());
+        assertFalse(nodes.hasNext());
     }
 
     public void testMultipleFacetsRetrieval() throws Exception {
@@ -141,26 +230,31 @@ public class FacetTest extends AbstractQueryTest {
                 "where contains([" + pn + "], 'hallo') order by [jcr:path]";
         Query q = qm.createQuery(sql2, Query.JCR_SQL2);
         QueryResult result = q.execute();
-        String facetResult = "{\"jcr:title\":[\"hallo\":1,\"oh hallo\":1]}, {\"jcr:description\":[\"a\":1,\"b\":1]}";
-        assertEquals(facetResult + ", " + facetResult, getResult(result, "rep:facet(" + pn + ")", "rep:facet(" + pn2 + ")"));
-    }
+        FacetResult facetResult = new FacetResult(result);
+        assertNotNull(facetResult);
+        assertNotNull(facetResult.getDimensions());
+        assertEquals(2, facetResult.getDimensions().size());
+        assertTrue(facetResult.getDimensions().contains(pn));
+        assertTrue(facetResult.getDimensions().contains(pn2));
+        List<FacetResult.Facet> facets = facetResult.getFacets(pn);
+        assertNotNull(facets);
+        assertEquals("hallo", facets.get(0).getLabel());
+        assertEquals(1, facets.get(0).getCount(), 0);
+        assertEquals("oh hallo", facets.get(1).getLabel());
+        assertEquals(1, facets.get(1).getCount(), 0);
+        List<FacetResult.Facet> facets1 = facetResult.getFacets(pn2);
+        assertNotNull(facets1);
+        assertEquals("a", facets1.get(0).getLabel());
+        assertEquals(1, facets1.get(0).getCount(), 0);
+        assertEquals("b", facets1.get(1).getLabel());
+        assertEquals(1, facets1.get(1).getCount(), 0);
 
-    static String getResult(QueryResult result, String... propertyNames) throws RepositoryException {
-        StringBuilder buff = new StringBuilder();
-        RowIterator it = result.getRows();
-        while (it.hasNext()) {
-            Row row = it.nextRow();
-            for (String propertyName : propertyNames) {
-                Value value = row.getValue(propertyName);
-                if (value != null) {
-                    if (buff.length() > 0) {
-                        buff.append(", ");
-                    }
-                    buff.append(value.getString());
-                }
-            }
-        }
-        return buff.toString();
+        NodeIterator nodes = result.getNodes();
+        assertTrue(nodes.hasNext());
+        assertNotNull(nodes.nextNode());
+        assertTrue(nodes.hasNext());
+        assertNotNull(nodes.nextNode());
+        assertFalse(nodes.hasNext());
     }
 
 }

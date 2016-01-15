@@ -667,11 +667,9 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                         if (facetField != null) {
                             JsopWriter writer = new JsopBuilder();
                             writer.object();
-                            writer.key(facetFieldName).array();
                             for (FacetField.Count count : facetField.getValues()) {
                                 writer.key(count.getName()).value(count.getCount());
                             }
-                            writer.endArray();
                             writer.endObject();
                             return PropertyValues.newString(writer.toString());
                         } else {
