@@ -35,6 +35,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -53,6 +54,16 @@ public class UtilsTest {
                 Utils.getPreviousIdFor("/test", r, 1));
         assertEquals("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/" + r.toString() + "/3",
                 Utils.getPreviousIdFor("/a/b/c/d/e/f/g/h/i/j/k/l/m", r, 3));
+    }
+
+    @Test
+    public void previousDoc() throws Exception{
+        Revision r = new Revision(System.currentTimeMillis(), 0, 0);
+        assertTrue(Utils.isPreviousDocId(Utils.getPreviousIdFor("/", r, 0)));
+        assertTrue(Utils.isPreviousDocId(Utils.getPreviousIdFor("/a/b/c/d/e/f/g/h/i/j/k/l/m", r, 3)));
+        assertFalse(Utils.isPreviousDocId(Utils.getIdFromPath("/a/b")));
+        assertFalse(Utils.isPreviousDocId("foo"));
+        assertFalse(Utils.isPreviousDocId("0:"));
     }
 
     @Test

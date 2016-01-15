@@ -339,6 +339,20 @@ public class Utils {
     }
 
     /**
+     * Determines if the passed id belongs to a previous doc
+     *
+     * @param id id to check
+     * @return true if the id belongs to a previous doc
+     */
+    public static boolean isPreviousDocId(String id){
+        int indexOfColon = id.indexOf(':');
+        if (indexOfColon > 0 && indexOfColon < id.length() - 1){
+            return id.charAt(indexOfColon + 1) == 'p';
+        }
+        return false;
+    }
+
+    /**
      * Deep copy of a map that may contain map values.
      *
      * @param source the source map
