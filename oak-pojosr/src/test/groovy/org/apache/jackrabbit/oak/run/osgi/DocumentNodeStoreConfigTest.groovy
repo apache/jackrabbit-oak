@@ -24,12 +24,16 @@ import org.apache.jackrabbit.oak.api.Blob
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean
 import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreStatsMBean
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection
 import org.apache.jackrabbit.oak.spi.blob.BlobStore
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore
 import org.apache.jackrabbit.oak.spi.blob.stats.BlobStoreStatsMBean
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder
 import org.apache.jackrabbit.oak.spi.state.NodeStore
 import org.h2.jdbcx.JdbcDataSource
 import org.junit.After
@@ -255,10 +259,22 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
                 "be registered by DocumentNodeStoreService in default blobStore used"
 
         testBlobStoreStats(ns)
+        testDocumentStoreStats(ns)
     }
 
+    private void testDocumentStoreStats(DocumentNodeStore store) {
+        DocumentStoreStatsMBean stats = getService(DocumentStoreStatsMBean.class)
 
-    public void testBlobStoreStats(DocumentNodeStore nodeStore) throws Exception{
+        long createdNodeCount = stats.nodesCreateCount
+        NodeBuilder builder = store.getRoot().builder()
+        builder.child("testDocumentStoreStats").child("a")
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        assert stats.nodesCreateCount - createdNodeCount >= 2
+
+    }
+
+    private void testBlobStoreStats(DocumentNodeStore nodeStore) throws Exception{
         int size = 1024 * 1024 * 5
         Blob blob = nodeStore.createBlob(testStream(size));
         BlobStoreStatsMBean stats = getService(BlobStoreStatsMBean.class)

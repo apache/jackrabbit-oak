@@ -641,6 +641,16 @@ public class DocumentNodeStoreService {
             );
         }
 
+        if (mkBuilder.getDocumentStoreStatsCollector() instanceof DocumentStoreStatsMBean) {
+            registrations.add(
+                    registerMBean(whiteboard,
+                            DocumentStoreStatsMBean.class,
+                            (DocumentStoreStatsMBean) mkBuilder.getDocumentStoreStatsCollector(),
+                            DocumentStoreStatsMBean.TYPE,
+                            "DocumentStore Statistics")
+            );
+        }
+
         final long versionGcMaxAgeInSecs = toLong(prop(PROP_VER_GC_MAX_AGE), DEFAULT_VER_GC_MAX_AGE);
         final long blobGcMaxAgeInSecs = toLong(prop(PROP_BLOB_GC_MAX_AGE), DEFAULT_BLOB_GC_MAX_AGE);
 
