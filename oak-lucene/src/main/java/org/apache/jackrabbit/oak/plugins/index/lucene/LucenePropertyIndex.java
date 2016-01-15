@@ -1523,11 +1523,9 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                                 if (topChildren != null) {
                                     JsopWriter writer = new JsopBuilder();
                                     writer.object();
-                                    writer.key(facetFieldName).array();
                                     for (LabelAndValue lav : topChildren.labelValues) {
                                         writer.key(lav.label).value(lav.value.intValue());
                                     }
-                                    writer.endArray();
                                     writer.endObject();
                                     return PropertyValues.newString(writer.toString());
                                 } else {
