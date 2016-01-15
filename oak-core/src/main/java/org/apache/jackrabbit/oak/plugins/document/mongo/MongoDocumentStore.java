@@ -166,7 +166,7 @@ public class MongoDocumentStore implements DocumentStore {
 
     private final Map<String, String> metadata;
 
-    private final DocumentStoreStatsCollector stats;
+    private DocumentStoreStatsCollector stats;
 
     public MongoDocumentStore(DB db, DocumentMK.Builder builder) {
         String version = checkVersion(db);
@@ -1297,6 +1297,10 @@ public class MongoDocumentStore implements DocumentStore {
 
     NodeDocumentCache getNodeDocumentCache() {
         return nodesCache;
+    }
+
+    public void setStatsCollector(DocumentStoreStatsCollector stats) {
+        this.stats = stats;
     }
 
     @Override
