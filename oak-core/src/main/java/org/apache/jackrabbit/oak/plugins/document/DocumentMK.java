@@ -520,6 +520,7 @@ public class DocumentMK {
         private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
         private BlobStoreStats blobStoreStats;
         private CacheStats blobStoreCacheStats;
+        private DocumentStoreStatsCollector documentStoreStatsCollector;
 
         public Builder() {
         }
@@ -871,6 +872,18 @@ public class DocumentMK {
 
         public Builder setStatisticsProvider(StatisticsProvider statisticsProvider){
             this.statisticsProvider = statisticsProvider;
+            return this;
+        }
+
+        public DocumentStoreStatsCollector getDocumentStoreStatsCollector() {
+            if (documentStoreStatsCollector == null) {
+                documentStoreStatsCollector = new DocumentStoreStats(statisticsProvider);
+            }
+            return documentStoreStatsCollector;
+        }
+
+        public Builder setDocumentStoreStatsCollector(DocumentStoreStatsCollector documentStoreStatsCollector) {
+            this.documentStoreStatsCollector = documentStoreStatsCollector;
             return this;
         }
 
