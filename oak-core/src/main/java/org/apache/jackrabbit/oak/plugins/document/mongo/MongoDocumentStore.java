@@ -607,7 +607,7 @@ public class MongoDocumentStore implements DocumentStore {
                 lock.unlock();
             }
             stats.doneQuery(watch.elapsed(TimeUnit.NANOSECONDS), collection, fromKey, toKey,
-                    indexedProperty, resultSize, lockTime, isSlaveOk);
+                    indexedProperty != null , resultSize, lockTime, isSlaveOk);
         }
     }
 
@@ -781,7 +781,8 @@ public class MongoDocumentStore implements DocumentStore {
             if (lock != null) {
                 lock.unlock();
             }
-            stats.doneFindAndModify(watch.elapsed(TimeUnit.NANOSECONDS), collection, updateOp.getId(), newEntry);
+            stats.doneFindAndModify(watch.elapsed(TimeUnit.NANOSECONDS), collection, updateOp.getId(),
+                    newEntry, true, 0);
         }
     }
 

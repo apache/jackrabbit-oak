@@ -33,9 +33,9 @@ import org.junit.rules.TestName;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
+import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Matchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -99,9 +99,9 @@ public class DocumentStoreStatsIT extends AbstractDocumentStoreTest {
 
         ds.query(Collection.NODES, base, base + "A", 5);
         verify(stats).doneQuery(anyLong(), eq(Collection.NODES), eq(base), eq(base + "A"),
-                isNull(String.class),  //indexedProperty
+                eq(false),  //indexedProperty
                 eq(5) , // resultSize
-                eq(0L),   //lockTime
+                anyLong(),   //lockTime
                 eq(false) //isSlaveOk
         );
     }
@@ -144,7 +144,7 @@ public class DocumentStoreStatsIT extends AbstractDocumentStoreTest {
         up.max("_modified", 122L);
         ds.findAndUpdate(Collection.NODES, up);
 
-        verify(coll).doneFindAndModify(anyLong(), eq(Collection.NODES), eq(id), eq(false));
+        verify(coll).doneFindAndModify(anyLong(), eq(Collection.NODES), eq(id), eq(false), eq(true), anyInt());
     }
 
     private void configureStatsCollector(DocumentStoreStatsCollector stats) {

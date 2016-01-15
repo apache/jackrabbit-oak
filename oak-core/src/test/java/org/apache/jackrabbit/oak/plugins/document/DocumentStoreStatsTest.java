@@ -81,22 +81,22 @@ public class DocumentStoreStatsTest {
 
     @Test
     public void doneQuery_Nodes() throws Exception{
-        stats.doneQuery(100, Collection.NODES, "foo", "bar", null, 5, -1, false);
+        stats.doneQuery(100, Collection.NODES, "foo", "bar", false, 5, -1, false);
         assertEquals(5, getMeter(DocumentStoreStats.NODES_QUERY_FIND_READ_COUNT).getCount());
         assertEquals(1, getMeter(DocumentStoreStats.NODES_QUERY_PRIMARY).getCount());
 
-        stats.doneQuery(100, Collection.NODES, "foo", "bar", null, 7, -1, true);
+        stats.doneQuery(100, Collection.NODES, "foo", "bar", false, 7, -1, true);
         assertEquals(1, getMeter(DocumentStoreStats.NODES_QUERY_SLAVE).getCount());
         assertEquals(12, getMeter(DocumentStoreStats.NODES_QUERY_FIND_READ_COUNT).getCount());
 
-        stats.doneQuery(100, Collection.NODES, "foo", "bar", null, 7, 1000, false);
+        stats.doneQuery(100, Collection.NODES, "foo", "bar", false, 7, 1000, false);
         assertEquals(2, getMeter(DocumentStoreStats.NODES_QUERY_PRIMARY).getCount());
         assertEquals(1, getMeter(DocumentStoreStats.NODES_QUERY_LOCK).getCount());
     }
 
     @Test
     public void doneQuery_Journal() throws Exception{
-        stats.doneQuery(100, Collection.JOURNAL, "foo", "bar", null, 5, -1, false);
+        stats.doneQuery(100, Collection.JOURNAL, "foo", "bar", false, 5, -1, false);
         assertEquals(5, getMeter(DocumentStoreStats.JOURNAL_QUERY).getCount());
         assertEquals(1, getTimer(DocumentStoreStats.JOURNAL_QUERY_TIMER).getCount());
     }
@@ -110,11 +110,11 @@ public class DocumentStoreStatsTest {
 
     @Test
     public void doneFindAndModify() throws Exception{
-        stats.doneFindAndModify(100, Collection.NODES, "foo", true);
+        stats.doneFindAndModify(100, Collection.NODES, "foo", true, true, 0);
         assertEquals(1, getMeter(DocumentStoreStats.NODES_CREATE_UPSERT).getCount());
         assertEquals(100, getTimer(DocumentStoreStats.NODES_CREATE_UPSERT_TIMER).getSnapshot().getMax());
 
-        stats.doneFindAndModify(100, Collection.NODES, "foo", false);
+        stats.doneFindAndModify(100, Collection.NODES, "foo", false, true, 0);
         assertEquals(1, getMeter(DocumentStoreStats.NODES_UPDATE).getCount());
         assertEquals(100, getTimer(DocumentStoreStats.NODES_UPDATE_TIMER).getSnapshot().getMax());
     }
@@ -130,24 +130,24 @@ public class DocumentStoreStatsTest {
         customLogs.starting();
 
         //No logs untill debug enabled
-        stats.doneFindAndModify(100, Collection.NODES, "foo", true);
+        stats.doneFindAndModify(100, Collection.NODES, "foo", true, true, 0);
         assertEquals(0, customLogs.getLogs().size());
 
-        stats.doneFindAndModify(TimeUnit.SECONDS.toNanos(10), Collection.NODES, "foo", true);
+        stats.doneFindAndModify(TimeUnit.SECONDS.toNanos(10), Collection.NODES, "foo", true, true, 0);
         assertEquals(0, customLogs.getLogs().size());
 
         //Change level to DEBUG - Now threshold rule applies
         enableLevel(logName, Level.DEBUG);
 
-        stats.doneFindAndModify(100, Collection.NODES, "foo", true);
+        stats.doneFindAndModify(100, Collection.NODES, "foo", true, true, 0);
         assertEquals(0, customLogs.getLogs().size());
 
-        stats.doneFindAndModify(TimeUnit.SECONDS.toNanos(10), Collection.NODES, "foo", true);
+        stats.doneFindAndModify(TimeUnit.SECONDS.toNanos(10), Collection.NODES, "foo", true, true, 0);
         assertEquals(1, customLogs.getLogs().size());
 
         //With trace level everything is logged
         enableLevel(logName, Level.TRACE);
-        stats.doneFindAndModify(100, Collection.NODES, "foo", true);
+        stats.doneFindAndModify(100, Collection.NODES, "foo", true, true, 0);
         assertEquals(2, customLogs.getLogs().size());
 
         customLogs.finished();
