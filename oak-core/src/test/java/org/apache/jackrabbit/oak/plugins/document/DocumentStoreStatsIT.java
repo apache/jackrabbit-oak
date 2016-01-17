@@ -24,7 +24,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -32,7 +34,7 @@ import org.junit.rules.TestName;
 
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.Assume.assumeFalse;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.eq;
@@ -52,7 +54,7 @@ public class DocumentStoreStatsIT extends AbstractDocumentStoreTest {
 
     @Before
     public void checkSupportedStores() throws Exception{
-        assumeTrue(ds instanceof MongoDocumentStore);
+        assumeFalse(ds instanceof MemoryDocumentStore);
     }
 
     @Test
@@ -150,6 +152,9 @@ public class DocumentStoreStatsIT extends AbstractDocumentStoreTest {
     private void configureStatsCollector(DocumentStoreStatsCollector stats) {
         if (ds instanceof MongoDocumentStore){
             ((MongoDocumentStore) ds).setStatsCollector(stats);
+        }
+        if (ds instanceof RDBDocumentStore){
+            ((RDBDocumentStore) ds).setStatsCollector(stats);
         }
     }
 }

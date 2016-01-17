@@ -52,6 +52,7 @@ import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.zip.Deflater;
 import java.util.zip.GZIPOutputStream;
@@ -60,12 +61,14 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.sql.DataSource;
 
+import com.google.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreStatsCollector;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
@@ -696,6 +699,8 @@ public class RDBDocumentStore implements DocumentStore {
 
     private Map<String, String> metadata;
 
+    private DocumentStoreStatsCollector stats;
+
     // set of supported indexed properties
     private static final Set<String> INDEXEDPROPERTIES = new HashSet<String>(Arrays.asList(new String[] { MODIFIED,
             NodeDocument.HAS_BINARY_FLAG, NodeDocument.DELETED_ONCE }));
@@ -712,7 +717,7 @@ public class RDBDocumentStore implements DocumentStore {
     private final RDBDocumentSerializer ser = new RDBDocumentSerializer(this, COLUMNPROPERTIES);
 
     private void initialize(DataSource ds, DocumentMK.Builder builder, RDBOptions options) throws Exception {
-
+        this.stats = builder.getDocumentStoreStatsCollector();
         this.tableMeta.put(Collection.NODES,
                 new RDBTableMetaData(createTableName(options.getTablePrefix(), TABLEMAP.get(Collection.NODES))));
         this.tableMeta.put(Collection.CLUSTER_NODES,
@@ -1057,6 +1062,7 @@ public class RDBDocumentStore implements DocumentStore {
                     long lastCheckTime = doc.getLastCheckTime();
                     if (lastCheckTime != 0) {
                         if (maxCacheAge == Integer.MAX_VALUE || System.currentTimeMillis() - lastCheckTime < maxCacheAge) {
+                            stats.doneFindCached(Collection.NODES, id);
                             return castAsT(unwrap(doc));
                         }
                     }
@@ -1109,12 +1115,16 @@ public class RDBDocumentStore implements DocumentStore {
 
     @CheckForNull
     private <T extends Document> boolean internalCreate(Collection<T> collection, List<UpdateOp> updates) {
+        final Stopwatch watch = startWatch();
+        List<String> ids = new ArrayList<String>(updates.size());
+        boolean success = true;
         try {
-            boolean success = true;
+
             // try up to CHUNKSIZE ops in one transaction
             for (List<UpdateOp> chunks : Lists.partition(updates, CHUNKSIZE)) {
                 List<T> docs = new ArrayList<T>();
                 for (UpdateOp update : chunks) {
+                    ids.add(update.getId());
                     maintainUpdateStats(collection, update.getId());
                     UpdateUtils.assertUnconditional(update);
                     T doc = collection.newDocument(this);
@@ -1139,6 +1149,8 @@ public class RDBDocumentStore implements DocumentStore {
             return success;
         } catch (DocumentStoreException ex) {
             return false;
+        } finally {
+            stats.doneCreate(watch.elapsed(TimeUnit.NANOSECONDS), collection, ids, success);
         }
     }
 
@@ -1160,10 +1172,12 @@ public class RDBDocumentStore implements DocumentStore {
             addUpdateCounters(update);
             UpdateUtils.applyChanges(doc, update);
             try {
+                Stopwatch watch = startWatch();
                 insertDocuments(collection, Collections.singletonList(doc));
                 if (collection == Collection.NODES) {
                     nodesCache.putIfAbsent((NodeDocument) doc);
                 }
+                stats.doneFindAndModify(watch.elapsed(TimeUnit.NANOSECONDS), collection, update.getId(), true, true, 0);
                 return oldDoc;
             } catch (DocumentStoreException ex) {
                 // may have failed due to a race condition; try update instead
@@ -1202,10 +1216,11 @@ public class RDBDocumentStore implements DocumentStore {
             addUpdateCounters(update);
             T doc = createNewDocument(collection, oldDoc, update);
             Lock l = locks.acquire(update.getId());
+            final Stopwatch watch = startWatch();
+            boolean success = false;
+            int retries = maxRetries;
             try {
-                boolean success = false;
 
-                int retries = maxRetries;
                 while (!success && retries > 0) {
                     long lastmodcount = modcountOf(oldDoc);
                     success = updateDocument(collection, doc, update, lastmodcount);
@@ -1249,6 +1264,9 @@ public class RDBDocumentStore implements DocumentStore {
                 return oldDoc;
             } finally {
                 l.unlock();
+                int numOfAttempts = maxRetries - retries - 1;
+                stats.doneFindAndModify(watch.elapsed(TimeUnit.NANOSECONDS), collection,
+                        update.getId(), false, success, numOfAttempts);
             }
         }
     }
@@ -1306,9 +1324,13 @@ public class RDBDocumentStore implements DocumentStore {
                 RDBTableMetaData tmd = getTable(collection);
                 boolean success = false;
                 try {
+                    Stopwatch watch = startWatch();
                     connection = this.ch.getRWConnection();
                     success = db.batchedAppendingUpdate(connection, tmd, chunkedIds, modified, modifiedIsConditional, appendData);
                     connection.commit();
+                    //Internally 'db' would make multiple calls and number of those
+                    //remote calls would not be captured
+                    stats.doneUpdate(watch.elapsed(TimeUnit.NANOSECONDS), collection, chunkedIds.size());
                 } catch (SQLException ex) {
                     success = false;
                     this.ch.rollbackConnection(connection);
@@ -1423,6 +1445,9 @@ public class RDBDocumentStore implements DocumentStore {
                 throw new DocumentStoreException(message);
             }
         }
+
+        final Stopwatch watch = startWatch();
+        int resultSize = 0;
         try {
             long now = System.currentTimeMillis();
             QueryContext qp = null;
@@ -1443,6 +1468,7 @@ public class RDBDocumentStore implements DocumentStore {
                 T doc = runThroughCache(collection, row, now, qp);
                 result.add(doc);
             }
+            resultSize = result.size();
             if (qp != null) {
                 qp.dispose();
             }
@@ -1453,6 +1479,8 @@ public class RDBDocumentStore implements DocumentStore {
         } finally {
             qmap.remove(Thread.currentThread());
             this.ch.closeConnection(connection);
+            stats.doneQuery(watch.elapsed(TimeUnit.NANOSECONDS), collection, fromKey, toKey,
+                    !conditions.isEmpty(), resultSize, -1, false);
         }
     }
 
@@ -1470,6 +1498,8 @@ public class RDBDocumentStore implements DocumentStore {
     private <T extends Document> T readDocumentUncached(Collection<T> collection, String id, NodeDocument cachedDoc) {
         Connection connection = null;
         RDBTableMetaData tmd = getTable(collection);
+        final Stopwatch watch = startWatch();
+        boolean docFound = true;
         try {
             long lastmodcount = -1;
             if (cachedDoc != null) {
@@ -1479,6 +1509,7 @@ public class RDBDocumentStore implements DocumentStore {
             RDBRow row = db.read(connection, tmd, id, lastmodcount);
             connection.commit();
             if (row == null) {
+                docFound = false;
                 return null;
             } else {
                 if (lastmodcount == row.getModcount()) {
@@ -1493,6 +1524,7 @@ public class RDBDocumentStore implements DocumentStore {
             throw new DocumentStoreException(ex);
         } finally {
             this.ch.closeConnection(connection);
+            stats.doneFindUncached(watch.elapsed(TimeUnit.NANOSECONDS), collection, id, docFound, false);
         }
     }
 
@@ -1762,6 +1794,10 @@ public class RDBDocumentStore implements DocumentStore {
         // ignored
     }
 
+    public void setStatsCollector(DocumentStoreStatsCollector stats) {
+        this.stats = stats;
+    }
+
     @SuppressWarnings("unchecked")
     private static <T extends Document> T castAsT(NodeDocument doc) {
         return (T) doc;
@@ -1881,6 +1917,10 @@ public class RDBDocumentStore implements DocumentStore {
                 }});
             return " (Cluster Node updates: " + tmp.toString() + ")";
         }
+    }
+
+    private Stopwatch startWatch() {
+        return Stopwatch.createStarted();
     }
 
     protected NodeDocumentCache getNodeDocumentCache() {

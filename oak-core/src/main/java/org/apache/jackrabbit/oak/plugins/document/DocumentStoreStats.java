@@ -136,7 +136,7 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     //~------------------------------------------< DocumentStoreStatsCollector >
 
     @Override
-    public void doneFindCached(Collection collection, String key) {
+    public void doneFindCached(Collection<? extends Document> collection, String key) {
         //findCached call is almost done for NODES collection only
         if (collection == Collection.NODES){
             findNodesCachedMeter.mark();
@@ -144,7 +144,7 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     }
 
     @Override
-    public void doneFindUncached(long timeTakenNanos, Collection collection, String key,
+    public void doneFindUncached(long timeTakenNanos, Collection<? extends Document> collection, String key,
                                  boolean docFound, boolean isSlaveOk) {
         if (collection == Collection.NODES){
             //For now collect time for reads from primary/secondary in same timer
@@ -167,7 +167,7 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     }
 
     @Override
-    public void doneQuery(long timeTakenNanos, Collection collection, String fromKey, String toKey,
+    public void doneQuery(long timeTakenNanos, Collection<? extends Document> collection, String fromKey, String toKey,
                           boolean indexedProperty, int resultSize, long lockTime, boolean isSlaveOk) {
         if (collection == Collection.NODES){
             //Distinguish between query done with filter and without filter
@@ -200,7 +200,7 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     }
 
     @Override
-    public void doneCreate(long timeTakenNanos, Collection collection, List<String> ids, boolean insertSuccess) {
+    public void doneCreate(long timeTakenNanos, Collection<? extends Document> collection, List<String> ids, boolean insertSuccess) {
         if (collection == Collection.NODES && insertSuccess){
             for (String id : ids){
                 createNodeMeter.mark();
@@ -217,13 +217,13 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     }
 
     @Override
-    public void doneUpdate(long timeTakenNanos, Collection collection, int updateCount) {
+    public void doneUpdate(long timeTakenNanos, Collection<? extends Document> collection, int updateCount) {
         //NODES - Update is called for lastRev update
         perfLog(timeTakenNanos, "update");
     }
 
     @Override
-    public void doneFindAndModify(long timeTakenNanos, Collection collection, String key, boolean newEntry,
+    public void doneFindAndModify(long timeTakenNanos, Collection<? extends Document> collection, String key, boolean newEntry,
                                   boolean success, int retryCount) {
         if (collection == Collection.NODES){
             //TODO Meter for success and retryCount
