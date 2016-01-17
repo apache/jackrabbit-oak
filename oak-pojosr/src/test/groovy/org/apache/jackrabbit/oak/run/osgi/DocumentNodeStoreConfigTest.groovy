@@ -75,6 +75,7 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
         //4. Check that only one cluster node was instantiated
         assert getIdsOfClusterNodes(ds).size() == 1
         testBlobStoreStats(ns)
+        testDocumentStoreStats(ns)
     }
 
     @Test

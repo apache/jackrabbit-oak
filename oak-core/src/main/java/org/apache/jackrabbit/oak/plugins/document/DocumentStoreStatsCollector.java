@@ -28,59 +28,59 @@ public interface DocumentStoreStatsCollector {
      * @param collection the collection
      * @param key collection key which is found
      */
-    void doneFindCached(Collection collection, String key);
+    void doneFindCached(Collection<? extends Document> collection, String key);
 
     /**
-     * Called when a document with given key is looked from remote store
-     *  @param timeTakenNanos watch for determining time taken
+     * Called when a document with given key is read from remote store
+     * @param timeTakenNanos time taken
      * @param collection the collection
      * @param key collection key
      * @param docFound true if document is found
      * @param isSlaveOk true if find was performed against a secondary instance
      */
-    void doneFindUncached(long timeTakenNanos, Collection collection, String key, boolean docFound, boolean isSlaveOk);
+    void doneFindUncached(long timeTakenNanos, Collection<? extends Document> collection, String key, boolean docFound, boolean isSlaveOk);
 
     /**
      * Called when query with given parameters is performed
-     * @param timeTakenNanos watch for determining time taken
+     * @param timeTakenNanos time taken
      * @param collection the collection
      * @param fromKey the start value (excluding)
      * @param toKey the end value (excluding)
-     * @param indexedProperty true if indexProperty was specified
+     * @param indexedProperty true if indexedProperty was specified
      * @param resultSize number of documents found for given query
-     * @param lockTime time in millis to acquire any lock. If no lock was required then its -1
+     * @param lockTime time in millis to acquire any lock ({@code -1} if no lock was required)
      * @param isSlaveOk true if find was performed against a secondary instance
      */
-    void doneQuery(long timeTakenNanos, Collection collection, String fromKey, String toKey,
+    void doneQuery(long timeTakenNanos, Collection<? extends Document> collection, String fromKey, String toKey,
                    boolean indexedProperty, int resultSize, long lockTime, boolean isSlaveOk);
 
     /**
      * Called when a document is created in the given collection
-     * @param timeTakenNanos watch for determining time taken
+     * @param timeTakenNanos time taken
      * @param collection the collection
-     * @param ids list of ids which were sent for creation
+     * @param ids list of ids request to be created
      * @param insertSuccess true if the insert was successful
      */
-    void doneCreate(long timeTakenNanos, Collection collection, List<String> ids, boolean insertSuccess);
+    void doneCreate(long timeTakenNanos, Collection<? extends Document> collection, List<String> ids, boolean insertSuccess);
 
     /**
      * Called when a given updated has modified multiple documents
-     *  @param timeTakenNanos watch for determining time taken
+     * @param timeTakenNanos time taken
      * @param collection the collection
      * @param updateCount number of updates performed
      */
-    void doneUpdate(long timeTakenNanos, Collection collection, int updateCount);
+    void doneUpdate(long timeTakenNanos, Collection<? extends Document> collection, int updateCount);
 
     /**
      * Called when a update operation was completed which affected single
      * document.
-     * @param timeTakenNanos watch for determining time taken
+     * @param timeTakenNanos time taken
      * @param collection the collection
      * @param key collection which got updated or inserted
      * @param newEntry true if the document was newly created due to given operation
      * @param success true if the update was success
      * @param retryCount number of retries done to get the update
      */
-    void doneFindAndModify(long timeTakenNanos, Collection collection, String key,
+    void doneFindAndModify(long timeTakenNanos, Collection<? extends Document> collection, String key,
                            boolean newEntry, boolean success, int retryCount);
 }
