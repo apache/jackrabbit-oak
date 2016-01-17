@@ -63,4 +63,8 @@ public interface DocumentStoreStatsMBean {
     CompositeData getCreateNodesHistory();
 
     CompositeData getUpdateNodesHistory();
+
+    CompositeData getUpdateNodesRetryHistory();
+
+    CompositeData getUpdateNodesFailureHistory();
 }
