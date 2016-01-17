@@ -120,6 +120,16 @@ public class DocumentStoreStatsTest {
     }
 
     @Test
+    public void doneFindAndModifyRetryAndFailure() throws Exception{
+        stats.doneFindAndModify(100, Collection.NODES, "foo", true, false, 3);
+        assertEquals(1, getMeter(DocumentStoreStats.NODES_UPDATE_FAILURE).getCount());
+        assertEquals(3, getMeter(DocumentStoreStats.NODES_UPDATE_RETRY_COUNT).getCount());
+
+        stats.doneFindAndModify(100, Collection.NODES, "foo", true, true, 2);
+        assertEquals(5, getMeter(DocumentStoreStats.NODES_UPDATE_RETRY_COUNT).getCount());
+    }
+
+    @Test
     public void perfLog() throws Exception{
         String logName = DocumentStoreStats.class.getName() + ".perf";
         LogCustomizer customLogs = LogCustomizer.forLogger(logName)

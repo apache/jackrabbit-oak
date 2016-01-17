@@ -65,6 +65,8 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     static final String NODES_CREATE_UPSERT_TIMER = "DOCUMENT_NODES_CREATE_UPSERT_TIMER";
     static final String NODES_CREATE_TIMER = "DOCUMENT_NODES_CREATE_TIMER";
     static final String NODES_UPDATE = "DOCUMENT_NODES_UPDATE";
+    static final String NODES_UPDATE_FAILURE = "DOCUMENT_NODES_UPDATE_FAILURE";
+    static final String NODES_UPDATE_RETRY_COUNT = "DOCUMENT_NODES_UPDATE_RETRY";
     static final String NODES_UPDATE_TIMER = "DOCUMENT_NODES_UPDATE_TIMER";
 
     static final String JOURNAL_QUERY = "DOCUMENT_JOURNAL_QUERY";
@@ -98,6 +100,8 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     private final MeterStats queryNodesLock;
     private final TimerStats queryNodesLockTimer;
     private final MeterStats createSplitNodeMeter;
+    private final MeterStats updateNodeFailureMeter;
+    private final MeterStats updateNodeRetryCountMeter;
 
     public DocumentStoreStats(StatisticsProvider provider) {
         statisticsProvider = checkNotNull(provider);
@@ -128,6 +132,8 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
         createNodeUpsertMeter = provider.getMeter(NODES_CREATE_UPSERT, StatsOptions.DEFAULT);
         createSplitNodeMeter = provider.getMeter(NODES_CREATE_SPLIT, StatsOptions.DEFAULT);
         updateNodeMeter = provider.getMeter(NODES_UPDATE, StatsOptions.DEFAULT);
+        updateNodeFailureMeter = provider.getMeter(NODES_UPDATE_FAILURE, StatsOptions.DEFAULT);
+        updateNodeRetryCountMeter = provider.getMeter(NODES_UPDATE_RETRY_COUNT, StatsOptions.DEFAULT);
 
         queryNodesLock = provider.getMeter(NODES_QUERY_LOCK, StatsOptions.DEFAULT);
         queryNodesLockTimer = provider.getTimer(NODES_QUERY_LOCK_TIMER, StatsOptions.METRICS_ONLY);
@@ -226,13 +232,21 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     public void doneFindAndModify(long timeTakenNanos, Collection<? extends Document> collection, String key, boolean newEntry,
                                   boolean success, int retryCount) {
         if (collection == Collection.NODES){
-            //TODO Meter for success and retryCount
-            if (newEntry){
-                createNodeUpsertMeter.mark();
-                createNodeUpsertTimer.update(timeTakenNanos, TimeUnit.NANOSECONDS);
+            if (success) {
+                if (newEntry) {
+                    createNodeUpsertMeter.mark();
+                    createNodeUpsertTimer.update(timeTakenNanos, TimeUnit.NANOSECONDS);
+                } else {
+                    updateNodeMeter.mark();
+                    updateNodeTimer.update(timeTakenNanos, TimeUnit.NANOSECONDS);
+                }
+
+                if (retryCount > 0){
+                    updateNodeRetryCountMeter.mark(retryCount);
+                }
             } else {
-                updateNodeMeter.mark();
-                updateNodeTimer.update(timeTakenNanos, TimeUnit.NANOSECONDS);
+                updateNodeRetryCountMeter.mark(retryCount);
+                updateNodeFailureMeter.mark();
             }
         }
         perfLog(timeTakenNanos, "findAndModify [{}]", key);
@@ -345,6 +359,16 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     @Override
     public CompositeData getUpdateNodesHistory() {
         return getTimeSeriesData(NODES_UPDATE, NODES_UPDATE);
+    }
+
+    @Override
+    public CompositeData getUpdateNodesRetryHistory() {
+        return getTimeSeriesData(NODES_UPDATE_RETRY_COUNT, NODES_UPDATE_RETRY_COUNT);
+    }
+
+    @Override
+    public CompositeData getUpdateNodesFailureHistory() {
+        return getTimeSeriesData(NODES_UPDATE_FAILURE, NODES_UPDATE_FAILURE);
     }
 
     private CompositeData getTimeSeriesData(String name, String desc){
