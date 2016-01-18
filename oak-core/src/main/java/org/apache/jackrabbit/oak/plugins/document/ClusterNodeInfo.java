@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
@@ -469,6 +470,7 @@ public class ClusterNodeInfo {
         Exception exception = null;
         try {
             ArrayList<String> macAddresses = new ArrayList<String>();
+            ArrayList<String> likelyVirtualMacAddresses = new ArrayList<String>();
             ArrayList<String> otherAddresses = new ArrayList<String>();
             Enumeration<NetworkInterface> e = NetworkInterface
                     .getNetworkInterfaces();
@@ -481,7 +483,14 @@ public class ClusterNodeInfo {
                         String str = StringUtils.convertBytesToHex(hwa);
                         if (hwa.length == 6) {
                             // likely a MAC address
-                            macAddresses.add(str);
+                            String displayName = ni.getDisplayName().toLowerCase(Locale.ENGLISH);
+                            // de-prioritize addresses that are likely to be virtual (see OAK-3885)
+                            boolean looksVirtual = displayName.indexOf("virtual") >= 0 || displayName.indexOf("vpn") >= 0;
+                            if (!looksVirtual) {
+                                macAddresses.add(str);
+                            } else {
+                                likelyVirtualMacAddresses.add(str);
+                            }
                         } else {
                             otherAddresses.add(str);
                         }
@@ -492,7 +501,8 @@ public class ClusterNodeInfo {
             }
 
             if (LOG.isDebugEnabled()) {
-                LOG.debug("getMachineId(): discovered addresses: {} {}", macAddresses, otherAddresses);
+                LOG.debug("getMachineId(): discovered addresses: {} {} {}", macAddresses, likelyVirtualMacAddresses,
+                        otherAddresses);
             }
 
             if (macAddresses.size() > 0) {
@@ -500,6 +510,9 @@ public class ClusterNodeInfo {
                 // the same one is used
                 Collections.sort(macAddresses);
                 return "mac:" + macAddresses.get(0);
+            } else if (likelyVirtualMacAddresses.size() > 0) {
+                Collections.sort(likelyVirtualMacAddresses);
+                return "mac:" + likelyVirtualMacAddresses.get(0);
             } else if (otherAddresses.size() > 0) {
                 // try the lowest "other" address
                 Collections.sort(otherAddresses);
