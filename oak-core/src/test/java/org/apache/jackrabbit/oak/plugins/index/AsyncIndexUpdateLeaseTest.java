@@ -32,7 +32,6 @@ import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate.AsyncIndexStats;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate.AsyncUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -46,7 +45,6 @@ import com.google.common.collect.ImmutableSet;
 public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
 
     private final String name = "async";
-    private MemoryNodeStore store;
     private IndexEditorProvider provider;
 
     private final AtomicBoolean executed = new AtomicBoolean(false);
@@ -57,7 +55,6 @@ public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
 
     @Before
     public void setup() throws Exception {
-        store = new MemoryNodeStore();
         provider = new PropertyIndexEditorProvider();
         NodeBuilder builder = store.getRoot().builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
