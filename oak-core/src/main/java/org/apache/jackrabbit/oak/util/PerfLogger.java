@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.util;
 
+import java.util.concurrent.TimeUnit;
+
 import org.slf4j.Logger;
 
 /**
@@ -88,7 +90,7 @@ public final class PerfLogger {
         if (traceMsgOrNull != null && delegate.isTraceEnabled()) {
             delegate.trace(traceMsgOrNull);
         }
-        return System.currentTimeMillis();
+        return System.nanoTime();
     }
 
     /**
@@ -162,7 +164,7 @@ public final class PerfLogger {
             return;
         }
 
-        final long diff = System.currentTimeMillis() - start;
+        final long diff = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
         if (delegate.isTraceEnabled()) {
             // if log level is TRACE, then always log - and do that on TRACE
             // then:
