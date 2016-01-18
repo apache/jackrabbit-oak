@@ -183,19 +183,23 @@ public class FileStoreIT {
     @Test
     public void testRecovery() throws IOException {
         FileStore store = new FileStore(directory, 1, false);
-        store.flush(); // first 1kB
+        store.flush();
+
+        RandomAccessFile data0 = new RandomAccessFile(new File(directory, "data00000a.tar"), "r");
+        long pos0 = data0.length();
 
         SegmentNodeState base = store.getHead();
         SegmentNodeBuilder builder = base.builder();
         builder.setProperty("step", "a");
         store.setHead(base, builder.getNodeState());
-        store.flush(); // second 1kB
+        store.flush();
+        long pos1 = data0.length();
 
         base = store.getHead();
         builder = base.builder();
         builder.setProperty("step", "b");
         store.setHead(base, builder.getNodeState());
-        store.close(); // third 1kB
+        store.close();
 
         store = new FileStore(directory, 1, false);
         assertEquals("b", store.getHead().getString("step"));
@@ -203,7 +207,7 @@ public class FileStoreIT {
 
         RandomAccessFile file = new RandomAccessFile(
                 new File(directory, "data00000a.tar"), "rw");
-        file.setLength(2048);
+        file.setLength(pos1);
         file.close();
 
         store = new FileStore(directory, 1, false);
@@ -212,12 +216,13 @@ public class FileStoreIT {
 
         file = new RandomAccessFile(
                 new File(directory, "data00000a.tar"), "rw");
-        file.setLength(1024);
+        file.setLength(pos0);
         file.close();
 
         store = new FileStore(directory, 1, false);
         assertFalse(store.getHead().hasProperty("step"));
         store.close();
+        data0.close();
     }
 
     @Test
