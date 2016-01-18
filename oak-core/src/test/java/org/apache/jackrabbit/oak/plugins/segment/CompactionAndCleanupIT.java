@@ -457,33 +457,39 @@ public class CompactionAndCleanupIT {
 
             try {
                 // add some content
-                NodeBuilder root = nodeStore.getRoot().builder();
-                root.setChildNode("test").setProperty("blob", createBlob(nodeStore, 1024 * 1024));
-                nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+                NodeBuilder preGCBuilder = nodeStore.getRoot().builder();
+                preGCBuilder.setChildNode("test").setProperty("blob", createBlob(nodeStore, 1024 * 1024));
+                nodeStore.merge(preGCBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
                 // remove it again so we have something to gc
-                root = nodeStore.getRoot().builder();
-                root.getChildNode("test").remove();
-                nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+                preGCBuilder = nodeStore.getRoot().builder();
+                preGCBuilder.getChildNode("test").remove();
+                nodeStore.merge(preGCBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
                 // with a new builder simulate exceeding the update limit.
                 // This will cause changes to be pre-written to segments
-                root = nodeStore.getRoot().builder();
+                preGCBuilder = nodeStore.getRoot().builder();
+                preGCBuilder.setChildNode("test").setChildNode("a").setChildNode("b").setProperty("foo", "bar");
                 for (int k = 0; k < getInteger("update.limit", 10000); k += 2) {
-                    root.setChildNode("test").remove();
+                    preGCBuilder.setChildNode("dummy").remove();
                 }
-                root.setChildNode("test");
 
                 // case 1: merge above changes before compact
                 if ("merge-before-compact".equals(ref)) {
-                    nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+                    NodeBuilder builder = nodeStore.getRoot().builder();
+                    builder.setChildNode("n");
+                    nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+                    nodeStore.merge(preGCBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
                 }
 
                 fileStore.compact();
 
                 // case 2: merge above changes after compact
                 if ("merge-after-compact".equals(ref)) {
-                    nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+                    NodeBuilder builder = nodeStore.getRoot().builder();
+                    builder.setChildNode("n");
+                    nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+                    nodeStore.merge(preGCBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
                 }
             } finally {
                 fileStore.close();
