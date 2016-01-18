@@ -185,6 +185,18 @@ class Collision {
             // commit state changed meanwhile
             // -> assume revision is now committed
             return false;
+        } else {
+            // check again if revision is still not committed
+            // See OAK-3882
+            if (commitRoot.isCommitted(revision)) {
+                // meanwhile the change was committed and
+                // already moved to a previous document
+                // -> remove collision marker again
+                UpdateOp revert = new UpdateOp(op.getId(), false);
+                NodeDocument.removeCollision(revert, revision);
+                store.findAndUpdate(Collection.NODES, op);
+                return false;
+            }
         }
         // otherwise collision marker was set successfully
         LOG.debug("Marked collision on: {} for {} ({})",
