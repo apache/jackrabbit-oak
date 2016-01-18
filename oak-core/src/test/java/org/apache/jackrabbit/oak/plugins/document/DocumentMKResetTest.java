@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertTrue;
@@ -103,7 +102,6 @@ public class DocumentMKResetTest extends BaseDocumentMKTest {
         assertNodesNotExist(rev, "/foo", "/bar");
     }
 
-    @Ignore
     @Test
     public void resetConflictAddExistingProperty() {
         addNodes(null, "/foo");
