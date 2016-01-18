@@ -141,6 +141,7 @@ public class BroadcastTest {
         Thread.sleep(Integer.MAX_VALUE);
     }
     
+    @Ignore("OAK-3887")
     @Test
     public void broadcastTCP() throws Exception {
         broadcast("tcp:sendTo localhost;key 123", 90);
