@@ -486,11 +486,15 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
     @Override
     public boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
+        return (chunkIds.size() == countDeleteChunks(chunkIds, maxLastModifiedTime));
+    }
 
+    // @Override OAK-2973
+    public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
         // sanity check
         if (chunkIds.isEmpty()) {
             // sanity check, nothing to do
-            return true;
+            return 0;
         }
 
         Connection con = this.ch.getRWConnection();
@@ -509,7 +513,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                 // delete only if the last modified is OLDER than x
                 metaStatement.append(" and LASTMOD <= ?");
                 // delete if there is NO entry where the last modified of the meta is YOUNGER than x
-                dataStatement.append(" and not exists(select * from " + this.tnMeta + " m where ID = m.ID and m.LASTMOD >= ?)");
+                dataStatement.append(" and not exists(select * from " + this.tnMeta + " m where ID = m.ID and m.LASTMOD > ?)");
             }
 
             prepMeta = con.prepareStatement(metaStatement.toString());
@@ -531,10 +535,10 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                 String message = String.format(
                         "chunk deletion affected different numbers of DATA records (%s) and META records (%s)", deletedMeta,
                         deletedData);
-                System.err.println(message);
                 LOG.info(message);
             }
-            return deletedMeta == chunkIds.size();
+
+            return deletedMeta;
         } finally {
             closeStatement(prepMeta);
             closeStatement(prepData);
