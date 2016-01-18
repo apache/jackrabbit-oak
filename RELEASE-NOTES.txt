@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.3.13
+Release Notes -- Apache Jackrabbit Oak -- Version 1.3.14
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.3.13 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.3.14 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.2.x
 release.
@@ -15,139 +15,90 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.3.13
+Changes in Oak 1.3.14
 ---------------------
-
-Sub-task
-
-    [OAK-2509] - Support for faceted search in query engine
-    [OAK-2510] - Support for faceted search in Solr index
-    [OAK-2511] - Support for faceted search in Lucene index
-    [OAK-2512] - ACL filtering for faceted search
 
 Technical task
 
-    [OAK-3586] - ConflictException and CommitQueue should support a
-    list of revisions
-    [OAK-3620] - Increase lock stripes in RDBDocumentStore
-    [OAK-3662] - Add bulk createOrUpdate method to the DocumentStore
-    API
-    [OAK-3729] - RDBDocumentStore: implement RDB-specific VersionGC
-    support for lookup of deleted documents
-    [OAK-3730] - RDBDocumentStore: implement RDB-specific VersionGC
-    support for lookup of split documents
-    [OAK-3764] - RDB/NodeStoreFixture fails to track DataSource
-    instances
-    [OAK-3774] - Tool for detecting references to pre compacted
-    segments
-    [OAK-3785] - IndexDefinition should expose underlying node state
-    [OAK-3807] - Oracle DB doesn't support lists longer than 1000
-    [OAK-3816] - RDBBlobStoreTest should use named parameters
+    [OAK-3637] - Bulk document updates in RDBDocumentStore
+    [OAK-3645] - RDBDocumentStore: server time detection for DB2 fails
+    due to timezone/dst differences
+    [OAK-3739] - RDBDocumentStore: allow schema evolution part 1:
+    check for required columns, log unexpected new columns
+    [OAK-3843] - MS SQL doesn't support more than 2100 parameters in
+    one request
+    [OAK-3845] - AbstractRDBConnectionTest fails to close the
+    DataSource
+    [OAK-3851] - RDB*Store: update PostgreSQL and MySQL JDBC driver
+    dependencies
+    [OAK-3852] - RDBDocumentStore: batched append logic may loose
+    property changes
+    [OAK-3867] - RDBDocumentStore: refactor JSON support
+    [OAK-3868] - Move createSegmentWriter() from FileStore to
+    SegmentTracker
+    [OAK-3873] - Don't pass the compaction map to FileStore.cleanup
 
 Bug
 
-    [OAK-2656] - Test failures in LDAP authentication: Failed to bind
-    an LDAP service
-    [OAK-2877] - Test failure: OrderableNodesTest.setPrimaryType
-    [OAK-2878] - Test failure: AutoCreatedItemsTest.autoCreatedItems
-    [OAK-3295] - Test failure: NodeTypeTest.trivialUpdates
-    [OAK-3424] - ClusterNodeInfo does not pick an existing entry on
-    startup
-    [OAK-3663] - LastRevRecoveryRandomizedIT fails with seed 10848868
-    [OAK-3668] - Potential test failure:
-    CompactionAndCleanupIT#testMixedSegments
-    [OAK-3733] - Sometimes hierarchy conflict between concurrent
-    add/delete isn't detected
-    [OAK-3740] - ValueImpl has references on classes internal to
-    SegmentStore
-    [OAK-3741] - AbstractCheckpointMBean references
-    SegmentCheckpointMBean
-    [OAK-3751] - Limit the unique index "authorizableId" to the
-    "rep:Authorizable" nodetype
-    [OAK-3756] - NodeStateUtils wrong indentation for toString method
-    [OAK-3759] - UserManager.onCreate is not omitted for system users
-    in case of XML import
-    [OAK-3762] - StandbyServerhandler catches IllegalStateException
-    instead of IllegalRepositoryStateException
-    [OAK-3763] - EmptyNodeState.equals() broken
-    [OAK-3765] - Parallelized test runner does not wait for test
-    completion
-    [OAK-3775] - Inconsistency between Node.getPrimaryType and
-    Node.isNodeType
-    [OAK-3792] - Provide Simple Exception Name in Credentials
-    Attribute for PW Expiry
-    [OAK-3793] - The Explorer should expect loops in the segment graph
-    [OAK-3794] - The Cold Standby should expect loops in the segment
-    graph
-    [OAK-3798] - NodeDocument.getNewestRevision() incorrect when there
-    are previous documents
-    [OAK-3802] - SessionMBean not getting registered due to
-    MalformedObjectNameException
-    [OAK-3817] - Hidden properties (one prefixed with ':') in lucene's
-    analyzer configuration fail to construct analyzers
-    [OAK-3821] - Lucene directory: improve exception messages
-
-Documentation
-
-    [OAK-3736] - Document changing OOTB index definitions
-    [OAK-3808] - Fix broken link on 'Backward compatibility' - 'Query'
-    section
-
-Epic
-
-    [OAK-144] - Implement observation
+    [OAK-2592] - Commit does not ensure w:majority
+    [OAK-3470] - Utils.estimateMemoryUsage has a NoClassDefFoundError
+    when Mongo is not being used
+    [OAK-3634] - RDB/MongoDocumentStore may return stale documents
+    [OAK-3646] - Inconsistent read of hierarchy
+    [OAK-3653] - Incorrect last revision of cached node state
+    [OAK-3769] - QueryParse exception when fulltext search performed
+    with term having '/'
+    [OAK-3826] - Lucene index augmentation doesn't work in Osgi
+    environment
+    [OAK-3838] - IndexPlanner incorrectly lets all full text indices
+    to participate for suggest/spellcheck queries
+    [OAK-3848] - ConcurrentAddNodesClusterIT.addNodesConcurrent()
+    fails occasionally
+    [OAK-3849] - After partial migration versions are not restorable
+    [OAK-3856] - Potential NPE in SegmentWriter
+    [OAK-3859] - Suspended commit depends on non-conflicting change
+    [OAK-3863] - [oak-blob-cloud] Incorrect export package
+    [OAK-3864] - Filestore cleanup removes referenced segments
+    [OAK-3872] - [RDB] Updated blob still deleted even if deletion
+    interval lower
+    [OAK-3882] - Collision may mark the wrong commit
+    [OAK-3891] - AsyncIndexUpdateLeaseTest doesn't use the provided
+    NodeStore
 
 Improvement
 
-    [OAK-3436] - Prevent missing checkpoint due to unstable topology
-    from causing complete reindexing
-    [OAK-3519] - Some improvement to SyncMBeanImpl
-    [OAK-3529] - NodeStore API should expose an Instance ID
-    [OAK-3576] - Allow custom extension to augment indexed lucene
-    documents
-    [OAK-3649] - Extract node document cache from Mongo and RDB
-    document stores
-    [OAK-3703] - Improve handling of IOException
-    [OAK-3707] - Register composite commit hook with whiteboard
-    [OAK-3721] - Reduce code duplication in MembershipProvider
-    [OAK-3728] - Document indexes in the index itself
-    [OAK-3745] - Introduce an exception in the Content Repository API
-    to represent an invalid state of the repository
-    [OAK-3773] - Include segment information in Segment.toString
-    [OAK-3795] - FileStore#compact should throw ISE instead of IAE
-    when no compaction strategy is set
-    [OAK-3804] - Add tarmk revision recovery listing to oak-run
-    [OAK-3805] - Add support for Metrics Histogram
-    [OAK-3820] - Add inc and dec by specific size support in
-    CounterStats
-    [OAK-3829] - Expose BlobStore cache statistics
-    [OAK-3831] - Allow relative property to be indexed but excluded
-    from aggregation
+    [OAK-2472] - Add support for atomic counters on cluster solutions
+    [OAK-3577] - NameValidator diagnostics could be more helpful
+    [OAK-3727] - Broadcasting cache: auto-configuration
+    [OAK-3791] - Time measurements for DocumentStore methods
+    [OAK-3812] - Disable compaction gain estimation if compaction is
+    paused
+    [OAK-3830] - Provide size for properties for PropertyItearator
+    returned in Node#getProperties(namePattern)
+    [OAK-3836] - Convert simple versionable nodes during upgrade
+    [OAK-3841] - Change return type of Document.getModCount() to Long
+    [OAK-3847] - Provide an easy way to parse/retrieve facets
+    [OAK-3853] - Improve SegmentGraph resilience
+    [OAK-3857] - Simplify SegmentGraphTest
+    [OAK-3861] - MapRecord reduce extra loop in MapEntry creation
+    [OAK-3877] - PerfLogger should use System.nanoTime instead of
+    System.currentTimeMillis
+    [OAK-3885] - enhance stability of clusterNodeInfo's machineId
+    [OAK-3890] - Robuster test expectations for FileStoreIT
 
 New Feature
 
-    [OAK-1736] - Support for Faceted Search
-    [OAK-3806] - Collect and expose statistics related to BlobStore
-    operations
+    [OAK-3819] - Collect and expose statistics related to Segment
+    FileStore operations
 
 Task
 
-    [OAK-3747] - VersionGarbageCollectorIT: use name annotation for
-    test parameters
-    [OAK-3749] - Implement tooling for tracing a node through the
-    revision history
-    [OAK-3750] - BasicDocumentStoreTest: improve robustness of
-    .removeWithCondition test
-    [OAK-3755] - Remove the special in-place upgrade handling from
-    oak-upgrade
-    [OAK-3768] - Remove OrderedPropertyIndex support from trunk
-    [OAK-3823] - Expose the count maintained by various stats
-    [OAK-3824] - StatisticsProvider should provide a way to disable
-    TimeSeries for certain metrics
+    [OAK-3799] - Drop module oak-js
+    [OAK-3803] - Clean up the fixtures code in core and jcr modules
 
 Test
 
-    [OAK-3754] - RepositoryStub does not dispose DocumentStore
+    [OAK-3874] - DocumentToExternalMigrationTest fails occasionally
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.2.x release.
