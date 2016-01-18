@@ -29,7 +29,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -64,7 +63,6 @@ public class CollisionWithSplitTest extends AbstractMongoConnectionTest {
         ns2.dispose();
     }
 
-    @Ignore("OAK-3882")
     @Test
     public void collisionAfterSplit() throws Exception {
         final int NUM_NODES = 10;
