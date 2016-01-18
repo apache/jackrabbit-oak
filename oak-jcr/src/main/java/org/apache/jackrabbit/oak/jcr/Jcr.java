@@ -31,7 +31,6 @@ import javax.jcr.Repository;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
-import org.apache.jackrabbit.oak.plugins.atomic.AtomicCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
@@ -106,7 +105,7 @@ public class Jcr {
     private Repository repository;
     
     private Clusterable clusterable;
-
+    
     public Jcr(Oak oak) {
         this.oak = oak;
 
@@ -121,7 +120,7 @@ public class Jcr {
         with(new NamespaceEditorProvider());
         with(new TypeEditorProvider());
         with(new ConflictValidatorProvider());
-        with(new AtomicCounterEditorProvider());
+        
         with(new ReferenceEditorProvider());
         with(new ReferenceIndexProvider());
 
@@ -156,6 +155,12 @@ public class Jcr {
         return this;
     }
 
+    public Jcr withAtomicCounter() {
+        ensureRepositoryIsNotCreated();
+        oak.withAtomicCounter();
+        return this;
+    }
+    
     private void ensureRepositoryIsNotCreated() {
         checkState(repository == null && contentRepository == null,
                 "Repository was already created");

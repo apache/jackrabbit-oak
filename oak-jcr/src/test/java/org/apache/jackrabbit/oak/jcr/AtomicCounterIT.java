@@ -118,4 +118,9 @@ public class AtomicCounterIT extends AbstractRepositoryTest {
         new Thread(task).start();
         return task;
     }
+
+    @Override
+    protected Jcr initJcr(Jcr jcr) {
+        return super.initJcr(jcr).withAtomicCounter();
+    }
 }
