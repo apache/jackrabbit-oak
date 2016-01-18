@@ -124,5 +124,9 @@ public class AtomicCounterTest extends AbstractRepositoryTest {
             session.logout();
         }
     }
-    
+
+    @Override
+    protected Jcr initJcr(Jcr jcr) {
+        return super.initJcr(jcr).withAtomicCounter();
+    }
 }
