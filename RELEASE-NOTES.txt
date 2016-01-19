@@ -1,5 +1,5 @@
 
-Release Notes -- Apache Jackrabbit Oak -- Version 1.0.25
+Release Notes -- Apache Jackrabbit Oak -- Version 1.0.26
 
 Introduction
 ------------
@@ -8,57 +8,48 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.0.25 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.0.26 is a patch release that contains fixes and
 improvements over Oak 1.0. Jackrabbit Oak 1.0.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.0.25
+Changes in Oak 1.0.26
 ---------------------
 
 Technical task
- 
-   [OAK-3652] - RDB support: extend RDB export tool for CSV export
-   [OAK-3657] - RDBDocumentStore: cache update logic introduced for OAK-3566 should only be used for NODES collection
-   [OAK-3659] - Stale document in RDBDocumentStore cache
-   [OAK-3661] - RDBDocumentStore: improve logging for invalid data in persistence
-   [OAK-3670] - RDBDocumentStore on SQLServer: off-by-one bug may cause truncated JSON to be written
-   [OAK-3676] - RDBDocumentStore on SQLServer: append logic creates many different PreparedStatements
-   [OAK-3684] - RDBBlob/DocumentStore.finalize() do not call super.finalize()
-   [OAK-3691] - RDBDocumentStore: refactor update logic
-   [OAK-3699] - RDBDocumentStore shutdown: improve logging
-   [OAK-3714] - RDBDocumentStore diagnostics for Oracle might not contain index information
-   [OAK-3722] - RDBDataSourceFactory: restore ability to close the pool
-   [OAK-3731] - Version Garbage Collection: improve logging for split documents
 
+   [OAK-3645] - RDBDocumentStore: server time detection for DB2 fails due to timezone/dst differences
+   [OAK-3729] - RDBDocumentStore: implement RDB-specific VersionGC support for lookup of deleted documents
+   [OAK-3730] - RDBDocumentStore: implement RDB-specific VersionGC support for lookup of split documents
+   [OAK-3739] - RDBDocumentStore: allow schema evolution part 1: check for required columns, log unexpected new columns
+   [OAK-3807] - Oracle DB doesn't support lists longer than 1000
+   [OAK-3816] - RDBBlobStoreTest should use named parameters
+   [OAK-3851] - RDB*Store: update PostgreSQL and MySQL JDBC driver dependencies
+   [OAK-3852] - RDBDocumentStore: batched append logic may loose property changes
+   [OAK-3867] - RDBDocumentStore: refactor JSON support
 
 Bug
- 
-   [OAK-3557] - NodeDocument.isConflicting() reads complete revision history for changed property
-   [OAK-3682] - Missing lucene-memory dependency in OSGi env breaks excerpt
 
+   [OAK-3733] - Sometimes hierarchy conflict between concurrent add/delete isn't detected
+   [OAK-3763] - EmptyNodeState.equals() broken
+   [OAK-3765] - Parallelized test runner does not wait for test completion
+   [OAK-3776] - Test failure: RootFuzzIT failure on MONGO_NS fixture (1.0 branch)
+   [OAK-3872] - [RDB] Updated blob still deleted even if deletion interval lower
 
 Improvement
- 
-   [OAK-3372] - Collapsing external events in BackgroundObserver even before queue is full leads to JournalEntry not getting used
-   [OAK-3494] - MemoryDiffCache should also check parent paths before falling to Loader (or returning null)
-   [OAK-3650] - Index based excerpt should be used for binaries
-   [OAK-3678] - Use stable reverse revision comparator in UpdateUtils.applyChanges()
 
+   [OAK-3126] - Enable HybridMapFactory by default
+   [OAK-3577] - NameValidator diagnostics could be more helpful
+   [OAK-3830] - Provide size for properties for PropertyItearator returned in Node#getProperties(namePattern)
+   [OAK-3831] - Allow relative property to be indexed but excluded from aggregation
+   [OAK-3885] - enhance stability of clusterNodeInfo's machineId
 
 Task
 
-   [OAK-3223] - Remove MongoDiffCache
-   [OAK-3635] - DocumentStore: clarify which methods support checking conditions in UpdateOps, and enforce this in implementations
-
-
-Test
-
-   [OAK-3643] - ConflictResolutionTest fails occasionally
-   [OAK-3644] - Run tests with pedantic profile
-
+   [OAK-3613] - Backport TarMK revision gc related issues
+   [OAK-3750] - BasicDocumentStoreTest: improve robustness of .removeWithCondition test
 
 
 In addition to the above-mentioned changes, this release contains
