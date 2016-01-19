@@ -247,7 +247,7 @@ public class PersistedCompactionMap implements PartialCompactionMap {
 
     @Nonnull
     private String createWid() {
-        return "cm-" + tracker.getCompactionMap().getGeneration() + 1;
+        return "cm-" + (tracker.getCompactionMap().getGeneration() + 1);
     }
 
     /**

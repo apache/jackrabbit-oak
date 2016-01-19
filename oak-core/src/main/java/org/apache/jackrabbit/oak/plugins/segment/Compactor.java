@@ -113,7 +113,7 @@ public class Compactor {
     }
 
     public Compactor(SegmentTracker tracker, CompactionStrategy compactionStrategy, Supplier<Boolean> cancel) {
-        String wid = "c-" + tracker.getCompactionMap().getGeneration() + 1;
+        String wid = "c-" + (tracker.getCompactionMap().getGeneration() + 1);
         this.writer = tracker.createSegmentWriter(wid);
         if (compactionStrategy.getPersistCompactionMap()) {
             this.map = new PersistedCompactionMap(tracker);
