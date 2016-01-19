@@ -54,15 +54,6 @@ class SecurityProviderRegistrationTest extends AbstractRepositoryFactoryTest {
 
     /**
      * A SecurityProvider shouldn't start without a required
-     * AuthorizationConfiguration service.
-     */
-    @Test
-    public void testRequiredAuthorizationConfigurationNotAvailable() {
-        testRequiredService(AuthorizationConfiguration, mock(AuthorizationConfiguration))
-    }
-
-    /**
-     * A SecurityProvider shouldn't start without a required
      * PrincipalConfiguration service.
      */
     @Test
@@ -124,15 +115,12 @@ class SecurityProviderRegistrationTest extends AbstractRepositoryFactoryTest {
 
         // Set up the SecurityProvider to require three services
 
-        setRequiredServicePids("test.RequiredAuthorizationConfiguration", "test.RequiredPrincipalConfiguration", "test.RequiredTokenConfiguration", "test.AuthorizableNodeName")
+        setRequiredServicePids("test.RequiredPrincipalConfiguration", "test.RequiredTokenConfiguration", "test.AuthorizableNodeName")
         TimeUnit.MILLISECONDS.sleep(500)
         assert securityProviderServiceReferences == null
 
         // Start the services and verify that only at the end the
         // SecurityProvider registers itself
-
-        registry.registerService(AuthorizationConfiguration.class.name, mock(AuthorizationConfiguration), dict("service.pid": "test.RequiredAuthorizationConfiguration"))
-        assert securityProviderServiceReferences == null
 
         registry.registerService(PrincipalConfiguration.class.name, mock(PrincipalConfiguration), dict("service.pid": "test.RequiredPrincipalConfiguration"))
         assert securityProviderServiceReferences == null

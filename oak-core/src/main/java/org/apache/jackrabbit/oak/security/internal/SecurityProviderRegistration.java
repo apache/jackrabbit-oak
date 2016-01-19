@@ -29,7 +29,6 @@ import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.References;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
-import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
 import org.apache.jackrabbit.oak.security.user.UserConfigurationImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -82,11 +81,10 @@ import static com.google.common.collect.Lists.newCopyOnWriteArrayList;
                         "unless the services identified by these PIDs are " +
                         "registered first. Only the PIDs of implementations of " +
                         "the following interfaces are checked: " +
-                        "AuthorizationConfiguration, PrincipalConfiguration, " +
-                        "TokenConfiguration, AuthorizableActionProvider, " +
+                        "PrincipalConfiguration, TokenConfiguration, " +
+                        "AuthorizableActionProvider, " +
                         "RestrictionProvider and UserAuthenticationFactory.",
                 value = {
-                        "org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl",
                         "org.apache.jackrabbit.oak.security.principal.PrincipalConfigurationImpl",
                         "org.apache.jackrabbit.oak.security.authentication.token.TokenConfigurationImpl",
                         "org.apache.jackrabbit.oak.spi.security.user.action.DefaultAuthorizableActionProvider",
@@ -97,12 +95,6 @@ import static com.google.common.collect.Lists.newCopyOnWriteArrayList;
         )
 })
 @References({
-        @Reference(
-                name = "authorizationConfiguration",
-                referenceInterface = AuthorizationConfiguration.class,
-                cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE,
-                policy = ReferencePolicy.DYNAMIC
-        ),
         @Reference(
                 name = "principalConfiguration",
                 referenceInterface = PrincipalConfiguration.class,
@@ -146,6 +138,9 @@ public class SecurityProviderRegistration {
     private static final Logger log = LoggerFactory.getLogger(SecurityProviderRegistration.class);
 
     @Reference
+    private AuthorizationConfiguration authorizationConfiguration;
+
+    @Reference
     private AuthenticationConfiguration authenticationConfiguration;
 
     @Reference
@@ -161,8 +156,6 @@ public class SecurityProviderRegistration {
     private boolean registering;
 
     private final Preconditions preconditions = new Preconditions();
-
-    private final List<AuthorizationConfiguration> authorizationConfigurations = newCopyOnWriteArrayList();
 
     private final List<PrincipalConfiguration> principalConfigurations = newCopyOnWriteArrayList();
 
@@ -226,6 +219,14 @@ public class SecurityProviderRegistration {
         }
     }
 
+    public void bindAuthorizationConfiguration(AuthorizationConfiguration authorizationConfiguration) {
+        this.authorizationConfiguration = authorizationConfiguration;
+    }
+
+    public void unbindAuthorizationConfiguration(AuthorizationConfiguration authorizationConfiguration) {
+        this.authorizationConfiguration = null;
+    }
+
     public void bindAuthenticationConfiguration(AuthenticationConfiguration authenticationConfiguration) {
         this.authenticationConfiguration = authenticationConfiguration;
     }
@@ -248,24 +249,6 @@ public class SecurityProviderRegistration {
 
     public void unbindUserConfiguration(UserConfiguration userConfiguration) {
         this.userConfiguration = null;
-    }
-
-    public void bindAuthorizationConfiguration(AuthorizationConfiguration authorizationConfiguration, Map<String, Object> properties) {
-        synchronized (this) {
-            authorizationConfigurations.add(authorizationConfiguration);
-            addCandidate(properties);
-        }
-
-        maybeRegister();
-    }
-
-    public void unbindAuthorizationConfiguration(AuthorizationConfiguration authorizationConfiguration, Map<String, Object> properties) {
-        synchronized (this) {
-            authorizationConfigurations.remove(authorizationConfiguration);
-            removeCandidate(properties);
-        }
-
-        maybeUnregister();
     }
 
     public void bindPrincipalConfiguration(PrincipalConfiguration principalConfiguration, Map<String, Object> properties) {
@@ -492,12 +475,12 @@ public class SecurityProviderRegistration {
         // Static, mandatory references
 
         securityProvider.setAuthenticationConfiguration(initializeConfiguration(securityProvider, authenticationConfiguration));
+        securityProvider.setAuthorizationConfiguration(initializeConfiguration(securityProvider, authorizationConfiguration));
         securityProvider.setUserConfiguration(initializeConfiguration(securityProvider, userConfiguration));
         securityProvider.setPrivilegeConfiguration(initializeConfiguration(securityProvider, privilegeConfiguration));
 
         // Multiple, dynamic references
 
-        securityProvider.setAuthorizationConfiguration(createCompositeAuthorizationConfiguration(securityProvider));
         securityProvider.setPrincipalConfiguration(createCompositePrincipalConfiguration(securityProvider));
         securityProvider.setTokenConfiguration(createCompositeTokenConfiguration(securityProvider));
 
@@ -506,22 +489,6 @@ public class SecurityProviderRegistration {
         securityProvider.setWhiteboard(new OsgiWhiteboard(context));
 
         return securityProvider;
-    }
-
-    private AuthorizationConfiguration createCompositeAuthorizationConfiguration(SecurityProvider securityProvider) {
-        return new CompositeAuthorizationConfiguration(securityProvider) {
-
-            @Override
-            protected List<AuthorizationConfiguration> getConfigurations() {
-                ArrayList<AuthorizationConfiguration> configurations = newArrayList(authorizationConfigurations);
-
-                for (AuthorizationConfiguration configuration : configurations) {
-                    initializeConfiguration(getSecurityProvider(), configuration);
-                }
-
-                return configurations;
-            }
-        };
     }
 
     private PrincipalConfiguration createCompositePrincipalConfiguration(SecurityProvider securityProvider) {
