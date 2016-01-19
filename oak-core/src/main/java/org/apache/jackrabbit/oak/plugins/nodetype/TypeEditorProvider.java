@@ -98,6 +98,7 @@ public class TypeEditorProvider implements EditorProvider {
                     Editor editor = new VisibleEditor(new TypeEditor(
                             strict, modifiedTypes, afterTypes,
                             primary, mixins, builder));
+                    LOG.info("Node type changes: " + modifiedTypes + " appear not to be trivial, starting repository scan");
                     CommitFailedException exception =
                             EditorDiff.process(editor, MISSING_NODE, after);
                     LOG.info("Node type changes: " + modifiedTypes + "; repository scan took " + (System.currentTimeMillis() - start)
