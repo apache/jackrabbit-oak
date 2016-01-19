@@ -26,10 +26,11 @@ public class StripedNodeDocumentLocks implements NodeDocumentLocks {
      * Locks to ensure cache consistency on reads, writes and invalidation.
      */
     private final Striped<Lock> locks = Striped.lock(4096);
+    private final Lock rootLock = Striped.lock(1).get("0:/");
 
     @Override
     public Lock acquire(String key) {
-        Lock lock = locks.get(key);
+        Lock lock = "0:/".equals(key) ? rootLock : locks.get(key);
         lock.lock();
         return lock;
     }
