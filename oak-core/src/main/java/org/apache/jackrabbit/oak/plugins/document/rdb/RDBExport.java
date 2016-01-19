@@ -38,6 +38,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -74,6 +75,7 @@ public class RDBExport {
         Set<String> excl = new HashSet<String>();
         excl.add(Document.ID);
         RDBDocumentSerializer ser = new RDBDocumentSerializer(new MemoryDocumentStore(), excl);
+        String columns = null;
 
         String param = null;
         try {
@@ -100,6 +102,8 @@ public class RDBExport {
                     format = Format.JSONARRAY;
                 } else if ("--csv".equals(param)) {
                     format = Format.CSV;
+                } else if ("--columns".equals(param)) {
+                    columns = args[++i];
                 } else if ("--fields".equals(param)) {
                     String fields = args[++i];
                     fieldList = Arrays.asList(fields.split(","));
@@ -137,8 +141,11 @@ public class RDBExport {
             printUsage();
             System.exit(2);
         } else if (dumpfile != null) {
-            dumpFile(dumpfile, lobdir, format, out, fieldList, ser);
+            columns = (columns == null) ? "id, modified, hasbinary, deletedonce, cmodcount, modcount, dsize, data, bdata" : columns;
+            List<String> columnList = Arrays.asList(columns.toLowerCase(Locale.ENGLISH).replace(" ", "").split(","));
+            dumpFile(dumpfile, lobdir, format, out, fieldList, columnList, ser);
         } else {
+            System.err.println(RDBExport.class.getName() + ": column names ignored when using JDBC");
             dumpJDBC(url, user, pw, table, query, format, out, fieldList, ser);
         }
 
@@ -147,9 +154,24 @@ public class RDBExport {
     }
 
     private static void dumpFile(String filename, String lobdir, Format format, PrintStream out, List<String> fieldNames,
-            RDBDocumentSerializer ser) throws IOException {
+            List<String> columnNames, RDBDocumentSerializer ser) throws IOException {
         File f = new File(filename);
         File lobDirectory = lobdir == null ? new File(f.getParentFile(), "lobdir") : new File(lobdir);
+
+        int iId = columnNames.indexOf("id");
+        int iModified = columnNames.indexOf("modified");
+        int iHasBinary = columnNames.indexOf("hasbinary");
+        int iDeletedOnce = columnNames.indexOf("deletedonce");
+        int iModCount = columnNames.indexOf("modcount");
+        int iCModCount = columnNames.indexOf("cmodcount");
+        int iData = columnNames.indexOf("data");
+        int iBData = columnNames.indexOf("bdata");
+
+        if (iId < 0 || iModified < 0 || iHasBinary < 0 || iDeletedOnce < 0 || iModCount < 0 || iCModCount < 0 || iData < 0
+                || iBData < 0) {
+            throw new IOException("required columns: id, modified, hasbinary, deletedonce, modcount, cmodcount, data, bdata");
+        }
+
         FileInputStream fis = new FileInputStream(f);
         InputStreamReader ir = new InputStreamReader(fis, UTF8);
         BufferedReader br = new BufferedReader(ir);
@@ -162,15 +184,15 @@ public class RDBExport {
         boolean needComma = format == Format.JSONARRAY;
         String line = br.readLine();
         while (line != null) {
-            ArrayList<String> fields = parseDel(line);
-            String id = fields.get(0);
-            String smodified = fields.get(1);
-            String shasbinary = fields.get(2);
-            String sdeletedonce = fields.get(3);
-            String smodcount = fields.get(4);
-            String scmodcount = fields.get(5);
-            String sdata = fields.get(7);
-            String sbdata = fields.get(8);
+            List<String> fields = parseDel(line);
+            String id = fields.get(iId);
+            String smodified = fields.get(iModified);
+            String shasbinary = fields.get(iHasBinary);
+            String sdeletedonce = fields.get(iDeletedOnce);
+            String smodcount = fields.get(iModCount);
+            String scmodcount = fields.get(iCModCount);
+            String sdata = fields.get(iData);
+            String sbdata = fields.get(iBData);
 
             byte[] bytes = null;
             if (sbdata.length() != 0) {
@@ -216,7 +238,7 @@ public class RDBExport {
         }
     }
 
-    private static ArrayList<String> parseDel(String line) {
+    protected static List<String> parseDel(String line) {
         ArrayList<String> result = new ArrayList<String>();
 
         boolean inQuoted = false;
@@ -433,6 +455,7 @@ public class RDBExport {
         System.err.println("  -q/--query query                   SQL where clause (minus 'where')");
         System.err.println("");
         System.err.println("Dump file options:");
+        System.err.println("  --columns column-names             column names (comma separated)");
         System.err.println("  --from-db2-dump file               name of DB2 DEL export file");
         System.err.println("  --lobdir dir                       name of DB2 DEL export file LOB directory");
         System.err.println("                                     (defaults to ./lobdir under the dump file)");
