@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Map;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -131,7 +130,6 @@ public class DocumentMKResetTest extends BaseDocumentMKTest {
         assertPropExists(rev, "/foo", "p2");
     }
 
-    @Ignore
     @Test
     public void resetToBaseOfBranch() {
         addNodes(null, "/foo");
@@ -142,7 +140,6 @@ public class DocumentMKResetTest extends BaseDocumentMKTest {
         assertNodesNotExist(null, "/foo/bar");
     }
 
-    @Ignore
     @Test
     public void resetRemovesCommitRootOnParent() {
         DocumentStore store = mk.getDocumentStore();
@@ -167,7 +164,6 @@ public class DocumentMKResetTest extends BaseDocumentMKTest {
                 Revision.fromString(b1).asTrunkRevision()));
     }
 
-    @Ignore
     @Test
     public void resetMultipleCommits() {
         DocumentStore store = mk.getDocumentStore();
