@@ -818,6 +818,10 @@ public final class Main {
                 .withRequiredArg().ofType(Long.class);
         OptionSpec<Void> gcGraphArg = parser.accepts(
                 "gc", "Write the gc generation graph instead of the full graph");
+        OptionSpec<String> regExpArg = parser.accepts(
+                "pattern", "Regular exception specifying which nodes to include (optional). " +
+                "Ignore when --gc is specified.")
+                .withRequiredArg().ofType(String.class);
 
         OptionSet options = parser.parse(args);
 
@@ -831,6 +835,8 @@ public final class Main {
             System.err.println("Invalid FileStore directory " + directory);
             System.exit(1);
         }
+
+        String regExp = regExpArg.value(options);
 
         File outFile = outFileArg.value(options);
         Date epoch;
@@ -854,13 +860,13 @@ public final class Main {
         }
 
         System.out.println("Setting epoch to " + epoch);
-        System.out.println("Writing graph to " + outFile);
+        System.out.println("Writing graph to " + outFile.getAbsolutePath());
 
         FileOutputStream out = new FileOutputStream(outFile);
         if (options.has(gcGraphArg)) {
             writeGCGraph(fileStore, out);
         } else {
-            writeSegmentGraph(fileStore, out, epoch);
+            writeSegmentGraph(fileStore, out, epoch, regExp);
         }
     }
 

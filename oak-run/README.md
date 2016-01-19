@@ -122,6 +122,9 @@ a negative offset translating all timestamps into a valid int range.
                        given)
     --output <File>  Output file (default: segments.gdf)
     --gc             Write the gc generation graph instead of the full graph
+    --pattern        Regular exception specifying which
+                       nodes to include (optional). Ignore
+                       when --gc is specified.
 
 History
 -------
