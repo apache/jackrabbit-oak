@@ -24,6 +24,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Collections.singletonMap;
+import static java.util.regex.Pattern.compile;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentId.isDataSegmentId;
 
@@ -39,6 +40,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -46,6 +48,8 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 import org.apache.jackrabbit.oak.api.Type;
@@ -143,19 +147,24 @@ public final class SegmentGraph {
      * @param fileStore     file store to graph
      * @param out           stream to write the graph to
      * @param epoch         epoch (in milliseconds)
+     * @param pattern       regular expression specifying inclusion of nodes or {@code null}
+     *                      for all nodes.
      * @throws Exception
      */
     public static void writeSegmentGraph(
             @Nonnull ReadOnlyStore fileStore,
             @Nonnull OutputStream out,
-            @Nonnull Date epoch) throws Exception {
-
+            @Nonnull Date epoch,
+            @CheckForNull String pattern) throws Exception {
         checkNotNull(epoch);
         PrintWriter writer = new PrintWriter(checkNotNull(out));
         try {
             SegmentNodeState root = checkNotNull(fileStore).getHead();
 
-            Graph<UUID> segmentGraph = parseSegmentGraph(fileStore);
+            Predicate<UUID> filter = pattern == null
+                ? Predicates.<UUID>alwaysTrue()
+                : createRegExpFilter(pattern, fileStore.getTracker());
+            Graph<UUID> segmentGraph = parseSegmentGraph(fileStore, filter);
             Graph<UUID> headGraph = parseHeadGraph(root.getRecordId());
 
             writer.write("nodedef>name VARCHAR, label VARCHAR, type VARCHAR, wid VARCHAR, gc INT, t INT, head BOOLEAN\n");
@@ -180,18 +189,52 @@ public final class SegmentGraph {
     }
 
     /**
+     * Create a regular expression based inclusion filter for segment.
+     *
+     * @param pattern       regular expression specifying inclusion of nodes.
+     * @param tracker       the segment tracker of the store acting upon.
+     * @return
+     */
+    public static Predicate<UUID> createRegExpFilter(
+            @Nonnull String pattern,
+            @Nonnull final SegmentTracker tracker) {
+        final Pattern regExp = compile(checkNotNull(pattern));
+        checkNotNull(tracker);
+
+        return new Predicate<UUID>() {
+            @Override
+            public boolean apply(UUID segment) {
+                try {
+                    String info = getSegmentInfo(segment, tracker);
+                    if (info == null) {
+                        info = "NULL";
+                    }
+                    return regExp.matcher(info).matches();
+                } catch (Exception e) {
+                    System.err.println("Error accessing segment " + segment + ": " + e);
+                    return false;
+                }
+            }
+        };
+    }
+
+    /**
      * Parse the segment graph of a file store.
      *
      * @param fileStore     file store to parse
+     * @param filter        inclusion criteria for vertices and edges. An edge is only included if
+     *                      both its source and target vertex are included.
      * @return the segment graph rooted as the segment containing the head node
      *         state of {@code fileStore}.
      * @throws IOException
      */
     @Nonnull
-    public static Graph<UUID> parseSegmentGraph(@Nonnull ReadOnlyStore fileStore) throws IOException {
+    public static Graph<UUID> parseSegmentGraph(
+            @Nonnull ReadOnlyStore fileStore,
+            @Nonnull Predicate<UUID> filter) throws IOException {
         SegmentNodeState root = checkNotNull(fileStore).getHead();
         HashSet<UUID> roots = newHashSet(root.getRecordId().asUUID());
-        return parseSegmentGraph(fileStore, roots, Functions.<UUID>identity());
+        return parseSegmentGraph(fileStore, roots, filter, Functions.<UUID>identity());
     }
 
     /**
@@ -244,10 +287,10 @@ public final class SegmentGraph {
             throws IOException {
         SegmentNodeState root = checkNotNull(fileStore).getHead();
         HashSet<UUID> roots = newHashSet(root.getRecordId().asUUID());
-        return parseSegmentGraph(fileStore, roots, new Function<UUID, String>() {
+        return parseSegmentGraph(fileStore, roots, Predicates.<UUID>alwaysTrue(), new Function<UUID, String>() {
             @Override @Nullable
             public String apply(UUID segmentId) {
-                Map<String, String> info = getSegmentInfo(segmentId, fileStore.getTracker());
+                Map<String, String> info = getSegmentInfoMap(segmentId, fileStore.getTracker());
                 if (info != null) {
                     String error = info.get("error");
                     if (error != null) {
@@ -266,32 +309,44 @@ public final class SegmentGraph {
 
     /**
      * Parse the segment graph of a file store starting with a given set of root segments.
-     * The full segment graph is mapped through the passed {@code homomorphism} to the
+     * The full segment graph is mapped through the passed {@code map} to the
      * graph returned by this function.
      *
      * @param fileStore     file store to parse
      * @param roots         the initial set of segments
-     * @param homomorphism  map from the segment graph into the returned graph
+     * @param map           map defining an homomorphism from the segment graph into the returned graph
+     * @param filter        inclusion criteria for vertices and edges. An edge is only included if
+     *                      both its source and target vertex are included.
      * @return   the segment graph of {@code fileStore} rooted at {@code roots} and mapped
-     *           by {@code homomorphism}
+     *           by {@code map}
      * @throws IOException
      */
     @Nonnull
     public static <T> Graph<T> parseSegmentGraph(
-            @Nonnull ReadOnlyStore fileStore,
+            @Nonnull final ReadOnlyStore fileStore,
             @Nonnull Set<UUID> roots,
-            @Nonnull final Function<UUID, T> homomorphism) throws IOException {
+            @Nonnull final Predicate<UUID> filter,
+            @Nonnull final Function<UUID, T> map) throws IOException {
         final Graph<T> graph = new Graph<T>();
 
-        checkNotNull(homomorphism);
+        checkNotNull(filter);
+        checkNotNull(map);
         checkNotNull(fileStore).traverseSegmentGraph(checkNotNull(roots),
             new SegmentGraphVisitor() {
                 @Override
                 public void accept(@Nonnull UUID from, @CheckForNull UUID to) {
-                    graph.addVertex(homomorphism.apply(from));
-                    if (to != null) {
-                        graph.addVertex((homomorphism.apply(to)));
-                        graph.addEdge(homomorphism.apply(from), homomorphism.apply(to));
+                    T fromT = null;
+                    T toT = null;
+                    if (filter.apply(from)) {
+                        fromT = map.apply(from);
+                        graph.addVertex(fromT);
+                    }
+                    if (to != null && filter.apply(to)) {
+                        toT = map.apply(to);
+                        graph.addVertex(toT);
+                    }
+                    if (fromT != null && toT != null) {
+                        graph.addEdge(fromT, toT);
                     }
                 }
             });
@@ -395,7 +450,7 @@ public final class SegmentGraph {
     }
 
     private static void writeNode(UUID node, PrintWriter writer, boolean inHead, Date epoch, SegmentTracker tracker) {
-        Map<String, String> sInfo = getSegmentInfo(node, tracker);
+        Map<String, String> sInfo = getSegmentInfoMap(node, tracker);
         if (sInfo == null) {
             writer.write(node + ",b,bulk,b,-1,-1," + inHead + "\n");
         } else {
@@ -437,21 +492,25 @@ public final class SegmentGraph {
         return Long.valueOf(string);
     }
 
-    private static Map<String, String> getSegmentInfo(UUID node, SegmentTracker tracker) {
-        if (isDataSegmentId(node.getLeastSignificantBits())) {
-            SegmentId id = tracker.getSegmentId(node.getMostSignificantBits(), node.getLeastSignificantBits());
-            try {
-                String info = id.getSegment().getSegmentInfo();
-                if (info != null) {
-                    JsopTokenizer tokenizer = new JsopTokenizer(info);
-                    tokenizer.read('{');
-                    return JsonObject.create(tokenizer).getProperties();
-                } else {
-                    return null;
-                }
-            } catch (SegmentNotFoundException e) {
-                return singletonMap("error", toString(e));
+    private static Map<String, String> getSegmentInfoMap(UUID segment, SegmentTracker tracker) {
+        try {
+            String info = getSegmentInfo(segment, tracker);
+            if (info != null) {
+                JsopTokenizer tokenizer = new JsopTokenizer(info);
+                tokenizer.read('{');
+                return JsonObject.create(tokenizer).getProperties();
+            } else {
+                return null;
             }
+        } catch (SegmentNotFoundException e) {
+            return singletonMap("error", toString(e));
+        }
+    }
+
+    private static String getSegmentInfo(UUID segment, SegmentTracker tracker) {
+        if (isDataSegmentId(segment.getLeastSignificantBits())) {
+        SegmentId id = tracker.getSegmentId(segment.getMostSignificantBits(), segment.getLeastSignificantBits());
+            return id.getSegment().getSegmentInfo();
         } else {
             return null;
         }
