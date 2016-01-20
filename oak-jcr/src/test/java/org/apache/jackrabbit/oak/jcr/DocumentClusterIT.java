@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.jcr;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -32,6 +33,7 @@ import javax.jcr.SimpleCredentials;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.spi.state.Clusterable;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -115,18 +117,21 @@ public abstract class DocumentClusterIT {
      * <p> 
      * ensures that the cluster is aligned by running all the background operations
      * </p>
-     * 
-     * <p>
-     * In order to use this you have to initialise the cluster with {@code setAsyncDelay(0)}.
-     * </p>
-     * 
+     *
      * @param mks the list of {@link DocumentMK} composing the cluster. Cannot be null.
      */
     static void alignCluster(@Nonnull final List<DocumentMK> mks) {
-        for (int i = 0; i < 2; i++) {
-            for (DocumentMK mk : mks) {
-                mk.getNodeStore().runBackgroundOperations();
-            }            
+        // in a first round let all MKs run their background update
+        for (DocumentMK mk : mks) {
+            mk.getNodeStore().runBackgroundOperations();
+        }
+        String id = Utils.getIdFromPath("/");
+        // in the second round each MK will pick up changes from the others
+        for (DocumentMK mk : mks) {
+            // invalidate root document to make sure background read
+            // is forced to fetch the document from the store
+            mk.getDocumentStore().invalidateCache(Collections.singleton(id));
+            mk.getNodeStore().runBackgroundOperations();
         }
     }
     
