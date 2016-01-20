@@ -488,7 +488,7 @@ public class ClusterNodeInfo {
         if (now + leaseTime / 2 < leaseEndTime) {
             return false;
         }
-        UpdateOp update = new UpdateOp("" + id, true);
+        UpdateOp update = new UpdateOp("" + id, false);
         leaseEndTime = now + leaseTime;
         update.set(LEASE_END_KEY, leaseEndTime);
         update.set(STATE, ClusterNodeState.ACTIVE.name());
@@ -513,7 +513,7 @@ public class ClusterNodeInfo {
         UpdateOp update = new UpdateOp("" + id, true);
         update.set(LEASE_END_KEY, null);
         update.set(STATE, null);
-        update.set(REV_RECOVERY_LOCK, null);
+        update.set(REV_RECOVERY_LOCK, RecoverLockState.NONE.name());
         store.createOrUpdate(Collection.CLUSTER_NODES, update);
     }
 
