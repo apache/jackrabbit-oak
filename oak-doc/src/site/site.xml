@@ -38,14 +38,15 @@ under the License.
       <item href="oak_api/overview.html" name="Oak API" />
     </menu>
     <menu name="Features and Plugins">
-      <item href="nodestore/overview.html" name="Node Storage" />
+      <item href="features/atomic-counter.html" name="Atomic Counter" />
       <item href="plugins/blobstore.html" name="Blob Storage" />
+      <item href="clustering.html" name="Clustering" />
       <item href="nodestore/documentmk.html" name="DocumentNodeStore" />
-      <item href="nodestore/segment/overview.html" name="Segment Node Store" />
+      <item href="nodestore/overview.html" name="Node Storage" />
+      <item href="nodestore/persistent-cache.html" name="Persistent Cache" />
       <item href="query/query.html" name="Query" />
       <item href="security/overview.html" name="Security" />
-      <item href="clustering.html" name="Clustering" />
-      <item href="nodestore/persistent-cache.html" name="Persistent Cache" />
+      <item href="nodestore/segment/overview.html" name="Segment Node Store" />
     </menu>
     <menu name="Using Oak">
       <item href="use_getting_started.html" name="Getting Started" />
