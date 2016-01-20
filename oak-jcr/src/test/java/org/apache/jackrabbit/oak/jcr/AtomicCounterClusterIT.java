@@ -104,8 +104,8 @@ public class AtomicCounterClusterIT  extends DocumentClusterIT {
         }
         
         // allow the cluster to align
-        Thread.sleep(1500);
-                
+        alignCluster(mks);
+
         // asserting the initial state
         assertFalse("Path to the counter node should be set", Strings.isNullOrEmpty(counterPath));
         for (Repository r : repos) {
