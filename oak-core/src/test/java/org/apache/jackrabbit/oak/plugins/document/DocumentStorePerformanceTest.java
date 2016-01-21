@@ -412,7 +412,7 @@ public class DocumentStorePerformanceTest extends AbstractMultiDocumentStoreTest
         assertNotNull(nd);
         int cc = nd.get("c") == null ? 0 : Integer.valueOf(nd.get("c").toString());
         int uc = nd.get("u") == null ? 0 : Integer.valueOf(nd.get("u").toString());
-        long mc = nd.getModCount().longValue();
+        long mc = nd.getModCount();
         String msg = String.format(
                 "Concurrent updates %s on %s cond. updates: %d (failures: %s), uncond. updates: %d (failures: %s), _modCount: %d, ops/sec: %d, %% of cond. updates: %d",
                 stores == 1 ? "(one ds)" : "(two ds)", super.dsname, cc, nd.get("cfailures"), uc, nd.get("ufailures"), mc,

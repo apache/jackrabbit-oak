@@ -79,11 +79,11 @@ public class NodeDocumentCache implements Closeable {
      * @return number of invalidated entries
      */
     @Nonnegative
-    public int invalidateOutdated(@Nonnull Map<String, Number> modCounts) {
+    public int invalidateOutdated(@Nonnull Map<String, Long> modCounts) {
         int invalidatedCount = 0;
-        for (Entry<String, Number> e : modCounts.entrySet()) {
+        for (Entry<String, Long> e : modCounts.entrySet()) {
             String id = e.getKey();
-            Number modCount = e.getValue();
+            Long modCount = e.getValue();
             NodeDocument doc = getIfPresent(id);
             if (doc == null) {
                 continue;
@@ -163,14 +163,14 @@ public class NodeDocumentCache implements Closeable {
                 newerDoc = doc;
                 putInternal(doc);
             } else {
-                Number cachedModCount = cachedDoc.getModCount();
-                Number modCount = doc.getModCount();
+                Long cachedModCount = cachedDoc.getModCount();
+                Long modCount = doc.getModCount();
 
                 if (cachedModCount == null || modCount == null) {
                     throw new IllegalStateException("Missing " + Document.MOD_COUNT);
                 }
 
-                if (modCount.longValue() > cachedModCount.longValue()) {
+                if (modCount > cachedModCount) {
                     newerDoc = doc;
                     putInternal(doc);
                 } else {
