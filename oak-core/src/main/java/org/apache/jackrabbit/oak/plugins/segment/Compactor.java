@@ -249,7 +249,7 @@ public class Compactor {
                 if (success) {
                     SegmentNodeState state = writer.writeNode(child.getNodeState());
                     builder.setChildNode(name, state);
-                    if (id != null && includeInMap.apply(state)) {
+                    if (id != null && includeInMap.apply(after)) {
                         map.put(id, state.getRecordId());
                     }
                 }
