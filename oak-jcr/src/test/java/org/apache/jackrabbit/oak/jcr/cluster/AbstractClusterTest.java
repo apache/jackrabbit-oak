@@ -26,6 +26,7 @@ import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
 import junit.framework.Assert;
+import org.apache.jackrabbit.oak.NodeStoreFixtures;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -44,7 +45,7 @@ public class AbstractClusterTest {
     protected Session s1, s2;
     
     protected NodeStoreFixture getFixture() {
-        return NodeStoreFixture.DOCUMENT_NS;
+        return NodeStoreFixtures.DOCUMENT_NS;
     }
     
     @After

@@ -28,6 +28,7 @@ import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.NodeStoreFixtures;
 import org.apache.jackrabbit.oak.commons.FixturesHelper;
 import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
@@ -70,7 +71,7 @@ public abstract class AbstractRepositoryTest {
 
     @Parameterized.Parameters(name="{0}")
     public static Collection<Object[]> fixtures() {
-        return NodeStoreFixture.asJunitParameters(FIXTURES);
+        return NodeStoreFixtures.asJunitParameters(FIXTURES);
     }
 
     @After

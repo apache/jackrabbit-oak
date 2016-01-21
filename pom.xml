@@ -58,6 +58,7 @@
     <module>oak-exercise</module>
     <module>oak-examples</module>
     <module>oak-it</module>
+    <module>oak-segment</module>
   </modules>
 
   <scm>

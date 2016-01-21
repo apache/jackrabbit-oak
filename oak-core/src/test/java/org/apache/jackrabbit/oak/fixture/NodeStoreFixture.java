@@ -32,14 +32,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
  */
 public abstract class NodeStoreFixture {
 
-    public static final NodeStoreFixture MEMORY_NS = new MemoryFixture();
-
-    public static final NodeStoreFixture SEGMENT_MK = new SegmentFixture();
-
-    public static final NodeStoreFixture DOCUMENT_NS = new DocumentMongoFixture();
-
-    public static final NodeStoreFixture DOCUMENT_RDB = new DocumentRdbFixture();
-
     /**
      * Creates a new empty {@link NodeStore} instance. An implementation must
      * ensure the returned node store is indeed empty and is independent from
@@ -66,27 +58,4 @@ public abstract class NodeStoreFixture {
         return true;
     }
 
-    public static Collection<Object[]> asJunitParameters(Set<Fixture> fixtures) {
-        List<NodeStoreFixture> configuredFixtures = new ArrayList<NodeStoreFixture>();
-        if (fixtures.contains(Fixture.DOCUMENT_NS)) {
-            configuredFixtures.add(DOCUMENT_NS);
-        }
-        if (fixtures.contains(Fixture.SEGMENT_MK)) {
-            configuredFixtures.add(SEGMENT_MK);
-        }
-        if (fixtures.contains(Fixture.MEMORY_NS)) {
-            configuredFixtures.add(MEMORY_NS);
-        }
-        if (fixtures.contains(Fixture.DOCUMENT_RDB)) {
-            configuredFixtures.add(DOCUMENT_RDB);
-        }
-
-        Collection<Object[]> result = new ArrayList<Object[]>();
-        for (NodeStoreFixture f : configuredFixtures) {
-            if (f.isAvailable()) {
-                result.add(new Object[]{f});
-            }
-        }
-        return result;
-    }
 }

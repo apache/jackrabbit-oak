@@ -50,10 +50,14 @@ import java.util.concurrent.TimeoutException;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.amazonaws.services.sqs.model.UnsupportedOperationException;
+import com.google.common.base.Supplier;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -69,11 +73,6 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.amazonaws.services.sqs.model.UnsupportedOperationException;
-import com.google.common.base.Supplier;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 
 public class AtomicCounterEditorTest {
     /**
@@ -328,7 +327,7 @@ public class AtomicCounterEditorTest {
     
     @Test
     public void singleNodeAsync() throws CommitFailedException, InterruptedException, ExecutionException {
-        NodeStore store = NodeStoreFixture.MEMORY_NS.createNodeStore();
+        NodeStore store = new MemoryNodeStore();
         MyExecutor exec1 = new MyExecutor();
         Whiteboard board = new DefaultWhiteboard();
         EditorHook hook1 = new EditorHook(new TestableACEProvider(CLUSTER_1, exec1, store, board));
@@ -370,7 +369,7 @@ public class AtomicCounterEditorTest {
     
     @Test
     public void noHookInWhiteboard() throws CommitFailedException, InterruptedException, ExecutionException {
-        NodeStore store = NodeStoreFixture.MEMORY_NS.createNodeStore();
+        NodeStore store = new MemoryNodeStore();
         MyExecutor exec1 = new MyExecutor();
         Whiteboard board = new DefaultWhiteboard();
         EditorHook hook1 = new EditorHook(new TestableACEProvider(CLUSTER_1, exec1, store, board));

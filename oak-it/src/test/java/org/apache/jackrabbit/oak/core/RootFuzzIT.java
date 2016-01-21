@@ -31,6 +31,7 @@ import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.Random;
 
+import org.apache.jackrabbit.oak.NodeStoreFixtures;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -60,7 +61,7 @@ public class RootFuzzIT {
 
     @Parameters
     public static Collection<Object[]> fixtures() {
-        return NodeStoreFixture.asJunitParameters(EnumSet.of(Fixture.DOCUMENT_NS, Fixture.SEGMENT_MK));
+        return NodeStoreFixtures.asJunitParameters(EnumSet.of(Fixture.DOCUMENT_NS, Fixture.SEGMENT_MK));
     }
 
     private static final int OP_COUNT = 5000;

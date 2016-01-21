@@ -17,10 +17,11 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.fixture;
+package org.apache.jackrabbit.oak.plugins.segment.fixture;
 
 import java.io.IOException;
 
+import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;

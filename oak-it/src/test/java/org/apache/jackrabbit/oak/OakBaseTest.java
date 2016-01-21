@@ -42,7 +42,7 @@ public abstract class OakBaseTest {
 
     @Parameterized.Parameters(name="{0}")
     public static Collection<Object[]> fixtures() {
-        return NodeStoreFixture.asJunitParameters(FIXTURES);
+        return NodeStoreFixtures.asJunitParameters(FIXTURES);
     }
 
     protected final NodeStoreFixture fixture;

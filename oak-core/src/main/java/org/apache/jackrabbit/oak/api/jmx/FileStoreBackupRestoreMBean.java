@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.backup;
+package org.apache.jackrabbit.oak.api.jmx;
 
 import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
