@@ -14,24 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.document;
+
+package org.apache.jackrabbit.oak.plugins.segment;
+
+import java.io.IOException;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 
-public class InitializerTest extends AbstractMongoConnectionTest {
+public class InitializerTest {
 
     @Test
-    public void testInitializerMongo() throws CommitFailedException {
-        NodeBuilder builder = mk.getNodeStore().getRoot().builder();
+    public void testInitializerSegment() throws CommitFailedException, IOException {
+        NodeStore store = new SegmentNodeStore(new MemoryStore());
+
+        NodeBuilder builder = store.getRoot().builder();
         new InitialContent().initialize(builder);
 
         SecurityProviderImpl provider = new SecurityProviderImpl(
@@ -46,22 +51,4 @@ public class InitializerTest extends AbstractMongoConnectionTest {
         builder.getNodeState();
     }
 
-    @Test
-    public void testInitializerMongoAfterInitialContent() throws CommitFailedException {
-        NodeBuilder builder = mk.getNodeStore().getRoot().builder();
-        // add initial content in separate merge
-        new InitialContent().initialize(builder);
-        mk.getNodeStore().merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-        SecurityProviderImpl provider = new SecurityProviderImpl(
-                ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME,
-                        ConfigurationParameters.of(ImmutableMap.of("anonymousId", "anonymous",
-                                "adminId", "admin",
-                                "usersPath", "/home/users",
-                                "groupsPath", "/home/groups",
-                                "defaultDepth", "1")))));
-        provider.getConfiguration(UserConfiguration.class).getWorkspaceInitializer().initialize(
-                builder, "default");
-        builder.getNodeState();
-    }
 }

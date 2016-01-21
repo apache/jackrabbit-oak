@@ -31,6 +31,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
+import org.apache.jackrabbit.oak.NodeStoreFixtures;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
@@ -83,7 +84,7 @@ public class RandomOpCompare {
 
     // @Before
     public void login() throws RepositoryException {
-        f1 = NodeStoreFixture.SEGMENT_MK;
+        f1 = NodeStoreFixtures.SEGMENT_MK;
         f2 = getMongo();
         
         ns1 = f1.createNodeStore();

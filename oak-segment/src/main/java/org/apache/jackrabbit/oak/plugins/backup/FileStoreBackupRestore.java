@@ -34,6 +34,7 @@ import java.util.concurrent.Executor;
 import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
 
+import org.apache.jackrabbit.oak.api.jmx.FileStoreBackupRestoreMBean;
 import org.apache.jackrabbit.oak.management.ManagementOperation;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;

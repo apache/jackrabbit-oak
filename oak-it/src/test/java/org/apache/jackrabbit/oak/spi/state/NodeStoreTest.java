@@ -39,6 +39,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.oak.NodeStoreFixtures;
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -100,8 +101,8 @@ public class NodeStoreTest extends OakBaseTest {
     @Test
     public void addExistingNode() throws CommitFailedException {
         // FIXME OAK-1550 Incorrect handling of addExistingNode conflict in NodeStore
-        assumeTrue(fixture != NodeStoreFixture.DOCUMENT_NS);
-        assumeTrue(fixture != NodeStoreFixture.DOCUMENT_RDB);
+        assumeTrue(fixture != NodeStoreFixtures.DOCUMENT_NS);
+        assumeTrue(fixture != NodeStoreFixtures.DOCUMENT_RDB);
 
         CommitHook hook = new CompositeHook(
                 new ConflictHook(JcrConflictHandler.createJcrConflictHandler()),
@@ -449,7 +450,7 @@ public class NodeStoreTest extends OakBaseTest {
     public void moveToDescendant() {
         NodeBuilder test = store.getRoot().builder().getChildNode("test");
         NodeBuilder x = test.getChildNode("x");
-        if (fixture == NodeStoreFixture.SEGMENT_MK || fixture == NodeStoreFixture.MEMORY_NS) {
+        if (fixture == NodeStoreFixtures.SEGMENT_MK || fixture == NodeStoreFixtures.MEMORY_NS) {
             assertTrue(x.moveTo(x, "xx"));
             assertFalse(x.exists());
             assertFalse(test.hasChildNode("x"));
