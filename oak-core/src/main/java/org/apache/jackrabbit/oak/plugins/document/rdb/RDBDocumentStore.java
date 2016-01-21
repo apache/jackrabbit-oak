@@ -1126,6 +1126,9 @@ public class RDBDocumentStore implements DocumentStore {
                         qc.addKeys(chunkedIds);
                         seenQueryContext.add(qc);
                     }
+                    for (String id : chunkedIds) {
+                        nodesCache.invalidate(id);
+                    }
                 }
 
                 Connection connection = null;
@@ -1150,23 +1153,8 @@ public class RDBDocumentStore implements DocumentStore {
                                 qc.addKeys(chunkedIds);
                             }
                         }
-                    }
-                    for (Entry<String, NodeDocument> entry : cachedDocs.entrySet()) {
-                        T oldDoc = castAsT(entry.getValue());
-                        String id = entry.getKey();
-                        Lock lock = locks.acquire(id);
-                        try {
-                            if (oldDoc == null) {
-                                // make sure concurrently loaded document is
-                                // invalidated
-                                nodesCache.invalidate(id);
-                            } else {
-                                addUpdateCounters(update);
-                                T newDoc = createNewDocument(collection, oldDoc, update);
-                                nodesCache.replaceCachedDocument((NodeDocument) oldDoc, (NodeDocument) newDoc);
-                            }
-                        } finally {
-                            lock.unlock();
+                        for (String id : chunkedIds) {
+                            nodesCache.invalidate(id);
                         }
                     }
                 } else {
