@@ -251,20 +251,6 @@
       <optional>true</optional>
     </dependency>
 
-    <!-- Required for OffHeap storage and serialization-->
-    <dependency>
-      <groupId>com.esotericsoftware.kryo</groupId>
-      <artifactId>kryo</artifactId>
-      <version>2.22</version>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.directmemory</groupId>
-      <artifactId>directmemory-cache</artifactId>
-      <version>0.2</version>
-      <optional>true</optional>
-    </dependency>
-
     <!-- OAK-1768 added as short term workaround -->
     <dependency>
       <groupId>org.mapdb</groupId>

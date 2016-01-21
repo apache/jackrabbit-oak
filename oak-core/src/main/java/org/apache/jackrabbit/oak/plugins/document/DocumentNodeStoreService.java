@@ -84,7 +84,6 @@ import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerM
 public class DocumentNodeStoreService {
     private static final String DEFAULT_URI = "mongodb://localhost:27017/oak";
     private static final int DEFAULT_CACHE = 256;
-    private static final int DEFAULT_OFF_HEAP_CACHE = 0;
     private static final int DEFAULT_BLOB_CACHE_SIZE = 16;
     private static final String DEFAULT_DB = "oak";
     private static final String DEFAULT_PERSISTENT_CACHE = "";
@@ -147,12 +146,9 @@ public class DocumentNodeStoreService {
     )
     private static final String PROP_CACHE_STACK_MOVE_DISTANCE = "cacheStackMoveDistance";
 
-    @Property(intValue = DEFAULT_OFF_HEAP_CACHE)
-    private static final String PROP_OFF_HEAP_CACHE = "offHeapCache";
-
     @Property(intValue =  DEFAULT_BLOB_CACHE_SIZE)
     private static final String PROP_BLOB_CACHE_SIZE = "blobCacheSize";
-    
+
     @Property(value =  DEFAULT_PERSISTENT_CACHE)
     private static final String PROP_PERSISTENT_CACHE = "persistentCache";
 
@@ -280,7 +276,6 @@ public class DocumentNodeStoreService {
         String uri = PropertiesUtil.toString(prop(PROP_URI, FWK_PROP_URI), DEFAULT_URI);
         String db = PropertiesUtil.toString(prop(PROP_DB, FWK_PROP_DB), DEFAULT_DB);
 
-        int offHeapCache = toInteger(prop(PROP_OFF_HEAP_CACHE), DEFAULT_OFF_HEAP_CACHE);
         int cacheSize = toInteger(prop(PROP_CACHE), DEFAULT_CACHE);
         int nodeCachePercentage = toInteger(prop(PROP_NODE_CACHE_PERCENTAGE), DEFAULT_NODE_CACHE_PERCENTAGE);
         int childrenCachePercentage = toInteger(prop(PROP_CHILDREN_CACHE_PERCENTAGE), DEFAULT_CHILDREN_CACHE_PERCENTAGE);
@@ -301,8 +296,7 @@ public class DocumentNodeStoreService {
                         docChildrenCachePercentage, 
                         diffCachePercentage).
                 setCacheSegmentCount(cacheSegmentCount).
-                setCacheStackMoveDistance(cacheStackMoveDistance).
-                offHeapCacheSize(offHeapCache * MB);
+                setCacheStackMoveDistance(cacheStackMoveDistance);
 
         if (persistentCache != null && persistentCache.length() > 0) {
             mkBuilder.setPersistentCache(persistentCache);
@@ -336,9 +330,9 @@ public class DocumentNodeStoreService {
                 // Take care around not logging the uri directly as it
                 // might contain passwords
                 String type = useMK ? "MK" : "NodeStore";
-                log.info("Starting Document{} with host={}, db={}, cache size (MB)={}, Off Heap Cache size (MB)={}, " +
+                log.info("Starting Document{} with host={}, db={}, cache size (MB)={}, " +
                                 "blobCacheSize (MB)={}, maxReplicationLagInSecs={}",
-                        type, mongoURI.getHosts(), db, cacheSize, offHeapCache, blobCacheSize, maxReplicationLagInSecs);
+                        type, mongoURI.getHosts(), db, cacheSize, blobCacheSize, maxReplicationLagInSecs);
                 log.info("Mongo Connection details {}", MongoConnection.toString(mongoURI.getOptions()));
             }
 
