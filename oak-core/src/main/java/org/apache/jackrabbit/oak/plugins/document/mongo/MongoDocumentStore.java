@@ -909,7 +909,7 @@ public class MongoDocumentStore implements DocumentStore {
                             if (postUpdateModCount != null
                                     && entry.getValue() != null
                                     && entry.getValue() != NodeDocument.NULL
-                                    && (postUpdateModCount - 1) == entry.getValue().getModCount()) {
+                                    && Long.valueOf(postUpdateModCount - 1).equals(entry.getValue().getModCount())) {
                                 // post update modCount is one higher than
                                 // what we currently see in the cache. we can
                                 // replace the cached document
