@@ -272,6 +272,12 @@ public interface LuceneIndexConstants {
     String INDEX_NODE_NAME = "indexNodeName";
 
     /**
+     * Property definition name to indicate indexing node name
+     * Its value should match {@link FieldNames#NODE_NAME}
+     */
+    String PROPDEF_PROP_NODE_NAME = ":nodeName";
+
+    /**
      * Boolean property indicating that Lucene directory content
      * should be saved as part of NodeState itself as a multi value property
      * to allow faster reads (OAK-2809)

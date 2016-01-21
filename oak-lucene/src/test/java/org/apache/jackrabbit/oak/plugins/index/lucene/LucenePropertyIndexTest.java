@@ -92,7 +92,11 @@ import static org.apache.jackrabbit.oak.plugins.index.PathFilter.PROP_EXCLUDED_P
 import static org.apache.jackrabbit.oak.plugins.index.PathFilter.PROP_INCLUDED_PATHS;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ORDERED_PROP_NAMES;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROPDEF_PROP_NODE_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NODE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_PROPERTY_INDEX;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TIKA;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorTest.createCal;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newNodeAggregator;
@@ -391,6 +395,40 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         test.addChild("test").addChild("bar");
         root.commit();
 
+        String propabQuery = "select [jcr:path] from [nt:base] where LOCALNAME() = 'foo'";
+        assertThat(explain(propabQuery), containsString("lucene:test1(/oak:index/test1) :nodeName:foo"));
+        assertQuery(propabQuery, asList("/foo"));
+        assertQuery("select [jcr:path] from [nt:base] where LOCALNAME() = 'bar'", asList("/test/bar"));
+        assertQuery("select [jcr:path] from [nt:base] where LOCALNAME() LIKE 'foo'", asList("/foo"));
+        assertQuery("select [jcr:path] from [nt:base] where LOCALNAME() LIKE 'camel%'", asList("/camelCase"));
+
+        assertQuery("select [jcr:path] from [nt:base] where NAME() = 'bar'", asList("/test/bar"));
+        assertQuery("select [jcr:path] from [nt:base] where NAME() LIKE 'foo'", asList("/foo"));
+        assertQuery("select [jcr:path] from [nt:base] where NAME() LIKE 'camel%'", asList("/camelCase"));
+    }
+
+    //OAK-3825
+    @Test
+    public void nodeNameViaPropDefinition() throws Exception{
+        //make index
+        Tree idx = createIndex("test1", Collections.EMPTY_SET);
+        useV2(idx);
+        Tree rules = idx.addChild(LuceneIndexConstants.INDEX_RULES);
+        rules.setOrderableChildren(true);
+        Tree rule = rules.addChild("nt:base");
+        Tree propDef = rule.addChild(PROP_NODE).addChild("nodeName");
+        propDef.setProperty(PROP_NAME, PROPDEF_PROP_NODE_NAME);
+        propDef.setProperty(PROP_PROPERTY_INDEX, true);
+        root.commit();
+
+        //add content
+        Tree test = root.getTree("/");
+        test.addChild("foo");
+        test.addChild("camelCase");
+        test.addChild("test").addChild("bar");
+        root.commit();
+
+        //test
         String propabQuery = "select [jcr:path] from [nt:base] where LOCALNAME() = 'foo'";
         assertThat(explain(propabQuery), containsString("lucene:test1(/oak:index/test1) :nodeName:foo"));
         assertQuery(propabQuery, asList("/foo"));
