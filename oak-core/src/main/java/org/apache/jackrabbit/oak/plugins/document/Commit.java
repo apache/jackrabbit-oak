@@ -388,7 +388,7 @@ public class Commit {
                     // only set revision on commit root when there is
                     // no collision for this commit revision
                     commit.containsMapEntry(COLLISIONS, revision, false);
-                    NodeDocument before = nodeStore.updateCommitRoot(commit);
+                    NodeDocument before = nodeStore.updateCommitRoot(commit, revision);
                     if (before == null) {
                         String msg = "Conflicting concurrent change. " +
                                 "Update operation failed: " + commitRoot;
@@ -425,7 +425,13 @@ public class Commit {
             if (success) {
                 LOG.error("Exception occurred after commit. Rollback will be suppressed.", e);
             } else {
-                rollback(newNodes, opLog, commitRoot);
+                try {
+                    rollback(newNodes, opLog, commitRoot);
+                } catch (Exception ex) {
+                    // catch any exception caused by the rollback, log it
+                    // and throw the original exception
+                    LOG.warn("Rollback failed", ex);
+                }
                 throw e;
             }
         }

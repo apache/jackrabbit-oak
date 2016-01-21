@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -42,7 +41,6 @@ public class CommitRootUpdateTest {
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
-    @Ignore("OAK-3903")
     @Test
     public void exceptionOnUpdate() throws Exception {
         final AtomicBoolean throwAfterUpdate = new AtomicBoolean(false);
