@@ -445,6 +445,7 @@ The following benchmark options (with default values) are currently supported:
     --host localhost       - MongoDB host
     --port 27101           - MongoDB port
     --db <name>            - MongoDB database (default is a generated name)
+    --mongouri             - MongoDB URI (takes precedence over host, port and db)
     --dropDBAfterTest true - Whether to drop the MongoDB database after the test
     --base target          - Path to the base file (Tar setup),
     --mmap <64bit?>        - TarMK memory mapping (the default on 64 bit JVMs)

@@ -34,6 +34,7 @@ import joptsimple.OptionSpec;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.benchmark.wikipedia.WikipediaImport;
 import org.apache.jackrabbit.oak.fixture.JackrabbitRepositoryFixture;
+import org.apache.jackrabbit.oak.fixture.OakFixture;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
@@ -52,6 +53,8 @@ public class BenchmarkRunner {
         OptionSpec<Integer> port = parser.accepts("port", "MongoDB port")
                 .withRequiredArg().ofType(Integer.class).defaultsTo(27017);
         OptionSpec<String> dbName = parser.accepts("db", "MongoDB database")
+                .withRequiredArg();
+        OptionSpec<String> mongouri = parser.accepts("mongouri", "MongoDB URI")
                 .withRequiredArg();
         OptionSpec<Boolean> dropDBAfterTest = parser.accepts("dropDBAfterTest", "Whether to drop the MongoDB database after the test")
                 .withOptionalArg().ofType(Boolean.class).defaultsTo(true);
@@ -134,23 +137,27 @@ public class BenchmarkRunner {
             System.exit(0);
         }
 
+        String uri = mongouri.value(options);
+        if (uri == null) {
+            String db = dbName.value(options);
+            if (db == null) {
+                db = OakFixture.getUniqueDatabaseName(OakFixture.OAK_MONGO);
+            }
+            uri = "mongodb://" + host.value(options) + ":" + port.value(options) + "/" + db;
+        }
         int cacheSize = cache.value(options);
         RepositoryFixture[] allFixtures = new RepositoryFixture[] {
                 new JackrabbitRepositoryFixture(base.value(options), cacheSize),
                 OakRepositoryFixture.getMemoryNS(cacheSize * MB),
-                OakRepositoryFixture.getMongo(
-                        host.value(options), port.value(options),
-                        dbName.value(options), dropDBAfterTest.value(options),
-                        cacheSize * MB),
-                OakRepositoryFixture.getMongoWithFDS(
-                        host.value(options), port.value(options),
-                        dbName.value(options), dropDBAfterTest.value(options),
+                OakRepositoryFixture.getMongo(uri,
+                        dropDBAfterTest.value(options), cacheSize * MB),
+                OakRepositoryFixture.getMongoWithFDS(uri,
+                        dropDBAfterTest.value(options),
                         cacheSize * MB,
                         base.value(options),
                         fdsCache.value(options)),
-                OakRepositoryFixture.getMongoNS(
-                        host.value(options), port.value(options),
-                        dbName.value(options), dropDBAfterTest.value(options),
+                OakRepositoryFixture.getMongoNS(uri,
+                        dropDBAfterTest.value(options),
                         cacheSize * MB),
                 OakRepositoryFixture.getTar(
                         base.value(options), 256, cacheSize, mmap.value(options)),
@@ -332,7 +339,8 @@ public class BenchmarkRunner {
             new LucenePropertyFTSeparated(
                 wikipedia.value(options),
                 flatStructure.value(options),
-                report.value(options), withStorage.value(options))
+                report.value(options), withStorage.value(options)),
+            new ReplicaCrashResilienceTest()
         };
 
         Set<String> argset = Sets.newHashSet(nonOption.values(options));
