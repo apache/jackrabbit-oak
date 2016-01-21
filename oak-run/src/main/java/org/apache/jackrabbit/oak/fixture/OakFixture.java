@@ -61,7 +61,7 @@ public abstract class OakFixture {
         this.unique = getUniqueDatabaseName(name);
     }
 
-    private static String getUniqueDatabaseName(String name) {
+    public static String getUniqueDatabaseName(String name) {
         return String.format("%s-%d", name, System.currentTimeMillis());
     }
 
@@ -112,9 +112,21 @@ public abstract class OakFixture {
         };
     }
 
+    public static OakFixture getMongo(String uri,
+                                      boolean dropDBAfterTest, long cacheSize) {
+        return getMongo(OAK_MONGO, uri,
+                dropDBAfterTest, cacheSize, false, null, 0);
+    }
+
     public static OakFixture getMongo(String host, int port, String database,
                                       boolean dropDBAfterTest, long cacheSize) {
         return getMongo(OAK_MONGO, host, port, database,
+                dropDBAfterTest, cacheSize, false, null, 0);
+    }
+
+    public static OakFixture getMongoNS(String uri,
+                                      boolean dropDBAfterTest, long cacheSize) {
+        return getMongo(OAK_MONGO_NS, uri,
                 dropDBAfterTest, cacheSize, false, null, 0);
     }
 

@@ -37,6 +37,11 @@ public class OakRepositoryFixture implements RepositoryFixture {
         return getMongo(OakFixture.OAK_MONGO, host, port, database, dropDBAfterTest, cacheSize, false, null, 0);
     }
 
+    public static RepositoryFixture getMongo(String uri,
+                                             boolean dropDBAfterTest, long cacheSize) {
+        return getMongoNS(uri, dropDBAfterTest, cacheSize);
+    }
+
     public static RepositoryFixture getMongoWithFDS(String host, int port, String database,
                                              boolean dropDBAfterTest, long cacheSize,
                                              final File base, int fdsCacheInMB) {
@@ -44,9 +49,21 @@ public class OakRepositoryFixture implements RepositoryFixture {
                 dropDBAfterTest, cacheSize, true, base, fdsCacheInMB);
     }
 
+    public static RepositoryFixture getMongoWithFDS(String uri,
+                                                    boolean dropDBAfterTest, long cacheSize,
+                                                    final File base, int fdsCacheInMB) {
+        return new OakRepositoryFixture(OakFixture.getMongo(OakFixture.OAK_MONGO_FDS, uri, dropDBAfterTest,
+                cacheSize, true, base, fdsCacheInMB));
+    }
+
     public static RepositoryFixture getMongoNS(String host, int port, String database,
                                                boolean dropDBAfterTest, long cacheSize) {
         return getMongo(OakFixture.OAK_MONGO_NS, host, port, database, dropDBAfterTest, cacheSize, false, null, 0);
+    }
+
+    public static RepositoryFixture getMongoNS(String uri,
+                                               boolean dropDBAfterTest, long cacheSize) {
+        return new OakRepositoryFixture(OakFixture.getMongo(uri, dropDBAfterTest, cacheSize));
     }
 
     private static RepositoryFixture getMongo(String name,
