@@ -73,7 +73,6 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.cache.Cache;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.UncheckedExecutionException;
@@ -1164,12 +1163,14 @@ public final class DocumentNodeStore
      * Updates a commit root document.
      *
      * @param commit the updates to apply on the commit root document.
+     * @param commitRev the commit revision.
      * @return the document before the update was applied or <code>null</code>
      *          if the update failed because of a collision.
      * @throws DocumentStoreException if the update fails with an error.
      */
     @CheckForNull
-    NodeDocument updateCommitRoot(UpdateOp commit) throws DocumentStoreException {
+    NodeDocument updateCommitRoot(UpdateOp commit, Revision commitRev)
+            throws DocumentStoreException {
         // use batch commit when there are only revision and modified updates
         boolean batch = true;
         for (Map.Entry<Key, Operation> op : commit.getChanges().entrySet()) {
@@ -1181,11 +1182,63 @@ public final class DocumentNodeStore
             batch = false;
             break;
         }
-        if (batch) {
-            return batchUpdateCommitRoot(commit);
-        } else {
-            return store.findAndUpdate(NODES, commit);
+        try {
+            if (batch) {
+                return batchUpdateCommitRoot(commit);
+            } else {
+                return store.findAndUpdate(NODES, commit);
+            }
+        } catch (DocumentStoreException e) {
+            return verifyCommitRootUpdateApplied(commit, commitRev, e);
         }
+    }
+
+    /**
+     * Verifies if the {@code commit} update on the commit root was applied by
+     * reading the affected document and checks if the {@code commitRev} is
+     * set in the revisions map.
+     *
+     * @param commit the update operation on the commit root document.
+     * @param commitRev the commit revision.
+     * @param e the exception that will be thrown when this method determines
+     *          that the update was not applied.
+     * @return the before document.
+     * @throws DocumentStoreException the exception passed to this document
+     *      in case the commit update was not applied.
+     */
+    private NodeDocument verifyCommitRootUpdateApplied(UpdateOp commit,
+                                                       Revision commitRev,
+                                                       DocumentStoreException e)
+            throws DocumentStoreException {
+        LOG.info("Update of commit root failed with exception", e);
+        int numRetries = 10;
+        for (int i = 0; i < numRetries; i++) {
+            LOG.info("Checking if change made it to the DocumentStore anyway {}/{} ...",
+                    i + 1, numRetries);
+            NodeDocument commitRootDoc;
+            try {
+                commitRootDoc = store.find(NODES, commit.getId(), 0);
+            } catch (Exception ex) {
+                LOG.info("Failed to read commit root document", ex);
+                continue;
+            }
+            if (commitRootDoc == null) {
+                LOG.info("Commit root document missing for {}", commit.getId());
+                break;
+            }
+            if (commitRootDoc.getLocalRevisions().containsKey(commitRev)) {
+                LOG.info("Update made it to the store even though the call " +
+                        "failed with an exception. Previous exception will " +
+                        "be suppressed. {}", commit);
+                NodeDocument before = NODES.newDocument(store);
+                commitRootDoc.deepCopy(before);
+                UpdateUtils.applyChanges(before, commit.getReverseOperation());
+                return before;
+            }
+            break;
+        }
+        LOG.info("Update didn't make it to the store. Re-throwing the exception");
+        throw e;
     }
 
     private NodeDocument batchUpdateCommitRoot(UpdateOp commit)
