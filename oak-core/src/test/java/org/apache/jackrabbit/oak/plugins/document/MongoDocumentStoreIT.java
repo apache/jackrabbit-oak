@@ -149,7 +149,7 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
 
         NodeDocument doc = docStore.find(NODES, Utils.getIdFromPath("/test"));
         assertNotNull(doc);
-        Number mc1 = doc.getModCount();
+        Long mc1 = doc.getModCount();
         assertNotNull(mc1);
         try {
             mk.commit("/test", "^\"prop\":\"v2\"", head, null);
@@ -159,9 +159,9 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
         }
         doc = docStore.find(NODES, Utils.getIdFromPath("/test"));
         assertNotNull(doc);
-        Number mc2 = doc.getModCount();
+        Long mc2 = doc.getModCount();
         assertNotNull(mc2);
-        assertTrue(mc2.longValue() > mc1.longValue());
+        assertTrue(mc2 > mc1);
     }
 
     // OAK-3556
