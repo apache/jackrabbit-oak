@@ -1088,7 +1088,7 @@ public class MongoDocumentStore implements DocumentStore {
         try {
             nodesCache.close();
         } catch (IOException e) {
-            LOG.warn("Error occurred while closing Off Heap Cache", e);
+            LOG.warn("Error occurred while closing nodes cache", e);
         }
     }
 

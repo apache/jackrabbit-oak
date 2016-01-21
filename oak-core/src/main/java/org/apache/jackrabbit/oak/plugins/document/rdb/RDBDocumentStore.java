@@ -456,6 +456,11 @@ public class RDBDocumentStore implements DocumentStore {
         } catch (IOException ex) {
             LOG.error("closing connection handler", ex);
         }
+        try {
+            this.nodesCache.close();
+        } catch (IOException ex) {
+            LOG.warn("Error occurred while closing nodes cache", ex);
+        }
         LOG.info("RDBDocumentStore (" + OakVersion.getVersion() + ") disposed" + getCnStats()
                 + (this.droppedTables.isEmpty() ? "" : " (tables dropped: " + this.droppedTables + ")"));
     }
