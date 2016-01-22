@@ -347,7 +347,7 @@ class OakDirectory extends Directory {
                 flushBlob();
                 checkState(!blobModified);
 
-                int n = (int) Math.min(blobSize, length - i * blobSize);
+                int n = (int) Math.min(blobSize, length - (long)i * blobSize);
                 InputStream stream = data.get(i).getNewStream();
                 try {
                     ByteStreams.readFully(stream, blob, 0, n);
@@ -360,7 +360,7 @@ class OakDirectory extends Directory {
 
         private void flushBlob() throws IOException {
             if (blobModified) {
-                int n = (int) Math.min(blobSize, length - index * blobSize);
+                int n = (int) Math.min(blobSize, length - (long)index * blobSize);
                 InputStream in = new ByteArrayInputStream(blob, 0, n);
                 if (uniqueKey != null) {
                     in = new SequenceInputStream(in, 
