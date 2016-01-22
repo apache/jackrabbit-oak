@@ -18,9 +18,9 @@ package org.apache.jackrabbit.oak.plugins.segment.file;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newTreeSet;
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.apache.commons.io.FileUtils.deleteDirectory;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_MK;
@@ -194,6 +194,7 @@ public class FileStoreIT {
         store.setHead(base, builder.getNodeState());
         store.flush();
         long pos1 = data0.length();
+        data0.close();
 
         base = store.getHead();
         builder = base.builder();
@@ -222,7 +223,6 @@ public class FileStoreIT {
         store = new FileStore(directory, 1, false);
         assertFalse(store.getHead().hasProperty("step"));
         store.close();
-        data0.close();
     }
 
     @Test
