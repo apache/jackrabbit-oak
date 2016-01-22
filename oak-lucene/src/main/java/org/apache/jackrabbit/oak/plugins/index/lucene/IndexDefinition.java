@@ -270,13 +270,13 @@ class IndexDefinition implements Aggregate.AggregateMapper {
         this.analyzer = createAnalyzer();
         this.hasCustomTikaConfig = getTikaConfigNode().exists();
         this.maxExtractLength = determineMaxExtractLength();
-        this.suggesterUpdateFrequencyMinutes = getOptionalValue(defn, LuceneIndexConstants.SUGGEST_UPDATE_FREQUENCY_MINUTES, 60);
+        this.suggesterUpdateFrequencyMinutes = evaluateSuggesterUpdateFrequencyMinutes(defn, 60);
         this.scorerProviderName = getOptionalValue(defn, LuceneIndexConstants.PROP_SCORER_PROVIDER, null);
         this.reindexCount = determineReindexCount(defn, defnb);
         this.pathFilter = PathFilter.from(new ReadOnlyBuilder(defn));
         this.queryPaths = getQueryPaths(defn);
         this.saveDirListing = getOptionalValue(defn, LuceneIndexConstants.SAVE_DIR_LISTING, true);
-        this.suggestAnalyzed = getOptionalValue(defn, LuceneIndexConstants.SUGGEST_ANALYZED, false);
+        this.suggestAnalyzed = evaluateSuggestAnalyzed(defn, false);
         this.secureFacets = defn.hasChildNode(FACETS) && getOptionalValue(defn.getChildNode(FACETS), PROP_SECURE_FACETS, true);
         this.suggestEnabled = evaluateSuggestionEnabled();
         this.spellcheckEnabled = evaluateSpellcheckEnabled();
@@ -316,6 +316,17 @@ class IndexDefinition implements Aggregate.AggregateMapper {
 
     public long getEntryCount() {
         return entryCount;
+    }
+
+    private int evaluateSuggesterUpdateFrequencyMinutes(NodeState defn, int defaultValue) {
+        NodeState suggestionConfig = defn.getChildNode(LuceneIndexConstants.SUGGESTION_CONFIG);
+
+        if (!suggestionConfig.exists()) {
+            //handle backward compatibility
+            return getOptionalValue(defn, LuceneIndexConstants.SUGGEST_UPDATE_FREQUENCY_MINUTES, defaultValue);
+        }
+
+        return getOptionalValue(suggestionConfig, LuceneIndexConstants.SUGGEST_UPDATE_FREQUENCY_MINUTES, defaultValue);
     }
 
     public int getSuggesterUpdateFrequencyMinutes() {
@@ -644,6 +655,17 @@ class IndexDefinition implements Aggregate.AggregateMapper {
     @CheckForNull
     public String getIndexPathFromConfig() {
         return definition.getString(LuceneIndexConstants.INDEX_PATH);
+    }
+
+    private boolean evaluateSuggestAnalyzed(NodeState defn, boolean defaultValue) {
+        NodeState suggestionConfig = defn.getChildNode(LuceneIndexConstants.SUGGESTION_CONFIG);
+
+        if (!suggestionConfig.exists()) {
+            //handle backward compatibility
+            return getOptionalValue(defn, LuceneIndexConstants.SUGGEST_ANALYZED, defaultValue);
+        }
+
+        return getOptionalValue(suggestionConfig, LuceneIndexConstants.SUGGEST_ANALYZED, defaultValue);
     }
 
     public boolean isSuggestAnalyzed() {

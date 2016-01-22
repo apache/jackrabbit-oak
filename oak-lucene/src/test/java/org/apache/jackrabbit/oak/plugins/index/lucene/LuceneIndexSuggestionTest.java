@@ -85,7 +85,7 @@ public class LuceneIndexSuggestionTest {
         def.setProperty("name", name);
         def.setProperty(LuceneIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
         if (suggestAnalyzed) {
-            def.setProperty("suggestAnalyzed", suggestAnalyzed);
+            def.addNode(LuceneIndexConstants.SUGGESTION_CONFIG).setProperty("suggestAnalyzed", suggestAnalyzed);
         }
 
 

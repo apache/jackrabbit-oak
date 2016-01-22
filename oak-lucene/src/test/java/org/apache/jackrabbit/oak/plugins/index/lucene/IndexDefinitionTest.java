@@ -621,6 +621,64 @@ public class IndexDefinitionTest {
         assertTrue(!idxDefn.getApplicableIndexingRule(TestUtil.NT_TEST).getNotNullCheckEnabledProperties().isEmpty());
     }
 
+    //OAK-2477
+    @Test
+    public void testSuggestFrequency() throws Exception {
+        int suggestFreq = 40;
+        //default config
+        NodeBuilder indexRoot = builder;
+        IndexDefinition idxDefn = new IndexDefinition(root, indexRoot.getNodeState());
+        assertEquals("Default config", 60, idxDefn.getSuggesterUpdateFrequencyMinutes());
+
+        //namespaced config shadows old method
+        indexRoot = builder.child("shadowConfigRoot");
+        indexRoot.setProperty(LuceneIndexConstants.SUGGEST_UPDATE_FREQUENCY_MINUTES, suggestFreq);
+        indexRoot.child(LuceneIndexConstants.SUGGESTION_CONFIG);
+        idxDefn = new IndexDefinition(root, indexRoot.getNodeState());
+        assertEquals("Namespaced config node should shadow global config",
+                60, idxDefn.getSuggesterUpdateFrequencyMinutes());
+
+        //config for backward config
+        indexRoot = builder.child("backwardCompatibilityRoot");
+        indexRoot.setProperty(LuceneIndexConstants.SUGGEST_UPDATE_FREQUENCY_MINUTES, suggestFreq);
+        idxDefn = new IndexDefinition(root, indexRoot.getNodeState());
+        assertEquals("Backward compatibility config", suggestFreq, idxDefn.getSuggesterUpdateFrequencyMinutes());
+
+        indexRoot = builder.child("indexRoot");
+        indexRoot.child(LuceneIndexConstants.SUGGESTION_CONFIG)
+                .setProperty(LuceneIndexConstants.SUGGEST_UPDATE_FREQUENCY_MINUTES, suggestFreq);
+        idxDefn = new IndexDefinition(root, indexRoot.getNodeState());
+        assertEquals("Set config", suggestFreq, idxDefn.getSuggesterUpdateFrequencyMinutes());
+    }
+
+    //OAK-2477
+    @Test
+    public void testSuggestAnalyzed() throws Exception {
+        //default config
+        NodeBuilder indexRoot = builder;
+        IndexDefinition idxDefn = new IndexDefinition(root, indexRoot.getNodeState());
+        assertFalse("Default config", idxDefn.isSuggestAnalyzed());
+
+        //namespaced config shadows old method
+        indexRoot = builder.child("shadowConfigRoot");
+        indexRoot.setProperty(LuceneIndexConstants.SUGGEST_ANALYZED, true);
+        indexRoot.child(LuceneIndexConstants.SUGGESTION_CONFIG);
+        idxDefn = new IndexDefinition(root, indexRoot.getNodeState());
+        assertFalse("Namespaced config node should shadow global config", idxDefn.isSuggestAnalyzed());
+
+        //config for backward config
+        indexRoot = builder.child("backwardCompatibilityRoot");
+        indexRoot.setProperty(LuceneIndexConstants.SUGGEST_ANALYZED, true);
+        idxDefn = new IndexDefinition(root, indexRoot.getNodeState());
+        assertTrue("Backward compatibility config", idxDefn.isSuggestAnalyzed());
+
+        indexRoot = builder.child("indexRoot");
+        indexRoot.child(LuceneIndexConstants.SUGGESTION_CONFIG)
+                .setProperty(LuceneIndexConstants.SUGGEST_ANALYZED, true);
+        idxDefn = new IndexDefinition(root, indexRoot.getNodeState());
+        assertTrue("Set config", idxDefn.isSuggestAnalyzed());
+    }
+
     @Test
     public void testSuggestEnabledOnNamedProp() throws Exception {
         NodeBuilder rules = builder.child(INDEX_RULES);
