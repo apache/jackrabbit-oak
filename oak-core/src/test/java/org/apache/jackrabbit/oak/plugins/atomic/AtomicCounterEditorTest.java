@@ -582,17 +582,23 @@ public class AtomicCounterEditorTest {
     
     @Test
     public void nextDelay() {
-        assertEquals(0, AtomicCounterEditor.ConsolidatorTask.nextDelay(-23456789));
-        assertEquals(1, AtomicCounterEditor.ConsolidatorTask.nextDelay(0));
-        assertEquals(2, AtomicCounterEditor.ConsolidatorTask.nextDelay(1));
-        assertEquals(4, AtomicCounterEditor.ConsolidatorTask.nextDelay(2));
-        assertEquals(8, AtomicCounterEditor.ConsolidatorTask.nextDelay(4));
-        assertEquals(16, AtomicCounterEditor.ConsolidatorTask.nextDelay(8));
-        assertEquals(32, AtomicCounterEditor.ConsolidatorTask.nextDelay(16));
+        assertEquals(AtomicCounterEditor.ConsolidatorTask.MIN_TIMEOUT,
+            AtomicCounterEditor.ConsolidatorTask.nextDelay(-23456789));
+        assertEquals(AtomicCounterEditor.ConsolidatorTask.MIN_TIMEOUT,
+            AtomicCounterEditor.ConsolidatorTask
+                .nextDelay(AtomicCounterEditor.ConsolidatorTask.MIN_TIMEOUT - 1));
+        assertEquals(1000, AtomicCounterEditor.ConsolidatorTask.nextDelay(500));
+        assertEquals(2000, AtomicCounterEditor.ConsolidatorTask.nextDelay(1000));
+        assertEquals(4000, AtomicCounterEditor.ConsolidatorTask.nextDelay(2000));
+        assertEquals(8000, AtomicCounterEditor.ConsolidatorTask.nextDelay(4000));
+        assertEquals(16000, AtomicCounterEditor.ConsolidatorTask.nextDelay(8000));
+        assertEquals(32000, AtomicCounterEditor.ConsolidatorTask.nextDelay(16000));
         assertEquals(Long.MAX_VALUE,
             AtomicCounterEditor.ConsolidatorTask
                 .nextDelay(AtomicCounterEditor.ConsolidatorTask.MAX_TIMEOUT));
-        assertEquals(Long.MAX_VALUE, AtomicCounterEditor.ConsolidatorTask.nextDelay(45678));
+        assertEquals(Long.MAX_VALUE,
+            AtomicCounterEditor.ConsolidatorTask
+                .nextDelay(AtomicCounterEditor.ConsolidatorTask.MAX_TIMEOUT + 1));
     }
     
     @Test
