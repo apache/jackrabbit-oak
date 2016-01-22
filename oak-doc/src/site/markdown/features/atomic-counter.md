@@ -48,7 +48,15 @@ happen asynchronously. Therefore the value displayed by `oak:counter`
 could not be up to date and lagging behind of some time. This is for
 dealing with conflicts that could happen when updating the same
 properties across the cluster and for scaling without having to deal
-with any global locking system. 
+with any global locking system.
+
+The consolidation task will timeout by default at `32000ms`. This
+aspect is configurable by providing the environment variable:
+`oak.atomiccounter.task.timeout`. In case a node time out it will be
+tracked in the logs with a warning.
+
+For example to increase the timeout up to 64 seconds you can set from
+the command line `-Doak.atomiccounter.task.timeout=64000`.
 
 ##### Constraints
 

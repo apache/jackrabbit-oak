@@ -316,7 +316,7 @@ public class AtomicCounterEditor extends DefaultEditor {
                     LOG.trace("CommitHook not registered with Whiteboard. Falling back to sync.");
                     consolidateCount(builder);
                 } else {
-                    long delay = 0;
+                    long delay = 500;
                     ConsolidatorTask t = new ConsolidatorTask(
                         path, 
                         builder.getProperty(revisionName), 
@@ -324,15 +324,25 @@ public class AtomicCounterEditor extends DefaultEditor {
                         executor, 
                         delay, 
                         hook);
-                    LOG.debug("[{}] Scheduling process by {}secs", t.getName(), delay); 
-                    executor.schedule(t, delay, TimeUnit.SECONDS);                    
+                    LOG.debug("[{}] Scheduling process by {}ms", t.getName(), delay); 
+                    executor.schedule(t, delay, TimeUnit.MILLISECONDS);                    
                 }
             }
         }
     }
     
     public static class ConsolidatorTask implements Callable<Void> {
-        public static final long MAX_TIMEOUT = 32;
+        /**
+         * millis over which the task will timeout
+         */
+        public static final long MAX_TIMEOUT = Long
+            .getLong("oak.atomiccounter.task.timeout", 32000);
+        
+        /**
+         * millis below which the next delay will schedule at this amount. 
+         */
+        public static final long MIN_TIMEOUT = 500;
+        
         private final String name;
         private final String p;
         private final PropertyState rev;
@@ -429,22 +439,19 @@ public class AtomicCounterEditor extends DefaultEditor {
         private void reschedule() {
             long d = nextDelay(delay);
             if (isTimedOut(d)) {
-                LOG.warn("[{}] The consolidator task for '{}' time out. Cancelling the retry.",
+                LOG.warn("[{}] The consolidator task for '{}' timed out. Cancelling the retry.",
                     name, p);
                 return;
             }
             
             ConsolidatorTask task = new ConsolidatorTask(this, d);
-            LOG.debug("[{}] Rescheduling '{}' by {}sec", task.getName(), p, d);
-            exec.schedule(task, d, TimeUnit.SECONDS);
+            LOG.debug("[{}] Rescheduling '{}' by {}ms", task.getName(), p, d);
+            exec.schedule(task, d, TimeUnit.MILLISECONDS);
         }
         
         public static long nextDelay(long currentDelay) {
-            if (currentDelay < 0) {
-                return 0;
-            }
-            if (currentDelay == 0) {
-                return 1;
+            if (currentDelay < MIN_TIMEOUT) {
+                return MIN_TIMEOUT;
             }
             if (currentDelay >= MAX_TIMEOUT) {
                 return Long.MAX_VALUE;
@@ -453,10 +460,7 @@ public class AtomicCounterEditor extends DefaultEditor {
         }
         
         public static boolean isTimedOut(long delay) {
-            if (delay > MAX_TIMEOUT) {
-                return true;
-            }
-            return false;
+            return delay > MAX_TIMEOUT;
         }
         
         public String getName() {
