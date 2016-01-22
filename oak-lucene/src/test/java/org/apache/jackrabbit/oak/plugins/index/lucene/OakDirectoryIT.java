@@ -61,7 +61,7 @@ public class OakDirectoryIT {
         store.close();
     }
 
-//    @Ignore("OAK-3911")
+    @Ignore("OAK-3911")
     @Test
     public void largeFileSize() throws Exception{
         long expectedSize = FileUtils.ONE_GB * 3;
