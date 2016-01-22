@@ -355,7 +355,7 @@ nullCheckEnabled
 
   Refer to [IS NULL support][OAK-2517] for more details
 
-**Property Names**
+<a name="property-names"></a>**Property Names**
 
 Property name can be one of following
 
@@ -369,6 +369,10 @@ Property name can be one of following
    _jcr:content/metadata/dc:.*$_
    which indexes all property names starting with _dc_ from node with
    relative path _jcr:content/metadata_
+4. The string `:nodeName` - this special case indexes node name as if it's a
+   virtual property of the node being indexed. Setting this along with
+   `nodeScopeIndex=true` is akin to setting `indexNodeName=true` on indexing
+   rule. (`@since Oak 1.3.15`)
 
 <a name="path-restrictions"></a>
 ##### Evaluate Path Restrictions
@@ -988,6 +992,8 @@ Analyzed suggestions can be enabled by setting "suggestAnalyzed" property to tru
   - suggestAnalyzed = true
 ```
 
+Setting up `useInSuggest=true` for a property definition having `name=:nodeName` would add node names to
+suggestion dictionary (See [property name](#property-names) for node name indexing)
 
 #### Spellchecking
 
