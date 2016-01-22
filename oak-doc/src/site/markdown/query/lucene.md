@@ -1031,6 +1031,15 @@ e.g. `select [oak:scoreExplanation], * from [nt:base] where foo='bar'`
 
 _Note that showing explanation score is expensive. So, this feature should be used for debug purposes only_.
 
+
+#### Custom hooks
+
+`@since Oak 1.3.14`
+
+In OSGi enviroment, implementations of `IndexFieldProvider` and `FulltextQueryTermsProvider` under
+`org.apache.jackrabbit.oak.plugins.index.lucene.spi` (see javadoc [here][oak-lucene]) are called during indexing
+and querying as documented in javadocs.
+
 ### Design Considerations
 
 Lucene index provides quite a few features to meet various query requirements. 
@@ -1457,3 +1466,4 @@ such fields
 [jcr-contains]: http://www.day.com/specs/jcr/1.0/6.6.5.2_jcr_contains_Function.html
 [boost-faq]: https://wiki.apache.org/lucene-java/LuceneFAQ#How_do_I_make_sure_that_a_match_in_a_document_title_has_greater_weight_than_a_match_in_a_document_body.3F
 [score-explanation]: https://lucene.apache.org/core/4_6_0/core/org/apache/lucene/search/IndexSearcher.html#explain%28org.apache.lucene.search.Query,%20int%29
+[oak-lucene]: http://www.javadoc.io/doc/org.apache.jackrabbit/oak-lucene/
