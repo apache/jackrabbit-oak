@@ -85,7 +85,9 @@ public class LuceneOakRepositoryStub extends OakTarMKRepositoryStub {
                         .setProperty(TYPE_PROPERTY_NAME, TYPE_LUCENE)
                         .setProperty(REINDEX_PROPERTY_NAME, true)
                         .setProperty(LuceneIndexConstants.TEST_MODE, true)
-                        .setProperty(LuceneIndexConstants.EVALUATE_PATH_RESTRICTION, true)
+                        .setProperty(LuceneIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+                index.child(LuceneIndexConstants.SUGGESTION_CONFIG)
+                        .setProperty(JCR_PRIMARYTYPE, "nt:unstructured", NAME)
                         .setProperty(LuceneIndexConstants.SUGGEST_UPDATE_FREQUENCY_MINUTES, 10);
 
                 NodeBuilder rules = index.child(LuceneIndexConstants.INDEX_RULES);
