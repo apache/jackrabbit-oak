@@ -143,7 +143,6 @@
                 <logResults>false</logResults>
                 <failOnWarning>false</failOnWarning>
                 <failOnError>true</failOnError>
-                <skip>${skipTests}</skip>
               </configuration>
             </execution>
           </executions>
