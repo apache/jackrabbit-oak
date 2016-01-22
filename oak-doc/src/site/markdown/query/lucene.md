@@ -955,7 +955,11 @@ properties terms to be used for suggestions will be taken.
  
 Once the above configuration has been done, by default, the Lucene suggester is 
 updated every 10 minutes but that can be changed by setting the property 
-`suggestUpdateFrequencyMinutes` in the index definition node to a different value.
+`suggestUpdateFrequencyMinutes` in `suggestion` node under the index definition
+node to a different value.
+_Note that up till Oak 1.3.14, `suggestUpdateFrequencyMinutes` was to be setup at
+index definition node itself. That is is still supported for backward compatibility,
+but having a separate `suggestion` node is preferred._
 
 Sample configuration for suggestions based on terms contained in `jcr:description` 
 property.
@@ -966,7 +970,8 @@ property.
   - compatVersion = 2
   - type = "lucene"
   - async = "async"
-  - suggestUpdateFrequencyMinutes = 60
+  + suggestion
+    - suggestUpdateFrequencyMinutes = 20
   + indexRules
     - jcr:primaryType = "nt:unstructured"
     + nt:base
@@ -988,9 +993,12 @@ Analyzed suggestions can be enabled by setting "suggestAnalyzed" property to tru
   - compatVersion = 2
   - type = "lucene"
   - async = "async"
-  - suggestUpdateFrequencyMinutes = 60
-  - suggestAnalyzed = true
+  + suggestion
+    - suggestUpdateFrequencyMinutes = 20
+    - suggestAnalyzed = true
 ```
+_Note that up till Oak 1.3.14, `suggestAnalyzed` was to be setup at index definition node itself. That is is still
+supported for backward compatibility, but having a separate `suggestion` node is preferred._
 
 Setting up `useInSuggest=true` for a property definition having `name=:nodeName` would add node names to
 suggestion dictionary (See [property name](#property-names) for node name indexing)
