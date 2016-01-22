@@ -141,7 +141,7 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
     @Test
     public void testDeleteManyBlobs() throws Exception {
         // see https://issues.apache.org/jira/browse/OAK-3807
-        int count = 2000;
+        int count = 3000;
         List<String> toDelete = new ArrayList<String>();
 
         for (int i = 0; i < count; i++) {
