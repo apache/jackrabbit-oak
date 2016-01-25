@@ -144,7 +144,12 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
     @Override
     public void collectGarbage() throws Exception {
-        markAndSweep();
+        try {
+            markAndSweep();
+        } catch (Exception e) {
+            LOG.error("Blob garbage collection error", e);
+            throw e;
+        }
     }
 
     /**
@@ -388,6 +393,10 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                                     saveBatchToFile(idBatch, writer);
                                     idBatch.clear();
                                 }
+
+                                if (count.get() % getBatchCount() == 0) {
+                                    LOG.info("Collected ({}) blob references", count.get());
+                                }
                             } catch (Exception e) {
                                 throw new RuntimeException("Error in retrieving references", e);
                             }
@@ -424,18 +433,19 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                     if (ids.size() > getBatchCount()) {
                         blobsCount += ids.size();
                         saveBatchToFile(ids, bufferWriter);
-                        LOG.debug("retrieved {} blobs", blobsCount);
+                        LOG.info("Retrieved ({}) blobs", blobsCount);
                     }
                 }
 
                 if (!ids.isEmpty()) {
                     blobsCount += ids.size();
                     saveBatchToFile(ids, bufferWriter);
+                    LOG.info("Retrieved ({}) blobs", blobsCount);
                 }
 
                 // sort the file
                 fs.sort(fs.getAvailableRefs());
-                LOG.debug("Number of blobs present in BlobStore : [{}] ", blobsCount);
+                LOG.info("Number of blobs present in BlobStore : [{}] ", blobsCount);
             } finally {
                 IOUtils.closeQuietly(bufferWriter);
             }
