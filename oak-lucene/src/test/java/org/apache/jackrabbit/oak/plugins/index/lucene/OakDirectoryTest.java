@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
@@ -408,6 +409,13 @@ public class OakDirectoryTest {
             assertThat(e.getMessage(), containsString(indexPath));
             assertThat(e.getMessage(), containsString("test3.txt"));
         }
+    }
+
+    @Test
+    public void readOnlyDirectory() throws Exception{
+        Directory dir = new OakDirectory(new ReadOnlyBuilder(builder.getNodeState()),
+                new IndexDefinition(root, builder.getNodeState()), true);
+        assertEquals(0, dir.listAll().length);
     }
 
     private static void readInputToEnd(long expectedSize, IndexInput input) throws IOException {
