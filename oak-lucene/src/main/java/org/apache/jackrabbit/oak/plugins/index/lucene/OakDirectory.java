@@ -82,6 +82,7 @@ class OakDirectory extends Directory {
     private final boolean readOnly;
     private final Set<String> fileNames = Sets.newConcurrentHashSet();
     private final boolean activeDeleteEnabled;
+    private final String indexName;
 
     public OakDirectory(NodeBuilder builder, IndexDefinition definition, boolean readOnly) {
         this(builder, INDEX_DATA_CHILD_NAME, definition, readOnly);
@@ -95,6 +96,7 @@ class OakDirectory extends Directory {
         this.readOnly = readOnly;
         this.fileNames.addAll(getListing());
         this.activeDeleteEnabled = definition.getActiveDeleteEnabled();
+        this.indexName = definition.getIndexName();
     }
 
     @Override
@@ -139,7 +141,7 @@ class OakDirectory extends Directory {
     @Override
     public long fileLength(String name) throws IOException {
         NodeBuilder file = directoryBuilder.getChildNode(name);
-        OakIndexInput input = new OakIndexInput(name, file);
+        OakIndexInput input = new OakIndexInput(name, file, indexName);
         try {
             return input.length();
         } finally {
@@ -163,7 +165,7 @@ class OakDirectory extends Directory {
             file = directoryBuilder.child(name);
         }
         fileNames.add(name);
-        return new OakIndexOutput(name, file);
+        return new OakIndexOutput(name, file, indexName);
     }
 
 
@@ -172,9 +174,10 @@ class OakDirectory extends Directory {
             throws IOException {
         NodeBuilder file = directoryBuilder.getChildNode(name);
         if (file.exists()) {
-            return new OakIndexInput(name, file);
+            return new OakIndexInput(name, file, indexName);
         } else {
-            throw new FileNotFoundException(name);
+            String msg = String.format("[%s] %s", indexName, name);
+            throw new FileNotFoundException(msg);
         }
     }
 
@@ -304,9 +307,12 @@ class OakDirectory extends Directory {
          */
         private boolean blobModified = false;
 
-        public OakIndexFile(String name, NodeBuilder file) {
+        private final String dirDetails;
+
+        public OakIndexFile(String name, NodeBuilder file, String dirDetails) {
             this.name = name;
             this.file = file;
+            this.dirDetails = dirDetails;
             this.blobSize = determineBlobSize(file);
             this.uniqueKey = readUniqueKey(file);
             this.blob = new byte[blobSize];
@@ -331,6 +337,7 @@ class OakDirectory extends Directory {
         private OakIndexFile(OakIndexFile that) {
             this.name = that.name;
             this.file = that.file;
+            this.dirDetails = that.dirDetails;
             this.blobSize = that.blobSize;
             this.uniqueKey = that.uniqueKey;
             this.blob = new byte[blobSize];
@@ -382,8 +389,8 @@ class OakDirectory extends Directory {
             // seek() may be called with pos == length
             // see https://issues.apache.org/jira/browse/LUCENE-1196
             if (pos < 0 || pos > length) {
-                String msg = String.format("Invalid seek request for [%s], " + 
-                        "position: %d, file length: %d", name, pos, length);
+                String msg = String.format("Invalid seek request for [%s][%s], " +
+                        "position: %d, file length: %d", dirDetails, name, pos, length);
                 throw new IOException(msg);                
             } else {
                 position = pos;
@@ -395,8 +402,8 @@ class OakDirectory extends Directory {
             checkPositionIndexes(offset, offset + len, checkNotNull(b).length);
 
             if (len < 0 || position + len > length) {
-                String msg = String.format("Invalid byte range request for [%s], " + 
-                        "position: %d, file length: %d, len: %d", name, position, length, len);
+                String msg = String.format("Invalid byte range request for [%s][%s], " +
+                        "position: %d, file length: %d, len: %d", dirDetails, name, position, length, len);
                 throw new IOException(msg);
             }
 
@@ -474,6 +481,9 @@ class OakDirectory extends Directory {
             return name;
         }
 
+        public String getName() {
+            return name;
+        }
     }
 
     private static class OakIndexInput extends IndexInput {
@@ -481,10 +491,12 @@ class OakDirectory extends Directory {
         private final OakIndexFile file;
         private boolean isClone = false;
         private final WeakIdentityMap<OakIndexInput, Boolean> clones;
+        private final String dirDetails;
 
-        public OakIndexInput(String name, NodeBuilder file) {
+        public OakIndexInput(String name, NodeBuilder file, String dirDetails) {
             super(name);
-            this.file = new OakIndexFile(name, file);
+            this.dirDetails = dirDetails;
+            this.file = new OakIndexFile(name, file, dirDetails);
             clones = WeakIdentityMap.newConcurrentHashMap();
         }
 
@@ -492,6 +504,7 @@ class OakDirectory extends Directory {
             super(that.toString());
             this.file = new OakIndexFile(that.file);
             clones = null;
+            this.dirDetails = that.dirDetails;
         }
 
         @Override
@@ -553,18 +566,19 @@ class OakDirectory extends Directory {
 
         private void checkNotClosed() {
             if (file.blob == null && file.data == null) {
-                throw new AlreadyClosedException("Already closed: " + this);
+                throw new AlreadyClosedException("Already closed: [" + dirDetails + "] " + this);
             }
         }
 
     }
 
     private final class OakIndexOutput extends IndexOutput {
-
+        private final String dirDetails;
         private final OakIndexFile file;
 
-        public OakIndexOutput(String name, NodeBuilder file) throws IOException {
-            this.file = new OakIndexFile(name, file);
+        public OakIndexOutput(String name, NodeBuilder file, String dirDetails) throws IOException {
+            this.dirDetails = dirDetails;
+            this.file = new OakIndexFile(name, file, dirDetails);
         }
 
         @Override
@@ -585,17 +599,29 @@ class OakDirectory extends Directory {
         @Override
         public void writeBytes(byte[] b, int offset, int length)
                 throws IOException {
-            file.writeBytes(b, offset, length);
+            try {
+                file.writeBytes(b, offset, length);
+            } catch (IOException e) {
+                throw wrapWithDetails(e);
+            }
         }
 
         @Override
         public void writeByte(byte b) throws IOException {
-            writeBytes(new byte[] { b }, 0, 1);
+            try {
+                writeBytes(new byte[]{b}, 0, 1);
+            } catch (IOException e) {
+                throw wrapWithDetails(e);
+            }
         }
 
         @Override
         public void flush() throws IOException {
-            file.flush();
+            try {
+                file.flush();
+            } catch (IOException e) {
+                throw wrapWithDetails(e);
+            }
         }
 
         @Override
@@ -603,6 +629,11 @@ class OakDirectory extends Directory {
             flush();
             file.blob = null;
             file.data = null;
+        }
+
+        private IOException wrapWithDetails(IOException e) {
+            String msg = String.format("Error occurred while writing to blob [%s][%s]", dirDetails, file.getName());
+            return new IOException(msg, e);
         }
 
     }
