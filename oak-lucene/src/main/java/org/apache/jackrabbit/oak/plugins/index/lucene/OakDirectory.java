@@ -608,11 +608,7 @@ class OakDirectory extends Directory {
 
         @Override
         public void writeByte(byte b) throws IOException {
-            try {
-                writeBytes(new byte[]{b}, 0, 1);
-            } catch (IOException e) {
-                throw wrapWithDetails(e);
-            }
+            writeBytes(new byte[] { b }, 0, 1);
         }
 
         @Override
