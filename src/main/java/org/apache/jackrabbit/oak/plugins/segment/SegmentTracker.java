@@ -57,6 +57,8 @@ public class SegmentTracker {
      */
     private static final boolean DISABLE_STRING_CACHE = getBoolean("oak.segment.disableStringCache");
 
+    static final String STRING_CACHE_SIZE = "oak.segment.stringCache";
+
     private static final long MSB_MASK = ~(0xfL << 12);
 
     private static final long VERSION = (0x4L << 12);
@@ -131,7 +133,8 @@ public class SegmentTracker {
         if (DISABLE_STRING_CACHE) {
             c = null;
         } else {
-            c = new StringCache((long) cacheSizeMB * MB);
+            long cache = Long.getLong(STRING_CACHE_SIZE, (long) cacheSizeMB);
+            c = new StringCache(cache * MB);
         }
         stringCache = c;
         segmentCache = CacheLIRS.<SegmentId, Segment>newBuilder()
