@@ -111,7 +111,8 @@ public interface GarbageCollectableBlobStore extends BlobStore {
     long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception;
 
     /**
-     * Resolve chunks from the given Id.
+     * Resolve chunks stored in the blob store from the given Id.
+     * This will not return any chunks stored in-line in the id.
      * 
      * @param blobId the blob id
      * @return the iterator
