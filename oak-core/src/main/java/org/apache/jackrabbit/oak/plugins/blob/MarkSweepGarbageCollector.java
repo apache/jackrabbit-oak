@@ -57,7 +57,6 @@ import org.apache.commons.io.LineIterator;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.IOUtils;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.InMemoryDataRecord;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
@@ -704,12 +703,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                     } else {
                         //This entry is not found in marked entries
                         //hence part of diff
-                        if (!InMemoryDataRecord.isInstance(getKey(diff))) {
-                            return diff;
-                        } else {
-                            diff = null;
-                            break;
-                        }
+                        return diff;
                     }
                 }
             }
