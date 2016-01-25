@@ -32,11 +32,14 @@ import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.document.util.RevisionsKey;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A diff cache, which is pro-actively filled after a commit.
  */
 public class LocalDiffCache extends DiffCache {
+    private static final Logger LOG = LoggerFactory.getLogger(LocalDiffCache.class);
 
     /**
      * Limit is arbitrary for now i.e. 16 MB. Same as in MongoDiffCache
@@ -94,6 +97,7 @@ public class LocalDiffCache extends DiffCache {
                 }
                 diffCache.put(new RevisionsKey(from, to),
                         new Diff(changesPerPath, size));
+                LOG.debug("Adding cache entry from {} to {}", from, to);
                 return true;
             }
 

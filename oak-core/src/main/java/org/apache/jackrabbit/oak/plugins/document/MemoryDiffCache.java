@@ -28,6 +28,8 @@ import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 
 import com.google.common.cache.Cache;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
@@ -38,6 +40,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
  * An in-memory diff cache implementation.
  */
 public class MemoryDiffCache extends DiffCache {
+    private static final Logger LOG = LoggerFactory.getLogger(MemoryDiffCache.class);
 
     /**
      * Diff cache.
@@ -114,6 +117,7 @@ public class MemoryDiffCache extends DiffCache {
         @Override
         public void append(@Nonnull String path, @Nonnull String changes) {
             PathRev key = diffCacheKey(path, from, to);
+            LOG.debug("Adding cache entry for {} from {} to {}", path, from, to);
             diffCache.put(key, new StringValue(changes));
         }
 

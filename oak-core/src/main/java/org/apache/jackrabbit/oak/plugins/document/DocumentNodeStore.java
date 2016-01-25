@@ -2229,9 +2229,10 @@ public final class DocumentNodeStore
         String diff = w.toString();
         if (debug) {
             long end = now();
-            LOG.debug("Diff performed via '{}' at [{}] between revisions [{}] => [{}] took {} ms ({} ms), diff '{}'",
+            LOG.debug("Diff performed via '{}' at [{}] between revisions [{}] => [{}] took {} ms ({} ms), diff '{}', external '{}",
                     diffAlgo, from.getPath(), fromRev, toRev,
-                    end - start, getChildrenDoneIn - start, diff);
+                    end - start, getChildrenDoneIn - start, diff,
+                    to.isFromExternalChange());
         }
         return diff;
     }
