@@ -26,6 +26,7 @@ import javax.annotation.Nonnull;
 import com.google.common.base.Function;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import static org.apache.jackrabbit.oak.commons.StringUtils.estimateMemoryUsage;
 
 /**
  * A string cache. It has two components: a fast cache for small strings, based
@@ -36,12 +37,12 @@ public class StringCache {
     /**
      * The fast (array based) cache.
      */
-    private final FastCache fastCache = new FastCache();
+    private final FastCache fastCache;
 
     /**
      * The slower (LIRS) cache.
      */
-    private final CacheLIRS<StringCacheEntry, String> cache;
+    private final CacheLIRS<StringCacheKey, String> cache;
 
     /**
      * Create a new string cache.
@@ -49,11 +50,21 @@ public class StringCache {
      * @param maxSize the maximum memory in bytes.
      */
     StringCache(long maxSize) {
-        cache = CacheLIRS.<StringCacheEntry, String>newBuilder()
-                .module("StringCache")
-                .maximumWeight(maxSize)
-                .averageWeight(100)
-                .build();
+        if (maxSize >= 0) {
+            fastCache = new FastCache();
+            cache = CacheLIRS.<StringCacheKey, String>newBuilder()
+                    .module("StringCache")
+                    .maximumWeight(maxSize)
+                    .averageWeight(250)
+                    .build();
+        } else {
+            fastCache = null;
+            // dummy cache to prevent NPE on the getStats() call
+            cache = CacheLIRS.<StringCacheKey, String> newBuilder()
+                    .module("StringCache")
+                    .maximumSize(1)
+                    .build();
+        }
     }
 
     @Nonnull
@@ -72,19 +83,23 @@ public class StringCache {
      */
     public String getString(long msb, long lsb, int offset, Function<Integer, String> loader) {
         int hash = getEntryHash(msb, lsb, offset);
+        if (fastCache == null) {
+            // disabled cache
+            return loader.apply(offset);
+        }
+
         String s = fastCache.getString(hash, msb, lsb, offset);
         if (s != null) {
             return s;
         }
-        StringCacheEntry key = new StringCacheEntry(hash, msb, lsb, offset, null);
+        StringCacheKey key = new StringCacheKey(hash, msb, lsb, offset);
         s = cache.getIfPresent(key);
         if (s == null) {
             s = loader.apply(offset);
             cache.put(key, s, getMemory(s));
         }
         if (FastCache.isSmall(s)) {
-            key.setString(s);
-            fastCache.addString(hash, key);
+            fastCache.addString(hash, new FastCacheEntry(hash, msb, lsb, offset, s));
         }
         return s;
     }
@@ -93,12 +108,21 @@ public class StringCache {
      * Clear the cache.
      */
     public void clear() {
-        cache.invalidateAll();
-        fastCache.clear();
+        if (fastCache != null) {
+            cache.invalidateAll();
+            fastCache.clear();
+        }
     }
 
+    /**
+     * Estimation includes the key's overhead, see {@link EmpiricalWeigher} for
+     * an example
+     */
     private static int getMemory(String s) {
-        return 100 + s.length() * 2;
+        int size = 168; // overhead for each cache entry
+        size += 40; // key
+        size += estimateMemoryUsage(s); // value
+        return size;
     }
 
     private static int getEntryHash(long lsb, long msb, int offset) {
@@ -125,7 +149,7 @@ public class StringCache {
         /**
          * The cache array.
          */
-        private final StringCacheEntry[] cache = new StringCacheEntry[CACHE_SIZE];
+        private final FastCacheEntry[] cache = new FastCacheEntry[CACHE_SIZE];
 
         /**
          * Get the string if it is stored.
@@ -138,7 +162,7 @@ public class StringCache {
          */
         String getString(int hash, long msb, long lsb, int offset) {
             int index = hash & (CACHE_SIZE - 1);
-            StringCacheEntry e = cache[index];
+            FastCacheEntry e = cache[index];
             if (e != null && e.matches(msb, lsb, offset)) {
                 return e.string;
             }
@@ -159,31 +183,66 @@ public class StringCache {
             return s.length() <= MAX_STRING_SIZE;
         }
 
-        void addString(int hash, StringCacheEntry entry) {
+        void addString(int hash, FastCacheEntry entry) {
             int index = hash & (CACHE_SIZE - 1);
             cache[index] = entry;
         }
 
     }
 
-    static class StringCacheEntry {
+    private static class StringCacheKey {
         private final int hash;
         private final long msb, lsb;
         private final int offset;
-        private String string;
 
-        StringCacheEntry(int hash, long msb, long lsb, int offset, String string) {
+        StringCacheKey(int hash, long msb, long lsb, int offset) {
             this.hash = hash;
             this.msb = msb;
             this.lsb = lsb;
             this.offset = offset;
-            this.string = string;
         }
 
-        void setString(String string) {
-            if (string == null) {
-                throw new NullPointerException();
+        @Override
+        public int hashCode() {
+            return hash;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (other == this) {
+                return true;
             }
+            if (!(other instanceof StringCacheKey)) {
+                return false;
+            }
+            StringCacheKey o = (StringCacheKey) other;
+            return o.hash == hash && o.msb == msb && o.lsb == lsb &&
+                    o.offset == offset;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder buff = new StringBuilder();
+            buff.append(Long.toHexString(msb)).
+                append(':').append(Long.toHexString(lsb)).
+                append('+').append(Integer.toHexString(offset));
+            return buff.toString();
+        }
+
+    }
+
+    private static class FastCacheEntry {
+
+        private final int hash;
+        private final long msb, lsb;
+        private final int offset;
+        private final String string;
+
+        FastCacheEntry(int hash, long msb, long lsb, int offset, String string) {
+            this.hash = hash;
+            this.msb = msb;
+            this.lsb = lsb;
+            this.offset = offset;
             this.string = string;
         }
 
@@ -201,21 +260,12 @@ public class StringCache {
             if (other == this) {
                 return true;
             }
-            if (!(other instanceof StringCacheEntry)) {
+            if (!(other instanceof FastCacheEntry)) {
                 return false;
             }
-            StringCacheEntry o = (StringCacheEntry) other;
+            FastCacheEntry o = (FastCacheEntry) other;
             return o.hash == hash && o.msb == msb && o.lsb == lsb &&
                     o.offset == offset;
-        }
-        
-        @Override
-        public String toString() {
-            StringBuilder buff = new StringBuilder();
-            buff.append(Long.toHexString(msb)).
-                append(':').append(Long.toHexString(lsb)).
-                append('+').append(Integer.toHexString(offset));
-            return buff.toString();
         }
 
     }
