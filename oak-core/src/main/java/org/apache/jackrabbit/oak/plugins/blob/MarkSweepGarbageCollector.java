@@ -244,6 +244,9 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 LOG.info("Blob garbage collection completed in {}. Number of blobs deleted [{}]", sw.toString(),
                     deleteCount, maxLastModifiedInterval);
             }
+        } catch (Exception e) {
+            LOG.error("Blob garbage collection error", e);
+            throw e;
         } finally {
             if (!LOG.isTraceEnabled()) {
                 Closeables.close(fs, threw);
@@ -257,10 +260,10 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      */
     protected void mark(GarbageCollectorFileState fs) throws IOException, DataStoreException {
         LOG.debug("Starting mark phase of the garbage collector");
-        
+
         // Create a time marker in the data store if applicable
         GarbageCollectionType.get(blobStore).addMarkedStartMarker(blobStore, repoId);
-        
+
         // Mark all used references
         iterateNodeTree(fs);
 
@@ -503,6 +506,10 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                                     saveBatchToFile(idBatch, writer);
                                     idBatch.clear();
                                 }
+
+                                if (count.get() % getBatchCount() == 0) {
+                                    LOG.info("Collected ({}) blob references", count.get());
+                                }
                             } catch (Exception e) {
                                 throw new RuntimeException("Error in retrieving references", e);
                             }
@@ -545,14 +552,14 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                     if (ids.size() > getBatchCount()) {
                         blobsCount += ids.size();
                         saveBatchToFile(ids, bufferWriter);
-                        LOG.debug("retrieved {} blobs", blobsCount);
+                        LOG.info("Retrieved ({}) blobs", blobsCount);
                     }
                 }
 
                 if (!ids.isEmpty()) {
                     blobsCount += ids.size();
                     saveBatchToFile(ids, bufferWriter);
-                    LOG.debug("retrieved {} blobs", blobsCount);
+                    LOG.info("Retrieved ({}) blobs", blobsCount);
                 }
 
                 // sort the file
