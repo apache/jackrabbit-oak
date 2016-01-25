@@ -116,11 +116,6 @@ class GroupImpl extends AuthorizableImpl implements Group {
             }
         }
 
-        if (isDeclaredMember(authorizable)) {
-            log.debug("Authorizable {} is already declared member of {}", memberID, getID());
-            return false;
-        }
-
         return getMembershipProvider().addMember(getTree(), authorizableImpl.getTree());
     }
 

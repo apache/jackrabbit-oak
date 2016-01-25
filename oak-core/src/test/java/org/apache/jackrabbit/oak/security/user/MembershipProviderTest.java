@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -286,6 +287,43 @@ public class MembershipProviderTest extends AbstractSecurityTest {
                 "the first overflow node must not exist",
                 membersList.getChild("1").exists()
         );
+    }
+
+    @Test
+    public void testAddMembersAgain() throws Exception {
+        Set<String> members = new HashSet<String>();
+        Group grp  = createGroup();
+        for (int i=0; i<NUM_USERS; i++) {
+            User usr = createUser();
+            grp.addMember(usr);
+            members.add(usr.getID());
+        }
+        root.commit();
+
+        for (String id : members) {
+            assertFalse(grp.addMember(userMgr.getAuthorizable(id)));
+        }
+    }
+
+    @Test
+    public void testAddMembersAgainOnMembershipProvider() throws Exception {
+        Set<String> memberPaths = new HashSet<String>();
+        Group grp  = createGroup();
+        for (int i=0; i<NUM_USERS; i++) {
+            User usr = createUser();
+            grp.addMember(usr);
+            memberPaths.add(usr.getPath());
+        }
+        root.commit();
+
+
+        MembershipProvider mp = userMgr.getMembershipProvider();
+        Tree groupTree = root.getTree(grp.getPath());
+        for (String path : memberPaths) {
+            Tree memberTree = root.getTree(path);
+            assertFalse(mp.addMember(groupTree, memberTree));
+            assertFalse(mp.addMember(groupTree, TreeUtil.getString(memberTree, JcrConstants.JCR_UUID)));
+        }
     }
 
     private User createUser() throws RepositoryException {
