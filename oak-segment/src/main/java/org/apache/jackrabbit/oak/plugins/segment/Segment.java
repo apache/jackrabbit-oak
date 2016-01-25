@@ -22,6 +22,7 @@ import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newConcurrentMap;
+import static java.lang.Boolean.getBoolean;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.V_11;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
@@ -163,7 +164,9 @@ public class Segment {
      * Template records read from segment. Used to avoid duplicate
      * copies and repeated parsing of the same templates.
      */
-    private final ConcurrentMap<Integer, Template> templates = newConcurrentMap();
+    private final ConcurrentMap<Integer, Template> templates;
+
+    private static final boolean DISABLE_TEMPLATE_CACHE = getBoolean("oak.segment.disableTemplateCache");
 
     private volatile long accessed;
 
@@ -211,6 +214,11 @@ public class Segment {
             strings = null;
             stringCache = tracker.getStringCache();
         }
+        if (DISABLE_TEMPLATE_CACHE) {
+            templates = null;
+        } else {
+            templates = newConcurrentMap();
+        }
         this.data = checkNotNull(data);
         if (id.isDataSegmentId()) {
             byte segmentVersion = data.get(3);
@@ -256,6 +264,12 @@ public class Segment {
             strings = null;
             stringCache = tracker.getStringCache();
         }
+        if (DISABLE_TEMPLATE_CACHE) {
+            templates = null;
+        } else {
+            templates = newConcurrentMap();
+        }
+
         this.data = ByteBuffer.wrap(checkNotNull(buffer));
         this.refids = new SegmentId[SEGMENT_REFERENCE_LIMIT + 1];
         this.refids[0] = id;
@@ -529,6 +543,9 @@ public class Segment {
     }
 
     private Template readTemplate(int offset) {
+        if (templates == null) {
+            return loadTemplate(offset);
+        }
         Template template = templates.get(offset);
         if (template == null) {
             template = loadTemplate(offset);
