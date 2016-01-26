@@ -685,10 +685,9 @@ public final class Main {
             } else if (segmentVersion != null && segmentVersion != LATEST_VERSION) {
                 // The write operations below can only performed with the segment version
                 // matching the tool version
-                System.err.println("Segment version mismatch. " +
+                failWith("Segment version mismatch. " +
                     "Found " + segmentVersion + ", expected " + LATEST_VERSION + ". " +
                     "Please use the respective version of this tool");
-                System.exit(-1);
             } else if ("rm-all".equals(op)) {
                 long time = System.currentTimeMillis();
                 long cnt = cps.removeAll();
