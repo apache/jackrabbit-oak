@@ -35,7 +35,6 @@ import java.util.UUID;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -901,7 +900,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         }
     }
 
-    @Ignore("OAK-3929")
     @Test
     public void removeInvalidatesCache() throws Exception {
         String id = Utils.getIdFromPath("/foo");
