@@ -18,6 +18,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static java.util.Collections.max;
+import static java.util.EnumSet.allOf;
+
+import java.util.Comparator;
+
+import com.google.common.primitives.UnsignedBytes;
+
 /**
  * Version of the segment storage format.
  * <ul>
@@ -34,6 +41,17 @@ public enum SegmentVersion {
     V_10((byte) 10),
 
     V_11((byte) 11);
+
+    /**
+     * Latest segment version
+     */
+    public static SegmentVersion LATEST_VERSION = max(allOf(SegmentVersion.class),
+        new Comparator<SegmentVersion>() {
+            @Override
+            public int compare(SegmentVersion v1, SegmentVersion v2) {
+                return UnsignedBytes.compare(v1.version, v2.version);
+            }
+    });
 
     private final byte version;
 

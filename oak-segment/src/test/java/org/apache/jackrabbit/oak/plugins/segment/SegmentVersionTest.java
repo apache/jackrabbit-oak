@@ -23,6 +23,8 @@ import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.apache.jackrabbit.oak.api.Type.LONGS;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.LATEST_VERSION;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.V_11;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType.CLEAN_NONE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -75,6 +77,11 @@ public class SegmentVersionTest {
         } catch (IOException e) {
             log.error("Error cleaning directory", e);
         }
+    }
+
+    @Test
+    public void latestVersion() {
+        assertEquals(V_11, LATEST_VERSION);
     }
 
     @Test
@@ -176,7 +183,7 @@ public class SegmentVersionTest {
         FileStore fileStoreV11 = new FileStore(directory, 1);
         try {
             NodeState content11 = addTestContent(fileStoreV11, "content11");
-            assertVersion(content11, SegmentVersion.V_11);
+            assertVersion(content11, V_11);
             verifyContent(fileStoreV11, "content10");
             verifyContent(fileStoreV11, "content11");
         } finally {
@@ -210,7 +217,7 @@ public class SegmentVersionTest {
             });
             checkAllVersions(fileStoreV11.getHead(), SegmentVersion.V_10);
             fileStoreV11.compact();
-            checkAllVersions(fileStoreV11.getHead(), SegmentVersion.V_11);
+            checkAllVersions(fileStoreV11.getHead(), V_11);
         } finally {
             fileStoreV11.close();
         }

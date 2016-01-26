@@ -20,9 +20,11 @@ import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Arrays.asList;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jackrabbit.oak.checkpoint.Checkpoints.CP;
+import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.getSegmentVersion;
 import static org.apache.jackrabbit.oak.plugins.segment.RecordType.NODE;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentGraph.writeGCGraph;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentGraph.writeSegmentGraph;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.LATEST_VERSION;
 import static org.apache.jackrabbit.oak.plugins.segment.file.FileStore.newFileStore;
 import static org.apache.jackrabbit.oak.plugins.segment.file.tooling.ConsistencyChecker.checkConsistency;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -109,6 +111,7 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentTracker;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentVersion;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
@@ -496,90 +499,113 @@ public final class Main {
     }
 
     private static void compact(String[] args) throws IOException {
-        if (args.length != 1) {
-            System.err.println("usage: compact <path>");
-            System.exit(1);
-        } else if (!isValidFileStore(args[0])) {
-            System.err.println("Invalid FileStore directory " + args[0]);
-            System.exit(1);
-        } else {
-            boolean persistCM = Boolean
-                    .getBoolean("tar.PersistCompactionMap");
-            Stopwatch watch = Stopwatch.createStarted();
-            File directory = new File(args[0]);
-            System.out.println("Compacting " + directory);
-            System.out.println("    before " + Arrays.toString(directory.list()));
-            long sizeBefore = FileUtils.sizeOfDirectory(directory);
-            System.out.println("    size "
-                    + IOUtils.humanReadableByteCount(sizeBefore) + " (" + sizeBefore
-                    + " bytes)");
+        OptionParser parser = new OptionParser();
+        OptionSpec<File> directoryArg = parser.nonOptions(
+            "Path to segment store (required)").ofType(File.class);
+        OptionSpec<Void> forceFlag = parser.accepts(
+            "force", "Force compaction and ignore non matching segment version");
+        OptionSet options = parser.parse(args);
 
-            System.out.println("    -> compacting");
-            FileStore store = openFileStore(directory);
-            try {
-                CompactionStrategy compactionStrategy = new CompactionStrategy(
-                        false, CompactionStrategy.CLONE_BINARIES_DEFAULT,
-                        CleanupType.CLEAN_ALL, 0,
-                        CompactionStrategy.MEMORY_THRESHOLD_DEFAULT) {
-                    @Override
-                    public boolean compacted(Callable<Boolean> setHead)
-                            throws Exception {
-                        // oak-run is doing compaction single-threaded
-                        // hence no guarding needed - go straight ahead
-                        // and call setHead
-                        return setHead.call();
-                    }
-                };
-                compactionStrategy.setOfflineCompaction(true);
-                compactionStrategy.setPersistCompactionMap(persistCM);
-                store.setCompactionStrategy(compactionStrategy);
-                store.compact();
-            } finally {
-                store.close();
-            }
-
-            System.out.println("    -> cleaning up");
-            store = openFileStore(directory);
-            try {
-                for (File file : store.cleanup()) {
-                    if (!file.exists() || file.delete()) {
-                        System.out.println("    -> removed old file " + file.getName());
-                    } else {
-                        System.out.println("    -> failed to remove old file " + file.getName());
-                    }
-                }
-
-                String head;
-                File journal = new File(directory, "journal.log");
-                JournalReader journalReader = new JournalReader(journal);
-                try {
-                    head = journalReader.iterator().next() + " root\n";
-                } finally {
-                    journalReader.close();
-                }
-
-                RandomAccessFile journalFile = new RandomAccessFile(journal, "rw");
-                try {
-                    System.out.println("    -> writing new " + journal.getName() + ": " + head);
-                    journalFile.setLength(0);
-                    journalFile.writeBytes(head);
-                    journalFile.getChannel().force(false);
-                } finally {
-                    journalFile.close();
-                }
-            } finally {
-                store.close();
-            }
-            watch.stop();
-            System.out.println("    after  "
-                    + Arrays.toString(directory.list()));
-            long sizeAfter = FileUtils.sizeOfDirectory(directory);
-            System.out.println("    size "
-                    + IOUtils.humanReadableByteCount(sizeAfter) + " (" + sizeAfter
-                    + " bytes)");
-            System.out.println("    duration  " + watch.toString() + " ("
-                    + watch.elapsed(TimeUnit.SECONDS) + "s).");
+        File directory = directoryArg.value(options);
+        if (directory == null) {
+            System.err.println("Compact a file store. Usage: compact [path] <options>");
+            parser.printHelpOn(System.err);
+            System.exit(-1);
         }
+        if (!isValidFileStore(directory.getPath())) {
+            System.err.println("Invalid FileStore directory " + directory);
+            System.exit(1);
+        }
+
+        FileStore store = openFileStore(directory);
+        SegmentVersion segmentVersion = getSegmentVersion(store);
+        if (segmentVersion != LATEST_VERSION) {
+            if (options.has(forceFlag)) {
+                System.out.println("Segment version mismatch. " +
+                    "Found " + segmentVersion + ", expected " + LATEST_VERSION + ". " +
+                    "Upgrading the file store to segment version " + LATEST_VERSION);
+            } else {
+                System.err.println("Segment version mismatch. " +
+                    "Found " + segmentVersion + ", expected " + LATEST_VERSION + ". " +
+                    "Specify --force to upgrade the file store to segment version " + LATEST_VERSION);
+                System.exit(-1);
+            }
+        }
+
+        boolean persistCM = Boolean.getBoolean("tar.PersistCompactionMap");
+        Stopwatch watch = Stopwatch.createStarted();
+        System.out.println("Compacting " + directory);
+        System.out.println("    before " + Arrays.toString(directory.list()));
+        long sizeBefore = FileUtils.sizeOfDirectory(directory);
+        System.out.println("    size "
+                + IOUtils.humanReadableByteCount(sizeBefore) + " (" + sizeBefore
+                + " bytes)");
+
+        System.out.println("    -> compacting");
+
+        try {
+            CompactionStrategy compactionStrategy = new CompactionStrategy(
+                    false, CompactionStrategy.CLONE_BINARIES_DEFAULT,
+                    CleanupType.CLEAN_ALL, 0,
+                    CompactionStrategy.MEMORY_THRESHOLD_DEFAULT) {
+                @Override
+                public boolean compacted(Callable<Boolean> setHead)
+                        throws Exception {
+                    // oak-run is doing compaction single-threaded
+                    // hence no guarding needed - go straight ahead
+                    // and call setHead
+                    return setHead.call();
+                }
+            };
+            compactionStrategy.setOfflineCompaction(true);
+            compactionStrategy.setPersistCompactionMap(persistCM);
+            store.setCompactionStrategy(compactionStrategy);
+            store.compact();
+        } finally {
+            store.close();
+        }
+
+        System.out.println("    -> cleaning up");
+        store = openFileStore(directory);
+        try {
+            for (File file : store.cleanup()) {
+                if (!file.exists() || file.delete()) {
+                    System.out.println("    -> removed old file " + file.getName());
+                } else {
+                    System.out.println("    -> failed to remove old file " + file.getName());
+                }
+            }
+
+            String head;
+            File journal = new File(directory, "journal.log");
+            JournalReader journalReader = new JournalReader(journal);
+            try {
+                head = journalReader.iterator().next() + " root\n";
+            } finally {
+                journalReader.close();
+            }
+
+            RandomAccessFile journalFile = new RandomAccessFile(journal, "rw");
+            try {
+                System.out.println("    -> writing new " + journal.getName() + ": " + head);
+                journalFile.setLength(0);
+                journalFile.writeBytes(head);
+                journalFile.getChannel().force(false);
+            } finally {
+                journalFile.close();
+            }
+        } finally {
+            store.close();
+        }
+        watch.stop();
+        System.out.println("    after  "
+                + Arrays.toString(directory.list()));
+        long sizeAfter = FileUtils.sizeOfDirectory(directory);
+        System.out.println("    size "
+                + IOUtils.humanReadableByteCount(sizeAfter) + " (" + sizeAfter
+                + " bytes)");
+        System.out.println("    duration  " + watch.toString() + " ("
+                + watch.elapsed(TimeUnit.SECONDS) + "s).");
     }
 
     private static FileStore openFileStore(File directory) throws IOException {
