@@ -277,7 +277,7 @@ public final class Main {
         Closer closer = Closer.create();
         String h = "backup { /path/to/oak/repository | mongodb://host:port/database } <path/to/backup>";
         try {
-            NodeStore store = bootstrapNodeStore(args, closer, h);
+            NodeStore store = bootstrapNodeStore(args, closer, h, LATEST_VERSION);
             FileStoreBackup.backup(store, new File(args[1]));
         } catch (Throwable e) {
             throw closer.rethrow(e);
@@ -290,7 +290,7 @@ public final class Main {
         Closer closer = Closer.create();
         String h = "restore { /path/to/oak/repository | mongodb://host:port/database } <path/to/backup>";
         try {
-            NodeStore store = bootstrapNodeStore(args, closer, h);
+            NodeStore store = bootstrapNodeStore(args, closer, h, LATEST_VERSION);
             FileStoreRestore.restore(new File(args[1]), store);
         } catch (Throwable e) {
             throw closer.rethrow(e);
@@ -421,8 +421,8 @@ public final class Main {
         }
     }
 
-    public static NodeStore bootstrapNodeStore(String[] args, Closer closer,
-            String h) throws IOException {
+    public static NodeStore bootstrapNodeStore(String[] args, Closer closer, String h,
+            SegmentVersion expectedSegmentVersion) throws IOException {
         //TODO add support for other NodeStore flags
         OptionParser parser = new OptionParser();
         OptionSpec<Integer> clusterId = parser
@@ -464,6 +464,14 @@ public final class Main {
             return store;
         }
         FileStore fs = new FileStore(new File(src), 256, TAR_STORAGE_MEMORY_MAPPED);
+
+        SegmentVersion segmentVersion = getSegmentVersion(fs);
+        if (expectedSegmentVersion != null && expectedSegmentVersion != segmentVersion) {
+            failWith("Segment version mismatch. " +
+                "Found " + segmentVersion + ", expected " + expectedSegmentVersion + ". " +
+                "Please use the respective version of this tool");
+        }
+
         closer.register(asCloseable(fs));
         return new SegmentNodeStore(fs);
     }
@@ -739,7 +747,7 @@ public final class Main {
         Closer closer = Closer.create();
         String h = "recovery mongodb://host:port/database { dryRun }";
         try {
-            NodeStore store = bootstrapNodeStore(args, closer, h);
+            NodeStore store = bootstrapNodeStore(args, closer, h, null);
             if (!(store instanceof DocumentNodeStore)) {
                 System.err.println("Recovery only available for DocumentNodeStore");
                 System.exit(1);
@@ -767,7 +775,7 @@ public final class Main {
         Closer closer = Closer.create();
         String h = "repair mongodb://host:port/database path";
         try {
-            NodeStore store = bootstrapNodeStore(args, closer, h);
+            NodeStore store = bootstrapNodeStore(args, closer, h, null);
             if (!(store instanceof DocumentNodeStore)) {
                 System.err.println("Repair only available for DocumentNodeStore");
                 System.exit(1);
@@ -792,7 +800,7 @@ public final class Main {
         Closer closer = Closer.create();
         String h = "garbage mongodb://host:port/database";
         try {
-            NodeStore store = bootstrapNodeStore(args, closer, h);
+            NodeStore store = bootstrapNodeStore(args, closer, h, null);
             if (!(store instanceof DocumentNodeStore)) {
                 System.err.println("Garbage mode only available for DocumentNodeStore");
                 System.exit(1);
