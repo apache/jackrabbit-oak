@@ -22,6 +22,7 @@ import java.util.List;
 
 import javax.sql.DataSource;
 
+import org.apache.jackrabbit.oak.commons.FixturesHelper;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
@@ -35,6 +36,10 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
+
+import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_NS;
+import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_RDB;
+import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.MEMORY_NS;
 
 public abstract class DocumentStoreFixture {
 
@@ -66,6 +71,24 @@ public abstract class DocumentStoreFixture {
             "rdb-postgres-jdbc-passwd", "geheim"));
 
     public static final String TABLEPREFIX = "dstest_";
+
+    public static List<Object[]> getFixtures() {
+        List<Object[]> fixtures = Lists.newArrayList();
+        if (FixturesHelper.getFixtures().contains(MEMORY_NS)) {
+            fixtures.add(new Object[] { new DocumentStoreFixture.MemoryFixture() });
+        }
+
+        DocumentStoreFixture mongo = new DocumentStoreFixture.MongoFixture();
+        if (FixturesHelper.getFixtures().contains(DOCUMENT_NS) && mongo.isAvailable()) {
+            fixtures.add(new Object[] { mongo });
+        }
+
+        DocumentStoreFixture rdb = new DocumentStoreFixture.RDBFixture();
+        if (FixturesHelper.getFixtures().contains(DOCUMENT_RDB) && rdb.isAvailable()) {
+            fixtures.add(new Object[] { rdb });
+        }
+        return fixtures;
+    }
 
     public abstract String getName();
 
