@@ -18,6 +18,10 @@ package org.apache.jackrabbit.oak.plugins.document.locks;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
@@ -28,6 +32,8 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Striped;
 
 public class TreeNodeDocumentLocks implements NodeDocumentLocks {
@@ -53,7 +59,7 @@ public class TreeNodeDocumentLocks implements NodeDocumentLocks {
     private volatile AtomicLong lockAcquisitionCounter;
 
     /**
-     * Acquires a log for the given key. The returned tree lock will also hold
+     * Acquires a lock for the given key. The returned tree lock will also hold
      * a shared lock on the parent key.
      *
      * @param key a key.
@@ -65,6 +71,42 @@ public class TreeNodeDocumentLocks implements NodeDocumentLocks {
             lockAcquisitionCounter.incrementAndGet();
         }
         TreeLock lock = TreeLock.shared(parentLocks.get(getParentId(key)), locks.get(key));
+        lock.lock();
+        return lock;
+    }
+
+    /**
+     * This implementation creates two sequences of locks (for the keys and for
+     * the their parents) using {@link #locks} and {@link #parentLocks}. Then
+     * both sequences are zipped into pairs (parentLock, lock) and passed to the
+     * {@link TreeLock#shared(ReadWriteLock, Lock)}. After that all tree locks
+     * are acquired.
+     * <p>
+     * Since we only acquire a parentLock.read, there's no danger of
+     * deadlock caused by interleaving locks from two different stripes by two
+     * threads. The only place where the parentLock.write is acquired is the
+     * {@link #acquireExclusive(String)} and that method doesn't acquire locks in bulk.
+     */
+    @Override
+    public Lock acquire(Collection<String> keys) {
+        if (lockAcquisitionCounter != null) {
+            lockAcquisitionCounter.addAndGet(keys.size());
+        }
+
+        Iterable<String> parentKeys = Iterables.transform(keys, new Function<String, String>() {
+            @Override
+            public String apply(String keys) {
+                return getParentId(keys);
+            }
+        });
+        Iterator<Lock> lockIt = locks.bulkGet(keys).iterator();
+        Iterator<ReadWriteLock> parentLockIt = parentLocks.bulkGet(parentKeys).iterator();
+
+        List<Lock> acquired = new ArrayList<Lock>(keys.size());
+        while (lockIt.hasNext()) {
+            acquired.add(TreeLock.shared(parentLockIt.next(), lockIt.next()));
+        }
+        Lock lock = new BulkLock(acquired);
         lock.lock();
         return lock;
     }
