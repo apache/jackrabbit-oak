@@ -525,33 +525,32 @@ public final class Main {
             System.exit(1);
         }
 
-        FileStore store = openFileStore(directory);
-        SegmentVersion segmentVersion = getSegmentVersion(store);
-        if (segmentVersion != LATEST_VERSION) {
-            if (options.has(forceFlag)) {
-                System.out.println("Segment version mismatch. " +
-                    "Found " + segmentVersion + ", expected " + LATEST_VERSION + ". " +
-                    "Upgrading the file store to segment version " + LATEST_VERSION);
-            } else {
-                System.err.println("Segment version mismatch. " +
-                    "Found " + segmentVersion + ", expected " + LATEST_VERSION + ". " +
-                    "Specify --force to upgrade the file store to segment version " + LATEST_VERSION);
-                System.exit(-1);
-            }
-        }
-
-        boolean persistCM = Boolean.getBoolean("tar.PersistCompactionMap");
         Stopwatch watch = Stopwatch.createStarted();
-        System.out.println("Compacting " + directory);
-        System.out.println("    before " + Arrays.toString(directory.list()));
-        long sizeBefore = FileUtils.sizeOfDirectory(directory);
-        System.out.println("    size "
-                + IOUtils.humanReadableByteCount(sizeBefore) + " (" + sizeBefore
-                + " bytes)");
-
-        System.out.println("    -> compacting");
-
+        FileStore store = openFileStore(directory);
         try {
+            SegmentVersion segmentVersion = getSegmentVersion(store);
+            if (segmentVersion != LATEST_VERSION) {
+                if (options.has(forceFlag)) {
+                    System.out.println("Segment version mismatch. " +
+                        "Found " + segmentVersion + ", expected " + LATEST_VERSION + ". " +
+                        "Upgrading the file store to segment version " + LATEST_VERSION);
+                } else {
+                    failWith("Segment version mismatch. " +
+                        "Found " + segmentVersion + ", expected " + LATEST_VERSION + ". " +
+                        "Specify --force to upgrade the file store to segment version " + LATEST_VERSION);
+                }
+            }
+
+            boolean persistCM = Boolean.getBoolean("tar.PersistCompactionMap");
+            System.out.println("Compacting " + directory);
+            System.out.println("    before " + Arrays.toString(directory.list()));
+            long sizeBefore = FileUtils.sizeOfDirectory(directory);
+            System.out.println("    size "
+                    + IOUtils.humanReadableByteCount(sizeBefore) + " (" + sizeBefore
+                    + " bytes)");
+
+            System.out.println("    -> compacting");
+
             CompactionStrategy compactionStrategy = new CompactionStrategy(
                     false, CompactionStrategy.CLONE_BINARIES_DEFAULT,
                     CleanupType.CLEAN_ALL, 0,
