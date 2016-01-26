@@ -24,7 +24,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -74,7 +73,6 @@ public class RevisionGCTest {
         Revision.resetClockToDefault();
     }
 
-    @Ignore("OAK-3929")
     @Test
     public void recreateRemovedNodeAfterGC() throws Exception {
         NodeBuilder b = newNodeBuilder();
