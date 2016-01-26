@@ -16,16 +16,25 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.locks;
 
+import java.util.Collection;
 import java.util.concurrent.locks.Lock;
 
 public interface NodeDocumentLocks {
 
     /**
-     * Acquires a log for the given key.
+     * Acquires a lock for the given key.
      *
      * @param key a key.
      * @return the acquired lock for the given key.
      */
     Lock acquire(String key);
 
+    /**
+     * Acquires locks for the given keys. Locks are sorted before the operation
+     * to avoid deadlocks.
+     *
+     * @param keys keys
+     * @return the object wrapping the acquired locks
+     */
+    Lock acquire(Collection<String> keys);
 }
