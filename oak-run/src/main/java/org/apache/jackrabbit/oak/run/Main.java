@@ -633,6 +633,7 @@ public final class Main {
                 }
             }
 
+            SegmentVersion segmentVersion = null;
             if (args[0].startsWith(MongoURI.MONGODB_PREFIX)) {
                 MongoClientURI uri = new MongoClientURI(args[0]);
                 MongoClient client = new MongoClient(uri);
@@ -656,6 +657,7 @@ public final class Main {
                     }
                 });
                 cps = Checkpoints.onTarMK(store);
+                segmentVersion = getSegmentVersion(store);
             } else {
                 failWith("Invalid FileStore directory " + args[0]);
                 return;
@@ -672,8 +674,14 @@ public final class Main {
                     cnt++;
                 }
                 System.out.println("Found " + cnt + " checkpoints");
-            }
-            if ("rm-all".equals(op)) {
+            } else if (segmentVersion != null && segmentVersion != LATEST_VERSION) {
+                // The write operations below can only performed with the segment version
+                // matching the tool version
+                System.err.println("Segment version mismatch. " +
+                    "Found " + segmentVersion + ", expected " + LATEST_VERSION + ". " +
+                    "Please use the respective version of this tool");
+                System.exit(-1);
+            } else if ("rm-all".equals(op)) {
                 long time = System.currentTimeMillis();
                 long cnt = cps.removeAll();
                 time = System.currentTimeMillis() - time;
@@ -682,8 +690,7 @@ public final class Main {
                 } else {
                     failWith("Failed to remove all checkpoints.");
                 }
-            }
-            if ("rm-unreferenced".equals(op)) {
+            } else if ("rm-unreferenced".equals(op)) {
                 long time = System.currentTimeMillis();
                 long cnt = cps.removeUnreferenced();
                 time = System.currentTimeMillis() - time;
@@ -692,8 +699,7 @@ public final class Main {
                 } else {
                     failWith("Failed to remove unreferenced checkpoints.");
                 }
-            }
-            if ("rm".equals(op)) {
+            } else if ("rm".equals(op)) {
                 if (args.length != 3) {
                     failWith("Missing checkpoint id");
                 } else {
