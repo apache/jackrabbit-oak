@@ -82,7 +82,10 @@ import com.mongodb.WriteConcern;
 import com.mongodb.WriteResult;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Predicates.in;
+import static com.google.common.base.Predicates.not;
 import static com.google.common.base.Predicates.notNull;
+import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Maps.filterValues;
 
 /**
@@ -289,9 +292,13 @@ public class MongoDocumentStore implements DocumentStore {
             result.queryCount++;
 
             int invalidated = nodesCache.invalidateOutdated(modCounts);
-            result.cacheEntriesProcessedCount += modCounts.size();
+            for (String id : filter(ids, not(in(modCounts.keySet())))) {
+                nodesCache.invalidate(id);
+                invalidated++;
+            }
+            result.cacheEntriesProcessedCount += ids.size();
             result.invalidationCount += invalidated;
-            result.upToDateCount = modCounts.size() - invalidated;
+            result.upToDateCount += ids.size() - invalidated;
         }
 
         result.cacheSize = size;
