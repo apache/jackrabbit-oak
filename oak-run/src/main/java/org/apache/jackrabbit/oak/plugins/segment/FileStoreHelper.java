@@ -44,6 +44,16 @@ public final class FileStoreHelper {
     private FileStoreHelper() {
     }
 
+    /**
+     * Helper method to determine the segment version of the segment
+     * containing the current root node state.
+     * @param fileStore
+     * @return
+     */
+    public static SegmentVersion getSegmentVersion(FileStore fileStore) {
+        return fileStore.getHead().getRecordId().getSegment().getSegmentVersion();
+    }
+
     public static List<String> getTarFiles(FileStore store) {
         List<String> files = newArrayList();
         for (String p : store.getTarReaderIndex().keySet()) {

@@ -216,7 +216,14 @@ Compact
 The 'compact' mode runs the segment compaction operation on the provided TarMK
 repository. To start this mode, use:
 
-    $ java -jar oak-run-*.jar compact /path/to/TarMK
+    $ java -jar oak-run-*.jar compact [path] <options>
+
+    [File] -- Path to segment store (required)
+
+    Option   Description
+    ------   -----------
+    --force  Force compaction and ignore non
+               matching segment version
 
 Checkpoints
 -----------
