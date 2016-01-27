@@ -27,8 +27,11 @@ import java.util.concurrent.Callable;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class CompactionStrategy {
+    private static final Logger LOG = LoggerFactory.getLogger(CompactionStrategy.class);
 
     public enum CleanupType {
 
@@ -152,7 +155,13 @@ public abstract class CompactionStrategy {
             case CLEAN_NONE:
                 return false;
             case CLEAN_OLD:
-                return compactionStart - id.getCreationTime() > olderThan;
+                long age = compactionStart - id.getCreationTime();
+                if (age > olderThan) {
+                    LOG.info("TarMK released segment {} for gc. Age={}", id, age);
+                    return true;
+                } else {
+                    return false;
+                }
         }
         return false;
     }
