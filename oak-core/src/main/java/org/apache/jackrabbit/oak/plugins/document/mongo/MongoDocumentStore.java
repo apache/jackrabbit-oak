@@ -1151,6 +1151,9 @@ public class MongoDocumentStore implements DocumentStore {
         }
         @SuppressWarnings("unchecked")
         T doc = (T) nodesCache.getIfPresent(key);
+        if (doc == NodeDocument.NULL) {
+            doc = null;
+        }
         return doc;
     }
 
