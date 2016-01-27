@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 
+import javax.annotation.Nullable;
 import javax.management.NotCompliantMBeanException;
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
@@ -67,7 +68,8 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
                 try {
                     indexNode = indexTracker.acquireIndexNode(path);
                     if (indexNode != null) {
-                        IndexStats stats = new IndexStats(path, indexNode.getSearcher().getIndexReader());
+                        IndexStats stats = new IndexStats(path, indexNode.getSearcher().getIndexReader(),
+                                indexNode.getSuggestDirectory());
                         tds.put(stats.toCompositeData());
                     }
                 } finally {
@@ -111,6 +113,8 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
                 "path",
                 "indexSizeStr",
                 "indexSize",
+                "suggesterSizeStr",
+                "suggesterSize",
                 "numDocs",
                 "maxDoc",
                 "numDeletedDocs",
@@ -120,6 +124,8 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
                 "Path",
                 "Index size in human readable format",
                 "Index size in bytes",
+                "Suggester size in human readable format",
+                "Suggester size in bytes",
                 "Number of documents in this index.",
                 "The time and date for when the longest query took place",
                 "Number of deleted documents",
@@ -128,6 +134,8 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         @SuppressWarnings("rawtypes")
         static final OpenType[] FIELD_TYPES = new OpenType[]{
                 SimpleType.STRING,
+                SimpleType.STRING,
+                SimpleType.LONG,
                 SimpleType.STRING,
                 SimpleType.LONG,
                 SimpleType.INTEGER,
@@ -156,14 +164,19 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         private final int maxDoc;
         private final int numDeletedDocs;
         private final String indexSizeStr;
+        private final long suggesterSize;
+        private final String suggesterSizeStr;
 
-        public IndexStats(String path, IndexReader indexReader) throws IOException {
+        public IndexStats(String path, IndexReader indexReader, @Nullable Directory suggestDirectory)
+                throws IOException {
             this.path = path;
             numDocs = indexReader.numDocs();
             maxDoc = indexReader.maxDoc();
             numDeletedDocs = indexReader.numDeletedDocs();
             indexSize = dirSize(getDirectory(indexReader));
             indexSizeStr = humanReadableByteCount(indexSize);
+            suggesterSize = dirSize(suggestDirectory);
+            suggesterSizeStr = humanReadableByteCount(suggesterSize);
         }
 
         CompositeDataSupport toCompositeData() {
@@ -171,6 +184,8 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
                     path,
                     indexSizeStr,
                     indexSize,
+                    suggesterSizeStr,
+                    suggesterSize,
                     numDocs,
                     maxDoc,
                     numDeletedDocs
@@ -194,6 +209,9 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
 
     private static long dirSize(Directory directory) throws IOException {
         long totalFileSize = 0L;
+        if (directory == null) {
+            return -1;
+        }
         String[] files = directory.listAll();
         if (files == null) {
             return totalFileSize;
