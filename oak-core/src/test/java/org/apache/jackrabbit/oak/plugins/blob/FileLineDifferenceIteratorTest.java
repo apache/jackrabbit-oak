@@ -95,8 +95,8 @@ public class FileLineDifferenceIteratorTest {
         assertReverseDiff("a,b,c,e,h", "a,b,c", asList("e", "h"));
         assertReverseDiff("a,b,d,e", "a,b,c", asList("d", "e"));
         assertReverseDiff("a,b,d", "a,b,d", Collections.<String>emptyList());
-        assertReverseDiff("a,0xb,d,e,f", "a,d", asList("e", "f"));
-        assertReverseDiff("a,0xb,d,e,f", "a,d,e,f,g", Collections.<String>emptyList());
+        assertReverseDiff("a,0xb,d,e,f", "a,d", asList("0xb", "e", "f"));
+        assertReverseDiff("a,0xb,d,e,f", "a,d,e,f,g", asList("0xb"));
     }
     
     private static void assertReverseDiff(String marked, String all, List<String> diff) throws IOException {

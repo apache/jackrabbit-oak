@@ -95,6 +95,14 @@ public class DataStoreUtils {
         return concat(new File(".").getAbsolutePath(), "target/blobstore/" +
             (time == -1 ? 0 : time));
     }
+    
+    public static FileDataStore createFDS(File root, int minRecordLength) {
+        FileDataStore fds = new FileDataStore();
+        fds.setPath(root.getAbsolutePath());
+        fds.setMinRecordLength(minRecordLength);
+        fds.init(null);
+        return fds;
+    }
 
     @Test
     public void testPropertySetup() throws Exception {
