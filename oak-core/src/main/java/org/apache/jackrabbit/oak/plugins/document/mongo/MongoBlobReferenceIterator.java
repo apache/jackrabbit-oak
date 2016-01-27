@@ -28,16 +28,16 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
-import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.BlobCollector;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 
-public class MongoBlobReferenceIterator extends AbstractIterator<Blob> implements Closeable {
+public class MongoBlobReferenceIterator extends AbstractIterator<ReferencedBlob> implements Closeable {
     private final MongoDocumentStore documentStore;
     private final BlobCollector blobCollector;
-    private final Queue<Blob> blobs = Queues.newArrayDeque();
+    private final Queue<ReferencedBlob> blobs = Queues.newArrayDeque();
 
     private DBCursor cursor;
 
@@ -48,7 +48,7 @@ public class MongoBlobReferenceIterator extends AbstractIterator<Blob> implement
     }
 
     @Override
-    protected Blob computeNext() {
+    protected ReferencedBlob computeNext() {
         if (blobs.isEmpty()) {
             loadBatch();
         }

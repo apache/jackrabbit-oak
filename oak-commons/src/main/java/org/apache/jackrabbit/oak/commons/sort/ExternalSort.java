@@ -295,7 +295,7 @@ public class ExternalSort {
         try {
             for (String r : tmplist) {
                 // Skip duplicate lines
-                if (!distinct || !r.equals(lastLine)) {
+                if (!distinct || (lastLine == null || (lastLine != null && cmp.compare(r, lastLine) != 0))) {
                     writeLine(fbw, r);
                     fbw.newLine();
                     lastLine = r;
@@ -453,7 +453,7 @@ public class ExternalSort {
                 BinaryFileBuffer bfb = pq.poll();
                 String r = bfb.pop();
                 // Skip duplicate lines
-                if (!distinct || !r.equals(lastLine)) {
+                if (!distinct || (lastLine == null || (lastLine != null && cmp.compare(r, lastLine) != 0))) {
                     writeLine(fbw, r);
                     fbw.newLine();
                     lastLine = r;

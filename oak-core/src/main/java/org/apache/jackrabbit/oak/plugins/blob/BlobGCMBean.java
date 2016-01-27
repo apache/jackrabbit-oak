@@ -61,5 +61,20 @@ public interface BlobGCMBean {
      * @return List of available repositories and their status
      */
     TabularData getGlobalMarkStats();
-
+    
+    /**
+     * Data Store consistency check
+     * 
+     * @return the missing blobs
+     */
+    CompositeData checkConsistency();
+    
+    /**
+     * Consistency check status
+     * 
+     * @return the status of the ongoing operation or if none the terminal
+     * status of the last operation or <em>Status not available</em> if none.
+     */
+    @Nonnull 
+    CompositeData getConsistencyCheckStatus();
 }
