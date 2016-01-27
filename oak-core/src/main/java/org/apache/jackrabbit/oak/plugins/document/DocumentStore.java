@@ -277,12 +277,16 @@ public interface DocumentStore {
     void dispose();
 
     /**
-     * Fetches the cached document. If document is not present in cache <code>null</code> would be returned
+     * Fetches the cached document. If the document is not present in the cache
+     * {@code null} will be returned. This method is consistent with other find
+     * methods that may return cached documents and will return {@code null}
+     * even when the implementation has a negative cache for documents that
+     * do not exist. This method will never return {@link NodeDocument#NULL}.
      *
      * @param <T> the document type
      * @param collection the collection
      * @param key the key
-     * @return cached document if present. Otherwise null
+     * @return cached document if present. Otherwise {@code null}.
      */
     @CheckForNull
     <T extends Document> T getIfCached(Collection<T> collection, String key);
