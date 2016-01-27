@@ -177,8 +177,17 @@ public class ClusterNodeInfo {
      */
     private static Clock clock = Clock.SIMPLE;
 
-    /** OAK-3398 : default lease duration 120sec **/
-    public static final int DEFAULT_LEASE_DURATION_MILLIS = 1000 * 120;
+    public static final int DEFAULT_LEASE_DURATION_MILLIS;
+
+    static {
+        String leaseDurationProp = "oak.documentMK.leaseDurationSeconds";
+        Integer leaseProp = Integer.getInteger(leaseDurationProp);
+        if (leaseProp != null) {
+            LOG.info("Lease duration set to: " + leaseProp + "s (using system property " + leaseDurationProp + ")");
+        }
+        /** OAK-3398 : default lease duration 120sec **/
+        DEFAULT_LEASE_DURATION_MILLIS = 1000 * (leaseProp != null ? leaseProp : 120);
+    }
 
     /** OAK-3398 : default update interval 10sec **/
     public static final int DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS = 1000 * 10;
