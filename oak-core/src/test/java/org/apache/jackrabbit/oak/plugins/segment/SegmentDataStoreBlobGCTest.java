@@ -47,6 +47,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.Closeables;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.GarbageCollectorFileState;
@@ -101,7 +102,9 @@ public class SegmentDataStoreBlobGCTest {
     }
 
     public DataStoreState setUp() throws Exception {
-        blobStore = DataStoreUtils.getBlobStore();
+        if (blobStore == null) {
+            blobStore = DataStoreUtils.getBlobStore();
+        }
         nodeStore = getNodeStore(blobStore);
         startDate = new Date();
 
@@ -145,7 +148,7 @@ public class SegmentDataStoreBlobGCTest {
 
         DataStoreState state = new DataStoreState();
         for (int i = 0; i < numBlobs; i++) {
-            SegmentBlob b = (SegmentBlob) nodeStore.createBlob(randomStream(i, 16516));
+            SegmentBlob b = (SegmentBlob) nodeStore.createBlob(randomStream(i, 18342));
             Iterator<String> idIter = blobStore.resolveChunks(b.getBlobId());
             while (idIter.hasNext()) {
                 String chunk = idIter.next();
@@ -173,6 +176,17 @@ public class SegmentDataStoreBlobGCTest {
         return state;
     }
 
+    private HashSet<String> addInlined() throws Exception {
+        HashSet<String> set = new HashSet<String>();
+        NodeBuilder a = nodeStore.getRoot().builder();
+        int number = 4;
+        for (int i = 0; i < number; i++) {
+            Blob b = nodeStore.createBlob(randomStream(i, 16514));
+            a.child("cinline" + i).setProperty("x", b);
+        }
+        nodeStore.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        return set;
+    }
     private class DataStoreState {
         Set<String> blobsAdded = Sets.newHashSet();
         Set<String> blobsPresent = Sets.newHashSet();
@@ -266,6 +280,29 @@ public class SegmentDataStoreBlobGCTest {
 
         assertTrue(Sets.difference(state.blobsPresent, existingAfterGC).isEmpty());
         assertEquals(gc.additionalBlobs, Sets.symmetricDifference(state.blobsPresent, existingAfterGC));
+    }
+    
+    @Test
+    public void gcWithInlined() throws Exception {
+        blobStore = new DataStoreBlobStore(DataStoreUtils.createFDS(new File(getWorkDir(), "datastore"), 16516));
+        DataStoreState state = setUp();
+        addInlined();
+        log.info("{} blobs that should remain after gc : {}", state.blobsAdded.size(), state.blobsAdded);
+        log.info("{} blobs for nodes which are deleted : {}", state.blobsPresent.size(), state.blobsPresent);
+        Set<String> existingAfterGC = gcInternal(0);
+        assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
+    }
+    
+    @Test
+    public void consistencyCheckInlined() throws Exception {
+        blobStore = new DataStoreBlobStore(DataStoreUtils.createFDS(new File(getWorkDir(), "datastore"), 16516));
+        DataStoreState state = setUp();
+        addInlined();
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
+        MarkSweepGarbageCollector gcObj = init(86400, executor);
+        long candidates = gcObj.checkConsistency();
+        assertEquals(1, executor.getTaskCount());
+        assertEquals(0, candidates);
     }
     
     private Set<String> gcInternal(long maxBlobGcInSecs) throws Exception {

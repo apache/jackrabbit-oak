@@ -406,7 +406,10 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
 
     @Override
     public Iterator<String> resolveChunks(String blobId) throws IOException {
-        return Iterators.singletonIterator(blobId);
+        if (!InMemoryDataRecord.isInstance(blobId)) {
+            return Iterators.singletonIterator(blobId);
+        }
+        return Iterators.emptyIterator();
     }
 
     @Override
