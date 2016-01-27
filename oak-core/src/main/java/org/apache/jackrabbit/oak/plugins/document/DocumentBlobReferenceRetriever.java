@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
+import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,23 +44,24 @@ public class DocumentBlobReferenceRetriever implements BlobReferenceRetriever {
     @Override
     public void collectReferences(ReferenceCollector collector) {
         int referencesFound = 0;
-        Iterator<Blob> blobIterator = nodeStore.getReferencedBlobsIterator();
+        Iterator<ReferencedBlob> blobIterator = nodeStore.getReferencedBlobsIterator();
         try {
             while (blobIterator.hasNext()) {
-                Blob blob = blobIterator.next();
+                ReferencedBlob refBlob = blobIterator.next();
+                Blob blob = refBlob.getBlob();
                 referencesFound++;
 
                 //TODO this mode would also add in memory blobId
                 //Would that be an issue
 
                 if (blob instanceof BlobStoreBlob) {
-                    collector.addReference(((BlobStoreBlob) blob).getBlobId());
+                    collector.addReference(((BlobStoreBlob) blob).getBlobId(), refBlob.getId());
                 } else {
                     //TODO Should not rely on toString. Instead obtain
                     //secure reference and convert that to blobId using
                     //blobStore
 
-                    collector.addReference(blob.toString());
+                    collector.addReference(blob.toString(), refBlob.getId());
                 }
             }
         }finally{
