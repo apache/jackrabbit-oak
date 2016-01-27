@@ -131,16 +131,6 @@
             </Embed-Dependency>
           </instructions>
         </configuration>
-        <executions>
-          <execution>
-            <id>baseline</id>
-            <configuration>
-             <filters>
-               <filter>org.apache.jackrabbit.oak.*</filter>
-             </filters>
-            </configuration>
-          </execution>
-        </executions>
       </plugin>
       <plugin>
         <groupId>org.apache.felix</groupId>
