@@ -846,7 +846,7 @@ class TarReader implements Closeable {
             sep = ", ";
         }
 
-        GC_LOG.info("Cleaned segments from {}: {}", file.getName(), uuids);
+        GC_LOG.info("TarMK cleaned segments from {}: {}", file.getName(), uuids);
     }
 
     /**
