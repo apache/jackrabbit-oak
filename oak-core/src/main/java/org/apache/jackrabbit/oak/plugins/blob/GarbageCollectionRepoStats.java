@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.plugins.blob;
  */
 public class GarbageCollectionRepoStats {
     private String repositoryId;
+
+    private boolean local;
     
     private long startTime;
     
@@ -68,5 +70,13 @@ public class GarbageCollectionRepoStats {
     
     public void setStartTime(long startTime) {
         this.startTime = startTime;
+    }
+
+    public boolean isLocal() {
+        return local;
+    }
+
+    public void setLocal(boolean local) {
+        this.local = local;
     }
 }

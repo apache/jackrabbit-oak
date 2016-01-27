@@ -156,6 +156,9 @@ public class SharedBlobStoreGCTest {
             observedNumBlobs.add(stat.getNumLines());
             observedRepoIds.add(stat.getRepositoryId());
             Assert.assertTrue(stat.getStartTime() <= stat.getEndTime());
+            if (stat.getRepositoryId().equals(cluster1.repoId)) {
+                Assert.assertTrue(stat.isLocal());
+            }
         }
     
         Assert.assertTrue(Sets.difference(actualNumBlobs, observedNumBlobs).isEmpty());
