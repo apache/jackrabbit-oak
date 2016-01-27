@@ -121,6 +121,9 @@
                 http://jackrabbit.apache.org/oak/
               </Bundle-DocURL>
               <Bundle-Vendor>The Apache Software Foundation</Bundle-Vendor>
+              <!-- Don't default to bundle version for packages without explicit export version.
+                   See FELIX-5172 -->
+              <_nodefaultversion>true</_nodefaultversion>
             </instructions>
           </configuration>
           <!-- OAK-3041: use updated Bnd -->
@@ -139,10 +142,77 @@
               </goals>
               <phase>pre-integration-test</phase>
               <configuration>
-                <!--<comparisonVersion>1.2.0</comparisonVersion>-->
                 <logResults>false</logResults>
                 <failOnWarning>false</failOnWarning>
                 <failOnError>true</failOnError>
+                <filters>
+                  <!-- Disable baseline for explicitly NOT managed packages. See OAK-3842 -->
+                  <filter>!org.apache.jackrabbit.oak.commons</filter>
+                  <filter>!org.apache.jackrabbit.oak.commons.benchmark</filter>
+                  <filter>!org.apache.jackrabbit.oak.commons.cache</filter>
+                  <filter>!org.apache.jackrabbit.oak.commons.concurrent</filter>
+                  <filter>!org.apache.jackrabbit.oak.commons.io</filter>
+                  <filter>!org.apache.jackrabbit.oak.commons.jmx</filter>
+                  <filter>!org.apache.jackrabbit.oak.commons.json</filter>
+                  <filter>!org.apache.jackrabbit.oak.commons.sort</filter>
+                  <filter>!org.apache.jackrabbit.oak.spi.blob</filter>
+                  <filter>!org.apache.jackrabbit.oak.spi.blob.split</filter>
+                  <filter>!org.apache.jackrabbit.oak.spi.blob.stats</filter>
+                  <filter>!org.apache.jackrabbit.oak.blob.cloud.aws.s3</filter>
+                  <filter>!org.apache.jackrabbit.oak</filter>
+                  <filter>!org.apache.jackrabbit.oak.json</filter>
+                  <filter>!org.apache.jackrabbit.oak.management</filter>
+                  <filter>!org.apache.jackrabbit.oak.namepath</filter>
+                  <filter>!org.apache.jackrabbit.oak.osgi</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.atomic</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.commit</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.identifier</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.index</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.index.aggregate</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.index.counter</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.index.fulltext</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.index.nodetype</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.index.property</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.index.property.jmx</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.index.reference</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.itemsave</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.lock</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.memory</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.name</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.nodetype</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.nodetype.write</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.observation</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.observation.filter</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.value</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.version</filter>
+                  <filter>!org.apache.jackrabbit.oak.query</filter>
+                  <filter>!org.apache.jackrabbit.oak.query.fulltext</filter>
+                  <filter>!org.apache.jackrabbit.oak.security</filter>
+                  <filter>!org.apache.jackrabbit.oak.spi.commit</filter>
+                  <filter>!org.apache.jackrabbit.oak.spi.gc</filter>
+                  <filter>!org.apache.jackrabbit.oak.spi.lifecycle</filter>
+                  <filter>!org.apache.jackrabbit.oak.spi.query</filter>
+                  <filter>!org.apache.jackrabbit.oak.spi.state</filter>
+                  <filter>!org.apache.jackrabbit.oak.spi.whiteboard</filter>
+                  <filter>!org.apache.jackrabbit.oak.spi.xml</filter>
+                  <filter>!org.apache.jackrabbit.oak.stats</filter>
+                  <filter>!org.apache.jackrabbit.oak.util</filter>
+                  <filter>!org.apache.jackrabbit.oak.jcr</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.index.lucene</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.index.lucene.util</filter>
+                  <filter>!org.apache.jackrabbit.oak.security.authentication.ldap</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.backup</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.segment</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.segment.file</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.segment.http</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.index.solr</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.index.solr.configuration</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.index.solr.index</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.index.solr.query</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.index.solr.server</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.index.solr.util</filter>
+                  <filter>*</filter>
+                </filters>
               </configuration>
             </execution>
           </executions>

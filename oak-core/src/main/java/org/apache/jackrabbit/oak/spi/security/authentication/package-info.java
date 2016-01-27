@@ -18,4 +18,3 @@
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
 import aQute.bnd.annotation.Version;
-import aQute.bnd.annotation.Export;
