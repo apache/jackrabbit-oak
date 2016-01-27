@@ -470,7 +470,7 @@ public class RDBDocumentStore implements DocumentStore {
         if (collection != Collection.NODES) {
             return null;
         } else {
-            NodeDocument doc = nodesCache.getIfPresent(id);
+            NodeDocument doc = unwrap(nodesCache.getIfPresent(id));
             return castAsT(doc);
         }
     }
