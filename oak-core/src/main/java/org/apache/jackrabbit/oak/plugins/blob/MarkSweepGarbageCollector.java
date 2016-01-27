@@ -198,16 +198,20 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 ((SharedDataStore) blobStore).getAllMetadataRecords(SharedStoreRecordType.REPOSITORY.getType());
     
             for (DataRecord repoRec : repoFiles) {
-                String repoId = SharedStoreRecordType.REFERENCES.getIdFromName(repoRec.getIdentifier().toString());
+                String id = SharedStoreRecordType.REFERENCES.getIdFromName(repoRec.getIdentifier().toString());
                 GarbageCollectionRepoStats stat = new GarbageCollectionRepoStats();
-                stat.setRepositoryId(repoId);
-                if (references.containsKey(repoId)) {
-                    DataRecord refRec = references.get(repoId);
+                stat.setRepositoryId(id);
+                if (id != null && id.equals(repoId)) {
+                    stat.setLocal(true);
+                }
+
+                if (references.containsKey(id)) {
+                    DataRecord refRec = references.get(id);
                     stat.setEndTime(refRec.getLastModified());
                     stat.setLength(refRec.getLength());
                     
-                    if (markers.containsKey(repoId)) {
-                        stat.setStartTime(markers.get(repoId).getLastModified());    
+                    if (markers.containsKey(id)) {
+                        stat.setStartTime(markers.get(id).getLastModified());
                     }
                     
                     LineNumberReader reader = null;

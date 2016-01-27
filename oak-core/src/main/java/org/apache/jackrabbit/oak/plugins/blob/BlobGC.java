@@ -144,7 +144,7 @@ public class  BlobGC extends AnnotatedStandardMBean implements BlobGCMBean {
     
     private CompositeDataSupport toCompositeData(GarbageCollectionRepoStats statObj) throws OpenDataException {
         Object[] values = new Object[] {
-                statObj.getRepositoryId(),
+                statObj.getRepositoryId() + (statObj.isLocal() ? " *" : ""),
                 (statObj.getStartTime() == 0 ? "" : (new Date(statObj.getStartTime()))).toString(),
                 (statObj.getEndTime() == 0 ? "" : (new Date(statObj.getEndTime()))).toString(),
                 statObj.getLength(),
