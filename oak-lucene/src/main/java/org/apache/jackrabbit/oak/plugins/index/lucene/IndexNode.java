@@ -85,6 +85,8 @@ class IndexNode {
 
     private final Directory directory;
 
+    private final Directory suggestDirectory;
+
     private final IndexReader reader;
 
     private final IndexSearcher searcher;
@@ -102,6 +104,7 @@ class IndexNode {
         this.directory = directory;
         this.reader = DirectoryReader.open(directory);
         this.searcher = new IndexSearcher(reader);
+        this.suggestDirectory = suggestDirectory;
         if (suggestDirectory != null) {
             this.lookup = SuggestHelper.getLookup(suggestDirectory, definition.getAnalyzer());
         } else {
@@ -119,6 +122,10 @@ class IndexNode {
 
     IndexSearcher getSearcher() {
         return searcher;
+    }
+
+    Directory getSuggestDirectory() {
+        return suggestDirectory;
     }
 
     AnalyzingInfixSuggester getLookup() {
