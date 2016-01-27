@@ -61,6 +61,7 @@
             <exclude>**/test-file-1.csv</exclude>
             <exclude>**/test-file-1.txt</exclude>
             <exclude>**/test-file-2.txt</exclude>
+            <exclude>**/test-file-2.csv</exclude>
           </excludes>
         </configuration>
       </plugin>
