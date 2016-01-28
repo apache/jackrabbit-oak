@@ -29,6 +29,7 @@ import static org.apache.jackrabbit.oak.plugins.segment.file.FileStore.newFileSt
 import static org.apache.jackrabbit.oak.plugins.segment.file.tooling.ConsistencyChecker.checkConsistency;
 import static org.slf4j.LoggerFactory.getLogger;
 
+import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -43,6 +44,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -53,18 +55,24 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.jcr.Repository;
 
+import com.google.common.base.Charsets;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import com.google.common.base.Joiner;
+import com.google.common.base.StandardSystemProperty;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.google.common.io.Closer;
+import com.google.common.io.Files;
 import com.google.common.util.concurrent.AbstractScheduledService;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
@@ -90,6 +98,9 @@ import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.backup.FileStoreBackup;
 import org.apache.jackrabbit.oak.plugins.backup.FileStoreRestore;
+import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
+import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
+import org.apache.jackrabbit.oak.plugins.document.DocumentBlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreHelper;
@@ -107,6 +118,7 @@ import org.apache.jackrabbit.oak.plugins.segment.PCMAnalyser;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.RecordUsageAnalyser;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentBlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
@@ -126,6 +138,8 @@ import org.apache.jackrabbit.oak.plugins.tika.TextExtractorMain;
 import org.apache.jackrabbit.oak.remote.content.ContentRemoteRepository;
 import org.apache.jackrabbit.oak.remote.http.RemoteServlet;
 import org.apache.jackrabbit.oak.scalability.ScalabilityRunner;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.server.remoting.davex.JcrRemotingServlet;
@@ -229,6 +243,9 @@ public final class Main {
                 break;
             case TARMKRECOVERY:
                 FileStoreRevisionRecovery.main(args);
+                break;
+            case DUMPDATASTOREREFS:
+                dumpBlobRefs(args);
                 break;
             case HELP:
             default:
@@ -1259,6 +1276,102 @@ public final class Main {
         startOakServer(oakFixture, uri, cIds);
     }
 
+    private static void dumpBlobRefs(String[] args) throws IOException {
+        if (args.length == 0) {
+            System.out
+                .println("usage: dumpdatastorerefs {<path>|<mongo-uri>} <dump_path>]");
+            System.exit(1);
+        }
+
+        Closer closer = Closer.create();
+        try {
+            BlobReferenceRetriever marker = null;
+            BlobStore blobStore = null;
+
+            if (args[0].startsWith(MongoURI.MONGODB_PREFIX)) {
+                MongoClientURI uri = new MongoClientURI(args[0]);
+                MongoClient client = new MongoClient(uri);
+                final DocumentNodeStore store = new DocumentMK.Builder().setMongoDB(client.getDB(uri.getDatabase())).getNodeStore();
+                blobStore = store.getBlobStore();
+                closer.register(new Closeable() {
+                    @Override public void close() throws IOException {
+                        store.dispose();
+                    }
+                });
+                marker = new DocumentBlobReferenceRetriever(store);
+            } else if (isValidFileStore(args[0])) {
+                final FileStore store = new FileStore(new File(args[0]), 256, TAR_STORAGE_MEMORY_MAPPED);
+                closer.register(new Closeable() {
+                    @Override public void close() throws IOException {
+                        store.close();
+                    }
+                });
+                marker = new SegmentBlobReferenceRetriever(store.getTracker());
+            } else {
+                failWith("Invalid FileStore directory " + args[0]);
+                return;
+            }
+
+            String dumpPath = StandardSystemProperty.JAVA_IO_TMPDIR.value();
+            if (args.length == 2) {
+                dumpPath = args[1];
+            }
+            File dumpFile = new File(dumpPath, "marked-" + System.currentTimeMillis());
+            final BufferedWriter writer = Files.newWriter(dumpFile, Charsets.UTF_8);
+            final AtomicInteger count = new AtomicInteger();
+            try {
+                final List<String> idBatch = Lists.newArrayListWithCapacity(1024);
+                final Joiner delimJoiner = Joiner.on(",").skipNulls();
+                final GarbageCollectableBlobStore gcBlobStore =
+                    (blobStore != null && blobStore instanceof GarbageCollectableBlobStore
+                        ? (GarbageCollectableBlobStore) blobStore
+                        : null);
+                marker.collectReferences(
+                    new ReferenceCollector() {
+                        @Override
+                        public void addReference(String blobId, String nodeId) {
+                            try {
+                                Iterator<String> idIter = null;
+                                if (gcBlobStore != null) {
+                                    idIter = gcBlobStore.resolveChunks(blobId);
+                                } else{
+                                    idIter = Iterators.singletonIterator(blobId);
+                                }
+
+                                while (idIter.hasNext()) {
+                                    String id = idIter.next();
+                                    idBatch.add(delimJoiner.join(id, nodeId));
+                                    count.getAndIncrement();
+                                    if (idBatch.size() >= 1024) {
+                                        writer.append(Joiner.on(StandardSystemProperty.LINE_SEPARATOR.value()).join(idBatch));
+                                        writer.append(StandardSystemProperty.LINE_SEPARATOR.value());
+                                        writer.flush();
+                                        idBatch.clear();
+                                    }
+                                }
+                            } catch (Exception e) {
+                                throw new RuntimeException("Error in retrieving references", e);
+                            }
+                        }
+                    }
+                );
+                if (!idBatch.isEmpty()) {
+                    writer.append(Joiner.on(StandardSystemProperty.LINE_SEPARATOR.value()).join(idBatch));
+                    writer.append(StandardSystemProperty.LINE_SEPARATOR.value());
+                    writer.flush();
+                    idBatch.clear();
+                }
+                System.out.println(count.get() + " DataStore references dumped in " + dumpFile);
+            } finally {
+                IOUtils.closeQuietly(writer);
+            }
+        } catch (Throwable t) {
+            System.err.println(t.getMessage());
+        } finally {
+            closer.close();
+        }
+    }
+
     private static void startOakServer(OakFixture oakFixture, String uri, List<Integer> cIds) throws Exception {
         Map<Oak, String> m;
         if (cIds.isEmpty()) {
@@ -1375,7 +1488,8 @@ public final class Main {
         TIKA("tika"),
         GARBAGE("garbage"),
         TARMKDIFF("tarmkdiff"),
-        TARMKRECOVERY("tarmkrecovery");
+        TARMKRECOVERY("tarmkrecovery"),
+        DUMPDATASTOREREFS("dumpdatastorerefs");
 
         private final String name;
 
