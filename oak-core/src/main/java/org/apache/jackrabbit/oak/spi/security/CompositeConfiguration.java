@@ -43,6 +43,7 @@ import org.apache.jackrabbit.oak.spi.lifecycle.CompositeWorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+import org.osgi.framework.Constants;
 
 /**
  * Abstract base implementation for {@link SecurityConfiguration}s that can
@@ -66,10 +67,15 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     private final List<T> configurations = new CopyOnWriteArrayList<T>();
 
     private final String name;
-    private final SecurityProvider securityProvider;
     private final CompositeContext ctx = new CompositeContext();
 
+    private SecurityProvider securityProvider;
+
     private T defaultConfig;
+
+    public CompositeConfiguration(@Nonnull String name) {
+        this.name = name;
+    }
 
     public CompositeConfiguration(@Nonnull String name, @Nonnull SecurityProvider securityProvider) {
         this.name = name;
@@ -87,7 +93,14 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     }
 
     public void addConfiguration(@Nonnull T configuration) {
+        addConfiguration(configuration, ConfigurationParameters.EMPTY);
+    }
+
+    public void addConfiguration(@Nonnull T configuration, @Nonnull ConfigurationParameters params) {
         int ranking = configuration.getParameters().getConfigValue(PARAM_RANKING, NO_RANKING);
+        if (ranking == NO_RANKING) {
+            ranking = params.getConfigValue(Constants.SERVICE_RANKING, NO_RANKING);
+        }
         if (ranking == NO_RANKING || configurations.isEmpty()) {
             configurations.add(configuration);
         } else {
@@ -110,7 +123,8 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
         ctx.refresh(configurations);
     }
 
-    protected List<T> getConfigurations() {
+    @Nonnull
+    public List<T> getConfigurations() {
         if (configurations.isEmpty() && defaultConfig != null) {
             return ImmutableList.of(defaultConfig);
         } else {
@@ -118,7 +132,15 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
         }
     }
 
+    public void setSecurityProvider(@Nonnull SecurityProvider securityProvider) {
+        this.securityProvider = securityProvider;
+    }
+
+    @Nonnull
     protected SecurityProvider getSecurityProvider() {
+        if (securityProvider == null) {
+            throw new IllegalStateException("SecurityProvider missing => CompositeConfiguration is not ready.");
+        }
         return securityProvider;
     }
 

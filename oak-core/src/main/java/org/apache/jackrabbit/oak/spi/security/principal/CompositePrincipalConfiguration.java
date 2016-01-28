@@ -32,6 +32,10 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
  */
 public class CompositePrincipalConfiguration extends CompositeConfiguration<PrincipalConfiguration> implements PrincipalConfiguration {
 
+    public CompositePrincipalConfiguration() {
+        super(PrincipalConfiguration.NAME);
+    }
+
     public CompositePrincipalConfiguration(@Nonnull SecurityProvider securityProvider) {
         super(PrincipalConfiguration.NAME, securityProvider);
     }

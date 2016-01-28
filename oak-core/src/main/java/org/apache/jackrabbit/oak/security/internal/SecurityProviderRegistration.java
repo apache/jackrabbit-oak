@@ -29,7 +29,9 @@ import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.References;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
+import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
 import org.apache.jackrabbit.oak.security.user.UserConfigurationImpl;
+import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
@@ -58,11 +60,12 @@ import org.osgi.framework.ServiceRegistration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+
+import javax.annotation.Nonnull;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newCopyOnWriteArrayList;
@@ -81,10 +84,11 @@ import static com.google.common.collect.Lists.newCopyOnWriteArrayList;
                         "unless the services identified by these PIDs are " +
                         "registered first. Only the PIDs of implementations of " +
                         "the following interfaces are checked: " +
-                        "PrincipalConfiguration, TokenConfiguration, " +
-                        "AuthorizableActionProvider, " +
+                        "AuthorizationConfiguration, PrincipalConfiguration, " +
+                        "TokenConfiguration, AuthorizableActionProvider, " +
                         "RestrictionProvider and UserAuthenticationFactory.",
                 value = {
+                        "org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl",
                         "org.apache.jackrabbit.oak.security.principal.PrincipalConfigurationImpl",
                         "org.apache.jackrabbit.oak.security.authentication.token.TokenConfigurationImpl",
                         "org.apache.jackrabbit.oak.spi.security.user.action.DefaultAuthorizableActionProvider",
@@ -95,6 +99,12 @@ import static com.google.common.collect.Lists.newCopyOnWriteArrayList;
         )
 })
 @References({
+        @Reference(
+                name = "authorizationConfiguration",
+                referenceInterface = AuthorizationConfiguration.class,
+                cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE,
+                policy = ReferencePolicy.DYNAMIC
+        ),
         @Reference(
                 name = "principalConfiguration",
                 referenceInterface = PrincipalConfiguration.class,
@@ -138,9 +148,6 @@ public class SecurityProviderRegistration {
     private static final Logger log = LoggerFactory.getLogger(SecurityProviderRegistration.class);
 
     @Reference
-    private AuthorizationConfiguration authorizationConfiguration;
-
-    @Reference
     private AuthenticationConfiguration authenticationConfiguration;
 
     @Reference
@@ -157,17 +164,16 @@ public class SecurityProviderRegistration {
 
     private final Preconditions preconditions = new Preconditions();
 
-    private final List<PrincipalConfiguration> principalConfigurations = newCopyOnWriteArrayList();
-
-    private final List<TokenConfiguration> tokenConfigurations = newCopyOnWriteArrayList();
+    private final CompositeAuthorizationConfiguration authorizationConfiguration = new CompositeAuthorizationConfiguration();
+    private final CompositePrincipalConfiguration principalConfiguration = new CompositePrincipalConfiguration();
+    private final CompositeTokenConfiguration tokenConfiguration = new CompositeTokenConfiguration();
 
     private final List<AuthorizableNodeName> authorizableNodeNames = newCopyOnWriteArrayList();
-
     private final List<AuthorizableActionProvider> authorizableActionProviders = newCopyOnWriteArrayList();
-
     private final List<RestrictionProvider> restrictionProviders = newCopyOnWriteArrayList();
-
     private final List<UserAuthenticationFactory> userAuthenticationFactories = newCopyOnWriteArrayList();
+
+    //----------------------------------------------------< SCR integration >---
 
     @Activate
     public void activate(BundleContext context, Map<String, Object> configuration) {
@@ -219,13 +225,7 @@ public class SecurityProviderRegistration {
         }
     }
 
-    public void bindAuthorizationConfiguration(AuthorizationConfiguration authorizationConfiguration) {
-        this.authorizationConfiguration = authorizationConfiguration;
-    }
-
-    public void unbindAuthorizationConfiguration(AuthorizationConfiguration authorizationConfiguration) {
-        this.authorizationConfiguration = null;
-    }
+    //--------------------------------------< unary security configurations >---
 
     public void bindAuthenticationConfiguration(AuthenticationConfiguration authenticationConfiguration) {
         this.authenticationConfiguration = authenticationConfiguration;
@@ -251,41 +251,49 @@ public class SecurityProviderRegistration {
         this.userConfiguration = null;
     }
 
-    public void bindPrincipalConfiguration(PrincipalConfiguration principalConfiguration, Map<String, Object> properties) {
+    //-----------------------------------< multiple security configurations >---
+
+    public void bindAuthorizationConfiguration(AuthorizationConfiguration configuration, Map<String, Object> properties) {
+        bindConfiguration(authorizationConfiguration, configuration, properties);
+    }
+
+    public void unbindAuthorizationConfiguration(AuthorizationConfiguration configuration, Map<String, Object> properties) {
+        unbindConfiguration(authorizationConfiguration, configuration, properties);
+    }
+
+    public void bindPrincipalConfiguration(PrincipalConfiguration configuration, Map<String, Object> properties) {
+        bindConfiguration(principalConfiguration, configuration, properties);
+    }
+
+    public void unbindPrincipalConfiguration(PrincipalConfiguration configuration, Map<String, Object> properties) {
+        unbindConfiguration(principalConfiguration, configuration, properties);
+    }
+
+    public void bindTokenConfiguration(TokenConfiguration configuration, Map<String, Object> properties) {
+        bindConfiguration(tokenConfiguration, configuration, properties);
+    }
+
+    public void unbindTokenConfiguration(TokenConfiguration configuration, Map<String, Object> properties) {
+        unbindConfiguration(tokenConfiguration, configuration, properties);
+    }
+
+    private void bindConfiguration(@Nonnull CompositeConfiguration composite, @Nonnull SecurityConfiguration configuration, Map<String, Object> properties) {
         synchronized (this) {
-            principalConfigurations.add(principalConfiguration);
+            composite.addConfiguration(configuration, ConfigurationParameters.of(properties));
             addCandidate(properties);
         }
-
         maybeRegister();
     }
 
-    public void unbindPrincipalConfiguration(PrincipalConfiguration principalConfiguration, Map<String, Object> properties) {
+    private void unbindConfiguration(@Nonnull CompositeConfiguration composite, @Nonnull SecurityConfiguration configuration, Map<String, Object> properties) {
         synchronized (this) {
-            principalConfigurations.remove(principalConfiguration);
+            composite.removeConfiguration(configuration);
             removeCandidate(properties);
         }
-
         maybeUnregister();
     }
 
-    public void bindTokenConfiguration(TokenConfiguration tokenConfiguration, Map<String, Object> properties) {
-        synchronized (this) {
-            tokenConfigurations.add(tokenConfiguration);
-            addCandidate(properties);
-        }
-
-        maybeRegister();
-    }
-
-    public void unbindTokenConfiguration(TokenConfiguration tokenConfiguration, Map<String, Object> properties) {
-        synchronized (this) {
-            tokenConfigurations.remove(tokenConfiguration);
-            removeCandidate(properties);
-        }
-
-        maybeUnregister();
-    }
+    //------------------------------------------------------------< add ons >---
 
     public void bindAuthorizableNodeName(AuthorizableNodeName authorizableNodeName, Map<String, Object> properties) {
         synchronized (this) {
@@ -469,20 +477,31 @@ public class SecurityProviderRegistration {
         log.info("SecurityProvider instance unregistered");
     }
 
-    private SecurityProvider createSecurityProvider(BundleContext context) {
+    private SecurityProvider createSecurityProvider(@Nonnull BundleContext context) {
         InternalSecurityProvider securityProvider = new InternalSecurityProvider();
 
         // Static, mandatory references
 
         securityProvider.setAuthenticationConfiguration(initializeConfiguration(securityProvider, authenticationConfiguration));
-        securityProvider.setAuthorizationConfiguration(initializeConfiguration(securityProvider, authorizationConfiguration));
-        securityProvider.setUserConfiguration(initializeConfiguration(securityProvider, userConfiguration));
         securityProvider.setPrivilegeConfiguration(initializeConfiguration(securityProvider, privilegeConfiguration));
+
+        ConfigurationParameters userParams = ConfigurationParameters.of(
+                ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, createWhiteboardAuthorizableActionProvider()),
+                ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, createWhiteboardAuthorizableNodeName()),
+                ConfigurationParameters.of(UserConstants.PARAM_USER_AUTHENTICATION_FACTORY, createWhiteboardUserAuthenticationFactory()));
+        securityProvider.setUserConfiguration(initializeConfiguration(securityProvider, userConfiguration, userParams));
 
         // Multiple, dynamic references
 
-        securityProvider.setPrincipalConfiguration(createCompositePrincipalConfiguration(securityProvider));
-        securityProvider.setTokenConfiguration(createCompositeTokenConfiguration(securityProvider));
+        ConfigurationParameters restrictionParams = ConfigurationParameters.of(AccessControlConstants.PARAM_RESTRICTION_PROVIDER, createWhiteboardRestrictionProvider());
+        initializeConfigurations(securityProvider, authorizationConfiguration, restrictionParams);
+        securityProvider.setAuthorizationConfiguration(authorizationConfiguration);
+
+        initializeConfigurations(securityProvider, principalConfiguration, ConfigurationParameters.EMPTY);
+        securityProvider.setPrincipalConfiguration(principalConfiguration);
+
+        initializeConfigurations(securityProvider, tokenConfiguration, ConfigurationParameters.EMPTY);
+        securityProvider.setTokenConfiguration(tokenConfiguration);
 
         // Whiteboard
 
@@ -491,59 +510,11 @@ public class SecurityProviderRegistration {
         return securityProvider;
     }
 
-    private PrincipalConfiguration createCompositePrincipalConfiguration(SecurityProvider securityProvider) {
-        return new CompositePrincipalConfiguration(securityProvider) {
-
-            @Override
-            protected List<PrincipalConfiguration> getConfigurations() {
-                ArrayList<PrincipalConfiguration> configurations = newArrayList(principalConfigurations);
-
-                for (PrincipalConfiguration configuration : configurations) {
-                    initializeConfiguration(getSecurityProvider(), configuration);
-                }
-
-                return configurations;
-            }
-
-        };
-    }
-
-    private TokenConfiguration createCompositeTokenConfiguration(SecurityProvider securityProvider) {
-        return new CompositeTokenConfiguration(securityProvider) {
-
-            @Override
-            protected List<TokenConfiguration> getConfigurations() {
-                List<TokenConfiguration> configurations = newArrayList(tokenConfigurations);
-
-                for (TokenConfiguration configuration : configurations) {
-                    initializeConfiguration(getSecurityProvider(), configuration);
-                }
-
-                return configurations;
-            }
-
-        };
-    }
-
-    private AuthorizationConfiguration initializeConfiguration(SecurityProvider securityProvider, AuthorizationConfiguration authorizationConfiguration) {
-        return initializeConfiguration(securityProvider, authorizationConfiguration, ConfigurationParameters.of(
-                AccessControlConstants.PARAM_RESTRICTION_PROVIDER, createCompositeRestrictionProvider()
-        ));
-    }
-
-    private UserConfiguration initializeConfiguration(SecurityProvider securityProvider, UserConfiguration userConfiguration) {
-        return initializeConfiguration(securityProvider, userConfiguration, ConfigurationParameters.of(
-                ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, createCompositeAuthorizableActionProvider()),
-                ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, createCompositeAuthorizableNodeName()),
-                ConfigurationParameters.of(UserConstants.PARAM_USER_AUTHENTICATION_FACTORY, createCompositeUserAuthenticationFactory())
-        ));
-    }
-
-    private <T extends SecurityConfiguration> T initializeConfiguration(SecurityProvider securityProvider, T configuration) {
+    private static <T extends SecurityConfiguration> T initializeConfiguration(@Nonnull SecurityProvider securityProvider, @Nonnull T configuration) {
         return initializeConfiguration(securityProvider, configuration, ConfigurationParameters.EMPTY);
     }
 
-    private <T extends SecurityConfiguration> T initializeConfiguration(SecurityProvider securityProvider, T configuration, ConfigurationParameters parameters) {
+    private static <T extends SecurityConfiguration> T initializeConfiguration(@Nonnull SecurityProvider securityProvider, @Nonnull T configuration, @Nonnull ConfigurationParameters parameters) {
         if (configuration instanceof ConfigurationBase) {
             ConfigurationBase base = (ConfigurationBase) configuration;
             base.setSecurityProvider(securityProvider);
@@ -553,7 +524,17 @@ public class SecurityProviderRegistration {
         return configuration;
     }
 
-    private RestrictionProvider createCompositeRestrictionProvider() {
+    private static void initializeConfigurations(@Nonnull SecurityProvider securityProvider,
+                                                 @Nonnull CompositeConfiguration configuration,
+                                                 @Nonnull ConfigurationParameters parameters) {
+        configuration.setSecurityProvider(securityProvider);
+        List<? extends SecurityConfiguration> configs = configuration.getConfigurations();
+        for (SecurityConfiguration config : configs) {
+            initializeConfiguration(securityProvider, config, parameters);
+        }
+    }
+
+    private RestrictionProvider createWhiteboardRestrictionProvider() {
         return new WhiteboardRestrictionProvider() {
 
             @Override
@@ -564,7 +545,7 @@ public class SecurityProviderRegistration {
         };
     }
 
-    private AuthorizableActionProvider createCompositeAuthorizableActionProvider() {
+    private AuthorizableActionProvider createWhiteboardAuthorizableActionProvider() {
         return new WhiteboardAuthorizableActionProvider() {
 
             @Override
@@ -575,7 +556,7 @@ public class SecurityProviderRegistration {
         };
     }
 
-    private AuthorizableNodeName createCompositeAuthorizableNodeName() {
+    private AuthorizableNodeName createWhiteboardAuthorizableNodeName() {
         return new WhiteboardAuthorizableNodeName() {
 
             @Override
@@ -586,7 +567,7 @@ public class SecurityProviderRegistration {
         };
     }
 
-    private UserAuthenticationFactory createCompositeUserAuthenticationFactory() {
+    private UserAuthenticationFactory createWhiteboardUserAuthenticationFactory() {
         return new WhiteboardUserAuthenticationFactory(UserConfigurationImpl.getDefaultAuthenticationFactory()) {
 
             @Override
