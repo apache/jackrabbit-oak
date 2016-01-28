@@ -433,7 +433,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
     private static <T extends Document> int size(List<T> list) {
         int result = 0;
         for (T doc : list) {
-            result += doc.getMemory();
+            result += size(doc);
         }
         return result;
     }
