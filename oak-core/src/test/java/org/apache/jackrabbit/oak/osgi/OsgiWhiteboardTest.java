@@ -17,13 +17,17 @@
 
 package org.apache.jackrabbit.oak.osgi;
 
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import ch.qos.logback.classic.Level;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.junit.Test;
 import org.osgi.framework.BundleContext;
@@ -37,6 +41,8 @@ public class OsgiWhiteboardTest {
      */
     @Test
     public void testDoubleUnregister() {
+        LogCustomizer logs = LogCustomizer.forLogger(OsgiWhiteboard.class.getName())
+                .filter(Level.WARN).create();
         BundleContext bundleContext = mock(BundleContext.class);
         OsgiWhiteboard w = new OsgiWhiteboard(bundleContext);
 
@@ -47,17 +53,16 @@ public class OsgiWhiteboardTest {
             }
         };
 
+        final AtomicBoolean unregistered = new AtomicBoolean();
         ServiceRegistration sr = new ServiceRegistration() {
-
-            boolean isUnregistering = false;
 
             @Override
             public void unregister() {
-                if (isUnregistering) {
+                if (unregistered.get()) {
                     throw new IllegalStateException(
                             "Service already unregistered.");
                 }
-                isUnregistering = true;
+                unregistered.set(true);
             }
 
             @Override
@@ -76,7 +81,13 @@ public class OsgiWhiteboardTest {
         Registration reg = w.register(Runnable.class, r,
                 new HashMap<String, Object>());
         reg.unregister();
+
+        assertTrue(unregistered.get());
+        logs.starting();
         reg.unregister();
+        logs.finished();
+
+        assertTrue(logs.getLogs().isEmpty());
     }
 
 }
