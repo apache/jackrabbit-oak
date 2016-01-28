@@ -1178,7 +1178,9 @@ public class RDBDocumentStore implements DocumentStore {
             UpdateUtils.applyChanges(doc, update);
             try {
                 Stopwatch watch = startWatch();
-                insertDocuments(collection, Collections.singletonList(doc));
+                if (!insertDocuments(collection, Collections.singletonList(doc))) {
+                    throw new DocumentStoreException("Can't insert the document: " + doc.getId());
+                }
                 if (collection == Collection.NODES) {
                     nodesCache.putIfAbsent((NodeDocument) doc);
                 }
