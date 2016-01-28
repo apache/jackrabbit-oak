@@ -552,6 +552,7 @@ public class FileStore implements SegmentStore {
         } else {
             log.info("TarMK opened: {} (mmap={})", directory, memoryMapping);
         }
+        log.debug("TarMK readers {}", this.readers);
     }
 
     public boolean maybeCompact(boolean cleanup) throws IOException {
