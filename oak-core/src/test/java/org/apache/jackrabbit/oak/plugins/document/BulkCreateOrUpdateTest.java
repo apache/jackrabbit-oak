@@ -16,17 +16,27 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static java.util.Collections.shuffle;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceWrapper;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class BulkCreateOrUpdateTest extends AbstractDocumentStoreTest {
@@ -152,6 +162,147 @@ public class BulkCreateOrUpdateTest extends AbstractDocumentStoreTest {
                 assertEquals("The result list order is incorrect", updates.get(i).getId(), oldDoc.getId());
             }
             assertEquals("The document hasn't been updated", 200l, newDoc.get("prop"));
+        }
+    }
+
+    /**
+     * Run multiple batch updates concurrently. Each thread modifies only its own documents.
+     */
+    @Test
+    public void testConcurrentNoConflict() throws InterruptedException {
+        int amountPerThread = 100;
+        int threadCount = 10;
+        int amount = amountPerThread * threadCount;
+
+        List<UpdateOp> updates = new ArrayList<UpdateOp>(amount);
+        // create even items
+        for (int i = 0; i < amount; i += 2) {
+            String id = this.getClass().getName() + ".testConcurrentNoConflict" + i;
+            UpdateOp up = new UpdateOp(id, true);
+            up.set("_id", id);
+            up.set("prop", 100);
+            updates.add(up);
+        }
+        ds.create(Collection.NODES, updates);
+
+        List<Thread> threads = new ArrayList<Thread>();
+        final Map<String, NodeDocument> oldDocs = new ConcurrentHashMap<String, NodeDocument>();
+        for (int i = 0; i < threadCount; i++) {
+            final List<UpdateOp> threadUpdates = new ArrayList<UpdateOp>(amountPerThread);
+            for (int j = 0; j < amountPerThread; j++) {
+                String id = this.getClass().getName() + ".testConcurrentNoConflict" + (j + i * amountPerThread);
+                UpdateOp up = new UpdateOp(id, true);
+                up.set("_id", id);
+                up.set("prop", 200 + i + j);
+                threadUpdates.add(up);
+                removeMe.add(id);
+            }
+            shuffle(threadUpdates);
+            threads.add(new Thread() {
+                public void run() {
+                    for (NodeDocument d : ds.createOrUpdate(Collection.NODES, threadUpdates)) {
+                        if (d == null) {
+                            continue;
+                        }
+                        oldDocs.put(d.getId(), d);
+                    }
+                }
+            });
+        }
+
+        for (Thread t : threads) {
+            t.start();
+        }
+        for (Thread t : threads) {
+            t.join();
+            if (t.isAlive()) {
+                fail("Thread hasn't finished in 10s");
+            }
+        }
+
+        for (int i = 0; i < amount; i++) {
+            String id = this.getClass().getName() + ".testConcurrentNoConflict" + i;
+
+            NodeDocument oldDoc = oldDocs.get(id);
+            NodeDocument newDoc = ds.find(Collection.NODES, id);
+            if (i % 2 == 1) {
+                assertNull("The returned value should be null for created doc", oldDoc);
+            } else {
+                assertNotNull("The returned doc shouldn't be null for updated doc", oldDoc);
+                assertEquals("The old value is not correct", 100l, oldDoc.get("prop"));
+            }
+            assertNotEquals("The document hasn't been updated", 100l, newDoc.get("prop"));
+        }
+    }
+
+    /**
+     * Run multiple batch updates concurrently. Each thread modifies the same set of documents.
+     */
+    @Test
+    public void testConcurrentWithConflict() throws InterruptedException {
+        // see OAK-3924
+        assumeTrue(!(ds instanceof RDBDocumentStore));
+        int threadCount = 10;
+        int amount = 500;
+
+        List<UpdateOp> updates = new ArrayList<UpdateOp>(amount);
+        // create even items
+        for (int i = 0; i < amount; i += 2) {
+            String id = this.getClass().getName() + ".testConcurrentNoConflict" + i;
+            UpdateOp up = new UpdateOp(id, true);
+            up.set("_id", id);
+            up.set("prop", 100);
+            updates.add(up);
+            removeMe.add(id);
+        }
+        ds.create(Collection.NODES, updates);
+
+        final Set<Exception> exceptions = new HashSet<Exception>();
+        List<Thread> threads = new ArrayList<Thread>();
+        for (int i = 0; i < threadCount; i++) {
+            final List<UpdateOp> threadUpdates = new ArrayList<UpdateOp>(amount);
+            for (int j = 0; j < amount; j++) {
+                String id = this.getClass().getName() + ".testConcurrentWithConflict" + j;
+                UpdateOp up = new UpdateOp(id, true);
+                up.set("_id", id);
+                up.set("prop", 200 + i * amount + j);
+                threadUpdates.add(up);
+                removeMe.add(id);
+            }
+            shuffle(threadUpdates);
+            threads.add(new Thread() {
+                public void run() {
+                    try {
+                        ds.createOrUpdate(Collection.NODES, threadUpdates);
+                    }
+                    catch (Exception ex) {
+                        exceptions.add(ex);
+                    }
+                }
+            });
+        }
+
+        for (Thread t : threads) {
+            t.start();
+        }
+        for (Thread t : threads) {
+            t.join(10000);
+            if (t.isAlive()) {
+                fail("Thread hasn't finished in 10s");
+            }
+        }
+
+        if (!exceptions.isEmpty()) {
+            String msg = exceptions.size() + " out of " + threadCount +  " failed with exceptions, the first being: " + exceptions.iterator().next();
+            fail(msg);
+        }
+
+        for (int i = 0; i < amount; i++) {
+            String id = this.getClass().getName() + ".testConcurrentWithConflict" + i;
+
+            NodeDocument newDoc = ds.find(Collection.NODES, id);
+            assertNotNull("The document hasn't been inserted", newDoc);
+            assertNotEquals("The document hasn't been updated", 100l, newDoc.get("prop"));
         }
     }
 
