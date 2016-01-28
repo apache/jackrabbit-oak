@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree.impl;
 
-import static org.apache.jackrabbit.oak.OakAssert.assertSequence;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -27,56 +26,40 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.OakBaseTest;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.apache.jackrabbit.oak.util.TreeUtil;
+import org.apache.jackrabbit.util.Text;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+public class ImmutableTreeTest extends AbstractSecurityTest {
 
-public class ImmutableTreeTest extends OakBaseTest {
+    private static final String HIDDEN_PATH = "/oak:index/acPrincipalName/:index";
 
-    private Root root;
     private ImmutableTree immutable;
 
-    public ImmutableTreeTest(NodeStoreFixture fixture) {
-        super(fixture);
-    }
-
     @Before
-    public void setUp() throws CommitFailedException {
-        ContentSession session = createContentSession();
-
-        // Add test content
-        root = session.getLatestRoot();
+    public void setUp() throws Exception {
         Tree tree = root.getTree("/");
-        Tree x = tree.addChild("x");
-        Tree y = x.addChild("y");
-        y.addChild("z");
-        Tree orderable = tree.addChild("orderable");
+        NodeUtil node = new NodeUtil(tree);
+        node.addChild("x", JcrConstants.NT_UNSTRUCTURED).addChild("y", JcrConstants.NT_UNSTRUCTURED).addChild("z", JcrConstants.NT_UNSTRUCTURED);
+
+        Tree orderable = node.addChild("orderable", JcrConstants.NT_UNSTRUCTURED).getTree();
         orderable.setOrderableChildren(true);
-        orderable.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED);
         root.commit();
 
-        NodeBuilder nb = store.getRoot().builder();
-        nb.child(":hidden");
-        store.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-        // Acquire a fresh new root to avoid problems from lingering state
-        root = session.getLatestRoot();
-        Tree mutableTree = root.getTree("/");
-
-        immutable = new ImmutableTree(((AbstractTree) mutableTree).getNodeState());
+        immutable = new ImmutableTree(((AbstractTree) root.getTree("/")).getNodeState());
     }
 
     @After
@@ -139,7 +122,7 @@ public class ImmutableTreeTest extends OakBaseTest {
 
     @Test
     public void testHiddenGetName() {
-        assertEquals(":hidden", immutable.getChild(":hidden").getName());
+        assertEquals(Text.getName(HIDDEN_PATH), getHiddenTree(immutable).getName());
     }
 
     @Test
@@ -160,8 +143,7 @@ public class ImmutableTreeTest extends OakBaseTest {
 
     @Test
     public void testHiddenExists() {
-        ImmutableTree hidden = immutable.getChild(":hidden");
-        assertTrue(hidden.exists());
+        assertTrue(getHiddenTree(immutable).exists());
     }
 
     @Test
@@ -183,7 +165,7 @@ public class ImmutableTreeTest extends OakBaseTest {
 
     @Test
     public void testHiddenGetStatus() {
-        assertSame(Tree.Status.UNCHANGED, immutable.getChild(":hidden").getStatus());
+        assertSame(Tree.Status.UNCHANGED, getHiddenTree(immutable).getStatus());
     }
 
     @Test
@@ -198,12 +180,14 @@ public class ImmutableTreeTest extends OakBaseTest {
 
     @Test
     public void testHasHiddenChild() {
-        assertTrue(immutable.hasChild(":hidden"));
+        ImmutableTree parent = (ImmutableTree) TreeUtil.getTree(immutable, Text.getRelativeParent(HIDDEN_PATH, 1));
+        assertNotNull(parent);
+        assertTrue(parent.hasChild(Text.getName(HIDDEN_PATH)));
     }
 
     @Test
     public void testGetHiddenNode() {
-        ImmutableTree hidden = immutable.getChild(":hidden");
+        ImmutableTree hidden = getHiddenTree(immutable);
         assertNotNull(hidden);
     }
 
@@ -246,11 +230,10 @@ public class ImmutableTreeTest extends OakBaseTest {
     @Test
     public void orderBefore() throws Exception {
         Tree t = root.getTree("/x/y/z");
-
-        t.addChild("node1");
-        t.addChild("node2");
-        t.addChild("node3");
-
+        NodeUtil n = new NodeUtil(t);
+        n.addChild("node1", JcrConstants.NT_UNSTRUCTURED);
+        n.addChild("node2", JcrConstants.NT_UNSTRUCTURED);
+        n.addChild("node3", JcrConstants.NT_UNSTRUCTURED);
 
         t.getChild("node1").orderBefore("node2");
         t.getChild("node3").orderBefore(null);
@@ -271,5 +254,20 @@ public class ImmutableTreeTest extends OakBaseTest {
 
         tree = new ImmutableTree(((AbstractTree) t).getNodeState());
         assertSequence(tree.getChildren(), "node3", "node2", "node1");
+    }
+
+    private static ImmutableTree getHiddenTree(@Nonnull ImmutableTree immutable) {
+        return (ImmutableTree) TreeUtil.getTree(immutable, HIDDEN_PATH);
+    }
+
+    private static void assertSequence(Iterable<Tree> trees, String... names) {
+        List<String> actual = Lists.newArrayList(Iterables.transform(trees, new Function<Tree, String>() {
+            @Nullable
+            @Override
+            public String apply(Tree input) {
+                return input.getName();
+            }
+        }));
+        assertEquals(Lists.newArrayList(names), actual);
     }
 }

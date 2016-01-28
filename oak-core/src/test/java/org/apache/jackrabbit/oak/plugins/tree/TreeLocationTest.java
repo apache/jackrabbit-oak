@@ -22,39 +22,30 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
-import org.apache.jackrabbit.oak.OakBaseTest;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
+import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TreeLocationTest extends OakBaseTest {
+public class TreeLocationTest extends AbstractSecurityTest {
 
-    private Root root;
     private TreeLocation nullLocation;
 
-    public TreeLocationTest(NodeStoreFixture fixture) {
-        super(fixture);
-    }
-
     @Before
-    public void setUp() throws CommitFailedException {
-        ContentSession session = createContentSession();
-
-        // Add test content
-        root = session.getLatestRoot();
+    public void setUp() throws Exception {
         Tree tree = root.getTree("/");
         tree.setProperty("a", 1);
         tree.setProperty("b", 2);
         tree.setProperty("c", 3);
-        tree.addChild("x");
-        tree.addChild("y");
-        tree.addChild("z").addChild("1").addChild("2").setProperty("p", "v");
+
+        NodeUtil n = new NodeUtil(tree);
+        n.addChild("x", JcrConstants.NT_UNSTRUCTURED);
+        n.addChild("y", JcrConstants.NT_UNSTRUCTURED);
+        n.addChild("z", JcrConstants.NT_UNSTRUCTURED).addChild("1", JcrConstants.NT_UNSTRUCTURED).addChild("2", JcrConstants.NT_UNSTRUCTURED).setString("p", "v");
         root.commit();
 
         nullLocation = TreeLocation.create(root).getParent();
