@@ -38,7 +38,6 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
-import org.apache.jackrabbit.oak.run.Main;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
@@ -47,6 +46,7 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.openFileStore;
 
 public class TextExtractorMain {
     private static final Logger log = LoggerFactory.getLogger(TextExtractorMain.class);
@@ -236,10 +236,7 @@ public class TextExtractorMain {
             closer.register(asCloseable(store));
             return store;
         }
-        FileStore fs = FileStore.newFileStore(new File(src))
-                .withBlobStore(blobStore)
-                .withMemoryMapping(Main.TAR_STORAGE_MEMORY_MAPPED)
-                .create();
+        FileStore fs = openFileStore(src, false, blobStore);
         closer.register(asCloseable(fs));
         return SegmentNodeStore.newSegmentNodeStore(fs).create();
     }

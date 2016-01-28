@@ -18,10 +18,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Collections.reverseOrder;
 import static java.util.Collections.sort;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.LATEST_VERSION;
+import static org.apache.jackrabbit.oak.plugins.segment.file.FileStore.newFileStore;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,11 +38,17 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.JournalReader;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 public final class FileStoreHelper {
 
     public static final String newline = "\n";
+
+    public static final boolean TAR_STORAGE_MEMORY_MAPPED = Boolean.getBoolean("tar.memoryMapped");
+    
+    public static final int TAR_SEGMENT_CACHE_SIZE = Integer.getInteger("cache", 256);
 
     private FileStoreHelper() {
     }
@@ -135,6 +144,84 @@ public final class FileStoreHelper {
             }
         }
         return revs;
+    }
+
+    public static File isValidFileStoreOrFail(File store) {
+        checkArgument(isValidFileStore(store), "Invalid FileStore directory "
+                + store);
+        return store;
+    }
+
+    /**
+     * Checks if the provided directory is a valid FileStore
+     *
+     * @return true if the provided directory is a valid FileStore
+     */
+    public static boolean isValidFileStore(File store) {
+        if (!store.exists()) {
+            return false;
+        }
+        if (!store.isDirectory()) {
+            return false;
+        }
+        // for now the only check is the existence of the journal file
+        for (String f : store.list()) {
+            if ("journal.log".equals(f)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static File checkFileStoreVersionOrFail(String path, boolean force) throws IOException {
+        File directory = new File(path);
+        if (!directory.exists()) {
+            return directory;
+        }
+        FileStore store = openReadOnlyFileStore(directory);
+        try {
+            SegmentVersion segmentVersion = getSegmentVersion(store);
+            if (segmentVersion != LATEST_VERSION) {
+                if (force) {
+                    System.out
+                            .printf("Segment version mismatch. Found %s, expected %s. Forcing execution.\n",
+                                    segmentVersion, LATEST_VERSION);
+                } else {
+                    throw new RuntimeException(
+                            String.format(
+                                    "Segment version mismatch. Found %s, expected %s. Aborting.",
+                                    segmentVersion, LATEST_VERSION));
+                }
+            }
+        } finally {
+            store.close();
+        }
+        return directory;
+    }
+
+    public static FileStore openFileStore(String directory) throws IOException {
+        return openFileStore(directory, false);
+    }
+
+    public static FileStore openFileStore(String directory, boolean force)
+            throws IOException {
+        return newFileStore(checkFileStoreVersionOrFail(directory, force))
+                .withCacheSize(TAR_SEGMENT_CACHE_SIZE)
+                .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED).create();
+    }
+
+    public static FileStore openFileStore(String directory, boolean force,
+            BlobStore blobStore) throws IOException {
+        return newFileStore(checkFileStoreVersionOrFail(directory, force))
+                .withCacheSize(TAR_SEGMENT_CACHE_SIZE)
+                .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED)
+                .withBlobStore(blobStore).create();
+    }
+
+    public static ReadOnlyStore openReadOnlyFileStore(File directory)
+            throws IOException {
+        return new ReadOnlyStore(isValidFileStoreOrFail(directory),
+                TAR_SEGMENT_CACHE_SIZE, TAR_STORAGE_MEMORY_MAPPED);
     }
 
 }
