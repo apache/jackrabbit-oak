@@ -16,16 +16,20 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static java.util.Collections.synchronizedList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.CountDownLatch;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -207,6 +211,131 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
             assertNotNull(doc);
             assertEquals("ds2", doc.get("_createdby"));
         }
+    }
+
+    @Test
+    public void concurrentBatchUpdate() throws Exception {
+        assumeTrue(dsf == DocumentStoreFixture.MONGO);
+        final CountDownLatch ready = new CountDownLatch(2);
+        final CountDownLatch go = new CountDownLatch(1);
+        final List<String> ids = Lists.newArrayList();
+        for (int i = 0; i < 100; i++) {
+            ids.add(Utils.getIdFromPath("/node-" + i));
+        }
+        removeMe.addAll(ids);
+        final List<Exception> exceptions = synchronizedList(new ArrayList<Exception>());
+        final Map<String, NodeDocument> result1 = Maps.newHashMap();
+        Thread t1 = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    List<UpdateOp> ops = Lists.newArrayList();
+                    for (String id : ids) {
+                        UpdateOp op = new UpdateOp(id, true);
+                        op.set(Document.ID, id);
+                        op.set("_t1", "value");
+                        ops.add(op);
+                    }
+                    Collections.shuffle(ops);
+                    ready.countDown();
+                    go.await();
+                    List<NodeDocument> docs = ds1.createOrUpdate(Collection.NODES, ops);
+                    for (int i = 0; i < ops.size(); i++) {
+                        UpdateOp op = ops.get(i);
+                        result1.put(op.getId(), docs.get(i));
+                    }
+                } catch (Exception e) {
+                    exceptions.add(e);
+                }
+            }
+        });
+        final Map<String, NodeDocument> result2 = Maps.newHashMap();
+        Thread t2 = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    List<UpdateOp> ops = Lists.newArrayList();
+                    for (String id : ids) {
+                        UpdateOp op = new UpdateOp(id, true);
+                        op.set(Document.ID, id);
+                        op.set("_t2", "value");
+                        ops.add(op);
+                    }
+                    Collections.shuffle(ops);
+                    ready.countDown();
+                    go.await();
+                    List<NodeDocument> docs = ds2.createOrUpdate(Collection.NODES, ops);
+                    for (int i = 0; i < ops.size(); i++) {
+                        UpdateOp op = ops.get(i);
+                        result2.put(op.getId(), docs.get(i));
+                    }
+                } catch (Exception e) {
+                    exceptions.add(e);
+                }
+            }
+        });
+        t1.start();
+        t2.start();
+        ready.await();
+        go.countDown();
+        t1.join();
+        t2.join();
+        for (Exception e : exceptions) {
+            fail(e.toString());
+        }
+        for (String id : ids) {
+            NodeDocument d1 = result1.get(id);
+            NodeDocument d2 = result2.get(id);
+            if (d1 != null) {
+                assertNull(d2);
+            } else {
+                assertNotNull(d2);
+            }
+        }
+    }
+
+    @Test
+    public void batchUpdateCachedDocument() throws Exception {
+        String id = Utils.getIdFromPath("/foo");
+        removeMe.add(id);
+
+        UpdateOp op = new UpdateOp(id, true);
+        op.set(Document.ID, id);
+        op.set("_ds1", 1);
+        assertNull(ds1.createOrUpdate(Collection.NODES, op));
+
+        // force ds2 to populate the cache with doc
+        assertNotNull(ds2.find(Collection.NODES, id));
+
+        // modify doc via ds1
+        op = new UpdateOp(id, false);
+        op.set("_ds1", 2);
+        assertNotNull(ds1.createOrUpdate(Collection.NODES, op));
+
+        // modify doc via ds2 with batch createOrUpdate
+        op = new UpdateOp(id, false);
+        op.set("_ds2", 1);
+        List<UpdateOp> ops = Lists.newArrayList();
+        ops.add(op);
+        for (int i = 0; i < 10; i++) {
+            // add more ops to make sure a batch
+            // update call is triggered
+            String docId = Utils.getIdFromPath("/node-" + i);
+            UpdateOp update = new UpdateOp(docId, true);
+            update.set(Document.ID, docId);
+            update.set("_ds2", 1);
+            removeMe.add(docId);
+            ops.add(update);
+        }
+        List<NodeDocument> old = ds2.createOrUpdate(Collection.NODES, ops);
+        assertEquals(11, old.size());
+        assertNotNull(old.get(0));
+        assertEquals(2L, old.get(0).get("_ds1"));
+
+        NodeDocument foo = ds2.find(Collection.NODES, id);
+        assertNotNull(foo);
+        assertEquals(2L, foo.get("_ds1"));
+        assertEquals(1L, foo.get("_ds2"));
     }
 
     @Test
