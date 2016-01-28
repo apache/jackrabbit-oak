@@ -24,6 +24,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
@@ -59,7 +60,6 @@ import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.RAMDirectory;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -69,6 +69,8 @@ import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -116,7 +118,14 @@ public class IndexCopierTest {
 
     @Test
     public void basicTestWithPrefetch() throws Exception{
-        Directory baseDir = new RAMDirectory();
+        final List<String> syncedFiles = Lists.newArrayList();
+        Directory baseDir = new RAMDirectory(){
+            @Override
+            public void sync(Collection<String> names) throws IOException {
+                syncedFiles.addAll(names);
+                super.sync(names);
+            }
+        };
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
         IndexCopier c1 = new RAMIndexCopier(baseDir, sameThreadExecutor(), getWorkDir(), true);
 
@@ -127,6 +136,7 @@ public class IndexCopierTest {
 
         Directory wrapped = c1.wrapForRead("/foo", defn, remote);
         assertEquals(2, wrapped.listAll().length);
+        assertThat(syncedFiles, containsInAnyOrder("t1", "t2"));
 
         assertTrue(wrapped.fileExists("t1"));
         assertTrue(wrapped.fileExists("t2"));
