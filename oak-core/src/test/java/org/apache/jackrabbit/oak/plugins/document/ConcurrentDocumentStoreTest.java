@@ -67,7 +67,7 @@ public class ConcurrentDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     @Test
-    public void testConcurrenCreateOrUpdate() throws Exception {
+    public void testConcurrentCreateOrUpdate() throws Exception {
         int workers = 8; // TODO: this test is going to fail if the number of
                          // workers exceeds the number of retries done by
                          // RDBDocumentStore
