@@ -297,6 +297,14 @@ public class RDBDocumentStore implements DocumentStore {
 
     @Override
     public <T extends Document> List<T> createOrUpdate(Collection<T> collection, List<UpdateOp> updateOps) {
+        if (!BATCHUPDATES) {
+            List<T> results = new ArrayList<T>(updateOps.size());
+            for (UpdateOp update : updateOps) {
+                results.add(createOrUpdate(collection, update));
+            }
+            return results;
+        }
+
         Map<UpdateOp, T> results = new LinkedHashMap<UpdateOp, T>();
         Map<String, UpdateOp> operationsToCover = new LinkedHashMap<String, UpdateOp>();
         Set<UpdateOp> duplicates = new HashSet<UpdateOp>();
@@ -1764,6 +1772,9 @@ public class RDBDocumentStore implements DocumentStore {
     // Number of elapsed ms in a query above which a diagnostic warning is generated
     private static final int QUERYTIMELIMIT = Integer.getInteger(
             "org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QUERYTIMELIMIT", 10000);
+    // Whether to use JDBC batch commands for the createOrUpdate (default: true).
+    private static final boolean BATCHUPDATES = Boolean.parseBoolean(System
+            .getProperty("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.BATCHUPDATES", "true"));
 
     public static byte[] asBytes(String data) {
         byte[] bytes;
