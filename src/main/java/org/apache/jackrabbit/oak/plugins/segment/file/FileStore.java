@@ -233,6 +233,7 @@ public class FileStore implements SegmentStore {
         private boolean memoryMapping;
         private final LoggingGCMonitor gcMonitor = new LoggingGCMonitor();
         private StatisticsProvider statsProvider = StatisticsProvider.NOOP;
+        private boolean readOnly = false;
 
         private Builder(File directory) {
             this.directory = directory;
@@ -1405,6 +1406,10 @@ public class FileStore implements SegmentStore {
      * All write methods are no-ops.
      */
     public static class ReadOnlyStore extends FileStore {
+
+        public ReadOnlyStore(File directory, int cacheSize, boolean memoryMapping) throws IOException {
+            super(null, directory, EMPTY_NODE, -1, cacheSize, memoryMapping, GCMonitor.EMPTY, StatisticsProvider.NOOP, true);
+        }
 
         public ReadOnlyStore(File directory) throws IOException {
             super(null, directory, EMPTY_NODE, -1, 0, MEMORY_MAPPING_DEFAULT,
