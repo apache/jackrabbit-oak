@@ -215,7 +215,7 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
 
     @Test
     public void concurrentBatchUpdate() throws Exception {
-        // OAK-3924
+        // OAK-3924 and OAK-3937
         assumeTrue(dsf == DocumentStoreFixture.MONGO);
         final CountDownLatch ready = new CountDownLatch(2);
         final CountDownLatch go = new CountDownLatch(1);
