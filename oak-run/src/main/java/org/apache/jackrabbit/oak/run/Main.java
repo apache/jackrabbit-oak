@@ -19,13 +19,12 @@ package org.apache.jackrabbit.oak.run;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Arrays.asList;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
-import static org.apache.jackrabbit.oak.checkpoint.Checkpoints.CP;
-import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.getSegmentVersion;
+import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.isValidFileStoreOrFail;
+import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.openFileStore;
+import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.openReadOnlyFileStore;
 import static org.apache.jackrabbit.oak.plugins.segment.RecordType.NODE;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentGraph.writeGCGraph;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentGraph.writeSegmentGraph;
-import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.LATEST_VERSION;
-import static org.apache.jackrabbit.oak.plugins.segment.file.FileStore.newFileStore;
 import static org.apache.jackrabbit.oak.plugins.segment.file.tooling.ConsistencyChecker.checkConsistency;
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -86,6 +85,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.benchmark.BenchmarkRunner;
 import org.apache.jackrabbit.oak.checkpoint.Checkpoints;
+import org.apache.jackrabbit.oak.checkpoint.Checkpoints.CP;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
@@ -123,7 +123,6 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentTracker;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentVersion;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
@@ -156,8 +155,6 @@ public final class Main {
     public static final String URI = "http://localhost:" + PORT + "/";
 
     private static final int MB = 1024 * 1024;
-
-    public static final boolean TAR_STORAGE_MEMORY_MAPPED = Boolean.getBoolean("tar.memoryMapped");
 
     private Main() {
     }
@@ -365,12 +362,10 @@ public final class Main {
             System.exit(1);
         }
 
-        checkFileStoreVersionOrFail(nonOptions.get(0), false);
-
         FileStore store = null;
         StandbyClient failoverClient = null;
         try {
-            store = new FileStore(new File(nonOptions.get(0)), 256);
+            store = openFileStore(nonOptions.get(0));
             failoverClient = new StandbyClient(
                     options.has(host)? options.valueOf(host) : defaultHost,
                     options.has(port)? options.valueOf(port) : defaultPort,
@@ -417,14 +412,12 @@ public final class Main {
             System.exit(1);
         }
 
-        checkFileStoreVersionOrFail(nonOptions.get(0), false);
-
         List<String> admissibleSlaves = options.has(admissible) ? options.valuesOf(admissible) : Collections.EMPTY_LIST;
 
         FileStore store = null;
         StandbyServer failoverServer = null;
         try {
-            store = new FileStore(new File(nonOptions.get(0)), 256);
+            store = openFileStore(nonOptions.get(0));
             failoverServer = new StandbyServer(
                     options.has(port)? options.valueOf(port) : defaultPort,
                     store,
@@ -483,10 +476,9 @@ public final class Main {
             return store;
         }
 
-        checkFileStoreVersionOrFail(src, false);
-        FileStore fs = new FileStore(new File(src), 256, TAR_STORAGE_MEMORY_MAPPED);
+        FileStore fs = openFileStore(src);
         closer.register(asCloseable(fs));
-        return new SegmentNodeStore(fs);
+        return SegmentNodeStore.newSegmentNodeStore(fs).create();
     }
 
     private static Closeable asCloseable(final FileStore fs) {
@@ -521,27 +513,21 @@ public final class Main {
 
     private static void compact(String[] args) throws IOException {
         OptionParser parser = new OptionParser();
-        OptionSpec<File> directoryArg = parser.nonOptions(
-            "Path to segment store (required)").ofType(File.class);
+        OptionSpec<String> directoryArg = parser.nonOptions(
+            "Path to segment store (required)").ofType(String.class);
         OptionSpec<Void> forceFlag = parser.accepts(
             "force", "Force compaction and ignore non matching segment version");
         OptionSet options = parser.parse(args);
 
-        File directory = directoryArg.value(options);
-        if (directory == null) {
+        String path = directoryArg.value(options);
+        if (path == null) {
             System.err.println("Compact a file store. Usage: compact [path] <options>");
             parser.printHelpOn(System.err);
             System.exit(-1);
         }
-        if (!isValidFileStore(directory.getPath())) {
-            System.err.println("Invalid FileStore directory " + directory);
-            System.exit(1);
-        }
-
-        checkFileStoreVersionOrFail(directory, options.has(forceFlag));
-
         Stopwatch watch = Stopwatch.createStarted();
-        FileStore store = openFileStore(directory);
+        FileStore store = openFileStore(path, options.has(forceFlag));
+        File directory = new File(path);
         try {
             boolean persistCM = Boolean.getBoolean("tar.PersistCompactionMap");
             System.out.println("Compacting " + directory);
@@ -575,7 +561,7 @@ public final class Main {
         }
 
         System.out.println("    -> cleaning up");
-        store = openFileStore(directory);
+        store = openFileStore(path, false);
         try {
             for (File file : store.cleanup()) {
                 if (!file.exists() || file.delete()) {
@@ -617,47 +603,6 @@ public final class Main {
                 + watch.elapsed(TimeUnit.SECONDS) + "s).");
     }
 
-    private static FileStore openFileStore(File directory) throws IOException {
-        return newFileStore(directory)
-                .withCacheSize(256)
-                .withMemoryMapping(TAR_STORAGE_MEMORY_MAPPED)
-                .create();
-    }
-
-    private static FileStore openReadOnlyFileStore(File directory) throws IOException {
-        return new ReadOnlyStore(directory, 256, TAR_STORAGE_MEMORY_MAPPED);
-    }
-
-    private static void checkFileStoreVersionOrFail(String directory, boolean force) throws IOException {
-        checkFileStoreVersionOrFail(new File(directory), force);
-    }
-
-    private static void checkFileStoreVersionOrFail(File directory, boolean force) throws IOException {
-        if (!directory.exists()) {
-            return;
-        }
-
-        if (!directory.isDirectory()) {
-            return;
-        }
-
-        FileStore store = openReadOnlyFileStore(directory);
-
-        try {
-            SegmentVersion segmentVersion = getSegmentVersion(store);
-
-            if (segmentVersion != LATEST_VERSION) {
-                if (force) {
-                    System.out.printf("Segment version mismatch. Found %s, expected %s. Forcing execution.\n", segmentVersion, LATEST_VERSION);
-                } else {
-                    failWith(String.format("Segment version mismatch. Found %s, expected %s. Aborting.", segmentVersion, LATEST_VERSION));
-                }
-            }
-        } finally {
-            store.close();
-        }
-    }
-
     private static void checkpoints(String[] args) throws IOException {
         if (args.length == 0) {
             System.out
@@ -682,28 +627,12 @@ public final class Main {
                 final DocumentNodeStore store = new DocumentMK.Builder()
                         .setMongoDB(client.getDB(uri.getDatabase()))
                         .getNodeStore();
-                closer.register(new Closeable() {
-                    @Override
-                    public void close() throws IOException {
-                        store.dispose();
-                    }
-                });
+                closer.register(asCloseable(store));
                 cps = Checkpoints.onDocumentMK(store);
-            } else if (isValidFileStore(args[0])) {
-                checkFileStoreVersionOrFail(args[0], false);
-
-                final FileStore store = new FileStore(new File(args[0]),
-                        256, TAR_STORAGE_MEMORY_MAPPED);
-                closer.register(new Closeable() {
-                    @Override
-                    public void close() throws IOException {
-                        store.close();
-                    }
-                });
-                cps = Checkpoints.onTarMK(store);
             } else {
-                failWith("Invalid FileStore directory " + args[0]);
-                return;
+                FileStore store = openFileStore(args[0]);
+                closer.register(asCloseable(store));
+                cps = Checkpoints.onTarMK(store);
             }
 
             System.out.println("Checkpoints " + args[0]);
@@ -847,14 +776,11 @@ public final class Main {
         if (args.length == 0) {
             System.err.println("usage: debug <path> [id...]");
             System.exit(1);
-        } else if (!isValidFileStore(args[0])) {
-            System.err.println("Invalid FileStore directory " + args[0]);
-            System.exit(1);
         } else {
             // TODO: enable debug information for other node store implementations
             File file = new File(args[0]);
             System.out.println("Debug " + file);
-            ReadOnlyStore store = new ReadOnlyStore(file);
+            FileStore store = openReadOnlyFileStore(file);
             try {
                 if (args.length == 1) {
                     debugFileStore(store);
@@ -896,10 +822,8 @@ public final class Main {
             parser.printHelpOn(System.err);
             System.exit(-1);
         }
-        if (!isValidFileStore(directory.getPath())) {
-            System.err.println("Invalid FileStore directory " + directory);
-            System.exit(1);
-        }
+        System.out.println("Opening file store at " + directory);
+        ReadOnlyStore fileStore = openReadOnlyFileStore(directory);
 
         String regExp = regExpArg.value(options);
 
@@ -916,9 +840,6 @@ public final class Main {
             c.set(Calendar.MILLISECOND, 0);
             epoch = c.getTime();
         }
-
-        System.out.println("Opening file store at " + directory);
-        ReadOnlyStore fileStore = new ReadOnlyStore(directory);
 
         if (outFile.exists()) {
             outFile.delete();
@@ -959,12 +880,7 @@ public final class Main {
             System.exit(1);
         }
 
-        if (!isValidFileStore(path.value(options))) {
-            System.err.println("Invalid FileStore directory " + args[0]);
-            System.exit(1);
-        }
-
-        File dir = new File(path.value(options));
+        File dir = isValidFileStoreOrFail(new File(path.value(options)));
         String journalFileName = journal.value(options);
         boolean fullTraversal = options.has(deep);
         long debugLevel = deep.value(options);
@@ -993,15 +909,11 @@ public final class Main {
             parser.printHelpOn(System.err);
             System.exit(-1);
         }
-        if (!isValidFileStore(directory.getPath())) {
-            System.err.println("Invalid FileStore directory " + args[0]);
-            System.exit(1);
-        }
 
         String path = pathArg.value(options);
         int depth = depthArg.value(options);
         String journalName = journalArg.value(options);
-        File journal = new File(directory, journalName);
+        File journal = new File(isValidFileStoreOrFail(directory), journalName);
 
         Iterable<HistoryElement> history = new RevisionHistory(directory).getHistory(journal, path);
         for (HistoryElement historyElement : history) {
@@ -1189,25 +1101,6 @@ public final class Main {
         }
     }
 
-    /**
-     * Checks if the provided directory is a valid FileStore
-     *
-     * @return true if the provided directory is a valid FileStore
-     */
-    private static boolean isValidFileStore(String path) {
-        File store = new File(path);
-        if (!store.isDirectory()) {
-            return false;
-        }
-        // for now the only check is the existence of the journal file
-        for (String f : store.list()) {
-            if ("journal.log".equals(f)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private static void server(String defaultUri, String[] args) throws Exception {
         OptionParser parser = new OptionParser();
 
@@ -1303,23 +1196,12 @@ public final class Main {
                 MongoClient client = new MongoClient(uri);
                 final DocumentNodeStore store = new DocumentMK.Builder().setMongoDB(client.getDB(uri.getDatabase())).getNodeStore();
                 blobStore = store.getBlobStore();
-                closer.register(new Closeable() {
-                    @Override public void close() throws IOException {
-                        store.dispose();
-                    }
-                });
+                closer.register(asCloseable(store));
                 marker = new DocumentBlobReferenceRetriever(store);
-            } else if (isValidFileStore(args[0])) {
-                final FileStore store = new FileStore(new File(args[0]), 256, TAR_STORAGE_MEMORY_MAPPED);
-                closer.register(new Closeable() {
-                    @Override public void close() throws IOException {
-                        store.close();
-                    }
-                });
-                marker = new SegmentBlobReferenceRetriever(store.getTracker());
             } else {
-                failWith("Invalid FileStore directory " + args[0]);
-                return;
+                FileStore store = openFileStore(args[0]);
+                closer.register(asCloseable(store));
+                marker = new SegmentBlobReferenceRetriever(store.getTracker());
             }
 
             String dumpPath = StandardSystemProperty.JAVA_IO_TMPDIR.value();
