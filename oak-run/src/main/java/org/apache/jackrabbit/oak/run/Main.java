@@ -365,6 +365,8 @@ public final class Main {
             System.exit(1);
         }
 
+        checkFileStoreVersionOrFail(nonOptions.get(0));
+
         FileStore store = null;
         StandbyClient failoverClient = null;
         try {
@@ -415,6 +417,7 @@ public final class Main {
             System.exit(1);
         }
 
+        checkFileStoreVersionOrFail(nonOptions.get(0));
 
         List<String> admissibleSlaves = options.has(admissible) ? options.valuesOf(admissible) : Collections.EMPTY_LIST;
 
@@ -639,6 +642,36 @@ public final class Main {
                 .create();
     }
 
+    private static FileStore openReadOnlyFileStore(File directory) throws IOException {
+        return new ReadOnlyStore(directory, 256, TAR_STORAGE_MEMORY_MAPPED);
+    }
+
+    private static void checkFileStoreVersionOrFail(String directory) throws IOException {
+        checkFileStoreVersionOrFail(new File(directory));
+    }
+
+    private static void checkFileStoreVersionOrFail(File directory) throws IOException {
+        if (!directory.exists()) {
+            return;
+        }
+
+        if (!directory.isDirectory()) {
+            return;
+        }
+
+        FileStore store = openReadOnlyFileStore(directory);
+
+        try {
+            SegmentVersion segmentVersion = getSegmentVersion(store);
+
+            if (segmentVersion != LATEST_VERSION) {
+                failWith(String.format("Segment version mismatch. Found %s, expected %s. Aborting.", segmentVersion, LATEST_VERSION));
+            }
+        } finally {
+            store.close();
+        }
+    }
+
     private static void checkpoints(String[] args) throws IOException {
         if (args.length == 0) {
             System.out
@@ -785,7 +818,7 @@ public final class Main {
             closer.close();
         }
     }
-    
+
     private static void repair(String[] args) throws IOException {
         Closer closer = Closer.create();
         String h = "repair mongodb://host:port/database path";
@@ -1178,7 +1211,7 @@ public final class Main {
 
     /**
      * Checks if the provided directory is a valid FileStore
-     * 
+     *
      * @return true if the provided directory is a valid FileStore
      */
     private static boolean isValidFileStore(String path) {
