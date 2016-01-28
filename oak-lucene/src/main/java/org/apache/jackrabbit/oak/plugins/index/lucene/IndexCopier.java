@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -55,6 +56,7 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.hash.Hashing;
 
@@ -388,7 +390,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
                 @Override
                 public void run() {
                     scheduledForCopyCount.decrementAndGet();
-                    copyFilesToLocal(reference, true);
+                    copyFilesToLocal(reference, true, true);
                 }
             });
         }
@@ -397,22 +399,26 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
             long start = PERF_LOGGER.start();
             long totalSize = 0;
             int copyCount = 0;
+            List<String> copiedFileNames = Lists.newArrayList();
             for (String name : remote.listAll()) {
                 if (REMOTE_ONLY.contains(name)) {
                     continue;
                 }
                 CORFileReference fileRef = new CORFileReference(name);
                 files.putIfAbsent(name, fileRef);
-                long fileSize = copyFilesToLocal(fileRef, false);
+                long fileSize = copyFilesToLocal(fileRef, false, false);
                 if (fileSize > 0) {
                     copyCount++;
                     totalSize += fileSize;
+                    copiedFileNames.add(name);
                 }
             }
+
+            local.sync(copiedFileNames);
             PERF_LOGGER.end(start, -1, "[{}] Copied {} files totaling {}", indexPath, copyCount, humanReadableByteCount(totalSize));
         }
 
-        private long copyFilesToLocal(CORFileReference reference, boolean logDuration) {
+        private long copyFilesToLocal(CORFileReference reference, boolean sync, boolean logDuration) {
             String name = reference.name;
             boolean success = false;
             boolean copyAttempted = false;
@@ -431,6 +437,10 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
 
                     remote.copy(local, name, name, IOContext.READ);
                     reference.markValid();
+
+                    if (sync) {
+                        local.sync(Collections.singleton(name));
+                    }
 
                     doneCopy(file, start);
                     if (logDuration) {
