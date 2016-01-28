@@ -21,10 +21,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -39,6 +43,7 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.mongodb.MongoClientURI;
@@ -72,8 +77,14 @@ import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Function;
 import com.google.common.collect.Maps;
 import com.mongodb.BasicDBObject;
+import com.mongodb.BulkWriteError;
+import com.mongodb.BulkWriteException;
+import com.mongodb.BulkWriteOperation;
+import com.mongodb.BulkWriteResult;
+import com.mongodb.BulkWriteUpsert;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
@@ -88,7 +99,9 @@ import static com.google.common.base.Predicates.in;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Maps.filterKeys;
 import static com.google.common.collect.Maps.filterValues;
+import static com.google.common.collect.Sets.difference;
 
 /**
  * A document store that uses MongoDB as the backend.
@@ -164,6 +177,14 @@ public class MongoDocumentStore implements DocumentStore {
      */
     private long maxLockedQueryTimeMS =
             Long.getLong("oak.mongo.maxLockedQueryTimeMS", TimeUnit.SECONDS.toMillis(3));
+
+    /**
+     * The number of documents to put into one bulk update.
+     * <p>
+     * Default is 30.
+     */
+    private int bulkSize =
+            Integer.getInteger("oak.mongo.bulkSize", 30);
 
     private String lastReadWriteMode;
 
@@ -713,7 +734,7 @@ public class MongoDocumentStore implements DocumentStore {
         DBCollection dbCollection = getDBCollection(collection);
         // make sure we don't modify the original updateOp
         updateOp = updateOp.copy();
-        DBObject update = createUpdate(updateOp);
+        DBObject update = createUpdate(updateOp, false);
 
         Lock lock = null;
         if (collection == Collection.NODES) {
@@ -804,13 +825,221 @@ public class MongoDocumentStore implements DocumentStore {
         return doc;
     }
 
+    /**
+     * Try to apply all the {@link UpdateOp}s with at least MongoDB requests as
+     * possible. The return value is the list of the old documents (before
+     * applying changes). The mechanism is as follows:
+     *
+     * <ol>
+     * <li>For each UpdateOp try to read the assigned document from the cache.
+     *     Add them to {@code oldDocs}.</li>
+     * <li>Prepare a list of all UpdateOps that doesn't have their documents and
+     *     read them in one find() call. Add results to {@code oldDocs}.</li>
+     * <li>Prepare a bulk update. For each remaining UpdateOp add following
+     *     operation:
+     *   <ul>
+     *   <li>Find document with the same id and the same mod_count as in the
+     *       {@code oldDocs}.</li>
+     *   <li>Apply changes from the UpdateOps.</li>
+     *   </ul>
+     * </li>
+     * <li>Execute the bulk update.</li>
+     * </ol>
+     *
+     * If some other process modifies the target documents between points 2 and
+     * 3, the mod_count will be increased as well and the bulk update will fail
+     * for the concurrently modified docs. The method will then remove the
+     * failed documents from the {@code oldDocs} and restart the process from
+     * point 2. It will stop after 3rd iteration.
+     */
+    @SuppressWarnings("unchecked")
+    @CheckForNull
     @Override
-    public <T extends Document> List<T> createOrUpdate(Collection<T> collection, List<UpdateOp> updateOps) {
-        List<T> result = new ArrayList<T>(updateOps.size());
-        for (UpdateOp update : updateOps) {
-            result.add(createOrUpdate(collection, update));
+    public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
+                                                       List<UpdateOp> updateOps) {
+        log("createOrUpdate", updateOps);
+
+        Map<String, UpdateOp> operationsToCover = new LinkedHashMap<String, UpdateOp>();
+        List<UpdateOp> duplicates = new ArrayList<UpdateOp>();
+        Map<UpdateOp, T> results = new LinkedHashMap<UpdateOp, T>();
+
+        final long start = PERFLOG.start();
+        try {
+            for (UpdateOp updateOp : updateOps) {
+                UpdateUtils.assertUnconditional(updateOp);
+                UpdateOp clone = updateOp.copy();
+                if (operationsToCover.containsKey(updateOp.getId())) {
+                    duplicates.add(clone);
+                } else {
+                    operationsToCover.put(updateOp.getId(), clone);
+                }
+                results.put(clone, null);
+            }
+
+            Map<String, T> oldDocs = new HashMap<String, T>();
+            if (collection == Collection.NODES) {
+                oldDocs.putAll((Map<String, T>) getCachedNodes(operationsToCover.keySet()));
+            }
+
+            for (int i = 0; i < 3; i++) {
+                if (operationsToCover.size() <= 2) {
+                    // bulkUpdate() method invokes Mongo twice, so sending 2 updates
+                    // in bulk mode wouldn't result in any performance gain
+                    break;
+                }
+                for (List<UpdateOp> partition : Lists.partition(Lists.newArrayList(operationsToCover.values()), bulkSize)) {
+                    Map<UpdateOp, T> successfulUpdates = bulkUpdate(collection, partition, oldDocs);
+                    results.putAll(successfulUpdates);
+                    operationsToCover.values().removeAll(successfulUpdates.keySet());
+                }
+            }
+
+            // if there are some changes left, we'll apply them one after another
+            Iterator<UpdateOp> it = Iterators.concat(operationsToCover.values().iterator(), duplicates.iterator());
+            while (it.hasNext()) {
+                UpdateOp op = it.next();
+                it.remove();
+                T oldDoc = createOrUpdate(collection, op);
+                if (oldDoc != null) {
+                    results.put(op, oldDoc);
+                }
+            }
+        } finally {
+            PERFLOG.end(start, 1, "createOrUpdate {}", updateOps);
         }
-        return result;
+        List<T> resultList = new ArrayList<T>(results.values());
+        log("createOrUpdate returns", resultList);
+        return resultList;
+    }
+
+    private Map<String, NodeDocument> getCachedNodes(Set<String> keys) {
+        Map<String, NodeDocument> nodes = new HashMap<String, NodeDocument>();
+        for (String key : keys) {
+            NodeDocument cached = nodesCache.getIfPresent(key);
+            if (cached != null && cached != NodeDocument.NULL) {
+                nodes.put(key, cached);
+            }
+        }
+        return nodes;
+    }
+
+    private <T extends Document> Map<UpdateOp, T> bulkUpdate(Collection<T> collection,
+                                                             List<UpdateOp> updateOperations,
+                                                             Map<String, T> oldDocs) {
+        Map<String, UpdateOp> bulkOperations = createMap(updateOperations);
+        Set<String> lackingDocs = difference(bulkOperations.keySet(), oldDocs.keySet());
+        oldDocs.putAll(findDocuments(collection, lackingDocs));
+
+        Lock lock = null;
+        if (collection == Collection.NODES) {
+            lock = nodeLocks.acquire(bulkOperations.keySet());
+        }
+
+        try {
+            BulkUpdateResult bulkResult = sendBulkUpdate(collection, bulkOperations.values(), oldDocs);
+
+            if (collection == Collection.NODES) {
+                for (UpdateOp op : filterKeys(bulkOperations, in(bulkResult.upserts)).values()) {
+                    NodeDocument doc = Collection.NODES.newDocument(this);
+                    UpdateUtils.applyChanges(doc, op);
+                    nodesCache.put(doc);
+                }
+
+                for (String key : difference(bulkOperations.keySet(), bulkResult.failedUpdates)) {
+                    T oldDoc = oldDocs.get(key);
+                    if (oldDoc != null) {
+                        NodeDocument newDoc = (NodeDocument) applyChanges(collection, oldDoc, bulkOperations.get(key));
+                        nodesCache.put(newDoc);
+                        oldDoc.seal();
+                    }
+                }
+            }
+            oldDocs.keySet().removeAll(bulkResult.failedUpdates);
+
+            Map<UpdateOp, T> result = new HashMap<UpdateOp, T>();
+            for (Entry<String, UpdateOp> entry : bulkOperations.entrySet()) {
+                if (bulkResult.failedUpdates.contains(entry.getKey())) {
+                    continue;
+                } else if (bulkResult.upserts.contains(entry.getKey())) {
+                    result.put(entry.getValue(), null);
+                } else {
+                    result.put(entry.getValue(), oldDocs.get(entry.getKey()));
+                }
+            }
+            return result;
+        } finally {
+            if (lock != null) {
+                lock.unlock();
+            }
+        }
+    }
+
+    private static Map<String, UpdateOp> createMap(List<UpdateOp> updateOps) {
+        return Maps.uniqueIndex(updateOps, new Function<UpdateOp, String>() {
+            @Override
+            public String apply(UpdateOp input) {
+                return input.getId();
+            }
+        });
+    }
+
+    private <T extends Document> Map<String, T> findDocuments(Collection<T> collection, Set<String> keys) {
+        Map<String, T> docs = new HashMap<String, T>();
+        if (!keys.isEmpty()) {
+            DBObject[] conditions = new DBObject[keys.size()];
+            int i = 0;
+            for (String key : keys) {
+                conditions[i++] = getByKeyQuery(key).get();
+            }
+
+            QueryBuilder builder = new QueryBuilder();
+            builder.or(conditions);
+            DBCursor cursor = getDBCollection(collection).find(builder.get());
+            while (cursor.hasNext()) {
+                T foundDoc = convertFromDBObject(collection, cursor.next());
+                docs.put(foundDoc.getId(), foundDoc);
+            }
+        }
+        return docs;
+    }
+
+    private <T extends Document> BulkUpdateResult sendBulkUpdate(Collection<T> collection,
+            java.util.Collection<UpdateOp> updateOps, Map<String, T> oldDocs) {
+        DBCollection dbCollection = getDBCollection(collection);
+        BulkWriteOperation bulk = dbCollection.initializeUnorderedBulkOperation();
+        String[] bulkIds = new String[updateOps.size()];
+        int i = 0;
+        for (UpdateOp updateOp : updateOps) {
+            String id = updateOp.getId();
+            QueryBuilder query = createQueryForUpdate(id, updateOp.getConditions());
+            T oldDoc = oldDocs.get(id);
+            DBObject update;
+            if (oldDoc == null) {
+                query.not().exists(Document.MOD_COUNT);
+                update = createUpdate(updateOp, true);
+            } else {
+                query.and(Document.MOD_COUNT).is(oldDoc.getModCount());
+                update = createUpdate(updateOp, false);
+            }
+            bulk.find(query.get()).upsert().updateOne(update);
+            bulkIds[i++] = id;
+        }
+
+        BulkWriteResult bulkResult;
+        Set<String> failedUpdates = new HashSet<String>();
+        Set<String> upserts = new HashSet<String>();
+        try {
+            bulkResult = bulk.execute();
+        } catch (BulkWriteException e) {
+            bulkResult = e.getWriteResult();
+            for (BulkWriteError err : e.getWriteErrors()) {
+                failedUpdates.add(bulkIds[err.getIndex()]);
+            }
+        }
+        for (BulkWriteUpsert upsert : bulkResult.getUpserts()) {
+            upserts.add(bulkIds[upsert.getIndex()]);
+        }
+        return new BulkUpdateResult(failedUpdates, upserts);
     }
 
     @Override
@@ -910,7 +1139,7 @@ public class MongoDocumentStore implements DocumentStore {
         QueryBuilder query = QueryBuilder.start(Document.ID).in(keys);
         // make sure we don't modify the original updateOp
         updateOp = updateOp.copy();
-        DBObject update = createUpdate(updateOp);
+        DBObject update = createUpdate(updateOp, false);
         final Stopwatch watch = startWatch();
         try {
             Map<String, NodeDocument> cachedDocs = Collections.emptyMap();
@@ -1185,10 +1414,11 @@ public class MongoDocumentStore implements DocumentStore {
      * Creates a MongoDB update object from the given UpdateOp.
      *
      * @param updateOp the update op.
+     * @param includeId whether to include the SET id operation
      * @return the DBObject.
      */
     @Nonnull
-    private static DBObject createUpdate(UpdateOp updateOp) {
+    private static DBObject createUpdate(UpdateOp updateOp, boolean includeId) {
         BasicDBObject setUpdates = new BasicDBObject();
         BasicDBObject maxUpdates = new BasicDBObject();
         BasicDBObject incUpdates = new BasicDBObject();
@@ -1200,7 +1430,7 @@ public class MongoDocumentStore implements DocumentStore {
         // other updates
         for (Entry<Key, Operation> entry : updateOp.getChanges().entrySet()) {
             Key k = entry.getKey();
-            if (k.getName().equals(Document.ID)) {
+            if (!includeId && k.getName().equals(Document.ID)) {
                 // avoid exception "Mod on _id not allowed"
                 continue;
             }
@@ -1342,6 +1572,18 @@ public class MongoDocumentStore implements DocumentStore {
         final long diff = midPoint - serverLocalTimeMillis;
 
         return diff;
+    }
+
+    private static class BulkUpdateResult {
+
+        private final Set<String> failedUpdates;
+
+        private final Set<String> upserts;
+
+        private BulkUpdateResult(Set<String> failedUpdates, Set<String> upserts) {
+            this.failedUpdates = failedUpdates;
+            this.upserts = upserts;
+        }
     }
 
     private static class InvalidationResult implements CacheInvalidationStats {
