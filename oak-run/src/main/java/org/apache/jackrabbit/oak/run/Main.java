@@ -294,7 +294,7 @@ public final class Main {
         Closer closer = Closer.create();
         String h = "backup { /path/to/oak/repository | mongodb://host:port/database } <path/to/backup>";
         try {
-            NodeStore store = bootstrapNodeStore(args, closer, h, LATEST_VERSION);
+            NodeStore store = bootstrapNodeStore(args, closer, h);
             FileStoreBackup.backup(store, new File(args[1]));
         } catch (Throwable e) {
             throw closer.rethrow(e);
@@ -307,7 +307,7 @@ public final class Main {
         Closer closer = Closer.create();
         String h = "restore { /path/to/oak/repository | mongodb://host:port/database } <path/to/backup>";
         try {
-            NodeStore store = bootstrapNodeStore(args, closer, h, LATEST_VERSION);
+            NodeStore store = bootstrapNodeStore(args, closer, h);
             FileStoreRestore.restore(new File(args[1]), store);
         } catch (Throwable e) {
             throw closer.rethrow(e);
@@ -365,7 +365,7 @@ public final class Main {
             System.exit(1);
         }
 
-        checkFileStoreVersionOrFail(nonOptions.get(0));
+        checkFileStoreVersionOrFail(nonOptions.get(0), false);
 
         FileStore store = null;
         StandbyClient failoverClient = null;
@@ -417,7 +417,7 @@ public final class Main {
             System.exit(1);
         }
 
-        checkFileStoreVersionOrFail(nonOptions.get(0));
+        checkFileStoreVersionOrFail(nonOptions.get(0), false);
 
         List<String> admissibleSlaves = options.has(admissible) ? options.valuesOf(admissible) : Collections.EMPTY_LIST;
 
@@ -441,8 +441,7 @@ public final class Main {
         }
     }
 
-    public static NodeStore bootstrapNodeStore(String[] args, Closer closer, String h,
-            SegmentVersion expectedSegmentVersion) throws IOException {
+    public static NodeStore bootstrapNodeStore(String[] args, Closer closer, String h) throws IOException {
         //TODO add support for other NodeStore flags
         OptionParser parser = new OptionParser();
         OptionSpec<Integer> clusterId = parser
@@ -483,15 +482,9 @@ public final class Main {
             closer.register(asCloseable(store));
             return store;
         }
+
+        checkFileStoreVersionOrFail(src, false);
         FileStore fs = new FileStore(new File(src), 256, TAR_STORAGE_MEMORY_MAPPED);
-
-        SegmentVersion segmentVersion = getSegmentVersion(fs);
-        if (expectedSegmentVersion != null && expectedSegmentVersion != segmentVersion) {
-            failWith("Segment version mismatch. " +
-                "Found " + segmentVersion + ", expected " + expectedSegmentVersion + ". " +
-                "Please use the respective version of this tool");
-        }
-
         closer.register(asCloseable(fs));
         return new SegmentNodeStore(fs);
     }
@@ -545,22 +538,11 @@ public final class Main {
             System.exit(1);
         }
 
+        checkFileStoreVersionOrFail(directory, options.has(forceFlag));
+
         Stopwatch watch = Stopwatch.createStarted();
         FileStore store = openFileStore(directory);
         try {
-            SegmentVersion segmentVersion = getSegmentVersion(store);
-            if (segmentVersion != LATEST_VERSION) {
-                if (options.has(forceFlag)) {
-                    System.out.println("Segment version mismatch. " +
-                        "Found " + segmentVersion + ", expected " + LATEST_VERSION + ". " +
-                        "Upgrading the file store to segment version " + LATEST_VERSION);
-                } else {
-                    failWith("Segment version mismatch. " +
-                        "Found " + segmentVersion + ", expected " + LATEST_VERSION + ". " +
-                        "Specify --force to upgrade the file store to segment version " + LATEST_VERSION);
-                }
-            }
-
             boolean persistCM = Boolean.getBoolean("tar.PersistCompactionMap");
             System.out.println("Compacting " + directory);
             System.out.println("    before " + Arrays.toString(directory.list()));
@@ -646,11 +628,11 @@ public final class Main {
         return new ReadOnlyStore(directory, 256, TAR_STORAGE_MEMORY_MAPPED);
     }
 
-    private static void checkFileStoreVersionOrFail(String directory) throws IOException {
-        checkFileStoreVersionOrFail(new File(directory));
+    private static void checkFileStoreVersionOrFail(String directory, boolean force) throws IOException {
+        checkFileStoreVersionOrFail(new File(directory), force);
     }
 
-    private static void checkFileStoreVersionOrFail(File directory) throws IOException {
+    private static void checkFileStoreVersionOrFail(File directory, boolean force) throws IOException {
         if (!directory.exists()) {
             return;
         }
@@ -665,7 +647,11 @@ public final class Main {
             SegmentVersion segmentVersion = getSegmentVersion(store);
 
             if (segmentVersion != LATEST_VERSION) {
-                failWith(String.format("Segment version mismatch. Found %s, expected %s. Aborting.", segmentVersion, LATEST_VERSION));
+                if (force) {
+                    System.out.printf("Segment version mismatch. Found %s, expected %s. Forcing execution.\n", segmentVersion, LATEST_VERSION);
+                } else {
+                    failWith(String.format("Segment version mismatch. Found %s, expected %s. Aborting.", segmentVersion, LATEST_VERSION));
+                }
             }
         } finally {
             store.close();
@@ -705,6 +691,8 @@ public final class Main {
                 });
                 cps = Checkpoints.onDocumentMK(store);
             } else if (isValidFileStore(args[0])) {
+                checkFileStoreVersionOrFail(args[0], false);
+
                 final FileStore store = new FileStore(new File(args[0]),
                         256, TAR_STORAGE_MEMORY_MAPPED);
                 closer.register(new Closeable() {
@@ -714,7 +702,6 @@ public final class Main {
                     }
                 });
                 cps = Checkpoints.onTarMK(store);
-                segmentVersion = getSegmentVersion(store);
             } else {
                 failWith("Invalid FileStore directory " + args[0]);
                 return;
@@ -731,12 +718,6 @@ public final class Main {
                     cnt++;
                 }
                 System.out.println("Found " + cnt + " checkpoints");
-            } else if (segmentVersion != null && segmentVersion != LATEST_VERSION) {
-                // The write operations below can only performed with the segment version
-                // matching the tool version
-                failWith("Segment version mismatch. " +
-                    "Found " + segmentVersion + ", expected " + LATEST_VERSION + ". " +
-                    "Please use the respective version of this tool");
             } else if ("rm-all".equals(op)) {
                 long time = System.currentTimeMillis();
                 long cnt = cps.removeAll();
@@ -795,7 +776,7 @@ public final class Main {
         Closer closer = Closer.create();
         String h = "recovery mongodb://host:port/database { dryRun }";
         try {
-            NodeStore store = bootstrapNodeStore(args, closer, h, null);
+            NodeStore store = bootstrapNodeStore(args, closer, h);
             if (!(store instanceof DocumentNodeStore)) {
                 System.err.println("Recovery only available for DocumentNodeStore");
                 System.exit(1);
@@ -823,7 +804,7 @@ public final class Main {
         Closer closer = Closer.create();
         String h = "repair mongodb://host:port/database path";
         try {
-            NodeStore store = bootstrapNodeStore(args, closer, h, null);
+            NodeStore store = bootstrapNodeStore(args, closer, h);
             if (!(store instanceof DocumentNodeStore)) {
                 System.err.println("Repair only available for DocumentNodeStore");
                 System.exit(1);
@@ -848,7 +829,7 @@ public final class Main {
         Closer closer = Closer.create();
         String h = "garbage mongodb://host:port/database";
         try {
-            NodeStore store = bootstrapNodeStore(args, closer, h, null);
+            NodeStore store = bootstrapNodeStore(args, closer, h);
             if (!(store instanceof DocumentNodeStore)) {
                 System.err.println("Garbage mode only available for DocumentNodeStore");
                 System.exit(1);
