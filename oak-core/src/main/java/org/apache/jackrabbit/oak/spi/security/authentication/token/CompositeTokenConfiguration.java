@@ -30,6 +30,10 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 */
 public class CompositeTokenConfiguration extends CompositeConfiguration<TokenConfiguration> implements TokenConfiguration {
 
+    public CompositeTokenConfiguration() {
+        super(TokenConfiguration.NAME);
+    }
+
     public CompositeTokenConfiguration(@Nonnull SecurityProvider securityProvider) {
         super(TokenConfiguration.NAME, securityProvider);
     }

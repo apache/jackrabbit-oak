@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.run.osgi
 
 import org.apache.felix.connect.launch.PojoServiceRegistry
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters
+import org.apache.jackrabbit.oak.spi.security.Context
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration
@@ -33,6 +35,7 @@ import org.osgi.service.cm.ConfigurationAdmin
 import java.util.concurrent.TimeUnit
 
 import static org.mockito.Mockito.mock
+import static org.mockito.Mockito.when
 
 class SecurityProviderRegistrationTest extends AbstractRepositoryFactoryTest {
 
@@ -54,11 +57,28 @@ class SecurityProviderRegistrationTest extends AbstractRepositoryFactoryTest {
 
     /**
      * A SecurityProvider shouldn't start without a required
+     * AuthorizationConfiguration service.
+     */
+    @Test
+    public void testRequiredAuthorizationConfigurationNotAvailable() {
+        def m = mock(AuthorizationConfiguration)
+        when(m.getParameters()).thenReturn(ConfigurationParameters.EMPTY)
+        when(m.getContext()).thenReturn(Context.DEFAULT)
+
+        testRequiredService(AuthorizationConfiguration, m)
+    }
+
+    /**
+     * A SecurityProvider shouldn't start without a required
      * PrincipalConfiguration service.
      */
     @Test
     public void testRequiredPrincipalConfigurationNotAvailable() {
-        testRequiredService(PrincipalConfiguration, mock(PrincipalConfiguration))
+        def m = mock(PrincipalConfiguration)
+        when(m.getParameters()).thenReturn(ConfigurationParameters.EMPTY)
+        when(m.getContext()).thenReturn(Context.DEFAULT)
+
+        testRequiredService(PrincipalConfiguration, m)
     }
 
     /**
@@ -67,7 +87,11 @@ class SecurityProviderRegistrationTest extends AbstractRepositoryFactoryTest {
      */
     @Test
     public void testRequiredTokenConfigurationNotAvailable() {
-        testRequiredService(TokenConfiguration, mock(TokenConfiguration))
+        def m = mock(TokenConfiguration)
+        when(m.getParameters()).thenReturn(ConfigurationParameters.EMPTY)
+        when(m.getContext()).thenReturn(Context.DEFAULT)
+
+        testRequiredService(TokenConfiguration, m)
     }
 
     /**
@@ -113,22 +137,40 @@ class SecurityProviderRegistrationTest extends AbstractRepositoryFactoryTest {
     @Test
     public void testMultipleRequiredServices() {
 
-        // Set up the SecurityProvider to require three services
+        // Set up the SecurityProvider to require 4 services
 
-        setRequiredServicePids("test.RequiredPrincipalConfiguration", "test.RequiredTokenConfiguration", "test.AuthorizableNodeName")
+        setRequiredServicePids(
+                "test.RequiredAuthorizationConfiguration",
+                "test.RequiredPrincipalConfiguration",
+                "test.RequiredTokenConfiguration",
+                "test.RestrictionProvider")
         TimeUnit.MILLISECONDS.sleep(500)
         assert securityProviderServiceReferences == null
 
         // Start the services and verify that only at the end the
         // SecurityProvider registers itself
+        def ac = mock(AuthorizationConfiguration)
+        when(ac.getParameters()).thenReturn(ConfigurationParameters.EMPTY)
+        when(ac.getContext()).thenReturn(Context.DEFAULT)
 
-        registry.registerService(PrincipalConfiguration.class.name, mock(PrincipalConfiguration), dict("service.pid": "test.RequiredPrincipalConfiguration"))
+        registry.registerService(AuthorizationConfiguration.class.name, ac, dict("service.pid": "test.RequiredAuthorizationConfiguration"))
         assert securityProviderServiceReferences == null
 
-        registry.registerService(TokenConfiguration.class.name, mock(TokenConfiguration), dict("service.pid": "test.RequiredTokenConfiguration"))
+        def pc = mock(PrincipalConfiguration)
+        when(pc.getParameters()).thenReturn(ConfigurationParameters.EMPTY)
+        when(pc.getContext()).thenReturn(Context.DEFAULT)
+
+        registry.registerService(PrincipalConfiguration.class.name, pc, dict("service.pid": "test.RequiredPrincipalConfiguration"))
         assert securityProviderServiceReferences == null
 
-        registry.registerService(TokenConfiguration.class.name, mock(TokenConfiguration), dict("service.pid": "test.AuthorizableNodeName"))
+        def tc = mock(TokenConfiguration)
+        when(tc.getParameters()).thenReturn(ConfigurationParameters.EMPTY)
+        when(tc.getContext()).thenReturn(Context.DEFAULT)
+
+        registry.registerService(TokenConfiguration.class.name, tc, dict("service.pid": "test.RequiredTokenConfiguration"))
+        assert securityProviderServiceReferences == null
+
+        registry.registerService(RestrictionProvider.class.name, mock(RestrictionProvider), dict("service.pid": "test.RestrictionProvider"))
         assert securityProviderServiceReferences != null
     }
 

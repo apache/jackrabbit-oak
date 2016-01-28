@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.EmptyPermissionProvider;
@@ -43,6 +44,10 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
  * TODO This is work in progress (OAK-1268)
  */
 public class CompositeAuthorizationConfiguration extends CompositeConfiguration<AuthorizationConfiguration> implements AuthorizationConfiguration {
+
+    public CompositeAuthorizationConfiguration() {
+        super(AuthorizationConfiguration.NAME);
+    }
 
     public CompositeAuthorizationConfiguration(@Nonnull SecurityProvider securityProvider) {
         super(AuthorizationConfiguration.NAME, securityProvider);
