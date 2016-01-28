@@ -984,7 +984,9 @@ public class RDBDocumentStore implements DocumentStore {
             addUpdateCounters(update);
             UpdateUtils.applyChanges(doc, update);
             try {
-                insertDocuments(collection, Collections.singletonList(doc));
+                if (!insertDocuments(collection, Collections.singletonList(doc))) {
+                    throw new DocumentStoreException("Can't insert the document: " + doc.getId());
+                }
                 addToCache(collection, doc);
                 return oldDoc;
             } catch (DocumentStoreException ex) {
