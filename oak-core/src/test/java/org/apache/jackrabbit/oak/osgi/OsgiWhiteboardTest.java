@@ -41,8 +41,6 @@ public class OsgiWhiteboardTest {
      */
     @Test
     public void testDoubleUnregister() {
-        LogCustomizer logs = LogCustomizer.forLogger(OsgiWhiteboard.class.getName())
-                .filter(Level.WARN).create();
         BundleContext bundleContext = mock(BundleContext.class);
         OsgiWhiteboard w = new OsgiWhiteboard(bundleContext);
 
@@ -83,11 +81,7 @@ public class OsgiWhiteboardTest {
         reg.unregister();
 
         assertTrue(unregistered.get());
-        logs.starting();
         reg.unregister();
-        logs.finished();
-
-        assertTrue(logs.getLogs().isEmpty());
     }
 
 }

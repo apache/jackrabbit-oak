@@ -82,6 +82,8 @@ public class OsgiWhiteboard implements Whiteboard {
                     if (!unregistered) {
                         registration.unregister();
                         unregistered = true;
+                    } else {
+                        log.warn("Service {} of type {} unregistered multiple times", service, type);
                     }
                 } catch (IllegalStateException ex) {
                     log.warn("Error unregistering service: {} of type {}",
