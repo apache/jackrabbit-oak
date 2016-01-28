@@ -285,6 +285,13 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     )
     public static final String PROP_BLOB_GC_MAX_AGE = "blobGcMaxAgeInSecs";
 
+    private static final String DEFAULT_SHARED_DS_REPO_ID = "";
+    @Property(value = DEFAULT_SHARED_DS_REPO_ID,
+            label = "SharedDataStore RepositoryID",
+            description = "Custom RepositoryID for SharedDataStore. This overrides any generated value"
+    )
+    public static final String PROP_SHARED_DS_REPO_ID = "sharedDSRepoId";
+
     @Override
     protected SegmentNodeStore getNodeStore() {
         checkState(delegate != null, "service must be activated when used");
@@ -447,9 +454,12 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                 RevisionGCMBean.TYPE, "Segment node store revision garbage collection");
 
         // If a shared data store register the repo id in the data store
+        String repoId = "";
         if (SharedDataStoreUtils.isShared(blobStore)) {
+            String customRepoID = property(PROP_SHARED_DS_REPO_ID);
+
             try {
-                String repoId = ClusterRepositoryInfo.createId(delegate);
+                repoId = ClusterRepositoryInfo.createId(delegate, customRepoID);
                 ((SharedDataStore) blobStore).addMetadataRecord(new ByteArrayInputStream(new byte[0]),
                     SharedStoreRecordType.REPOSITORY.getNameFromId(repoId));
             } catch (Exception e) {
@@ -462,7 +472,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                                                     new SegmentBlobReferenceRetriever(store.getTracker()),
                                                     (GarbageCollectableBlobStore) store.getBlobStore(),
                                                     executor, TimeUnit.SECONDS.toMillis(blobGcMaxAgeInSecs),
-                                                    ClusterRepositoryInfo.getId(delegate));
+                                                    repoId);
 
             blobGCRegistration = registerMBean(whiteboard, BlobGCMBean.class, new BlobGC(gc, executor),
                     BlobGCMBean.TYPE, "Segment node store blob garbage collection");

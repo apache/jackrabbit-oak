@@ -313,6 +313,13 @@ public class DocumentNodeStoreService {
     public static final String PROP_DS_TYPE = "documentStoreType";
     private DocumentStoreType documentStoreType;
 
+    private static final String DEFAULT_SHARED_DS_REPO_ID = "";
+    @Property(value = DEFAULT_SHARED_DS_REPO_ID,
+            label = "SharedDataStore RepositoryID",
+            description = "Custom RepositoryID for SharedDataStore. This overrides any generated value."
+    )
+    public static final String PROP_SHARED_DS_REPO_ID = "sharedDSRepoId";
+
     @Reference
     private StatisticsProvider statisticsProvider;
 
@@ -450,8 +457,10 @@ public class DocumentNodeStoreService {
 
         // If a shared data store register the repo id in the data store
         if (SharedDataStoreUtils.isShared(blobStore)) {
+            String customRepoID = PropertiesUtil.toString(prop(PROP_SHARED_DS_REPO_ID), DEFAULT_SHARED_DS_REPO_ID);
+
             try {
-                String repoId = ClusterRepositoryInfo.createId(mk.getNodeStore());
+                String repoId = ClusterRepositoryInfo.createId(mk.getNodeStore(), customRepoID);
                 ((SharedDataStore) blobStore).addMetadataRecord(new ByteArrayInputStream(new byte[0]),
                     SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getNameFromId(repoId));
             } catch (Exception e) {

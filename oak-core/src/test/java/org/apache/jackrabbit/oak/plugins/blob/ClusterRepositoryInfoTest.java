@@ -110,6 +110,41 @@ public class ClusterRepositoryInfoTest {
         Assert.assertNull(id);
     }
 
+    @Test
+    public void checkCustomId() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ds1 = builderProvider.newBuilder()
+                .setAsyncDelay(0)
+                .setDocumentStore(store)
+                .setClusterId(1)
+                .getNodeStore();
+        String repoId1 = ClusterRepositoryInfo.createId(ds1, "yyyyyyy");
+        ds1.runBackgroundOperations();
+
+        String id = ClusterRepositoryInfo.getId(ds1);
+        Assert.assertEquals(id, "yyyyyyy");
+    }
+
+    @Test
+    public void checkChangeId() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ds1 = builderProvider.newBuilder()
+                .setAsyncDelay(0)
+                .setDocumentStore(store)
+                .setClusterId(1)
+                .getNodeStore();
+        String repoId1 = ClusterRepositoryInfo.createId(ds1, null);
+        ds1.runBackgroundOperations();
+
+        // Change with a custom ID
+        ClusterRepositoryInfo.createId(ds1, "xxxxxxxx");
+
+        String id = ClusterRepositoryInfo.getId(ds1);
+        Assert.assertNotNull(id);
+        Assert.assertEquals(id, "xxxxxxxx");
+    }
+
+
     @After
     public void close() throws IOException {
         FileUtils.cleanDirectory(new File(DataStoreUtils.getHomeDir()));
