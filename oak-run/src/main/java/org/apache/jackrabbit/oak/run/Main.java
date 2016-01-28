@@ -839,12 +839,9 @@ public final class Main {
             System.exit(1);
         } else {
             // TODO: enable debug information for other node store implementations
-            System.out.println("Debug " + args[0]);
             File file = new File(args[0]);
-            FileStore store = newFileStore(file)
-                .withMaxFileSize(256)
-                .withMemoryMapping(false)
-                .create();
+            System.out.println("Debug " + file);
+            ReadOnlyStore store = new ReadOnlyStore(file);
             try {
                 if (args.length == 1) {
                     debugFileStore(store);
