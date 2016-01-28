@@ -233,7 +233,6 @@ public class FileStore implements SegmentStore {
         private boolean memoryMapping;
         private final LoggingGCMonitor gcMonitor = new LoggingGCMonitor();
         private StatisticsProvider statsProvider = StatisticsProvider.NOOP;
-        private boolean readOnly = false;
 
         private Builder(File directory) {
             this.directory = directory;
