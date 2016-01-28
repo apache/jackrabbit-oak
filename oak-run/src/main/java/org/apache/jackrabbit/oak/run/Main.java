@@ -676,7 +676,6 @@ public final class Main {
                 }
             }
 
-            SegmentVersion segmentVersion = null;
             if (args[0].startsWith(MongoURI.MONGODB_PREFIX)) {
                 MongoClientURI uri = new MongoClientURI(args[0]);
                 MongoClient client = new MongoClient(uri);
