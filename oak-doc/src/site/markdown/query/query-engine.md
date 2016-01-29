@@ -216,6 +216,11 @@ Clients wanting to obtain suggestions could use the following JCR code:
     if (it.hasNext()) {
         suggestions = row.getValue("rep:suggest()").getString()        
     }
+
+The `suggestions` String would be have the following pattern `\[\{(term\=)[\w|\W]+(\,weight\=)\d+\}(\,\{(term\=)[\w|\W]+(\,weight\=)\d+\})*\]`, e.g.:
+
+    [{term=in 2015 a red fox is still a fox,weight=1.5}, {term=in 2015 my fox is red, like mike's fox and john's fox,weight=0.7}]
+    
     
 `@since Oak 1.3.11` each suggestion would be returned per row.
 
@@ -229,12 +234,30 @@ Clients wanting to obtain suggestions could use the following JCR code:
     }
     
 If either Lucene or Solr were configured to provide the suggestions feature, see [Enable suggestions in Lucene](lucene.html#Suggestions) and [Enable
-suggestions in Solr](solr.html#Suggestions), the `suggestions` String would be have the following pattern `\[\{(term\=)[\w|\W]+(\,weight\=)\d+\}(\,\{(term\=)[\w|\W]+(\,weight\=)\d+\})*\]`, e.g.:
-
-    [{term=in 2015 a red fox is still a fox,weight=1.5}, {term=in 2015 my fox is red, like mike's fox and john's fox,weight=0.7}]
-
+suggestions in Solr](solr.html#Suggestions).
 Note that suggested terms come already filtered according to calling user privileges, so that users could see suggested
 terms only coming from indexed content they are allowed to read.
+
+### Facets 
+
+`@since Oak 1.3.14` Oak has support for [facets](https://en.wikipedia.org/wiki/Faceted_search). 
+Once enabled (see details for [Lucene](lucene.html#Facets) and/or [Solr](solr.html#Suggestions) indexes) facets can be retrieved on properties (backed by a proper
+field in Lucene / Solr) using the following snippet:
+
+    String sql2 = "select [jcr:path], [rep:facet(tags)] from [nt:base] " +
+                    "where contains([jcr:title], 'oak');
+    Query q = qm.createQuery(sql2, Query.JCR_SQL2);
+    QueryResult result = q.execute();
+    FacetResult facetResult = new FacetResult(result);
+    Set<String> dimensions = facetResult.getDimensions(); // { "tags" }
+    List<FacetResult.Facet> facets = facetResult.getFacets("tags");
+    for (FacetResult.Facet facet : facets) {
+        String label = facet.getLabel();
+        int count = facet.getCount();
+        ...
+    }
+    
+Nodes/Rows can still be retrieved from within the QueryResult object the usual way.
 
 ### XPath to SQL2 Transformation
 
