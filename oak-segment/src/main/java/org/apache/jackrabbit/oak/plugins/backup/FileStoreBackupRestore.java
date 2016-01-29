@@ -21,11 +21,10 @@ package org.apache.jackrabbit.oak.plugins.backup;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.System.nanoTime;
-import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.formatTime;
 import static org.apache.jackrabbit.oak.management.ManagementOperation.done;
 import static org.apache.jackrabbit.oak.management.ManagementOperation.newManagementOperation;
+import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.formatTime;
 import static org.apache.jackrabbit.oak.plugins.backup.FileStoreBackup.backup;
-import static org.apache.jackrabbit.oak.plugins.backup.FileStoreRestore.restore;
 
 import java.io.File;
 import java.util.concurrent.Callable;
@@ -37,14 +36,11 @@ import javax.management.openmbean.CompositeData;
 import org.apache.jackrabbit.oak.api.jmx.FileStoreBackupRestoreMBean;
 import org.apache.jackrabbit.oak.management.ManagementOperation;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Default implementation of {@link FileStoreBackupRestoreMBean} based on a file.
  */
 public class FileStoreBackupRestore implements FileStoreBackupRestoreMBean {
-    private static final Logger log = LoggerFactory.getLogger(FileStoreBackupRestore.class);
 
     public static final String BACKUP_OP_NAME = "Backup";
     public static final String RESTORE_OP_NAME = "Restore";
@@ -97,9 +93,7 @@ public class FileStoreBackupRestore implements FileStoreBackupRestoreMBean {
             restoreOp = newManagementOperation("Restore", new Callable<String>() {
                 @Override
                 public String call() throws Exception {
-                    long t0 = nanoTime();
-                    restore(file, store);
-                    return "Restore completed in " + formatTime(nanoTime() - t0);
+                    return "Restore not available as an online operation.";
                 }
             });
             executor.execute(restoreOp);

@@ -22,6 +22,7 @@ import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.isValidFileStoreOrFail;
 import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.openFileStore;
 import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.openReadOnlyFileStore;
+import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.newBasicReadOnlyBlobStore;
 import static org.apache.jackrabbit.oak.plugins.segment.RecordType.NODE;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentGraph.writeGCGraph;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentGraph.writeSegmentGraph;
@@ -288,10 +289,18 @@ public final class Main {
     }
 
     private static void backup(String[] args) throws IOException {
+        boolean fakeBlobStore = FileStoreBackup.USE_FAKE_BLOBSTORE;
         Closer closer = Closer.create();
-        String h = "backup { /path/to/oak/repository | mongodb://host:port/database } <path/to/backup>";
         try {
-            NodeStore store = bootstrapNodeStore(args, closer, h);
+            FileStore fs;
+            if (fakeBlobStore) {
+                fs = openReadOnlyFileStore(new File(args[0]),
+                        newBasicReadOnlyBlobStore());
+            } else {
+                fs = openReadOnlyFileStore(new File(args[0]));
+            }
+            closer.register(asCloseable(fs));
+            NodeStore store = SegmentNodeStore.newSegmentNodeStore(fs).create();
             FileStoreBackup.backup(store, new File(args[1]));
         } catch (Throwable e) {
             throw closer.rethrow(e);
@@ -301,16 +310,7 @@ public final class Main {
     }
 
     private static void restore(String[] args) throws IOException {
-        Closer closer = Closer.create();
-        String h = "restore { /path/to/oak/repository | mongodb://host:port/database } <path/to/backup>";
-        try {
-            NodeStore store = bootstrapNodeStore(args, closer, h);
-            FileStoreRestore.restore(new File(args[1]), store);
-        } catch (Throwable e) {
-            throw closer.rethrow(e);
-        } finally {
-            closer.close();
-        }
+        FileStoreRestore.restore(new File(args[1]), new File(args[0]));
     }
 
     //TODO react to state changes of FailoverClient (triggered via JMX), once the state model of FailoverClient is complete.

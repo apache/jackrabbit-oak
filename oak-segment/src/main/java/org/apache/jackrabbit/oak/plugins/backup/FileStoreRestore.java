@@ -18,21 +18,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.backup;
 
+import static org.apache.jackrabbit.oak.plugins.segment.file.FileStore.newFileStore;
+
 import java.io.File;
 import java.io.IOException;
 
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.segment.Compactor;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Stopwatch;
 
 public class FileStoreRestore {
 
@@ -43,44 +41,30 @@ public class FileStoreRestore {
 
     private static final String JOURNAL_FILE_NAME = "journal.log";
 
-    public static void restore(File source, NodeStore store)
-            throws IOException, CommitFailedException {
-        // 1. verify that this is an actual filestore
+    public static void restore(File source, File destination)
+            throws IOException {
         if (!validFileStore(source)) {
             throw new IOException("Folder " + source
                     + " is not a valid FileStore directory");
         }
 
-        // 2. init filestore
-        FileStore restore = new FileStore(source, MAX_FILE_SIZE, false);
+        FileStore restore = new ReadOnlyStore(source);
+        Stopwatch watch = Stopwatch.createStarted();
+
+        FileStore store = newFileStore(destination).create();
+        SegmentNodeState current = store.getHead();
         try {
-            SegmentNodeState state = restore.getHead();
-            restore(state.getChildNode("root"), store, restore);
+            Compactor compactor = new Compactor(store.getTracker());
+            compactor.setDeepCheckLargeBinaries(true);
+            SegmentNodeState after = compactor.compact(current,
+                    restore.getHead(), current);
+            store.setHead(current, after);
         } finally {
             restore.close();
+            store.close();
         }
-    }
-
-    private static void restore(NodeState source, NodeStore store,
-            SegmentStore restore) throws CommitFailedException, IOException {
-        long s = System.currentTimeMillis();
-        NodeState current = store.getRoot();
-        RestoreCompactor compactor = new RestoreCompactor(restore);
-        SegmentNodeBuilder builder = compactor.process(current, source, current);
-        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        log.debug("Restore finished in {} ms.", System.currentTimeMillis() - s);
-    }
-
-    private static class RestoreCompactor extends Compactor {
-
-        public RestoreCompactor(SegmentStore store) {
-            super(store.getTracker());
-        }
-
-        @Override
-        protected SegmentNodeBuilder process(NodeState before, NodeState after, NodeState onto) throws IOException {
-            return super.process(before, after, onto);
-        }
+        watch.stop();
+        log.info("Restore finished in {}.", watch);
     }
 
     private static boolean validFileStore(File source) {

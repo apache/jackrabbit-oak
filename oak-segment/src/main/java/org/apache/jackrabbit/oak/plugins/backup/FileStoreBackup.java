@@ -18,77 +18,53 @@
  */
 package org.apache.jackrabbit.oak.plugins.backup;
 
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.plugins.segment.file.FileStore.newFileStore;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.plugins.segment.Compactor;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.plugins.segment.file.tooling.BasicReadOnlyBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Stopwatch;
 
 public class FileStoreBackup {
 
     private static final Logger log = LoggerFactory
             .getLogger(FileStoreBackup.class);
 
-    private static final long DEFAULT_LIFETIME = TimeUnit.HOURS.toMillis(1);
-
-    static int MAX_FILE_SIZE = 256;
+    public static boolean USE_FAKE_BLOBSTORE = Boolean.getBoolean("oak.backup.UseFakeBlobStore");
 
     public static void backup(NodeStore store, File destination)
             throws IOException {
-        long s = System.currentTimeMillis();
-
-        // 1. create a new checkpoint with the current state
-        String checkpoint = store.checkpoint(DEFAULT_LIFETIME, ImmutableMap.of(
-                "creator", FileStoreBackup.class.getSimpleName(),
-                "thread", Thread.currentThread().getName()));
-        NodeState current = store.retrieve(checkpoint);
-        if (current == null) {
-            // unable to retrieve the checkpoint; use root state instead
-            current = store.getRoot();
+        checkArgument(store instanceof SegmentNodeStore);
+        Stopwatch watch = Stopwatch.createStarted();
+        NodeState current = ((SegmentNodeStore) store).getSuperRoot();
+        FileStore.Builder builder = newFileStore(destination)
+                .withDefaultMemoryMapping();
+        if (USE_FAKE_BLOBSTORE) {
+            builder.withBlobStore(new BasicReadOnlyBlobStore());
         }
-
-        // 2. init filestore
-        FileStore backup = new FileStore(destination, MAX_FILE_SIZE, false);
+        FileStore backup = builder.create();
         try {
             SegmentNodeState state = backup.getHead();
-            NodeState before = null;
-            String beforeCheckpoint = state.getString("checkpoint");
-            if (beforeCheckpoint == null) {
-                // 3.1 no stored checkpoint, so do the initial full backup
-                before = EMPTY_NODE;
-            } else {
-                // 3.2 try to retrieve the previously backed up checkpoint
-                before = store.retrieve(beforeCheckpoint);
-                if (before == null) {
-                    // the previous checkpoint is no longer available,
-                    // so use the backed up state as the basis of the
-                    // incremental backup diff
-                    before = state.getChildNode("root");
-                }
-            }
-
             Compactor compactor = new Compactor(backup.getTracker());
-            SegmentNodeState after = compactor.compact(before, current);
-
-            // 4. commit the backup
-            SegmentNodeBuilder builder = state.builder();
-            builder.setProperty("checkpoint", checkpoint);
-            builder.setChildNode("root", after);
-            backup.setHead(state, builder.getNodeState());
+            compactor.setDeepCheckLargeBinaries(true);
+            compactor.setContentEqualityCheck(true);
+            SegmentNodeState after = compactor.compact(state, current, state);
+            backup.setHead(state, after);
         } finally {
             backup.close();
         }
-
-        log.debug("Backup finished in {} ms.", System.currentTimeMillis() - s);
+        watch.stop();
+        log.info("Backup finished in {}.", watch);
     }
 }
