@@ -50,7 +50,6 @@ import java.util.concurrent.TimeoutException;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import com.amazonaws.services.sqs.model.UnsupportedOperationException;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
