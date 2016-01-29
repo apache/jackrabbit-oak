@@ -109,6 +109,11 @@ nodeCachePercentage
 : Default 25
 : Percentage of `cache` allocated for `nodeCache`. See [Caching][doc-cache]
 
+prevDocCachePercentage
+: Default 4
+: Percentage of `cache` allocated for `prevDocCache`. See [Caching][doc-cache]
+: Since 1.3.15
+
 childrenCachePercentage
 : Default 10
 : Percentage of `cache` allocated for `childrenCache`. See [Caching][doc-cache]

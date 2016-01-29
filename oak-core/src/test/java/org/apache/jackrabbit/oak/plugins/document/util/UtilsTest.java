@@ -67,6 +67,18 @@ public class UtilsTest {
     }
 
     @Test
+    public void leafPreviousDoc() throws Exception {
+        Revision r = new Revision(System.currentTimeMillis(), 0, 0);
+        assertTrue(Utils.isLeafPreviousDocId(Utils.getPreviousIdFor("/", r, 0)));
+        assertTrue(Utils.isLeafPreviousDocId(Utils.getPreviousIdFor("/a/b/c/d/e/f/g/h/i/j/k/l/m", r, 0)));
+        assertFalse(Utils.isLeafPreviousDocId(Utils.getPreviousIdFor("/a/b/c/d/e/f/g/h/i/j/k/l/m", r, 3)));
+        assertFalse(Utils.isLeafPreviousDocId(Utils.getIdFromPath("/a/b")));
+        assertFalse(Utils.isLeafPreviousDocId("foo"));
+        assertFalse(Utils.isLeafPreviousDocId("0:"));
+        assertFalse(Utils.isLeafPreviousDocId(":/0"));
+    }
+
+    @Test
     public void getParentIdFromLowerLimit() throws Exception{
         assertEquals("1:/foo",Utils.getParentIdFromLowerLimit(Utils.getKeyLowerLimit("/foo")));
         assertEquals("1:/foo",Utils.getParentIdFromLowerLimit("2:/foo/bar"));

@@ -353,6 +353,16 @@ public class Utils {
     }
 
     /**
+     * Determines if the passed id belongs to a leaf level previous doc
+     *
+     * @param id id to check
+     * @return true if the id belongs to a leaf level previous doc
+     */
+    public static boolean isLeafPreviousDocId(String id){
+        return isPreviousDocId(id) && id.endsWith("/0");
+    }
+
+    /**
      * Deep copy of a map that may contain map values.
      *
      * @param source the source map

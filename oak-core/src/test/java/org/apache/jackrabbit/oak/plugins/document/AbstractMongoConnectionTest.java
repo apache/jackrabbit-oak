@@ -53,7 +53,11 @@ public abstract class AbstractMongoConnectionTest extends DocumentMKTestBase {
     }
 
     protected DocumentMK.Builder newBuilder(DB db) throws Exception {
-        return new DocumentMK.Builder().clock(getTestClock()).setMongoDB(db);
+        return addToBuilder(new DocumentMK.Builder()).clock(getTestClock()).setMongoDB(db);
+    }
+
+    protected DocumentMK.Builder addToBuilder(DocumentMK.Builder mk) {
+        return mk;
     }
 
     protected Clock getTestClock() throws InterruptedException {

@@ -60,6 +60,7 @@ public class PersistentCache implements Broadcaster.Listener {
     private boolean cacheChildren = true;
     private boolean cacheDiff = true;
     private boolean cacheLocalDiff = true;
+    private boolean cachePrevDocs = true;
     private boolean cacheDocs;
     private boolean cacheDocChildren;
     private boolean compactOnClose;
@@ -100,6 +101,8 @@ public class PersistentCache implements Broadcaster.Listener {
         for (String p : parts) {
             if (p.equals("+docs")) {
                 cacheDocs = true;
+            } else if (p.equals("-prevDocs")) {
+                cachePrevDocs = false;
             } else if (p.equals("+docChildren")) {
                 cacheDocChildren = true;
             } else if (p.equals("-nodes")) {
@@ -383,7 +386,10 @@ public class PersistentCache implements Broadcaster.Listener {
         case DOCUMENT:
             wrap = cacheDocs;
             break;
-        default:  
+        case PREV_DOCUMENT:
+            wrap = cachePrevDocs;
+            break;
+        default:
             wrap = false;
             break;
         }

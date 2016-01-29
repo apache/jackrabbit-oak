@@ -36,6 +36,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import static com.google.common.collect.Iterables.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -100,7 +101,7 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
         //Only 2 entries /a and /a/d would be invalidated
         // '/' would have been added to cache in start of backgroundRead
         //itself
-        assertEquals(initialCacheSizeC1 + totalPaths - 2, ds(c1).getNodeDocumentCache().asMap().size());
+        assertEquals(initialCacheSizeC1 + totalPaths - 2, size(ds(c1).getNodeDocumentCache().keys()));
     }
 
     @Test
@@ -141,7 +142,7 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
     }
 
     private int getCurrentCacheSize(DocumentNodeStore ds){
-        return ds(ds).getNodeDocumentCache().asMap().size();
+        return size(ds(ds).getNodeDocumentCache().keys());
     }
 
     private static void refreshHead(DocumentNodeStore store) {

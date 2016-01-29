@@ -186,7 +186,7 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public final CacheStats getCacheStats() {
+    public final Iterable<CacheStats> getCacheStats() {
         performLeaseCheck();
         return delegate.getCacheStats();
     }

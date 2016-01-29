@@ -285,7 +285,7 @@ public class MongoDocumentStore implements DocumentStore {
     @Override
     public CacheInvalidationStats invalidateCache() {
         InvalidationResult result = new InvalidationResult();
-        for (CacheValue key : nodesCache.asMap().keySet()) {
+        for (CacheValue key : nodesCache.keys()) {
             result.invalidationCount++;
             invalidateCache(Collection.NODES, key.toString());
         }
@@ -1346,7 +1346,7 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     @Override
-    public CacheStats getCacheStats() {
+    public Iterable<CacheStats> getCacheStats() {
         return nodesCache.getCacheStats();
     }
 

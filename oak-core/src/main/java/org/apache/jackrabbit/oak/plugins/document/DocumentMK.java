@@ -487,6 +487,7 @@ public class DocumentMK {
     public static class Builder {
         private static final long DEFAULT_MEMORY_CACHE_SIZE = 256 * 1024 * 1024;
         public static final int DEFAULT_NODE_CACHE_PERCENTAGE = 25;
+        public static final int DEFAULT_PREV_DOC_CACHE_PERCENTAGE = 4;
         public static final int DEFAULT_CHILDREN_CACHE_PERCENTAGE = 10;
         public static final int DEFAULT_DIFF_CACHE_PERCENTAGE = 5;
         public static final int DEFAULT_DOC_CHILDREN_CACHE_PERCENTAGE = 3;
@@ -504,6 +505,7 @@ public class DocumentMK {
         private Weigher<CacheValue, CacheValue> weigher = new EmpiricalWeigher();
         private long memoryCacheSize = DEFAULT_MEMORY_CACHE_SIZE;
         private int nodeCachePercentage = DEFAULT_NODE_CACHE_PERCENTAGE;
+        private int prevDocCachePercentage = DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
         private int childrenCachePercentage = DEFAULT_CHILDREN_CACHE_PERCENTAGE;
         private int diffCachePercentage = DEFAULT_DIFF_CACHE_PERCENTAGE;
         private int docChildrenCachePercentage = DEFAULT_DOC_CHILDREN_CACHE_PERCENTAGE;
@@ -799,16 +801,19 @@ public class DocumentMK {
         }
         
         public Builder memoryCacheDistribution(int nodeCachePercentage,
+                                               int prevDocCachePercentage,
                                                int childrenCachePercentage,
                                                int docChildrenCachePercentage,
                                                int diffCachePercentage) {
             checkArgument(nodeCachePercentage >= 0);
+            checkArgument(prevDocCachePercentage >= 0);
             checkArgument(childrenCachePercentage>= 0);
             checkArgument(docChildrenCachePercentage >= 0);
             checkArgument(diffCachePercentage >= 0);
-            checkArgument(nodeCachePercentage + childrenCachePercentage + 
+            checkArgument(nodeCachePercentage + prevDocCachePercentage + childrenCachePercentage +
                     docChildrenCachePercentage + diffCachePercentage < 100);
             this.nodeCachePercentage = nodeCachePercentage;
+            this.prevDocCachePercentage = prevDocCachePercentage;
             this.childrenCachePercentage = childrenCachePercentage;
             this.docChildrenCachePercentage = docChildrenCachePercentage;
             this.diffCachePercentage = diffCachePercentage;
@@ -819,12 +824,16 @@ public class DocumentMK {
             return memoryCacheSize * nodeCachePercentage / 100;
         }
 
+        public long getPrevDocumentCacheSize() {
+            return memoryCacheSize * prevDocCachePercentage / 100;
+        }
+
         public long getChildrenCacheSize() {
             return memoryCacheSize * childrenCachePercentage / 100;
         }
 
         public long getDocumentCacheSize() {
-            return memoryCacheSize - getNodeCacheSize() - getChildrenCacheSize() 
+            return memoryCacheSize - getNodeCacheSize() - getPrevDocumentCacheSize() - getChildrenCacheSize()
                     - getDiffCacheSize() - getDocChildrenCacheSize();
         }
 
@@ -985,10 +994,18 @@ public class DocumentMK {
             return buildCache(CacheType.DOCUMENT, getDocumentCacheSize(), null, docStore);
         }
 
+        public Cache<StringValue, NodeDocument> buildPrevDocumentsCache(DocumentStore docStore) {
+            return buildCache(CacheType.PREV_DOCUMENT, getPrevDocumentCacheSize(), null, docStore);
+        }
+
         public NodeDocumentCache buildNodeDocumentCache(DocumentStore docStore, NodeDocumentLocks locks) {
-            Cache<CacheValue, NodeDocument> cache = buildDocumentCache(docStore);
-            CacheStats cacheStats = new CacheStats(cache, "Document-Documents", getWeigher(), getDocumentCacheSize());
-            return new NodeDocumentCache(cache, cacheStats, locks);
+            Cache<CacheValue, NodeDocument> nodeDocumentsCache = buildDocumentCache(docStore);
+            CacheStats nodeDocumentsCacheStats = new CacheStats(nodeDocumentsCache, "Document-Documents", getWeigher(), getDocumentCacheSize());
+
+            Cache<StringValue, NodeDocument> prevDocumentsCache = buildPrevDocumentsCache(docStore);
+            CacheStats prevDocumentsCacheStats = new CacheStats(prevDocumentsCache, "Document-PrevDocuments", getWeigher(), getPrevDocumentCacheSize());
+
+            return new NodeDocumentCache(nodeDocumentsCache, nodeDocumentsCacheStats, prevDocumentsCache, prevDocumentsCacheStats, locks);
         }
 
         private <K extends CacheValue, V extends CacheValue> Cache<K, V> buildCache(
