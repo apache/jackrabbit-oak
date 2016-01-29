@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.identifier;
 
 import java.util.UUID;
 
+import com.google.common.base.Strings;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -36,21 +37,42 @@ public class ClusterRepositoryInfo {
     public static final String CLUSTER_ID_PROP = ":clusterId";
 
     /**
-     * Adds a new uuid for the repository in the property /:clusterConfig/:clusterId with preoperty.
+     * Adds a new uuid for the repository in the property /:clusterConfig/:clusterId if not available
      *
      * @param store the NodeStore instance
      * @return the repository id
      * @throws CommitFailedException
      */
     public static String createId(NodeStore store) throws CommitFailedException {
+        return createId(store, null);
+    }
+
+    /**
+     * Adds a new uuid for the repository in the property /:clusterConfig/:clusterId Or
+     * update the id with the customId passed.
+     *
+     * @param store the NodeStore instance
+     * @param customId customId
+     * @return the repository id
+     * @throws CommitFailedException
+     */
+    public static String createId(NodeStore store, String customId) throws CommitFailedException {
         NodeBuilder root = store.getRoot().builder();
-        if (!root.hasChildNode(CLUSTER_CONFIG_NODE)) {
-            String id = UUID.randomUUID().toString();
+        if (!root.hasChildNode(CLUSTER_CONFIG_NODE) ||
+                !root.getChildNode(CLUSTER_CONFIG_NODE).hasProperty(CLUSTER_ID_PROP)) {
+            // Set the customId if available
+            String id = (!Strings.isNullOrEmpty(customId) ? customId : UUID.randomUUID().toString());
             root.child(CLUSTER_CONFIG_NODE).setProperty(CLUSTER_ID_PROP, id);
             store.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
             return id;
         } else {
-            return root.getChildNode(CLUSTER_CONFIG_NODE).getProperty(CLUSTER_ID_PROP).getValue(Type.STRING);
+            String currId = root.getChildNode(CLUSTER_CONFIG_NODE).getProperty(CLUSTER_ID_PROP).getValue(Type.STRING);
+            if (!Strings.isNullOrEmpty(customId) && !customId.equals(currId)) {
+                root.child(CLUSTER_CONFIG_NODE).setProperty(CLUSTER_ID_PROP, customId);
+                store.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+                currId = customId;
+            }
+            return currId;
         }
     }
 
