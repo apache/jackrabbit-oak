@@ -64,6 +64,8 @@ public class Compactor {
                 r.getSegmentId().getLeastSignificantBits(), r.getOffset() };
     }
 
+    private final SegmentTracker tracker;
+
     private final SegmentWriter writer;
 
     private final PartialCompactionMap map;
@@ -90,6 +92,21 @@ public class Compactor {
     private final boolean cloneBinaries;
 
     /**
+     * In the case of large inlined binaries, compaction will verify if all
+     * referenced segments exist in order to determine if a full clone is
+     * necessary, or just a shallow copy of the RecordId list is enough
+     * (Used in Backup scenario)
+     */
+    private boolean deepCheckLargeBinaries;
+
+    /**
+     * Flag to use content equality verification before actually compacting the
+     * state, on the childNodeChanged diff branch
+     * (Used in Backup scenario)
+     */
+    private boolean contentEqualityCheck;
+
+    /**
      * Allows the cancellation of the compaction process. If this {@code
      * Supplier} returns {@code true}, this compactor will cancel compaction and
      * return a partial {@code SegmentNodeState} containing the changes
@@ -102,6 +119,7 @@ public class Compactor {
     }
 
     public Compactor(SegmentTracker tracker, Supplier<Boolean> cancel) {
+        this.tracker = tracker;
         this.writer = tracker.getWriter();
         this.map = new InMemoryCompactionMap(tracker);
         this.cloneBinaries = false;
@@ -113,6 +131,7 @@ public class Compactor {
     }
 
     public Compactor(SegmentTracker tracker, CompactionStrategy compactionStrategy, Supplier<Boolean> cancel) {
+        this.tracker = tracker;
         String wid = "c-" + (tracker.getCompactionMap().getGeneration() + 1);
         this.writer = tracker.createSegmentWriter(wid);
         if (compactionStrategy.getPersistCompactionMap()) {
@@ -131,24 +150,6 @@ public class Compactor {
         SegmentNodeBuilder builder = new SegmentNodeBuilder(writer.writeNode(onto), writer);
         new CompactDiff(builder).diff(before, after);
         return builder;
-    }
-
-    /**
-     * Compact the differences between a {@code before} and a {@code after}
-     * on top of the {@code before} state.
-     * <p>
-     * Equivalent to {@code compact(before, after, before)}
-     *
-     * @param before  the before state
-     * @param after   the after state
-     * @return  the compacted state
-     */
-    public SegmentNodeState compact(NodeState before, NodeState after) throws IOException {
-        progress.start();
-        SegmentNodeState compacted = process(before, after, before).getNodeState();
-        writer.flush();
-        progress.stop();
-        return compacted;
     }
 
     /**
@@ -277,6 +278,10 @@ public class Compactor {
                 }
             }
 
+            if (contentEqualityCheck && before.equals(after)) {
+                return true;
+            }
+
             progress.onNode();
             try {
                 NodeBuilder child = builder.getChildNode(name);
@@ -334,7 +339,7 @@ public class Compactor {
 
                 // if the blob is inlined or external, just clone it
                 if (sb.isExternal() || sb.length() < Segment.MEDIUM_LIMIT) {
-                    SegmentBlob clone = sb.clone(writer, cloneBinaries);
+                    SegmentBlob clone = sb.clone(writer, false);
                     map.put(id, clone.getRecordId());
                     return clone;
                 }
@@ -351,8 +356,24 @@ public class Compactor {
                     }
                 }
 
-                // if not, clone the blob and keep track of the result
-                sb = sb.clone(writer, cloneBinaries);
+                boolean clone = cloneBinaries;
+                if (deepCheckLargeBinaries) {
+                    clone = clone
+                            || !tracker.getStore().containsSegment(
+                                    id.getSegmentId());
+                    if (!clone) {
+                        for (SegmentId bid : SegmentBlob.getBulkSegmentIds(sb)) {
+                            clone = clone
+                                    || !tracker.getStore().containsSegment(bid);
+                            if (clone) {
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // if not, clone the large blob and keep track of the result
+                sb = sb.clone(writer, clone);
                 map.put(id, sb.getRecordId());
                 if (ids == null) {
                     ids = newArrayList();
@@ -456,6 +477,14 @@ public class Compactor {
             }
             return false;
         }
+    }
+
+    public void setDeepCheckLargeBinaries(boolean deepCheckLargeBinaries) {
+        this.deepCheckLargeBinaries = deepCheckLargeBinaries;
+    }
+
+    public void setContentEqualityCheck(boolean contentEqualityCheck) {
+        this.contentEqualityCheck = contentEqualityCheck;
     }
 
 }

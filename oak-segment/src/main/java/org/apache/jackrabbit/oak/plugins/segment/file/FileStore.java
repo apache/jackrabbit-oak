@@ -304,6 +304,16 @@ public class FileStore implements SegmentStore {
         }
 
         /**
+         * Set memory mapping to the default value based on OS properties
+         * @return this instance
+         */
+        @Nonnull
+        public Builder withDefaultMemoryMapping() {
+            this.memoryMapping = MEMORY_MAPPING_DEFAULT;
+            return this;
+        }
+
+        /**
          * {@link GCMonitor} for monitoring this files store's gc process.
          * @param gcMonitor
          * @return this instance

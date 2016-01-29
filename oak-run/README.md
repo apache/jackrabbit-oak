@@ -38,18 +38,25 @@ See the subsections below for more details on how to use these modes.
 Backup
 ------
 
-The 'backup' mode creates a backup from an existing oak repository. To start this mode, use:
+The 'backup' mode creates a backup from an existing oak repository. The most efficient 
+way to backup the TarMK repository is to use a file system copy of the repository folder.
+The current backup implementation acts like a compaction to an enternal folder, on top of 
+copying the state, it will also try to compress it, so it will significantly slower than 
+what one might expect from a simple copy backup. Incremental backups (backup over an existing
+backup will still need to perform a full content diff) and will attempt to compact the diff.
+All optimisation flags used for offline compaction very much apply for this case as well.
+The FileStore backup doesn't need access to the DataStore, but if one is usually configured with
+the repository, it will need the following system property set to true in order to be able to
+perform the diffing `-Doak.backup.UseFakeBlobStore=true`. To start this mode, use:
 
-    $ java -jar oak-run-*.jar backup \
-          { /path/to/oak/repository | mongodb://host:port/database } /path/to/backup
+    $ java -jar oak-run-*.jar backup /path/to/oak/repository /path/to/backup
 
 Restore
 -------
 
 The 'restore' mode imports a backup of an existing oak repository. To start this mode, use:
 
-    $ java -jar oak-run-*.jar restore \
-          { /path/to/oak/repository | mongodb://host:port/database } /path/to/backup
+    $ java -jar oak-run-*.jar restore /path/to/oak/repository /path/to/backup
 
 Debug
 -----
