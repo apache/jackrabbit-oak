@@ -26,8 +26,10 @@ import static java.util.Collections.sort;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.LATEST_VERSION;
 import static org.apache.jackrabbit.oak.plugins.segment.file.FileStore.newFileStore;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -47,8 +49,46 @@ public final class FileStoreHelper {
     public static final String newline = "\n";
 
     public static final boolean TAR_STORAGE_MEMORY_MAPPED = Boolean.getBoolean("tar.memoryMapped");
-    
+
     public static final int TAR_SEGMENT_CACHE_SIZE = Integer.getInteger("cache", 256);
+
+    private static class BasicReadOnlyBlobStore implements BlobStore {
+        @Override
+        public String writeBlob(InputStream in) throws IOException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public int readBlob(String blobId, long pos, byte[] buff, int off,
+                int length) throws IOException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public long getBlobLength(String blobId) throws IOException {
+            // best effort length extraction
+            int indexOfSep = blobId.lastIndexOf("#");
+            if (indexOfSep != -1) {
+                return Long.valueOf(blobId.substring(indexOfSep + 1));
+            }
+            return -1;
+        }
+
+        @Override
+        public InputStream getInputStream(String blobId) throws IOException {
+            return new ByteArrayInputStream(new byte[0]);
+        }
+
+        @Override
+        public String getBlobId(String reference) {
+            return reference;
+        }
+
+        @Override
+        public String getReference(String blobId) {
+            return blobId;
+        }
+    }
 
     private FileStoreHelper() {
     }
@@ -222,6 +262,16 @@ public final class FileStoreHelper {
             throws IOException {
         return new ReadOnlyStore(isValidFileStoreOrFail(directory),
                 TAR_SEGMENT_CACHE_SIZE, TAR_STORAGE_MEMORY_MAPPED);
+    }
+
+    public static ReadOnlyStore openReadOnlyFileStore(File directory,
+            BlobStore blobStore) throws IOException {
+        return new ReadOnlyStore(isValidFileStoreOrFail(directory),
+                TAR_SEGMENT_CACHE_SIZE, TAR_STORAGE_MEMORY_MAPPED, blobStore);
+    }
+
+    public static BlobStore newBasicReadOnlyBlobStore() {
+        return new BasicReadOnlyBlobStore();
     }
 
 }
