@@ -418,8 +418,9 @@ class OakDirectory extends Directory {
                 offset += l;
                 len -= l;
                 position += l;
-
+                // next block
                 i++;
+                // for the next block, we read from the beginning
                 o = 0;
             }
         }
@@ -433,8 +434,15 @@ class OakDirectory extends Directory {
 
                 if (index != i) {
                     if (o > 0 || (l < blobSize && position + l < length)) {
+                        // loadBlob first flushes the previous block,
+                        // and it sets the index
                         loadBlob(i);
                     } else {
+                        // we don't need to load the block,
+                        // as we anyway overwrite it fully, if:
+                        // o == 0 (start writing at a block boundary)
+                        // and either: l is the blockSize, or
+                        // we write at least to the end of the file
                         flushBlob();
                         index = i;
                     }
