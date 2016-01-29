@@ -48,6 +48,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 public class Template {
 
+    static final short ZERO_CHILD_NODES_TYPE = 0;
+
+    static final short SINGLE_CHILD_NODE_TYPE = 1;
+
+    static final short MANY_CHILD_NODES_TYPE = 2;
+
     static final String ZERO_CHILD_NODES = null;
 
     static final String MANY_CHILD_NODES = "";
@@ -81,12 +87,16 @@ public class Template {
     @CheckForNull
     private final String childName;
 
-    Template(
-            PropertyState primaryType, PropertyState mixinTypes,
+    Template(PropertyState primaryType, PropertyState mixinTypes,
             PropertyTemplate[] properties, String childName) {
         this.primaryType = primaryType;
         this.mixinTypes = mixinTypes;
-        this.properties = properties;
+        if (properties != null) {
+            this.properties = properties;
+            Arrays.sort(this.properties);
+        } else {
+            this.properties = new PropertyTemplate[0];
+        }
         this.childName = childName;
     }
 
@@ -293,8 +303,8 @@ public class Template {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(
-                primaryType, mixinTypes, Arrays.asList(properties), childName);
+        return Objects.hashCode(primaryType, mixinTypes,
+                Arrays.asList(properties), getTemplateType(), childName);
     }
 
     @Override
@@ -322,6 +332,16 @@ public class Template {
         }
         builder.append(" }");
         return builder.toString();
+    }
+
+    short getTemplateType() {
+        if (childName == ZERO_CHILD_NODES) {
+            return ZERO_CHILD_NODES_TYPE;
+        } else if (childName == MANY_CHILD_NODES) {
+            return MANY_CHILD_NODES_TYPE;
+        } else {
+            return SINGLE_CHILD_NODE_TYPE;
+        }
     }
 
 }
