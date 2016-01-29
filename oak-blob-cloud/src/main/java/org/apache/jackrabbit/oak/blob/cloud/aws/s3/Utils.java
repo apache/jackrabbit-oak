@@ -26,10 +26,12 @@ import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.amazonaws.AmazonClientException;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.Protocol;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.model.Region;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -98,6 +100,17 @@ public final class Utils {
         if ((propEndPoint != null) & !"".equals(propEndPoint)) {
             endpoint = propEndPoint;
         } else {
+            if (StringUtils.isNullOrEmpty(region)) {
+                com.amazonaws.regions.Region s3Region = Regions.getCurrentRegion();
+                if (s3Region != null) {
+                    region = s3Region.getName();
+                } else {
+                    throw new AmazonClientException(
+                            "parameter ["
+                                    + S3Constants.S3_REGION
+                                    + "] not configured and cannot be derived from environment");
+                }
+            }
             if (DEFAULT_AWS_BUCKET_REGION.equals(region)) {
                 endpoint = S3 + DOT + AWSDOTCOM;
             } else if (Region.EU_Ireland.toString().equals(region)) {
