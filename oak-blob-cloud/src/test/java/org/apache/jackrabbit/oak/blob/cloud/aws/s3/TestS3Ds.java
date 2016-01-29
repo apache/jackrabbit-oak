@@ -55,7 +55,7 @@ public class TestS3Ds extends TestCaseBase {
     public TestS3Ds() throws IOException {
         System.setProperty(
             TestCaseBase.CONFIG,
-            "C:/src/apache/jackrabbit-encryp-changes/jackrabbit/jackrabbit-aws-ext/src/test/resources/aws.properties");
+            "./src/test/resources/aws.properties");
         config = System.getProperty(CONFIG);
         props = Utils.readConfig(System.getProperty(CONFIG));
     }
