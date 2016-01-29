@@ -27,10 +27,13 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPE
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
+import java.io.Closeable;
 import java.util.Calendar;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -74,7 +77,7 @@ import com.google.common.base.Splitter;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableMap;
 
-public class AsyncIndexUpdate implements Runnable {
+public class AsyncIndexUpdate implements Runnable, Closeable {
 
     private static final Logger log = LoggerFactory
             .getLogger(AsyncIndexUpdate.class);
@@ -89,6 +92,9 @@ public class AsyncIndexUpdate implements Runnable {
 
     private static final CommitFailedException CONCURRENT_UPDATE = new CommitFailedException(
             "Async", 1, "Concurrent update detected");
+
+    private static final CommitFailedException INTERRUPTED = new CommitFailedException(
+            "Async", 1, "Indexing stopped forcefully");
 
     /**
      * Timeout in milliseconds after which an async job would be considered as
@@ -139,6 +145,16 @@ public class AsyncIndexUpdate implements Runnable {
 
     private final IndexTaskSpliter taskSplitter = new IndexTaskSpliter();
 
+    private final Semaphore runPermit = new Semaphore(1);
+
+    /**
+     * Flag which would be set to true if the close operation is not
+     * able to close within specific time. The flag would be an
+     * indication to indexing thread to return straightway say by
+     * throwing an exception
+     */
+    private final AtomicBoolean forcedStopFlag = new AtomicBoolean();
+
     private IndexMBeanRegistration mbeanRegistration;
 
     private long leaseTimeOut;
@@ -150,6 +166,14 @@ public class AsyncIndexUpdate implements Runnable {
      */
     private static long ERROR_WARN_INTERVAL = TimeUnit.MINUTES.toMillis(Integer
             .getInteger("oak.async.warn.interval", 30));
+
+    /**
+     * Timeout in seconds for which close call would wait before forcefully
+     * stopping the indexing thread
+     */
+    private int softTimeOutSecs = Integer.getInteger("oak.async.softTimeOutSecs", 2 * 60);
+
+    private boolean closed;
 
     public AsyncIndexUpdate(@Nonnull String name, @Nonnull NodeStore store,
             @Nonnull IndexEditorProvider provider, boolean switchOnSync) {
@@ -194,14 +218,17 @@ public class AsyncIndexUpdate implements Runnable {
 
         private final AsyncIndexStats indexStats;
 
+        private final AtomicBoolean forcedStop;
+
         /** Expiration time of the last lease we committed */
         private long lease;
 
         public AsyncUpdateCallback(NodeStore store, String name,
                 long leaseTimeOut, String checkpoint, String afterCheckpoint,
-                AsyncIndexStats indexStats) {
+                AsyncIndexStats indexStats, AtomicBoolean forcedStop) {
             this.store = store;
             this.name = name;
+            this.forcedStop = forcedStop;
             this.leaseTimeOut = leaseTimeOut;
             this.checkpoint = checkpoint;
             this.afterCheckpoint = afterCheckpoint;
@@ -268,6 +295,10 @@ public class AsyncIndexUpdate implements Runnable {
 
         @Override
         public void indexUpdate() throws CommitFailedException {
+            if (forcedStop.get()){
+                throw INTERRUPTED;
+            }
+
             if (indexStats.incUpdates() % 100 == 0) {
                 long now = System.currentTimeMillis();
                 if (now + leaseTimeOut > lease) {
@@ -283,6 +314,52 @@ public class AsyncIndexUpdate implements Runnable {
 
     @Override
     public synchronized void run() {
+        boolean permitAcquired = false;
+        try{
+            if (runPermit.tryAcquire()){
+                permitAcquired = true;
+                runWhenPermitted();
+            } else {
+                log.warn("[{}] Could not acquire run permit. Stop flag set to [{}] Skipping the run", name, forcedStopFlag);
+            }
+        } finally {
+            if (permitAcquired){
+                runPermit.release();
+            }
+        }
+    }
+
+
+    @Override
+    public void close() {
+        int hardTimeOut = 5 * softTimeOutSecs;
+        if(!runPermit.tryAcquire()){
+            //First let current run complete without bothering it
+            log.debug("[{}] [WAITING] Indexing in progress. Would wait for {} secs for it to finish", name, softTimeOutSecs);
+            try {
+                if(!runPermit.tryAcquire(softTimeOutSecs, TimeUnit.SECONDS)){
+                    //We have now waited enough. So signal the indexer that it should return right away
+                    //as soon as it sees the forcedStopFlag
+                    log.debug("[{}] [SOFT LIMIT HIT] Indexing found to be in progress for more than [{}]s. Would " +
+                            "signal it to now force stop", name, softTimeOutSecs);
+                    forcedStopFlag.set(true);
+                    if(!runPermit.tryAcquire(hardTimeOut, TimeUnit.SECONDS)){
+                        //Index thread did not listened to our advice. So give up now and warn about it
+                        log.warn("[{}] Indexing still not found to be complete. Giving up after [{}]s", name, hardTimeOut);
+                    }
+                } else {
+                    log.info("[{}] [CLOSED OK] Async indexing run completed. Closing it now", name);
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        } else {
+            log.info("[{}] Closed", name);
+        }
+        closed = true;
+    }
+
+    private void runWhenPermitted() {
         if (indexStats.isPaused()) {
             return;
         }
@@ -396,10 +473,11 @@ public class AsyncIndexUpdate implements Runnable {
     }
 
     protected AsyncUpdateCallback newAsyncUpdateCallback(NodeStore store,
-            String name, long leaseTimeOut, String beforeCheckpoint,
-            String afterCheckpoint, AsyncIndexStats indexStats) {
+                                                         String name, long leaseTimeOut, String beforeCheckpoint,
+                                                         String afterCheckpoint, AsyncIndexStats indexStats,
+                                                         AtomicBoolean stopFlag) {
         return new AsyncUpdateCallback(store, name, leaseTimeOut,
-                beforeCheckpoint, afterCheckpoint, indexStats);
+                beforeCheckpoint, afterCheckpoint, indexStats, stopFlag);
     }
 
     private boolean updateIndex(NodeState before, String beforeCheckpoint,
@@ -411,7 +489,7 @@ public class AsyncIndexUpdate implements Runnable {
         // create an update callback for tracking index updates
         // and maintaining the update lease
         AsyncUpdateCallback callback = newAsyncUpdateCallback(store, name,
-                leaseTimeOut, beforeCheckpoint, afterCheckpoint, indexStats);
+                leaseTimeOut, beforeCheckpoint, afterCheckpoint, indexStats, forcedStopFlag);
         callback.prepare();
 
         // check for index tasks split requests, if a split happened, make
@@ -533,6 +611,19 @@ public class AsyncIndexUpdate implements Runnable {
     protected AsyncIndexUpdate setLeaseTimeOut(long leaseTimeOut) {
         this.leaseTimeOut = leaseTimeOut;
         return this;
+    }
+
+    protected AsyncIndexUpdate setCloseTimeOut(int timeOutInSec) {
+        this.softTimeOutSecs = timeOutInSec;
+        return this;
+    }
+
+    public boolean isClosed(){
+        return closed || forcedStopFlag.get();
+    }
+
+    boolean isClosing(){
+        return runPermit.hasQueuedThreads();
     }
 
     private static void preAsyncRunStatsStats(AsyncIndexStats stats) {

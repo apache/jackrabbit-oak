@@ -642,6 +642,7 @@ public class Oak {
                 AsyncIndexUpdate task = new AsyncIndexUpdate(t.getKey(), store,
                         indexEditors);
                 indexRegistration.registerAsyncIndexer(task, t.getValue());
+                closer.register(task);
             }
 
             PropertyIndexAsyncReindex asyncPI = new PropertyIndexAsyncReindex(
