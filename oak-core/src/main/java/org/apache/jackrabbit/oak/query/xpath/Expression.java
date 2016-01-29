@@ -142,6 +142,19 @@ abstract class Expression {
     boolean isName() {
         return false;
     }
+    
+    /**
+     * Get the most specific nodetype condition, that is a condition of the form
+     * "jcr:primaryType = 'x'". If there are multiple such conditions, only the
+     * most strict one needs to be returned. If there are no, or conflicting
+     * conditions, then null may be returned, meaning no usable condition.
+     * 
+     * @param selectorName the selector name
+     * @return null or the nodetype value
+     */
+    public String getMostSpecificNodeType(String selectorName) {
+        return null;
+    }
 
     /**
      * A literal expression.
@@ -212,6 +225,28 @@ abstract class Expression {
             }
             return left.toString();
         }
+        
+        @Override
+        public String getMostSpecificNodeType(String selectorName) {
+            if (!"=".equals(operator)) {
+                return null;
+            }
+            if (!(left instanceof Property)) {
+                return null;
+            }
+            Property p = (Property) left;
+            if (!(right instanceof Literal)) {
+                return null;
+            }
+            Literal l = (Literal) right;
+            if (!"jcr:primaryType".equals(p.name)) {
+                return null;
+            }
+            if (selectorName != null && !selectorName.equals(p.selector.name)) {
+                return null;
+            }
+            return l.rawText;
+        }   
         
         @Override
         Expression getLeft() {
@@ -344,6 +379,15 @@ abstract class Expression {
                 in = new InCondition(in.getLeft(), in.list);
                 return in;
             }
+            if (XPathToSQL2Converter.NODETYPE_UNION) {
+                if (left instanceof Condition) {
+                    Condition c = (Condition) left;
+                    if (c.left instanceof Property && 
+                        "jcr:primaryType".equals(((Property) c.left).name)) {
+                        return this;
+                    }
+                }
+            }
             ArrayList<Expression> list = new ArrayList<Expression>();
             list.addAll(left.getRight());
             list.addAll(right.getRight());
@@ -425,6 +469,15 @@ abstract class Expression {
             }
             return this;
         }
+        
+        @Override
+        public String getMostSpecificNodeType(String selectorName) {
+            String nt = left.getMostSpecificNodeType(selectorName);
+            if (nt != null) {
+                return nt;
+            }
+            return right.getMostSpecificNodeType(selectorName);
+        }        
         
         @Override
         AndCondition pullOrRight() {

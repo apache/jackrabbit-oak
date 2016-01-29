@@ -56,6 +56,7 @@ public class Statement {
             return this;
         }
         where = where.optimize();
+        optimizeSelectorNodeTypes();
         ArrayList<Expression> unionList = new ArrayList<Expression>();
         addToUnionList(where, unionList);
         if (unionList.size() == 1) {
@@ -65,8 +66,8 @@ public class Statement {
         for (int i = 0; i < unionList.size(); i++) {
             Expression e = unionList.get(i);
             Statement s = new Statement();
-            s.columnSelector = columnSelector;
-            s.selectors = selectors;
+            s.columnSelector = new Selector(columnSelector);
+            s.selectors = cloneSelectors();
             s.columnList = columnList;
             s.where = e;
             if (union == null) {
@@ -81,6 +82,33 @@ public class Statement {
         union.explain = explain;
 
         return union;
+    }
+    
+    private ArrayList<Selector> cloneSelectors() {
+        ArrayList<Selector> list = new ArrayList<Selector>();
+        for (Selector s : selectors) {
+            list.add(new Selector(s));
+        }
+        return list;
+    }
+    
+    private void optimizeSelectorNodeTypes() {
+        if (!XPathToSQL2Converter.NODETYPE_OPTIMIZATION) {
+            return;
+        }
+        for (int i = 0; i < selectors.size(); i++) {
+            Selector s = selectors.get(i);
+            if (s.nodeType != null && !"nt:base".equals(s.nodeType)) {
+                // explicit node type: ignore
+                continue;
+            }
+            // only filter by selectorName if there are multiple selectors
+            String selectorName = selectors.size() == 1 ? null : s.name;
+            String nodeType = where.getMostSpecificNodeType(selectorName);
+            if (nodeType != null) {
+                s.nodeType = nodeType;
+            }
+        }
     }
     
     private static void addToUnionList(Expression condition,  ArrayList<Expression> unionList) {
