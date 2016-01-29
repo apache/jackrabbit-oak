@@ -234,7 +234,7 @@ public class S3Backend implements SharedS3Backend {
             }
             return false;
         } catch (AmazonServiceException e) {
-            if (e.getStatusCode() == 404) {
+            if (e.getStatusCode() == 404 || e.getStatusCode() == 403) {
                 LOG.debug("exists [{}]: [false] took [{}] ms.",
                     identifier, (System.currentTimeMillis() - start) );
                 return false;
@@ -277,7 +277,7 @@ public class S3Backend implements SharedS3Backend {
             }
 
         } catch (AmazonServiceException e) {
-            if (e.getStatusCode() == 404) {
+            if (e.getStatusCode() == 404 || e.getStatusCode() == 403) {
                 retVal = false;
             } else {
                 throw new DataStoreException(
@@ -441,7 +441,7 @@ public class S3Backend implements SharedS3Backend {
                     (System.currentTimeMillis() - start) });
             return lastModified;
         } catch (AmazonServiceException e) {
-            if (e.getStatusCode() == 404) {
+            if (e.getStatusCode() == 404 || e.getStatusCode() == 403) {
                 LOG.info(
                     "getLastModified:Identifier [{}] not found. Took [{}] ms.",
                     identifier, (System.currentTimeMillis() - start));
@@ -758,7 +758,7 @@ public class S3Backend implements SharedS3Backend {
             try {
                 objectMetaData = s3service.getObjectMetadata(bucket, key);
             } catch (AmazonServiceException ase) {
-                if (ase.getStatusCode() != 404) {
+                if (!(ase.getStatusCode() == 404 || ase.getStatusCode() == 403)) {
                     throw ase;
                 }
             }
