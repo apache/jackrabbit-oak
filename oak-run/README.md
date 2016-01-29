@@ -20,6 +20,7 @@ The following runmodes are currently available:
     * scalability : Run scalability tests against different Oak repository fixtures.
     * recovery    : Run a _lastRev recovery on a MongoMK repository
     * checkpoints : Manage checkpoints
+    * dumpdatastorerefs : Dump all the blob references used to a file
     * help        : Print a list of available runmodes
     
 
@@ -705,6 +706,15 @@ can be dumped to a file
 
 [1]: http://jackrabbit.apache.org/oak/docs/oak-mongo-js/oak.html
 
+Oak Dump DataStore References
+-----------------------------
+
+Dumps all the DataStore/BlobStore references used. Use the following commmand
+
+    $ java -jar oak-run-*.jar dumpdatastorerefs \
+            { /path/to/oak/repository | mongodb://host:port/database } [/path/to/dump]
+
+This will create a dump file with name starting with 'marked-'.The dump path is optional and if not specified the file will be created in the user tmp directory.
 
 License
 -------
