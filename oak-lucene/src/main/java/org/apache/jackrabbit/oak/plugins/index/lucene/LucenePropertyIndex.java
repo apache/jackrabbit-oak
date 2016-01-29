@@ -39,6 +39,7 @@ import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
+import com.google.common.primitives.Chars;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.api.Type;
@@ -1337,6 +1338,11 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
     }
 
     /**
+     * Following chars are used as operators in Lucene Query and should be escaped
+     */
+    private static final char[] LUCENE_QUERY_OPERATORS = {':' , '/', '!', '&', '|', '[', ']', '{', '}'};
+
+    /**
      * Following logic is taken from org.apache.jackrabbit.core.query.lucene.JackrabbitQueryParser#parse(java.lang.String)
      */
     static String rewriteQueryText(String textsearch) {
@@ -1361,10 +1367,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                     escaped = false;
                 }
                 rewritten.append(c);
-            } else if (c == ':' || c == '/') {
-                //TODO Some other chars are also considered special See OAK-3769 for details
-                //':' fields as known in lucene are not supported
-                //'/' its a special char used for regex search in Lucene
+            } else if (Chars.contains(LUCENE_QUERY_OPERATORS, c)) {
                 rewritten.append('\\').append(c);
             } else {
                 if (escaped) {
