@@ -526,7 +526,7 @@ public class S3Backend implements SharedS3Backend {
                             && s3service.getObjectMetadata(bucket, s3ObjSumm.getKey()).getLastModified().getTime() <
                             min) {
 
-
+                            store.deleteFromCache(identifier);
                             LOG.debug("add id [{}] to delete lists", s3ObjSumm.getKey());
                             deleteList.add(new DeleteObjectsRequest.KeyVersion(s3ObjSumm.getKey()));
                             deleteIdSet.add(identifier);
