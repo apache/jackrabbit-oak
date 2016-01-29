@@ -1036,6 +1036,45 @@ Since Oak 1.3.11, the each suggestion would be returned per row.
 ```
 
 
+#### Facets
+
+`@since Oak 1.3.14`
+
+Lucene property indexes can also be used for retrieving facets, in order to do so the property _facets_ must be set to 
+ _true_ on the property definition.
+
+```
+/oak:index/lucene-with-facets
+  - jcr:primaryType = "oak:QueryIndexDefinition"
+  - compatVersion = 2
+  - type = "lucene"
+  - async = "async"
+  + indexRules
+    - jcr:primaryType = "nt:unstructured"
+    + nt:base
+      + properties
+        - jcr:primaryType = "nt:unstructured"
+        + jcr:title
+          - facets = true
+          - propertyIndex = true
+``` 
+
+Specific facet related features for Lucene property index can be configured in a separate _facets_ node below the
+ index definition.
+ By default ACL checks are always performed on facets by the Lucene property index however this can be avoided by setting
+ the property _secure_ to _false_ in the _facets_ configuration node.
+```
+    + nt:base
+      + properties
+        - jcr:primaryType = "nt:unstructured"
+        + jcr:title
+          - facets = true
+          - propertyIndex = true
+          + facets
+            - secure = false
+```
+
+
 #### Score Explanation
 
 `@since Oak 1.3.12`

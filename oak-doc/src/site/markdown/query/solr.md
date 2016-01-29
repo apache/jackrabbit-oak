@@ -289,6 +289,20 @@ under the hood as it doesn't require any additional data structure neither in RA
 
 More / different spellcheckers can be configured in Solr, as per [reference documentation](https://cwiki.apache.org/confluence/display/solr/Spell+Checking).
 
+#### Facets
+
+`@since Oak 1.3.14`
+
+In order to enable proper usage of facets in Solr index the following fields need to be added to the _schema.xml_
+
+        <dynamicField name="*_facet" type="string" indexed="false" stored="false" docValues="true" multiValued="true"/>
+
+with either a match all _copyField_ or specific ones.
+
+        <copyField source="tags" dest="tags_facet"/> <!-- facet on tags field/property -->
+        
+        <copyField source="*" dest="*_facet"/> <!-- facet on all fields/properties -->
+
 #### Notes
 As of Oak version 1.0.0:
 
