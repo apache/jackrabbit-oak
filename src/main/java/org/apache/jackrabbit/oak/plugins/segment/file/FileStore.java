@@ -1406,8 +1406,16 @@ public class FileStore implements SegmentStore {
      */
     public static class ReadOnlyStore extends FileStore {
 
-        public ReadOnlyStore(File directory, int cacheSize, boolean memoryMapping) throws IOException {
-            super(null, directory, EMPTY_NODE, -1, cacheSize, memoryMapping, GCMonitor.EMPTY, StatisticsProvider.NOOP, true);
+        public ReadOnlyStore(File directory, int cacheSize,
+                boolean memoryMapping) throws IOException {
+            this(directory, cacheSize, memoryMapping, null);
+        }
+
+        public ReadOnlyStore(File directory, int cacheSize,
+                boolean memoryMapping, BlobStore blobStore) throws IOException {
+            super(blobStore, directory, EMPTY_NODE, -1, cacheSize,
+                    memoryMapping, GCMonitor.EMPTY, StatisticsProvider.NOOP,
+                    true);
         }
 
         public ReadOnlyStore(File directory) throws IOException {
