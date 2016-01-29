@@ -50,6 +50,7 @@ import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.event.ProgressEvent;
 import com.amazonaws.event.ProgressListener;
+import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.CopyObjectRequest;
 import com.amazonaws.services.s3.model.DeleteObjectsRequest;
@@ -63,6 +64,7 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.transfer.Copy;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.Upload;
+import com.amazonaws.util.StringUtils;
 
 /**
  * A data store backend that stores data on Amazon S3.
@@ -137,12 +139,24 @@ public class S3Backend implements SharedS3Backend {
             }
             String region = prop.getProperty(S3Constants.S3_REGION);
             Region s3Region = null;
-            if (Utils.DEFAULT_AWS_BUCKET_REGION.equals(region)) {
-                s3Region =  Region.US_Standard;
-            } else if (Region.EU_Ireland.toString().equals(region)) {
-                s3Region = Region.EU_Ireland;
+            if (StringUtils.isNullOrEmpty(region)) {
+                com.amazonaws.regions.Region ec2Region = Regions.getCurrentRegion();
+                if (ec2Region != null) {
+                    s3Region = Region.fromValue(ec2Region.getName());
+                } else {
+                    throw new AmazonClientException(
+                            "parameter ["
+                                    + S3Constants.S3_REGION
+                                    + "] not configured and cannot be derived from environment");
+                }
             } else {
-                s3Region = Region.fromValue(region);
+                if (Utils.DEFAULT_AWS_BUCKET_REGION.equals(region)) {
+                    s3Region = Region.US_Standard;
+                } else if (Region.EU_Ireland.toString().equals(region)) {
+                    s3Region = Region.EU_Ireland;
+                } else {
+                    s3Region = Region.fromValue(region);
+                }
             }
 
             if (!s3service.doesBucketExist(bucket)) {
