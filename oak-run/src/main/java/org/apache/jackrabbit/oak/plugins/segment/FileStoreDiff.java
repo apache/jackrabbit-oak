@@ -30,13 +30,12 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
+import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.newBasicReadOnlyBlobStore;
 import static org.apache.jackrabbit.oak.plugins.segment.FileStoreHelper.readRevisions;
 import static org.apache.jackrabbit.oak.plugins.segment.RecordId.fromString;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.Iterator;
 import java.util.List;
@@ -48,7 +47,6 @@ import joptsimple.OptionSpec;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
@@ -141,7 +139,7 @@ public class FileStoreDiff {
                     + "'.");
             return;
         }
-        ReadOnlyStore store = new ReadOnlyStore(dir, new DummyBlobStore());
+        ReadOnlyStore store = new ReadOnlyStore(dir, newBasicReadOnlyBlobStore());
         RecordId idL = null;
         RecordId idR = null;
         try {
@@ -333,43 +331,4 @@ public class FileStoreDiff {
             return "[N/A]";
         }
     }
-
-    private static class DummyBlobStore implements BlobStore {
-        @Override
-        public String writeBlob(InputStream in) throws IOException {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public int readBlob(String blobId, long pos, byte[] buff, int off,
-                int length) throws IOException {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public long getBlobLength(String blobId) throws IOException {
-            // best effort length extraction
-            int indexOfSep = blobId.lastIndexOf("#");
-            if (indexOfSep != -1) {
-                return Long.valueOf(blobId.substring(indexOfSep + 1));
-            }
-            return -1;
-        }
-
-        @Override
-        public InputStream getInputStream(String blobId) throws IOException {
-            return new ByteArrayInputStream(new byte[0]);
-        }
-
-        @Override
-        public String getBlobId(String reference) {
-            return reference;
-        }
-
-        @Override
-        public String getReference(String blobId) {
-            return blobId;
-        }
-    }
-
 }
