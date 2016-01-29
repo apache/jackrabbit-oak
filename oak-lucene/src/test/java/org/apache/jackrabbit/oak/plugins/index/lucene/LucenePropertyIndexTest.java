@@ -1891,13 +1891,22 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         Tree test = root.getTree("/").addChild("test");
         test.setProperty("tag", "stockphotography:business/business_abstract");
+        Tree test2 = root.getTree("/").addChild("test2");
+        test2.setProperty("tag", "foo!");
         root.commit();
 
         String propabQuery = "select * from [nt:base] where CONTAINS(tag, " +
                 "'stockphotography:business/business_abstract')";
-        assertThat(explain(propabQuery), containsString("lucene:test1(/oak:index/test1)"));
-        assertQuery(propabQuery, asList("/test"));
+        assertPlanAndQuery(propabQuery, "lucene:test1(/oak:index/test1)", asList("/test"));
 
+        String query2 = "select * from [nt:base] where CONTAINS(tag, 'foo!')";
+        assertPlanAndQuery(query2, "lucene:test1(/oak:index/test1)", asList("/test2"));
+
+    }
+
+    private void assertPlanAndQuery(String query, String planExpectation, List<String> paths){
+        assertThat(explain(query), containsString(planExpectation));
+        assertQuery(query, paths);
     }
 
     private static Tree createNodeWithMixinType(Tree t, String nodeName, String typeName){
