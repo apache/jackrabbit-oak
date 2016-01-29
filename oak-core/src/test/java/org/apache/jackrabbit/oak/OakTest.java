@@ -17,19 +17,28 @@
 package org.apache.jackrabbit.oak;
 
 import java.io.Closeable;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.jcr.NoSuchWorkspaceException;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -116,6 +125,30 @@ public class OakTest {
         ((Closeable) repo2).close();
         WhiteboardUtils.scheduleWithFixedDelay(oak2.getWhiteboard(), runnable, 1);
         externalExecutor.shutdown();
+    }
+
+    @Test
+    public void closeAsyncIndexers() throws Exception{
+        final AtomicReference<AsyncIndexUpdate> async = new AtomicReference<AsyncIndexUpdate>();
+        Whiteboard wb = new DefaultWhiteboard(){
+            @Override
+            public <T> Registration register(Class<T> type, T service, Map<?, ?> properties) {
+                if (service instanceof AsyncIndexUpdate){
+                    async.set((AsyncIndexUpdate) service);
+                }
+                return super.register(type, service, properties);
+            }
+        };
+        Oak oak = new Oak()
+                .with(new OpenSecurityProvider())
+                .with(wb)
+                .withAsyncIndexing("foo", 5);
+        ContentRepository repo = oak.createContentRepository();
+
+        ((Closeable)repo).close();
+        assertNotNull(async.get());
+        assertTrue(async.get().isClosed());
+        assertNull(WhiteboardUtils.getService(wb, AsyncIndexUpdate.class));
     }
 
 }
