@@ -35,6 +35,7 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.amazonaws.util.StringUtils;
 
 /**
  * Amazon S3 utilities.
@@ -77,10 +78,20 @@ public final class Utils {
      * @return {@link AmazonS3Client}
      */
     public static AmazonS3Client openService(final Properties prop) {
-        AWSCredentials credentials = new BasicAWSCredentials(
-            prop.getProperty(S3Constants.ACCESS_KEY),
-            prop.getProperty(S3Constants.SECRET_KEY));
-        AmazonS3Client s3service =  new AmazonS3Client(credentials, getClientConfiguration(prop));
+        String accessKey = prop.getProperty(S3Constants.ACCESS_KEY);
+        String secretKey = prop.getProperty(S3Constants.SECRET_KEY);
+        AmazonS3Client s3service = null;
+        if (StringUtils.isNullOrEmpty(accessKey)
+                || StringUtils.isNullOrEmpty(secretKey)) {
+            LOG.info("Configuring Amazon Client from environment");
+            s3service = new AmazonS3Client(getClientConfiguration(prop));
+        } else {
+            LOG.info("Configuring Amazon Client from property file.");
+            AWSCredentials credentials = new BasicAWSCredentials(accessKey,
+                    secretKey);
+            s3service = new AmazonS3Client(credentials,
+                    getClientConfiguration(prop));
+        }
         String region = prop.getProperty(S3Constants.S3_REGION);
         String endpoint = null;
         String propEndPoint = prop.getProperty(S3Constants.S3_END_POINT);
