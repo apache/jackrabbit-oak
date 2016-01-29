@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.run;
 
+import static org.junit.Assert.assertEquals;
+
 import java.net.HttpURLConnection;
 import java.net.URL;
 
@@ -25,26 +27,18 @@ import org.apache.jackrabbit.util.Base64;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.assertEquals;
 
 public class BasicServerTest {
 
-    private static final String SERVER_URL;
-
-    static {
-        String p = System.getProperty("jetty.http.port");
-        if (p != null) {
-            SERVER_URL = "http://localhost:" + p + "/";
-        } else {
-            SERVER_URL = Main.URI;
-        }
+    private static int getPort() {
+        return Integer.getInteger("jetty.http.port", 8080);
     }
 
-    private Main.HttpServer server;
+    private HttpServer server;
 
     @Before
     public void startServer() throws Exception {
-        server = new Main.HttpServer(SERVER_URL);
+        server = new HttpServer(getPort());
     }
 
     @After
@@ -54,10 +48,10 @@ public class BasicServerTest {
 
     @Test
     public void testServerOk() throws Exception {
-        URL server = new URL(SERVER_URL);
+        URL server = new URL("http://localhost:" + getPort());
         HttpURLConnection conn = (HttpURLConnection) server.openConnection();
-        conn.setRequestProperty(
-                "Authorization", "Basic " + Base64.encode("admin:admin"));
+        conn.setRequestProperty("Authorization", "Basic " + Base64.encode("admin:admin"));
         assertEquals(200, conn.getResponseCode());
     }
+
 }
