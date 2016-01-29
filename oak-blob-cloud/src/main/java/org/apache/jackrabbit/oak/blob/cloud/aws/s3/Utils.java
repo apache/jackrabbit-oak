@@ -184,11 +184,25 @@ public final class Utils {
         int socketTimeOut = Integer.parseInt(prop.getProperty(S3Constants.S3_SOCK_TIMEOUT));
         int maxConnections = Integer.parseInt(prop.getProperty(S3Constants.S3_MAX_CONNS));
         int maxErrorRetry = Integer.parseInt(prop.getProperty(S3Constants.S3_MAX_ERR_RETRY));
-        ClientConfiguration cc = new ClientConfiguration();
+
         String protocol = prop.getProperty(S3Constants.S3_CONN_PROTOCOL);
+        String proxyHost = prop.getProperty(S3Constants.PROXY_HOST);
+        String proxyPort = prop.getProperty(S3Constants.PROXY_PORT);
+
+        ClientConfiguration cc = new ClientConfiguration();
+
         if (protocol != null && protocol.equalsIgnoreCase("http")) {
             cc.setProtocol(Protocol.HTTP);
         }
+
+        if (proxyHost != null && !proxyHost.isEmpty()) {
+            cc.setProxyHost(proxyHost);
+        }
+
+        if (proxyPort != null && !proxyPort.isEmpty()) {
+            cc.setProxyPort(Integer.parseInt(proxyPort));
+        }
+
         cc.setConnectionTimeout(connectionTimeOut);
         cc.setSocketTimeout(socketTimeOut);
         cc.setMaxConnections(maxConnections);
