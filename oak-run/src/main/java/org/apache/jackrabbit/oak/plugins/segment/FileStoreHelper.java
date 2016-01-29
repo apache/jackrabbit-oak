@@ -42,6 +42,7 @@ import java.util.UUID;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.JournalReader;
+import org.apache.jackrabbit.oak.plugins.segment.file.tooling.BasicReadOnlyBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 public final class FileStoreHelper {
@@ -51,44 +52,6 @@ public final class FileStoreHelper {
     public static final boolean TAR_STORAGE_MEMORY_MAPPED = Boolean.getBoolean("tar.memoryMapped");
 
     public static final int TAR_SEGMENT_CACHE_SIZE = Integer.getInteger("cache", 256);
-
-    private static class BasicReadOnlyBlobStore implements BlobStore {
-        @Override
-        public String writeBlob(InputStream in) throws IOException {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public int readBlob(String blobId, long pos, byte[] buff, int off,
-                int length) throws IOException {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public long getBlobLength(String blobId) throws IOException {
-            // best effort length extraction
-            int indexOfSep = blobId.lastIndexOf("#");
-            if (indexOfSep != -1) {
-                return Long.valueOf(blobId.substring(indexOfSep + 1));
-            }
-            return -1;
-        }
-
-        @Override
-        public InputStream getInputStream(String blobId) throws IOException {
-            return new ByteArrayInputStream(new byte[0]);
-        }
-
-        @Override
-        public String getBlobId(String reference) {
-            return reference;
-        }
-
-        @Override
-        public String getReference(String blobId) {
-            return blobId;
-        }
-    }
 
     private FileStoreHelper() {
     }
