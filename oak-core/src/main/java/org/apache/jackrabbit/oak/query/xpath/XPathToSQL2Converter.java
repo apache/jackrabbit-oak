@@ -29,6 +29,23 @@ import java.util.ArrayList;
  * This class can can convert a XPATH query to a SQL2 query.
  */
 public class XPathToSQL2Converter {
+    
+    /**
+     * Optimize queries of the form "from [nt:base] where [jcr:primaryType] = 'x'" 
+     * to "from [x] where [jcr:primaryType] = 'x'".
+     * Enabled by default.
+     */
+    public static final boolean NODETYPE_OPTIMIZATION = Boolean.parseBoolean(
+            System.getProperty("oak.xpathNodeTypeOptimization", "true"));
+    
+    /**
+     * Convert queries of the form "where [jcr:primaryType] = 'x' or [jcr:primaryType] = 'y'"
+     * to "select ... where [jcr:primaryType] = 'x' union select ... where [jcr:primaryType] = 'y'". 
+     * If disabled, only one query with "where [jcr:primaryType] in ('x', 'y') is used.
+     * Enabled by default.
+     */
+    public static final boolean NODETYPE_UNION = Boolean.parseBoolean(
+            System.getProperty("oak.xpathNodeTypeUnion", "true"));
 
     static final Logger LOG = LoggerFactory.getLogger(XPathToSQL2Converter.class);
 

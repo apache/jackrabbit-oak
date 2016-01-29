@@ -704,7 +704,7 @@ public class QueryTest extends AbstractRepositoryTest {
         session.save();
         Query q = session.getWorkspace().getQueryManager().createQuery(
                 "/jcr:root/etc//*["+
-                        "(@jcr:primaryType = 'a'  or @jcr:primaryType = 'b') "+
+                        "(@jcr:primaryType = 'nt:file'  or @jcr:primaryType = 'nt:folder') "+
                         "or @nt:resourceType = 'test']", "xpath");
         QueryResult qr = q.execute();
         NodeIterator ni = qr.getNodes();
