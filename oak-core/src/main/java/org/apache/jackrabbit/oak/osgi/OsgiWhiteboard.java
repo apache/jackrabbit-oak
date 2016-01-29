@@ -75,7 +75,7 @@ public class OsgiWhiteboard implements Whiteboard {
         final ServiceRegistration registration =
                 context.registerService(type.getName(), service, dictionary);
         return new Registration() {
-            private boolean unregistered;
+            private volatile boolean unregistered;
             @Override
             public void unregister() {
                 try {
