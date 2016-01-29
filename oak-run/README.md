@@ -26,6 +26,7 @@ The following runmodes are currently available:
     * garbage         : Identifies blob garbage on a DocumentMK repository
     * tarmkdiff       : Show changes between revisions on TarMk
     * tarmkrecovery   : Lists candidates for head journal entries
+    * dumpdatastorerefs : Dump all the blob references used to a file  
     * help            : Print a list of available runmodes
     
 
@@ -956,6 +957,15 @@ The following options are available:
 
     --version-v10           - Uses V10 version repository reading (see OAK-2527)
 
+Oak Dump DataStore References
+-----------------------------
+
+Dumps all the DataStore/BlobStore references used. Use the following commmand
+
+    $ java -jar oak-run-*.jar dumpdatastorerefs \
+            { /path/to/oak/repository | mongodb://host:port/database } [/path/to/dump]
+
+This will create a dump file with name starting with 'marked-'.The dump path is optional and if not specified the file will be created in the user tmp directory.
 
 License
 -------
