@@ -11,6 +11,7 @@ The following runmodes are currently available:
     * server    : Run the Oak Server
     * primary     : Run a TarMK Cold Standby primary instance
     * standby     : Run a TarMK Cold Standby standby instance
+    * dumpdatastorerefs : Dump all the blob references used to a file  
 
 See the subsections below for more details on how to use these modes.
 
@@ -362,3 +363,13 @@ executing. The relevant background thread works like this:
 As you can see, the `run()` method of the background task gets invoked
 repeatedly. Such threads will automatically close once all test iterations
 are done, before the `afterSuite()` method is called.
+
+Oak Dump DataStore References
+-----------------------------
+
+Dumps all the DataStore/BlobStore references used. Use the following commmand
+
+    $ java -jar oak-run-*.jar dumpdatastorerefs \
+            { /path/to/oak/repository | mongodb://host:port/database } [/path/to/dump]
+
+This will create a dump file with name starting with 'marked-'.The dump path is optional and if not specified the file will be created in the user tmp directory.
