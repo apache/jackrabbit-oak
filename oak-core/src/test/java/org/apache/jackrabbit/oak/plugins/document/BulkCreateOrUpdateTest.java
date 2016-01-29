@@ -23,7 +23,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -35,8 +34,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceWrapper;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class BulkCreateOrUpdateTest extends AbstractDocumentStoreTest {
@@ -240,8 +237,6 @@ public class BulkCreateOrUpdateTest extends AbstractDocumentStoreTest {
      */
     @Test
     public void testConcurrentWithConflict() throws InterruptedException {
-        // see OAK-3924
-        assumeTrue(!(ds instanceof RDBDocumentStore));
         int threadCount = 10;
         int amount = 500;
 
