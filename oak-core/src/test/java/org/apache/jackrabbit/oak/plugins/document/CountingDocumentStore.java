@@ -217,7 +217,7 @@ public class CountingDocumentStore implements DocumentStore {
     }
 
     @Override
-    public CacheStats getCacheStats() {
+    public Iterable<CacheStats> getCacheStats() {
         return delegate.getCacheStats();
     }
 

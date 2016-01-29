@@ -137,7 +137,7 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public synchronized CacheStats getCacheStats() {
+    public synchronized Iterable<CacheStats> getCacheStats() {
         return store.getCacheStats();
     }
 

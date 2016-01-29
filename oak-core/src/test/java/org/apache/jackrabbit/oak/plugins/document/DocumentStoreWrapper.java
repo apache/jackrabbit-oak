@@ -151,7 +151,7 @@ public class DocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public CacheStats getCacheStats() {
+    public Iterable<CacheStats> getCacheStats() {
         return store.getCacheStats();
     }
 

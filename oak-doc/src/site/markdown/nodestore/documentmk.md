@@ -467,20 +467,32 @@ can be backed by [persistent cache](persistent-cache.html).
 1. `documentCache` - Document cache is used for caching the `NodeDocument` 
     instance. These are in memory representation of the persistent state. For 
     example in case of Mongo it maps to the Mongo document in `nodes` collection 
-    and for RDB its maps to the row in `NODES` table. 
+    and for RDB its maps to the row in `NODES` table. There is a class of `NodeDocument`
+    (leaf level split documents) which, since `1.3.15` are cached under
+    `prevDocCache` (see below)
     
     Depending on the `DocumentStore` implementation different heuristics are 
     applied for invalidating the cache entries based on changes in backend  
     
-2. `docChildrenCache` - Document Children cache is used to cache the children 
+2. `prevDocCache` - Previous document cache is used for caching the `NodeDocument` 
+    instance representing leaf level split documents. Unlike other type of
+    `NodeDocument`, these are immutable and hence don't require invalidation.
+    If configured, this cache can exploit persistent cache as well.
+    Similar to other `NodeDocument` these are also in memory representation of
+    the persistent state. (since `1.3.15`)
+    
+    Depending on the `DocumentStore` implementation different heuristics are 
+    applied for invalidating the cache entries based on changes in backend  
+    
+3. `docChildrenCache` - Document Children cache is used to cache the children 
     state for a given parent node. This is invalidated completely upon every 
     background read
     
-3. `nodeCache` - Node cache is used to cache the `DocumentNodeState` instances.
+4. `nodeCache` - Node cache is used to cache the `DocumentNodeState` instances.
     These are **immutable** view of `NodeDocument` as seen at a given revision
     hence no consistency checks are to be performed for them
      
-4. `childrenCache` - Children cache is used to cache the children for a given
+5. `childrenCache` - Children cache is used to cache the children for a given
     node. These are also **immutable** and represent the state of children for
     a given parent at certain revision
     
@@ -528,10 +540,11 @@ takes a single config for `cache` which is internally distributed among the
 various caches above in following way
 
 1. `nodeCache` - 25%
-2. `childrenCache` - 10% 
-3. `docChildrenCache` - 3% 
-4. `diffCache` - 5% 
-5. `documentCache` - Is given the rest i.e. 57%
+2. `prevDocCache` - 4% 
+3. `childrenCache` - 10% 
+4. `docChildrenCache` - 3% 
+5. `diffCache` - 5% 
+6. `documentCache` - Is given the rest i.e. 57%
 
 Lately [options are provided][OAK-2546] to have a fine grained control over the 
 distribution. See [Cache Allocation][cache-allocation]

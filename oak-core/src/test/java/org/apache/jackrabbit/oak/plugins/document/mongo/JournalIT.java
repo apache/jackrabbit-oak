@@ -42,6 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 public class JournalIT extends AbstractJournalTest {
 
@@ -66,7 +67,7 @@ public class JournalIT extends AbstractJournalTest {
     public void cacheInvalidationTest() throws Exception {
         final DocumentNodeStore ns1 = createMK(1, 0).getNodeStore();
         final DocumentNodeStore ns2 = createMK(2, 0).getNodeStore();
-        LOG.info("cache size 1: "+(ns1.getDocumentStore().getCacheStats()==null ? "null" : ns1.getDocumentStore().getCacheStats().getElementCount()));
+        LOG.info("cache size 1: " + getCacheElementCount(ns1.getDocumentStore()));
 
         // invalidate both caches under test first
         invalidateDocChildrenCache(ns1);
@@ -74,10 +75,9 @@ public class JournalIT extends AbstractJournalTest {
 
         {
             DocumentStore s = ns1.getDocumentStore();
-            CacheStats cacheStats = s.getCacheStats();
-            LOG.info("m.size="+(cacheStats==null ? "null" : cacheStats.getElementCount()));
+            LOG.info("m.size=" + getCacheElementCount(s));
         }
-        LOG.info("cache size 2: "+(ns1.getDocumentStore().getCacheStats()==null ? "null" : ns1.getDocumentStore().getCacheStats().getElementCount()));
+        LOG.info("cache size 2: " + getCacheElementCount(ns1.getDocumentStore()));
 
         // first create child node in instance 1
         final List<String> paths = createRandomPaths(1, 5000000, 1000);
@@ -97,11 +97,10 @@ public class JournalIT extends AbstractJournalTest {
 
         {
             DocumentStore s = ns1.getDocumentStore();
-            CacheStats cacheStats = s.getCacheStats();
-            LOG.info("m.size="+(cacheStats==null ? "null" : cacheStats.getElementCount()));
+            LOG.info("m.size=" + getCacheElementCount(s));
         }
 
-        LOG.info("cache size 2: "+(ns1.getDocumentStore().getCacheStats()==null ? "null" : ns1.getDocumentStore().getCacheStats().getElementCount()));
+        LOG.info("cache size 2: " + getCacheElementCount(ns1.getDocumentStore()));
         long time = System.currentTimeMillis();
         for(int j=0; j<100; j++) {
             long now = System.currentTimeMillis();
@@ -219,6 +218,19 @@ public class JournalIT extends AbstractJournalTest {
         builder = newDocumentMKBuilder();
         return register(builder.setMongoDB(db)
                 .setClusterId(clusterId).setAsyncDelay(asyncDelay).open());
+    }
+
+    private static long getCacheElementCount(DocumentStore ds) {
+        if (ds.getCacheStats() == null) {
+            return -1;
+        }
+
+        long count = 0;
+        for (CacheStats cacheStats : ds.getCacheStats()) {
+            count += cacheStats.getElementCount();
+        }
+
+        return count;
     }
 
 }

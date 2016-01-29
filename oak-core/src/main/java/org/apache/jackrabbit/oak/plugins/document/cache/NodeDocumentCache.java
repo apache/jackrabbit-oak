@@ -28,6 +28,8 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -38,22 +40,36 @@ import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import com.google.common.base.Objects;
 import com.google.common.cache.Cache;
 
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isLeafPreviousDocId;
+
 /**
  * Cache for the NodeDocuments. This class is thread-safe and uses the provided NodeDocumentLock.
  */
 public class NodeDocumentCache implements Closeable {
 
-    private final Cache<CacheValue, NodeDocument> nodesCache;
+    private final Cache<CacheValue, NodeDocument> nodeDocumentsCache;
 
-    private final CacheStats cacheStats;
+    private final CacheStats nodeDocumentsCacheStats;
+
+    /**
+     * The previous documents cache
+     *
+     * Key: StringValue, value: NodeDocument
+     */
+    private final Cache<StringValue, NodeDocument> prevDocumentsCache;
+    private final CacheStats prevDocumentsCacheStats;
 
     private final NodeDocumentLocks locks;
 
-    public NodeDocumentCache(@Nonnull Cache<CacheValue, NodeDocument> nodesCache,
-                             @Nonnull CacheStats cacheStats,
+    public NodeDocumentCache(@Nonnull Cache<CacheValue, NodeDocument> nodeDocumentsCache,
+                             @Nonnull CacheStats nodeDocumentsCacheStats,
+                             @Nonnull Cache<StringValue, NodeDocument> prevDocumentsCache,
+                             @Nonnull CacheStats prevDocumentsCacheStats,
                              @Nonnull NodeDocumentLocks locks) {
-        this.nodesCache = nodesCache;
-        this.cacheStats = cacheStats;
+        this.nodeDocumentsCache = nodeDocumentsCache;
+        this.nodeDocumentsCacheStats = nodeDocumentsCacheStats;
+        this.prevDocumentsCache = prevDocumentsCache;
+        this.prevDocumentsCacheStats = prevDocumentsCacheStats;
         this.locks = locks;
     }
 
@@ -65,7 +81,11 @@ public class NodeDocumentCache implements Closeable {
     public void invalidate(@Nonnull String key) {
         Lock lock = locks.acquire(key);
         try {
-            nodesCache.invalidate(new StringValue(key));
+            if (isLeafPreviousDocId(key)) {
+                prevDocumentsCache.invalidate(new StringValue(key));
+            } else {
+                nodeDocumentsCache.invalidate(new StringValue(key));
+            }
         } finally {
             lock.unlock();
         }
@@ -104,7 +124,11 @@ public class NodeDocumentCache implements Closeable {
      */
     @CheckForNull
     public NodeDocument getIfPresent(@Nonnull String key) {
-        return nodesCache.getIfPresent(new StringValue(key));
+        if (isLeafPreviousDocId(key)) {
+            return prevDocumentsCache.getIfPresent(new StringValue(key));
+        } else {
+            return nodeDocumentsCache.getIfPresent(new StringValue(key));
+        }
     }
 
     /**
@@ -119,7 +143,11 @@ public class NodeDocumentCache implements Closeable {
     @Nonnull
     public NodeDocument get(@Nonnull String key, @Nonnull Callable<NodeDocument> valueLoader)
             throws ExecutionException {
-        return nodesCache.get(new StringValue(key), valueLoader);
+        if (isLeafPreviousDocId(key)) {
+            return prevDocumentsCache.get(new StringValue(key), valueLoader);
+        } else {
+            return nodeDocumentsCache.get(new StringValue(key), valueLoader);
+        }
     }
 
     /**
@@ -243,7 +271,6 @@ public class NodeDocumentCache implements Closeable {
             throw new IllegalArgumentException("doc must not be NULL document");
         }
         String key = oldDoc.getId();
-
         Lock lock = locks.acquire(key);
         try {
             NodeDocument cached = getIfPresent(key);
@@ -265,21 +292,30 @@ public class NodeDocumentCache implements Closeable {
     }
 
     /**
-     * Returns a view of the entries stored in this cache as a thread-safe map.
-     * Modifications made to the map directly affect the cache.
+     * @return keys stored in cache
      */
-    public Map<CacheValue, NodeDocument> asMap() {
-        return nodesCache.asMap();
+    public Iterable<CacheValue> keys() {
+        return Iterables.concat(nodeDocumentsCache.asMap().keySet(), prevDocumentsCache.asMap().keySet());
     }
 
-    public CacheStats getCacheStats() {
-        return cacheStats;
+    /**
+     * @return values stored in cache
+     */
+    public Iterable<NodeDocument> values() {
+        return Iterables.concat(nodeDocumentsCache.asMap().values(), prevDocumentsCache.asMap().values());
+    }
+
+    public Iterable<CacheStats> getCacheStats() {
+        return Lists.newArrayList(nodeDocumentsCacheStats, prevDocumentsCacheStats);
     }
 
     @Override
     public void close() throws IOException {
-        if (nodesCache instanceof Closeable) {
-            ((Closeable) nodesCache).close();
+        if (prevDocumentsCache instanceof Closeable) {
+            ((Closeable) prevDocumentsCache).close();
+        }
+        if (nodeDocumentsCache instanceof Closeable) {
+            ((Closeable) nodeDocumentsCache).close();
         }
     }
 
@@ -291,6 +327,10 @@ public class NodeDocumentCache implements Closeable {
      * @param doc the document to put into the cache.
      */
     protected final void putInternal(@Nonnull NodeDocument doc) {
-        nodesCache.put(new StringValue(doc.getId()), doc);
+        if (isLeafPreviousDocId(doc.getId())) {
+            prevDocumentsCache.put(new StringValue(doc.getId()), doc);
+        } else {
+            nodeDocumentsCache.put(new StringValue(doc.getId()), doc);
+        }
     }
 }

@@ -486,7 +486,7 @@ public class RDBDocumentStore implements DocumentStore {
 
     @Override
     public CacheInvalidationStats invalidateCache() {
-        for (NodeDocument nd : nodesCache.asMap().values()) {
+        for (NodeDocument nd : nodesCache.values()) {
             nd.markUpToDate(0);
         }
         return null;
@@ -658,7 +658,7 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     @Override
-    public CacheStats getCacheStats() {
+    public Iterable<CacheStats> getCacheStats() {
         return nodesCache.getCacheStats();
     }
 

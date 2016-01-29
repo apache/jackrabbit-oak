@@ -329,7 +329,7 @@ public interface DocumentStore {
      * @return status information about the cache
      */
     @CheckForNull
-    CacheStats getCacheStats();
+    Iterable<CacheStats> getCacheStats();
 
     /**
      * @return description of the underlying storage.

@@ -331,12 +331,12 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public CacheStats getCacheStats() {
+    public Iterable<CacheStats> getCacheStats() {
         try {
             logMethod("getCacheStats");
-            return logResult(new Callable<CacheStats>() {
+            return logResult(new Callable<Iterable<CacheStats>>() {
                 @Override
-                public CacheStats call() throws Exception {
+                public Iterable<CacheStats> call() throws Exception {
                     return store.getCacheStats();
                 }
             });
