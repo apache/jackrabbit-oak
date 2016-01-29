@@ -228,7 +228,7 @@ public class S3Backend implements SharedS3Backend {
             ObjectMetadata objectMetaData = s3service.getObjectMetadata(bucket,
                 key);
             if (objectMetaData != null) {
-                LOG.debug("exists [{}]: [true] took [{}] ms.",
+                LOG.trace("exists [{}]: [true] took [{}] ms.",
                     identifier, (System.currentTimeMillis() - start) );
                 return true;
             }
@@ -354,7 +354,7 @@ public class S3Backend implements SharedS3Backend {
                 LOG.debug("[{}] touched. time taken [{}] ms ", new Object[] {
                     identifier, (System.currentTimeMillis() - start) });
             } else {
-                LOG.debug("[{}] touch not required. time taken [{}] ms ",
+                LOG.trace("[{}] touch not required. time taken [{}] ms ",
                     new Object[] { identifier,
                         (System.currentTimeMillis() - start) });
             }
