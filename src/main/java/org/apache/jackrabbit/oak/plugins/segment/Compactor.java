@@ -363,9 +363,8 @@ public class Compactor {
                                     id.getSegmentId());
                     if (!clone) {
                         for (SegmentId bid : SegmentBlob.getBulkSegmentIds(sb)) {
-                            clone = clone
-                                    || !tracker.getStore().containsSegment(bid);
-                            if (clone) {
+                            if (!tracker.getStore().containsSegment(bid)) {
+                                clone = true;
                                 break;
                             }
                         }
