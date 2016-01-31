@@ -31,6 +31,7 @@ import io.netty.handler.codec.compression.SnappyFramedDecoder;
 import io.netty.handler.codec.string.StringEncoder;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.util.CharsetUtil;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import io.netty.util.concurrent.EventExecutorGroup;
@@ -162,6 +163,8 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
                     if (sslContext != null) {
                         p.addLast(sslContext.newHandler(ch.alloc()));
                     }
+                    p.addLast("readTimeoutHandler", new ReadTimeoutHandler(
+                            readTimeoutMs, TimeUnit.MILLISECONDS));
                     p.addLast(new StringEncoder(CharsetUtil.UTF_8));
                     p.addLast(new SnappyFramedDecoder(true));
                     p.addLast(new RecordIdDecoder(store));

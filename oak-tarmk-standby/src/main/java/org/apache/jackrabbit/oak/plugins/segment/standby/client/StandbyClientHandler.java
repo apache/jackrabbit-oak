@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.oak.plugins.segment.standby.codec.Messages.n
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import io.netty.util.concurrent.EventExecutorGroup;
 
@@ -90,6 +91,7 @@ public class StandbyClientHandler extends SimpleChannelInboundHandler<RecordId>
         }
 
         log.debug("updating current head to " + head);
+        ctx.pipeline().remove(ReadTimeoutHandler.class);
         ctx.pipeline().remove(RecordIdDecoder.class);
         ctx.pipeline().remove(this);
         ctx.pipeline().addLast(new ReplyDecoder(store));
