@@ -89,7 +89,6 @@
           </systemPropertyVariables>
           <excludes>
             <!-- excluding long running tests -->
-            <exclude>**/FailoverIPRangeTest.java</exclude>
             <exclude>**/BulkTest.java</exclude>
             <exclude>**/MBeanTest.java</exclude>
           </excludes>
