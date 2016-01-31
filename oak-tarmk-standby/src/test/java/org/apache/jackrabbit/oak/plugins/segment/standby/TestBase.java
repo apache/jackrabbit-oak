@@ -44,7 +44,7 @@ public class TestBase {
 
     final static String LOCALHOST = "127.0.0.1";
 
-    static final int timeout = Integer.getInteger("standby.test.timeout", 150);
+    static final int timeout = Integer.getInteger("standby.test.timeout", 300);
 
     private static final Set<Fixture> FIXTURES = FixturesHelper.getFixtures();
 
