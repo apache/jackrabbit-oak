@@ -154,10 +154,10 @@ public class StandbyServer implements StandbyStatusMBean, Closeable {
             log.error("can't unregister standby status mbean", e);
         }
         if (bossGroup != null && !bossGroup.isShuttingDown()) {
-            bossGroup.shutdownGracefully(1, 2, TimeUnit.SECONDS).syncUninterruptibly();
+            bossGroup.shutdownGracefully(0, 1, TimeUnit.SECONDS).syncUninterruptibly();
         }
         if (workerGroup != null && !workerGroup.isShuttingDown()) {
-            workerGroup.shutdownGracefully(1, 2, TimeUnit.SECONDS).syncUninterruptibly();
+            workerGroup.shutdownGracefully(0, 1, TimeUnit.SECONDS).syncUninterruptibly();
         }
         handler.state = STATUS_CLOSED;
     }

@@ -150,7 +150,7 @@ public class FailoverIPRangeTest extends TestBase {
         addTestContent(store, "server");
         storeS.flush();  // this speeds up the test a little bit...
 
-        StandbyClient cl = new StandbyClient(host, port, storeC);
+        StandbyClient cl = newStandbyClient(storeC);
         cl.run();
 
         try {

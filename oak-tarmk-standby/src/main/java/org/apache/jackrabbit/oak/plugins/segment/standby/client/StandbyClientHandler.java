@@ -122,7 +122,7 @@ public class StandbyClientHandler extends SimpleChannelInboundHandler<RecordId>
             ctx = null;
         }
         if (loaderExecutor != null && !loaderExecutor.isShuttingDown()) {
-            loaderExecutor.shutdownGracefully(1, 1, TimeUnit.SECONDS)
+            loaderExecutor.shutdownGracefully(0, 1, TimeUnit.SECONDS)
                     .syncUninterruptibly();
         }
     }

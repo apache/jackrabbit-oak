@@ -31,11 +31,20 @@ import org.apache.jackrabbit.oak.commons.CIHelper;
 import org.apache.jackrabbit.oak.commons.FixturesHelper;
 import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.plugins.segment.standby.client.StandbyClient;
 import org.junit.BeforeClass;
 
 public class TestBase {
-    int port = Integer.valueOf(System.getProperty("standby.server.port", "52800"));
+
+    static final int port = Integer.getInteger("standby.server.port",
+            52800);
+
+    static final int proxyPort = Integer.getInteger(
+            "standby.proxy.port", 51913);
+
     final static String LOCALHOST = "127.0.0.1";
+
+    static final int timeout = Integer.getInteger("standby.test.timeout", 150);
 
     private static final Set<Fixture> FIXTURES = FixturesHelper.getFixtures();
 
@@ -94,10 +103,6 @@ public class TestBase {
         return storeC;
     }
 
-    protected int getPort() {
-        return port;
-    }
-
     public void setUpServerAndTwoClients() throws Exception {
         setUpServerAndClient();
 
@@ -123,4 +128,23 @@ public class TestBase {
         } catch (IOException e) {
         }
     }
+
+    public static int getTestTimeout() {
+        return timeout;
+    }
+
+    public StandbyClient newStandbyClient(FileStore store) throws Exception {
+        return newStandbyClient(store, port, false);
+    }
+
+    public StandbyClient newStandbyClient(FileStore store, int port)
+            throws Exception {
+        return newStandbyClient(store, port, false);
+    }
+
+    public StandbyClient newStandbyClient(FileStore store, int port,
+            boolean secure) throws Exception {
+        return new StandbyClient(LOCALHOST, port, store, secure, timeout, false);
+    }
+
 }
