@@ -85,24 +85,25 @@ public class StandbyTestIT extends TestBase {
      */
     @Test
     public void testSyncLoop() throws Exception {
-        final int mb = 1 * 1024 * 1024;
-        final int blobSize = 5 * mb;
+        final int blobSize = 25 * 1024;
         final int dataNodes = 5000;
 
         FileStore primary = getPrimary();
         FileStore secondary = getSecondary();
 
         NodeStore store = new SegmentNodeStore(primary);
-        final StandbyServer server = new StandbyServer(getPort(), primary);
+        final StandbyServer server = new StandbyServer(port, primary);
         server.start();
         byte[] data = addTestContent(store, "server", blobSize, dataNodes);
+        primary.flush();
 
-        StandbyClient cl = new StandbyClient("127.0.0.1", getPort(), secondary);
+        StandbyClient cl = newStandbyClient(secondary);
 
         try {
 
             for (int i = 0; i < 5; i++) {
                 String cp = store.checkpoint(Long.MAX_VALUE);
+                primary.flush();
                 cl.run();
                 assertEquals(primary.getHead(), secondary.getHead());
                 assertTrue(store.release(cp));

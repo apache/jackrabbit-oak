@@ -83,7 +83,7 @@ public class MBeanTest extends TestBase {
 
     @Test
     public void testClientEmptyConfigNoServer() throws Exception {
-        final StandbyClient client = new StandbyClient("127.0.0.1", this.port, this.storeC);
+        final StandbyClient client = newStandbyClient(storeC);
         client.start();
 
         final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
@@ -120,7 +120,7 @@ public class MBeanTest extends TestBase {
     @Test
     public void testClientNoServer() throws Exception {
         System.setProperty(StandbyClient.CLIENT_ID_PROPERTY_NAME, "Foo");
-        final StandbyClient client = new StandbyClient("127.0.0.1", this.port, this.storeC);
+        final StandbyClient client = newStandbyClient(storeC);
         client.start();
 
         final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
@@ -144,11 +144,11 @@ public class MBeanTest extends TestBase {
     @Test
     @Ignore("OAK-2086")
     public void testClientAndServerEmptyConfig() throws Exception {
-        final StandbyServer server = new StandbyServer(this.port, this.storeS);
+        final StandbyServer server = new StandbyServer(port, this.storeS);
         server.start();
 
         System.setProperty(StandbyClient.CLIENT_ID_PROPERTY_NAME, "Bar");
-        final StandbyClient client = new StandbyClient("127.0.0.1", this.port, this.storeC);
+        final StandbyClient client = newStandbyClient(storeC);
         client.start();
 
         final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
