@@ -66,7 +66,7 @@ class StandbyCommand implements Command {
                     options.has(host)? options.valueOf(host) : defaultHost,
                     options.has(port)? options.valueOf(port) : defaultPort,
                     store,
-                    options.has(secure) && options.valueOf(secure), 10000);
+                    options.has(secure) && options.valueOf(secure), 10000, false);
             if (!options.has(interval)) {
                 failoverClient.run();
             } else {
