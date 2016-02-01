@@ -16,16 +16,22 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import static com.google.common.collect.ImmutableSet.of;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.UnsupportedEncodingException;
+import java.sql.BatchUpdateException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentStoreTest;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -49,7 +55,7 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
         // https://issues.apache.org/jira/browse/OAK-3938
         assumeTrue(super.dsf != DocumentStoreFixture.RDB_ORACLE);
 
-        String table = ((RDBDocumentStore)super.ds).getTable(Collection.NODES).getName();
+        String table = ((RDBDocumentStore) super.ds).getTable(Collection.NODES).getName();
 
         Connection con = super.rdbDataSource.getConnection();
         con.setReadOnly(false);
@@ -84,7 +90,8 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
             batchSt.close();
             con.commit();
 
-            // System.out.println(super.dsname + " " + Arrays.toString(batchResult));
+            // System.out.println(super.dsname + " " +
+            // Arrays.toString(batchResult));
 
             assertEquals(3, batchResult.length);
             assertFalse("Row was updated although not present, status: " + batchResult[0], isSuccess(batchResult[0]));
@@ -95,12 +102,88 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
         }
     }
 
+    @Test
+    public void batchFailingInsertResult() throws SQLException {
+
+        // https://issues.apache.org/jira/browse/OAK-3937
+        assumeTrue(super.dsf != DocumentStoreFixture.RDB_PG);
+
+        String table = ((RDBDocumentStore) super.ds).getTable(Collection.NODES).getName();
+
+        Connection con = super.rdbDataSource.getConnection();
+        con.setReadOnly(false);
+        try {
+            PreparedStatement st = con.prepareStatement("DELETE FROM " + table + " WHERE ID in (?, ?, ?)");
+            setIdInStatement(st, 1, "key-1");
+            setIdInStatement(st, 2, "key-2");
+            setIdInStatement(st, 3, "key-3");
+            st.executeUpdate();
+            st.close();
+            con.commit();
+
+            removeMe.add("key-3");
+
+            st = con.prepareStatement("INSERT INTO " + table + " (id) VALUES (?)");
+            setIdInStatement(st, 1, "key-3");
+            st.executeUpdate();
+            st.close();
+            con.commit();
+
+            removeMe.add("key-1");
+            removeMe.add("key-2");
+
+            PreparedStatement batchSt = con.prepareStatement("INSERT INTO " + table + " (id) VALUES (?)");
+            setIdInStatement(batchSt, 1, "key-1");
+            batchSt.addBatch();
+
+            setIdInStatement(batchSt, 1, "key-2");
+            batchSt.addBatch();
+
+            setIdInStatement(batchSt, 1, "key-3");
+            batchSt.addBatch();
+
+            int[] batchResult = null;
+            try {
+                batchSt.executeBatch();
+                fail("Batch operation should fail");
+            } catch (BatchUpdateException e) {
+                batchResult = e.getUpdateCounts();
+            }
+            batchSt.close();
+            con.commit();
+
+            // System.out.println(super.dsname + " " + Arrays.toString(batchResult));
+
+            assertTrue(batchResult.length >= 2);
+            assertTrue("Row should be inserted correctly.", isSuccess(batchResult[0]));
+            assertTrue("Row should be inserted correctly.", isSuccess(batchResult[1]));
+            if (batchResult.length == 3) {
+                assertTrue("Row already exists, shouldn't be inserted.", !isSuccess(batchResult[2]));
+            }
+
+            PreparedStatement rst = con.prepareStatement("SELECT id FROM " + table + " WHERE id in (?, ?, ?)");
+            setIdInStatement(rst, 1, "key-1");
+            setIdInStatement(rst, 2, "key-2");
+            setIdInStatement(rst, 3, "key-3");
+            ResultSet results = rst.executeQuery();
+            Set<String> ids = new HashSet<String>();
+            while (results.next()) {
+                ids.add(getIdFromRS(results, 1));
+            }
+            results.close();
+            rst.close();
+            assertEquals("Some of the rows weren't inserted.", of("key-1", "key-2", "key-3"), ids);
+        } finally {
+            con.close();
+        }
+    }
+
     private static boolean isSuccess(int result) {
         return result == 1 || result == Statement.SUCCESS_NO_INFO;
     }
 
     private void setIdInStatement(PreparedStatement stmt, int idx, String id) throws SQLException {
-        boolean binaryId = ((RDBDocumentStore)super.ds).getTable(Collection.NODES).isIdBinary();
+        boolean binaryId = ((RDBDocumentStore) super.ds).getTable(Collection.NODES).isIdBinary();
         if (binaryId) {
             try {
                 stmt.setBytes(idx, id.getBytes("UTF-8"));
@@ -109,6 +192,19 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
             }
         } else {
             stmt.setString(idx, id);
+        }
+    }
+
+    private String getIdFromRS(ResultSet rs, int idx) throws SQLException {
+        boolean binaryId = ((RDBDocumentStore) super.ds).getTable(Collection.NODES).isIdBinary();
+        if (binaryId) {
+            try {
+                return new String(rs.getBytes(idx), "UTF-8");
+            } catch (UnsupportedEncodingException ex) {
+                throw new DocumentStoreException(ex);
+            }
+        } else {
+            return rs.getString(idx);
         }
     }
 }

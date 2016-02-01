@@ -302,7 +302,11 @@ public class RDBDocumentStoreJDBC {
             results = stmt.executeBatch();
         } catch (BatchUpdateException ex) {
             LOG.debug("Some of the batch updates failed", ex);
-            results = ex.getUpdateCounts();
+            if (this.dbInfo == RDBDocumentStoreDB.POSTGRES) {
+                results = new int[0];
+            } else {
+                results = ex.getUpdateCounts();
+            }
         } finally {
             stmt.close();
         }
