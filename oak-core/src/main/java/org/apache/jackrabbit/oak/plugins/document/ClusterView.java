@@ -180,7 +180,7 @@ class ClusterView {
         builder.object();
         builder.key("seq").value(viewSeqNum);
         builder.key("final").value(viewFinal);
-        builder.key("id").value(clusterViewId);
+//        builder.key("id").value(clusterViewId);
         builder.key("me").value(localId);
         builder.key("active").array();
         for (Iterator<Integer> it = activeIds.iterator(); it.hasNext();) {
