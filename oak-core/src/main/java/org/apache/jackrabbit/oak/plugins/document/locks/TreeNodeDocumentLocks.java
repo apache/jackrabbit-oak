@@ -18,10 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document.locks;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
@@ -78,9 +75,8 @@ public class TreeNodeDocumentLocks implements NodeDocumentLocks {
     /**
      * This implementation creates two sequences of locks (for the keys and for
      * the their parents) using {@link #locks} and {@link #parentLocks}. Then
-     * both sequences are zipped into pairs (parentLock, lock) and passed to the
-     * {@link TreeLock#shared(ReadWriteLock, Lock)}. After that all tree locks
-     * are acquired.
+     * all parent locks are acquired first and in a second step the locks for
+     * the actual keys.
      * <p>
      * Since we only acquire a parentLock.read, there's no danger of
      * deadlock caused by interleaving locks from two different stripes by two
@@ -99,14 +95,11 @@ public class TreeNodeDocumentLocks implements NodeDocumentLocks {
                 return getParentId(keys);
             }
         });
-        Iterator<Lock> lockIt = locks.bulkGet(keys).iterator();
-        Iterator<ReadWriteLock> parentLockIt = parentLocks.bulkGet(parentKeys).iterator();
 
-        List<Lock> acquired = new ArrayList<Lock>(keys.size());
-        while (lockIt.hasNext()) {
-            acquired.add(TreeLock.shared(parentLockIt.next(), lockIt.next()));
-        }
-        Lock lock = new BulkLock(acquired);
+        ReadWriteLock bulkParentLock = new BulkReadWriteLock(parentLocks.bulkGet(parentKeys));
+        Lock bulkChildrenLock = new BulkLock(locks.bulkGet(keys));
+
+        Lock lock = TreeLock.shared(bulkParentLock, bulkChildrenLock);
         lock.lock();
         return lock;
     }
