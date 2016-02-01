@@ -25,6 +25,7 @@ import static org.apache.jackrabbit.oak.management.ManagementOperation.done;
 import static org.apache.jackrabbit.oak.management.ManagementOperation.newManagementOperation;
 import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.formatTime;
 import static org.apache.jackrabbit.oak.plugins.backup.FileStoreBackup.backup;
+import static org.apache.jackrabbit.oak.plugins.backup.FileStoreRestore.restore;
 
 import java.io.File;
 import java.util.concurrent.Callable;
@@ -93,7 +94,9 @@ public class FileStoreBackupRestore implements FileStoreBackupRestoreMBean {
             restoreOp = newManagementOperation("Restore", new Callable<String>() {
                 @Override
                 public String call() throws Exception {
-                    return "Restore not available as an online operation.";
+                    long t0 = nanoTime();
+                    restore(file, store);
+                    return "Restore completed in " + formatTime(nanoTime() - t0);
                 }
             });
             executor.execute(restoreOp);
