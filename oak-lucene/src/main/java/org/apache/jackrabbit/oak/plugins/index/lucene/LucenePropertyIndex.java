@@ -1340,7 +1340,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
     /**
      * Following chars are used as operators in Lucene Query and should be escaped
      */
-    private static final char[] LUCENE_QUERY_OPERATORS = {':' , '/', '!', '&', '|', '[', ']', '{', '}'};
+    private static final char[] LUCENE_QUERY_OPERATORS = {':' , '/', '!', '&', '|'};
 
     /**
      * Following logic is taken from org.apache.jackrabbit.core.query.lucene.JackrabbitQueryParser#parse(java.lang.String)
