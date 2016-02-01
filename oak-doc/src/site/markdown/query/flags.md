@@ -15,31 +15,21 @@
    limitations under the License.
   -->
 
-## Oak Query
+## Flags
 
-Oak does not index as much content by default as does Jackrabbit
-2. You need to create custom indexes when necessary, much like in
-traditional RDBMSs. If there is no index for a specific query, then
-the repository will be traversed. That is, the query will still work
-but probably be very slow.
+List of available flags to enable/disable options in the query engine
 
-* [The Query Engine](./query-engine.html)
-* [Flags](./flags.html)
+#### oak.queryFullTextComparisonWithoutIndex
+`@since 1.2.0` 
 
-### Indexes
+Default is `false`. If provided on the command line like
+`-Doak.queryFullTextComparisonWithoutIndex=true` it will allow the
+query engine to parse full text conditions even if no full-text
+indexes are defined.
 
-There are 3 main types of indexes available in Oak. For other type
-(eg: nodetype) please refer to the [query engine](./query-engine.html)
-documentation page.
+#### oak.query.sql2optimisation
+`@since 1.3.9, 1.3.11`
 
-* [Lucene](./lucene.html)
-* [Solr](./solr.html)
-* [Property](./property-index.html)
-
-### Customisations
-
-* [Change Out-Of-The-Box Index Definitions](./ootb-index-change.html)
-
-
-
+It will perform another round of optimisation to the provided
+query. See the [related section in Query Engine](query-engine.html#SQL2_Optimisation) page.
 

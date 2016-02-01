@@ -349,7 +349,9 @@ entire Lucene directory to the local file system and browse it using a dedicated
 
     @since 1.3.9 with -Doak.query.sql2optimisation
 
-if enabled by providing `-Doak.query.sql2optimisation` at start-up, it
-will perform a round of optimisation on the `Query` object obtained
-after parsing a SQL2 statement. It will for example attempt a
-conversion of OR conditions into UNION (OAK-1617).
+Enabled by default in 1.3.11 it will perform a round of optimisation
+on the `Query` object obtained after parsing a SQL2 statement. It will
+for example attempt a conversion of OR conditions into UNION
+[OAK-1617](https://issues.apache.org/jira/browse/OAK-1617).
+
+To disable it provide `-Doak.query.sql2optimisation=false` at the start-up.
