@@ -122,8 +122,13 @@ public class SegmentDiscoveryLiteService {
     private String getClusterViewAsDescriptorValue() {
         // since currently segment node store is not running in a cluster
         // we can hard-code a single-vm descriptor here:
-        // {"seq":4,"final":true,"id":"d8cb272f-28d8-4c2b-bacd-e8f20feec6db","me":1,"active":[1],"deactivating":[],"inactive":[2]}
-        return "{\"seq\":1,\"final\":true,\"id\":\""+runtimeClusterId+"\",\"me\":1,\"active\":[1],\"deactivating\":[],\"inactive\":[]}";
+        // {"seq":4,"final":true,"me":1,"active":[1],"deactivating":[],"inactive":[2]}
+        // OAK-3672 : 'id' is now allowed to be null (supported by upper layers),
+        //            and for tarMk we're doing exactly that (id==null) - indicating
+        //            to upper layers that we're not really in a cluster and that
+        //            this low level descriptor doesn't manage the 'cluster id' 
+        //            in such a case.
+        return "{\"seq\":1,\"final\":true,\"me\":1,\"active\":[1],\"deactivating\":[],\"inactive\":[]}";
     }
 
     /**
