@@ -239,10 +239,10 @@ public class DocumentNodeStoreTest {
         final Semaphore created = new Semaphore(0);
         DocumentStore docStore = new MemoryDocumentStore() {
             @Override
-            public <T extends Document> boolean create(Collection<T> collection,
-                                                       List<UpdateOp> updateOps) {
+            public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
+                                                               List<UpdateOp> updateOps) {
                 Semaphore semaphore = locks.get(Thread.currentThread());
-                boolean result = super.create(collection, updateOps);
+                List<T> result = super.createOrUpdate(collection, updateOps);
                 if (semaphore != null) {
                     created.release();
                     semaphore.acquireUninterruptibly();
