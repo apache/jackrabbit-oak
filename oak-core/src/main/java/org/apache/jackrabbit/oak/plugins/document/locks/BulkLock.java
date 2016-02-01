@@ -23,6 +23,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
+import com.google.common.collect.Lists;
+
 /**
  * This class exposes a list of locks as a single Lock instance.
  */
@@ -30,8 +32,8 @@ class BulkLock implements Lock {
 
     private final List<Lock> locks;
 
-    public BulkLock(List<Lock> locks) {
-        this.locks = locks;
+    public BulkLock(Iterable<Lock> locks) {
+        this.locks = Lists.newArrayList(locks);
     }
 
     @Override
