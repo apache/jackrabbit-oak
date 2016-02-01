@@ -293,15 +293,13 @@ More / different spellcheckers can be configured in Solr, as per [reference docu
 
 `@since Oak 1.3.14`
 
-In order to enable proper usage of facets in Solr index the following fields need to be added to the _schema.xml_
+In order to enable proper usage of facets in Solr index the following dynamic field needs to be added to the _schema.xml_
 
         <dynamicField name="*_facet" type="string" indexed="false" stored="false" docValues="true" multiValued="true"/>
 
-with either a match all _copyField_ or specific ones.
+with dedicated _copyFields_ for specific properties.
 
-        <copyField source="tags" dest="tags_facet"/> <!-- facet on tags field/property -->
-        
-        <copyField source="*" dest="*_facet"/> <!-- facet on all fields/properties -->
+        <copyField source="jcr:primaryType" dest="jcr:primaryType_facet"/> <!-- facet on jcr:primaryType field/property -->
 
 #### Notes
 As of Oak version 1.0.0:
