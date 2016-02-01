@@ -37,6 +37,7 @@ import java.util.Set;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.JournalReader;
@@ -222,7 +223,7 @@ public class ConsistencyChecker {
         if (length < 0) {
             length = Long.MAX_VALUE;
         }
-        if (length > 0) {
+        if (length > 0 && !isExternal(blob)) {
             InputStream s = blob.getNewStream();
             try {
                 byte[] buffer = new byte[8192];
@@ -234,6 +235,13 @@ public class ConsistencyChecker {
                 s.close();
             }
         }
+    }
+
+    private static boolean isExternal(Blob b) {
+        if (b instanceof SegmentBlob) {
+            return ((SegmentBlob) b).isExternal();
+        }
+        return false;
     }
 
     public void close() {
