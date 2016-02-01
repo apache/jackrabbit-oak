@@ -71,11 +71,11 @@ public class TestBase {
 
     public void setUpServerAndClient() throws IOException {
         // server
-        directoryS = createTmpTargetDir("FailoverServerTest");
+        directoryS = createTmpTargetDir(getClass().getSimpleName()+"-Server");
         storeS = setupPrimary(directoryS);
 
         // client
-        directoryC = createTmpTargetDir("FailoverClientTest");
+        directoryC = createTmpTargetDir(getClass().getSimpleName()+"-Client");
         storeC = setupSecondary(directoryC);
     }
 
@@ -106,7 +106,7 @@ public class TestBase {
     public void setUpServerAndTwoClients() throws Exception {
         setUpServerAndClient();
 
-        directoryC2 = createTmpTargetDir("FailoverClient2Test");
+        directoryC2 = createTmpTargetDir(getClass().getSimpleName()+"-Client2");
         storeC2 = newFileStore(directoryC2);
     }
 
