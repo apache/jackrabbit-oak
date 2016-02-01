@@ -22,7 +22,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -215,8 +214,6 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
 
     @Test
     public void concurrentBatchUpdate() throws Exception {
-        // OAK-3924 and OAK-3937
-        assumeTrue(dsf == DocumentStoreFixture.MONGO);
         final CountDownLatch ready = new CountDownLatch(2);
         final CountDownLatch go = new CountDownLatch(1);
         final List<String> ids = Lists.newArrayList();
@@ -249,7 +246,7 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
                     exceptions.add(e);
                 }
             }
-        });
+        }, "t1");
         final Map<String, NodeDocument> result2 = Maps.newHashMap();
         Thread t2 = new Thread(new Runnable() {
             @Override
@@ -274,7 +271,7 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
                     exceptions.add(e);
                 }
             }
-        });
+        }, "t2");
         t1.start();
         t2.start();
         ready.await();
@@ -290,7 +287,7 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
             if (d1 != null) {
                 assertNull(d2);
             } else {
-                assertNotNull(d2);
+                assertNotNull("id " + id + " is in neither result set", d2);
             }
         }
     }
