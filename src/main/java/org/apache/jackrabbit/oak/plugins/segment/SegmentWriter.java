@@ -92,22 +92,45 @@ public class SegmentWriter {
 
     private final SegmentBufferWriterPool segmentBufferWriterPool = new SegmentBufferWriterPool();
 
+    private static final int STRING_RECORDS_CACHE_SIZE = Integer.getInteger(
+            "oak.segment.writer.stringsCacheSize", 15000);
+
     /**
-     * Cache of recently stored string and template records, used to
-     * avoid storing duplicates of frequently occurring data.
+     * Cache of recently stored string records, used to avoid storing duplicates
+     * of frequently occurring data.
      */
-    private final Map<Object, RecordId> records =
-        new LinkedHashMap<Object, RecordId>(15000, 0.75f, true) {
+    final Map<String, RecordId> stringCache = newItemsCache(
+            STRING_RECORDS_CACHE_SIZE);
+
+    private static final int TPL_RECORDS_CACHE_SIZE = Integer.getInteger(
+            "oak.segment.writer.templatesCacheSize", 3000);
+
+    /**
+     * Cache of recently stored template records, used to avoid storing
+     * duplicates of frequently occurring data.
+     */
+    final Map<Template, RecordId> templateCache = newItemsCache(TPL_RECORDS_CACHE_SIZE);
+
+    private static final <T> Map<T, RecordId> newItemsCache(final int size) {
+        final boolean disabled = size <= 0;
+        final int safeSize = size <= 0 ? 0 : (int) (size * 1.2);
+        return new LinkedHashMap<T, RecordId>(safeSize, 0.9f, true) {
             @Override
-            protected boolean removeEldestEntry(Map.Entry<Object, RecordId> e) {
-                return size() > 10000;
+            protected boolean removeEldestEntry(Map.Entry<T, RecordId> e) {
+                return size() > size;
             }
             @Override
             public synchronized RecordId get(Object key) {
+                if (disabled) {
+                    return null;
+                }
                 return super.get(key);
             }
             @Override
-            public synchronized RecordId put(Object key, RecordId value) {
+            public synchronized RecordId put(T key, RecordId value) {
+                if (disabled) {
+                    return null;
+                }
                 return super.put(key, value);
             }
             @Override
@@ -115,6 +138,7 @@ public class SegmentWriter {
                 super.clear();
             }
         };
+    }
 
     private final SegmentStore store;
 
@@ -141,7 +165,8 @@ public class SegmentWriter {
     }
 
     public void dropCache() {
-        records.clear();
+        stringCache.clear();
+        templateCache.clear();
     }
 
     MapRecord writeMap(MapRecord base, Map<String, RecordId> changes) throws IOException {
@@ -365,7 +390,7 @@ public class SegmentWriter {
      * @return value record identifier
      */
     public RecordId writeString(String string) throws IOException {
-        RecordId id = records.get(string);
+        RecordId id = stringCache.get(string);
         if (id != null) {
             return id; // shortcut if the same string was recently stored
         }
@@ -375,7 +400,7 @@ public class SegmentWriter {
         if (data.length < Segment.MEDIUM_LIMIT) {
             // only cache short strings to avoid excessive memory use
             id = writeValueRecord(data.length, data);
-            records.put(string, id);
+            stringCache.put(string, id);
             return id;
         }
 
@@ -567,7 +592,7 @@ public class SegmentWriter {
     public RecordId writeTemplate(Template template) throws IOException {
         checkNotNull(template);
 
-        RecordId id = records.get(template);
+        RecordId id = templateCache.get(template);
         if (id != null) {
             return id; // shortcut if the same template was recently stored
         }
@@ -638,7 +663,7 @@ public class SegmentWriter {
         RecordId tid = writeRecord(newTemplateWriter(ids, propertyNames,
                 propertyTypes, head, primaryId, mixinIds, childNameId,
                 propNamesId, version));
-        records.put(template, tid);
+        templateCache.put(template, tid);
         return tid;
     }
 
