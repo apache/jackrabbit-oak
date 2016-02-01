@@ -332,6 +332,9 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
     @Override
     public void close() {
+        if (closed) {
+            return;
+        }
         int hardTimeOut = 5 * softTimeOutSecs;
         if(!runPermit.tryAcquire()){
             //First let current run complete without bothering it

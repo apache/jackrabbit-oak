@@ -1046,6 +1046,8 @@ public class AsyncIndexUpdateTest {
         assertThat(lc.getLogs().get(0), containsString("Could not acquire run permit"));
 
         lc.finished();
+
+        async.close();
     }
 
     @Test
