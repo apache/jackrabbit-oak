@@ -34,16 +34,30 @@ import java.util.concurrent.ConcurrentHashMap;
 import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceWrapper;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 public class BulkCreateOrUpdateTest extends AbstractDocumentStoreTest {
 
     public BulkCreateOrUpdateTest(DocumentStoreFixture dsf) {
         super(dsf);
-        DataSource ds = dsf.getRDBDataSource();
-        if (ds instanceof RDBDataSourceWrapper) {
+    }
+
+    @Before
+    public void before() {
+        DataSource dataSource = dsf.getRDBDataSource();
+        if (dataSource instanceof RDBDataSourceWrapper) {
             // test drivers that do not return precise batch results
-            ((RDBDataSourceWrapper)ds).setBatchResultPrecise(false);
+            ((RDBDataSourceWrapper)dataSource).setBatchResultPrecise(false);
+        }
+    }
+
+    @After
+    public void after() {
+        DataSource dataSource = dsf.getRDBDataSource();
+        if (dataSource instanceof RDBDataSourceWrapper) {
+            ((RDBDataSourceWrapper)dataSource).setBatchResultPrecise(true);
         }
     }
 
