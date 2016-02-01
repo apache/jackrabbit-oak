@@ -64,6 +64,15 @@ public interface DocumentStoreStatsCollector {
     void doneCreate(long timeTakenNanos, Collection<? extends Document> collection, List<String> ids, boolean insertSuccess);
 
     /**
+     * Called when multiple document are either created or updated.
+     *
+     * @param timeTakenNanos time taken
+     * @param collection the collection
+     * @param ids list of ids request to be created or updated
+     */
+    void doneCreateOrUpdate(long timeTakenNanos, Collection<? extends Document> collection, List<String> ids);
+
+    /**
      * Called when a given updated has modified multiple documents
      * @param timeTakenNanos time taken
      * @param collection the collection
