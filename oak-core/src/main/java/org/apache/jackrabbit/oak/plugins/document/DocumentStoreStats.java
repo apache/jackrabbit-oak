@@ -223,6 +223,22 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     }
 
     @Override
+    public void doneCreateOrUpdate(long timeTakenNanos,
+                                   Collection<? extends Document> collection,
+                                   List<String> ids) {
+        if (collection == Collection.NODES) {
+            for (String id : ids){
+                createNodeUpsertMeter.mark();
+                if (Utils.isPreviousDocId(id)){
+                    createSplitNodeMeter.mark();
+                }
+            }
+            createNodeUpsertTimer.update(timeTakenNanos / ids.size(), TimeUnit.NANOSECONDS);
+        }
+        perfLog(timeTakenNanos, "createOrUpdate {}", ids);
+    }
+
+    @Override
     public void doneUpdate(long timeTakenNanos, Collection<? extends Document> collection, int updateCount) {
         //NODES - Update is called for lastRev update
         perfLog(timeTakenNanos, "update");

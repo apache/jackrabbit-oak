@@ -61,6 +61,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.sql.DataSource;
 
+import com.google.common.base.Function;
 import com.google.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -306,6 +307,7 @@ public class RDBDocumentStore implements DocumentStore {
             return results;
         }
 
+        final Stopwatch watch = startWatch();
         Map<UpdateOp, T> results = new LinkedHashMap<UpdateOp, T>();
         Map<String, UpdateOp> operationsToCover = new LinkedHashMap<String, UpdateOp>();
         Set<UpdateOp> duplicates = new HashSet<UpdateOp>();
@@ -361,7 +363,13 @@ public class RDBDocumentStore implements DocumentStore {
                 results.put(updateOp, createOrUpdate(collection, updateOp));
             }
         }
-
+        stats.doneCreateOrUpdate(watch.elapsed(TimeUnit.NANOSECONDS),
+                collection, Lists.transform(updateOps, new Function<UpdateOp, String>() {
+                    @Override
+                    public String apply(UpdateOp input) {
+                        return input.getId();
+                    }
+                }));
         return new ArrayList<T>(results.values());
     }
 
