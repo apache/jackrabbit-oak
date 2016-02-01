@@ -297,8 +297,6 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
 
     @Test
     public void batchUpdateCachedDocument() throws Exception {
-        // OAK-3938
-        assumeTrue(dsf == DocumentStoreFixture.MONGO);
         String id = Utils.getIdFromPath("/foo");
         removeMe.add(id);
 
