@@ -91,6 +91,7 @@
             <!-- excluding long running tests -->
             <exclude>**/BulkTest.java</exclude>
             <exclude>**/MBeanTest.java</exclude>
+            <exclude>**/FailoverIPRangeTest.java</exclude> <!-- OAK-3967 -->
           </excludes>
         </configuration>
       </plugin>
