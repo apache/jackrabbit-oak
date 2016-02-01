@@ -297,7 +297,8 @@ public class RDBDocumentStore implements DocumentStore {
 
     @Override
     public <T extends Document> List<T> createOrUpdate(Collection<T> collection, List<UpdateOp> updateOps) {
-        if (!BATCHUPDATES) {
+        if (!BATCHUPDATES
+                || dbInfo == RDBDocumentStoreDB.ORACLE /* see OAK-3938 */) {
             List<T> results = new ArrayList<T>(updateOps.size());
             for (UpdateOp update : updateOps) {
                 results.add(createOrUpdate(collection, update));
@@ -1500,7 +1501,7 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     @Nonnull
-    private <T extends Document> RDBTableMetaData getTable(Collection<T> collection) {
+    protected <T extends Document> RDBTableMetaData getTable(Collection<T> collection) {
         RDBTableMetaData tmd = this.tableMeta.get(collection);
         if (tmd != null) {
             return tmd;
