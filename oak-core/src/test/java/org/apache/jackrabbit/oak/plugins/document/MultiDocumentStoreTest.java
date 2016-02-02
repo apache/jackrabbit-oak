@@ -221,6 +221,10 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
             ids.add(Utils.getIdFromPath("/node-" + i));
         }
         removeMe.addAll(ids);
+
+        // make sure not present before test run
+        ds1.remove(Collection.NODES, ids);
+
         final List<Exception> exceptions = synchronizedList(new ArrayList<Exception>());
         final Map<String, NodeDocument> result1 = Maps.newHashMap();
         Thread t1 = new Thread(new Runnable() {
@@ -285,7 +289,9 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
             NodeDocument d1 = result1.get(id);
             NodeDocument d2 = result2.get(id);
             if (d1 != null) {
-                assertNull(d2);
+                if (d2 != null) {
+                    fail("found " + id + " in both result sets, modcounts are: " + d1.getModCount() + "/" + d2.getModCount());
+                }
             } else {
                 assertNotNull("id " + id + " is in neither result set", d2);
             }
