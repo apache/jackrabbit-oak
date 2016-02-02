@@ -46,7 +46,7 @@ import static org.junit.Assume.assumeTrue;
 /**
  * General query extensive testcase for {@link SolrQueryIndex}
  */
-    public class SolrIndexQueryTestIT extends AbstractQueryTest {
+public class SolrIndexQueryTestIT extends AbstractQueryTest {
 
     @Rule
     public TestName name = new TestName();
@@ -90,7 +90,7 @@ import static org.junit.Assume.assumeTrue;
     public void sql2() throws Exception {
         test("sql2.txt");
     }
-    
+
     @Test
     public void sql2FullText() throws Exception {
         test("sql2-fulltext.txt");
@@ -493,7 +493,7 @@ import static org.junit.Assume.assumeTrue;
         assertEquals("/test/b", result.next());
         assertFalse(result.hasNext());
     }
-    
+
     @Test
     public void testOrderByJcrScore() throws Exception {
         Tree index = root.getTree("/oak:index/" + TEST_INDEX_NAME);
@@ -502,15 +502,15 @@ import static org.junit.Assume.assumeTrue;
         index.setProperty("rows", 10000);
         index.setProperty("reindex", true);
         root.commit();
-        
+
         Tree content = root.getTree("/").addChild("content");
         Tree a = content.addChild("a");
         a.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
         a.setProperty("type", "doc doc doc");
         root.commit();
-                
+
         String statement = "select [jcr:path], [jcr:score], [rep:excerpt] " +
-            "from [nt:unstructured] as a " + 
+            "from [nt:unstructured] as a " +
             "where contains(*, 'doc') " +
             "and isdescendantnode(a, '/content') " +
             "order by [jcr:score] desc";
@@ -549,5 +549,35 @@ import static org.junit.Assume.assumeTrue;
         assertTrue(result.hasNext());
         assertEquals("/test/content/sample2/jcr:content", result.next());
         assertFalse(result.hasNext());
+    }
+
+    @Test
+    public void testNotNullAndNative() throws Exception {
+        Tree index = root.getTree("/oak:index/" + TEST_INDEX_NAME);
+        assertTrue(index.exists());
+
+        index.setProperty("rows", 10000);
+        index.setProperty("reindex", true);
+        root.commit();
+
+        Tree content = root.getTree("/").addChild("content");
+        Tree a = content.addChild("a");
+        a.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
+        a.setProperty("foo", "doc doc doc");
+        a.setProperty("loc", "2");
+        Tree b = content.addChild("b");
+        b.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
+        b.setProperty("foo", "bye bye bye");
+        b.setProperty("loc", "1");
+        root.commit();
+
+        String query = "select [jcr:path] from [nt:base] where native('solr','select?q=loc:*') AND foo IS NOT NULL";
+
+        Iterator<String> results = executeQuery(query, Query.JCR_SQL2, true).iterator();
+        assertTrue(results.hasNext());
+        assertEquals("/content/a", results.next());
+        assertTrue(results.hasNext());
+        assertEquals("/content/b", results.next());
+        assertFalse(results.hasNext());
     }
 }
