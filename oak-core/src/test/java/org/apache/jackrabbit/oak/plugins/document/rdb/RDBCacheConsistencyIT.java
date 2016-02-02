@@ -23,7 +23,6 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 
 import org.apache.jackrabbit.oak.plugins.document.AbstractRDBConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
@@ -49,7 +48,7 @@ public class RDBCacheConsistencyIT extends AbstractRDBConnectionTest {
     public void setUpConnection() throws Exception {
         dataSource = RDBDataSourceFactory.forJdbcUrl(URL, USERNAME, PASSWD); // /*"jdbc:derby:foo;create=true"*/
         DocumentMK.Builder builder = new DocumentMK.Builder().clock(getTestClock()).setAsyncDelay(0);
-        RDBOptions opt = new RDBOptions().tablePrefix("T" + UUID.randomUUID().toString().replace("-", "")).dropTablesOnClose(true);
+        RDBOptions opt = new RDBOptions().tablePrefix("T" + Long.toHexString(System.currentTimeMillis())).dropTablesOnClose(true);
         store = new RDBDocumentStore(dataSource, builder, opt);
         mk = builder.setDocumentStore(store).setLeaseCheck(false).open();
     }
