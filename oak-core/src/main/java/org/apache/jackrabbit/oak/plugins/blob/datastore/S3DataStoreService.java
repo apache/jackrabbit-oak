@@ -24,8 +24,8 @@ import java.util.Properties;
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
-import org.apache.jackrabbit.aws.ext.ds.S3DataStore;
 import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.oak.blob.cloud.aws.s3.S3DataStore;
 import org.osgi.service.component.ComponentContext;
 
 @Component(policy = ConfigurationPolicy.REQUIRE, name = S3DataStoreService.NAME)
