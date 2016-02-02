@@ -102,6 +102,8 @@ import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Maps.filterKeys;
 import static com.google.common.collect.Maps.filterValues;
 import static com.google.common.collect.Sets.difference;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.createIndex;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.hasIndex;
 
 /**
  * A document store that uses MongoDB as the backend.
@@ -192,6 +194,8 @@ public class MongoDocumentStore implements DocumentStore {
 
     private DocumentStoreStatsCollector stats;
 
+    private boolean hasModifiedIdCompoundIndex = true;
+
     public MongoDocumentStore(DB db, DocumentMK.Builder builder) {
         String version = checkVersion(db);
         metadata = ImmutableMap.<String,String>builder()
@@ -210,40 +214,31 @@ public class MongoDocumentStore implements DocumentStore {
 
         // indexes:
         // the _id field is the primary key, so we don't need to define it
-        DBObject index = new BasicDBObject();
-        // modification time (descending)
-        index.put(NodeDocument.MODIFIED_IN_SECS, -1L);
-        DBObject options = new BasicDBObject();
-        options.put("unique", Boolean.FALSE);
-        nodes.createIndex(index, options);
+
+        // compound index on _modified and _id
+        if (nodes.count() == 0) {
+            // this is an empty store, create a compound index
+            // on _modified and _id (OAK-3071)
+            createIndex(nodes, new String[]{NodeDocument.MODIFIED_IN_SECS, Document.ID},
+                    new boolean[]{true, true}, false, false);
+        } else if (!hasIndex(nodes, NodeDocument.MODIFIED_IN_SECS, Document.ID)) {
+            hasModifiedIdCompoundIndex = false;
+            LOG.warn("Detected an upgrade from Oak version <= 1.2. For optimal " +
+                    "performance it is recommended to create a compound index " +
+                    "for the 'nodes' collection on {_modified:1, _id:1}.");
+        }
 
         // index on the _bin flag to faster access nodes with binaries for GC
-        index = new BasicDBObject();
-        index.put(NodeDocument.HAS_BINARY_FLAG, 1);
-        options = new BasicDBObject();
-        options.put("unique", Boolean.FALSE);
-        options.put("sparse", Boolean.TRUE);
-        this.nodes.createIndex(index, options);
+        createIndex(nodes, NodeDocument.HAS_BINARY_FLAG, true, false, true);
 
-        index = new BasicDBObject();
-        index.put(NodeDocument.DELETED_ONCE, 1);
-        options = new BasicDBObject();
-        options.put("unique", Boolean.FALSE);
-        options.put("sparse", Boolean.TRUE);
-        this.nodes.createIndex(index, options);
+        // index on _deleted for fast lookup of potentially garbage
+        createIndex(nodes, NodeDocument.DELETED_ONCE, true, false, true);
 
-        index = new BasicDBObject();
-        index.put(NodeDocument.SD_TYPE, 1);
-        options = new BasicDBObject();
-        options.put("unique", Boolean.FALSE);
-        options.put("sparse", Boolean.TRUE);
-        this.nodes.createIndex(index, options);
+        // index on _sdType for fast lookup of split documents
+        createIndex(nodes, NodeDocument.SD_TYPE, true, false, true);
 
-        index = new BasicDBObject();
-        index.put(JournalEntry.MODIFIED, 1);
-        options = new BasicDBObject();
-        options.put("unique", Boolean.FALSE);
-        this.journal.createIndex(index, options);
+        // index on _modified for journal entries
+        createIndex(journal, JournalEntry.MODIFIED, true, false, false);
 
         this.nodeLocks = new TreeNodeDocumentLocks();
         this.nodesCache = builder.buildNodeDocumentCache(this, nodeLocks);
@@ -595,7 +590,7 @@ public class MongoDocumentStore implements DocumentStore {
         try {
             lockTime = withLock ? watch.elapsed(TimeUnit.MILLISECONDS) : -1;
             DBCursor cursor = dbCollection.find(query).sort(BY_ID_ASC);
-            if (!disableIndexHint) {
+            if (!disableIndexHint && !hasModifiedIdCompoundIndex) {
                 cursor.hint(hint);
             }
             if (maxQueryTime > 0) {

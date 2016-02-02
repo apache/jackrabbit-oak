@@ -27,12 +27,15 @@ import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.JournalEntry;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.hasIndex;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -77,6 +80,17 @@ public class MongoDocumentStoreTest extends AbstractMongoConnectionTest {
             }
         }
         fail("No query timeout triggered even after adding " + index + " nodes");
+    }
+
+    @Test
+    public void defaultIndexes() {
+        assertTrue(hasIndex(store.getDBCollection(Collection.NODES), Document.ID));
+        assertTrue(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.SD_TYPE));
+        assertTrue(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.DELETED_ONCE));
+        assertTrue(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.HAS_BINARY_FLAG));
+        assertTrue(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.MODIFIED_IN_SECS, Document.ID));
+        assertFalse(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.MODIFIED_IN_SECS));
+        assertTrue(hasIndex(store.getDBCollection(Collection.JOURNAL), JournalEntry.MODIFIED));
     }
 
     static final class TestStore extends MongoDocumentStore {
