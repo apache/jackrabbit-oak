@@ -242,7 +242,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         GarbageCollectorFileState fs = new GarbageCollectorFileState(root);
         try {
             Stopwatch sw = Stopwatch.createStarted();
-            LOG.info("Starting Blob garbage collection");
+            LOG.info("Starting Blob garbage collection with markOnly [{}]", markOnly);
             
             long markStart = System.currentTimeMillis();
             mark(fs);
@@ -250,8 +250,9 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 long deleteCount = sweep(fs, markStart);
                 threw = false;
 
-                LOG.info("Blob garbage collection completed in {}. Number of blobs deleted [{}]", sw.toString(),
-                    deleteCount, maxLastModifiedInterval);
+                long maxTime = maxLastModifiedInterval > 0 ? maxLastModifiedInterval : markStart;
+                LOG.info("Blob garbage collection completed in {}. Number of blobs deleted [{}] with max modification time of [{}]",
+                        sw.toString(), deleteCount, timestampToString(maxTime));
             }
         } catch (Exception e) {
             LOG.error("Blob garbage collection error", e);
