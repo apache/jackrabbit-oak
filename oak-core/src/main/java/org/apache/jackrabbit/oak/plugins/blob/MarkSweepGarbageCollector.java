@@ -250,7 +250,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 long deleteCount = sweep(fs, markStart);
                 threw = false;
 
-                long maxTime = maxLastModifiedInterval > 0 ? maxLastModifiedInterval : markStart;
+                long maxTime = getLastMaxModifiedTime(markStart) > 0 ? getLastMaxModifiedTime(markStart) : markStart;
                 LOG.info("Blob garbage collection completed in {}. Number of blobs deleted [{}] with max modification time of [{}]",
                         sw.toString(), deleteCount, timestampToString(maxTime));
             }
