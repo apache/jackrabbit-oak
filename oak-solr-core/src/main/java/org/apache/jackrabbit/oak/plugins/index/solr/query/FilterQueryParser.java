@@ -166,7 +166,7 @@ class FilterQueryParser {
                         queryBuilder.append(nativeQueryString);
                     }
                 } else {
-                    if (SolrQueryIndex.isIgnoredProperty(pr.propertyName, configuration)) {
+                    if (SolrQueryIndex.isIgnoredProperty(pr, configuration)) {
                         continue;
                     }
 
