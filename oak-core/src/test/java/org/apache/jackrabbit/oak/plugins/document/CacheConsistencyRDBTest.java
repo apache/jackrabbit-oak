@@ -20,7 +20,6 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
@@ -49,7 +48,7 @@ public class CacheConsistencyRDBTest extends AbstractRDBConnectionTest {
     public void setUpConnection() throws Exception {
         dataSource = RDBDataSourceFactory.forJdbcUrl(URL, USERNAME, PASSWD);
         DocumentMK.Builder builder = new DocumentMK.Builder().clock(getTestClock()).setAsyncDelay(0);
-        RDBOptions opt = new RDBOptions().tablePrefix("T" + UUID.randomUUID().toString().replace("-", "")).dropTablesOnClose(true);
+        RDBOptions opt = new RDBOptions().tablePrefix("T" + Long.toHexString(System.currentTimeMillis())).dropTablesOnClose(true);
         store = new TestStore(dataSource, builder, opt);
         mk = builder.setDocumentStore(store).setLeaseCheck(false).open();
     }
