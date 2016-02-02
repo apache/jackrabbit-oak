@@ -174,11 +174,12 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             mark();
             int deleteCount = sweep(markStart);
             threw = false;
-
+    
+            long maxTime = getLastMaxModifiedTime(markStart) > 0 ? getLastMaxModifiedTime(markStart) : markStart;
             LOG.info(
                 "Blob garbage collection completed in {}. Number of blobs identified for deletion [{}] (This "
                     + "includes blobs newer than configured interval [{}] which are ignored for deletion)",
-                sw.toString(), deleteCount, maxLastModifiedInterval);
+                sw.toString(), deleteCount, timestampToString(maxTime));
         } finally {
             if (!LOG.isTraceEnabled()) {
                 Closeables.close(fs, threw);
