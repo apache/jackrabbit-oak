@@ -148,6 +148,7 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
         typeMappings = PropertiesUtil.toStringArray(componentContext.getProperties().get(TYPE_MAPPINGS));
         ignoredProperties = PropertiesUtil.toStringArray(componentContext.getProperties().get(IGNORED_PROPERTIES));
         usedProperties = PropertiesUtil.toStringArray(componentContext.getProperties().get(USED_PROPERTIES));
+        System.err.println(">>>"+usedProperties.length);
         propertyMappings = PropertiesUtil.toStringArray(componentContext.getProperties().get(PROPERTY_MAPPINGS));
         collapseJcrContentNodes = Boolean.valueOf(String.valueOf(componentContext.getProperties().get(COLLAPSE_JCR_CONTENT_NODES)));
     }
@@ -260,7 +261,7 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
                 @Nonnull
                 @Override
                 public Collection<String> getIgnoredProperties() {
-                    if (ignoredProperties != null && ignoredProperties.length > 0) {
+                    if (ignoredProperties != null && ignoredProperties.length > 0 && ignoredProperties[0].length() > 0) {
                         return Arrays.asList(ignoredProperties);
                     } else {
                         return Collections.emptyList();
@@ -270,7 +271,7 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
                 @Nonnull
                 @Override
                 public Collection<String> getUsedProperties() {
-                    if (usedProperties != null && usedProperties.length > 0) {
+                    if (usedProperties != null && usedProperties.length > 0 && usedProperties[0].length() > 0) {
                         return Arrays.asList(usedProperties);
                     } else {
                         return Collections.emptyList();

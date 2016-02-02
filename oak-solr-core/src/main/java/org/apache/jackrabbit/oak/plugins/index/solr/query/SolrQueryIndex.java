@@ -170,7 +170,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
 
     private static boolean hasIgnoredProperties(Collection<Filter.PropertyRestriction> propertyRestrictions, OakSolrConfiguration configuration) {
         for (Filter.PropertyRestriction pr : propertyRestrictions) {
-            if (isIgnoredProperty(pr.propertyName, configuration)) {
+            if (isIgnoredProperty(pr, configuration)) {
                 return true;
             }
         }
@@ -499,16 +499,17 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
         }
     }
 
-    static boolean isIgnoredProperty(String propertyName, OakSolrConfiguration configuration) {
-        return !(NATIVE_LUCENE_QUERY.equals(propertyName) || NATIVE_SOLR_QUERY.equals(propertyName)) &&
-                (!configuration.useForPropertyRestrictions() // Solr index not used for properties
-                        || (configuration.getUsedProperties().size() > 0 && !configuration.getUsedProperties().contains(propertyName)) // not explicitly contained in the used properties
-                        || propertyName.contains("/") // no child-level property restrictions
-                        || QueryImpl.REP_EXCERPT.equals(propertyName) // rep:excerpt is not handled at the property level
-                        || QueryImpl.OAK_SCORE_EXPLANATION.equals(propertyName) // score explain is not handled at the property level
-                        || QueryImpl.REP_FACET.equals(propertyName) // rep:facet is not handled at the property level
-                        || QueryConstants.RESTRICTION_LOCAL_NAME.equals(propertyName)
-                        || configuration.getIgnoredProperties().contains(propertyName));
+    static boolean isIgnoredProperty(Filter.PropertyRestriction property, OakSolrConfiguration configuration) {
+        if (NATIVE_LUCENE_QUERY.equals(property.propertyName) || NATIVE_SOLR_QUERY.equals(property.propertyName)) {
+               return false;
+        } else return (!configuration.useForPropertyRestrictions() // Solr index not used for properties
+                        || (configuration.getUsedProperties().size() > 0 && !configuration.getUsedProperties().contains(property.propertyName)) // not explicitly contained in the used properties
+                        || property.propertyName.contains("/") // no child-level property restrictions
+                        || QueryImpl.REP_EXCERPT.equals(property.propertyName) // rep:excerpt is not handled at the property level
+                        || QueryImpl.OAK_SCORE_EXPLANATION.equals(property.propertyName) // score explain is not handled at the property level
+                        || QueryImpl.REP_FACET.equals(property.propertyName) // rep:facet is not handled at the property level
+                        || QueryConstants.RESTRICTION_LOCAL_NAME.equals(property.propertyName)
+                        || configuration.getIgnoredProperties().contains(property.propertyName));
     }
 
     @Override
