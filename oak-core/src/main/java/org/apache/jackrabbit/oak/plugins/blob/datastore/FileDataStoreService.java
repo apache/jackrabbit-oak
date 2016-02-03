@@ -26,6 +26,8 @@ import org.apache.jackrabbit.core.data.CachingFDS;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.osgi.service.component.ComponentContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.jcr.RepositoryException;
 import java.util.Map;
@@ -40,6 +42,8 @@ public class FileDataStoreService extends AbstractDataStoreService {
     public static final String FS_BACKEND_PATH = "fsBackendPath";
     public static final String PATH = "path";
 
+    private Logger log = LoggerFactory.getLogger(getClass());
+
     @Override
     protected DataStore createDataStore(ComponentContext context, Map<String, Object> config) {
 
@@ -50,6 +54,8 @@ public class FileDataStoreService extends AbstractDataStoreService {
             Preconditions.checkNotNull(fsBackendPath, "Cannot create " +
                     "FileDataStoreService with caching. [{path}] property not configured.");
             CachingFDS dataStore = new CachingFDS();
+            // Disabling asyncUpload by default
+            dataStore.setAsyncUploadLimit(PropertiesUtil.toInteger(config.get("asyncUploadLimit"), 0));
             config.remove(PATH);
             config.remove(CACHE_SIZE);
             config.put(FS_BACKEND_PATH, fsBackendPath);
@@ -62,8 +68,10 @@ public class FileDataStoreService extends AbstractDataStoreService {
             Properties properties = new Properties();
             properties.putAll(config);
             dataStore.setProperties(properties);
+            log.info("CachingFDS initialized with properties " + properties);
             return dataStore;
         } else {
+            log.info("OakFileDataStore initialized");
             return new OakFileDataStore();
         }
     }
