@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
+import com.google.common.base.Preconditions;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.jackrabbit.core.data.CachingFDS;
@@ -40,22 +41,21 @@ public class FileDataStoreService extends AbstractDataStoreService {
     public static final String PATH = "path";
 
     @Override
-    protected DataStore createDataStore(ComponentContext context, Map<String, Object> config) throws RepositoryException {
+    protected DataStore createDataStore(ComponentContext context, Map<String, Object> config) {
 
         long cacheSize = PropertiesUtil.toLong(config.get(CACHE_SIZE), 0L);
         // return CachingFDS when cacheSize > 0
         if (cacheSize > 0) {
-            String fsBackendPath = PropertiesUtil.toString(config.get(PATH), "");
-            if ("".equals(fsBackendPath)) {
-                throw new RepositoryException("Cannot create FileDataStoreService with caching. [{path}] property not configured.");
-            }
+            String fsBackendPath = PropertiesUtil.toString(config.get(PATH), null);
+            Preconditions.checkNotNull(fsBackendPath, "Cannot create " +
+                    "FileDataStoreService with caching. [{path}] property not configured.");
             CachingFDS dataStore = new CachingFDS();
             config.remove(PATH);
             config.remove(CACHE_SIZE);
             config.put(FS_BACKEND_PATH, fsBackendPath);
             config.put("cacheSize", cacheSize);
-            String cachePath = PropertiesUtil.toString(config.get(CACHE_PATH), "");
-            if (!"".equals(cachePath)) {
+            String cachePath = PropertiesUtil.toString(config.get(CACHE_PATH), null);
+            if (cachePath != null) {
                 config.remove(CACHE_PATH);
                 config.put(PATH, cachePath);
             }
