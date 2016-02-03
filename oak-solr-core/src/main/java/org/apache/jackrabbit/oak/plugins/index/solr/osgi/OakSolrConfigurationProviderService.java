@@ -160,7 +160,6 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
         typeMappings = PropertiesUtil.toStringArray(componentContext.getProperties().get(TYPE_MAPPINGS));
         ignoredProperties = PropertiesUtil.toStringArray(componentContext.getProperties().get(IGNORED_PROPERTIES));
         usedProperties = PropertiesUtil.toStringArray(componentContext.getProperties().get(USED_PROPERTIES));
-        System.err.println(">>>"+usedProperties.length);
         propertyMappings = PropertiesUtil.toStringArray(componentContext.getProperties().get(PROPERTY_MAPPINGS));
         collapseJcrContentNodes = Boolean.valueOf(String.valueOf(componentContext.getProperties().get(COLLAPSE_JCR_CONTENT_NODES)));
     }
