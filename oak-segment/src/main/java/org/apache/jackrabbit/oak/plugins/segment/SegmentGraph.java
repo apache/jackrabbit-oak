@@ -23,6 +23,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
+import static java.lang.String.valueOf;
 import static java.util.Collections.singletonMap;
 import static java.util.regex.Pattern.compile;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
@@ -167,7 +168,7 @@ public final class SegmentGraph {
             Graph<UUID> segmentGraph = parseSegmentGraph(fileStore, filter);
             Graph<UUID> headGraph = parseHeadGraph(root.getRecordId());
 
-            writer.write("nodedef>name VARCHAR, label VARCHAR, type VARCHAR, wid VARCHAR, gc INT, t INT, head BOOLEAN\n");
+            writer.write("nodedef>name VARCHAR, label VARCHAR, type VARCHAR, wid VARCHAR, gc INT, t INT, size INT, head BOOLEAN\n");
             for (UUID segment : segmentGraph.vertices()) {
                 writeNode(segment, writer, headGraph.containsVertex(segment), epoch, fileStore.getTracker());
             }
@@ -472,6 +473,7 @@ public final class SegmentGraph {
                     "," + sInfo.get("wid") +
                     "," + sInfo.get("gc") +
                     "," + ts +
+                    "," + sInfo.get("size") +
                     "," + inHead + "\n");
             }
         }
@@ -493,38 +495,75 @@ public final class SegmentGraph {
     }
 
     private static Map<String, String> getSegmentInfoMap(UUID segment, SegmentTracker tracker) {
-        try {
-            String info = getSegmentInfo(segment, tracker);
-            if (info != null) {
-                JsopTokenizer tokenizer = new JsopTokenizer(info);
-                tokenizer.read('{');
-                return JsonObject.create(tokenizer).getProperties();
-            } else {
-                return null;
-            }
-        } catch (SegmentNotFoundException e) {
-            return singletonMap("error", toString(e));
-        }
+        return new SegmentInfo(segment, tracker).getInfoMap();
     }
 
     private static String getSegmentInfo(UUID segment, SegmentTracker tracker) {
-        if (isDataSegmentId(segment.getLeastSignificantBits())) {
-        SegmentId id = tracker.getSegmentId(segment.getMostSignificantBits(), segment.getLeastSignificantBits());
-            return id.getSegment().getSegmentInfo();
-        } else {
-            return null;
-        }
+        return new SegmentInfo(segment, tracker).getInfo();
     }
 
-    private static String toString(Throwable e) {
-        StringWriter sw = new StringWriter();
-        PrintWriter pw = new PrintWriter(sw, true);
-        try {
-            e.printStackTrace(pw);
-            return sw.toString();
-        } finally {
-            pw.close();
+    private static class SegmentInfo {
+        private final UUID uuid;
+        private final SegmentTracker tracker;
+
+        private SegmentId id;
+
+        SegmentInfo(UUID uuid, SegmentTracker tracker) {
+            this.uuid = uuid;
+            this.tracker = tracker;
         }
+
+        boolean isData() {
+            return isDataSegmentId(uuid.getLeastSignificantBits());
+        }
+
+        SegmentId getSegmentId() {
+            if (id == null) {
+                id = tracker.getSegmentId(
+                    uuid.getMostSignificantBits(), uuid.getLeastSignificantBits());
+            }
+            return id;
+        }
+
+        int getSize() {
+            return getSegmentId().getSegment().size();
+        }
+
+        String getInfo() {
+            if (isData()) {
+                return getSegmentId().getSegment().getSegmentInfo();
+            } else {
+                return null;
+            }
+        }
+
+        Map<String, String> getInfoMap() {
+            try {
+                Map<String, String> infoMap = newHashMap();
+                String info = getInfo();
+                if (info != null) {
+                    JsopTokenizer tokenizer = new JsopTokenizer(info);
+                    tokenizer.read('{');
+                    infoMap.putAll(JsonObject.create(tokenizer).getProperties());
+                }
+                infoMap.put("size", valueOf(getSize()));
+                return infoMap;
+            } catch (SegmentNotFoundException e) {
+                return singletonMap("error", toString(e));
+            }
+        }
+
+        private static String toString(Throwable e) {
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw, true);
+            try {
+                e.printStackTrace(pw);
+                return sw.toString();
+            } finally {
+                pw.close();
+            }
+        }
+
     }
 
 }
