@@ -71,7 +71,7 @@ public abstract class AbstractDataStoreService {
     private DataStoreBlobStore dataStore;
 
     protected void activate(ComponentContext context, Map<String, Object> config) throws RepositoryException {
-        // change to mutable map. may be modified in createDSCall
+        // change to mutable map. may be modified in createDS call
         config = Maps.newHashMap(config);
         DataStore ds = createDataStore(context, config);
         boolean encodeLengthInId = PropertiesUtil.toBoolean(config.get(PROP_ENCODE_LENGTH), true);
@@ -114,7 +114,7 @@ public abstract class AbstractDataStoreService {
         dataStore.close();
     }
 
-    protected abstract DataStore createDataStore(ComponentContext context, Map<String, Object> config) throws RepositoryException;
+    protected abstract DataStore createDataStore(ComponentContext context, Map<String, Object> config);
 
     protected StatisticsProvider getStatisticsProvider(){
         return statisticsProvider;
