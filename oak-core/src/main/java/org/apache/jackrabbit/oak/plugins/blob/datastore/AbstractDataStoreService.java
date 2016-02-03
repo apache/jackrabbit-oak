@@ -25,6 +25,7 @@ import java.util.Map;
 
 import javax.jcr.RepositoryException;
 
+import com.google.common.collect.Maps;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.jackrabbit.core.data.DataStore;
@@ -70,6 +71,8 @@ public abstract class AbstractDataStoreService {
     private DataStoreBlobStore dataStore;
 
     protected void activate(ComponentContext context, Map<String, Object> config) throws RepositoryException {
+        // change to mutable map. may be modified in createDSCall
+        config = Maps.newHashMap(config);
         DataStore ds = createDataStore(context, config);
         boolean encodeLengthInId = PropertiesUtil.toBoolean(config.get(PROP_ENCODE_LENGTH), true);
         int cacheSizeInMB = PropertiesUtil.toInteger(config.get(PROP_CACHE_SIZE), DataStoreBlobStore.DEFAULT_CACHE_SIZE);
@@ -111,7 +114,7 @@ public abstract class AbstractDataStoreService {
         dataStore.close();
     }
 
-    protected abstract DataStore createDataStore(ComponentContext context, Map<String, Object> config);
+    protected abstract DataStore createDataStore(ComponentContext context, Map<String, Object> config) throws RepositoryException;
 
     protected StatisticsProvider getStatisticsProvider(){
         return statisticsProvider;
