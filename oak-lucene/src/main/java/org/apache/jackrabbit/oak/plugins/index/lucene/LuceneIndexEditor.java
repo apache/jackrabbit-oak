@@ -831,9 +831,12 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
             }
 
             //Check if any explicit property defn is defined via relative path
-            // and is marked to exclude this property from being indexed
+            // and is marked to exclude this property from being indexed. We exclude
+            //it from aggregation if
+            // 1. Its not to be indexed i.e. index=false
+            // 2. Its explicitly excluded from aggregation i.e. excludeFromAggregation=true
             PropertyDefinition pdForRootNode = indexingRule.getConfig(propertyPath);
-            if (pdForRootNode != null && !pdForRootNode.nodeScopeIndex) {
+            if (pdForRootNode != null && (!pdForRootNode.index || pdForRootNode.excludeFromAggregate)) {
                 continue;
             }
 
