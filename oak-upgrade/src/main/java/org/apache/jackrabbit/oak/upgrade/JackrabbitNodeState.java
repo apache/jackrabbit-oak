@@ -291,18 +291,22 @@ class JackrabbitNodeState extends AbstractNodeState {
             try {
                 return createChildNodeState(id, name);
             } catch (ItemStateException e) {
-                if (!skipOnError) {
-                    throw new IllegalStateException(
-                            "Unable to access child node " + name, e);
-                }
-                warn("Skipping broken child node entry " + name + " and changing the primary type to nt:unstructured", e);
-                properties.put(JCR_PRIMARYTYPE, PropertyStates.createProperty(
-                        JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME));
-
+                handleChildNodeCreationException(name, e);
+            } catch (NullPointerException e) {
+                handleChildNodeCreationException(name, e);
             }
         }
         checkValidName(name);
         return EmptyNodeState.MISSING_NODE;
+    }
+
+    private void handleChildNodeCreationException(final @Nonnull String name, final Exception e) {
+        if (!skipOnError) {
+            throw new IllegalStateException("Unable to access child node " + name + " of " + getPath(), e);
+        }
+        warn("Skipping broken child node entry " + name + " and changing the primary type to nt:unstructured", e);
+        properties.put(JCR_PRIMARYTYPE, PropertyStates.createProperty(
+                JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME));
     }
 
     @Override
