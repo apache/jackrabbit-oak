@@ -276,4 +276,9 @@ public interface LuceneIndexConstants {
      * existing index files
      */
     String INDEX_PATH = "indexPath";
+
+    /**
+     * Boolean property indicate that property should not be included in aggregation
+     */
+    String PROP_EXCLUDE_FROM_AGGREGATE = "excludeFromAggregation";
 }
