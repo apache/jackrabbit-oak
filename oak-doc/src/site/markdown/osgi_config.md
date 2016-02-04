@@ -214,6 +214,15 @@ cacheSizeInMB
 : Size in MB. In memory cache for storing small files whose size is less than `maxCachedBinarySize`. This
   helps in better performance when lots of small binaries are accessed frequently.
 
+cacheSize
+: Default - 0
+: Size in bytes of FileDataStore cache. Cache is enabled when cacheSize > 0.  Default is disabled.
+
+cachePath
+: Default - ${home.dir}/repository/datastore
+: Path of local file system cache
+
+
 #### Jackrabbit 2 - S3DataStore
 
 _PID `org.apache.jackrabbit.oak.plugins.blob.datastore.S3DataStore`_
