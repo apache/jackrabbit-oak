@@ -113,13 +113,13 @@ public class L5_PrivilegeContentTest extends AbstractSecurityTest {
     public void testPrivilegeRoot() {
         Tree privilegesRoot = root.getTree(PrivilegeConstants.PRIVILEGES_PATH);
 
-        String name = null; // TODO
+        String name = null; // EXERCISE
         assertEquals(name, privilegesRoot.getName());
 
-        String primaryType = null; // TODO
+        String primaryType = null; // EXERCISE
         assertEquals(primaryType, TreeUtil.getPrimaryTypeName(privilegesRoot));
 
-        // TODO: look at the node type definition in the file 'builtin-nodetypes.cnd'
+        // EXERCISE: look at the node type definition in the file 'builtin-nodetypes.cnd'
         // Question: can you predict how the tree defined the 'privilegesRoot' tree looks like?
     }
 
@@ -129,16 +129,16 @@ public class L5_PrivilegeContentTest extends AbstractSecurityTest {
 
         PrivilegeDefinition def = PrivilegeUtil.readDefinition(repWriteTree);
 
-        String expectedName = null; // TODO
+        String expectedName = null; // EXERCISE
         assertEquals(expectedName, def.getName());
 
-        boolean isAbstract = false; // TODO
+        boolean isAbstract = false; // EXERCISE
         assertEquals(isAbstract, def.isAbstract());
 
-        Set<String> expectedAggregates = null; // TODO
+        Set<String> expectedAggregates = null; // EXERCISE
         assertEquals(expectedAggregates, def.getDeclaredAggregateNames());
 
-        // TODO: compare the internal privilege definition (and it's tree representation) with the privilege itself.
+        // EXERCISE: compare the internal privilege definition (and it's tree representation) with the privilege itself.
         Privilege repWritePrivilege = getPrivilegeManager(root).getPrivilege(PrivilegeConstants.REP_WRITE);
     }
 
@@ -153,8 +153,8 @@ public class L5_PrivilegeContentTest extends AbstractSecurityTest {
         PrivilegeBits readBits = PrivilegeBits.getInstance(jcrReadTree);
         PrivilegeBits writeBits = PrivilegeBits.getInstance(jcrReadTree);
 
-        // TODO: play with 'PrivilegeBits' methods to compare 'privilegeBits' with 'readBits' and 'writeBits'
-        // TODO: retrieve the property that stores the long representation of each privilege above
+        // EXERCISE: play with 'PrivilegeBits' methods to compare 'privilegeBits' with 'readBits' and 'writeBits'
+        // EXERCISE: retrieve the property that stores the long representation of each privilege above
     }
 
     @Test
@@ -165,12 +165,12 @@ public class L5_PrivilegeContentTest extends AbstractSecurityTest {
         Privilege newPrivilege = privilegeManager.registerPrivilege("myPrivilege", true, null);
         root.commit();
 
-        // TODO: compare the 'next' property state with rep:bits property of the newly created privilege.
+        // EXERCISE: compare the 'next' property state with rep:bits property of the newly created privilege.
 
         PropertyState nextAgain = PrivilegeUtil.getPrivilegesTree(root).getProperty(PrivilegeConstants.REP_NEXT);
 
-        // TODO: look at the new value of rep:next and explain it. Q: where did it get modified?
+        // EXERCISE: look at the new value of rep:next and explain it. Q: where did it get modified?
 
-        // TODO: try to modify rep:next manually and explain what happens.
+        // EXERCISE: try to modify rep:next manually and explain what happens.
     }
 }

@@ -29,6 +29,7 @@
 
   <artifactId>oak-exercise</artifactId>
   <name>Oak Exercises</name>
+  <packaging>bundle</packaging>
 
   <properties>
     <skip.deployment>false</skip.deployment>
