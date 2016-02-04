@@ -466,8 +466,21 @@ public class Compactor {
             }
             long count = 0;
             for (PropertyState ps : state.getProperties()) {
+                Type<?> type = ps.getType();
                 for (int i = 0; i < ps.count(); i++) {
-                    long size = ps.size(i);
+                    long size = 0;
+                    if (type == BINARY || type == BINARIES) {
+                        Blob blob = ps.getValue(BINARY, i);
+                        if (blob instanceof SegmentBlob) {
+                            if (!((SegmentBlob) blob).isExternal()) {
+                                size += blob.length();
+                            }
+                        } else {
+                            size += blob.length();
+                        }
+                    } else {
+                        size = ps.size(i);
+                    }
                     count += size;
                     if (size >= offlineThreshold || count >= offlineThreshold) {
                         return true;
