@@ -55,6 +55,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.Binary;
 import javax.jcr.PropertyType;
@@ -62,6 +63,7 @@ import javax.jcr.RepositoryException;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.ReferenceBinary;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.id.NodeId;
@@ -287,26 +289,12 @@ class JackrabbitNodeState extends AbstractNodeState {
     @Override
     public NodeState getChildNode(@Nonnull String name) {
         NodeId id = nodes.get(name);
+        NodeState state = null;
         if (id != null) {
-            try {
-                return createChildNodeState(id, name);
-            } catch (ItemStateException e) {
-                handleChildNodeCreationException(name, e);
-            } catch (NullPointerException e) {
-                handleChildNodeCreationException(name, e);
-            }
+            state = createChildNodeState(id, name);
         }
         checkValidName(name);
-        return EmptyNodeState.MISSING_NODE;
-    }
-
-    private void handleChildNodeCreationException(final @Nonnull String name, final Exception e) {
-        if (!skipOnError) {
-            throw new IllegalStateException("Unable to access child node " + name + " of " + getPath(), e);
-        }
-        warn("Skipping broken child node entry " + name + " and changing the primary type to nt:unstructured", e);
-        properties.put(JCR_PRIMARYTYPE, PropertyStates.createProperty(
-                JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME));
+        return state != null ? state : EmptyNodeState.MISSING_NODE;
     }
 
     @Override
@@ -317,14 +305,12 @@ class JackrabbitNodeState extends AbstractNodeState {
     @Nonnull
     @Override
     public Iterable<MemoryChildNodeEntry> getChildNodeEntries() {
-        List<MemoryChildNodeEntry> entries = newArrayList();
+        List<MemoryChildNodeEntry> entries = newArrayListWithCapacity(nodes.size());
         for (Map.Entry<String, NodeId> entry : nodes.entrySet()) {
             String name = entry.getKey();
-            try {
-                final JackrabbitNodeState child = createChildNodeState(entry.getValue(), name);
+            final NodeState child = createChildNodeState(entry.getValue(), name);
+            if (child != null) {
                 entries.add(new MemoryChildNodeEntry(name, child));
-            } catch (ItemStateException e) {
-                warn("Skipping broken child node entry " + name, e);
             }
         }
         return entries;
@@ -338,7 +324,8 @@ class JackrabbitNodeState extends AbstractNodeState {
 
     //-----------------------------------------------------------< private >--
 
-    private JackrabbitNodeState createChildNodeState(NodeId id, String name) throws ItemStateException {
+    @CheckForNull
+    private JackrabbitNodeState createChildNodeState(NodeId id, String name) {
         if (mountPoints.containsKey(id)) {
             final JackrabbitNodeState nodeState = mountPoints.get(id);
             checkState(name.equals(nodeState.name),
@@ -350,10 +337,25 @@ class JackrabbitNodeState extends AbstractNodeState {
 
         JackrabbitNodeState state = nodeStateCache.get(id);
         if (state == null) {
-            state = new JackrabbitNodeState(this, name, loader.loadBundle(id));
-            nodeStateCache.put(id, state);
+            try {
+                state = new JackrabbitNodeState(this, name, loader.loadBundle(id));
+                nodeStateCache.put(id, state);
+            } catch (ItemStateException e) {
+                handleBundleLoadingException(name, e);
+            } catch (NullPointerException e) {
+                handleBundleLoadingException(name, e);
+            }
         }
         return state;
+    }
+
+    private void handleBundleLoadingException(final @Nonnull String name, final Exception e) {
+        if (!skipOnError) {
+            throw new IllegalStateException("Unable to access child node " + name + " of " + getPath(), e);
+        }
+        warn("Skipping broken child node entry " + name + " and changing the primary type to nt:unstructured", e);
+        properties.put(JCR_PRIMARYTYPE, PropertyStates.createProperty(
+                JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME));
     }
 
     private void setChildOrder() {
