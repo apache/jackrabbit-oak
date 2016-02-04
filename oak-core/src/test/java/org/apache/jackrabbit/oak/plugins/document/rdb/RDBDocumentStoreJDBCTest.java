@@ -105,7 +105,7 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
     @Test
     public void batchFailingInsertResult() throws SQLException {
 
-        // https://issues.apache.org/jira/browse/OAK-3937
+        // https://issues.apache.org/jira/browse/OAK-3937 and https://issues.apache.org/jira/browse/OAK-3977
         assumeTrue(super.dsf != DocumentStoreFixture.RDB_PG);
 
         String table = ((RDBDocumentStore) super.ds).getTable(Collection.NODES).getName();
@@ -113,6 +113,7 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
         Connection con = super.rdbDataSource.getConnection();
         con.setReadOnly(false);
         try {
+            // remove key-1, key-2, key-3
             PreparedStatement st = con.prepareStatement("DELETE FROM " + table + " WHERE ID in (?, ?, ?)");
             setIdInStatement(st, 1, "key-1");
             setIdInStatement(st, 2, "key-2");
@@ -123,6 +124,7 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
 
             removeMe.add("key-3");
 
+            // insert key-3
             st = con.prepareStatement("INSERT INTO " + table + " (id) VALUES (?)");
             setIdInStatement(st, 1, "key-3");
             st.executeUpdate();
@@ -132,6 +134,7 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
             removeMe.add("key-1");
             removeMe.add("key-2");
 
+            // try to insert key-1, key-2, key-3
             PreparedStatement batchSt = con.prepareStatement("INSERT INTO " + table + " (id) VALUES (?)");
             setIdInStatement(batchSt, 1, "key-1");
             batchSt.addBatch();
@@ -154,9 +157,14 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
 
             // System.out.println(super.dsname + " " + Arrays.toString(batchResult));
 
-            assertTrue(batchResult.length >= 2);
-            assertTrue("Row should be inserted correctly.", isSuccess(batchResult[0]));
-            assertTrue("Row should be inserted correctly.", isSuccess(batchResult[1]));
+            boolean partialSuccess = false;
+
+            if (batchResult.length >= 2) {
+                if (isSuccess(batchResult[0]) && isSuccess(batchResult[1])) {
+                    partialSuccess = true;
+                }
+            }
+
             if (batchResult.length == 3) {
                 assertTrue("Row already exists, shouldn't be inserted.", !isSuccess(batchResult[2]));
             }
@@ -172,7 +180,13 @@ public class RDBDocumentStoreJDBCTest extends AbstractDocumentStoreTest {
             }
             results.close();
             rst.close();
-            assertEquals("Some of the rows weren't inserted.", of("key-1", "key-2", "key-3"), ids);
+
+            if (partialSuccess) {
+                assertEquals("Some of the rows weren't inserted.", of("key-1", "key-2", "key-3"), ids);
+            }
+            else {
+                assertEquals("Failure reported, but rows inserted.", of("key-3"), ids);
+            }
         } finally {
             con.close();
         }
