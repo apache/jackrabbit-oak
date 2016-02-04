@@ -1608,7 +1608,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         Tree prop1 = props.addChild(TestUtil.unique("prop"));
         prop1.setProperty(LuceneIndexConstants.PROP_NAME, "original/jcr:content/type");
-        prop1.setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, false);
+        prop1.setProperty(LuceneIndexConstants.PROP_EXCLUDE_FROM_AGGREGATE, true);
         prop1.setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true);
 
         newNodeAggregator(idx)
@@ -1629,6 +1629,43 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertQuery("select [jcr:path] from [oak:TestNode] where contains(*, 'hello')", asList("/test/a"));
         assertQuery("select [jcr:path] from [oak:TestNode] where contains(*, 'image')", asList("/test/a"));
         assertQuery("select [jcr:path] from [oak:TestNode] where contains(*, 'jpg')", Collections.<String>emptyList());
+
+        //Check that property index is being used
+        assertThat(explain("select [jcr:path] from [oak:TestNode] where [original/jcr:content/type] = 'foo'"),
+                containsString("original/jcr:content/type:foo"));
+    }
+
+    @Test
+    public void aggregateAndIncludeRelativePropertyByDefault() throws Exception{
+        NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
+        Tree idx = createIndex("test1", of("propa", "propb"));
+        Tree props = TestUtil.newRulePropTree(idx, TestUtil.NT_TEST);
+        Tree prop = props.addChild(TestUtil.unique("prop"));
+        prop.setProperty(LuceneIndexConstants.PROP_NAME, "jcr:title");
+        prop.setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true);
+
+        Tree prop1 = props.addChild(TestUtil.unique("prop"));
+        prop1.setProperty(LuceneIndexConstants.PROP_NAME, "original/jcr:content/type");
+        prop1.setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true);
+
+        newNodeAggregator(idx)
+                .newRuleWithName(NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"))
+                .newRuleWithName(TestUtil.NT_TEST, newArrayList("/*"));
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        Tree a = createNodeWithType(test, "a", TestUtil.NT_TEST);
+        Tree af = createFileNode(a, "original", "hello", "text/plain");
+        af.setProperty("type", "jpg");
+        af.setProperty("class", "image"); //Should be included
+
+        root.commit();
+
+        // hello and image would be index by aggregation but
+        // jpg should also be included as it has not been excluded
+        assertQuery("select [jcr:path] from [oak:TestNode] where contains(*, 'hello')", asList("/test/a"));
+        assertQuery("select [jcr:path] from [oak:TestNode] where contains(*, 'image')", asList("/test/a"));
+        assertQuery("select [jcr:path] from [oak:TestNode] where contains(*, 'jpg')", asList("/test/a"));
 
         //Check that property index is being used
         assertThat(explain("select [jcr:path] from [oak:TestNode] where [original/jcr:content/type] = 'foo'"),
