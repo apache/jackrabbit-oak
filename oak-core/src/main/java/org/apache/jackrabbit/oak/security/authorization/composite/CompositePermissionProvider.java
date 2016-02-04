@@ -40,11 +40,10 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 
 /**
  * Permission provider implementation that aggregates a list of different
- * provider implementations. Note, that the implementations *must* implement
- * the {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider}
+ * provider implementations. Note, that the aggregated provider implementations
+ * *must* implement the
+ * {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider}
  * interface.
- *
- * TODO This is work in progress (OAK-1268)
  */
 class CompositePermissionProvider implements PermissionProvider {
 
