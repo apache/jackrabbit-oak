@@ -122,7 +122,6 @@ public class AuthenticationConfigurationImpl extends ConfigurationBase implement
     @Override
     public LoginContextProvider getLoginContextProvider(ContentRepository contentRepository) {
         String appName = getParameters().getConfigValue(PARAM_APP_NAME, DEFAULT_APP_NAME);
-        // todo: temporary workaround
         SecurityProvider provider = getSecurityProvider();
         Whiteboard whiteboard = null;
         if (provider instanceof WhiteboardAware) {
