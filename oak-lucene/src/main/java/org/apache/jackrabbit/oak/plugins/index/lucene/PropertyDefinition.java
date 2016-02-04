@@ -86,6 +86,8 @@ class PropertyDefinition {
 
     final String[] ancestors;
 
+    final boolean excludeFromAggregate;
+
     /**
      * Property name excluding the relativePath. For regular expression based definition
      * its set to null
@@ -121,6 +123,7 @@ class PropertyDefinition {
 
         this.propertyType = getPropertyType(idxDefn, name, defn);
         this.nullCheckEnabled = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_NULL_CHECK_ENABLED, false);
+        this.excludeFromAggregate = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_EXCLUDE_FROM_AGGREGATE, false);
         this.nonRelativeName = determineNonRelativeName();
         this.ancestors = computeAncestors(name);
         this.useInSuggest = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_USE_IN_SUGGEST, false);
