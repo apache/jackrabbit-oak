@@ -16,12 +16,19 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
+import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
+import org.apache.felix.scr.annotations.Activate;
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.ConfigurationPolicy;
+import org.apache.felix.scr.annotations.Deactivate;
+import org.apache.felix.scr.annotations.Modified;
+import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
@@ -31,6 +38,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 /**
  * EXERCISE: complete the implemenation
  */
+@Component(metatype = true, policy = ConfigurationPolicy.REQUIRE)
+@Service({RestrictionProvider.class})
 public class CustomRestrictionProvider implements RestrictionProvider {
 
     @Nonnull
@@ -85,5 +94,20 @@ public class CustomRestrictionProvider implements RestrictionProvider {
     public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Set<Restriction> restrictions) {
         // EXERCISE
         return null;
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    @Activate
+    private void activate(Map<String, Object> properties) {
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    @Modified
+    private void modified(Map<String, Object> properties) {
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    @Deactivate
+    private void deactivate(Map<String, Object> properties) {
     }
 }

@@ -16,14 +16,19 @@
  */
 package org.apache.jackrabbit.oak.security.principal;
 
+import java.util.Map;
 import javax.annotation.Nonnull;
 
+import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
+import org.apache.felix.scr.annotations.Deactivate;
+import org.apache.felix.scr.annotations.Modified;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
@@ -48,12 +53,14 @@ public class CustomPrincipalConfiguration extends ConfigurationBase implements P
     @Nonnull
     @Override
     public PrincipalManager getPrincipalManager(Root root, NamePathMapper namePathMapper) {
+        log.info("CustomPrincipalConfiguration.getPrincipalManager");
         return new PrincipalManagerImpl(getPrincipalProvider(root, namePathMapper));
     }
 
     @Nonnull
     @Override
     public PrincipalProvider getPrincipalProvider(Root root, NamePathMapper namePathMapper) {
+        log.info("CustomPrincipalConfiguration.getPrincipalProvider");
         return new CustomPrincipalProvider(knownPrincipals);
     }
 
@@ -61,5 +68,26 @@ public class CustomPrincipalConfiguration extends ConfigurationBase implements P
     @Override
     public String getName() {
         return PrincipalConfiguration.NAME;
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    @Activate
+    private void activate(Map<String, Object> properties) {
+        knownPrincipals = PropertiesUtil.toStringArray(properties.get("knownPrincipals"), new String[0]);
+        log.info("CustomPrincipalConfiguration.activate: " + knownPrincipals);
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    @Modified
+    private void modified(Map<String, Object> properties) {
+        knownPrincipals = PropertiesUtil.toStringArray(properties.get("knownPrincipals"), new String[0]);
+        log.info("CustomPrincipalConfiguration.modified: " + knownPrincipals);
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    @Deactivate
+    private void deactivate(Map<String, Object> properties) {
+        knownPrincipals = new String[0];
+        log.info("CustomPrincipalConfiguration.deactivate");
     }
 }

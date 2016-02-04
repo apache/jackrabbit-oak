@@ -67,7 +67,7 @@ public class L6_JcrAllTest extends AbstractSecurityTest {
 
     @Test
     public void testManualModification() throws Exception {
-        // TODO: fix the test case such that it passes.
+        // EXERCISE: fix the test case such that it passes.
 
         Tree jcrAllTree = PrivilegeUtil.getPrivilegesTree(root).getChild(PrivilegeConstants.JCR_ALL);
 
