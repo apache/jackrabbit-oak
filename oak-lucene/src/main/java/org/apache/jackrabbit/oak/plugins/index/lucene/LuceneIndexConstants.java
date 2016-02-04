@@ -319,4 +319,9 @@ public interface LuceneIndexConstants {
      * for this property
      */
     String PROP_FACETS = "facets";
+
+    /**
+     * Boolean property indicate that property should not be included in aggregation
+     */
+    String PROP_EXCLUDE_FROM_AGGREGATE = "excludeFromAggregation";
 }
