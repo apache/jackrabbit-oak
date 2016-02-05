@@ -65,6 +65,7 @@ public class ManyGroupMembersTest extends AbstractTest {
 
     private final Random random = new Random();
 
+    private static final String REL_TEST_PATH = "testPath";
     private static final String USER = "user";
     private static final String GROUP = "group";
     private static final int GROUP_CNT = 100;
@@ -89,12 +90,13 @@ public class ManyGroupMembersTest extends AbstractTest {
         try {
             UserManager userManager = ((JackrabbitSession) s).getUserManager();
             for (int i = 0; i <= GROUP_CNT; i++) {
-                userManager.createGroup(new PrincipalImpl(GROUP + i));
+                userManager.createGroup(new PrincipalImpl(GROUP + i), REL_TEST_PATH);
             }
 
             if (!ImportBehavior.NAME_BESTEFFORT.equals(importBehavior)) {
                 for (int i = 0; i <= numberOfMembers; i++) {
-                    userManager.createUser(USER + i, null);
+                    String id = USER + i;
+                    userManager.createUser(id, null, new PrincipalImpl(id), REL_TEST_PATH);
                 }
             }
 
