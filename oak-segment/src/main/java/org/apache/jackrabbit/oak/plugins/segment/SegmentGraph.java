@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Throwables.getStackTraceAsString;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.String.valueOf;
@@ -34,7 +35,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringReader;
-import java.io.StringWriter;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Map;
@@ -549,18 +549,7 @@ public final class SegmentGraph {
                 infoMap.put("size", valueOf(getSize()));
                 return infoMap;
             } catch (SegmentNotFoundException e) {
-                return singletonMap("error", toString(e));
-            }
-        }
-
-        private static String toString(Throwable e) {
-            StringWriter sw = new StringWriter();
-            PrintWriter pw = new PrintWriter(sw, true);
-            try {
-                e.printStackTrace(pw);
-                return sw.toString();
-            } finally {
-                pw.close();
+                return singletonMap("error", getStackTraceAsString(e));
             }
         }
 
