@@ -28,14 +28,12 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 /**
  * Extension of the {@link PermissionProvider} interface that allows it to be
  * used in combination with other provider implementations.
- *
- * TODO This is work in progress (OAK-1268)
  */
 public interface AggregatedPermissionProvider extends PermissionProvider {
 
     /**
      * Allows to determined the set or subset of privileges evaluated by the
-     * implementing permission provider at the specified path or at the repository
+     * implementing permission provider for the specified tree or at the repository
      * level in case the specified {@code tree} is {@code null}.
      *
      * If the given {@code privilegeBits} is {@code null} an implementation returns
@@ -52,17 +50,66 @@ public interface AggregatedPermissionProvider extends PermissionProvider {
      * for repository level privileges.
      * @param privilegeBits The privilege(s) to be tested or {@code null}
      * @return The set of privileges or the subset of the given {@code privilegeBits}
-     * that are supported and evaluated by the the implementation at the given {@code tree}
+     * that are supported and evaluated by the implementation at the given {@code tree}
      * represented as {@code PrivilegeBits}.
      */
     @Nonnull
     PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits);
 
+    /**
+     * Allows to determined the set or subset of permissions evaluated by the
+     * implementing permission provider for the specified item (identified by
+     * {@code tree} and optionally {@code property}) or at the repository level
+     * in case the specified {@code tree} is {@code null}.
+     *
+     * Returning {@link Permissions#NO_PERMISSION} indicates that this implementation
+     * is not in charge of evaluating the specified permissions for the
+     * specified item and thus will be ignored while computing the composite
+     * result of {@link PermissionProvider#isGranted(Tree, PropertyState, long)}.
+     *
+     * @param tree The tree for which the permissions will be evaluated or {@code null}
+     * for repository level privileges.
+     * @param property The target property or {@code null}.
+     * @param permissions The permisisons to be tested
+     * @return The subset of the given {@code permissions} that are supported and
+     * evaluated by the implementation for the given item.
+     */
     long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property, long permissions);
 
+    /**
+     * Allows to determined the set or subset of permissions evaluated by the
+     * implementing permission provider for the specified location.
+     *
+     * Returning {@link Permissions#NO_PERMISSION} indicates that this implementation
+     * is not in charge of evaluating the specified permissions for the
+     * specified location and thus will be ignored while computing the composite
+     * result of {@link PermissionProvider#isGranted(String, String)} and
+     * {@link AggregatedPermissionProvider#isGranted(TreeLocation, long)}.
+     *
+     * @param location The tree location for which the permissions will be evaluated.
+     * @param permissions The permisisons to be tested
+     * @return The subset of the given {@code permissions} that are supported and
+     * evaluated by the implementation for the given location.
+     */
     long supportedPermissions(@Nonnull TreeLocation location, long permissions);
 
-    long supportedPermissions(@Nonnull TreePermission treePermission, @Nullable PropertyState propertyState, long permissions);
+    /**
+     * Allows to determined the set or subset of permissions evaluated by the
+     * implementing permission provider for the specified tree permission (plus
+     * optionally {@code property}).
+     *
+     * Returning {@link Permissions#NO_PERMISSION} indicates that this implementation
+     * is not in charge of evaluating the specified permissions for the
+     * specified tree permission and thus will be ignored while computing the composite
+     * result of {@link TreePermission#isGranted(long, PropertyState)} and {@link TreePermission#isGranted(long)}.
+     *
+     * @param treePermission The target tree permission.
+     * @param property The target property or {@code null}.
+     * @param permissions The permisisons to be tested
+     * @return The subset of the given {@code permissions} that are supported and
+     * evaluated by the implementation for the given tree permissions.
+     */
+    long supportedPermissions(@Nonnull TreePermission treePermission, @Nullable PropertyState property, long permissions);
 
     /**
      * Test if the specified permissions are granted for the set of {@code Principal}s

@@ -229,7 +229,7 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
     }
 
     @Override
-    public long supportedPermissions(@Nonnull TreePermission treePermission, @Nullable PropertyState propertyState, long permissions) {
+    public long supportedPermissions(@Nonnull TreePermission treePermission, @Nullable PropertyState property, long permissions) {
         long supported = permissions & Permissions.READ;
         if (supported != Permissions.NO_PERMISSION && (treePermission instanceof CugTreePermission) && ((CugTreePermission) treePermission).isInCug()) {
             return supported;

@@ -257,7 +257,7 @@ public class CompositeAuthorizationTest extends ReadDeepTreeTest {
         }
 
         @Override
-        public long supportedPermissions(@Nonnull TreePermission treePermission, @Nullable PropertyState propertyState, long permissions) {
+        public long supportedPermissions(@Nonnull TreePermission treePermission, @Nullable PropertyState property, long permissions) {
             return permissions;
         }
 

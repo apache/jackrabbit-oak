@@ -190,7 +190,7 @@ class LimitedScopeProvider extends AbstractAggrProvider implements PrivilegeCons
     }
 
     @Override
-    public long supportedPermissions(@Nonnull TreePermission treePermission, @Nullable PropertyState propertyState, long permissions) {
+    public long supportedPermissions(@Nonnull TreePermission treePermission, @Nullable PropertyState property, long permissions) {
         if (treePermission instanceof TestTreePermission && isSupported(((TestTreePermission) treePermission).path)) {
             return permissions & Permissions.WRITE;
         } else {

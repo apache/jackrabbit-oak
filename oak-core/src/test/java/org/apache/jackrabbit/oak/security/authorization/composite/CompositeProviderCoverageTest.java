@@ -287,7 +287,7 @@ public class CompositeProviderCoverageTest extends AbstractCompositeProviderTest
         }
 
         @Override
-        public long supportedPermissions(@Nonnull TreePermission treePermission, @Nullable PropertyState propertyState, long permissions) {
+        public long supportedPermissions(@Nonnull TreePermission treePermission, @Nullable PropertyState property, long permissions) {
             return permissions & Permissions.READ_NODE;
         }
 
