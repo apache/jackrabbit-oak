@@ -25,6 +25,7 @@ import static com.google.common.collect.Maps.newHashMap;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
+import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.DATE;
@@ -200,12 +201,16 @@ public class SegmentPropertyState extends Record implements PropertyState {
 
     @Override
     public long size(int index) {
-        Segment segment = getSegment();
-        ListRecord values = getValueList(segment);
+        ListRecord values = getValueList(getSegment());
         checkElementIndex(index, values.size());
-        return segment.readLength(values.getEntry(0));
-    }
+        RecordId entry = values.getEntry(index);
 
+        if (getType().equals(BINARY) || getType().equals(BINARIES)) {
+            return new SegmentBlob(entry).length();
+        }
+
+        return getSegment().readLength(entry);
+    }
 
     //------------------------------------------------------------< Object >--
 

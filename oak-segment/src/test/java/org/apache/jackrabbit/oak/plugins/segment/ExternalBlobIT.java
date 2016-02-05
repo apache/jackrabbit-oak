@@ -22,6 +22,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
@@ -47,13 +48,13 @@ import java.util.Random;
 
 import javax.annotation.Nonnull;
 
-import static junit.framework.Assert.assertTrue;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_MK;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assume.assumeTrue;
+import static org.junit.Assert.assertTrue;
 
 public class ExternalBlobIT {
 
@@ -227,5 +228,28 @@ public class ExternalBlobIT {
         public String getReference(@Nonnull String blobId) {
             return blobId;
         }
+    }
+
+    @Test
+    public void testSize() throws Exception {
+        FileDataStore fds = createFileDataStore();
+        DataStoreBlobStore dbs = new DataStoreBlobStore(fds);
+        nodeStore = getNodeStore(dbs);
+
+        int size = Segment.MEDIUM_LIMIT + 1;
+        byte[] data2 = new byte[size];
+        new Random().nextBytes(data2);
+
+        Blob b = nodeStore.createBlob(new ByteArrayInputStream(data2));
+        NodeBuilder builder = nodeStore.getRoot().builder();
+        builder.child("hello").setProperty("world", b);
+        nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+
+        PropertyState ps = nodeStore.getRoot().getChildNode("hello").getProperty("world");
+        // world = {2318851547697882338 bytes}
+
+        assertEquals(size, ps.size());
+        // assertEquals("{" + size + " bytes}", ps.toString());
     }
 }
