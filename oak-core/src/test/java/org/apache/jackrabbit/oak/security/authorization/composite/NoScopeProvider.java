@@ -56,7 +56,7 @@ final class NoScopeProvider extends AbstractAggrProvider {
     }
 
     @Override
-    public long supportedPermissions(@Nonnull TreePermission treePermission, @Nullable PropertyState propertyState, long permissions) {
+    public long supportedPermissions(@Nonnull TreePermission treePermission, @Nullable PropertyState property, long permissions) {
         return Permissions.NO_PERMISSION;
     }
 
