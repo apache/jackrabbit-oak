@@ -22,15 +22,26 @@ package org.apache.jackrabbit.oak.plugins.tika;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.UUID;
 
+import com.google.common.collect.Maps;
 import com.google.common.io.Closer;
 import com.mongodb.MongoClientURI;
 import com.mongodb.MongoURI;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.aws.ext.ds.S3DataStore;
+import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.FileDataStore;
+import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreTextWriter;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
@@ -88,6 +99,11 @@ public class TextExtractorMain {
                     .withRequiredArg()
                     .ofType(File.class);
 
+            OptionSpec<File> s3ConfigSpec = parser
+                    .accepts("s3-config-path", "Path of properties file containing config for S3DataStore")
+                    .withRequiredArg()
+                    .ofType(File.class);
+
             OptionSpec<File> storeDirSpec = parser
                     .accepts("store-path", "Path of directory used to store extracted text content")
                     .withRequiredArg()
@@ -118,7 +134,6 @@ public class TextExtractorMain {
             boolean extract = nonOptions.contains("extract");
             boolean generate = nonOptions.contains("generate");
             File dataFile = null;
-            File fdsDir;
             File storeDir = null;
             File tikaConfigFile = null;
             BlobStore blobStore = null;
@@ -141,12 +156,38 @@ public class TextExtractorMain {
             }
 
             if (options.has(fdsDirSpec)) {
-                fdsDir = fdsDirSpec.value(options);
+                File fdsDir = fdsDirSpec.value(options);
                 checkArgument(fdsDir.exists(), "FileDataStore %s does not exist", fdsDir.getAbsolutePath());
                 FileDataStore fds = new FileDataStore();
                 fds.setPath(fdsDir.getAbsolutePath());
                 fds.init(null);
                 blobStore = new DataStoreBlobStore(fds);
+            }
+
+            if (options.has(s3ConfigSpec)){
+                File s3Config = s3ConfigSpec.value(options);
+                checkArgument(s3Config.exists() && s3Config.canRead(), "S3DataStore config cannot be read from [%s]",
+                        s3Config.getAbsolutePath());
+                Properties props = loadProperties(s3Config);
+                log.info("Loaded properties for S3DataStore from {}", s3Config.getAbsolutePath());
+                String pathProp = "path";
+                String repoPath = props.getProperty(pathProp);
+                checkNotNull(repoPath, "Missing required property [%s] from S3DataStore config loaded from [%s]", pathProp, s3Config);
+
+                //Check if 'secret' key is defined. It should be non null for references
+                //to be generated. As the ref are transient we can just use any random value
+                //if not specified
+                String secretConfig = "secret";
+                if (props.getProperty(secretConfig) == null){
+                    props.setProperty(secretConfig, UUID.randomUUID().toString());
+                }
+
+                log.info("Using {} for S3DataStore ", repoPath);
+                DataStore ds = createS3DataStore(props);
+                PropertiesUtil.populate(ds, toMap(props), false);
+                ds.init(pathProp);
+                blobStore = new DataStoreBlobStore(ds);
+                closer.register(asCloseable(ds));
             }
 
             if (options.has(dataFileSpec)) {
@@ -219,6 +260,31 @@ public class TextExtractorMain {
         }
     }
 
+    private static Map<String, ?> toMap(Properties properties) {
+        Map<String, String> map = Maps.newHashMap();
+        for (final String name: properties.stringPropertyNames()) {
+            map.put(name, properties.getProperty(name));
+        }
+        return map;
+    }
+
+    private static DataStore createS3DataStore(Properties props) throws IOException {
+        S3DataStore s3ds = new S3DataStore();
+        s3ds.setProperties(props);
+        return s3ds;
+    }
+
+    private static Properties loadProperties(File s3Config) throws IOException {
+        Properties props = new Properties();
+        InputStream is = FileUtils.openInputStream(s3Config);
+        try{
+            props.load(is);
+        } finally {
+            IOUtils.closeQuietly(is);
+        }
+        return props;
+    }
+
     private static NodeStore bootStrapNodeStore(String src, BlobStore blobStore,
                                                 Closer closer) throws IOException {
         if (src.startsWith(MongoURI.MONGODB_PREFIX)) {
@@ -249,6 +315,19 @@ public class TextExtractorMain {
             @Override
             public void close() throws IOException {
                 fs.close();
+            }
+        };
+    }
+
+    private static Closeable asCloseable(final DataStore ds) {
+        return new Closeable() {
+            @Override
+            public void close() throws IOException {
+                try {
+                    ds.close();
+                } catch (DataStoreException e) {
+                    throw new IOException(e);
+                }
             }
         };
     }
