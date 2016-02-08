@@ -228,7 +228,7 @@ class Checkpoints {
         for (Revision r : head) {
             int cId = r.getClusterId();
             if (cId == checkpoint.getClusterId()) {
-                revs.put(cId, r);
+                revs.put(cId, checkpoint);
             } else {
                 revs.put(cId, new Revision(checkpoint.getTimestamp(), 0, cId));
             }

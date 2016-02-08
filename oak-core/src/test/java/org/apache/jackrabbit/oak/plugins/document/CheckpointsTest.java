@@ -29,7 +29,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -353,7 +352,6 @@ public class CheckpointsTest {
         assertFalse(root.hasChildNode("baz"));
     }
 
-    @Ignore("OAK-3995")
     @Test
     public void sameClusterReadOldCheckpoint() throws Exception {
         DocumentStore store = new MemoryDocumentStore();
