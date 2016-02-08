@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -350,5 +351,36 @@ public class CheckpointsTest {
         assertNotNull(root);
         assertTrue(root.hasChildNode("foo"));
         assertFalse(root.hasChildNode("baz"));
+    }
+
+    @Ignore("OAK-3995")
+    @Test
+    public void sameClusterReadOldCheckpoint() throws Exception {
+        DocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ns1 = builderProvider.newBuilder().setClusterId(1)
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+
+        NodeBuilder b1 = ns1.getRoot().builder();
+        b1.child("foo");
+        ns1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        ns1.runBackgroundOperations();
+
+        // manually create a check point in 1.2 format
+        Revision headRev = Revision.fromString(ns1.getHeadRevision().toString());
+        long expires = Long.MAX_VALUE;
+        String data = "{\"expires\":\"" + expires + "\"}";
+        UpdateOp update = new UpdateOp("checkpoint", false);
+        update.setMapEntry("data", headRev, data);
+        store.createOrUpdate(Collection.SETTINGS, update);
+
+        // create another node
+        NodeBuilder b2 = ns1.getRoot().builder();
+        b2.child("bar");
+        ns1.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        NodeState root = ns1.retrieve(headRev.toString());
+        assertNotNull(root);
+        assertTrue(root.hasChildNode("foo"));
+        assertFalse(root.hasChildNode("bar"));
     }
 }
