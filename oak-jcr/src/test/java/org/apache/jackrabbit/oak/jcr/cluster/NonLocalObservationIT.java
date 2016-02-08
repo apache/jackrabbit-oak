@@ -127,7 +127,8 @@ public class NonLocalObservationIT extends AbstractClusterTest {
         long scaleMeasurement = doRandomized(r, 10000);
         // phase 2 is 10 times measuring how long subsequent 10000 iterations take
         //  (this used to fail due to 'many commit roots')
-        for (int i = 0; i < 10; i++) {
+        boolean ignoreFirstSpike = true;
+        for (int i = 0; i < 15; i++) {
             System.out.println(new Date() + ": test run of 10000 iterations...");
             long testMeasurement = doRandomized(r, 10000);
             Exception e = exception.get();
@@ -137,9 +138,14 @@ public class NonLocalObservationIT extends AbstractClusterTest {
             // the testMeasurement should now take less than 50% in relation to
             // the
             // scaleMeasurement
-            long max = (long) (scaleMeasurement * 1.2);
+            long max = (long) (scaleMeasurement * 1.5);
             System.out.println(new Date() + ": test run took " + testMeasurement + ", scaleMeasurement=" + scaleMeasurement
                     + ", plus 50% margin: " + max);
+            if (testMeasurement >= max && ignoreFirstSpike) {
+                System.out.println(new Date() + ": this iteration would have failed, but we're now allowing one spike (ignoreFirstSpike)");
+                ignoreFirstSpike = false;
+                continue;
+            }
             assertTrue("test run (" + testMeasurement + ") took more than 50% longer than initial measurement (" + scaleMeasurement
                     + ") (check VM memory settings)", testMeasurement < max);
         }
