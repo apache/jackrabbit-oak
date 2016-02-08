@@ -62,6 +62,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.lucene.analysis.util.CharFilterFactory;
 import org.apache.lucene.analysis.util.TokenFilterFactory;
 import org.apache.lucene.analysis.util.TokenizerFactory;
+import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.util.InfoStream;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
@@ -159,6 +160,14 @@ public class LuceneIndexProviderService {
     )
     private static final String PROP_EXTRACTED_TEXT_CACHE_EXPIRY = "extractedTextCacheExpiryInSecs";
 
+    private static final int PROP_BOOLEAN_CLAUSE_LIMIT_DEFAULT = 1024;
+    @Property(
+            intValue = PROP_BOOLEAN_CLAUSE_LIMIT_DEFAULT,
+            label = "Boolean Clause Limit",
+            description = "Limit for number of boolean clauses generated for handling of OR query"
+    )
+    private static final String PROP_BOOLEAN_CLAUSE_LIMIT = "booleanClauseLimit";
+
     private Whiteboard whiteboard;
 
     private BackgroundObserver backgroundObserver;
@@ -185,6 +194,7 @@ public class LuceneIndexProviderService {
     @Activate
     private void activate(BundleContext bundleContext, Map<String, ?> config)
             throws NotCompliantMBeanException, IOException {
+        configureBooleanClauseLimit(config);
         initializeFactoryClassLoaders(getClass().getClassLoader());
         whiteboard = new OsgiWhiteboard(bundleContext);
         threadPoolSize = PropertiesUtil.toInteger(config.get(PROP_THREAD_POOL_SIZE), PROP_THREAD_POOL_SIZE_DEFAULT);
@@ -429,6 +439,15 @@ public class LuceneIndexProviderService {
                 log.info("Unregistering PreExtractedTextProvider with extracted text cache");
             }
             extractedTextCache.setExtractedTextProvider(provider);
+        }
+    }
+
+    private void configureBooleanClauseLimit(Map<String, ?> config) {
+        int booleanClauseLimit = PropertiesUtil.toInteger(config.get(PROP_BOOLEAN_CLAUSE_LIMIT),
+                PROP_BOOLEAN_CLAUSE_LIMIT_DEFAULT);
+        if (booleanClauseLimit != BooleanQuery.getMaxClauseCount()){
+            BooleanQuery.setMaxClauseCount(booleanClauseLimit);
+            log.info("Changed the Max boolean clause limit to {}", booleanClauseLimit);
         }
     }
 
