@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.util.InfoStream;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
@@ -81,6 +82,8 @@ public class LuceneIndexProviderServiceTest {
 
         assertTrue(context.getService(Observer.class) instanceof BackgroundObserver);
         assertEquals(InfoStream.NO_OUTPUT, InfoStream.getDefault());
+
+        assertEquals(1024, BooleanQuery.getMaxClauseCount());
 
         MockOsgi.deactivate(service);
     }
@@ -162,6 +165,15 @@ public class LuceneIndexProviderServiceTest {
         service.bindExtractedTextProvider(new DummyProvider());
 
         assertNotNull(editorProvider.getExtractedTextCache().getExtractedTextProvider());
+    }
+
+    @Test
+    public void booleanQuerySize() throws Exception{
+        Map<String,Object> config = getDefaultConfig();
+        config.put("booleanClauseLimit", 4000);
+        MockOsgi.activate(service, context.bundleContext(), config);
+
+        assertEquals(4000, BooleanQuery.getMaxClauseCount());
     }
 
     private Map<String,Object> getDefaultConfig(){
