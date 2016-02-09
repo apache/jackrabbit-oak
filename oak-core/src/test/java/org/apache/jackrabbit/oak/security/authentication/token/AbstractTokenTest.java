@@ -42,7 +42,7 @@ public abstract class AbstractTokenTest extends AbstractSecurityTest implements 
 
         root = adminSession.getLatestRoot();
         tokenProvider = new TokenProviderImpl(root,
-                ConfigurationParameters.EMPTY,
+                getTokenConfig(),
                 getUserConfiguration());
     }
 
@@ -53,6 +53,10 @@ public abstract class AbstractTokenTest extends AbstractSecurityTest implements 
         } finally {
             super.after();
         }
+    }
+
+    ConfigurationParameters getTokenConfig() {
+        return ConfigurationParameters.EMPTY;
     }
 
     @CheckForNull
