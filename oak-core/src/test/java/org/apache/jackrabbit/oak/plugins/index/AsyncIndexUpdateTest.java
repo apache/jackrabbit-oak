@@ -23,15 +23,19 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider.TYPE;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Semaphore;
@@ -903,5 +907,180 @@ public class AsyncIndexUpdateTest {
         customLogs.finished();
     }
 
+    @Test
+    public void noRunWhenClosed() throws Exception{
+        NodeStore store = new MemoryNodeStore();
+        IndexEditorProvider provider = new PropertyIndexEditorProvider();
+
+        AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
+        async.run();
+
+        async.close();
+        LogCustomizer lc = createLogCustomizer(Level.WARN);
+        async.run();
+        assertEquals(1, lc.getLogs().size());
+        assertThat(lc.getLogs().get(0), containsString("Could not acquire run permit"));
+
+        lc.finished();
+
+        async.close();
+    }
+
+    @Test
+    public void closeWithSoftLimit() throws Exception{
+        NodeStore store = new MemoryNodeStore();
+        IndexEditorProvider provider = new PropertyIndexEditorProvider();
+        NodeBuilder builder = store.getRoot().builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, "async");
+        builder.child("testRoot").setProperty("foo", "abc");
+
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        final Semaphore asyncLock = new Semaphore(1);
+        final AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider) {
+            @Override
+            protected AsyncUpdateCallback newAsyncUpdateCallback(NodeStore store, String name, long leaseTimeOut,
+                                                                 String beforeCheckpoint, String afterCheckpoint,
+                                                                 AsyncIndexStats indexStats, AtomicBoolean stopFlag) {
+                try {
+                    asyncLock.acquire();
+                } catch (InterruptedException ignore) {
+                }
+                return super.newAsyncUpdateCallback(store, name, leaseTimeOut, beforeCheckpoint, afterCheckpoint,
+                        indexStats, stopFlag);
+            }
+        };
+
+        async.setCloseTimeOut(1000);
+
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                async.run();
+            }
+        });
+
+        Thread closer = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                async.close();
+            }
+        });
+
+        asyncLock.acquire();
+        t.start();
+
+        //Wait till async gets to wait state i.e. inside run
+        while(!asyncLock.hasQueuedThreads());
+
+        LogCustomizer lc = createLogCustomizer(Level.DEBUG);
+        closer.start();
+
+        //Wait till closer is in waiting state
+        while(!async.isClosing());
+
+        //For softLimit case the flag should not be set
+        assertFalse(async.isClosed());
+        assertLogPhrase(lc.getLogs(), "[WAITING]");
+
+        //Let indexing run complete now
+        asyncLock.release();
+
+        //Wait for both threads
+        t.join();
+        closer.join();
+
+        //Close call should complete
+        assertLogPhrase(lc.getLogs(), "[CLOSED OK]");
+    }
+
+    @Test
+    public void closeWithHardLimit() throws Exception{
+        NodeStore store = new MemoryNodeStore();
+        IndexEditorProvider provider = new PropertyIndexEditorProvider();
+        NodeBuilder builder = store.getRoot().builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, "async");
+        builder.child("testRoot").setProperty("foo", "abc");
+
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        final Semaphore asyncLock = new Semaphore(1);
+        final AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider) {
+            @Override
+            protected AsyncUpdateCallback newAsyncUpdateCallback(NodeStore store, String name, long leaseTimeOut,
+                                                                 String beforeCheckpoint, String afterCheckpoint,
+                                                                 AsyncIndexStats indexStats, AtomicBoolean stopFlag) {
+                try {
+                    asyncLock.acquire();
+                } catch (InterruptedException ignore) {
+                }
+                return super.newAsyncUpdateCallback(store, name, leaseTimeOut, beforeCheckpoint, afterCheckpoint,
+                        indexStats, stopFlag);
+            }
+        };
+
+        //Set a 1 sec close timeout
+        async.setCloseTimeOut(1);
+
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                async.run();
+            }
+        });
+
+        Thread closer = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                async.close();
+            }
+        });
+
+        //Lock to ensure that AsyncIndexUpdate waits
+        asyncLock.acquire();
+
+        t.start();
+
+        //Wait till async gets to wait state i.e. inside run
+        while(!asyncLock.hasQueuedThreads());
+
+        LogCustomizer lc = createLogCustomizer(Level.DEBUG);
+        closer.start();
+
+        //Wait till stopFlag is set
+        while(!async.isClosed());
+
+        assertLogPhrase(lc.getLogs(), "[SOFT LIMIT HIT]");
+
+        //Let indexing run complete now
+        asyncLock.release();
+
+        //Wait for both threads
+        t.join();
+
+        //Async run would have failed with exception
+        assertNotNull(async.getIndexStats().getLatestError());
+
+        //Wait for close call to complete
+        closer.join();
+    }
+
+
+    private void assertLogPhrase(List<String> logs, String logPhrase){
+        assertThat(logs.toString(), containsString(logPhrase));
+    }
+
+    private static LogCustomizer createLogCustomizer(Level level){
+        LogCustomizer lc = LogCustomizer.forLogger(AsyncIndexUpdate.class.getName())
+                .filter(level)
+                .enable(level)
+                .create();
+        lc.starting();
+        return lc;
+    }
 
 }

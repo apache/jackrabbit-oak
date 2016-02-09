@@ -399,10 +399,11 @@ public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
 
         @Override
         protected AsyncUpdateCallback newAsyncUpdateCallback(NodeStore store,
-                String name, long leaseTimeOut, String checkpoint,
-                String afterCheckpoint, AsyncIndexStats indexStats) {
+                                                             String name, long leaseTimeOut, String checkpoint,
+                                                             String afterCheckpoint, AsyncIndexStats indexStats,
+                                                             AtomicBoolean stopFlag) {
             return new SpecialAsyncUpdateCallback(store, name, leaseTimeOut,
-                    checkpoint, afterCheckpoint, indexStats, listener);
+                    checkpoint, afterCheckpoint, indexStats, stopFlag, listener);
         }
     }
 
@@ -411,10 +412,9 @@ public class AsyncIndexUpdateLeaseTest extends OakBaseTest {
         private IndexStatusListener listener;
 
         public SpecialAsyncUpdateCallback(NodeStore store, String name,
-                long leaseTimeOut, String checkpoint, String afterCheckpoint,
-                AsyncIndexStats indexStats, IndexStatusListener listener) {
-            super(store, name, leaseTimeOut, checkpoint, afterCheckpoint,
-                    indexStats);
+                                          long leaseTimeOut, String checkpoint, String afterCheckpoint,
+                                          AsyncIndexStats indexStats, AtomicBoolean stopFlag, IndexStatusListener listener) {
+            super(store, name, leaseTimeOut, checkpoint, afterCheckpoint, indexStats, stopFlag);
             this.listener = listener;
         }
 
