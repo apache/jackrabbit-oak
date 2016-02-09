@@ -135,18 +135,18 @@ public class NonLocalObservationIT extends AbstractClusterTest {
             if (e != null) {
                 throw e;
             }
-            // the testMeasurement should now take less than 100% in relation to
+            // the testMeasurement should now take less than 200% in relation to
             // the
             // scaleMeasurement
-            long max = (long) (scaleMeasurement * 2);
+            long max = (long) (scaleMeasurement * 3);
             System.out.println(new Date() + ": test run took " + testMeasurement + ", scaleMeasurement=" + scaleMeasurement
-                    + ", plus 100% margin: " + max);
+                    + ", plus 200% margin: " + max);
             if (testMeasurement >= max && ignoreFirstSpike) {
                 System.out.println(new Date() + ": this iteration would have failed, but we're now allowing one spike (ignoreFirstSpike)");
                 ignoreFirstSpike = false;
                 continue;
             }
-            assertTrue("test run (" + testMeasurement + ") took more than 50% longer than initial measurement (" + scaleMeasurement
+            assertTrue("test run (" + testMeasurement + ") took more than 200% longer than initial measurement (" + scaleMeasurement
                     + ") (check VM memory settings)", testMeasurement < max);
         }
 
