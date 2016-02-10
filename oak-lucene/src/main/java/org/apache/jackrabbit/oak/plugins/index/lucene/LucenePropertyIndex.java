@@ -456,7 +456,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                         for (SuggestWord suggestion : suggestWords) {
                             Query query = qp.createPhraseQuery(aclCheckField, suggestion.string);
 
-                            query = addDescendantClause(query, plan);
+                            query = addDescendantClauseIfRequired(query, plan);
 
                             TopDocs topDocs = searcher.search(query, 100);
                             if (topDocs.totalHits > 0) {
@@ -484,7 +484,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                         for (Lookup.LookupResult suggestion : lookupResults) {
                             Query query = qp.parse("\"" + suggestion.key.toString() + "\"");
 
-                            query = addDescendantClause(query, plan);
+                            query = addDescendantClauseIfRequired(query, plan);
 
                             TopDocs topDocs = searcher.search(query, 100);
                             if (topDocs.totalHits > 0) {
@@ -552,21 +552,24 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         return new LucenePathCursor(itr, plan, settings, sizeEstimator);
     }
 
-    private static Query addDescendantClause(Query query, IndexPlan plan) {
+    private static Query addDescendantClauseIfRequired(Query query, IndexPlan plan) {
         Filter filter = plan.getFilter();
 
         if (filter.getPathRestriction() == Filter.PathRestriction.ALL_CHILDREN) {
             String path = getPathRestriction(plan);
             if (!PathUtils.denotesRoot(path)) {
-                BooleanQuery compositeQuery = new BooleanQuery();
-                compositeQuery.add(query, BooleanClause.Occur.MUST);
+                if (getPlanResult(plan).indexDefinition.evaluatePathRestrictions()) {
 
-                Query pathQuery = TermRangeQuery.newStringRange(FieldNames.PATH, path + "/",
-                        path + "0", false, false);
+                    BooleanQuery compositeQuery = new BooleanQuery();
+                    compositeQuery.add(query, BooleanClause.Occur.MUST);
 
-                compositeQuery.add(pathQuery, BooleanClause.Occur.MUST);
+                    Query pathQuery = new TermQuery(newAncestorTerm(path));
+                    compositeQuery.add(pathQuery, BooleanClause.Occur.MUST);
 
-                query = compositeQuery;
+                    query = compositeQuery;
+                } else {
+                    LOG.warn("Descendant clause could not be added without path restrictions enabled. Plan: {}", plan);
+                }
             }
         }
 
