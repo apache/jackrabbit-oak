@@ -1,5 +1,5 @@
 
-Release Notes -- Apache Jackrabbit Oak -- Version 1.0.27
+Release Notes -- Apache Jackrabbit Oak -- Version 1.0.26
 
 Introduction
 ------------
@@ -8,43 +8,48 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.0.27 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.0.26 is a patch release that contains fixes and
 improvements over Oak 1.0. Jackrabbit Oak 1.0.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.0.27
+Changes in Oak 1.0.26
 ---------------------
 
 Technical task
 
-   [OAK-3896] - RDBDocumentStore: export tool - improve handling of export files allowing to override column order
-   [OAK-3945] - RDBDocumentStore: internalCreateOrUpdate() needs to check return code of insertDocuments()
-   [OAK-3971] - RDBDocumentStore: include table name when logging slow/excessive queries
+   [OAK-3645] - RDBDocumentStore: server time detection for DB2 fails due to timezone/dst differences
+   [OAK-3729] - RDBDocumentStore: implement RDB-specific VersionGC support for lookup of deleted documents
+   [OAK-3730] - RDBDocumentStore: implement RDB-specific VersionGC support for lookup of split documents
+   [OAK-3739] - RDBDocumentStore: allow schema evolution part 1: check for required columns, log unexpected new columns
+   [OAK-3807] - Oracle DB doesn't support lists longer than 1000
+   [OAK-3816] - RDBBlobStoreTest should use named parameters
+   [OAK-3851] - RDB*Store: update PostgreSQL and MySQL JDBC driver dependencies
+   [OAK-3852] - RDBDocumentStore: batched append logic may loose property changes
+   [OAK-3867] - RDBDocumentStore: refactor JSON support
 
 Bug
 
-   [OAK-3821] - Lucene directory: improve exception messages
-   [OAK-3911] - Integer overflow causing incorrect file handling in OakDirectory for file size more than 2 GB
-   [OAK-3932] - DocumentStore.getIfCached() must not return NodeDocument.NULL
-   [OAK-3968] - Wrong initialization of used/ignored properties from OSGi configuration
-   [OAK-3974] - regression: OakSolrConfigurationProviderService.activate can throw a NPE
-   [OAK-3981] - Change in aggregation flow in OAK-3831 causes some properties to be left out of aggregation
+   [OAK-3733] - Sometimes hierarchy conflict between concurrent add/delete isn't detected
+   [OAK-3763] - EmptyNodeState.equals() broken
+   [OAK-3765] - Parallelized test runner does not wait for test completion
+   [OAK-3776] - Test failure: RootFuzzIT failure on MONGO_NS fixture (1.0 branch)
+   [OAK-3872] - [RDB] Updated blob still deleted even if deletion interval lower
 
 Improvement
 
    [OAK-3126] - Enable HybridMapFactory by default
-   [OAK-3527] - Improve logging for blob GC
-   [OAK-3918] - Include index details in exception thrown by OakDirectory
-   [OAK-3936] - [oak-run] Option to dump blob references
-   [OAK-3990] - Enable specifying the max clause limit in BooleanClause
+   [OAK-3577] - NameValidator diagnostics could be more helpful
+   [OAK-3830] - Provide size for properties for PropertyItearator returned in Node#getProperties(namePattern)
+   [OAK-3831] - Allow relative property to be indexed but excluded from aggregation
+   [OAK-3885] - enhance stability of clusterNodeInfo's machineId
 
 Task
 
-   [OAK-2937] - Remove code related to directmemory for off heap caching
    [OAK-3613] - Backport TarMK revision gc related issues
+   [OAK-3750] - BasicDocumentStoreTest: improve robustness of .removeWithCondition test
 
 
 In addition to the above-mentioned changes, this release contains
