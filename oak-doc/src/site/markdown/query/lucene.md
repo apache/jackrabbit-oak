@@ -1003,6 +1003,18 @@ supported for backward compatibility, but having a separate `suggestion` node is
 Setting up `useInSuggest=true` for a property definition having `name=:nodeName` would add node names to
 suggestion dictionary (See [property name](#property-names) for node name indexing)
 
+Since, Oak 1.3.16, very little support exists for queries with `ISDESCENDANTNODE` constraint to subset suggestions
+on a sub-tree.  It requires `evaluatePathRestrictions=true` on index definition. e.g.
+```
+SELECT rep:suggest() FROM [nt:base] WHERE SUGGEST('test') AND ISDESCENDANTNODE('/a/b')
+```
+or
+```
+/jcr:root/a/b//[rep:suggest('in 201')]/(rep:suggest())
+```
+Note, the subset is done by filtering top 10 suggestions. So, it's possible to get no suggestions for a subtree query,
+if top 10 suggestions are not part of that subtree. For details look at [OAK-3994] and related issues.
+
 #### Spellchecking
 
 `@since Oak 1.1.17, 1.0.13`
@@ -1035,6 +1047,17 @@ Since Oak 1.3.11, the each suggestion would be returned per row.
           - useInSpellcheck = true
 ```
 
+Since, Oak 1.3.16, very little support exists for queries with `ISDESCENDANTNODE` constraint to subset suggestions
+on a sub-tree. It requires `evaluatePathRestrictions=true` on index definition. e.g.
+```
+SELECT rep:suggest() FROM [nt:base] WHERE SUGGEST('test') AND ISDESCENDANTNODE('/a/b')
+```
+or
+```
+/jcr:root/a/b//[rep:suggest('in 201')]/(rep:suggest())
+```
+Note, the subset is done by filtering top 10 spellchecks. So, it's possible to get no results for a subtree query,
+if top 10 spellchecks are not part of that subtree. For details look at [OAK-3994] and related issues.
 
 #### Facets
 
@@ -1507,6 +1530,7 @@ such fields
 [OAK-2853]: https://issues.apache.org/jira/browse/OAK-2853
 [OAK-2892]: https://issues.apache.org/jira/browse/OAK-2892
 [OAK-3367]: https://issues.apache.org/jira/browse/OAK-3367
+[OAK-3994]: https://issues.apache.org/jira/browse/OAK-3394
 [luke]: https://code.google.com/p/luke/
 [tika]: http://tika.apache.org/
 [oak-console]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run#console
