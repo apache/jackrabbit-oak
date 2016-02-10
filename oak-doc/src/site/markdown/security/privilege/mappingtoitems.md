@@ -52,25 +52,20 @@ by the system only and cannot be modified by the API consumer.
 
 | Privilege               | Affected Items                                      |
 |-------------------------|-----------------------------------------------------|
-| jcr:readAccessControl   | all items defining access control content (1)       |
-| jcr:modifyAccessControl | all items defining access control content (1)       |
+| jcr:readAccessControl   | all items defining access control content [1]       |
+| jcr:modifyAccessControl | all items defining access control content [1]       |
 | rep:privilegeManagement | implementation specific; in Oak everything below `/jcr:system/rep:privileges` |
-
-(1) in Oak reading/writing nodes with the following node types: `rep:Policy`, `rep:ACL`, `rep:ACE`, `rep:GrantACE`, `rep:DenyACE`, `rep:Restrictions`, `rep:CugPolicy` and all protected items defined therein
 
 #### Other Session and Workspace Operations
 
 | Privilege               | Affected Items                                      |
 |-------------------------|-----------------------------------------------------|
-| jcr:versionManagement   | all items defining version content (2)              |
+| jcr:versionManagement   | all items defining version content [2]              |
 | jcr:lockManagement      | Properties `jcr:lockIsDeep`, `jcr:lockOwner`        |
 | jcr:lifecycleManagement | `jcr:lifecyclePolicy`, `jcr:currentLifecycleState`  |
 | jcr:retentionManagement | implementation specific, in Jackrabbit 2.x the following properties: `rep:hold`, `rep:retentionPolicy`, Oak: NA |
-| rep:userManagement      | all items defining user/group content (3)           |
+| rep:userManagement      | all items defining user/group content [3]           |
 | rep:indexDefinitionManagement | implementation specific; in Oak trees starting with an `oak:index` node |
-
-(2) granting jcr:versionManagement privilege at a given versionable node will allow writing items through JCR version management API which writes below `/jcr:system/jcr:versionStorage`, `/jcr:system/jcr:activities`, `/jcr:system/jcr:configurations` and the following properties both in the storage(s) and with the versionable node: `jcr:activity`, `jcr:activityTitle`, `jcr:baseVersion`, `jcr:childVersionHistory`, `jcr:configuration`, `jcr:copiedFrom`, `jcr:frozenMixinTypes`, `jcr:frozenPrimaryType`, `jcr:frozenUuid`, `jcr:isCheckedOut`, `jcr:mergeFailed`, `jcr:predecessors`,`jcr:successors`,`jcr:root`,`jcr:versionableUuid`, `jcr:versionHistory`
-(3) in Oak creating nodes with the following primary types: `rep:User`, `rep:SystemUser`, `rep:Group`, `rep:Impersonatable`, `rep:Members`, `rep:MemberReferences`, `rep:MemberReferencesList`, `rep:Password` and all protected properties defined therein
 
 #### Repository Operations
 
@@ -80,3 +75,13 @@ by the system only and cannot be modified by the API consumer.
 | jcr:nodeTypeDefinitionManagement | implementation specific; in Oak everything below `/jcr:system/jcr:nodeTypes` |
 | rep:privilegeManagement | implementation specific; in Oak everything below `/jcr:system/rep:privileges` |
 | jcr:workspaceManagement | NA                                                  |
+
+
+#### Annotations
+
+[1] In Oak reading/writing nodes with the following node types provided by the implementations present: `rep:Policy`, `rep:ACL`, `rep:ACE`, `rep:GrantACE`, `rep:DenyACE`, `rep:Restrictions` and `rep:CugPolicy` and all protected items defined therein.
+    See [Default Access Control Management](../accesscontrol/default.html) and [Managing Access Control with CUG](../authorization_cug/cug.html), respectively.
+
+[2] Granting jcr:versionManagement privilege at a given versionable node will allow writing items through JCR version management API which writes below `/jcr:system/jcr:versionStorage`, `/jcr:system/jcr:activities`, `/jcr:system/jcr:configurations` and the following properties both in the storage(s) and with the versionable node: `jcr:activity`, `jcr:activityTitle`, `jcr:baseVersion`, `jcr:childVersionHistory`, `jcr:configuration`, `jcr:copiedFrom`, `jcr:frozenMixinTypes`, `jcr:frozenPrimaryType`, `jcr:frozenUuid`, `jcr:isCheckedOut`, `jcr:mergeFailed`, `jcr:predecessors`,`jcr:successors`,`jcr:root`,`jcr:versionableUuid`, `jcr:versionHistory`
+
+[3] in Oak creating nodes with the following primary types: `rep:User`, `rep:SystemUser`, `rep:Group`, `rep:Impersonatable`, `rep:Members`, `rep:MemberReferences`, `rep:MemberReferencesList`, `rep:Password` and all protected properties defined therein

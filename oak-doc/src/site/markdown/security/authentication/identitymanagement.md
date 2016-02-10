@@ -20,7 +20,8 @@ External Identity Management
 
 ### General
 
-_todo_
+Jackrabbit Oak provides interfaces and some base classes to ease custom implementation 
+of the external authentication with optional user/group synchronization to the repository.
 
 ### Identity Management API
 

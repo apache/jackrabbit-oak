@@ -33,7 +33,6 @@ Compared to the Jackrabbit interface the new `AuthorizableAction` has been sligh
 adjusted to match Oak requirements operate directly on the Oak API, which eases
 the handling of implementation specific tasks such as writing protected items.
 
-
 ### AuthorizableAction API
 
 The following public interfaces are provided by Oak in the package `org.apache.jackrabbit.oak.spi.security.user.action`:
@@ -65,7 +64,7 @@ Oak 1.0 provides the following base implementations:
 The following implementations of the `AuthorizableAction` interface are provided:
 
 * `AccessControlAction`: set up permission for new authorizables
-* `PasswordAction`: simplistic password verification upon user creation and password modification
+* `PasswordValidationAction`: simplistic password verification upon user creation and password modification
 * `PasswordChangeAction`: verifies that the new password is different from the old one
 * `ClearMembershipAction`: clear group membership upon removal of an authorizable.
 

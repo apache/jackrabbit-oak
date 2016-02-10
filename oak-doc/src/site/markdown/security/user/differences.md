@@ -66,7 +66,9 @@ The user query is expected to work as in Jackrabbit 2.x. See section
 
 #### XML Import
 
-* Importing an authorizable to another tree than the configured user/group node will only failed upon save (-> see `UserValidator` during the `Root#commit`). With Jackrabbit 2.x core it used to fail immediately.
+* Importing an authorizable to another tree than the configured user/group node 
+  will only failed upon save (-> see `UserValidator` during the `Root#commit`). 
+  With Jackrabbit 2.x core it used to fail immediately.
 * The `BestEffort` behavior is now also implemented for the import of impersonators (was missing in Jackrabbit /2.x).
 * Oak also supports workspace import for authorizables
 
@@ -113,10 +115,3 @@ in Jackrabbit 2.x are no longer supported and will be ignored:
 * "autoExpandTree"
 * "autoExpandSize"
 * "groupMembershipSplitSize"
-
-<!-- hidden references -->
-[OAK-118]: https://issues.apache.org/jira/browse/OAK-118
-[OAK-482]: https://issues.apache.org/jira/browse/OAK-482
-[OAK-793]: https://issues.apache.org/jira/browse/OAK-793
-[OAK-949]: https://issues.apache.org/jira/browse/OAK-949
-[OAK-1183]: https://issues.apache.org/jira/browse/OAK-1183

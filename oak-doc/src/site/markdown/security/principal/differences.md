@@ -26,14 +26,14 @@ have been made part of public API exposed by Oak:
 - [org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal]: corresponds to o.a.j.core.security.principal.EveryonePrincipal
 - [org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal]: corresponds to o.a.j.core.security.SystemPrincipal
 
-#### Combine principals from different sources
+#### Combining Principals from Different Sources
 
 In contrast to Jackrabbit 2.x Oak only deals with a single `PrincipalProvider`. In
 order to combine principals from different sources a implementation that properly
 handles the different sources is required; the [CompositePrincipalProvider] is an
 example that combines multiple implementations.
 
-See [Principal Management](../principal.html) for an example.
+See [Principal Management](../principal.html#pluggability) for an example.
 
 <!-- references -->
 

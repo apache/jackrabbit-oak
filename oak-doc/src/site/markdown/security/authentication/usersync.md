@@ -34,7 +34,7 @@ Oak comes with a default implementation of the `SyncHandler` interface:
 - [SyncContext]: executes the synchronization
 - [SyncedIdentity]: represents a synchronized identity
 - [SyncResult]: the result of a sync operation
-- [SyncException]
+- [SyncException]: marker for sync related errors
 
 #### JMX Synchronization Tool
 

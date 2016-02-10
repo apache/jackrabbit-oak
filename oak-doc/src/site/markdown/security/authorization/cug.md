@@ -22,25 +22,41 @@ Managing Access with Closed User Groups (CUG)
 
 _todo_
 
-### CUG API
+<a name="jackrabbit_api"/>
+### Jackrabbit API
 
-_todo_
+_todo: PrincipalSetPolicy_
 
-### Characteristics of the CUG Implementation
+<a name="api_extensions"/>
+### API Extensions
+
+_todo: CugPolicy_
+_todo: CugExclude_
+
+### Characteristics of the default CUG Implementation
 
 _todo_
 
 #### CUG Representation in the Repository
 
-##### Content Structure
+CUG policies defined by this module in a dedicate node name `rep:cugPolicy` of 
+type `rep:CugPolicy`. This node is defined by a dedicate mixin type 
+`rep:CugMixin` (similar to `rep:AccessControllable`) and has a single mandatory,
+protected property which stores the name of principals that are granted read
+access in the restricted area:
 
-_todo_
+    [rep:CugMixin]
+      mixin
+      + rep:cugPolicy (rep:CugPolicy) protected IGNORE
+      
+    [rep:CugPolicy] > rep:Policy
+      - rep:principalNames (STRING) multiple protected mandatory IGNORE
 
 <a name="validation"/>
 ##### Validation
 
 The consistency of this content structure both on creation and modification is
-asserted by a dedicated `TokenValidator`. The corresponding error are
+asserted by a dedicated `CugValidatorProvider`. The corresponding error are
 all of type `AccessControl` with the following codes:
 
 | Code              | Message                                                  |
@@ -50,22 +66,25 @@ all of type `AccessControl` with the following codes:
 | 0022              | Access controlled not not of mixin 'rep:CugMixin'        |
 | 0023              | Wrong name of node with primary type 'rep:CugPolicy'     |
 
+<a name="configuration"/>
 ### Configuration
-
-_todo_
 
 #### Configuration Parameters
 
-_todo_
+The implementation supports the following configuration parameters:
 
+| Parameter                   | Type           | Default  | Description |
+|-----------------------------|----------------|----------|-------------|
+| `PARAM_CUG_ENABLED`         | boolean        | false    | Flag to enable evaluation of CUG policies upon read-access.  |
+| `PARAM_CUG_SUPPORTED_PATHS` | Set\<String\>  | \-       | Paths under which CUGs can be created and will be evaluated. |
+| `PARAM_RANKING`             | int            | 200      | Ranking within the composite authorization setup.            |
+| | | | |
 
-#### Examples
-
-_todo_
-
+<a name="pluggability"/>
 ### Pluggability
 
-_todo_
+_todo: deploying cug-authorization in an oak repository_
+_todo: customize cug-authorization by providing custom CugExclude implementation_
 
 ##### Examples
 

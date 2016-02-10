@@ -289,7 +289,7 @@ Security
 --------
 
 * [Authentication](security/authentication/differences.html)
-* [AccessControl Management](security/accesscontrol/differences.html)
+* [Access Control Management](security/accesscontrol/differences.html)
 * [Permission Evaluation](security/permission/differences.html)
 * [Privilege Management](security/privilege/differences.html)
 * [Principal Management](security/principal/differences.html)
