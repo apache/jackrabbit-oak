@@ -54,7 +54,6 @@ defined by JCR or the names of the Oak permissions.
     - `getApplicablePolicies(String)`
     - `getPolicies(String)`
 
-
 - `JackrabbitAccessControlManager`
     - `getApplicablePolicies(Principal)`
     - `getPolicies(Principal)`

@@ -15,7 +15,7 @@
    limitations under the License.
 -->
 
-Managing Access with Closed User Groups (CUG)
+Managing Access with "Closed User Groups" (CUG)
 --------------------------------------------------------------------------------
 
 ### General
@@ -25,7 +25,14 @@ _todo_
 <a name="jackrabbit_api"/>
 ### Jackrabbit API
 
-_todo: PrincipalSetPolicy_
+The Jackrabbit API defines an extension of the JCR [AccessControlPolicy] interface 
+intended to grant the ability to perform certain actions to a set of
+[Principal]s:
+
+- `PrincipalSetPolicy`
+
+See [Jackrabbit API](http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-api/src/main/java/org/apache/jackrabbit/api/security/authorization/PrincipalSetPolicy.java) 
+for details and the methods exposed by the interface.
 
 <a name="api_extensions"/>
 ### API Extensions
@@ -33,11 +40,11 @@ _todo: PrincipalSetPolicy_
 _todo: CugPolicy_
 _todo: CugExclude_
 
-### Characteristics of the default CUG Implementation
+### Implementation Details
 
 _todo_
 
-#### CUG Representation in the Repository
+### Representation in the Repository
 
 CUG policies defined by this module in a dedicate node name `rep:cugPolicy` of 
 type `rep:CugPolicy`. This node is defined by a dedicate mixin type 
@@ -53,7 +60,7 @@ access in the restricted area:
       - rep:principalNames (STRING) multiple protected mandatory IGNORE
 
 <a name="validation"/>
-##### Validation
+### Validation
 
 The consistency of this content structure both on creation and modification is
 asserted by a dedicated `CugValidatorProvider`. The corresponding error are
@@ -68,6 +75,8 @@ all of type `AccessControl` with the following codes:
 
 <a name="configuration"/>
 ### Configuration
+
+_todo_
 
 #### Configuration Parameters
 
@@ -90,4 +99,6 @@ _todo: customize cug-authorization by providing custom CugExclude implementation
 
 _todo_
 
-<!-- references -->
+<!-- hidden references -->
+[Principal]: http://docs.oracle.com/javase/7/docs/api/java/security/Principal.html
+[AccessControlPolicy]: http://www.day.com/specs/javax.jcr/javadocs/jcr-2.0/javax/jcr/security/AccessControlPolicy.html
