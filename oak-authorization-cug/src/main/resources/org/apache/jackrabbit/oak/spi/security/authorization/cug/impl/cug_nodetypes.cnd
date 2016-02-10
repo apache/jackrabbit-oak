@@ -25,14 +25,14 @@
 // Authorization: Closed User Group
 // -----------------------------------------------------------------------------
 /**
- * @since oak 1.1
+ * @since oak 1.4
  */
 [rep:CugMixin]
   mixin
   + rep:cugPolicy (rep:CugPolicy) protected IGNORE
 
 /**
- * @since oak 1.1
+ * @since oak 1.4
  */
 [rep:CugPolicy] > rep:Policy
   - rep:principalNames (STRING) multiple protected mandatory IGNORE
