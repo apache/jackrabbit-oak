@@ -15,15 +15,19 @@
    limitations under the License.
 -->
 
-Permission Evaluation in Detail
+Permission Evaluation in Detail : The Default Implementation
 --------------------------------------------------------------------------------
 
-### <a name="permissionentries"></a>Order and Evaluation of Permission Entries
+<a name="permissionentries"/>
+### Order and Evaluation of Permission Entries
 
 In order to evaluate the permissions for a given item, the `PermissionProvider`
 lazily builds an iterator of `PermissionsEntry` representing the rep:Permission
 present in the permission store that take effect for the given set of principals
 at the given node (or property).
+
+Each `PermissionsEntry` stores the privileges granted/denied together with any
+restrictions that may be defined with the original access control entry.
 
 This iterator is a concatenation between all entries associated with user principals
 followed by the entries associated with group principals.
@@ -48,6 +52,16 @@ The order of precedence is as follows:
 Result:
 
 - everyone is allowed to read the complete tree defined by /content
+
+###### Simple Inheritance with Restrictions
+
+    /content
+        allow - everyone - READ permission
+        deny - everyone - READ_PROPERTY permission - restriction rep:itemNames = ['prop1', 'prop2']
+
+Result:
+
+- everyone is cannot read the complete tree defined by /content _except_ for properties named 'prop1' or 'prop2' which are explicitly denied by the restricting entry.
 
 ###### Inheritance with Allow and Deny
 
@@ -174,7 +188,7 @@ in terms of permission evaluation:
   1. The _permission entries_ are [analyzed](#entry_evaluation) if they include the respective permission and if so,
      the read status is set accordingly. Note that the sequence of the permission entries from
      the iterator is already in the correct order for this kind of evaluation. This is ensured
-     by the way how they are stored in the [permission store](../permission.html#permissionStore) and how they
+     by the way how they are stored in the [permission store](default.html#permissionStore) and how they
      are feed into the iterator (see [Order and Evaluation of Permission Entries](#permissionentries) above).
 
      The iteration also detects if the evaluated permission entries cover _this_ node and all
@@ -217,8 +231,8 @@ in terms of permission evaluation:
      permission for properties defining access control related content. In case
      all properties defined with the parent tree are accessible to the editing
      session the result is remembered in the `ReadStatus` kept with this `TreePermission`
-     instance; otherwise the _permission entries_ are collected and evaluated as described
-     in sections [Order and Evaluation of Permission Entries](#permissionentries) above.
+     instance; otherwise the _permission entries_ are collected and evaluated as described 
+     [above](#permissionentries).
 
 #### Session Write-Operations
 

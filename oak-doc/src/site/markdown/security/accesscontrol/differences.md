@@ -14,7 +14,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
   -->
-### AccessControl Management : Differences wrt Jackrabbit 2.x
+### Access Control Management : Differences wrt Jackrabbit 2.x
 
 #### Characteristics of the Default Implementation
 
@@ -73,16 +73,10 @@ on the target node(s). Similarly, the per principal policies exposed to a given
 session will always respect that access rights of that session.
 
 ###### Restrictions
-The implementation of the additional restrictions associated with an ACE has been modified/extended as follows:
+The implementation of the additional restrictions associated with an ACE has been 
+slighly modified/extended.
 
-- Separate restriction management API (see below) on the OAK level that allows to ease plugging custom restrictions.
-- Changed node type definition for storing restrictions in the default implementation.
-    - as of OAK restrictions are collected underneath a separate child node "rep:restrictions"
-    - restrictions can be multi-valued (see [JCR-3637](https://issues.apache.org/jira/browse/JCR-3637), [JCR-3641](https://issues.apache.org/jira/browse/JCR-3641))
-    - backwards compatible behavior for restrictions stored underneath the ACE node directly
-- New restrictions:
-    - "rep:ntNames", which allows to limit the affected ACE to nodes of the specified node type(s)
-    - "rep:prefixes", which allows to limit the effect to item names that have a specific namespace prefix.
+See section [Restriction Management](../authorization/restriction.html) for details. 
 
 ##### Import
 

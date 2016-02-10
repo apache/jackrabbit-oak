@@ -64,8 +64,9 @@ authentication phases behave as follows:
 
 Oak 1.0 defines the following interfaces used to manage login tokens:
 
+- [TokenConfiguration]: Interface to obtain a `TokenProvider` instance (see section [configuration](#configuration) below).
 - [TokenProvider]: Interface to read and manage login tokens.
-- [TokenInfo]: Information associated with a given login token.
+- [TokenInfo]: Information associated with a given login token and token validity.
 
 In addition Oak comes with a default implementation of the provider interface
 that is able to aggregate multiple `TokenProvider`s:
