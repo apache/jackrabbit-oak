@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
+import org.junit.Ignore;
 
 /**
  * Test for external events from another cluster node.
@@ -106,6 +107,7 @@ public class NonLocalObservationIT extends AbstractClusterTest {
     }
 
     @Test
+    @Ignore("OAK-3986 - disabling for now as in-memory fixture causes OOME in this or following tests")
     public void randomized() throws Exception {
         System.out.println(new Date() + ": initialization");
         if (s1 == null) {
