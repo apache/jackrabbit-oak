@@ -41,6 +41,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EVALUATE_PATH_RESTRICTION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_RULES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROPDEF_PROP_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_USE_IN_SPELLCHECK;
@@ -114,6 +115,7 @@ public class LuceneIndexDescendantSpellcheckTest {
         def.setProperty(REINDEX_PROPERTY_NAME, true);
         def.setProperty("name", name);
         def.setProperty(LuceneIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
+        def.setProperty(EVALUATE_PATH_RESTRICTION, true);
 
         Node propertyIdxDef = def.addNode(INDEX_RULES, JcrConstants.NT_UNSTRUCTURED)
                 .addNode(indexedNodeType, JcrConstants.NT_UNSTRUCTURED)
@@ -163,6 +165,20 @@ public class LuceneIndexDescendantSpellcheckTest {
         validateSpellchecks(
                 createSpellcheckQuery(NT_OAK_UNSTRUCTURED, "taste", "/content1"),
                 newHashSet("test2", "test3"));
+    }
+
+    //OAK-3994
+    @Test
+    public void descendantSuggestionRequirePathRestrictionIndex() throws Exception {
+        Node rootIndexDef = root.getNode("oak:index/spellcheck-idx");
+        rootIndexDef.getProperty(EVALUATE_PATH_RESTRICTION).remove();
+        rootIndexDef.setProperty(REINDEX_PROPERTY_NAME, true);
+        session.save();
+
+        //Without path restriction indexing, descendant clause shouldn't be respected
+        validateSpellchecks(
+                createSpellcheckQuery(NT_OAK_UNSTRUCTURED, "taste", "/content1"),
+                newHashSet("test1", "test2", "test3", "test4", "test5", "test6"));
     }
 
     //OAK-3994
