@@ -63,7 +63,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
 
     private static final Logger log = LoggerFactory.getLogger(ExternalLoginModule.class);
 
-    // todo: make configurable
+    // todo: make configurable (OAK-4001)
     private static final int MAX_SYNC_ATTEMPTS = 50;
 
     /**
@@ -413,7 +413,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
     @Nonnull
     @Override
     protected Set<Class> getSupportedCredentials() {
-        // TODO: maybe delegate getSupportedCredentials to IDP
+        // TODO: delegate getSupportedCredentials to IDP (OAK-4000)
         Class scClass = SimpleCredentials.class;
         return Collections.singleton(scClass);
     }
