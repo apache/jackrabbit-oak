@@ -19,7 +19,9 @@ package org.apache.jackrabbit.oak.jcr.cluster;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.jcr.Node;
@@ -31,51 +33,92 @@ import javax.jcr.observation.EventListener;
 import javax.jcr.observation.ObservationManager;
 
 import org.apache.jackrabbit.api.observation.JackrabbitEvent;
+import org.apache.jackrabbit.oak.fixture.DocumentMongoFixture;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
-import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.AssumptionViolatedException;
 import org.junit.Test;
-import org.junit.Ignore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.mongodb.DB;
 
 /**
  * Test for external events from another cluster node.
  */
 public class NonLocalObservationIT extends AbstractClusterTest {
 
+    private static final Logger log = LoggerFactory.getLogger(NonLocalObservationIT.class);
+
     AtomicReference<Exception> exception = new AtomicReference<Exception>();
 
     @Override
     protected NodeStoreFixture getFixture() {
-        return new NodeStoreFixture() {
+        /**
+         * Fixes the cluster use case plus allowing to control the cache sizes.
+         * In theory other users of DocumentMongoFixture might have similar 
+         * test cases - but keeping it simple for now - thus going via subclass.
+         */
+        return new DocumentMongoFixture() {
+            
+            private String clusterSuffix = System.currentTimeMillis() + "-NonLocalObservationIT";
 
-            private DocumentStore documentStore;
+            private DB db;
+            
+            /** keep a reference to the node stores so that the db only gets closed after the last nodeStore was closed */
+            private Set<NodeStore> nodeStores = new HashSet<NodeStore>();
 
-            private DocumentStore getDocumentStore() {
-                if (documentStore == null) {
-                    documentStore = new MemoryDocumentStore();
-                }
-                return documentStore;
-            }
-
-            @Override
-            public String toString() {
-                return "TestNodeStoreFixture";
-            }
-
-            @Override
-            public NodeStore createNodeStore() {
-                return new DocumentMK.Builder().setDocumentStore(getDocumentStore()).getNodeStore();
-            }
-
+            /**
+             * This is not implemented in the super class at all.
+             * <ul>
+             *  <li>use a specific suffix to make sure we have our own, new db and clean it up after the test</li>
+             *  <li>properly drop that db created above in dispose</li>
+             *  <li>use only 32MB (vs default of 256MB) memory to ensure we're not going OOM just because of this (which happens with the default)</li>
+             *  <li>disable the persistent cache for the same reason</li>
+             * </ul>
+             */
             @Override
             public NodeStore createNodeStore(int clusterNodeId) {
-                return new DocumentMK.Builder().setDocumentStore(getDocumentStore()).setClusterId(clusterNodeId).getNodeStore();
+                try {
+                    DocumentMK.Builder builder = new DocumentMK.Builder();
+                    builder.memoryCacheSize(32*1024*1024); // keep this one low to avoid OOME
+                    builder.setPersistentCache(null);      // turn this one off to avoid OOME
+                    final String suffix = clusterSuffix;
+                    db = getDb(suffix); // db will be overwritten - but that's fine
+                    builder.setMongoDB(db);
+                    DocumentNodeStore ns = builder.getNodeStore();
+                    nodeStores.add(ns);
+                    return ns;
+                } catch (Exception e) {
+                    throw new AssumptionViolatedException("Mongo instance is not available", e);
+                }
             }
+            
+            @Override
+            public void dispose(NodeStore nodeStore) {
+                super.dispose(nodeStore);
+                nodeStores.remove(nodeStore);
+                if (db != null && nodeStores.size() == 0) {
+                    try {
+                        db.dropDatabase();
+                        db.getMongo().close();
+                        db = null;
+                    } catch (Exception e) {
+                        log.error("dispose: Can't close Mongo", e);
+                    }
+                }
+            }
+            
+            @Override
+            public String toString() {
+                return "NonLocalObservationIT's DocumentMongoFixture flavour";
+            }
+
         };
     }
-
+    
     private void addEventHandler(Session s, final String expectedNodeSuffix) throws Exception {
         ObservationManager o = s.getWorkspace().getObservationManager();
         o.addEventListener(new EventListener() {
@@ -107,7 +150,6 @@ public class NonLocalObservationIT extends AbstractClusterTest {
     }
 
     @Test
-    @Ignore("OAK-3986 - disabling for now as in-memory fixture causes OOME in this or following tests")
     public void randomized() throws Exception {
         System.out.println(new Date() + ": initialization");
         if (s1 == null) {
