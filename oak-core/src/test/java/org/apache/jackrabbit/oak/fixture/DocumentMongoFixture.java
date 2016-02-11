@@ -82,7 +82,7 @@ public class DocumentMongoFixture extends NodeStoreFixture {
         }
     }
 
-    private DB getDb(String suffix) throws UnknownHostException {
+    protected DB getDb(String suffix) throws UnknownHostException {
         String dbName = new MongoClientURI(uri).getDatabase();
         MongoConnection connection = new MongoConnection(uri);
         return connection.getDB(dbName + "-" + suffix);
