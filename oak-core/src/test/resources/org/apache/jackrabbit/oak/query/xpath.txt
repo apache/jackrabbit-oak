@@ -105,6 +105,18 @@ select [jcr:path], [jcr:score], *
   /* xpath ... */
 
 # single primary type
+xpath2sql //*[(@jcr:primaryType = 'a' or @jcr:primaryType = 'b' or @jcr:primaryType = 'c')]
+select [jcr:path], [jcr:score], *
+  from [a] as a
+  where [jcr:primaryType] = 'a'
+  union select [jcr:path], [jcr:score], *
+  from [b] as a
+  where [jcr:primaryType] = 'b'
+  union select [jcr:path], [jcr:score], *
+  from [c] as a
+  where [jcr:primaryType] = 'c'
+  /* xpath ... */
+
 xpath2sql /jcr:root/content//*[jcr:contains(., 'abc') and @jcr:primaryType = 'page']
 select [jcr:path], [jcr:score], *
   from [page] as a

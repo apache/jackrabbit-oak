@@ -379,19 +379,15 @@ abstract class Expression {
                 in = new InCondition(in.getLeft(), in.list);
                 return in;
             }
+            Expression le = left.getLeft();
             if (XPathToSQL2Converter.NODETYPE_UNION) {
-                if (left instanceof Condition) {
-                    Condition c = (Condition) left;
-                    if (c.left instanceof Property && 
-                        "jcr:primaryType".equals(((Property) c.left).name)) {
-                        return this;
-                    }
+                if (commonLeft.endsWith("[jcr:primaryType]")) {
+                    return this;
                 }
             }
             ArrayList<Expression> list = new ArrayList<Expression>();
             list.addAll(left.getRight());
             list.addAll(right.getRight());
-            Expression le = left.getLeft();
             InCondition in = new InCondition(le, list);
             return in;
         }
