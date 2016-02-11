@@ -794,10 +794,13 @@ public class FileStore implements SegmentStore {
     }
 
     public void flush() throws IOException {
+        flush(cleanupNeeded.getAndSet(false));
+    }
+
+    public void flush(boolean cleanup) throws IOException {
         synchronized (persistedHead) {
             RecordId before = persistedHead.get();
             RecordId after = head.get();
-            boolean cleanup = cleanupNeeded.getAndSet(false);
 
             if (cleanup || !after.equals(before)) {
                 // needs to happen outside the synchronization block below to
