@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -84,6 +83,8 @@ import com.mongodb.WriteResult;
 import static com.google.common.base.Predicates.in;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.Iterables.filter;
+import static com.google.common.base.Predicates.notNull;
+import static com.google.common.collect.Maps.filterValues;
 
 /**
  * A document store that uses MongoDB as the backend.
@@ -282,22 +283,9 @@ public class MongoDocumentStore implements DocumentStore {
                 LOG.trace("invalidateCache: batch size: {} of total so far {}",
                         ids.size(), size);
             }
-            
-            QueryBuilder query = QueryBuilder.start(Document.ID).in(ids);
-            // Fetch only the modCount and id
-            final BasicDBObject fields = new BasicDBObject(Document.ID, 1);
-            fields.put(Document.MOD_COUNT, 1);
-            
-            DBCursor cursor = nodes.find(query.get(), fields);
-            cursor.setReadPreference(ReadPreference.primary());
-            result.queryCount++;
 
-            Map<String, Number> modCounts = new HashMap<String, Number>();
-            for (DBObject obj : cursor) {
-                String id = (String) obj.get(Document.ID);
-                Number modCount = (Number) obj.get(Document.MOD_COUNT);
-                modCounts.put(id, modCount);
-            }
+            Map<String, Number> modCounts = getModCounts(ids);
+            result.queryCount++;
 
             int invalidated = nodesCache.invalidateOutdated(modCounts);
             for (String id : filter(ids, not(in(modCounts.keySet())))) {
@@ -862,18 +850,26 @@ public class MongoDocumentStore implements DocumentStore {
                     throw new DocumentStoreException("Update failed: " + writeResult.getError());
                 }
                 if (collection == Collection.NODES) {
+                    Map<String, Number> modCounts = getModCounts(filterValues(cachedDocs, notNull()).keySet());
                     // update cache
                     for (Entry<String, NodeDocument> entry : cachedDocs.entrySet()) {
                         // the cachedDocs is not empty, so the collection = NODES
                         Lock lock = nodeLocks.acquire(entry.getKey());
                         try {
-                            if (entry.getValue() == null || entry.getValue() == NodeDocument.NULL) {
+                            Number postUpdateModCount = modCounts.get(entry.getKey());
+                            if (postUpdateModCount != null
+                                    && entry.getValue() != null
+                                    && entry.getValue() != NodeDocument.NULL
+                                    && (postUpdateModCount.longValue() - 1) == entry.getValue().getModCount()) {
+                                // post update modCount is one higher than
+                                // what we currently see in the cache. we can
+                                // replace the cached document
+                                NodeDocument newDoc = applyChanges(Collection.NODES, entry.getValue(), updateOp.shallowCopy(entry.getKey()));
+                                nodesCache.replaceCachedDocument(entry.getValue(), newDoc);
+                            } else {
                                 // make sure concurrently loaded document is
                                 // invalidated
                                 nodesCache.invalidate(entry.getKey());
-                            } else {
-                                NodeDocument newDoc = applyChanges(Collection.NODES, entry.getValue(), updateOp.shallowCopy(entry.getKey()));
-                                nodesCache.replaceCachedDocument(entry.getValue(), newDoc);
                             }
                         } finally {
                             lock.unlock();
@@ -881,11 +877,45 @@ public class MongoDocumentStore implements DocumentStore {
                     }
                 }
             } catch (MongoException e) {
+                // some documents may still have been updated
+                // invalidate all documents affected by this update call
+                for (String k : keys) {
+                    nodesCache.invalidate(k);
+                }
                 throw DocumentStoreException.convert(e);
             }
         } finally {
             PERFLOG.end(start, 1, "update");
         }
+    }
+
+    /**
+     * Returns the {@link Document#MOD_COUNT} value of the documents with the
+     * given {@code keys}. The returned map will only contain entries for
+     * existing documents.
+     *
+     * @param keys the keys of the documents.
+     * @return map with key to {@link Document#MOD_COUNT} value mapping.
+     * @throws MongoException if the call fails
+     */
+    @Nonnull
+    private Map<String, Number> getModCounts(Iterable<String> keys)
+            throws MongoException {
+        QueryBuilder query = QueryBuilder.start(Document.ID).in(keys);
+        // Fetch only the modCount and id
+        final BasicDBObject fields = new BasicDBObject(Document.ID, 1);
+        fields.put(Document.MOD_COUNT, 1);
+
+        DBCursor cursor = nodes.find(query.get(), fields);
+        cursor.setReadPreference(ReadPreference.primary());
+
+        Map<String, Number> modCounts = Maps.newHashMap();
+        for (DBObject obj : cursor) {
+            String id = (String) obj.get(Document.ID);
+            Number modCount = (Number) obj.get(Document.MOD_COUNT);
+            modCounts.put(id, modCount);
+        }
+        return modCounts;
     }
 
     DocumentReadPreference getReadPreference(int maxCacheAge){
