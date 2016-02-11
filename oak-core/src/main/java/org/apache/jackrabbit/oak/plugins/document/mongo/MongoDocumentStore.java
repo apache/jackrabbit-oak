@@ -65,7 +65,6 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
-import org.apache.jackrabbit.oak.plugins.document.mongo.CacheInvalidator.InvalidationResult;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -276,9 +275,12 @@ public class MongoDocumentStore implements DocumentStore {
 
     @Override
     public CacheInvalidationStats invalidateCache() {
-        //TODO Check if we should use LinearInvalidator for small cache sizes as
-        //that would lead to lesser number of queries
-        return CacheInvalidator.createHierarchicalInvalidator(this).invalidateCache();
+        InvalidationResult result = new InvalidationResult();
+        for (CacheValue key : nodesCache.asMap().keySet()) {
+            result.invalidationCount++;
+            invalidateCache(Collection.NODES, key.toString());
+        }
+        return result;
     }
     
     @Override
@@ -1453,5 +1455,29 @@ public class MongoDocumentStore implements DocumentStore {
         final long diff = midPoint - serverLocalTimeMillis;
 
         return diff;
+    }
+
+    private static class InvalidationResult implements CacheInvalidationStats {
+        int invalidationCount;
+        int upToDateCount;
+        int cacheSize;
+        int queryCount;
+        int cacheEntriesProcessedCount;
+
+        @Override
+        public String toString() {
+            return "InvalidationResult{" +
+                    "invalidationCount=" + invalidationCount +
+                    ", upToDateCount=" + upToDateCount +
+                    ", cacheSize=" + cacheSize +
+                    ", queryCount=" + queryCount +
+                    ", cacheEntriesProcessedCount=" + cacheEntriesProcessedCount +
+                    '}';
+        }
+
+        @Override
+        public String summaryReport() {
+            return toString();
+        }
     }
 }
