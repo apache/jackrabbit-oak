@@ -414,7 +414,7 @@ public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore
                     dataRecord.getLastModified(), success);
                 if (success) {
                     ((MultiDataStoreAware) delegate).deleteRecord(identifier);
-                    log.trace("Deleted blob [{}]", blobId);
+                    log.info("Deleted blob [{}]", blobId);
                     count++;
                 }
             }
