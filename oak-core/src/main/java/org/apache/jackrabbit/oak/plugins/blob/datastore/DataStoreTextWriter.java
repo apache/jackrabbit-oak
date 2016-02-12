@@ -144,7 +144,7 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
 
     @Override
     public synchronized void close() throws IOException {
-        if (closed) {
+        if (closed || readOnlyMode) {
             return;
         }
         writeToFile(EMPTY_BLOB_FILE, getEmptyBlobs());
