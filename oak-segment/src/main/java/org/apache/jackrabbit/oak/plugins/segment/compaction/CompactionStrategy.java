@@ -67,7 +67,7 @@ public abstract class CompactionStrategy {
         CLEAN_OLD
     }
 
-    public static final boolean PAUSE_DEFAULT = false;
+    public static final boolean PAUSE_DEFAULT = true;
 
     public static final boolean CLONE_BINARIES_DEFAULT = false;
 
