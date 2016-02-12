@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
+import org.apache.felix.scr.annotations.Modified;
 import org.apache.felix.scr.annotations.Properties;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
@@ -72,6 +73,15 @@ public class CugExcludeImpl extends CugExclude.Default {
 
     @Activate
     protected void activate(Map<String, Object> properties) {
-        principalNames = ImmutableSet.copyOf(PropertiesUtil.toStringArray(properties.get("principalNames"), new String[0]));
+        setPrincipalNames(properties);
+    }
+
+    @Modified
+    protected void modified(Map<String, Object> properties) {
+        setPrincipalNames(properties);
+    }
+
+    private void setPrincipalNames(@Nonnull Map<String, Object> properties) {
+        this.principalNames = ImmutableSet.copyOf(PropertiesUtil.toStringArray(properties.get("principalNames"), new String[0]));
     }
 }
