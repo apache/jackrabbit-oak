@@ -38,9 +38,6 @@ import com.google.common.base.Stopwatch;
  */
 public class JournalGarbageCollector {
 
-    //copied from VersionGarbageCollector:
-    private static final int DELETE_BATCH_SIZE = 450;
-
     private final DocumentStore ds;
 
     private static final Logger log = LoggerFactory.getLogger(JournalGarbageCollector.class);
@@ -57,10 +54,11 @@ public class JournalGarbageCollector {
      * @param unit           the timeunit for maxRevisionAge
      * @return the number of entries that have been removed
      */
-    public int gc(long maxRevisionAge, TimeUnit unit) {
+    public int gc(long maxRevisionAge, int batchSize, TimeUnit unit) {
         long maxRevisionAgeInMillis = unit.toMillis(maxRevisionAge);
         if (log.isDebugEnabled()) {
-            log.debug("gc: Journal garbage collection starts with maxAge: {} min.", TimeUnit.MILLISECONDS.toMinutes(maxRevisionAgeInMillis));
+            log.debug("gc: Journal garbage collection starts with maxAge: {} min., batch size: {}.", 
+                    TimeUnit.MILLISECONDS.toMinutes(maxRevisionAgeInMillis), batchSize);
         }
         Stopwatch sw = Stopwatch.createStarted();
 
@@ -103,13 +101,12 @@ public class JournalGarbageCollector {
             while (true) {
                 String fromKey = JournalEntry.asId(new Revision(startPointer, 0, clusterNodeId, branch));
                 String toKey = JournalEntry.asId(new Revision(System.currentTimeMillis() - maxRevisionAgeInMillis, Integer.MAX_VALUE, clusterNodeId, branch));
-                int limit = DELETE_BATCH_SIZE;
-                List<JournalEntry> deletionBatch = ds.query(Collection.JOURNAL, fromKey, toKey, limit);
+                List<JournalEntry> deletionBatch = ds.query(Collection.JOURNAL, fromKey, toKey, batchSize);
                 if (deletionBatch.size() > 0) {
                     ds.remove(Collection.JOURNAL, asKeys(deletionBatch));
                     numDeleted += deletionBatch.size();
                 }
-                if (deletionBatch.size() < limit) {
+                if (deletionBatch.size() < batchSize) {
                     if (!branch) {
                         // do the same for branches:
                         // this will start at the beginning again with branch set to true

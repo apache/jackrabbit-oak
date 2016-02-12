@@ -230,6 +230,19 @@ public class DocumentNodeStoreService {
     )
     private static final String PROP_JOURNAL_GC_MAX_AGE_MILLIS = "journalGCMaxAge";
 
+    /**
+     * Batch size used during to lookup and delete journal entries during journalGC
+     */
+    private static final int DEFAULT_JOURNAL_GC_BATCH_SIZE = 100;
+    @Property (intValue = DEFAULT_JOURNAL_GC_BATCH_SIZE,
+            label = "Batch size used for journalGC",
+            description = "The journal gc queries the journal for entries older than configured to delete them. " +
+                    "It does so in batches to speed up the process. The batch size can be configured via this " +
+                    " property. The trade-off is between reducing number of operations with a larger batch size, " +
+                    " and consuming more memory less memory with a smaller batch size."
+    )
+    public static final String PROP_JOURNAL_GC_BATCH_SIZE = "journalGcBatchSize";
+
     private static final long MB = 1024 * 1024;
 
     private static enum DocumentStoreType {
@@ -722,11 +735,14 @@ public class DocumentNodeStoreService {
                 DEFAULT_JOURNAL_GC_INTERVAL_MILLIS);
         final long journalGCMaxAge = toLong(context.getProperties().get(PROP_JOURNAL_GC_MAX_AGE_MILLIS),
                 DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS);
+        final int journalGCBatchSize = toInteger(context.getProperties().get(PROP_JOURNAL_GC_BATCH_SIZE),
+                DEFAULT_JOURNAL_GC_BATCH_SIZE);
+        
         Runnable journalGCJob = new Runnable() {
 
             @Override
             public void run() {
-                nodeStore.getJournalGarbageCollector().gc(journalGCMaxAge, TimeUnit.MILLISECONDS);
+                nodeStore.getJournalGarbageCollector().gc(journalGCMaxAge, journalGCBatchSize, TimeUnit.MILLISECONDS);
             }
 
         };
