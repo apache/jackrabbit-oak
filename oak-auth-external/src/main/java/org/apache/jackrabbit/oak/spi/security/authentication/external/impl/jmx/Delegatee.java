@@ -73,7 +73,7 @@ final class Delegatee {
         log.info("Created delegatee for SyncMBean with session: {} {}", systemSession, systemSession.getUserID());
     }
 
-    static Delegatee createInstance(final @Nonnull Repository repository, @Nonnull SyncHandler handler, @Nonnull ExternalIdentityProvider idp) {
+    static Delegatee createInstance(@Nonnull final Repository repository, @Nonnull SyncHandler handler, @Nonnull ExternalIdentityProvider idp) {
         Session systemSession;
         try {
             systemSession = Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<Session>() {
