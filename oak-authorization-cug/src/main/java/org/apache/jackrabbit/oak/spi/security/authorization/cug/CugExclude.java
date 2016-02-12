@@ -33,7 +33,7 @@ public interface CugExclude {
     boolean isExcluded(@Nonnull Set<Principal> principals);
 
     /**
-     * Default implementation of the {@link CugExclude} interface that exclude
+     * Default implementation of the {@link CugExclude} interface that excludes
      * the following principal classes from CUG evaluation:
      * <ul>
      *     <li>{@link org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal AdminPrincipals}</li>
