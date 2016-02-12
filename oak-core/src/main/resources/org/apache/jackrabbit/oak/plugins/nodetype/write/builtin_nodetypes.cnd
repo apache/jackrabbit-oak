@@ -735,7 +735,7 @@
   - rep:password (STRING) protected
   - rep:disabled (STRING) protected
 
-[rep:SystemUser] > rep:User
+[rep:SystemUser] > rep:User /* @since oak 1.1.0 */
 
 [rep:Group] > rep:Authorizable, rep:MemberReferences
   + rep:members (rep:Members) = rep:Members multiple protected VERSION /* @deprecated since oak 1.0 (remove?) */

@@ -41,10 +41,14 @@ The following public interfaces are provided by Oak in the package `org.apache.j
 - [AuthorizableActionProvider]
 
 The `AuthorizableAction` interface itself allows to perform validations or write
-addition application specific content while executing user management related
-write operations. Note that the actions are consequently executed as part of the
-transient modifications and contrast to `org.apache.jackrabbit.oak.spi.commit.CommitHook`s
-that are triggered upon persisting content modifications.
+additional application specific content while executing user management related
+write operations. Therefore these actions are executed as part of the transient 
+user management modifications. This contrasts to `org.apache.jackrabbit.oak.spi.commit.CommitHook`s
+which in turn are only triggered once modifications are persisted.
+
+Consequently, implementations of the `AuthorizableAction` interface are expected 
+to adhere to this rule and perform transient repository operation or validation.
+They must not force changes to be persisted by calling `org.apache.jackrabbit.oak.api.Root.commit()`.
 
 ### Default Implementations
 
@@ -71,7 +75,6 @@ The following implementations of the `AuthorizableAction` interface are provided
 As in Jackrabbit 2.x the actions are executed with the editing session and the
 target operation will fail if any of the configured actions fails (e.g. due to
 insufficient permissions by the editing Oak ContentSession).
-
 
 ### Pluggability
 

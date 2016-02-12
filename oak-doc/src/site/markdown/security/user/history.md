@@ -20,25 +20,46 @@ Password History
 
 ### General
 
-Oak provides functionality to remember a configurable number of
-passwords after password changes and to prevent a password to
+Since version 1.3.3 Oak provides functionality to remember a configurable number 
+of passwords after password changes and to prevent a password to
 be set during changing a user's password if found in said history.
 
 ### Configuration
 
 An administrator may enable password history via the
-_org.apache.jackrabbit.oak.security.user.UserConfigurationImpl_
-OSGi configuration. By default the history is disabled.
+`org.apache.jackrabbit.oak.security.user.UserConfigurationImpl`
+OSGi configuration. By default the history is disabled (`passwordHistorySize` set to 0).
 
 The following configuration option is supported:
 
-- Maximum Password History Size (_passwordHistorySize_, number of passwords): When greater 0 enables password
-  history and sets feature to remember the specified number of passwords for a user.
+| Parameter                     | Type    | Default  | Description        |
+|-------------------------------|---------|----------|--------------------|
+| `PARAM_PASSWORD_HISTORY_SIZE` | int     | 0        | Number of passwords to be stored in the history |
+|  |  |  |  |
 
+Setting the configuration option to a value greater than 0 enables password
+history and sets feature to remember the specified number of passwords for a user.
 Note, that the current implementation has a limit of at most 1000 passwords
 remembered in the history.
 
 ### How it works
+
+#### Representation in the Repository
+
+History password hashes are recorded in a multi-value property `rep:pwdHistory` on
+the user's `rep:pwd` node, which mandates the specific node type `rep:Password`
+        
+The `rep:pwdHistory` property is defined protected in order to guard against the 
+user modifying (overcoming) her password history limitations.
+
+    [rep:User]  > rep:Authorizable, rep:Impersonatable
+        + rep:pwd (rep:Password) = rep:Password protected
+        - rep:password (STRING) protected
+        ...
+        
+    [rep:Password]
+        - * (UNDEFINED) protected
+        - * (UNDEFINED) protected multiple
 
 #### Recording of Passwords
 
@@ -52,7 +73,7 @@ record, as there is no old password.
 
 The old password hash is copied to the password history *after* the provided new
 password has been validated but *before* the new password hash is written to the
-user's _rep:password_ property.
+user's `rep:password` property.
 
 The history operates as a FIFO list. A new password history record exceeding the
 configured max history size, results in the oldest recorded password from being
@@ -60,14 +81,7 @@ removed from the history.
 
 Also, if the configuration parameter for the history size is changed to a non-zero
 but smaller value than before, upon the next password change the oldest records
-exceeding the new history size are removed.
-
-History password hashes are recorded in a multi-value property _rep:pwdHistory_ on
-the user's _rep:pwd_ node.
-        
-The _rep:pwdHistory_ property is defined protected in order to guard against the 
-user modifying (overcoming) her password history limitations.
-
+exceeding the new history size are removed.       
 
 #### Evaluation of Password History
 
@@ -76,10 +90,10 @@ Upon a user changing her password and if the password history feature is enabled
 password or  any of the password hashes recorded in the history matches the new
 password.
 
-If any record is a match, a _ConstraintViolationException_ is thrown and the
+If any record is a match, a `ConstraintViolationException` is thrown and the
 user's password is *NOT* changed.
 
-#### Oak JCR XML Import
+#### XML Import
 
-When users are imported via the Oak JCR XML importer, password history is imported
+When users are imported via the JCR XML importer, password history is imported
 irrespective on whether the password history feature is enabled or not.
