@@ -82,7 +82,7 @@ The default security setup as present with Oak 1.0 is able to provide custom
 `AuthorizableActionProvider` implementations and will automatically combine the
 different implementations using the `CompositeActionProvider`.
 
-In an OSGi setup the following steps are required in order to add a action provider
+In an OSGi setup the following steps are required in order to add an action provider
 implementation:
 
 - implement `AuthorizableActionProvider` interface exposing your custom action(s).

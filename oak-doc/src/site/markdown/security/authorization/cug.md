@@ -196,7 +196,9 @@ all of type `AccessControl` with the following codes:
 <a name="configuration"/>
 ### Configuration
 
-_todo_
+The CUG authorization extension is an optional feature that requires mandatory
+configuration: this includes defining the supported paths and enabling the
+permission evaluation.
 
 #### Configuration Parameters
 
@@ -228,23 +230,82 @@ specific needs (see [below](#pluggability)).
 <a name="pluggability"/>
 ### Pluggability
 
+The following section describes how to deploy the CUG authorization model into
+an Oak repository and how to customize the `CugExclude` extension point.
+
 #### Deploy CugConfiguration
 
 ##### OSGi Setup
 
-_todo: deploying cug-authorization in an oak repository_
+The following steps are required in order to deploy the CUG authorization model
+in an OSGi-base Oak repository:
+
+1. Deploy the `oak-authorization-cug` bundle
+2. Activate the `CugConfiguration` _("Apache Jackrabbit Oak CUG Configuration")_ by providing the desired component configuration (_ConfigurationPolicy.REQUIRE_)
+3. Find the `SecurityProviderRegistration` _("Apache Jackrabbit Oak SecurityProvider")_ configuration and 
+enter _`org.apache.jackrabbit.oak.spi.security.authorization.cug.impl.CugConfiguration`_ as additional value to the `requiredServicePids` property.
+
+The third step will enforce the recreation of the `SecurityProvider` and hence 
+trigger the `RepositoryInitializer` provided by the CUG authorization module.
 
 ##### Non-OSGi Setup
 
-_todo: deploying cug-authorization in an oak repository_
+The following example shows a simplified setup that contains the `CugConfiguration` 
+as additional authorization model (second position in the aggregation). See also 
+unit tests for an alternative approach.
 
+     // setup CugConfiguration
+     ConfigurationParameters params = ConfigurationParameters.of(AuthorizationConfiguration.NAME,
+             ConfigurationParameters.of(ConfigurationParameters.of(
+                     CugConstants.PARAM_CUG_SUPPORTED_PATHS, "/content",
+                     CugConstants.PARAM_CUG_ENABLED, true)));
+     CugConfiguration cug = new CugConfiguration();
+     cug.setParameters(params);
+     
+     // bind it to the security provider (simplified => subclassing required due to protected access)
+     SecurityProviderImpl securityProvider = new SecurityProviderImpl();
+     securityProvider.bindAuthorizationConfiguration(cug);
+     
+     // create the Oak repository (alternatively: create the JCR repository)
+     Oak oak = new Oak()
+             .with(new InitialContent())
+             // TODO: add all required editors
+             .with(securityProvider);
+             withEditors(oak);     
+     ContentRepository contentRepository = oak.createContentRepository();     
+     
 #### Customize CugExclude
  
-_todo: customize cug-authorization by providing custom CugExclude implementation_ 
+The following steps are required in order to customize the `CugExclude` implementation
+in a OSGi-based repository setup. Ultimately the implementation needs to be referenced 
+in the `org.apache.jackrabbit.oak.spi.security.authorization.cug.impl.CugConfiguration`.
 
-##### Examples
+1. implement `CugExclude` interface according to you needs,
+2. make your implementation an OSGi service
+3. deploy the bundle containing your implementation in the OSGi container and activate the service.
 
-_todo_
+###### Example
+
+    @Component()
+    @Service(CugExclude.class)
+    public class MyCugExclude implements CugExclude {
+    
+        private static final Principal PRINCIPAL_APACHE_MEMBERS = new PrincipalImpl("apache-members");
+        private static final Principal PRINCIPAL_JACKRABBIT_PMC = new PrincipalImpl("jackrabbit_pmc");
+    
+        public MyCugExclude() {}
+
+        //-----------------------------------------------------< CugExclude >---
+        @Override
+        public boolean isExcluded(@Nonnull Set<Principal> principals) {
+            return principals.contains(PRINCIPAL_APACHE_MEMBERS) || principals.contains(PRINCIPAL_JACKRABBIT_PMC);
+        }
+
+        //------------------------------------------------< SCR Integration >---
+        @Activate
+        private void activate(Map<String, Object> properties) {
+        }
+    }
 
 <!-- hidden references -->
 [Principal]: http://docs.oracle.com/javase/7/docs/api/java/security/Principal.html
