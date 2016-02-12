@@ -186,15 +186,15 @@ public class JournalTest extends AbstractJournalTest {
         JournalGarbageCollector gc = new JournalGarbageCollector(ns1);
         // first clean up
         Thread.sleep(100); // OAK-2979 : wait 100ms before doing the cleanup
-        gc.gc(1, 150, TimeUnit.MILLISECONDS);
+        gc.gc(1, 100, TimeUnit.MILLISECONDS);
         Thread.sleep(100); // sleep just quickly
-        assertEquals(0, gc.gc(1, 150, TimeUnit.DAYS));
-        assertEquals(0, gc.gc(6, 150, TimeUnit.HOURS));
-        assertEquals(0, gc.gc(1, 150, TimeUnit.HOURS));
-        assertEquals(0, gc.gc(10, 150, TimeUnit.MINUTES));
-        assertEquals(0, gc.gc(1, 150, TimeUnit.MINUTES));
-        assertEquals(0, gc.gc(1, 150, TimeUnit.SECONDS));
-        assertEquals(0, gc.gc(1, 150, TimeUnit.MILLISECONDS));
+        assertEquals(0, gc.gc(1, 100, TimeUnit.DAYS));
+        assertEquals(0, gc.gc(6, 100, TimeUnit.HOURS));
+        assertEquals(0, gc.gc(1, 100, TimeUnit.HOURS));
+        assertEquals(0, gc.gc(10, 100, TimeUnit.MINUTES));
+        assertEquals(0, gc.gc(1, 100, TimeUnit.MINUTES));
+        assertEquals(0, gc.gc(1, 100, TimeUnit.SECONDS));
+        assertEquals(0, gc.gc(1, 100, TimeUnit.MILLISECONDS));
         
         // create some entries that can be deleted thereupon
         mk1.commit("/", "+\"regular1\": {}", null, null);
@@ -202,16 +202,16 @@ public class JournalTest extends AbstractJournalTest {
         mk1.commit("/", "+\"regular3\": {}", null, null);
         mk1.commit("/regular2", "+\"regular4\": {}", null, null);
         Thread.sleep(100); // sleep 100millis
-        assertEquals(0, gc.gc(5, 150, TimeUnit.SECONDS));
-        assertEquals(0, gc.gc(1, 150, TimeUnit.MILLISECONDS));
+        assertEquals(0, gc.gc(5, 100, TimeUnit.SECONDS));
+        assertEquals(0, gc.gc(1, 100, TimeUnit.MILLISECONDS));
         ns1.runBackgroundOperations();
         mk1.commit("/", "+\"regular5\": {}", null, null);
         ns1.runBackgroundOperations();
         mk1.commit("/", "+\"regular6\": {}", null, null);
         ns1.runBackgroundOperations();
         Thread.sleep(100); // sleep 100millis
-        assertEquals(0, gc.gc(5, 150, TimeUnit.SECONDS));
-        assertEquals(3, gc.gc(1, 150, TimeUnit.MILLISECONDS));
+        assertEquals(0, gc.gc(5, 100, TimeUnit.SECONDS));
+        assertEquals(3, gc.gc(1, 100, TimeUnit.MILLISECONDS));
     }
     
     @Test

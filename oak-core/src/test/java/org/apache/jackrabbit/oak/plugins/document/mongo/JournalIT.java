@@ -200,7 +200,7 @@ public class JournalIT extends AbstractJournalTest {
         JournalGarbageCollector gc = new JournalGarbageCollector(ns1);
         clock.getTimeIncreasing();
         clock.getTimeIncreasing();
-        gc.gc(0, 150, TimeUnit.MILLISECONDS); // cleanup everything that might still be there
+        gc.gc(0, 100, TimeUnit.MILLISECONDS); // cleanup everything that might still be there
 
         // create entries as parametrized:
         for(int i=offset; i<size+offset; i++) {
@@ -210,7 +210,7 @@ public class JournalIT extends AbstractJournalTest {
             ns1.runBackgroundOperations();
         }
         Thread.sleep(100); // sleep 100millis
-        assertEquals(size, gc.gc(0, 150, TimeUnit.MILLISECONDS)); // should now be able to clean up everything
+        assertEquals(size, gc.gc(0, 100, TimeUnit.MILLISECONDS)); // should now be able to clean up everything
     }
 
     protected DocumentMK createMK(int clusterId, int asyncDelay) {
