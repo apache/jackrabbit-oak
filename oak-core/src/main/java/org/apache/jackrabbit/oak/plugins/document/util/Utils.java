@@ -656,4 +656,21 @@ public class Utils {
         }
         return maxTime;
     }
+
+    /**
+     * Returns the given number instance as a {@code Long}.
+     *
+     * @param n a number or {@code null}.
+     * @return the number converted to a {@code Long} or {@code null}
+     *      if {@code n} is {@code null}.
+     */
+    public static Long asLong(@Nullable Number n) {
+        if (n == null) {
+            return null;
+        } else if (n instanceof Long) {
+            return (Long) n;
+        } else {
+            return n.longValue();
+        }
+    }
 }

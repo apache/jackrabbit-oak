@@ -74,8 +74,8 @@ public class Document implements CacheValue {
      *         none is set.
      */
     @CheckForNull
-    public Number getModCount() {
-        return (Number) get(MOD_COUNT);
+    public Long getModCount() {
+        return Utils.asLong((Number) get(MOD_COUNT));
     }
 
     /**
