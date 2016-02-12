@@ -388,7 +388,7 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
                     dataRecord.getLastModified(), success);
                 if (success) {
                     ((MultiDataStoreAware) delegate).deleteRecord(identifier);
-                    log.debug("Deleted blob [{}]", blobId);
+                    log.info("Deleted blob [{}]", blobId);
                 }
             }
         }
