@@ -128,7 +128,7 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
      */
     @Property(
             label = "User Membership Expiration",
-            description = "Time after which membership expires (eg. '1h 30m' or '1d').",
+            description = "Time after which membership expires (eg. '1h 30m' or '1d'). Note however, that a membership sync is aways bound to a sync of the user.",
             value = PARAM_USER_MEMBERSHIP_EXPIRATION_TIME_DEFAULT
     )
     public static final String PARAM_USER_MEMBERSHIP_EXPIRATION_TIME = "user.membershipExpTime";
