@@ -76,8 +76,8 @@ guest login.
 #### Everyone Group
 
 The default user management implementation in Oak contains special handling for
-the optional group that represents _everyone_, which is marked by the reserved
-name [everyone] and corresponds to the `EveryonePrincipal`.
+the optional group that represents the [everyone] principal, which is marked by 
+the reserved principal name and by definition has all other principals as members.
 
 This special group always contains all Authorizable as member and cannot be edited
 with user management API. As of OAK this fact is consistently reflected in all
@@ -100,8 +100,7 @@ of the underlaying JCR node but only compares IDs and the user manager instance.
 
 #### Creating Authorizables
 * The `rep:password` property is no longer defined to be mandatory. Therefore a new user might be created without specifying a password. Note however, that `User#changePassword` does not allow to remove the password property.
-* `UserManager#createGroup(Principal)` will no longer generate a groupID in case the principal name collides with an existing user or group ID. This has been considered redundant as the Jackrabbit API in the mean time added `UserManager#createGroup(String groupID)`.
-* Since OAK is designed to scale with flat hierarchies the former configuration options `autoExpandTree` and `autoExpandSize` are no longer supported.
+* Since version 1.1.0 Oak supports the new API to create dedicated system users [JCR-3802](https://issues.apache.org/jira/browse/JCR-3802).
 
 #### Query
 
@@ -134,31 +133,20 @@ import. Other differences compared to Jackrabbit 2.x:
 Since Oak 1.1.0 the default user management and authentication implementation
 provides password expiry and initial password change.
 
-By default these features are disabled. The corresponding configuration options
-are
-
-- `PARAM_PASSWORD_MAX_AGE`: number of days until the password expires.
-- `PARAM_PASSWORD_INITIAL_CHANGE`: boolean flag to enable this feature.
-
-See section [Password Expiry and Force Initial Password Change](expiry.html)
+By default these features are disabled. See section [Password Expiry and Force Initial Password Change](expiry.html)
 for details.
 
 #### Password History
 
 Since Oak 1.3.3 the default user management implementation provides password
-history support.
-
-By default this feature is disabled. The corresponding configuration option is
-
-- `PARAM_PASSWORD_HISTORY_SIZE`: number of changed passwords to remember.
+history support. By default this feature is disabled.
 
 See section [Password History](history.html) for details.
-
 
 ### User/Group Representation in the Repository
 
 The following block lists the built-in node types related to user management tasks:
-
+  
     [rep:Authorizable] > mix:referenceable, nt:hierarchyNode
       abstract
       + * (nt:base) = nt:unstructured VERSION
@@ -166,20 +154,41 @@ The following block lists the built-in node types related to user management tas
       - rep:authorizableId (STRING) protected /* @since oak 1.0 */
       - * (UNDEFINED)
       - * (UNDEFINED) multiple
-
+    
+    [rep:User] > rep:Authorizable, rep:Impersonatable
+      + rep:pwd (rep:Password) = rep:Password protected /* @since oak 1.1.0 */
+      - rep:password (STRING) protected
+      - rep:disabled (STRING) protected
+    
+    [rep:SystemUser] > rep:User /* @since oak 1.1.0 */
+    
+    [rep:Impersonatable]
+      mixin
+      - rep:impersonators (STRING) protected multiple
+        
+    /* @since oak 1.1.0 */
+    [rep:Password]
+      - * (UNDEFINED) protected
+      - * (UNDEFINED) protected multiple
+    
     [rep:Group] > rep:Authorizable, rep:MemberReferences
-      + rep:members (rep:Members) = rep:Members multiple protected VERSION /* @deprecated */
-      + rep:membersList (rep:MemberReferencesList) = rep:MemberReferencesList protected COPY
-
-    /** @since oak 1.0 */
+      + rep:members (rep:Members) = rep:Members multiple protected VERSION /* @deprecated since oak 1.0 */
+      + rep:membersList (rep:MemberReferencesList) = rep:MemberReferencesList protected COPY /* @since oak 1.0 */
+    
+    
+    [rep:AuthorizableFolder] > nt:hierarchyNode
+      + * (rep:Authorizable) = rep:User VERSION
+      + * (rep:AuthorizableFolder) = rep:AuthorizableFolder VERSION    
+    
+    /* @since oak 1.0 */
     [rep:MemberReferences]
       - rep:members (WEAKREFERENCE) protected multiple < 'rep:Authorizable'
-
-    /** @since oak 1.0 */
+    
+    /* @since oak 1.0 */
     [rep:MemberReferencesList]
       + * (rep:MemberReferences) = rep:MemberReferences protected COPY
-
-    /** @deprecated since oak 1.0 */
+      
+    /* @deprecated since oak 1.0 */
     [rep:Members]
       orderable
       + * (rep:Members) = rep:Members protected multiple
@@ -309,3 +318,4 @@ implementation.
 [everyone]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/EveryonePrincipal.html#NAME
 [UserConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/user/UserConfiguration.html
 [UserAuthenticationFactory]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/user/UserAuthenticationFactory.html
+[Authentication]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/Authentication.html
