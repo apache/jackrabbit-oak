@@ -58,13 +58,7 @@ and base implementations:
     
 #### SecurityProvider
 
-_TODO 
- The interface allow to access the available `SecurityConfiguration`s
- defining the individual modules. In addition this provider gives access
- to the configuration parameters that apply to the configurations with the
- specified `SecurityConfiguration#getName() name`._
- 
- _ TODO: registration of the security provider_
+_TODO_
 
 #### SecurityConfiguration
  
