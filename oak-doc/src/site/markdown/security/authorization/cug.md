@@ -40,6 +40,15 @@ By default the `oak-authorization-cug` model is disabled and it requires
 manual [configuration](#configuration) steps in order to plug it into the Oak 
 security setup.
 
+Once deployed this authorization configuration can be used in the following two 
+operation modes:
+
+1. Evaluation disabled: Access control management is supported and policies may
+be applied to the repository without taking effect.
+2. Evaluation enabled: All policies edited and applied by this module will take
+effect upon being persisted, i.e. access to items located in a restricted are
+will be subject to the permission evaluation associated with the authorization model.
+
 <a name="jackrabbit_api"/>
 ### Jackrabbit API
 
@@ -58,10 +67,24 @@ for details and the methods exposed by the interface.
 The module comes with the following extension in the 
 `org.apache.jackrabbit.oak.spi.security.authorization.cug` package space:
 
-- [CugPolicy] marker interface extending `PrincipalSetPolicy`
+- [CugPolicy]
 - [CugExclude]
 
-#### CugExclude
+##### CugPolicy
+
+The `CugPolicy` interface extends the `PrincipalSetPolicy` and `JackrabbitAccessControlPolicy` 
+interfaces provided by Jackrabbit API. It comes with the following set of methods that allow to
+read and modify the set of `Principal`s that will be allowed to access the restricted 
+area defined by a given policy instance.
+
+    CugPolicy extends PrincipalSetPolicy, JackrabbitAccessControlPolicy
+       
+       Set<Principal> getPrincipals();       
+       boolean addPrincipals(@Nonnull Principal... principals) throws AccessControlException;       
+       boolean removePrincipals(@Nonnull Principal... principals) throws AccessControlException;
+
+
+##### CugExclude
 
 The `CugExclude` allows to customize the set of principals excluded from evaluation
 of the restricted areas. These principals will consequently never be prevented 
@@ -77,9 +100,69 @@ allows to excluded principals by their names at runtime.
 
 See also section [Pluggability](#pluggability) below.                            
 
+<a name="details"/>
 ### Implementation Details
 
-_todo_
+#### Access Control Management
+
+The access control management part of the CUG authorization models follows the
+requirements defined by JSR 283 the extensions defined by Jackrabbit API (see section 
+[Access Control Management](../accesscontrol.html) with the following characterstics:
+
+##### Supported Privileges
+
+This implemenation of the `JackrabbitAccessControlManager` only supports a subset of
+privileges, namely `jcr:read`, `rep:readProperties`, `rep:readNodes`.
+
+##### Access Control Policies
+
+Only a single type of access control policies (`CugPolicy`) is exposed and accepted 
+by the access control manager. Once effective each CUG policy creates a restricted
+area starting at the target node and inherited to the complete subtree defined
+therein. 
+
+Depending on the value of the mandatory `PARAM_CUG_SUPPORTED_PATHS` [configuration](#configuration) 
+option creation (and evaluation) of CUG policies can be limited to 
+certain paths within the repository. Within these supported paths CUGs can
+be nested. Note however, that the principal set defined with a given `CugPolicy`
+is not inherited to the nested policies applied in the subtree.
+
+_Note:_ For performance reasons it is recommended to limited the usage of `CugPolicy`s
+to a couple of subtrees in the repository.
+ 
+##### Management by Principal
+
+Given the fact that a given CUG policy takes effect for all principals present in
+the system, access control management by `Principal` is not supported currently.
+The corresponding Jackrabbit API methods always return an empty policy array.
+
+#### Permission Evaluation
+
+As stated above evaluation of the restricted areas requires the `PARAM_CUG_ENABLED` 
+[configuration](#configuration) option to be set to `true`. This switch allows to 
+setup restricted areas in a staging enviroment and only let them take effect in
+the public facing production instance.
+
+If permission evaluation is enabled, the `PermissionProvider` implementation associated 
+with the authorization model will prevent read access to all restricted areas
+defined by a `CugPolicy`. Only `Principal`s explicitly allowed by the policy itself 
+or the globally configured `CugExclude` will be granted read permissions to the 
+affected items in the subtree.
+
+For example, applying and persisting a new `CugPolicy` at path _/content/restricted/apache_foundation_, 
+setting the principal names to _apache-members_ and _jackrabbit-pmc_ will prevent
+read access to the tree defined by this path for all `Subject`s that 
+doesn't match any of the two criteria:
+
+- the `Subject` contains`Principal` _apache-members_ and|or _jackrabbit-pmc_ (as defined in the `CugPolicy`)
+- the `Subject` contains at least one `Principal` explicitly excluded from CUG evaluation in the configured, global `CugExclude`
+
+This further implies that the `PermissionProvider` will only evaluate regular read 
+permissions (i.e. `READ_NODE` and `READ_PROPERTY`). Evaluation of any other 
+[permissions](../permissions.html#oak_permissions) including reading the cug policy 
+node (access control content) is consequently delegated to other 
+authorization modules. In case there was no module dealing with these permissions, 
+access will be denied (see in section _Combining Multiple Authorization Models_ for [details](composite.html#details)). 
 
 ### Representation in the Repository
 
@@ -115,7 +198,7 @@ all of type `AccessControl` with the following codes:
 
 _todo_
 
-#### Configuration Parameters of the CugConfiguration
+#### Configuration Parameters
 
 The `org.apache.jackrabbit.oak.spi.security.authorization.cug.impl.CugConfiguration` 
 supports the following configuration parameters:
@@ -127,9 +210,9 @@ supports the following configuration parameters:
 | `PARAM_RANKING`             | int            | 200      | Ranking within the composite authorization setup.            |
 | | | | |
 
-#### Configure the Excluded Principals
+#### Excluding Principals
 
-The CUG authorization setup can be further customized by enabling the 
+The CUG authorization setup can be further customized by configuring the 
 `CugExcludeImpl` service with allows to list additional principals that need
 to be excluded from the evaluation of restricted areas:
 
@@ -138,9 +221,9 @@ to be excluded from the evaluation of restricted areas:
 | `principalNames`            | Set\<String\>  | \-       | Name of principals that are always excluded from CUG evaluation.  |
 | | | | |
 
-Note: this is an optional feature that may be used to extend the default exclusion. 
-Alternatively, it is possible to plug a custom `CugExclude` implementation matching 
-specific needs (see [below](#pluggability).
+_Note:_ this is an optional feature to extend the [default](/oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/cug/CugExclude.Default.html) 
+exclusion list. Alternatively, it is possible to plug a custom `CugExclude` implementation matching 
+specific needs (see [below](#pluggability)).
 
 <a name="pluggability"/>
 ### Pluggability
@@ -167,3 +250,4 @@ _todo_
 [Principal]: http://docs.oracle.com/javase/7/docs/api/java/security/Principal.html
 [AccessControlPolicy]: http://www.day.com/specs/javax.jcr/javadocs/jcr-2.0/javax/jcr/security/AccessControlPolicy.html
 [CugPolicy]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/cug/CugPolicy.html
+[CugExclude]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/cug/CugExclude.html

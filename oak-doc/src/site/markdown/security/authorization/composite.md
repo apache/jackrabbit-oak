@@ -22,13 +22,22 @@ Combining Multiple Authorization Models
 
 _TODO_
 
+<a name="api_extensions"/>
 ### API Extensions
 
 _TODO_
 
+<a name="details"/>
+### Implementation Details
+
+               
+<a name="configuration"/>
 ### Configuration
 
 _TODO_
+
+<a name="pluggability"/>
+### Pluggability
 
 
 <!-- hidden references -->
