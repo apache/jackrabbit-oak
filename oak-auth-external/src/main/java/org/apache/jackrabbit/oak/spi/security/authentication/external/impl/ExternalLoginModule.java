@@ -63,7 +63,6 @@ public class ExternalLoginModule extends AbstractLoginModule {
 
     private static final Logger log = LoggerFactory.getLogger(ExternalLoginModule.class);
 
-    // todo: make configurable (OAK-4001)
     private static final int MAX_SYNC_ATTEMPTS = 50;
 
     /**
