@@ -1596,8 +1596,8 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     private static long modcountOf(@Nonnull Document doc) {
-        Number n = doc.getModCount();
-        return n != null ? n.longValue() : -1;
+        Long n = doc.getModCount();
+        return n != null ? n : -1;
     }
 
     @Nonnull
@@ -1615,17 +1615,17 @@ public class RDBDocumentStore implements DocumentStore {
 
         String id = row.getId();
         NodeDocument inCache = nodesCache.getIfPresent(id);
-        Number modCount = row.getModcount();
+        Long modCount = row.getModcount();
 
         // do not overwrite document in cache if the
         // existing one in the cache is newer
         if (inCache != null && inCache != NodeDocument.NULL) {
             // check mod count
-            Number cachedModCount = inCache.getModCount();
+            Long cachedModCount = inCache.getModCount();
             if (cachedModCount == null) {
                 throw new IllegalStateException("Missing " + Document.MOD_COUNT);
             }
-            if (modCount.longValue() <= cachedModCount.longValue()) {
+            if (modCount <= cachedModCount) {
                 // we can use the cached document
                 inCache.markUpToDate(now);
                 return castAsT(inCache);

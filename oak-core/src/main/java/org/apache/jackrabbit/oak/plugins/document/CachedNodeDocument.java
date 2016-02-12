@@ -26,7 +26,7 @@ package org.apache.jackrabbit.oak.plugins.document;
  */
 public interface CachedNodeDocument {
 
-    Number getModCount();
+    Long getModCount();
 
     long getCreated();
 

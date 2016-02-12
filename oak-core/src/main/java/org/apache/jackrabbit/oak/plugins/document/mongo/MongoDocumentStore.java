@@ -284,7 +284,7 @@ public class MongoDocumentStore implements DocumentStore {
                         ids.size(), size);
             }
 
-            Map<String, Number> modCounts = getModCounts(ids);
+            Map<String, Long> modCounts = getModCounts(ids);
             result.queryCount++;
 
             int invalidated = nodesCache.invalidateOutdated(modCounts);
@@ -663,7 +663,7 @@ public class MongoDocumentStore implements DocumentStore {
         final long start = PERFLOG.start();
         try {
             // get modCount of cached document
-            Number modCount = null;
+            Long modCount = null;
             T cachedDoc = null;
             if (collection == Collection.NODES) {
                 cachedDoc = (T) nodesCache.getIfPresent(updateOp.getId());
@@ -850,17 +850,17 @@ public class MongoDocumentStore implements DocumentStore {
                     throw new DocumentStoreException("Update failed: " + writeResult.getError());
                 }
                 if (collection == Collection.NODES) {
-                    Map<String, Number> modCounts = getModCounts(filterValues(cachedDocs, notNull()).keySet());
+                    Map<String, Long> modCounts = getModCounts(filterValues(cachedDocs, notNull()).keySet());
                     // update cache
                     for (Entry<String, NodeDocument> entry : cachedDocs.entrySet()) {
                         // the cachedDocs is not empty, so the collection = NODES
                         Lock lock = nodeLocks.acquire(entry.getKey());
                         try {
-                            Number postUpdateModCount = modCounts.get(entry.getKey());
+                            Long postUpdateModCount = modCounts.get(entry.getKey());
                             if (postUpdateModCount != null
                                     && entry.getValue() != null
                                     && entry.getValue() != NodeDocument.NULL
-                                    && (postUpdateModCount.longValue() - 1) == entry.getValue().getModCount()) {
+                                    && (postUpdateModCount - 1) == entry.getValue().getModCount()) {
                                 // post update modCount is one higher than
                                 // what we currently see in the cache. we can
                                 // replace the cached document
@@ -899,7 +899,7 @@ public class MongoDocumentStore implements DocumentStore {
      * @throws MongoException if the call fails
      */
     @Nonnull
-    private Map<String, Number> getModCounts(Iterable<String> keys)
+    private Map<String, Long> getModCounts(Iterable<String> keys)
             throws MongoException {
         QueryBuilder query = QueryBuilder.start(Document.ID).in(keys);
         // Fetch only the modCount and id
@@ -909,10 +909,10 @@ public class MongoDocumentStore implements DocumentStore {
         DBCursor cursor = nodes.find(query.get(), fields);
         cursor.setReadPreference(ReadPreference.primary());
 
-        Map<String, Number> modCounts = Maps.newHashMap();
+        Map<String, Long> modCounts = Maps.newHashMap();
         for (DBObject obj : cursor) {
             String id = (String) obj.get(Document.ID);
-            Number modCount = (Number) obj.get(Document.MOD_COUNT);
+            Long modCount = Utils.asLong((Number) obj.get(Document.MOD_COUNT));
             modCounts.put(id, modCount);
         }
         return modCounts;
