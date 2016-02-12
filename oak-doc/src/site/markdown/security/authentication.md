@@ -122,6 +122,7 @@ section [Authentication: Implementation Details].
 See section [differences](authentication/differences.html) for comprehensive list 
 of differences wrt authentication between Jackrabbit 2.x and Oak.
 
+<a name="api_extensions"/>
 ### API Extension
 
 #### Oak Authentication
@@ -193,6 +194,7 @@ Subclasses are required to implement the following methods:
         }
     }
 
+<a name="configuration"/>
 ### Configuration
 
 The configuration of the authentication setup is defined by the [AuthenticationConfiguration].
@@ -210,6 +212,7 @@ There also exists a utility class that allows to obtain different
     - `TokenLoginModule`: covers token based authentication
     - `LoginModuleImpl`: covering regular uid/pw login
 
+<a name="pluggability"/>
 ### Pluggability
 
 The default security setup as present with Oak 1.0 is able to provide custom
@@ -224,6 +227,7 @@ implementation on various levels:
    by making the modules accessible to the framework and setting their execution
    order accordingly. In a Non-OSGi setup this is specified in the [JAAS config].
 
+<a name="further_reading"/>
 ### Further Reading
 
 - [Authentication: Implementation Details](authentication/default.html)
