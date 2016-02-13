@@ -121,7 +121,9 @@ public class ObservationTest extends AbstractRepositoryTest {
 
     @After
     public void tearDown() {
-        observingSession.logout();
+        if (observingSession != null) {
+            observingSession.logout();
+        }
     }
 
     @Test
