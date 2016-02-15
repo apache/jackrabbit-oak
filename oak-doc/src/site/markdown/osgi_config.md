@@ -61,10 +61,6 @@ blobGcMaxAgeInSecs
   (currentTime - lastModifiedTime > blobGcMaxAgeInSecs). For example as per default only those blobs which have
   been created 24 hrs ago would be considered for GC
 
-sharedDSRepoId (From Oak 1.2.11 & Oak 1.3.15)
-: Default ""
-: Custom SharedDataStore repositoryId. Used when custom blobstore configured. Should be unique among the repositories sharing the datastore.
-
 <a name="document-node-store"></a>
 #### DocumentNodeStore
 

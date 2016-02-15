@@ -296,7 +296,7 @@ public class SegmentDataStoreBlobGCIT {
         ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
         String repoId = null;
         if (SharedDataStoreUtils.isShared(store.getBlobStore())) {
-            repoId = ClusterRepositoryInfo.createId(nodeStore);
+            repoId = ClusterRepositoryInfo.getOrCreateId(nodeStore);
             ((SharedDataStore) store.getBlobStore()).addMetadataRecord(
                 new ByteArrayInputStream(new byte[0]),
                 REPOSITORY.getNameFromId(repoId));
@@ -349,7 +349,7 @@ public class SegmentDataStoreBlobGCIT {
     private MarkSweepGarbageCollector init(long blobGcMaxAgeInSecs, ThreadPoolExecutor executor) throws Exception {
         String repoId = null;
         if (SharedDataStoreUtils.isShared(store.getBlobStore())) {
-            repoId = ClusterRepositoryInfo.createId(nodeStore);
+            repoId = ClusterRepositoryInfo.getOrCreateId(nodeStore);
             ((SharedDataStore) store.getBlobStore()).addMetadataRecord(
                 new ByteArrayInputStream(new byte[0]), 
                 REPOSITORY.getNameFromId(repoId));

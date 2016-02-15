@@ -30,12 +30,10 @@ class ClusterViewBuilder {
     private final Set<Integer> backlogIds = new HashSet<Integer>();
     private final Set<Integer> inactiveIds = new HashSet<Integer>();
     private final long viewSeqNum;
-    private final String clusterViewId;
     private final int myId;
 
-    ClusterViewBuilder(long viewSeqNum, String clusterViewId, int myId) {
+    ClusterViewBuilder(long viewSeqNum, int myId) {
         this.viewSeqNum = viewSeqNum;
-        this.clusterViewId = clusterViewId;
         this.myId = myId;
     }
 
@@ -85,13 +83,12 @@ class ClusterViewBuilder {
         doc.put(ClusterViewDocument.INACTIVE_KEY, asArrayStr(inactiveIds));
         doc.put(ClusterViewDocument.RECOVERING_KEY, asArrayStr(recoveringIds));
         doc.put(ClusterViewDocument.ACTIVE_KEY, asArrayStr(activeIds));
-        doc.put(ClusterViewDocument.CLUSTER_VIEW_ID_KEY, clusterViewId);
         ClusterViewDocument clusterViewDoc = new ClusterViewDocument(doc);
         return clusterViewDoc;
     }
 
-    public ClusterView asView() {
-        return ClusterView.fromDocument(myId, asDoc(), backlogIds);
+    public ClusterView asView(String clusterId) {
+        return ClusterView.fromDocument(myId, clusterId, asDoc(), backlogIds);
     }
 
     private String asArrayStr(Set<Integer> ids) {

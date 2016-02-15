@@ -17,23 +17,30 @@
 package org.apache.jackrabbit.oak.plugins.blob;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
-import junit.framework.Assert;
+
+import java.io.File;
+import java.io.IOException;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.identifier.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 
-import java.io.File;
-import java.io.IOException;
+import junit.framework.Assert;
 
 /**
  * Tests the ClusterRepositoryInfo unique cluster repository id.
@@ -43,6 +50,19 @@ public class ClusterRepositoryInfoTest {
 
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
+    
+    /**
+     * test method to change the clusterId explicitly
+     * 
+     * @throws CommitFailedException
+     **/
+    private static void setId(NodeStore store, String clusterId) throws CommitFailedException {
+        NodeState root = store.getRoot();
+        NodeBuilder builder = root.builder();
+        builder.child(ClusterRepositoryInfo.CLUSTER_CONFIG_NODE)
+            .setProperty(ClusterRepositoryInfo.CLUSTER_ID_PROP, clusterId);
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    }
     
     @BeforeClass
     public static void setup() {
@@ -61,14 +81,14 @@ public class ClusterRepositoryInfoTest {
                 .setDocumentStore(new MemoryDocumentStore())
                 .setBlobStore(blobStore)
                 .getNodeStore();
-        String repoId1 = ClusterRepositoryInfo.createId(ds1);
+        String repoId1 = ClusterRepositoryInfo.getOrCreateId(ds1);
 
         DocumentNodeStore ds2 = builderProvider.newBuilder()
                 .setAsyncDelay(0)
                 .setDocumentStore(new MemoryDocumentStore())
                 .setBlobStore(blobStore)
                 .getNodeStore();
-        String repoId2 = ClusterRepositoryInfo.createId(ds2);
+        String repoId2 = ClusterRepositoryInfo.getOrCreateId(ds2);
 
         Assert.assertNotSame(repoId1, repoId2);
     }
@@ -82,7 +102,7 @@ public class ClusterRepositoryInfoTest {
                 .setClusterId(1)
                 .setBlobStore(blobStore)
                 .getNodeStore();
-        String repoId1 = ClusterRepositoryInfo.createId(ds1);
+        String repoId1 = ClusterRepositoryInfo.getOrCreateId(ds1);
         ds1.runBackgroundOperations();
 
         DocumentNodeStore ds2 = builderProvider.newBuilder()
@@ -91,24 +111,26 @@ public class ClusterRepositoryInfoTest {
                 .setClusterId(2)
                 .setBlobStore(blobStore)
                 .getNodeStore();
-        String repoId2 = ClusterRepositoryInfo.createId(ds2);
+        String repoId2 = ClusterRepositoryInfo.getOrCreateId(ds2);
 
         // Since the same cluster the ids should be equal
         Assert.assertEquals(repoId1, repoId2);
     }
 
-    @Test
-    public void checkGetIdWhenNotRegistered() {
-        MemoryDocumentStore store = new MemoryDocumentStore();
-        DocumentNodeStore ds1 = builderProvider.newBuilder()
-            .setAsyncDelay(0)
-            .setDocumentStore(store)
-            .setClusterId(1)
-            .getNodeStore();
-        // Should be null and no NPE
-        String id = ClusterRepositoryInfo.getId(ds1);
-        Assert.assertNull(id);
-    }
+    // below test doesn't make sense anymore in the context
+    // of getOrCreateId (OAK-4006) where that never returns null
+//    @Test
+//    public void checkGetIdWhenNotRegistered() {
+//        MemoryDocumentStore store = new MemoryDocumentStore();
+//        DocumentNodeStore ds1 = builderProvider.newBuilder()
+//            .setAsyncDelay(0)
+//            .setDocumentStore(store)
+//            .setClusterId(1)
+//            .getNodeStore();
+//        // Should be null and no NPE
+//        String id = ClusterRepositoryInfo.getOrCreateId(ds1);
+//        Assert.assertNull(id);
+//    }
 
     @Test
     public void checkCustomId() throws Exception {
@@ -118,11 +140,12 @@ public class ClusterRepositoryInfoTest {
                 .setDocumentStore(store)
                 .setClusterId(1)
                 .getNodeStore();
-        String repoId1 = ClusterRepositoryInfo.createId(ds1, "yyyyyyy");
+        String repoId1 = "yyyyyyy";
+        setId(ds1, repoId1);
         ds1.runBackgroundOperations();
 
-        String id = ClusterRepositoryInfo.getId(ds1);
-        Assert.assertEquals(id, "yyyyyyy");
+        String id = ClusterRepositoryInfo.getOrCreateId(ds1);
+        Assert.assertEquals(id, repoId1);
     }
 
     @Test
@@ -133,13 +156,13 @@ public class ClusterRepositoryInfoTest {
                 .setDocumentStore(store)
                 .setClusterId(1)
                 .getNodeStore();
-        String repoId1 = ClusterRepositoryInfo.createId(ds1, null);
+        String repoId1 = ClusterRepositoryInfo.getOrCreateId(ds1);
         ds1.runBackgroundOperations();
 
         // Change with a custom ID
-        ClusterRepositoryInfo.createId(ds1, "xxxxxxxx");
+        setId(ds1, "xxxxxxxx");
 
-        String id = ClusterRepositoryInfo.getId(ds1);
+        String id = ClusterRepositoryInfo.getOrCreateId(ds1);
         Assert.assertNotNull(id);
         Assert.assertEquals(id, "xxxxxxxx");
     }

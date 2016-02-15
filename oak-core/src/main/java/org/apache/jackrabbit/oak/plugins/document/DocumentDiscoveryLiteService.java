@@ -39,10 +39,10 @@ import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.oak.api.Descriptors;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
+import org.apache.jackrabbit.oak.plugins.identifier.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.osgi.framework.Version;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
@@ -110,9 +110,7 @@ import org.slf4j.LoggerFactory;
  * what the clusterView looks like. And no two instances in the same cluster can
  * make different conclusions based eg on different clocks they have or based on
  * reading the clusterNodes in a slightly different moment etc. Also, the
- * clusterView allows to store the currently two additional attributes: the
- * clusterViewId (which is the permanent id for this cluster similar to the
- * slingId being a permanent id for an instance) as well as the sequence number
+ * clusterView allows to store a the sequence number
  * (which allows the instances to make reference to the same clusterView, and be
  * able to simply detect whether anything has changed)
  * <p>
@@ -432,7 +430,8 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
         }
 
         if (changed) {
-            ClusterView v = ClusterView.fromDocument(clusterNodeId, newView, backlogNodes.keySet());
+            String clusterId = ClusterRepositoryInfo.getOrCreateId(documentNodeStore);
+            ClusterView v = ClusterView.fromDocument(clusterNodeId, clusterId, newView, backlogNodes.keySet());
             ClusterView previousView = previousClusterView;
             previousClusterView = v;
             hasInstancesWithBacklog = newHasInstancesWithBacklog;

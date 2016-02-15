@@ -112,15 +112,15 @@ public class ClusterViewTest {
 
     @Test
     public void testOneActiveOnly() throws Exception {
-        String clusterViewId = UUID.randomUUID().toString();
-        ClusterViewBuilder builder = new ClusterViewBuilder(10, clusterViewId, 21);
-        ClusterView view = builder.active(21).asView();
+        String clusterId = UUID.randomUUID().toString();
+        ClusterViewBuilder builder = new ClusterViewBuilder(10, 21);
+        ClusterView view = builder.active(21).asView(clusterId);
 
         // {"seq":10,"id":"35f60ed3-508d-4a81-b812-89f07f57db20","me":2,"active":[2],"deactivating":[],"inactive":[3]}
         JsonObject o = asJsonObject(view);
         Map<String, String> props = o.getProperties();
         assertEquals("10", props.get("seq"));
-//        assertEquals(clusterViewId, unwrapString(props.get("id")));
+        assertEquals(clusterId, unwrapString(props.get("id")));
         assertEquals("21", props.get("me"));
         assertEquals(asJsonArray(21), props.get("active"));
         assertEquals(asJsonArray(), props.get("deactivating"));
@@ -129,15 +129,15 @@ public class ClusterViewTest {
 
     @Test
     public void testOneActiveOneInactive() throws Exception {
-        String clusterViewId = UUID.randomUUID().toString();
-        ClusterViewBuilder builder = new ClusterViewBuilder(10, clusterViewId, 2);
-        ClusterView view = builder.active(2).inactive(3).asView();
+        String clusterId = UUID.randomUUID().toString();
+        ClusterViewBuilder builder = new ClusterViewBuilder(10, 2);
+        ClusterView view = builder.active(2).inactive(3).asView(clusterId);
 
         // {"seq":10,"id":"35f60ed3-508d-4a81-b812-89f07f57db20","me":2,"active":[2],"deactivating":[],"inactive":[3]}
         JsonObject o = asJsonObject(view);
         Map<String, String> props = o.getProperties();
         assertEquals("10", props.get("seq"));
-//        assertEquals(clusterViewId, unwrapString(props.get("id")));
+        assertEquals(clusterId, unwrapString(props.get("id")));
         assertEquals("2", props.get("me"));
         assertEquals(asJsonArray(2), props.get("active"));
         assertEquals(asJsonArray(), props.get("deactivating"));
@@ -146,16 +146,16 @@ public class ClusterViewTest {
 
     @Test
     public void testSeveralActiveOneInactive() throws Exception {
-        String clusterViewId = UUID.randomUUID().toString();
-        ClusterViewBuilder builder = new ClusterViewBuilder(10, clusterViewId, 2);
-        ClusterView view = builder.active(2, 5, 6).inactive(3).asView();
+        String clusterId = UUID.randomUUID().toString();
+        ClusterViewBuilder builder = new ClusterViewBuilder(10, 2);
+        ClusterView view = builder.active(2, 5, 6).inactive(3).asView(clusterId);
 
         // {"seq":10,"id":"35f60ed3-508d-4a81-b812-89f07f57db20","me":2,"active":[2],"deactivating":[],"inactive":[3]}
         JsonObject o = asJsonObject(view);
         Map<String, String> props = o.getProperties();
         assertEquals("10", props.get("seq"));
         assertEquals("true", props.get("final"));
-//        assertEquals(clusterViewId, unwrapString(props.get("id")));
+        assertEquals(clusterId, unwrapString(props.get("id")));
         assertEquals("2", props.get("me"));
         assertEquals(asJsonArray(2, 5, 6), props.get("active"));
         assertEquals(asJsonArray(), props.get("deactivating"));
@@ -164,16 +164,16 @@ public class ClusterViewTest {
 
     @Test
     public void testOneActiveSeveralInactive() throws Exception {
-        String clusterViewId = UUID.randomUUID().toString();
-        ClusterViewBuilder builder = new ClusterViewBuilder(10, clusterViewId, 2);
-        ClusterView view = builder.active(2).inactive(3, 4, 5, 6).asView();
+        String clusterId = UUID.randomUUID().toString();
+        ClusterViewBuilder builder = new ClusterViewBuilder(10, 2);
+        ClusterView view = builder.active(2).inactive(3, 4, 5, 6).asView(clusterId);
 
         // {"seq":10,"id":"35f60ed3-508d-4a81-b812-89f07f57db20","me":2,"active":[2],"deactivating":[],"inactive":[3]}
         JsonObject o = asJsonObject(view);
         Map<String, String> props = o.getProperties();
         assertEquals("10", props.get("seq"));
         assertEquals("true", props.get("final"));
-//        assertEquals(clusterViewId, unwrapString(props.get("id")));
+        assertEquals(clusterId, unwrapString(props.get("id")));
         assertEquals("2", props.get("me"));
         assertEquals(asJsonArray(2), props.get("active"));
         assertEquals(asJsonArray(), props.get("deactivating"));
@@ -182,15 +182,15 @@ public class ClusterViewTest {
 
     @Test
     public void testWithRecoveringOnly() throws Exception {
-        String clusterViewId = UUID.randomUUID().toString();
-        ClusterViewBuilder builder = new ClusterViewBuilder(10, clusterViewId, 2);
-        ClusterView view = builder.active(2, 3).recovering(4).inactive(5, 6).asView();
+        String clusterId = UUID.randomUUID().toString();
+        ClusterViewBuilder builder = new ClusterViewBuilder(10, 2);
+        ClusterView view = builder.active(2, 3).recovering(4).inactive(5, 6).asView(clusterId);
 
         JsonObject o = asJsonObject(view);
         Map<String, String> props = o.getProperties();
         assertEquals("10", props.get("seq"));
         assertEquals("true", props.get("final"));
-//        assertEquals(clusterViewId, unwrapString(props.get("id")));
+        assertEquals(clusterId, unwrapString(props.get("id")));
         assertEquals("2", props.get("me"));
         assertEquals(asJsonArray(2, 3), props.get("active"));
         assertEquals(asJsonArray(4), props.get("deactivating"));
@@ -199,14 +199,14 @@ public class ClusterViewTest {
 
     @Test
     public void testWithRecoveringAndBacklog() throws Exception {
-        String clusterViewId = UUID.randomUUID().toString();
-        ClusterViewBuilder builder = new ClusterViewBuilder(10, clusterViewId, 2);
-        ClusterView view = builder.active(2, 3).recovering(4).inactive(5, 6).backlogs(5).asView();
+        String clusterId = UUID.randomUUID().toString();
+        ClusterViewBuilder builder = new ClusterViewBuilder(10, 2);
+        ClusterView view = builder.active(2, 3).recovering(4).inactive(5, 6).backlogs(5).asView(clusterId);
 
         JsonObject o = asJsonObject(view);
         Map<String, String> props = o.getProperties();
         assertEquals("10", props.get("seq"));
-//        assertEquals(clusterViewId, unwrapString(props.get("id")));
+        assertEquals(clusterId, unwrapString(props.get("id")));
         assertEquals("2", props.get("me"));
         assertEquals("false", props.get("final"));
         assertEquals(asJsonArray(2, 3), props.get("active"));
@@ -216,10 +216,10 @@ public class ClusterViewTest {
 
     @Test
     public void testBacklogButNotInactive() throws Exception {
-        String clusterViewId = UUID.randomUUID().toString();
-        ClusterViewBuilder builder = new ClusterViewBuilder(10, clusterViewId, 2);
+        String clusterId = UUID.randomUUID().toString();
+        ClusterViewBuilder builder = new ClusterViewBuilder(10, 2);
         try {
-            ClusterView view = builder.active(2, 3).backlogs(5).asView();
+            ClusterView view = builder.active(2, 3).backlogs(5).asView(clusterId);
             fail("should complain");
         } catch (Exception ok) {
             // ok

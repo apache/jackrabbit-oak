@@ -128,7 +128,7 @@ class ClusterView {
      *            background read for and thus still have a backlog
      * @return the ClusterView representing the provided info
      */
-    static ClusterView fromDocument(int localInstanceId, ClusterViewDocument clusterViewDoc, Set<Integer> backlogIds) {
+    static ClusterView fromDocument(int localInstanceId, String clusterId, ClusterViewDocument clusterViewDoc, Set<Integer> backlogIds) {
         Set<Integer> activeIds = clusterViewDoc.getActiveIds();
         Set<Integer> deactivatingIds = new HashSet<Integer>();
         deactivatingIds.addAll(clusterViewDoc.getRecoveringIds());
@@ -142,17 +142,21 @@ class ClusterView {
             throw new IllegalStateException(
                     "not all backlogIds (" + backlogIds + ") are part of inactiveIds (" + clusterViewDoc.getInactiveIds() + ")");
         }
-        return new ClusterView(clusterViewDoc.getViewSeqNum(), backlogIds.size() == 0, clusterViewDoc.getClusterViewId(),
+        // clusterViewDoc.getClusterViewId() used to provide the 'clusterViewId' 
+        // as defined within the settings collection of the DocumentStore.
+        // with OAK-4006 however we're changing this to use one clusterId
+        // within oak - provided and controlled by ClusterRepositoryInfo.
+        return new ClusterView(clusterViewDoc.getViewSeqNum(), backlogIds.size() == 0, clusterId,
                 localInstanceId, activeIds, deactivatingIds, inactiveIds);
     }
 
-    ClusterView(final long viewSeqNum, final boolean viewFinal, final String clusterViewId, final int localId,
+    ClusterView(final long viewSeqNum, final boolean viewFinal, final String clusterId, final int localId,
             final Set<Integer> activeIds, final Set<Integer> deactivatingIds, final Set<Integer> inactiveIds) {
         if (viewSeqNum < 0) {
             throw new IllegalStateException("viewSeqNum must be zero or higher: " + viewSeqNum);
         }
-        if (clusterViewId == null || clusterViewId.length() == 0) {
-            throw new IllegalStateException("clusterViewId must not be zero or empty: " + clusterViewId);
+        if (clusterId == null || clusterId.length() == 0) {
+            throw new IllegalStateException("clusterId must not be zero or empty: " + clusterId);
         }
         if (localId < 0) {
             throw new IllegalStateException("localId must not be zero or higher: " + localId);
@@ -167,20 +171,20 @@ class ClusterView {
             throw new IllegalStateException("inactiveIds must not be null");
         }
 
-        json = asJson(viewSeqNum, viewFinal, clusterViewId, localId, activeIds, deactivatingIds, inactiveIds);
+        json = asJson(viewSeqNum, viewFinal, clusterId, localId, activeIds, deactivatingIds, inactiveIds);
     }
 
     /**
      * Converts the provided parameters into the clusterview json that will be
      * provided via JMX
      **/
-    private String asJson(final long viewSeqNum, final boolean viewFinal, final String clusterViewId, final int localId,
+    private String asJson(final long viewSeqNum, final boolean viewFinal, final String clusterId, final int localId,
             final Set<Integer> activeIds, final Set<Integer> deactivatingIds, final Set<Integer> inactiveIds) {
         JsopBuilder builder = new JsopBuilder();
         builder.object();
         builder.key("seq").value(viewSeqNum);
         builder.key("final").value(viewFinal);
-//        builder.key("id").value(clusterViewId);
+        builder.key("id").value(clusterId);
         builder.key("me").value(localId);
         builder.key("active").array();
         for (Iterator<Integer> it = activeIds.iterator(); it.hasNext();) {

@@ -261,7 +261,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         DocumentNodeStore store = mk.getNodeStore();
         String repoId = null;
         if (SharedDataStoreUtils.isShared(store.getBlobStore())) {
-            repoId = ClusterRepositoryInfo.createId(store);
+            repoId = ClusterRepositoryInfo.getOrCreateId(store);
             ((SharedDataStore) store.getBlobStore()).addMetadataRecord(
                 new ByteArrayInputStream(new byte[0]),
                 REPOSITORY.getNameFromId(repoId));
@@ -290,7 +290,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         DocumentNodeStore store = mk.getNodeStore();
         String repoId = null;
         if (SharedDataStoreUtils.isShared(store.getBlobStore())) {
-            repoId = ClusterRepositoryInfo.createId(store);
+            repoId = ClusterRepositoryInfo.getOrCreateId(store);
             ((SharedDataStore) store.getBlobStore()).addMetadataRecord(
                 new ByteArrayInputStream(new byte[0]),
                 REPOSITORY.getNameFromId(repoId));
