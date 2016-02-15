@@ -126,7 +126,7 @@ for the [ExternalLoginModuleFactory]/[ExternalLoginModule].
 | `PARAM_IDP_NAME`          | String   | \-         | Name of the external IDP to be retrieved from the `ExternalIdentityProviderManager` |
 | `PARAM_SYNC_HANDLER_NAME` | String   | \-         | Name of the sync handler to be retrieved from the `SyncManager` |
 |                           |          |            |                          |
-| *Optional (OSGi-setup)*   |          |            |                          |
+| _Optional (OSGi-setup)_   |          |            |                          |
 | `JAAS_RANKING`            | int      | 50         | Ranking of the `ExternalLoginModule` in the JAAS configuration, see [LoginModuleFactory] |
 | `JAAS_CONTROL_FLAG`       | String   | SUFFICIENT | See [LoginModuleControlFlag] for supported values. |
 | `JAAS_REALM_NAME`         | String   | \-         | See [LoginModuleFactory] |
