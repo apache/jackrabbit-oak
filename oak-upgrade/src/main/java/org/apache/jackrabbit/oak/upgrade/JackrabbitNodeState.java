@@ -342,6 +342,22 @@ class JackrabbitNodeState extends AbstractNodeState {
         properties.put(JCR_PRIMARYTYPE, PropertyStates.createProperty(
                 JCR_PRIMARYTYPE, primary, Type.NAME));
 
+        for (PropertyEntry property : bundle.getPropertyEntries()) {
+            String name = createName(property.getName());
+            try {
+                int type = property.getType();
+                if (property.isMultiValued()) {
+                    properties.put(name, createProperty(
+                            name, type, property.getValues()));
+                } else {
+                    properties.put(name, createProperty(
+                            name, type, property.getValues()[0]));
+                }
+            } catch (Exception e) {
+                warn("Skipping broken property entry " + name, e);
+            }
+        }
+
         Set<String> mixins = newLinkedHashSet();
         if (bundle.getMixinTypeNames() != null) {
             for (Name mixin : bundle.getMixinTypeNames()) {
@@ -357,22 +373,6 @@ class JackrabbitNodeState extends AbstractNodeState {
                 || isReferenceable.apply(primary, mixins)) {
             properties.put(JCR_UUID, PropertyStates.createProperty(
                     JCR_UUID, bundle.getId().toString()));
-        }
-
-        for (PropertyEntry property : bundle.getPropertyEntries()) {
-            String name = createName(property.getName());
-            try {
-                int type = property.getType();
-                if (property.isMultiValued()) {
-                    properties.put(name, createProperty(
-                            name, type, property.getValues()));
-                } else {
-                    properties.put(name, createProperty(
-                            name, type, property.getValues()[0]));
-                }
-            } catch (Exception e) {
-                warn("Skipping broken property entry " + name, e);
-            }
         }
 
         return properties;
