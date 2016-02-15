@@ -68,6 +68,23 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     @Test
+    public void testAddAndRemoveJournalEntry() {
+        // OAK-4021
+        String id = this.getClass().getName() + ".testAddAndRemoveJournalEntry";
+
+        // remove if present
+        Document d = super.ds.find(Collection.JOURNAL, id);
+        if (d != null) {
+            super.ds.remove(Collection.JOURNAL, id);
+        }
+
+        // add
+        UpdateOp up = new UpdateOp(id, true);
+        up.set("_id", id);
+        assertTrue(super.ds.create(Collection.JOURNAL, Collections.singletonList(up)));
+    }
+
+    @Test
     public void testConditionalUpdate() {
         String id = this.getClass().getName() + ".testConditionalUpdate";
 
