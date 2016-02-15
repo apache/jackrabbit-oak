@@ -42,6 +42,7 @@ enum Mode {
     TARMKDIFF("tarmkdiff", new FileStoreDiffCommand()),
     TARMKRECOVERY("tarmkrecovery", new FileStoreRevisionRecoveryCommand()),
     DUMPDATASTOREREFS("dumpdatastorerefs", new DumpDataStoreReferencesCommand()),
+    RESETCLUSTERID("resetclusterid", new ResetClusterIdCommand()),
     HELP("help", new HelpCommand());
 
     private final String name;
