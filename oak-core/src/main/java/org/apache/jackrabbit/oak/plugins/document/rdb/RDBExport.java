@@ -145,7 +145,9 @@ public class RDBExport {
             List<String> columnList = Arrays.asList(columns.toLowerCase(Locale.ENGLISH).replace(" ", "").split(","));
             dumpFile(dumpfile, lobdir, format, out, fieldList, columnList, ser);
         } else {
-            System.err.println(RDBExport.class.getName() + ": column names ignored when using JDBC");
+            if (columns != null) {
+                System.err.println(RDBExport.class.getName() + ": column names ignored when using JDBC");
+            }
             dumpJDBC(url, user, pw, table, query, format, out, fieldList, ser);
         }
 
