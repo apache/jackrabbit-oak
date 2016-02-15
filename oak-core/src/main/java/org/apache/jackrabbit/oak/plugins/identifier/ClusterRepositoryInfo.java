@@ -18,7 +18,8 @@ package org.apache.jackrabbit.oak.plugins.identifier;
 
 import java.util.UUID;
 
-import com.google.common.base.Strings;
+import javax.annotation.CheckForNull;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -26,69 +27,75 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-
-import javax.annotation.CheckForNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Utility class to manage a unique cluster/repository id for the cluster.
  */
 public class ClusterRepositoryInfo {
+    private static final Logger log = LoggerFactory.getLogger(ClusterRepositoryInfo.class);
+    public static final String OAK_CLUSTERID_REPOSITORY_DESCRIPTOR_KEY = "oak.clusterid";
     public static final String CLUSTER_CONFIG_NODE = ":clusterConfig";
     public static final String CLUSTER_ID_PROP = ":clusterId";
 
     /**
-     * Adds a new uuid for the repository in the property /:clusterConfig/:clusterId if not available
-     *
+     * Gets the {# CLUSTER_ID_PROP} if available, if it doesn't it 
+     * creates it and returns the newly created one (or if that
+     * happened concurrently and another cluster instance won,
+     * return that one)
+     * <p>
+     * Note that this method doesn't require synchronization as
+     * concurrent execution within the VM would be covered
+     * within NodeStore's merge and result in a conflict for
+     * one of the two threads - in which case the looser would
+     * re-read and find the clusterId set.
+     * 
      * @param store the NodeStore instance
-     * @return the repository id
-     * @throws CommitFailedException
-     */
-    public static String createId(NodeStore store) throws CommitFailedException {
-        return createId(store, null);
-    }
-
-    /**
-     * Adds a new uuid for the repository in the property /:clusterConfig/:clusterId Or
-     * update the id with the customId passed.
-     *
-     * @param store the NodeStore instance
-     * @param customId customId
-     * @return the repository id
-     * @throws CommitFailedException
-     */
-    public static String createId(NodeStore store, String customId) throws CommitFailedException {
-        NodeBuilder root = store.getRoot().builder();
-        if (!root.hasChildNode(CLUSTER_CONFIG_NODE) ||
-                !root.getChildNode(CLUSTER_CONFIG_NODE).hasProperty(CLUSTER_ID_PROP)) {
-            // Set the customId if available
-            String id = (!Strings.isNullOrEmpty(customId) ? customId : UUID.randomUUID().toString());
-            root.child(CLUSTER_CONFIG_NODE).setProperty(CLUSTER_ID_PROP, id);
-            store.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-            return id;
-        } else {
-            String currId = root.getChildNode(CLUSTER_CONFIG_NODE).getProperty(CLUSTER_ID_PROP).getValue(Type.STRING);
-            if (!Strings.isNullOrEmpty(customId) && !customId.equals(currId)) {
-                root.child(CLUSTER_CONFIG_NODE).setProperty(CLUSTER_ID_PROP, customId);
-                store.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-                currId = customId;
-            }
-            return currId;
-        }
-    }
-
-    /**
-     * Retrieves the {# CLUSTER_ID_PROP}
-     *
-     * @param store the NodeStore instance
-     * @return the repository id
+     * @return the persistent clusterId
      */
     @CheckForNull
-    public static String getId(NodeStore store) {
-        NodeState state = store.getRoot().getChildNode(CLUSTER_CONFIG_NODE);
-        if (state.hasProperty(CLUSTER_ID_PROP)) {
-            return state.getProperty(CLUSTER_ID_PROP).getValue(Type.STRING);
+    public static String getOrCreateId(NodeStore store) {
+        // first try to read an existing clusterId
+        NodeState root = store.getRoot();
+        NodeState node = root.getChildNode(CLUSTER_CONFIG_NODE);
+        if (node.exists() && node.hasProperty(CLUSTER_ID_PROP)) {
+            // clusterId is set - this is the normal case
+            return node.getProperty(CLUSTER_ID_PROP).getValue(Type.STRING);
         }
-        return null;
+        
+        // otherwise either the config node or the property doesn't exist.
+        // then try to create it - but since this could be executed concurrently
+        // in a cluster, it might result in a conflict. in that case, re-read
+        // the node
+        NodeBuilder builder = root.builder();
+        
+        // choose a new random clusterId
+        String newRandomClusterId = UUID.randomUUID().toString();
+        builder.child(CLUSTER_CONFIG_NODE).setProperty(CLUSTER_ID_PROP, newRandomClusterId);
+        try {
+            store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+            // great, we were able to create it, all good.
+            log.info("getOrCreateId: created a new clusterId=" + newRandomClusterId);
+            return newRandomClusterId;
+        } catch (CommitFailedException e) {
+            // if we can't commit, then another instance in the cluster
+            // set the clusterId concurrently. in which case we should now
+            // see that one
+            root = store.getRoot();
+            node = root.getChildNode(CLUSTER_CONFIG_NODE);
+            if (node.exists() && node.hasProperty(CLUSTER_ID_PROP)) {
+                // clusterId is set - this is the normal case
+                return node.getProperty(CLUSTER_ID_PROP).getValue(Type.STRING);
+            }
+            
+            // this should not happen
+            String path = "/" + CLUSTER_CONFIG_NODE + "/" + CLUSTER_ID_PROP;
+            log.error("getOrCreateId: both setting and then reading of " + path + "failed");
+            throw new IllegalStateException("Both setting and then reading of " + path + " failed");
+        }
     }
+
 }
 

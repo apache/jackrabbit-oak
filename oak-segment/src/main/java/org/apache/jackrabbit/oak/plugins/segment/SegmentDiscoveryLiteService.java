@@ -32,6 +32,7 @@ import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.oak.api.Descriptors;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
+import org.apache.jackrabbit.oak.plugins.identifier.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
@@ -128,7 +129,10 @@ public class SegmentDiscoveryLiteService {
         //            to upper layers that we're not really in a cluster and that
         //            this low level descriptor doesn't manage the 'cluster id' 
         //            in such a case.
-        return "{\"seq\":1,\"final\":true,\"me\":1,\"active\":[1],\"deactivating\":[],\"inactive\":[]}";
+        // OAK-4006: but ClusterRepositoryInfo now provides a persistent clusterId,
+        //           so that is now used also for discovery-lite via exactly below 'id'
+        String clusterId = ClusterRepositoryInfo.getOrCreateId(nodeStore);
+        return "{\"seq\":1,\"final\":true,\"me\":1,\"id\":\""+clusterId+"\",\"active\":[1],\"deactivating\":[],\"inactive\":[]}";
     }
 
     /**

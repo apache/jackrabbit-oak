@@ -79,18 +79,16 @@ public class ClusterViewDocumentTest {
 
     @Test
     public void testConstructor() {
-        ClusterViewDocument doc = new ClusterViewBuilder(1, "2", 3).active(3, 4).asDoc();
+        ClusterViewDocument doc = new ClusterViewBuilder(1, 3).active(3, 4).asDoc();
         assertNotNull(doc);
-        assertEquals("2", doc.getClusterViewId());
         assertEquals(0, doc.getRecoveringIds().size());
         assertEquals(0, doc.getInactiveIds().size());
         assertEquals(2, doc.getActiveIds().size());
         assertTrue(doc.getActiveIds().contains(3));
         assertTrue(doc.getActiveIds().contains(4));
 
-        doc = new ClusterViewBuilder(1, "2", 3).active(3, 4).backlogs(5).inactive(5, 6).asDoc();
+        doc = new ClusterViewBuilder(1, 3).active(3, 4).backlogs(5).inactive(5, 6).asDoc();
         assertNotNull(doc);
-        assertEquals("2", doc.getClusterViewId());
         assertEquals(0, doc.getRecoveringIds().size());
         assertEquals(2, doc.getInactiveIds().size());
         assertEquals(2, doc.getActiveIds().size());
@@ -99,10 +97,9 @@ public class ClusterViewDocumentTest {
         assertTrue(doc.getInactiveIds().contains(5));
         assertTrue(doc.getInactiveIds().contains(6));
 
-        doc = new ClusterViewBuilder(11, "x", 4).active(3, 4, 5).recovering(6).inactive(7, 8).asDoc();
+        doc = new ClusterViewBuilder(11, 4).active(3, 4, 5).recovering(6).inactive(7, 8).asDoc();
         assertNotNull(doc);
         assertEquals(11, doc.getViewSeqNum());
-        assertEquals("x", doc.getClusterViewId());
         assertEquals(1, doc.getRecoveringIds().size());
         assertEquals(2, doc.getInactiveIds().size());
         assertEquals(3, doc.getActiveIds().size());
@@ -165,8 +162,6 @@ public class ClusterViewDocumentTest {
         Set<Integer> inactiveIds = null;
         // first ever view:
         ClusterViewDocument doc = ClusterViewDocument.readOrUpdate(ns, activeIds, recoveringIds, inactiveIds);
-        final String id = doc.getClusterViewId();
-        assertTrue(id != null && id.length() > 0);
         String createdAt = doc.getCreatedAt();
         assertTrue(createdAt != null && createdAt.length() > 0);
         long createdBy = doc.getCreatedBy();
@@ -185,7 +180,6 @@ public class ClusterViewDocumentTest {
         // and now add a new active id
         activeIds.add(3);
         doc = ClusterViewDocument.readOrUpdate(ns, activeIds, recoveringIds, inactiveIds);
-        assertEquals(id, doc.getClusterViewId());
         createdAt = doc.getCreatedAt();
         assertTrue(createdAt != null && createdAt.length() > 0);
         createdBy = doc.getCreatedBy();
@@ -206,7 +200,6 @@ public class ClusterViewDocumentTest {
         recoveringIds = new HashSet<Integer>();
         recoveringIds.add(4);
         doc = ClusterViewDocument.readOrUpdate(ns, activeIds, recoveringIds, inactiveIds);
-        assertEquals(id, doc.getClusterViewId());
         createdAt = doc.getCreatedAt();
         assertTrue(createdAt != null && createdAt.length() > 0);
         createdBy = doc.getCreatedBy();
@@ -229,7 +222,6 @@ public class ClusterViewDocumentTest {
         inactiveIds = new HashSet<Integer>();
         inactiveIds.add(4);
         doc = ClusterViewDocument.readOrUpdate(ns, activeIds, recoveringIds, inactiveIds);
-        assertEquals(id, doc.getClusterViewId());
         createdAt = doc.getCreatedAt();
         assertTrue(createdAt != null && createdAt.length() > 0);
         createdBy = doc.getCreatedBy();

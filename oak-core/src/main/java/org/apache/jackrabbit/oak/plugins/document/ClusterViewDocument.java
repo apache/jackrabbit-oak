@@ -28,7 +28,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.slf4j.Logger;
@@ -67,14 +66,6 @@ class ClusterViewDocument {
     private static final String CLUSTERVIEW_DOC_ID = "clusterView";
 
     // keys that we store in the root document - and in the history
-    /**
-     * document key that stores the stable id of the cluster (will never change)
-     * (Note: a better term would have been just clusterId - but that one is
-     * already occupied with what should actually be called clusterNodeId or
-     * just nodeId)
-     **/
-    static final String CLUSTER_VIEW_ID_KEY = "clusterViewId";
-
     /**
      * document key that stores the monotonically incrementing sequence number
      * of the cluster view. Any update will increase this by 1
@@ -137,9 +128,6 @@ class ClusterViewDocument {
 
     /** the monotonically incrementing sequence number of this cluster view **/
     private final long viewSeqNum;
-
-    /** the stable id of this cluster **/
-    private final String clusterViewId;
 
     /** the ids of instances that are active at this moment **/
     private final Integer[] activeIds;
@@ -234,12 +222,9 @@ class ClusterViewDocument {
             newViewSeqNum = 1L;
             updateOp.setNew(true); // paranoia as that's already set above
             updateOp.set(VIEW_SEQ_NUM_KEY, newViewSeqNum);
-            // first view ever => choose a new unique clusterViewId
-            String clusterViewId = UUID.randomUUID().toString();
-            updateOp.set(CLUSTER_VIEW_ID_KEY, clusterViewId);
             updateOps.add(updateOp);
-            logger.debug("updateAndRead: trying to create the first ever clusterView - hence {}={} and {}={}", VIEW_SEQ_NUM_KEY,
-                    newViewSeqNum, CLUSTER_VIEW_ID_KEY, clusterViewId);
+            logger.debug("updateAndRead: trying to create the first ever clusterView - hence {}={}", VIEW_SEQ_NUM_KEY,
+                    newViewSeqNum);
             if (!documentNodeStore.getDocumentStore().create(Collection.SETTINGS, updateOps)) {
                 logger.debug("updateAndRead: someone else just created the first view ever while I tried - reread that one later");
                 return null;
@@ -446,7 +431,6 @@ class ClusterViewDocument {
         if (doc == null) {
             throw new IllegalArgumentException("doc must not be null");
         }
-        this.clusterViewId = (String) doc.get(CLUSTER_VIEW_ID_KEY);
         this.viewSeqNum = (Long) doc.get(VIEW_SEQ_NUM_KEY);
         this.createdAt = (String) doc.get(CREATED_KEY);
         Object creatorId = doc.get(CREATOR_KEY);
@@ -513,7 +497,7 @@ class ClusterViewDocument {
 
     @Override
     public String toString() {
-        return "a ClusterView[valid=" + isValid() + ", viewSeqNum=" + viewSeqNum + ", clusterViewId=" + clusterViewId
+        return "a ClusterView[valid=" + isValid() + ", viewSeqNum=" + viewSeqNum
                 + ", activeIds=" + arrayToCsv(activeIds) + ", recoveringIds=" + arrayToCsv(recoveringIds) + ", inactiveIds="
                 + arrayToCsv(inactiveIds) + "]";
     }
@@ -541,14 +525,6 @@ class ClusterViewDocument {
     /** Returns the monotonically incrementing sequenece number of this view **/
     long getViewSeqNum() {
         return viewSeqNum;
-    }
-
-    /**
-     * Returns a UUID representing this cluster - will never change, propagates
-     * from view to view
-     **/
-    String getClusterViewId() {
-        return clusterViewId;
     }
 
     private boolean matches(Set<Integer> activeIds, Set<Integer> recoveringIds, Set<Integer> inactiveIds) {
