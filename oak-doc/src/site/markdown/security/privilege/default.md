@@ -139,5 +139,5 @@ The corresponding errors are all of type `Constraint` with the following codes:
 <a name="configuration"/>
 ### Configuration
 
-There are implementation specific configuration options associated with the 
+There are no implementation specific configuration options associated with the 
 privilege management implementation.

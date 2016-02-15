@@ -90,10 +90,14 @@ The [PrivilegeConfiguration] is the Oak level entry point to obtain a new
 implementation of the `PrivilegeManager` interface is based on Oak API and can
 equally be used for privilege related tasks in the Oak layer.
 
-Please note: While it's in theory possible to replace the default privilege
+<a name="pluggability"/>
+### Pluggability
+
+_Please note:_ While it's in theory possible to replace the default privilege
 management implementation in Oak, this is only recommended if you have in depth
 knowledge and understanding of Jackrabbit/Oak internals and are familiar with
-the security risk associated with it.
+the security risk associated with it. Doing so, will most likely require a re-write
+of the default access control and permission evaluation.
 
 <!-- references -->
 [PrivilegeConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/privilege/PrivilegeConfiguration.html
