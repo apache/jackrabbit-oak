@@ -39,6 +39,7 @@ import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.concurrent.TimeUnit;
@@ -53,6 +54,8 @@ import org.apache.felix.scr.annotations.PropertyOption;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
+import org.apache.jackrabbit.commons.SimpleValueFactory;
+import org.apache.jackrabbit.oak.api.Descriptors;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.cache.CacheStats;
@@ -89,6 +92,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.oak.util.GenericDescriptors;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
@@ -285,13 +289,6 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     )
     public static final String PROP_BLOB_GC_MAX_AGE = "blobGcMaxAgeInSecs";
 
-    private static final String DEFAULT_SHARED_DS_REPO_ID = "";
-    @Property(value = DEFAULT_SHARED_DS_REPO_ID,
-            label = "SharedDataStore RepositoryID",
-            description = "Custom RepositoryID for SharedDataStore. This overrides any generated value"
-    )
-    public static final String PROP_SHARED_DS_REPO_ID = "sharedDSRepoId";
-
     @Override
     protected SegmentNodeStore getNodeStore() {
         checkState(delegate != null, "service must be activated when used");
@@ -453,13 +450,19 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         revisionGCRegistration = registerMBean(whiteboard, RevisionGCMBean.class, revisionGC,
                 RevisionGCMBean.TYPE, "Segment node store revision garbage collection");
 
+        // ensure a clusterId is initialized 
+        // and expose it as 'oak.clusterid' repository descriptor
+        GenericDescriptors clusterIdDesc = new GenericDescriptors();
+        clusterIdDesc.put(ClusterRepositoryInfo.OAK_CLUSTERID_REPOSITORY_DESCRIPTOR_KEY, 
+                new SimpleValueFactory().createValue(
+                        ClusterRepositoryInfo.getOrCreateId(delegate)), true, false);
+        whiteboard.register(Descriptors.class, clusterIdDesc, Collections.emptyMap());
+        
         // If a shared data store register the repo id in the data store
         String repoId = "";
         if (SharedDataStoreUtils.isShared(blobStore)) {
-            String customRepoID = property(PROP_SHARED_DS_REPO_ID);
-
             try {
-                repoId = ClusterRepositoryInfo.createId(delegate, customRepoID);
+                repoId = ClusterRepositoryInfo.getOrCreateId(delegate);
                 ((SharedDataStore) blobStore).addMetadataRecord(new ByteArrayInputStream(new byte[0]),
                     SharedStoreRecordType.REPOSITORY.getNameFromId(repoId));
             } catch (Exception e) {
