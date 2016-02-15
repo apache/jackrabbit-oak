@@ -36,7 +36,8 @@ what it does not:
 * provide a transparent oak principal provider.
 * offer services for background synchronization of users and groups
 
-### Structure
+<a name="details"/>
+### Implementation Details
 The external identity and login handling is split into 3 parts:
 
 - **External Login Module**: LoginModule implementation that represents the connection between JAAS login mechanism, the external identity provider and the synchronization handler.
@@ -67,9 +68,13 @@ Note:
 * users (and groups) that are synced from the 3rd party system contain a `rep:externalId` property. This allows to identify the external users and distinguish them from others.
 * to reduce expensive syncing, the synced users and groups have sync timestamp `rep:lastSynced` and are considered valid for a configurable time. if they expire, they need to be validated against the 3rd party system again.
 
-Current this login module supports the following credentials:
+##### Supported Credentials
+
+Currently this login module supports the following credentials:
 
 - `SimpleCredentials`
+
+##### Authentication in Detail 
 
 The details of the external authentication are as follows:
 
@@ -108,14 +113,32 @@ present on the IDP.
 See section [User Synchronization](usersync.html) for further details and a
 description of the default implementation.
 
+<a name="configuration"/>
 ### Configuration
+
+#### Configuration Parameters
+
+The external authentication module comes with the following configuration parameters
+for the [ExternalLoginModuleFactory]/[ExternalLoginModule].
+
+| Parameter                 | Type     | Default    | Description |
+|---------------------------|----------|------------|-------------|
+| `PARAM_IDP_NAME`          | String   | \-         | Name of the external IDP to be retrieved from the `ExternalIdentityProviderManager` |
+| `PARAM_SYNC_HANDLER_NAME` | String   | \-         | Name of the sync handler to be retrieved from the `SyncManager` |
+|                           |          |            |                          |
+| *Optional (OSGi-setup)*   |          |            |                          |
+| `JAAS_RANKING`            | int      | 50         | Ranking of the `ExternalLoginModule` in the JAAS configuration, see [LoginModuleFactory] |
+| `JAAS_CONTROL_FLAG`       | String   | SUFFICIENT | See [LoginModuleControlFlag] for supported values. |
+| `JAAS_REALM_NAME`         | String   | \-         | See [LoginModuleFactory] |
 
 ##### Examples
 
 ###### Example JAAS Configuration
 
 The following JAAS configuration shows how the `ExternalLoginModule` could be
-used in a setup that not solely uses third party login:
+used in a setup that not solely uses third party login (Note: JAAS configuration 
+equivalents of the parameters defined by `org.apache.felix.jaas.LoginModuleFactory` 
+are omitted):
 
     jackrabbit.oak {
          org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule sufficient;
@@ -125,7 +148,28 @@ used in a setup that not solely uses third party login:
             idp.name="ldap";
      };
 
-<!-- references -->
+<a name="pluggability"/>
+### Pluggability
 
-[ExternalIdentityProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/ExternalIdentityProvider.html
+The design of the `ExternalLoginModule` allows for customization of the key features
+associated with third party authentication. In an OSGi-based setup these are 
+covered by references within the `ExternalLoginModuleFactory`:
+
+ - [ExternalIdentityProviderManager]: Mandatory, unary reference for the `ExternalIdentityProvider` lookup; see [External Identity Management](identitymanagement.html) for details. 
+ - [SyncManager]: Mandatory, unary reference for the `SyncHandler` lookup; see [User/Group Synchronization](usersync.html) for details.
+
+The default implementations ([ExternalIDPManagerImpl] and [SyncManagerImpl]) 
+extend `AbstractServiceTracker` and will automatically keep track of 
+new [ExternalIdentityProvider] and [SyncHandler] services, respectively.
+
+<!-- references -->
 [DefaultSyncConfig]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/DefaultSyncConfig.html
+[ExternalIdentityProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/ExternalIdentityProvider.html
+[ExternalIdentityProviderManager]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/ExternalIdentityProviderManager.html
+[ExternalIDPManagerImpl]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/ExternalIDPManagerImpl.html
+[ExternalLoginModuleFactory]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/ExternalLoginModuleFactory.html
+[LoginModuleFactory]: http://svn.apache.org/repos/asf/felix/trunk/jaas/src/main/java/org/apache/felix/jaas/LoginModuleFactory.java
+[LoginModuleControlFlag]: https://docs.oracle.com/javase/7/docs/api/javax/security/auth/login/AppConfigurationEntry.LoginModuleControlFlag.html
+[SyncHandler]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/SyncHandler.html
+[SyncManager]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/SyncManager.html
+[SyncManagerImpl]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/SyncManagerImpl.html
