@@ -961,12 +961,13 @@ public class RDBDocumentStore implements DocumentStore {
                     docs.add(doc);
                 }
                 boolean done = insertDocuments(collection, docs);
-                if (done && collection == Collection.NODES) {
-                    for (T doc : docs) {
-                        nodesCache.putIfAbsent((NodeDocument) doc);
+                if (done) {
+                    if (collection == Collection.NODES) {
+                        for (T doc : docs) {
+                            nodesCache.putIfAbsent((NodeDocument) doc);
+                        }
                     }
-                }
-                else {
+                } else {
                     success = false;
                 }
             }
