@@ -46,11 +46,30 @@ in an aggregated setup:
 
 #### PolicyOwner
 
-_TODO_
+Interface defining a single method, which allows to identify the `AccessControlManager` 
+implementation responsible set or removing a given policy. `AccessControlManager`s 
+deployed in a composite authorization setup are required to implement this interface 
+_if_ they choose to support _setPolicy_ or _removePolicy_. Omitting the `PolicyOwner` 
+interface will most likely result in a `AccessControlException` as no policy owner 
+can be found for the given type of policy.
 
 #### AggregatedPermissionProvider
 
-_TODO_
+Extension of the `PermissionProvider` interface that allows a given provider to 
+be deployed in a composite authorization setup. The additional methods allow the  
+aggregating provider to identify if a given `PermissionProvider` can handle permission 
+evaluation for a given set of permissions at a given path.
+
+##### Example
+
+The permission provider shipped with the [oak-authorization-cug](cug.html#details) module 
+has a very limited scope: it only evaluates read-access to regular items at the 
+configured supported paths. This means e.g. that the implementation is not able to 
+determine if write access is granted to a given set of `Principal`s and indicates 
+this fact by just returning the subset of supported read permissions upon 
+`supportedPermissions(Tree, PropertyState, long)`. The aggregated permission provider 
+will consequently not consult this implementation for the evaluation of write 
+permissions and move on to other providers in the aggregate.
 
 <a name="details"/>
 ### Implementation Details
@@ -78,7 +97,7 @@ evaluating the subset of restrictions it can handle through the access control A
 extensions and the permission evaluation, respectively. Similarly, a given module  
 may decide to provide no support for restrictions. Examples include modules that 
 provide different types of `AccessControlPolicy` where restrictions cannot be applied 
-(see for example [oak-authorization-cug](cug.html)).
+(see for example [oak-authorization-cug](cug.html#details)).
                
 <a name="configuration"/>
 ### Configuration
