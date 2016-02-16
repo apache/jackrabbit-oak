@@ -39,6 +39,8 @@ import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.cache.RemovalCause;
+
 /**
  * Tracker of references to segment identifiers and segment instances
  * that are currently kept in memory.
@@ -143,7 +145,7 @@ public class SegmentTracker {
             .averageWeight(Segment.MAX_SEGMENT_SIZE/2)
             .evictionCallback(new EvictionCallback<SegmentId, Segment>() {
                 @Override
-                public void evicted(SegmentId segmentId, Segment segment) {
+                public void evicted(SegmentId segmentId, Segment segment, RemovalCause cause) {
                     if (segment != null) {
                         segmentId.setSegment(null);
                     }
