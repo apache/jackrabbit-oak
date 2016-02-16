@@ -16,21 +16,21 @@
   -->
 ### Access Control Management : Differences wrt Jackrabbit 2.x
 
-#### Characteristics of the Default Implementation
+#### Differences by Interface
 
-##### JCR API
-###### AccessControlManager#hasPrivilege and #getPrivileges
+##### AccessControlManager
+###### hasPrivilege and getPrivileges
 As of OAK those methods throw `PathNotFoundException` if the corresponding node
 is not accessible by the editing session. This is in accordance with the behavior
 mandated by JSR 283 and a bug in Jackrabbit 2.x.
 
-###### AccessControlManager#getEffectivePolicies
+###### getEffectivePolicies
 In contrast to Jackrabbit 2.x the editing session is used to retrieve the effective
 policies and the policies returned by these methods are guarantueed to only return
 information that is otherwise accessible by the session. The corresponding methods
 in Jackrabbit 2.x use to throw an  exception in this situation.
 
-###### AccessControlPolicy
+##### AccessControlPolicy
 OAK introduces a new type of policy that enforces regular read-access for everyone
 on the trees that hold this new `ReadPolicy` (see [OAK-951]). The main usage of this new policy
 is to ensure backwards compatible behavior of repository level information (node
@@ -43,7 +43,7 @@ Currently these special read policies are defined as part of the overall securit
 configuration and cannot be managed/edited using regular access control management
 API (see ([OAK-951](https://issues.apache.org/jira/browse/OAK-951))).
 
-###### AccessControlEntry
+##### AccessControlEntry
 Validation: as of OAK the implementation of the `AccessControlEntry` interface is
 no longer in charge of validating the specified privileges. While some validation
 is still performed in the corresponding `AccessControlList` methods, the complete
@@ -52,17 +52,17 @@ implementation.
 
 The default behavior with respect to principal validation is compliant with the
 specification and the same as in Jackrabbit 2.x.: Adding an ACE for an principal
-unknown to the repository will fail. However in order to be consistent
-with the ability have a more relaxed behavior upon XML import that validation
-will be relaxed if the import behavior is being changed to allow for unknown
-principals (see ([OAK-1350](https://issues.apache.org/jira/browse/OAK-1350))) and
-the section Import below.
+unknown to the repository will fail. However, in order to be consistent
+with the behavior upon XML import that validation is relaxed if the import 
+behavior is changed to allow for unknown principals (see ([OAK-1350](https://issues.apache.org/jira/browse/OAK-1350))) 
+and section XML Import below.
 
 Restrictions: as of OAK the optional restrictions present with a given
 `JackrabbitAccessControlEntry` can be multivalued (see below).
 
-##### Jackrabbit API
-###### Principal-based Access Control
+#### Additional Functionality
+
+##### Principal-based Access Control
 The principal-based access control management as present in Jackrabbit-core is no
 longer present with OAK. The main benefit of the principal-based approach has been
 incorporated with the changes in the default [permission evaluation](differences_permissions.html)).
@@ -72,16 +72,16 @@ by principal is possible as long as the editing session has sufficient permissio
 on the target node(s). Similarly, the per principal policies exposed to a given
 session will always respect that access rights of that session.
 
-###### Restrictions
-The implementation of the additional restrictions associated with an ACE has been 
+##### Restrictions
+The implementation of additional restrictions associated with an ACE has been 
 slighly modified/extended.
 
 See section [Restriction Management](../authorization/restriction.html) for details. 
 
-##### Import
+##### XML Import
 
 * respects `ImportBehavior` for handling of principals instead of just performing best effort import
-* supports both workspace and import
+* supports both `Workspace` and `Session` import
 
 #### Configuration
 
@@ -100,3 +100,4 @@ The following modification is most likely to have an effect on existing applicat
 
 <!-- hidden references -->
 [OAK-951]: https://issues.apache.org/jira/browse/OAK-951
+[ImportBehavior]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/xml/ImportBehavior.html

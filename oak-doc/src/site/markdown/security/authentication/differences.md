@@ -16,14 +16,15 @@
   -->
 ### Authentication : Differences wrt Jackrabbit 2.x
 
-#### Characteristics of the Default Implementation
+#### Guest Login vs Null Login
 
 ##### Null Login
 
 As of Oak 1.0 `Repository#login()` and `Repository#login(null, wspName)` is no
-longer treated as guest login. In order to get backwards compatible behavior,
-Oak comes with a dedicated [GuestLoginModule] that can be added to the JAAS (or
-the corresponding OSGI) configuration.
+longer treated as guest login but as _pre-authenticed_ as defined by JSR 283. 
+In order to get backwards compatible behavior, Oak comes with a dedicated 
+[GuestLoginModule] that can be added to the JAAS (or the corresponding OSGi) 
+configuration.
 
 ##### Guest Login
 

@@ -79,7 +79,7 @@ The default user management implementation in Oak contains special handling for
 the optional group that represents the [everyone] principal, which is marked by 
 the reserved principal name and by definition has all other principals as members.
 
-This special group always contains all Authorizable as member and cannot be edited
+This special group always contains all users/groups as member and cannot be edited
 with user management API. As of OAK this fact is consistently reflected in all
 group membership related methods. See also [Principal Management](../principal.html).
 
@@ -102,9 +102,13 @@ of the underlaying JCR node but only compares IDs and the user manager instance.
 * The `rep:password` property is no longer defined to be mandatory. Therefore a new user might be created without specifying a password. Note however, that `User#changePassword` does not allow to remove the password property.
 * Since version 1.1.0 Oak supports the new API to create dedicated system users [JCR-3802](https://issues.apache.org/jira/browse/JCR-3802).
 
-#### Query
+<a name="query"/>
+#### Searching
 
-See section [Searching Users and Groups](query.html) for details.
+#### XPathQueryBuilder
+
+Oak 1.0 comes with a default XPATH based implementation of the `QueryBuilder`
+interface which is passed to the query upon calling `UserManager#findAuthorizables(Query)`.
 
 #### Group Membership
 

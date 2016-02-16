@@ -16,7 +16,7 @@
   -->
 ### Principal Management : Differences wrt Jackrabbit 2.x
 
-#### Replacement for internal Jackrabbit interfaces and classes
+#### Replacement for Jackrabbit Internals
 
 As of Oak 1.0 the following interfaces and class that were internal to Jackrabbit
 have been made part of public API exposed by Oak:
@@ -33,7 +33,7 @@ order to combine principals from different sources a implementation that properl
 handles the different sources is required; the [CompositePrincipalProvider] is an
 example that combines multiple implementations.
 
-See [Principal Management](../principal.html#pluggability) for an example.
+See section [Pluggability](../principal.html#pluggability) for an example.
 
 <!-- references -->
 

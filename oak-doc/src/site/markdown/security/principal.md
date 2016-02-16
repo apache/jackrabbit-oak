@@ -63,6 +63,7 @@ from different source providers.
 - [SystemPrincipal]: built-in principal implementation to mark system internal subjects.
 - [SystemUserPrincipal]: Marker interface to identify principals associated with special system users.
 
+<a href="default_implementation"/>
 ### Oak Principal Management Implementation
 
 The default implementation of the principal management API basically corresponds

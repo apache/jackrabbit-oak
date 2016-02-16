@@ -73,12 +73,12 @@ The `CompositeAuthorizationConfiguration` is in charge of collecting
 the `RestrictionProvider`s from the aggregated modules and expose the complete 
 set of restrictions in order to meet the API contract. 
 
-Nevertheless, each authorization model is in charge of exposing, validating and 
+Nevertheless, each authorization model is responsible for exposing, validating and 
 evaluating the subset of restrictions it can handle through the access control API 
 extensions and the permission evaluation, respectively. Similarly, a given module  
 may decide to provide no support for restrictions. Examples include modules that 
-provide different types of `AccessControlPolicy`, where restrictions may simply 
-not apply (see for example `oak-authorization-cug`).
+provide different types of `AccessControlPolicy` where restrictions cannot be applied 
+(see for example [oak-authorization-cug](cug.html)).
                
 <a name="configuration"/>
 ### Configuration

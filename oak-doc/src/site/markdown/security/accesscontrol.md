@@ -124,6 +124,7 @@ the complete list of methods.
     acMgr.setPolicy(path, acl);
     session.save();
 
+<a href="default_implementation"/>
 ### Characteristics of the Default Implementation
 
 The behavior of the default access control implementation is described in sections 
@@ -145,6 +146,7 @@ methods:
 
 The supported configuration options of the default implementation are described in the corresponding [section](accesscontrol/default.html#configuration).
 
+<a name="further_reading"/>
 ### Further Reading
 
 - [Differences wrt Jackrabbit 2.x](accesscontrol/differences.html)
