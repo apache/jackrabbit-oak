@@ -21,6 +21,7 @@ The following runmodes are currently available:
     * recovery    : Run a _lastRev recovery on a MongoMK repository
     * checkpoints : Manage checkpoints
     * dumpdatastorerefs : Dump all the blob references used to a file
+    * resetclusterid  : Resets the cluster id used for SharedDataStore
     * help        : Print a list of available runmodes
     
 
@@ -715,6 +716,16 @@ Dumps all the DataStore/BlobStore references used. Use the following commmand
             { /path/to/oak/repository | mongodb://host:port/database } [/path/to/dump]
 
 This will create a dump file with name starting with 'marked-'.The dump path is optional and if not specified the file will be created in the user tmp directory.
+
+Reset Cluster Id
+----------------
+
+Resets the cluster id generated internally for SharedDataStore. Use the following command after stopping the server
+
+    $ java -jar oak-run-*.jar resetclusterid \
+            { /path/to/oak/repository | mongodb://host:port/database }
+
+The cluster id will be removed and will be generated on next server start up.
 
 License
 -------
