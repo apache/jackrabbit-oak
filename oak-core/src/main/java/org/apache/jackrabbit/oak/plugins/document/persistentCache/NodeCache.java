@@ -16,8 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
+import static com.google.common.cache.RemovalCause.COLLECTED;
+import static com.google.common.cache.RemovalCause.EXPIRED;
+import static com.google.common.cache.RemovalCause.SIZE;
+import static java.util.Collections.singleton;
+
 import java.nio.ByteBuffer;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
@@ -27,6 +33,8 @@ import javax.annotation.Nullable;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache.GenerationCache;
+import org.apache.jackrabbit.oak.plugins.document.persistentCache.async.CacheActionDispatcher;
+import org.apache.jackrabbit.oak.plugins.document.persistentCache.async.CacheWriteQueue;
 import org.h2.mvstore.MVMap;
 import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.type.DataType;
@@ -34,22 +42,29 @@ import org.h2.mvstore.type.DataType;
 import com.google.common.base.Function;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheStats;
+import com.google.common.cache.RemovalCause;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
-class NodeCache<K, V> implements Cache<K, V>, GenerationCache {
-    
+class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<K, V> {
+
+    private static final Set<RemovalCause> EVICTION_CAUSES = ImmutableSet.of(COLLECTED, EXPIRED, SIZE);
+
     private final PersistentCache cache;
     private final Cache<K, V> memCache;
     private final MultiGenerationMap<K, V> map;
     private final CacheType type;
     private final DataType keyType;
     private final DataType valueType;
-    
+    private final CacheWriteQueue<K, V> writerQueue;
+
     NodeCache(
             PersistentCache cache,
             Cache<K, V> memCache,
             DocumentNodeStore docNodeStore, 
-            DocumentStore docStore, CacheType type) {
+            DocumentStore docStore,
+            CacheType type,
+            CacheActionDispatcher dispatcher) {
         this.cache = cache;
         this.memCache = memCache;
         this.type = type;
@@ -57,6 +72,7 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache {
         map = new MultiGenerationMap<K, V>();
         keyType = new KeyDataType(type);
         valueType = new ValueDataType(docNodeStore, docStore, type);
+        this.writerQueue = new CacheWriteQueue<K, V>(dispatcher, cache, map);
     }
     
     @Override
@@ -82,47 +98,31 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache {
     }
     
     private V readIfPresent(K key) {
+        if (writerQueue.waitsForInvalidation(key)) {
+            return null;
+        }
         cache.switchGenerationIfNeeded();
         V v = map.get(key);
         return v;
     }
-    
-    private void write(final K key, final V value) {
-        write(key, value, true);
-    }
 
-    private void writeWithoutBroadcast(final K key, final V value) {
-        write(key, value, false);
-    }
-
-    private void write(final K key, final V value, boolean broadcast) {
-        cache.switchGenerationIfNeeded();
-        if (broadcast) {
-            cache.broadcast(type, new Function<WriteBuffer, Void>() {
-                @Override
-                @Nullable
-                public Void apply(@Nullable WriteBuffer buffer) {
-                    keyType.write(buffer, key);
-                    if (value == null) {
-                        buffer.put((byte) 0);
-                    } else {
-                        buffer.put((byte) 1);
-                        valueType.write(buffer, value);
-                    }
-                    return null;
+    private void broadcast(final K key, final V value) {
+        cache.broadcast(type, new Function<WriteBuffer, Void>() {
+            @Override
+            @Nullable
+            public Void apply(@Nullable WriteBuffer buffer) {
+                keyType.write(buffer, key);
+                if (value == null) {
+                    buffer.put((byte) 0);
+                } else {
+                    buffer.put((byte) 1);
+                    valueType.write(buffer, value);
                 }
-            });
-        }
-        MultiGenerationMap<K, V> m = map;
-        if (m != null) {
-            if (value == null) {
-                m.remove(key);
-            } else {
-                m.put(key, value);
+                return null;
             }
-        }
+        });
     }
-    
+
     @SuppressWarnings("unchecked")
     @Override
     @Nullable
@@ -147,7 +147,7 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache {
             return value;
         }
         value = memCache.get(key, valueLoader);
-        write(key, value);
+        broadcast(key, value);
         return value;
     }
 
@@ -160,14 +160,15 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache {
     @Override
     public void put(K key, V value) {
         memCache.put(key, value);
-        write(key, value);
+        broadcast(key, value);
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public void invalidate(Object key) {
         memCache.invalidate(key);
-        write((K) key, (V) null);
+        writerQueue.addInvalidate(singleton((K) key));
+        broadcast((K) key, null);
     }
 
     @Override
@@ -218,7 +219,17 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache {
             value = (V) valueType.read(buff);
             memCache.put(key, value);
         }
-        writeWithoutBroadcast(key, value);
+    }
+
+    /**
+     * Invoked on the eviction from the {@link #memCache}
+     */
+    @Override
+    public void evicted(K key, V value, RemovalCause cause) {
+        if (EVICTION_CAUSES.contains(cause) && value != null) { 
+            // invalidations are handled separately
+            writerQueue.addPut(key, value);
+        }
     }
 
 }
