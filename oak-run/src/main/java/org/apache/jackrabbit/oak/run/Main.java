@@ -71,7 +71,9 @@ import joptsimple.OptionSpec;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.benchmark.BenchmarkRunner;
 import org.apache.jackrabbit.oak.checkpoint.Checkpoints;
 import org.apache.jackrabbit.oak.commons.IOUtils;
@@ -100,6 +102,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
 import org.apache.jackrabbit.oak.plugins.document.util.MapDBMapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.identifier.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.RecordUsageAnalyser;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
@@ -116,6 +119,9 @@ import org.apache.jackrabbit.oak.plugins.tika.TextExtractorMain;
 import org.apache.jackrabbit.oak.scalability.ScalabilityRunner;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade;
@@ -208,6 +214,9 @@ public final class Main {
                 break;
             case DUMPDATASTOREREFS:
                 dumpBlobRefs(args);
+                break;
+            case RESETCLUSTERID:
+                resetClusterId(args);
                 break;
             case HELP:
             default:
@@ -1195,6 +1204,71 @@ public final class Main {
         }
     }
 
+    private static void doDeleteClusterId(NodeStore store) {
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder clusterConfigNode = builder.getChildNode(ClusterRepositoryInfo.CLUSTER_CONFIG_NODE);
+        
+        if (!clusterConfigNode.exists() || !clusterConfigNode.hasProperty(ClusterRepositoryInfo.CLUSTER_ID_PROP)) {
+            // the config node does not exist or the clusterId prop not set  
+            // so no way to delete
+            System.out.println("clusterId was never set or already deleted.");
+            return;
+        }
+
+        String oldClusterId = clusterConfigNode.getProperty(ClusterRepositoryInfo.CLUSTER_ID_PROP)
+                .getValue(Type.STRING);
+        clusterConfigNode.remove();
+        try {
+            store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+            System.out.println("clusterId deleted successfully. (old id was " + oldClusterId + ")");
+        } catch (CommitFailedException e) {
+            System.err.println("Failed to delete clusterId due to exception: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    public static void resetClusterId(String... args) throws Exception {
+        if (args.length != 1) {
+            System.out
+                    .println("usage: resetclusterid {<path>|<mongo-uri>}");
+            System.exit(1);
+        }
+
+        Closer closer = Closer.create();
+        try {
+            NodeStore store;
+            if (args[0].startsWith(MongoURI.MONGODB_PREFIX)) {
+                MongoClientURI uri = new MongoClientURI(args[0]);
+                MongoClient client = new MongoClient(uri);
+                final DocumentNodeStore dns = new DocumentMK.Builder()
+                        .setMongoDB(client.getDB(uri.getDatabase()))
+                        .getNodeStore();
+                closer.register(new Closeable() {
+                    @Override public void close() throws IOException {
+                        dns.dispose();
+                    }
+                });
+                store = dns;
+            } else {
+                final FileStore fs = openFileStore(new File(args[0]));
+                closer.register(new Closeable() {
+                    @Override public void close() throws IOException {
+                        fs.close();
+                    }
+                });
+                store = new SegmentNodeStore(fs);
+            }
+            
+            doDeleteClusterId(store);
+        } catch (Throwable e) {
+            throw closer.rethrow(e);
+        } finally {
+            closer.close();
+        }
+    
+    }
+
     private static void startOakServer(OakFixture oakFixture, String uri, List<Integer> cIds) throws Exception {
         Map<Oak, String> m;
         if (cIds.isEmpty()) {
@@ -1304,7 +1378,8 @@ public final class Main {
         RECOVERY("recovery"),
         REPAIR("repair"),
         TIKA("tika"),
-        DUMPDATASTOREREFS("dumpdatastorerefs");
+        DUMPDATASTOREREFS("dumpdatastorerefs"),
+        RESETCLUSTERID("resetclusterid");
 
         private final String name;
 
