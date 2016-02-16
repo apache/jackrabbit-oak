@@ -31,13 +31,13 @@ public final class ImportBehavior {
     /**
      * If a value cannot be set due to constraints
      * enforced by the API implementation, the failure is logged as
-     * warning but otherwise ignored.
+     * warning and the value is ignored.
      */
     public static final int IGNORE = 1;
     /**
      * Same as {@link #IGNORE} but in addition tries to circumvent the
      * problem. This option should only be used with validated and trusted
-     * XML passed to the SessionImporter.
+     * XML passed to the {@code Session} and {@code Workspace} import API.
      */
     public static final int BESTEFFORT = 2;
     /**
