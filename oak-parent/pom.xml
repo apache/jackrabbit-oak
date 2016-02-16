@@ -147,6 +147,7 @@
                 <failOnError>true</failOnError>
                 <filters>
                   <!-- Disable baseline for explicitly NOT managed packages. See OAK-3842 -->
+                  <filter>!org.apache.jackrabbit.oak.cache</filter>
                   <filter>!org.apache.jackrabbit.oak.commons</filter>
                   <filter>!org.apache.jackrabbit.oak.commons.benchmark</filter>
                   <filter>!org.apache.jackrabbit.oak.commons.cache</filter>
