@@ -69,7 +69,10 @@ to read and create entries with restrictions:
 <a name="api_extensions"/>
 ### Oak Restriction API
 
-The following public interfaces are provided by Oak in the package `org.apache.jackrabbit.oak.spi.security.authorization.restriction`:
+The following public interfaces are provided by Oak in the package 
+`org.apache.jackrabbit.oak.spi.security.authorization.restriction` and provide 
+support for pluggable restrictions both for access control management and the 
+repository internal permission evaluation:
 
 - [RestrictionProvider]
 - [Restriction]

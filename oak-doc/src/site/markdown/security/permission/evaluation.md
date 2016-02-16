@@ -15,7 +15,7 @@
    limitations under the License.
 -->
 
-Permission Evaluation in Detail : The Default Implementation
+Permission Evaluation in Detail
 --------------------------------------------------------------------------------
 
 <a name="permissionentries"/>

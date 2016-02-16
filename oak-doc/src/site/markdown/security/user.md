@@ -69,6 +69,7 @@ and [user authentication](authentication/default.html#user_authentication) for a
   function for password generation.
 - `UserUtil` : Utilities related to general user management tasks.
 
+<a href="default_implementation"/>
 ### Oak User Management Implementation
 
 The behavior of the default user management implementation is described in section 
@@ -82,7 +83,7 @@ This class is responsible for passing configuration options to the implementatio
 and provides the following two methods:
 
 - `getUserManager(Root, NamePathMapper)`: get a new `UserManager` instance
-- `getUserPrincipalProvider(Root, NamePathMapper)`: optional method that allows for optimization of the principal look-up associated with user/group accounts (since Oak 1.3.4).
+- `getUserPrincipalProvider(Root, NamePathMapper)`: optional method that allows for optimized principal look-up from user/group accounts (since Oak 1.3.4).
 
 #### Configuration Parameters
 
@@ -104,6 +105,7 @@ Alternatively the default user management implementation can be extended and
 adjusted using various means. See the corresponding [section](user/default.html#pluggability)
 for further details.
 
+<a name="further_reading"/>
 ### Further Reading
 
 - [Differences wrt Jackrabbit 2.x](user/differences.html)
@@ -111,9 +113,9 @@ for further details.
     - [Group Membership](user/membership.html)
     - [Authorizable Actions](user/authorizableaction.html)
     - [Authorizable Node Name](user/authorizablenodename.html)
-    - [Searching Users and Groups](user/query.html)
     - [Password Expiry and Force Initial Password Change](user/expiry.html)
     - [Password History](user/history.html)
+- [Searching Users and Groups](user/query.html)
 
 <!-- hidden references -->
 [UserConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/user/UserConfiguration.html

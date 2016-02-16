@@ -244,6 +244,7 @@ defines the following interfaces and classes:
 - [Permissions]: The permissions defined, respected and evaluated by the repository.
 - [PermissionConstants]: Constants used throughout the permission evaluation.
 
+<a href="default_implementation"/>
 ### Characteristics of the Permission Evaluation
 
 As explained above permission evaluation is completely separated from the access
@@ -279,10 +280,12 @@ methods:
 
 The supported configuration options of the default implementation are described in the corresponding [section](permission/default.html#configuration).
 
-##### Differences to Jackrabbit 2.x
+<a name="further_reading"/>
+### Further Reading
 
-The `omit-default-permission` configuration option present with the Jackrabbit's AccessControlProvider implementations is no longer supported with Oak.
-Since there are no permissions installed by default this flag has become superfluous.
+- [Differences wrt Jackrabbit 2.x](permission/differences.html)
+- [Permissions : The Default Implementation](permission/default.html)
+- [Permission Evaluation in Detail](permission/evaluation.html)
 
 <!-- references -->
 [Permissions]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/permission/Permissions.html

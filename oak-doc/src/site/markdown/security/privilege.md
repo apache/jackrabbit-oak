@@ -77,6 +77,7 @@ utility methods:
     - `privilegesFromNames(Session session, String... privilegeNames)`
     - `privilegesFromNames(AccessControlManager accessControlManager, String... privilegeNames)`
 
+<a href="default_implementation"/>
 ### Oak Privilege Management Implementation
 
 The behavior of the default privilege management implementation is described in section 
@@ -98,6 +99,16 @@ management implementation in Oak, this is only recommended if you have in depth
 knowledge and understanding of Jackrabbit/Oak internals and are familiar with
 the security risk associated with it. Doing so, will most likely require a re-write
 of the default access control and permission evaluation.
+
+<a name="further_reading"/>
+### Further Reading
+
+- [Differences wrt Jackrabbit 2.x](privilege/differences.html)
+- [Privilege Management : The Default Implementation](privilege/default.html)
+- Mapping Privileges to Items and API Calls
+    - [Mapping Privileges to Items](privilege/mappingtoitems.html)
+    - [Mapping API Calls to Privileges](privilege/mappingtoprivileges.html)
+
 
 <!-- references -->
 [PrivilegeConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/privilege/PrivilegeConfiguration.html

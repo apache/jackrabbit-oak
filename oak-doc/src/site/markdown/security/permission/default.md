@@ -125,7 +125,6 @@ use the regular JCR and Jackrabbit permission and access control management API
 as listed in the [introduction](../permission.html#jcr_api) and in section 
 [Using the Access Control Management API](../accesscontrol/editing.html).
 
-
 #### Node Type Definitions
 
 For the permission store the following built-in node types have been defined:
@@ -181,3 +180,8 @@ The default implementation supports the following configuration parameters:
 
 - `REMOVE_NODE`: if present, the permission evaluation will traverse down the hierarchy upon node removal. This config flag is a best effort approach but doesn't guarantee an identical behavior.
 - `USER_MANAGEMENT`: if set permissions for user related items will be evaluated the same way as regular JCR items irrespective of their protection status.
+
+##### Differences to Jackrabbit 2.x
+
+The `omit-default-permission` configuration option present with the Jackrabbit's AccessControlProvider implementations is no longer supported with Oak.
+Since there are no permissions installed by default this flag has become superfluous.

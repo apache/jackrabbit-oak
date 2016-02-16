@@ -299,21 +299,8 @@ Find all authorizables accessible to the editing session
 
 ### Characteristics of the Default Implementation
 
-#### Changes wrt Jackrabbit 2.x
-
-The user query is expected to work as in Jackrabbit 2.x with the following notable
-bug fixes:
-
-* `QueryBuilder#setScope(String groupID, boolean declaredOnly)` now also works properly
-  for the everyone group (see [OAK-949])
-* `QueryBuilder#impersonates(String principalName)` works properly for the admin
-  principal which are specially treated in the implementation of the `Impersonation`
-  interface (see [OAK-1183]).
-
-#### XPathQueryBuilder
-
-Oak 1.0 comes with a default XPATH based implementation of the `QueryBuilder`
-inteface which is passed to the query upon calling `UserManager#findAuthorizables(Query)`.
+See sections [Differences to Jackrabbit 2.x](differences.html#query) and 
+[The Default Implementation](default.html#query) for details.
 
 ### Utilities
 
@@ -322,8 +309,6 @@ a utility class provided by the jcr-commons module present with Jackrabbit.
 
 <!-- hidden references -->
 
-[OAK-949]: https://issues.apache.org/jira/browse/OAK-949
-[OAK-1183]: https://issues.apache.org/jira/browse/OAK-1183
 [QueryBuilder]: http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-api/src/main/java/org/apache/jackrabbit/api/security/user/QueryBuilder.java
 [Query]: http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-api/src/main/java/org/apache/jackrabbit/api/security/user/Query.java
 [org.apache.jackrabbit.commons.jackrabbit.user.AuthorizableQueryManager]: http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-jcr-commons/src/main/java/org/apache/jackrabbit/commons/jackrabbit/user/AuthorizableQueryManager.java

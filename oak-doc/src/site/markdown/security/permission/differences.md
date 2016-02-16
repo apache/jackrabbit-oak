@@ -92,6 +92,12 @@ have a versionable node in this workspace that original path is used to evaluate
 the effective permissions that would apply to that node if the version was restored.
 This changes is covered by [OAK-444] and addresses concerns summarized in [JCR-2963].
 
+#### Configuration
+
+The `omit-default-permission` configuration option present with the Jackrabbit's AccessControlProvider 
+implementations is no longer supported with Oak. Since there are no permissions 
+installed by default this flag has become superfluous.
+
 <!-- hidden references -->
 [Permissions]: http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/spi/security/authorization/permission/Permissions.java
 [PermissionHook]: http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/security/authorization/permission/PermissionHook.java
