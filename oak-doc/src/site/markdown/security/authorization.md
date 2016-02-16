@@ -99,6 +99,13 @@ restriction management that allows to narrow the effect of permissions to
 items matching a given, defined behavior. Details can be found in section 
 [RestrictionManagement](authorization/restriction.html#pluggability).
 
+<a name="further_reading"/>
+### Further Reading
+
+- [Access Control Management](accesscontrol.html)
+- [Permission Evalution](permission.html)
+- [Combining Multiple Authorization Models](authorization/composite.html)
+
 <!-- hidden references -->
 [AuthorizationConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/AuthorizationConfiguration.html
 [OAK-1268]: https://issues.apache.org/jira/browse/OAK-1268

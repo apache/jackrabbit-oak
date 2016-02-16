@@ -81,7 +81,9 @@ defined by JCR or the names of the Oak permissions.
     - `getRestrictionType(String)`
     - `isEmpty()`
     - `size()`
-
+    
+- `PrincipalSetPolicy`
+    - `getPrincipals()` 
 
 #### Reading Effective Policies
 
@@ -91,7 +93,6 @@ defined by JCR or the names of the Oak permissions.
 
 - `JackrabbitAccessControlManager`
     - `getEffectivePolicies(Set<Principal>)`
-
 
 ### Writing
 
@@ -123,14 +124,16 @@ the access control implementation there may be other mutable policies.
     - `addAccessControlEntry(Principal, Privilege[])`
     - `removeAccessControlEntry(AccessControlEntry)`
 
-
 - `JackrabbitAccessControlList`
     - `addAccessControlEntry(Principal, Privilege[], boolean)`
     - `addAccessControlEntry(Principal, Privilege[], boolean, Map<String, Value>)`
     - `addAccessControlEntry(Principal, Privilege[], boolean, Map<String, Value>, Map<String, Value[]>)`
     - `orderBefore(AccessControlEntry, AccessControlEntry)`
 
-
+- `PrincipalSetPolicy`
+    - `addPrincipals(Principal...)`
+    - `removePrincipals(Principal...)`
+    
 - `AccessControlUtils`
     - `getAccessControlList(Session, String)`
     - `getAccessControlList(AccessControlManager, String)`
@@ -141,30 +144,38 @@ the access control implementation there may be other mutable policies.
 
 ##### Retrieve Principals
 
+The default and recommended ways to obtain `Principal`s for access control management 
+is through the principal management API:
+
 - `PrincipalManager` (see section [Principal Management](../principal.html))
       - `getPrincipal(String)`
       - `getPrivilege(String)`
 
+One way of representing principals in the repository is by the means of user management:
+If user management is supported in a given Oak repository (see [OPTION_USER_MANAGEMENT_SUPPORTED] 
+repository descriptor), principals associated with a given user/group can be obtained
+by calling:
 
 - `Authorizable` (see section [User Management](../user.html))
       - `getPrincipal()`
-
+      
+Note however, that this will only work for principals backed by a user/group. 
+Principals provided by a different principal management implementation won't be 
+accessible through user management.
+      
 ##### Retrieve Privileges
 
 - `PrivilegeManager` (see section [Privilege Management](../privilege.html))
       - `getRegisteredPrivileges()`
       - `getPrivilege(String)`
 
-
 - `AccessControlManager`
     - `getSupportedPrivileges(String)`
     - `privilegeFromName(String)`
 
-
 - `AccessControlUtils`
     - `privilegesFromNames(Session session, String... privilegeNames)`
     - `privilegesFromNames(AccessControlManager accessControlManager, String... privilegeNames)`
-
 
 - `Privilege`: defines name constants for the privileges defined by JCR
 
@@ -235,8 +246,6 @@ or alternatively use `AccessControlUtils`:
         session.save();
     }
 
-
-
 #### Removing Policies
 
 - `AccessControlManager`
@@ -270,3 +279,5 @@ or alternatively use `AccessControlUtils`:
         session.save();
     }
 
+<!-- hidden references -->
+[OPTION_USER_MANAGEMENT_SUPPORTED]: http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-api/src/main/java/org/apache/jackrabbit/api/JackrabbitRepository.java

@@ -40,6 +40,9 @@ The Oak Security Layer
 ### Authorization
 
  * [Overview](authorization.html)
+     * [Access Control Management](accesscontrol.html)
+     * [Permission Evalution](permission.html)
+     * [Combining Multiple Authorization Models](authorization/composite.html)
   
 #### Access Control Management
 
