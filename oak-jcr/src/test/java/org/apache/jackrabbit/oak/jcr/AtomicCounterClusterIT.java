@@ -76,6 +76,15 @@ public class AtomicCounterClusterIT  extends DocumentClusterIT {
         executors = Lists.newArrayList();
     }
 
+    @Override
+    public void after() throws Exception {
+        super.after();
+        for (CustomScheduledExecutor exec : executors) {
+            exec.shutdown();
+            exec.awaitTermination(10, TimeUnit.SECONDS);
+        }
+    }
+
     @Test
     public void increments() throws Exception {
         setUpCluster(this.getClass(), mks, repos, NOT_PROVIDED);
