@@ -64,7 +64,8 @@ public class JackrabbitNodeTest extends AbstractJCRTest {
         cnd.close();
     }
     
-    public void testRename() throws RepositoryException {
+    //Ignore("OAK-3658")
+    public void _testRename() throws RepositoryException {
         Node renamedNode = null;
         NodeIterator it = testRootNode.getNodes();
         int pos = 0;
@@ -93,7 +94,8 @@ public class JackrabbitNodeTest extends AbstractJCRTest {
         }
     }
     
-    public void testRenameEventHandling() throws RepositoryException, InterruptedException {
+    //Ignore("OAK-3658")
+    public void _testRenameEventHandling() throws RepositoryException, InterruptedException {
         Session s = getHelper().getSuperuserSession();
         ObservationManager mgr = s.getWorkspace().getObservationManager();
         final List<Event> events = newArrayList();
