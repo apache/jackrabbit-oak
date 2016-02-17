@@ -52,6 +52,7 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
 import org.apache.jackrabbit.oak.spi.security.user.action.DefaultAuthorizableActionProvider;
+import org.apache.jackrabbit.oak.spi.security.user.action.GroupAction;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.apache.jackrabbit.oak.util.NodeUtil;
@@ -306,6 +307,84 @@ public class UserManagerImpl implements UserManager {
     void onPasswordChange(@Nonnull User user, @Nonnull String password) throws RepositoryException {
         for (AuthorizableAction action : actionProvider.getAuthorizableActions(securityProvider)) {
             action.onPasswordChange(user, password, root, namePathMapper);
+        }
+    }
+
+    /**
+     * Let the configured {@code AuthorizableAction}s perform additional
+     * tasks associated with the membership change before the
+     * corresponding new node is persisted.
+     *
+     * @param group The group.
+     * @param member The new member
+     * @throws RepositoryException If an exception occurs.
+     */
+    void onMemberAdded(@Nonnull Group group, @Nonnull Authorizable member) throws RepositoryException {
+        for (AuthorizableAction action : actionProvider.getAuthorizableActions(securityProvider)) {
+            if (action instanceof GroupAction) {
+                ((GroupAction) action).onMemberAdded(group, member, root, namePathMapper);
+            }
+        }
+    }
+
+    /**
+     * Let the configured {@code AuthorizableAction}s perform additional
+     * tasks associated with the membership change before the
+     * corresponding new node is persisted.
+     *
+     * @param group The group.
+     * @param memberId The new member ID
+     * @throws RepositoryException If an exception occurs.
+     */
+    void onMemberAdded(@Nonnull Group group, @Nonnull String memberId) throws RepositoryException {
+        Authorizable member = null;
+        for (AuthorizableAction action : actionProvider.getAuthorizableActions(securityProvider)) {
+            if (action instanceof GroupAction) {
+                if (member == null) {
+                    // lazily resolve the authorizable only there is at least one GroupAction
+                    member = getAuthorizable(memberId);
+                }
+                ((GroupAction) action).onMemberAdded(group, member, root, namePathMapper);
+            }
+        }
+    }
+
+    /**
+     * Let the configured {@code AuthorizableAction}s perform additional
+     * tasks associated with the membership change before the
+     * corresponding new node is persisted.
+     *
+     * @param group The group.
+     * @param member The removed member
+     * @throws RepositoryException If an exception occurs.
+     */
+    void onMemberRemoved(@Nonnull Group group, @Nonnull Authorizable member) throws RepositoryException {
+        for (AuthorizableAction action : actionProvider.getAuthorizableActions(securityProvider)) {
+            if (action instanceof GroupAction) {
+                ((GroupAction) action).onMemberRemoved(group, member, root, namePathMapper);
+            }
+        }
+    }
+
+    /**
+     * Let the configured {@code AuthorizableAction}s perform additional
+     * tasks associated with the membership change before the
+     * corresponding new node is persisted.
+     *
+     * @param group The group.
+     * @param memberId The removed member ID
+     * @throws RepositoryException If an exception occurs.
+     */
+    void onMemberRemoved(@Nonnull Group group, @Nonnull String memberId) throws RepositoryException {
+        Authorizable member = null;
+        for (AuthorizableAction action : actionProvider.getAuthorizableActions(securityProvider)) {
+            if (action instanceof GroupAction) {
+                if (member == null) {
+                    // lazily resolve the authorizable only there is at least one GroupAction
+                    member = getAuthorizable(memberId);
+                }
+                ((GroupAction) action).onMemberRemoved(group, member, root, namePathMapper);
+            }
         }
     }
 

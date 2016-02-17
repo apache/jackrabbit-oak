@@ -116,7 +116,12 @@ class GroupImpl extends AuthorizableImpl implements Group {
             }
         }
 
-        return getMembershipProvider().addMember(getTree(), authorizableImpl.getTree());
+        boolean success = getMembershipProvider().addMember(getTree(), authorizableImpl.getTree());
+        if (success) {
+            getUserManager().onMemberAdded(this, authorizable);
+        }
+
+        return success;
     }
 
     @Override
@@ -154,7 +159,11 @@ class GroupImpl extends AuthorizableImpl implements Group {
             return false;
         } else {
             Tree memberTree = ((AuthorizableImpl) authorizable).getTree();
-            return getMembershipProvider().removeMember(getTree(), memberTree);
+            boolean success = getMembershipProvider().removeMember(getTree(), memberTree);
+            if (success) {
+                getUserManager().onMemberRemoved(this, authorizable);
+            }
+            return success;
         }
     }
 
@@ -277,8 +286,14 @@ class GroupImpl extends AuthorizableImpl implements Group {
             String contentId = AuthorizableBaseProvider.getContentID(memberId);
             if (isRemove) {
                 success = getMembershipProvider().removeMember(getTree(), contentId);
+                if (success) {
+                    getUserManager().onMemberRemoved(this, memberId);
+                }
             } else {
                 success = getMembershipProvider().addMember(getTree(), contentId);
+                if (success) {
+                    getUserManager().onMemberAdded(this, memberId);
+                }
             }
             if (success) {
                 idIterator.remove();
