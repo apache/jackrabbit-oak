@@ -25,7 +25,7 @@ to the Oak repository upon creation. The provider is in charge of collecting and
 exposing all security related modules present in a given Oak repository. 
 
 Each security module comes with one or multiple `SecurityConfiguration`(s) that 
-is registered with the provider, identified (and possibly aggregated) by their
+are registered with the provider, identified (and possibly aggregated) by their
 name.
 
 ### Modules
@@ -37,7 +37,7 @@ by a dedicated sub-interfaces of [SecurityConfiguration]:
     - [Authentication](authentication.html) s.str.
     - [Token Authentication and Token Management](authentication/tokenmanagement.html)
 - Authorization
-    - [Authorization](authorization.html) s.str.
+    - [Authorization](authorization.html) s.str. including [Access Control Management](accesscontrol.html) and [Permission Evaluation](permission.html)
     - [Privilege Management](privilege.html) 
 - [Principal Management](principal.html)
 - [User Management](user.html)
@@ -59,7 +59,41 @@ and base implementations:
     
 #### SecurityProvider
 
-_TODO_
+The `SecurityProvider` is the key to Oak security by providing access to the 
+individual security modules and the configurations associated. Since version 
+1.3.7 Oak provides two implementations of the `SecurityProvider` suited for OSGi 
+and non-OSGi setup, respectively.
+
+##### OSGi Setup
+
+Since Oak 1.3.7 the core bundle will install a dedicated OSGi component 
+([SecurityProviderRegistration], labeled _"Apache Jackrabbit Oak SecurityProvider"_), 
+which registers the `SecurityProvider` once all mandatory references have 
+successfully been resolved. This new approach addresses issues present with 
+the initial security provider implementation and has been backported to existing 
+branches (see [OAK-3201] and [OAK-3441]).
+
+While optional configuration settting can be changed or extended at runtime, 
+modules and extensions considered required for a functional security setup, need 
+to be listed in the _"Required Service PIDs"_ property. This asserts both reliable 
+security setup and proper initialization of the individual modules. See also 
+sections [Configuration](#configuration) and [Pluggability](#pluggability))
+
+##### Non-OSGi Setup
+
+In a non-OSGi setup the `SecurityProvider` (be it the default or a custom implementation) 
+gets passed to the repository constructor. See section [pluggability](#pluggability) 
+for details wrt module initialization.
+
+The following example has been extracted from the basic test setup:
+
+    NodeStore nodeStore = ...
+    
+    ConfigurationParameters params = ... // TODO: provide config options
+    SecurityProvider sp = new SecurityProviderImpl(params);   
+    // Optional: bind additional/custom implementations of the supported `SecurityConfiguration`s 
+    
+    Repository repository = new Jcr().with(sp).createRepository();
 
 #### SecurityConfiguration
 
@@ -87,9 +121,8 @@ The following subinterfaces of `SecurityConfiguration` are currently defined by 
  
 ##### Mandatory and Optional Modules
 
-While Oak ships default implementation for all security modules listed above, it 
-is important to understand that from an Oak point of view only authentication and 
-authorization are mandatory for a functional Oak repository.
+While Oak ships default implementation for all security configurations listed above, 
+only authentication and authorization are mandatory for a functional Oak repository.
 
 This is compliant with the security requirements defined by JSR 283 which defines 
 API to login into the repository and mandates minimal permission evaluation, 
@@ -132,15 +165,14 @@ the following imaginary, custom `SecurityProvider` (see also [OpenSecurityProvid
 All other security modules can be considered _optional_ from an Oak repository point 
 of view. Please note the following dependencies and special cases:
 
-1. **Authentication** is mandatory and expected to bind a set of `Principal`s to the `Subject` created 
-   or updated before|during the repository login.
+1. **Authentication** is mandatory and expected to bind a set of `Principal`s to 
+   the `Subject`. This may happen before or during the repository login.
 2. **Permission Evalution** is mandatory and associated with the set of `Principal`s 
    bound to to the `Subject` during the authentication step.
 3. `Principal`s represent the link between authentication and authorization and _MAY_ 
    be exposed by Principal Management module as described above.
-4. **Access Control Management** is optional and _usually_ goes along with 
-    - Principal Management
-    - Privilege Management
+4. **Access Control Management** is optional and _usually_ goes along with Principal 
+   and Privilege Management
 5. **Principal Management** is optional and is _NOT_ tied to User Management. 
    However, supporting User Management in a given repository setup _usually_ goes 
    along with exposing the corresponding principals as part of the Principal Management.
@@ -150,7 +182,9 @@ of view. Please note the following dependencies and special cases:
 <a name="configuration"/>
 ### Configuration 
 
-_TODO_
+The configuration parameters of individual security modules are described in 
+the corresponding sections. The following paragraphs describe the configuration of 
+`SecurityProvider` and `CompositeConfiguration` in an OSGi-base setup.
 
 #### SecurityProviderRegistration
 
@@ -159,8 +193,9 @@ _TODO_
 | `Required service PIDs`  | String[] | see below | Service references mandatory for the SecurityProvider registration. |
 
 By default the `SecurityProviderRegistration` defines the following mandatory services. 
-As long as these mandatory references are not available the `SecurityProviderRegistration` 
-will not register the `SecurityProvider` as service.
+As long as these required references are not resolved the `SecurityProviderRegistration` 
+will not register the `SecurityProvider` service and ultimately prevent premature 
+initialization of the Oak repository instance.
 
 - "org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl"
 - "org.apache.jackrabbit.oak.security.principal.PrincipalConfigurationImpl",
@@ -170,7 +205,7 @@ will not register the `SecurityProvider` as service.
 - "org.apache.jackrabbit.oak.security.user.UserAuthenticationFactoryImpl"
 
 The value of this configuration parameter needs to be adjusted for any additional 
-module or functionality that is considered mandatory for a successful security setup.
+module or functionality that is considered required for a successful security setup.
 See section [pluggability](#pluggability) below.
 
 #### CompositeConfiguration
@@ -178,6 +213,12 @@ See section [pluggability](#pluggability) below.
 | Parameter       | Type  | Default                    | Description            |
 |-----------------|-------|----------------------------|------------------------|
 | `PARAM_RANKING` | int   | `NO_RANKING` (`Integer.MIN_VALUE`) | Optional configuration parameter to define the ranking within the aggregation. |
+
+Note: Security modules that allow for multiple configurations may choose to expose 
+the `PARAM_RANKING` option in order to allow for explicit ordering of the individual 
+implementations. If the ranking parameter is omitted the `CompositeConfiguration`
+will try to use the [SERVICE_RANKING] to define the order. If neither is available 
+(or set to `NO_RANKING`) the new entry will be appended to the list.
 
 <a name="pluggability"/>
 ### Pluggability
@@ -193,6 +234,10 @@ the repository will result in the creation of a [CompositeConfiguration]. The
 aggregated modules are kept in a list while the insertion order is defined by the 
 `PARAM_RANKING` or by the OSGi service ranking in case the explicit ranking 
 parameter is missing.
+
+#### Initialization of Security Modules
+
+_TODO_
 
 #### OSGi setup
 _TODO_
@@ -215,3 +260,7 @@ _TODO_
 [PrincipalConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/PrincipalConfiguration.html
 [PrivilegeConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/privilege/PrivilegeConfiguration.html
 [UserConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/user/UserConfiguration.html
+[OAK-3201]: https://issues.apache.org/jira/browse/OAK-3201
+[OAK-3441]: https://issues.apache.org/jira/browse/OAK-3441
+[SecurityProviderRegistration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/security/internal/SecurityProviderRegistration.html
+[SERVICE_RANKING]: https://osgi.org/javadoc/r4v43/core/org/osgi/framework/Constants.html#SERVICE_RANKING
