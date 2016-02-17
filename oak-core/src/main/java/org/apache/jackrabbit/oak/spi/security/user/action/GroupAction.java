@@ -7,10 +7,13 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 
+import aQute.bnd.annotation.ConsumerType;
+
 /**
  * The {@code GroupAction} interface extends {@link AuthorizableAction}
  * with group specific events.
  */
+@ConsumerType
 public interface GroupAction extends AuthorizableAction {
 
     /**
