@@ -79,7 +79,7 @@ import static com.google.common.collect.Lists.newCopyOnWriteArrayList;
 @Properties({
         @Property(
                 name = "requiredServicePids",
-                label = "Required service PIDs",
+                label = "Required Service PIDs",
                 description = "The SecurityProvider will not register itself " +
                         "unless the services identified by these PIDs are " +
                         "registered first. Only the PIDs of implementations of " +
