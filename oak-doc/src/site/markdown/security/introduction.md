@@ -77,7 +77,7 @@ While optional configuration settting can be changed or extended at runtime,
 modules and extensions considered required for a functional security setup, need 
 to be listed in the _"Required Service PIDs"_ property. This asserts both reliable 
 security setup and proper initialization of the individual modules. See also 
-sections [Configuration](#configuration) and [Pluggability](#pluggability))
+sections [Configuration](#configuration) and [Pluggability](#pluggability) below.
 
 ##### Non-OSGi Setup
 
@@ -93,7 +93,7 @@ The following example has been extracted from the basic test setup:
     SecurityProvider sp = new SecurityProviderImpl(params);   
     // Optional: bind additional/custom implementations of the supported `SecurityConfiguration`s 
     
-    Repository repository = new Jcr().with(sp).createRepository();
+    Repository repository = new Jcr(nodeStore).with(sp).createRepository();
 
 #### SecurityConfiguration
 
@@ -190,7 +190,7 @@ the corresponding sections. The following paragraphs describe the configuration 
 
 | Parameter                | Type     | Default   | Description            |
 |--------------------------|----------|-----------|------------------------|
-| `Required service PIDs`  | String[] | see below | Service references mandatory for the SecurityProvider registration. |
+| `Required Service PIDs`  | String[] | see below | Service references mandatory for the SecurityProvider registration. |
 
 By default the `SecurityProviderRegistration` defines the following mandatory services. 
 As long as these required references are not resolved the `SecurityProviderRegistration` 
@@ -223,6 +223,25 @@ will try to use the [SERVICE_RANKING] to define the order. If neither is availab
 <a name="pluggability"/>
 ### Pluggability
 
+Oak allows to plug custom or additional implementations of the various 
+`SecurityConfiguration` described before. Similarly it is possible to provide 
+a custom `SecurityProvider`.
+
+_Please note_: this is only recommended for experts having in-depth 
+understanding of Oak internals and which understand the security risk associated 
+with custom replacements or extensions.
+
+#### SecurityProvider
+
+The default `SecurityProvider` service can be replaced by deploying a custom 
+service to the OSGi container. In a non-OSGi setup the JCR|Oak repository needs 
+to be created with the custom implementation:
+
+    SecurityProvider sp = new MySecurityProvider();  
+    Repository repository = new Jcr().with(sp).createRepository();
+
+#### SecurityConfiguration
+
 The Oak security setup distinguishes between the following types of modules:
 
 - Unary modules: `AuthenticationConfiguration`, `PrivilegeConfiguration`, `UserConfiguration`
@@ -235,16 +254,52 @@ aggregated modules are kept in a list while the insertion order is defined by th
 `PARAM_RANKING` or by the OSGi service ranking in case the explicit ranking 
 parameter is missing.
 
-#### Initialization of Security Modules
+##### OSGi setup
 
-_TODO_
+The following steps are required to replace an existing _unary_ security component
+or add an additional implementation (for _multiple_ configurations only):
 
-#### OSGi setup
-_TODO_
+- Deploy the bundle containing your custom implementation
+- Configure the component according to your needs
+- For _multiple_ configurations make sure you have set the desired ranking
+- Find the `SecurityProviderRegistration` _("Apache Jackrabbit Oak SecurityProvider")_ 
+  config and enter the PID of your custom security module as additional 
+  value to the `requiredServicePids` property.
+- In case of a replacement remove the PID of the module to be replaced and make 
+  sure your implementation gets a higher [SERVICE_RANKING] or deactivate the obsolete
+  module altogether.
 
-#### Non-OSGi setup
-_TODO_
- 
+##### Non-OSGi setup
+
+In this case the individual security modules get "manually" bound/unbound to the 
+`SecurityProvider` instance. The provider itself might be the default or a custom 
+implementation of the interface. If and how security modules can be added to the 
+provider remains an implementation detail and is not part of the `SecurityProvider` 
+interface definition.
+
+###### Example
+
+Extend the default `SecurityProvider` with a custom `PrincipalConfiguration`.
+See also _oak-exercise_ module for an example.
+
+    SecurityProvider sp = new SecurityProviderImpl();  
+    sp.bindPrincipalConfiguration(new MyPrincipalConfiguration());    
+    Repository repository = new Jcr().with(sp).createRepository();
+
+##### Initialization of SecurityConfiguration(s)
+
+If a given security modules mandates repository and|or workspace initialization 
+steps such as e.g. node type registration or persisting new index definitions, the 
+deployment of the module requires a reload of the `SecurityProvider`.
+
+In an OSGi-based setup this is achieved by adding the PID of corresponding service 
+to the `Required Service PIDs` property mentioned above ultimately forcing the 
+re-registration of the `SecurityProvider` service with the bundle context. 
+
+Other setup scenarios would need to recreate the `ContentRepository` object or 
+adjust the repository 'initial' content _before_ binding the new configuration to 
+the `SecurityProvider` in order to avoid inconsistencies. 
+
 <!-- references -->
 [SecurityProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/SecurityProvider.html
 [OpenSecurityProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/OpenSecurityProvider.html
