@@ -152,13 +152,47 @@ of view. Please note the following dependencies and special cases:
 
 _TODO_
 
+#### SecurityProviderRegistration
+
+| Parameter                | Type     | Default   | Description            |
+|--------------------------|----------|-----------|------------------------|
+| `Required service PIDs`  | String[] | see below | Service references mandatory for the SecurityProvider registration. |
+
+By default the `SecurityProviderRegistration` defines the following mandatory services. 
+As long as these mandatory references are not available the `SecurityProviderRegistration` 
+will not register the `SecurityProvider` as service.
+
+- "org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl"
+- "org.apache.jackrabbit.oak.security.principal.PrincipalConfigurationImpl",
+- "org.apache.jackrabbit.oak.security.authentication.token.TokenConfigurationImpl",
+- "org.apache.jackrabbit.oak.spi.security.user.action.DefaultAuthorizableActionProvider",
+- "org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl",
+- "org.apache.jackrabbit.oak.security.user.UserAuthenticationFactoryImpl"
+
+The value of this configuration parameter needs to be adjusted for any additional 
+module or functionality that is considered mandatory for a successful security setup.
+See section [pluggability](#pluggability) below.
+
+#### CompositeConfiguration
+
+| Parameter       | Type  | Default                    | Description            |
+|-----------------|-------|----------------------------|------------------------|
+| `PARAM_RANKING` | int   | `NO_RANKING` (`Integer.MIN_VALUE`) | Optional configuration parameter to define the ranking within the aggregation. |
+
 <a name="pluggability"/>
 ### Pluggability
 
-The Oak security setup distinguishes two types security modules:
+The Oak security setup distinguishes between the following types of modules:
 
 - Unary modules: `AuthenticationConfiguration`, `PrivilegeConfiguration`, `UserConfiguration`
 - Multiple modules: `AuthorizationConfiguration` (since Oak 1.4), `PrincipalConfiguration`, `TokenConfiguration`
+
+Plugging an implementation of an unary module will replace the default provided by Oak.
+As far as the multiple modules are concerned a custom implementation plugged into 
+the repository will result in the creation of a [CompositeConfiguration]. The
+aggregated modules are kept in a list while the insertion order is defined by the 
+`PARAM_RANKING` or by the OSGi service ranking in case the explicit ranking 
+parameter is missing.
 
 #### OSGi setup
 _TODO_
