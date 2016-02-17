@@ -343,6 +343,10 @@ public class UserManagerImpl implements UserManager {
                 if (member == null) {
                     // lazily resolve the authorizable only there is at least one GroupAction
                     member = getAuthorizable(memberId);
+                    if (member == null) {
+                        // if not resolvable, callback should not be notified
+                        return;
+                    }
                 }
                 ((GroupAction) action).onMemberAdded(group, member, root, namePathMapper);
             }
@@ -382,6 +386,10 @@ public class UserManagerImpl implements UserManager {
                 if (member == null) {
                     // lazily resolve the authorizable only there is at least one GroupAction
                     member = getAuthorizable(memberId);
+                    if (member == null) {
+                        // if not resolvable, callback should not be notified
+                        return;
+                    }
                 }
                 ((GroupAction) action).onMemberRemoved(group, member, root, namePathMapper);
             }
