@@ -2024,9 +2024,13 @@ public final class DocumentNodeStore
         return unsavedLastRevisions.persist(this, new UnsavedModifications.Snapshot() {
             @Override
             public void acquiring(Revision mostRecent) {
-                if (store.create(JOURNAL,
-                        singletonList(changes.asUpdateOp(mostRecent)))) {
+                if (store.create(JOURNAL, singletonList(changes.asUpdateOp(mostRecent)))) {
+                    // success: start with a new document
                     changes = JOURNAL.newDocument(getDocumentStore());
+                } else {
+                    // fail: log and keep the changes
+                    LOG.error("Failed to write to journal, accumulating changes for future write (~" + changes.getMemory()
+                            + " bytes).");
                 }
             }
         }, backgroundOperationLock.writeLock());
