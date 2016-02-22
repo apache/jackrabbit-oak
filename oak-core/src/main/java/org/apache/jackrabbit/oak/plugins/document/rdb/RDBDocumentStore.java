@@ -298,8 +298,7 @@ public class RDBDocumentStore implements DocumentStore {
 
     @Override
     public <T extends Document> List<T> createOrUpdate(Collection<T> collection, List<UpdateOp> updateOps) {
-        if (!BATCHUPDATES
-                || dbInfo == RDBDocumentStoreDB.ORACLE /* see OAK-3938 */) {
+        if (!BATCHUPDATES) {
             List<T> results = new ArrayList<T>(updateOps.size());
             for (UpdateOp update : updateOps) {
                 results.add(createOrUpdate(collection, update));
