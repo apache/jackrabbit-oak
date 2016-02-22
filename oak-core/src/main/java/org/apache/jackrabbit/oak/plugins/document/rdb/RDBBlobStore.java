@@ -167,7 +167,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
         RDBBlobStoreDB db = RDBBlobStoreDB.getValue(md.getDatabaseProductName());
         String versionDiags = db.checkVersion(md);
         if (!versionDiags.isEmpty()) {
-            LOG.info(versionDiags);
+            LOG.error(versionDiags);
         }
 
         String dbDesc = String.format("%s %s (%d.%d)", md.getDatabaseProductName(), md.getDatabaseProductVersion(),
