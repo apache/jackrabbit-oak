@@ -54,12 +54,22 @@ import org.junit.Test;
  * Advanced Exercise
  * -----------------------------------------------------------------------------
  *
- * - {@link #testJcrAllInPermissionStore()}
- *   Due to the dynamic nature of jcr:all the long-representation of this privilege
- *   may change over time.
- *   This exercise aim to show you how granting|denying jcr:all is reflected
- *   in the permission store.
+ * Mapping jcr:all in the permission store:
  *
+ * - Due to the dynamic nature of jcr:all the long-representation of this privilege
+ *   in the permission store may change over time. This exercise aims to illustrate
+ *   how granting|denying jcr:all is reflected in the permission store.
+ *
+ *   In your preferred repository browser:
+ *   Create multiple access control entries for different principals including
+ *   on granting/denying jcr:all at a given existing path. Identify the corresponding
+ *   entries in the permission store and describe the nature of the 'rep:privileges'
+ *   properties.
+ *
+ *   Question: How is jcr:all represented?
+ *   Question: What is the difference compared to entries granting/denying other privileges?
+ *
+ *   Discuss your findings and explain the special behavior for jcr:all.
  *
  * </pre>
  */
@@ -73,10 +83,5 @@ public class L6_JcrAllTest extends AbstractSecurityTest {
 
         jcrAllTree.removeProperty(PrivilegeConstants.REP_AGGREGATES);
         root.commit();
-    }
-
-    @Test
-    public void testJcrAllInPermissionStore() {
-        // TODO
     }
 }
