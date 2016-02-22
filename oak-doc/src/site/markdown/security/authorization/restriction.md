@@ -21,7 +21,7 @@ Restriction Management
 ### Overview
 
 The concept of restriction has been created as extension to JCR access control
-management in order to allow for further refinement of individual policy entries.
+management in order to refine the effect of individual access control entries.
 
 Quoting from JSR 283 section 16.6.2 Permissions:
 
@@ -35,8 +35,8 @@ Furthermore the restriction concept is aimed to allow for custom extensions of t
 default access control implementation to meet project specific needs without
 having to implement the common functionality provided by JCR.
 
-Existing and potential examples of the restriction concept to limit the effect of
-a given access control entry include:
+Existing and potential examples of restrictions limiting the effect of
+a given access control entry during permission evaluation include:
 
 - set of node types
 - set of namespaces
@@ -44,11 +44,14 @@ a given access control entry include:
 - dedicated time frame
 - size of a value
 
-While few examples have been present with Jackrabbit 2.x the set of built-in
-restrictions has been extended as of Oak 1.0 along with some useful extensions
-of the Jackrabbit API. In addition Oak provides it's own public restriction
-API that add support for internal validation and evaluation.
+The set of built-in restrictions present with Jackrabbit 2.x has extended as of 
+Oak 1.0 along with some extensions of the Jackrabbit API. This covers the public 
+facing usage of restrictions i.e. access control management.
 
+In addition Oak provides it's own restriction API that adds support for internal 
+validation and permission evaluation.
+
+<a name="jackrabbit_api"/>
 ### Jackrabbit API
 
 The Jackrabbit API add the following extensions to JCR access control management
@@ -74,11 +77,12 @@ The following public interfaces are provided by Oak in the package
 support for pluggable restrictions both for access control management and the 
 repository internal permission evaluation:
 
-- [RestrictionProvider]
-- [Restriction]
-- [RestrictionDefinition]
-- [RestrictionPattern]
+- [RestrictionProvider]: interface to obtain restriction information needed for access control and permission management
+- [Restriction]: the restriction object as created using Jackrabbit access control API
+- [RestrictionDefinition]: the static definition of a supported restriction
+- [RestrictionPattern]: the processed restriction ready for permission evaluation
 
+<a href="default_implementation"/>
 ### Default Implementation
 
 Oak 1.0 provides the following base implementations:
@@ -138,7 +142,7 @@ values of `rep:glob`.
 | /cat/\*           | all descendants of '/foo/cat'                            |
 | \*cat/\*          | all descendants of /foo that have an intermediate segment ending with 'cat' |
 
-
+<a name="representation"/>
 ### Representation in the Repository
 
 All restrictions defined by default in a Oak repository are stored as properties 

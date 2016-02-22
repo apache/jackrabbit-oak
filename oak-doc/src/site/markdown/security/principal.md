@@ -159,6 +159,13 @@ provider implementation:
          ...
      }
 
+<a name="further_reading"/>
+### Further Reading
+
+- [Differences wrt Jackrabbit 2.x](principal/differences.html)
+- [Implementations of the PrincipalProvider Interface](principal/principalprovider.html)
+    - [Caching Results of Principal Resolution](principal/cache.html)
+
 <!-- references -->
 
 [PrincipalManager]: http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-api/src/main/java/org/apache/jackrabbit/api/security/principal/PrincipalManager.java

@@ -286,6 +286,7 @@ The supported configuration options of the default implementation are described 
 - [Differences wrt Jackrabbit 2.x](permission/differences.html)
 - [Permissions : The Default Implementation](permission/default.html)
 - [Permission Evaluation in Detail](permission/evaluation.html)
+- [Restriction Management](authorization/restriction.html)
 
 <!-- references -->
 [Permissions]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/permission/Permissions.html

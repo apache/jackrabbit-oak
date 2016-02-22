@@ -94,7 +94,8 @@ An overview on how the built-in privileges map to API calls and individual items
 can be found in ['Mapping Privileges to Items'](mappingtoitems.html)
 and ['Mapping API Calls to Privileges'](mappingtoprivileges.html)
 
-### Privilege Representation in the Repository
+<a name="representation"/>
+### Representation in the Repository
 
 As of Oak 1.0 all privilege definitions are stored in the repository itself
 underneath `/jcr:system/rep:privileges`. The following privilege related built-in

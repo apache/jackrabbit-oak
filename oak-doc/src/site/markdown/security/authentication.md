@@ -113,16 +113,6 @@ The Oak API contains the following authentication related methods and interfaces
 - `ContentRepository.login(Credentials, String)`: The Oak counterpart of the JCR login.
 - `ContentSession.getAuthInfo()`: exposes the `AuthInfo` associated with the `ContentSession`.
 
-<a href="default_implementation"/>
-### Oak Authentication Implementation
-
-A description of the various requirements covered by Oak by default as well
-as the characteristics of the corresponding implementations can be found in
-section [Authentication: Implementation Details].
-
-See section [differences](authentication/differences.html) for comprehensive list 
-of differences wrt authentication between Jackrabbit 2.x and Oak.
-
 <a name="api_extensions"/>
 ### API Extension
 
@@ -194,6 +184,16 @@ Subclasses are required to implement the following methods:
             return false;
         }
     }
+
+<a href="default_implementation"/>
+### Oak Authentication Implementation
+
+A description of the various requirements covered by Oak by default as well
+as the characteristics of the corresponding implementations can be found in
+section [Authentication: Implementation Details].
+
+See section [differences](authentication/differences.html) for comprehensive list 
+of differences wrt authentication between Jackrabbit 2.x and Oak.
 
 <a name="configuration"/>
 ### Configuration

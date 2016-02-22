@@ -99,7 +99,6 @@ option. However, it is important to note that many JCR API calls rely on the
 accessibility of the namespace, nodetype and privilege information. Removing the
 corresponding paths from the configuration will most probably have undesired effects.
 
-
 #### Access Control Entries
 
 The access control entries present in a given list are subject to the following
@@ -109,7 +108,6 @@ rules applied upon editing but not enforced by `CommitHook`s:
 - *merging*: if an entry exists for a given principal with the same allow-status and restrictions, the existing entry will be updated without being moved in the list.
 - *redundancy*: if an new entry makes an existing entry (partially) redundant the existing entry will be updated or removed altogether.
 
-
 #### Restrictions
 
 Access control entries may be created by limiting their effect by adding
@@ -117,7 +115,7 @@ restrictions as mentioned by JSR 283. Details about the restriction management
 in Oak 1.0 as well as a list of built-in restrictions and extensibility can be
 found in section [Restriction Management](../authorization/restriction.html).
 
-
+<a href="representation"/>
 ### Representation in the Repository
 
 All access control policies defined with an Oak repository are stores child of
