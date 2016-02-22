@@ -32,11 +32,26 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
  * Having completed this section should also be familiar with the internals of
  * privilege management in Oak.
  *
- *
  * Exercises:
  *
- * - TODO
+ * - Privilege Management in the JCR API
+ *   Search for interfaces and methods related to privilege management in JSR 283
+ *   and the corresponding JCR API definitions.
  *
+ *   Question: Can you list all interfaces and methods?
+ *
+ * - Privilege Management in Jackrabbit API extensions
+ *   Search for interfaces and methods related to privilege management in the
+ *   Jackrabbit API extensions.
+ *
+ *   Question: Can you list all interfaces and methods?
+ *   Question: What can you say wrt the difference in privilege management between JCR and Jackrabbit API?
+ *
+ * - Privilege Management in Oak
+ *   Search the Oak security modules for privilege related extensions.
+ *
+ *   Question: Can you list the interfaces, classes, methods?
+ *   Question: Can you describe the relation between these extensions and the JCR|Jackrabbit API?
  *
  * Related Exercises:
  * -----------------------------------------------------------------------------

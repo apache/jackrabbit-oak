@@ -70,9 +70,10 @@ import static org.junit.Assert.assertEquals;
  *
  * - {@link #testMapItems()}
  *   This allows you to become familiar with the mapping of individual privileges
- *   to items. Use the Oak API to change those items directly (instead of using
- *   the corresponding JCR API call.
- *   Use the JCR specification, the privilege definitions and {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions}
+ *   to items. Use the Oak API or individual pluggins to change those items
+ *   (instead of using the corresponding JCR API call).
+ *   Use the JCR specification and the Oak security documentation to learn about
+ *   the mapping between privileges and items|operations.
  *
  *   Question: Can you map the items to the corresponding JCR API calls? (see additional exercises below)
  *   Question: Can you extract the rules when a dedicated specific privilege is
