@@ -151,8 +151,8 @@ The supported configuration options of the default implementation are described 
 
 - [Differences wrt Jackrabbit 2.x](accesscontrol/differences.html)
 - [Access Control Management: The Default Implementation](accesscontrol/default.html)
-- [Restriction Management](accesscontrol/restriction.html)
 - [Using the Access Control Management API](accesscontrol/editing.html)
+- [Restriction Management](authorization/restriction.html)
 
 <!-- hidden references -->
 [JSR 283]: http://www.day.com/specs/jcr/2.0/16_Access_Control_Management.html

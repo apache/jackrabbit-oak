@@ -24,6 +24,7 @@ The default implementation of the `PermissionProvider` interface evaluates permi
 based on the information stored in a dedicated part of the repository content call
 the [permission store](#permissionStore).
 
+<a href="default_implementation"/>
 ### Characteristics of the Permission Evaluation
 
 #### Regular Permission Evaluation
@@ -60,8 +61,8 @@ on the Oak API) irrespective of the access control content:
 evaluation and is currently not reflected in other security models nor methods
 that deal with the administrator (i.e. `User#isAdmin`).
 
-
-### Permission Representation in the Repository
+<a name="representation"/>
+### Representation in the Repository
 
 <a name="permissionStore"/>
 #### Permission Store

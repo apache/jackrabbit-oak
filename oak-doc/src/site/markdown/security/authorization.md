@@ -104,6 +104,7 @@ items matching a given, defined behavior. Details can be found in section
 
 - [Access Control Management](accesscontrol.html)
 - [Permission Evalution](permission.html)
+- [Restriction Management](authorization/restriction.html)
 - [Combining Multiple Authorization Models](authorization/composite.html)
 
 <!-- hidden references -->

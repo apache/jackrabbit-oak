@@ -147,7 +147,8 @@ history support. By default this feature is disabled.
 
 See section [Password History](history.html) for details.
 
-### User/Group Representation in the Repository
+<a name="representation"/>
+### Representation in the Repository
 
 The following block lists the built-in node types related to user management tasks:
   
