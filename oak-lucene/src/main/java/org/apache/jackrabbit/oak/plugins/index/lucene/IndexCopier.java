@@ -297,7 +297,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
      * Directory implementation which lazily copies the index files from a
      * remote directory in background.
      */
-    private class CopyOnReadDirectory extends FilterDirectory {
+    class CopyOnReadDirectory extends FilterDirectory {
         private final Directory remote;
         private final Directory local;
         private final String indexPath;
@@ -382,6 +382,10 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
             log.trace("[{}] opening new remote file {}", indexPath, name);
             readerRemoteReadCount.incrementAndGet();
             return remote.openInput(name, context);
+        }
+
+        Directory getLocal() {
+            return local;
         }
 
         private void copy(final CORFileReference reference) {
