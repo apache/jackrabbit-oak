@@ -223,9 +223,9 @@ will try to use the [SERVICE_RANKING] to define the order. If neither is availab
 <a name="pluggability"/>
 ### Pluggability
 
-Oak allows to plug custom or additional implementations of the various 
-`SecurityConfiguration` described before. Similarly it is possible to provide 
-a custom `SecurityProvider`.
+In a default setup Oak allows to plug custom or additional implementations of 
+the various `SecurityConfiguration` described before. Similarly it would be possible 
+to provide a custom `SecurityProvider`.
 
 _Please note_: this is only recommended for experts having in-depth 
 understanding of Oak internals and which understand the security risk associated 
@@ -233,7 +233,7 @@ with custom replacements or extensions.
 
 #### SecurityProvider
 
-The default `SecurityProvider` service can be replaced by deploying a custom 
+The default `SecurityProvider` service could be replaced by deploying a custom 
 service to the OSGi container. In a non-OSGi setup the JCR|Oak repository needs 
 to be created with the custom implementation:
 
@@ -242,7 +242,7 @@ to be created with the custom implementation:
 
 #### SecurityConfiguration
 
-The Oak security setup distinguishes between the following types of modules:
+The default Oak security setup distinguishes between the following types of modules:
 
 - Unary modules: `AuthenticationConfiguration`, `PrivilegeConfiguration`, `UserConfiguration`
 - Multiple modules: `AuthorizationConfiguration` (since Oak 1.4), `PrincipalConfiguration`, `TokenConfiguration`
@@ -292,8 +292,8 @@ If a given security modules mandates repository and|or workspace initialization
 steps such as e.g. node type registration or persisting new index definitions, the 
 deployment of the module requires a reload of the `SecurityProvider`.
 
-In an OSGi-based setup this is achieved by adding the PID of corresponding service 
-to the `Required Service PIDs` property mentioned above ultimately forcing the 
+In the default OSGi-based setup this is achieved by adding the PID of corresponding 
+service  to the `Required Service PIDs` property mentioned above ultimately forcing the 
 re-registration of the `SecurityProvider` service with the bundle context. 
 
 Other setup scenarios would need to recreate the `ContentRepository` object or 
