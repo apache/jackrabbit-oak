@@ -206,17 +206,70 @@ public class RDBJDBCTools {
     }
 
     /**
-     * Generate version diagnostics.
+     * Generate database + driver version diagnostics.
+     * 
+     * @param md
+     *            metadata object
+     * @param dbmax
+     *            minimal DB major version number (where {@code -1} disables the
+     *            check)
+     * @param dbmin
+     *            minimal DB minor version number
+     * @param drmax
+     *            minimal driver major version number (where {@code -1} disables
+     *            the check)
+     * @param drin
+     *            minimal driver minor version number
+     * @param dbname
+     *            database type
+     * @return diagnostics (empty when there's nothing to complain about)
      */
-    protected static String versionCheck(DatabaseMetaData md, int xmaj, int xmin, String description) throws SQLException {
-        int maj = md.getDatabaseMajorVersion();
-        int min = md.getDatabaseMinorVersion();
-        if (maj < xmaj || (maj == xmaj && min < xmin)) {
-            return "Unsupported " + description + " version: " + maj + "." + min + ", expected at least " + xmaj + "." + xmin;
+    protected static String versionCheck(DatabaseMetaData md, int dbmax, int dbmin, int drmax, int drmin, String dbname)
+            throws SQLException {
+        StringBuilder result = new StringBuilder();
+
+        if (dbmax != -1) {
+            int maj = md.getDatabaseMajorVersion();
+            int min = md.getDatabaseMinorVersion();
+
+            if (maj < dbmax || (maj == dbmax && min < dbmin)) {
+                result.append(
+                        "Unsupported " + dbname + " version: " + maj + "." + min + ", expected at least " + dbmax + "." + dbmin);
+            }
         }
-        else {
-            return "";
+
+        if (drmax != -1) {
+            int maj = md.getDriverMajorVersion();
+            int min = md.getDriverMinorVersion();
+
+            if (maj < drmax || (maj == dbmax && min < dbmin)) {
+                if (result.length() != 0) {
+                    result.append(", ");
+                }
+                result.append("Unsupported " + dbname + " driver version: " + md.getDriverName() + " " + maj + "." + min
+                        + ", expected at least " + dbmax + "." + dbmin);
+            }
         }
+
+        return result.toString();
+    }
+
+    /**
+     * Generate database version diagnostics.
+     * 
+     * @param md
+     *            metadata object
+     * @param dbmax
+     *            minimal DB major version number (where {@code -1} disables the
+     *            check)
+     * @param dbmin
+     *            minimal DB minor version number
+     * @param dbname
+     *            database type
+     * @return diagnostics (empty when there's nothing to complain about)
+     */
+    protected static String versionCheck(DatabaseMetaData md, int dbmax, int dbmin, String dbname) throws SQLException {
+        return versionCheck(md, dbmax, dbmin, -1, -1, dbname);
     }
 
     /**
