@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.security.principal;
 
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
 /**
@@ -47,7 +48,7 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  *
  *
  * - Configuration
- *   Look at the default implementation of the {@link org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfigurationConfiguration}
+ *   Look at the default implementation of the {@link org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration}
  *   and try to identify the configurable parts. Compare your results with the
  *   Oak documentation.
  *
