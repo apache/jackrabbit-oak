@@ -91,7 +91,7 @@ import static org.junit.Assert.assertEquals;
  *   This exercises aims to help you understand how the implementation keeps
  *   track of the internal long representation of privileges and how those
  *   long representations are being calculated for newly registered privileges.
- *   Resolve the TODOs in the test-case and explain the behavior.
+ *   Resolve the EXERCISE marks in the test-case and explain the behavior.
  *
  *   Question: Can you identify where 'rep:next' is being updated?
  *   Question: Try to set the value of rep:next manually and explain what happens.
