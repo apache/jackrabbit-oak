@@ -16,13 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.server;
 
+import javax.annotation.CheckForNull;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
-import javax.annotation.CheckForNull;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationDefaults;
@@ -47,8 +49,6 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
     public EmbeddedSolrServerProvider(EmbeddedSolrServerConfiguration solrServerConfiguration) {
         this.solrServerConfiguration = solrServerConfiguration;
     }
-
-    private SolrServer solrServer;
 
     private SolrServer createSolrServer() throws Exception {
 
@@ -174,6 +174,25 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
         } else if (!solrCorePathFile.isDirectory()) {
             throw new IOException("a non directory file with the specified name already exists for the given Solr core path'" + solrCorePathFile.getAbsolutePath());
         }
+        // clean data dir
+        File solrDataPathFile = new File(solrHomePathFile + "/" + coreName + "/data/index");
+        if (solrDataPathFile.exists()) {
+            log.debug("deleting stale lock files");
+            File[] locks = solrDataPathFile.listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                    return "write.lock".equals(name);
+                }
+            });
+            log.debug("found {} lock files", locks.length);
+            // remove eventaul previous lock files (e.g. due to ungraceful shutdown)
+            if (locks.length > 0) {
+                for (File f : locks) {
+                    FileUtils.forceDelete(f);
+                    log.debug("deleted {}", f.getAbsolutePath());
+                }
+            }
+        }
 
         // check if the a core with the given coreName exists
         String[] files = solrHomePathFile.list();
@@ -217,12 +236,7 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
     @CheckForNull
     @Override
     public SolrServer getSolrServer() throws Exception {
-        synchronized (this) {
-            if (solrServer == null) {
-                solrServer = createSolrServer();
-            }
-        }
-        return solrServer;
+        return createSolrServer();
     }
 
     @CheckForNull
@@ -262,14 +276,6 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
 
     @Override
     public void close() throws IOException {
-        try {
-            synchronized (this) {
-                if (solrServer != null) {
-                    solrServer.shutdown();
-                }
-            }
-        } catch (Exception e) {
-            // do nothing
-        }
+        // do nothing
     }
 }
