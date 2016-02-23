@@ -17,8 +17,10 @@
 package org.apache.jackrabbit.oak.security.privilege;
 
 import java.security.Principal;
+import java.util.Map;
 import java.util.Set;
 import javax.jcr.Node;
+import javax.jcr.Property;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.security.AccessControlManager;
@@ -33,6 +35,8 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
@@ -54,13 +58,23 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  * Exercises:
  *
  * - {@link #testHasPrivileges()}
- *   TODO
+ *   Practise {@link AccessControlManager#hasPrivileges(String, Privilege[])},
+ *   by filling in granted and denied privileges such that the test passes.
+ *   Can you identify the complete set of privileges granted? Could you do this
+ *   programmatically?
  *
  * - {@link #testHasPrivilegesPropertyPath()}
- *   TODO
+ *   Simplified version of the test-case before but this time the target path
+ *   points to a JCR property. Complete the test-case such that it passes and
+ *   explain the result.
  *
- * - {@link #testHasPrivilegeNonExistingPath()}
- *   TODO
+ * - {@link #testHasPrivilegeSpecialPath()}
+ *   Yet another variant of the 'hasPrivileges' test case. This time the path
+ *   points to a special node. Once you have successfully completed the test-case
+ *   in the original version, try the following to variants:
+ *   - Use 'superuser' session instead of the user session
+ *   - Change the target path to 'testPath + "/otherChild"'
+ *   Look at the JCR specification or the code to explain each of the 3 test results.
  *
  * - {@link #testGetPrivileges()}
  *   Practise {@link AccessControlManager#getPrivileges(String)}, which evaluates
@@ -82,11 +96,10 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  *   Complete the test case and explain the behavior; in particular in comparison
  *   with the previous test.
  *
- * - {@link #testCanAddNode()}
- *   TODO
- *
  * - {@link #testHasPermissionVsHasPrivilege()}
- *   TODO
+ *   Test case illustrating some differences between {@link Session#hasPermission(String, String)}
+ *   and {@link AccessControlManager#hasPrivileges(String, Privilege[])}.
+ *   Complete the test such that it passes and explain the behavior.
  *
  * Related Exercises:
  * -----------------------------------------------------------------------------
@@ -110,6 +123,7 @@ public class L7_PrivilegeDiscoveryTest extends AbstractJCRTest {
 
     private String testPath;
     private String childPath;
+    private String propPath;
 
     @Override
     protected void setUp() throws Exception {
@@ -126,6 +140,10 @@ public class L7_PrivilegeDiscoveryTest extends AbstractJCRTest {
 
         Node n = superuser.getNode(testRoot).addNode(nodeName1);
         testPath = n.getPath();
+
+        Property p = n.setProperty(propertyName1, "value");
+        propPath = p.getPath();
+
         Privilege[] privs = AccessControlUtils.privilegesFromNames(superuser,
                 Privilege.JCR_VERSION_MANAGEMENT,
                 Privilege.JCR_ADD_CHILD_NODES,
@@ -171,16 +189,49 @@ public class L7_PrivilegeDiscoveryTest extends AbstractJCRTest {
     public void testHasPrivileges() throws Exception {
         AccessControlManager acMgr = userSession.getAccessControlManager();
 
+        Map<String, String[]> expectedAllow = ImmutableMap.of(
+                testRoot, new String[] {null, null, null, null, null, "..."}, // EXERCISE
+                testPath, new String[] {null, null, null, null, null, "..."}, // EXERCISE
+                childPath, new String[] {null, null, null, null, null, "..."} // EXERCISE
+        );
+        for (String path : expectedAllow.keySet()) {
+            assertTrue(acMgr.hasPrivileges(path, AccessControlUtils.privilegesFromNames(userSession, expectedAllow.get(path))));
+        }
 
-        // TODO
+        Map<String, String[]> expectedDeny = ImmutableMap.of(
+                testRoot, new String[] {null, null, null, null, null, "..."}, // EXERCISE
+                testPath, new String[] {null, null, null, null, null, "..."}, // EXERCISE
+                childPath, new String[] {null, null, null, null, null, "..."} // EXERCISE
+        );
+        for (String path : expectedDeny.keySet()) {
+            assertFalse(acMgr.hasPrivileges(path, AccessControlUtils.privilegesFromNames(userSession, expectedAllow.get(path))));
+        }
     }
 
     public void testHasPrivilegesPropertyPath() throws Exception {
-        // TODO
+        AccessControlManager acMgr = userSession.getAccessControlManager();
+
+        // EXERCISE: complete the test
+        Privilege[] expectedPrivs = null;
+        assertTrue(acMgr.hasPrivileges(propPath, expectedPrivs));
     }
 
-    public void testHasPrivilegeNonExistingPath() throws Exception {
-        // TODO
+    public void testHasPrivilegeSpecialPath() throws Exception {
+        AccessControlManager acMgr = userSession.getAccessControlManager();
+
+        // 1. EXERCISE: complete the test
+        Privilege[] expectedPrivs = null;
+        String policyPath = PathUtils.concat(testPath, AccessControlConstants.REP_POLICY);
+        assertTrue(acMgr.hasPrivileges(policyPath, expectedPrivs));
+
+        // 2. EXERCISE: modify the test-case by replacing user-session by the superuser session
+        //              explain the difference
+
+
+        // 3. EXERCISE: change the target path to testPath + "/otherChild" and run
+        //              the test again (user or admin session).
+        //              what is the expected outcome? why?
+
     }
 
     public void testGetPrivileges() throws Exception {
@@ -204,7 +255,7 @@ public class L7_PrivilegeDiscoveryTest extends AbstractJCRTest {
 
         // 1. EXERCISE: expected privileges for the 'uPrincipal' only
         Set<Principal> principals = ImmutableSet.of(uPrincipal);
-        java.util.Map<String, Set<Privilege>> expected = ImmutableMap.of(
+        Map<String, Set<Privilege>> expected = ImmutableMap.of(
                 testRoot, null, // EXERCISE
                 testPath, null, // EXERCISE
                 childPath, null // EXERCISE
@@ -265,11 +316,27 @@ public class L7_PrivilegeDiscoveryTest extends AbstractJCRTest {
         assertEquals(expectedPrivs, ImmutableSet.copyOf(privs));
     }
 
-    public void testCanAddNode() throws Exception {
-        // TODO
-    }
-
     public void testHasPermissionVsHasPrivilege() throws Exception {
-        // TODO
+        JackrabbitAccessControlManager acMgr = (JackrabbitAccessControlManager) userSession.getAccessControlManager();
+
+        // EXERCISE: fill in the correct boolean values and compare the difference
+        // between hasPermission and hasPrivilege. explain!
+
+        Boolean canAddNode = null;
+        assertEquals(canAddNode.booleanValue(), userSession.hasPermission(testPath, Session.ACTION_ADD_NODE));
+        Boolean canAddChild = null;
+        assertEquals(canAddChild.booleanValue(), userSession.hasPermission(testPath + "/newChild", Session.ACTION_ADD_NODE));
+
+        Boolean hasAddChildPrivilege = null;
+        assertEquals(hasAddChildPrivilege.booleanValue(), acMgr.hasPrivileges(testPath, AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_ADD_CHILD_NODES)));
+
+        Boolean canModifyProperty = null;
+        assertEquals(canModifyProperty.booleanValue(), userSession.hasPermission(propPath, Session.ACTION_SET_PROPERTY));
+
+        Boolean canAddProperty = null;
+        assertEquals(canAddProperty.booleanValue(), userSession.hasPermission(testPath + "/newProp", JackrabbitSession.ACTION_ADD_PROPERTY));
+
+        Boolean hasModifyPropertiesPrivilege = null;
+        assertEquals(hasModifyPropertiesPrivilege.booleanValue(), acMgr.hasPrivileges(propPath, AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_MODIFY_PROPERTIES)));
     }
 }
