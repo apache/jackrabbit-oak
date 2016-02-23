@@ -176,7 +176,7 @@ public class LuceneIndexProviderService {
     ScorerProviderFactory scorerFactory;
 
     @Reference(policy = ReferencePolicy.DYNAMIC,
-            cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE,
+            cardinality = ReferenceCardinality.OPTIONAL_UNARY,
             policyOption = ReferencePolicyOption.GREEDY
     )
     private volatile PreExtractedTextProvider extractedTextProvider;
@@ -420,7 +420,9 @@ public class LuceneIndexProviderService {
                 PROP_EXTRACTED_TEXT_CACHE_EXPIRY_DEFAULT);
 
         extractedTextCache = new ExtractedTextCache(cacheSizeInMB * ONE_MB, cacheExpiryInSecs);
-
+        if (extractedTextProvider != null){
+            registerExtractedTextProvider(extractedTextProvider);
+        }
         CacheStats stats = extractedTextCache.getCacheStats();
         if (stats != null){
             oakRegs.add(registerMBean(whiteboard,
