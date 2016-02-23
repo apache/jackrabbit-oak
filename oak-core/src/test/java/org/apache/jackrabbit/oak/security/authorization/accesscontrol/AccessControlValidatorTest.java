@@ -38,9 +38,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -110,7 +111,8 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
         } catch (CommitFailedException e) {
             // success
             assertTrue(e.isAccessControlViolation());
-            assertEquals("OakAccessControl0004: Invalid policy node: Order of children is not stable.", e.getMessage());
+            assertThat(e.getMessage(), containsString("OakAccessControl0004")); // Order of children is not stable
+            assertThat(e.getMessage(), containsString("/testRoot/rep:policy"));
         }
     }
 
@@ -125,6 +127,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
         } catch (CommitFailedException e) {
             // success
             assertTrue(e.isAccessControlViolation());
+            assertThat(e.getMessage(), containsString("/testRoot"));
         }
     }
 
@@ -139,6 +142,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
         } catch (CommitFailedException e) {
             // success
             assertTrue(e.isAccessControlViolation());
+            assertThat(e.getMessage(), containsString("/testRoot"));
         } finally {
             policy.getTree().remove();
         }
@@ -158,6 +162,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
             } catch (CommitFailedException e) {
                 // success
                 assertTrue(e.isConstraintViolation());
+                assertThat(e.getMessage(), containsString("/testRoot/rep:policy"));
             } finally {
                 policy.getTree().remove();
             }
@@ -178,6 +183,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
             } catch (CommitFailedException e) {
                 // success
                 assertTrue(e.isConstraintViolation());
+                assertThat(e.getMessage(), containsString("/testRoot/rep:policy"));
             } finally {
                 policy.getTree().remove();
             }
@@ -198,6 +204,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
             } catch (CommitFailedException e) {
                 // success
                 assertTrue(e.isConstraintViolation());
+                assertThat(e.getMessage(), containsString("/testRoot/rep:policy/validAce"));
             } finally {
                 entry.getTree().remove();
             }
@@ -218,6 +225,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
             } catch (CommitFailedException e) {
                 // success
                 assertTrue(e.isConstraintViolation());
+                assertThat(e.getMessage(), containsString("/testRoot/rep:policy"));
             } finally {
                 entry.getTree().remove();
             }
@@ -237,6 +245,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
             } catch (CommitFailedException e) {
                 // success
                 assertTrue(e.isAccessControlViolation());
+                assertThat(e.getMessage(), containsString("/testRoot"));
             } finally {
                 // revert pending changes that cannot be saved.
                 policy.getTree().remove();
@@ -258,6 +267,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
             } catch (CommitFailedException e) {
                 // success
                 assertTrue(e.isAccessControlViolation());
+                assertThat(e.getMessage(), containsString("/testRoot/isolatedACE"));
             } finally {
                 // revert pending changes that cannot be saved.
                 ace.getTree().remove();
@@ -275,6 +285,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
         } catch (CommitFailedException e) {
             // success
             assertTrue(e.isAccessControlViolation());
+            assertThat(e.getMessage(), containsString("/testRoot"));
         } finally {
             // revert pending changes that cannot be saved.
             restriction.getTree().remove();
@@ -293,6 +304,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
         } catch (CommitFailedException e) {
             // success
             assertTrue(e.isAccessControlViolation());
+            assertThat(e.getMessage(), containsString("/testRoot/rep:policy"));
         }
     }
 
@@ -309,6 +321,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
         } catch (CommitFailedException e) {
             // success
             assertTrue(e.isAccessControlViolation());
+            assertThat(e.getMessage(), containsString("/testRoot/rep:policy"));
         }
     }
 
@@ -322,6 +335,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
         } catch (CommitFailedException e) {
             // success
             assertTrue(e.isAccessControlViolation());
+            assertThat(e.getMessage(), containsString("/testRoot/rep:policy"));
         }
     }
 
@@ -335,6 +349,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
         } catch (CommitFailedException e) {
             // success
             assertTrue(e.isAccessControlViolation());
+            assertThat(e.getMessage(), containsString("/testRoot/rep:policy"));
         }
     }
 
@@ -356,6 +371,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
             fail("Creating duplicate ACE must be detected");
         } catch (CommitFailedException e) {
             assertTrue(e.isAccessControlViolation());
+            assertThat(e.getMessage(), containsString("/testRoot/rep:policy/duplicateAce"));
         }
     }
 
