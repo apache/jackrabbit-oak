@@ -1186,11 +1186,12 @@ public class AsyncIndexUpdateTest {
         //Wait for both threads
         t.join();
 
-        //Async run would have failed with exception
-        assertNotNull(async.getIndexStats().getLatestError());
+        //Async run would have exited with log message logged
+        assertLogPhrase(lc.getLogs(), "The index update interrupted");
 
         //Wait for close call to complete
         closer.join();
+        lc.finished();
     }
 
 

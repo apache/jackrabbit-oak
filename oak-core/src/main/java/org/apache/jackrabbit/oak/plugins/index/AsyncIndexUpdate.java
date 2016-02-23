@@ -700,6 +700,12 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         }
 
         public void failed(Exception e) {
+            if (e == INTERRUPTED){
+                log.info("[{}] The index update interrupted", name);
+                log.debug("[{}] The index update interrupted", name, e);
+                return;
+            }
+
             latestError = getStackTraceAsString(e);
             latestErrorTime = now();
             consecutiveFailures++;
