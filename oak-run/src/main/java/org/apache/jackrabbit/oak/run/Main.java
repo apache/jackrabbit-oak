@@ -63,7 +63,11 @@ public final class Main {
         InputStream stream = Main.class.getResourceAsStream("/META-INF/maven/org.apache.jackrabbit/oak-run/pom.properties");
 
         try {
-            return getProductVersion(stream);
+            if (stream == null) {
+                return null;
+            } else {
+                return getProductVersion(stream);
+            }
         } finally {
             closeQuietly(stream);
         }
