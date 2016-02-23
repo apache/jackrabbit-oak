@@ -72,6 +72,7 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.FilterDirectory;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -1932,6 +1933,40 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertThat(explainXpath(query), containsString("lucene:test2(/oak:index/test2)"));
         assertQuery(query, "xpath", asList("/test/a"));
     }
+
+    @Ignore("OAK-4042")
+    @Test
+    public void gb18030FulltextSuffixQuery() throws Exception {
+        String searchTerm1 = "normaltext";
+        String searchTerm2 = "中文标题";
+        String propValue = "some text having suffixed " + searchTerm1 + "suffix and " + searchTerm2 + "suffix.";
+
+        Tree index = root.getTree("/");
+        Tree idx = index.addChild(INDEX_DEFINITIONS_NAME).addChild("test2");
+        idx.setProperty(JcrConstants.JCR_PRIMARYTYPE,
+                INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
+        idx.setProperty(TYPE_PROPERTY_NAME, LuceneIndexConstants.TYPE_LUCENE);
+        idx.setProperty(REINDEX_PROPERTY_NAME, true);
+        Tree props = TestUtil.newRulePropTree(idx, "nt:base");
+        Tree prop = props.addChild(TestUtil.unique("text"));
+        prop.setProperty(LuceneIndexConstants.PROP_NAME, "text");
+        prop.setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true);
+        prop.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("text", propValue);
+        root.commit();
+
+        String query;
+
+        query = "SELECT * from [nt:base] WHERE CONTAINS([text], '" + searchTerm1 + "*')";
+        assertQuery(query, SQL2, asList("/test/a"));
+
+        query = "SELECT * from [nt:base] WHERE CONTAINS([text], '" + searchTerm2 + "*')";
+        assertQuery(query, SQL2, asList("/test/a"));
+    }
+
 
     @Test
     public void indexingBasedOnMixinAndRelativeProps() throws Exception {
