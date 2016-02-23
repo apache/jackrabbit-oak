@@ -168,6 +168,15 @@ public class LuceneIndexProviderServiceTest {
     }
 
     @Test
+    public void preExtractedProviderBindBeforeActivate() throws Exception{
+        service.bindExtractedTextProvider(new DummyProvider());
+        MockOsgi.activate(service, context.bundleContext(), getDefaultConfig());
+        LuceneIndexEditorProvider editorProvider =
+                (LuceneIndexEditorProvider) context.getService(IndexEditorProvider.class);
+        assertNotNull(editorProvider.getExtractedTextCache().getExtractedTextProvider());
+    }
+
+    @Test
     public void booleanQuerySize() throws Exception{
         Map<String,Object> config = getDefaultConfig();
         config.put("booleanClauseLimit", 4000);
