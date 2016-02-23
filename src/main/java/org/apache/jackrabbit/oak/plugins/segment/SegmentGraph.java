@@ -452,7 +452,7 @@ public final class SegmentGraph {
 
     private static void writeNode(UUID node, PrintWriter writer, boolean inHead, Date epoch, SegmentTracker tracker) {
         Map<String, String> sInfo = getSegmentInfoMap(node, tracker);
-        if (sInfo == null) {
+        if (!sInfo.containsKey("t")) {
             writer.write(node + ",b,bulk,b,-1,-1," + inHead + "\n");
         } else {
             String error = sInfo.get("error");
