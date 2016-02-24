@@ -45,7 +45,7 @@ import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.commons.FixturesHelper;
 import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
-import org.apache.jackrabbit.oak.commons.concurrent.ExecutorUtils;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.atomic.AtomicCounterEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.util.PerfLogger;
@@ -81,7 +81,7 @@ public class AtomicCounterClusterIT  extends DocumentClusterIT {
     public void after() throws Exception {
         super.after();
         for (CustomScheduledExecutor exec : executors) {
-            ExecutorUtils.shutdownIn10s(exec);
+            new ExecutorCloser(exec, 10, TimeUnit.SECONDS).close();
         }
     }
 
