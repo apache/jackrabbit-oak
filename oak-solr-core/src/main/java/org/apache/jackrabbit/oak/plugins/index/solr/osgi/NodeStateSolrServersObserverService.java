@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
+import org.osgi.service.component.ComponentContext;
 
 /**
  * An OSGi service for {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate.NodeStateSolrServersObserver}.
@@ -55,11 +56,12 @@ public class NodeStateSolrServersObserverService {
     private static final String ENABLED = "enabled";
 
     @Activate
-    protected void activate(BundleContext bundleContext) throws Exception {
+    protected void activate(ComponentContext componentContext) throws Exception {
 
-        boolean enabled = PropertiesUtil.toBoolean(ENABLED, false);
+        boolean enabled = PropertiesUtil.toBoolean(componentContext.getProperties().get(ENABLED), false);
 
         if (enabled) {
+            BundleContext bundleContext = componentContext.getBundleContext();
             Whiteboard whiteboard = new OsgiWhiteboard(bundleContext);
             executor = new WhiteboardExecutor();
             executor.start(whiteboard);
