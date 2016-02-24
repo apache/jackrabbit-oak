@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.jcr.security.user;
 
 import javax.jcr.Node;
+import javax.jcr.Value;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -80,6 +81,8 @@ public class UserImportHistoryTest extends AbstractImportTest {
 
         Node pwdNode = userNode.getNode(UserConstants.REP_PWD);
         assertTrue(pwdNode.hasProperty(UserConstants.REP_PWD_HISTORY));
-        assertEquals("{sha1}8efd86fb78a56a5145ed7739dcb00c78581c5375", pwdNode.getProperty(UserConstants.REP_PWD_HISTORY).getString());
+        Value[] vs = pwdNode.getProperty(UserConstants.REP_PWD_HISTORY).getValues();
+        assertEquals(1, vs.length);
+        assertEquals("{sha1}8efd86fb78a56a5145ed7739dcb00c78581c5375", vs[0].getString());
     }
 }
