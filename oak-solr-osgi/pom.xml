@@ -41,7 +41,6 @@
                     <instructions>
                         <Import-Package>
                             org.apache.lucene.*;resolution:=optional,
-                            com.carrotsearch.*;resolution:=optional,
                             com.googlecode.*;resolution:=optional,
                             com.vividsolutions.jts.*;resolution:=optional,
                             com.sun.*;resolution:=optional,
@@ -125,6 +124,13 @@
             <version>0.5</version>
             <scope>runtime</scope>
         </dependency>
+        <dependency>
+            <groupId>com.carrotsearch</groupId>
+            <artifactId>hppc</artifactId>
+            <version>0.5.2</version>
+            <scope>runtime</scope>
+        </dependency>
+
 
         <!-- Lucene -->
         <dependency>
