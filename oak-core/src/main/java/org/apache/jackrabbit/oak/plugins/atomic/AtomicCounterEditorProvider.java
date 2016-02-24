@@ -22,7 +22,6 @@ import static org.apache.felix.scr.annotations.ReferencePolicy.DYNAMIC;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
@@ -36,6 +35,7 @@ import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
@@ -188,17 +188,7 @@ public class AtomicCounterEditorProvider implements EditorProvider {
             LOG.debug("No ScheduledExecutorService found");
         } else {
             LOG.debug("Shutting down ScheduledExecutorService");
-            try {
-                ses.shutdown();
-                ses.awaitTermination(5, TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-                LOG.error("InterruptedException white shutting down ScheduledExecutorService", e);
-            } finally {
-                if (!ses.isTerminated()) {
-                    LOG.debug("ScheduledExecutorService not yet shutdown. Cancelling tasks and forcing quit.");
-                }
-                ses.shutdownNow();
-            }
+            new ExecutorCloser(ses).close();
         }
     }
 
