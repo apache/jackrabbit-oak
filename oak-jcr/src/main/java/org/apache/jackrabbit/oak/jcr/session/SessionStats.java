@@ -49,6 +49,10 @@ public class SessionStats implements SessionMBean {
      *
      * Once this threshold is exceeded, we assume that there is a session leak which should be fixed and start recording
      * the stack traces to make it easier to find the cause of it.
+     *
+     * Configurable by the "oak.sessionStats.initStackTraceThreshold" system property. Set to "0" to record stack trace
+     * information on each session creation.
+     *
      */
     static final int INIT_STACK_TRACE_THRESHOLD = Integer.getInteger("oak.sessionStats.initStackTraceThreshold", 1000);
 
