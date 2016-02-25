@@ -218,7 +218,6 @@ public class FilterImpl implements Filter {
         return alwaysFalse;
     }
 
-    @Override
     public SelectorImpl getSelector() {
         return selector;
     }
