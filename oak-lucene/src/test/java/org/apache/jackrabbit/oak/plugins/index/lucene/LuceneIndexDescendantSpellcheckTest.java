@@ -22,6 +22,7 @@ import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -45,10 +46,12 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_RULES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROPDEF_PROP_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_USE_IN_SPELLCHECK;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.shutdown;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
 import static org.junit.Assert.assertEquals;
 
 public class LuceneIndexDescendantSpellcheckTest {
+    private Repository repository = null;
     private JackrabbitSession session = null;
     private Node root = null;
 
@@ -61,13 +64,20 @@ public class LuceneIndexDescendantSpellcheckTest {
                 .with((Observer) provider)
                 .with(new LuceneIndexEditorProvider());
 
-        Repository repository = jcr.createRepository();
+        repository = jcr.createRepository();
         session = (JackrabbitSession) repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
         root = session.getRootNode();
 
         createContent();
         session.save();
     }
+
+    @After
+    public void after() {
+        session.logout();
+        shutdown(repository);
+    }
+
     private void createContent() throws Exception {
         /*
         Make content with following structure:
