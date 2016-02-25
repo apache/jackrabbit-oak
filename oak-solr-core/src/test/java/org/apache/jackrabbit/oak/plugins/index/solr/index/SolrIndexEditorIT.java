@@ -25,9 +25,9 @@ import org.junit.Test;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Integration test for {@link org.apache.jackrabbit.oak.plugins.index.solr.index.SolrCommitHook}
+ * Integration test for {@link SolrIndexEditor}
  */
-public class SolrCommitHookIT extends SolrBaseTest {
+public class SolrIndexEditorIT extends SolrBaseTest {
 
     @Test
     public void testAddSomeNodes() throws Exception {

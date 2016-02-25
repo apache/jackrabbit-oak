@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.server;
 
-import java.io.IOException;
 import javax.annotation.Nonnull;
+import java.io.IOException;
 
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration;
@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConf
 import org.apache.solr.client.solrj.SolrRequest;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.common.SolrException;
 import org.apache.solr.common.util.NamedList;
 
 /**

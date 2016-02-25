@@ -21,6 +21,7 @@ import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration;
+import org.apache.jackrabbit.oak.plugins.index.solr.server.OakSolrServer;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerRegistry;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -46,22 +47,11 @@ public class NodeStateSolrServersObserver extends DiffObserver {
     }
 
     private void shutdownRegisteredSolrServers(NodeState nodeState) {
-        log.info("shutting down servers at {}", nodeState);
+        log.debug("shutting down persisted Solr server");
         NodeStateSolrServerConfigurationProvider nodeStateSolrServerConfigurationProvider = new NodeStateSolrServerConfigurationProvider(nodeState);
-        SolrServerConfiguration<SolrServerProvider> solrServerConfiguration = nodeStateSolrServerConfigurationProvider.getSolrServerConfiguration();
-        SolrServer searchingSolrServer = SolrServerRegistry.get(solrServerConfiguration, SolrServerRegistry.Strategy.SEARCHING);
-        if (searchingSolrServer != null) {
-            searchingSolrServer.shutdown();
-            log.info("searching SolrServer shut down");
-            SolrServerRegistry.unregister(solrServerConfiguration, SolrServerRegistry.Strategy.SEARCHING);
-        }
-
-        SolrServer indexingSolrServer = SolrServerRegistry.get(solrServerConfiguration, SolrServerRegistry.Strategy.INDEXING);
-        if (indexingSolrServer != null) {
-            indexingSolrServer.shutdown();
-            log.info("indexing SolrServer shut down");
-            SolrServerRegistry.unregister(solrServerConfiguration, SolrServerRegistry.Strategy.INDEXING);
-        }
+        OakSolrServer oakSolrServer = new OakSolrServer(nodeStateSolrServerConfigurationProvider);
+        oakSolrServer.shutdown();
+        log.info("persisted Solr server has been shutdown");
     }
 
     private class ChangingSolrServersNodeStateDiff implements NodeStateDiff {
@@ -132,6 +122,7 @@ public class NodeStateSolrServersObserver extends DiffObserver {
         }
 
         private boolean isSolrServerNode(String name, NodeState nodeState) {
+            log.info("checking {} in {}", name, nodeState);
             return "server".equals(name) && nodeState.hasProperty("solrServerType");
         }
 

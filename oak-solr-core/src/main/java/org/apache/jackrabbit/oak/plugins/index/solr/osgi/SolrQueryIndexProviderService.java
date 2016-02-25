@@ -54,7 +54,7 @@ public class SolrQueryIndexProviderService {
 
     private final List<ServiceRegistration> regs = Lists.newArrayList();
 
-    @Reference(target = "(|(server.type=embedded)(server.type=remote))")
+    @Reference
     private SolrServerProvider solrServerProvider;
 
     @Reference

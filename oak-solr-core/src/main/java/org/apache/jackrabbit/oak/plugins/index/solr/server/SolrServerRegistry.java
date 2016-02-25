@@ -67,12 +67,22 @@ public class SolrServerRegistry {
         switch (strategy) {
             case INDEXING:
                 synchronized (indexingServerRegistry) {
-                    indexingServerRegistry.remove(configuration.toString());
+                    SolrServer removed = indexingServerRegistry.remove(configuration.toString());
+                    try {
+                        removed.shutdown();
+                    } catch (Exception e) {
+                        // ignore
+                    }
                 }
                 break;
             case SEARCHING:
                 synchronized (searchingServerRegistry) {
-                    searchingServerRegistry.remove(configuration.toString());
+                    SolrServer removed = searchingServerRegistry.remove(configuration.toString());
+                    try {
+                        removed.shutdown();
+                    } catch (Exception e) {
+                        // ignore
+                    }
                 }
                 break;
         }

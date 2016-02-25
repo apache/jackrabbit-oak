@@ -46,7 +46,7 @@ import static org.junit.Assume.assumeTrue;
 /**
  * General query extensive testcase for {@link SolrQueryIndex}
  */
-public class SolrIndexQueryTestIT extends AbstractQueryTest {
+public class SolrIndexIT extends AbstractQueryTest {
 
     @Rule
     public TestName name = new TestName();
@@ -245,13 +245,13 @@ public class SolrIndexQueryTestIT extends AbstractQueryTest {
         // TODO: OAK-1819
         assumeTrue(!System.getProperty("java.version").startsWith("1.8"));
 
-        String nativeQueryString = "select [jcr:path] from [nt:base] where native('solr', 'mlt?q=name:World&mlt.fl=name&mlt.mindf=0&mlt.mintf=0')";
+        String nativeQueryString = "select [jcr:path] from [nt:base] where native('solr', 'mlt?q=text:World&mlt.fl=text&mlt.mindf=0&mlt.mintf=0')";
 
         Tree tree = root.getTree("/");
         Tree test = tree.addChild("test");
-        test.addChild("a").setProperty("name", "Hello World, today weather is nice");
-        test.addChild("b").setProperty("name", "Cheers World, today weather is quite nice");
-        test.addChild("c").setProperty("name", "Halo Welt, today sky is cloudy");
+        test.addChild("a").setProperty("text", "Hello World, today weather is nice");
+        test.addChild("b").setProperty("text", "Cheers World, today weather is quite nice");
+        test.addChild("c").setProperty("text", "Halo Welt, today sky is cloudy");
         root.commit();
 
         Iterator<String> strings = executeQuery(nativeQueryString, "JCR-SQL2").iterator();
@@ -267,13 +267,13 @@ public class SolrIndexQueryTestIT extends AbstractQueryTest {
         // TODO: OAK-1819
         assumeTrue(!System.getProperty("java.version").startsWith("1.8"));
 
-        String nativeQueryString = "select [jcr:path] from [nt:base] where native('solr', 'mlt?stream.body=world is nice today&mlt.fl=name&mlt.mindf=0&mlt.mintf=0')";
+        String nativeQueryString = "select [jcr:path] from [nt:base] where native('solr', 'mlt?stream.body=world is nice today&mlt.fl=text&mlt.mindf=0&mlt.mintf=0')";
 
         Tree tree = root.getTree("/");
         Tree test = tree.addChild("test");
-        test.addChild("a").setProperty("name", "Hello World, today weather is nice");
-        test.addChild("b").setProperty("name", "Cheers World, today weather is quite nice");
-        test.addChild("c").setProperty("name", "Halo Welt, today sky is cloudy");
+        test.addChild("a").setProperty("text", "Hello World, today weather is nice");
+        test.addChild("b").setProperty("text", "Cheers World, today weather is quite nice");
+        test.addChild("c").setProperty("text", "Halo Welt, today sky is cloudy");
         root.commit();
 
         Iterator<String> strings = executeQuery(nativeQueryString, "JCR-SQL2").iterator();

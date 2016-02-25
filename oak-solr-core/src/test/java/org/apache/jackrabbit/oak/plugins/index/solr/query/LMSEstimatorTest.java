@@ -72,6 +72,6 @@ public class LMSEstimatorTest {
         LMSEstimator lmsEstimator = new LMSEstimator();
         Filter filter = mock(Filter.class);
         long estimate = lmsEstimator.estimate(filter);
-        assertEquals(1l, estimate);
+        assertEquals(1L, estimate);
     }
 }
