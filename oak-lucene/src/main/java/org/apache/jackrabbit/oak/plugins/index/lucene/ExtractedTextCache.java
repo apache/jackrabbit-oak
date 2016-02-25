@@ -49,8 +49,13 @@ class ExtractedTextCache {
     private int preFetchedCount;
     private final Cache<String, String> cache;
     private final CacheStats cacheStats;
+    private final boolean alwaysUsePreExtractedCache;
 
-    public ExtractedTextCache(long maxWeight, long expiryTimeInSecs) {
+    public ExtractedTextCache(long maxWeight, long expiryTimeInSecs){
+        this(maxWeight, expiryTimeInSecs, false);
+    }
+
+    public ExtractedTextCache(long maxWeight, long expiryTimeInSecs, boolean alwaysUsePreExtractedCache) {
         if (maxWeight > 0) {
             cache = CacheBuilder.newBuilder()
                     .weigher(EmpiricalWeigher.INSTANCE)
@@ -64,6 +69,7 @@ class ExtractedTextCache {
             cache = null;
             cacheStats = null;
         }
+        this.alwaysUsePreExtractedCache = alwaysUsePreExtractedCache;
     }
 
     /**
@@ -77,8 +83,9 @@ class ExtractedTextCache {
         //Consult the PreExtractedTextProvider only in reindex mode and not in
         //incremental indexing mode. As that would only contain older entries
         //That also avoid loading on various state (See DataStoreTextWriter)
-        if (reindexMode && extractedTextProvider != null){
-            String propertyPath = concat(nodePath, propertyName);
+        String propertyPath = concat(nodePath, propertyName);
+        log.trace("Looking for extracted text for [{}] with blobId [{}]", propertyPath, blob.getContentIdentity());
+        if ((reindexMode || alwaysUsePreExtractedCache) && extractedTextProvider != null){
             try {
                 ExtractedText text = extractedTextProvider.getText(propertyPath, blob);
                 if (text != null) {
@@ -154,6 +161,11 @@ class ExtractedTextCache {
             public String getBytesRead() {
                 return IOUtils.humanReadableByteCount(totalBytesRead);
             }
+
+            @Override
+            public boolean isAlwaysUsePreExtractedCache() {
+                return alwaysUsePreExtractedCache;
+            }
         };
     }
 
@@ -174,6 +186,10 @@ class ExtractedTextCache {
         if (cache != null){
             cache.invalidateAll();
         }
+    }
+
+    boolean isAlwaysUsePreExtractedCache() {
+        return alwaysUsePreExtractedCache;
     }
 
     //Taken from DocumentNodeStore and cache packages as they are private
