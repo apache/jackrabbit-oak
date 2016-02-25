@@ -109,12 +109,6 @@
 
         <fieldtype name="binary" class="solr.BinaryField"/>
 
-        <fieldType name="pint" class="solr.IntField"/>
-        <fieldType name="plong" class="solr.LongField"/>
-        <fieldType name="pfloat" class="solr.FloatField"/>
-        <fieldType name="pdouble" class="solr.DoubleField"/>
-        <fieldType name="pdate" class="solr.DateField" sortMissingLast="true"/>
-
         <fieldType name="currency" class="solr.CurrencyField" precisionStep="8" defaultCurrency="USD"
                    currencyConfig="currency.xml"/>
         <fieldtype name="ignored" stored="false" indexed="false" multiValued="true" class="solr.StrField"/>
@@ -143,7 +137,7 @@
         <dynamicField name="*_string_sort" type="string" indexed="false" stored="false" multiValued="false" docValues="true"/>
         <dynamicField name="*_binary_sort" type="string" indexed="true" stored="false" multiValued="false" omitNorms="true"/>
 
-        <dynamicField name="*" type="text_general" indexed="true" stored="true" multiValued="true"/>
+        <dynamicField name="*" type="text_general" indexed="true" stored="false" multiValued="true"/>
     </fields>
 
     <uniqueKey>path_exact</uniqueKey>
