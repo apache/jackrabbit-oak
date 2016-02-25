@@ -89,6 +89,7 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
         String blobId = blob.getContentIdentity();
         if (blobId == null) {
             log.debug("No id found for blob at path {}", propertyPath);
+            return null;
         }
 
         blobId = stripLength(blobId);
@@ -105,6 +106,10 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
             }
         }
 
+        if (log.isDebugEnabled()){
+            String extractionResult = result != null ? result.getExtractionResult().toString() : null;
+            log.debug("Extraction result for [{}] at path [{}] is [{}]", blobId, propertyPath, extractionResult);
+        }
         return result;
     }
 

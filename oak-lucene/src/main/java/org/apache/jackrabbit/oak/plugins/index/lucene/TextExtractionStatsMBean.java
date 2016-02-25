@@ -27,6 +27,8 @@ public interface TextExtractionStatsMBean {
 
     boolean isPreExtractedTextProviderConfigured();
 
+    boolean isAlwaysUsePreExtractedCache();
+
     int getTextExtractionCount();
 
     long getTotalTime();
