@@ -115,12 +115,6 @@
 
         <fieldtype name="binary" class="solr.BinaryField"/>
 
-        <fieldType name="pint" class="solr.IntField"/>
-        <fieldType name="plong" class="solr.LongField"/>
-        <fieldType name="pfloat" class="solr.FloatField"/>
-        <fieldType name="pdouble" class="solr.DoubleField"/>
-        <fieldType name="pdate" class="solr.DateField" sortMissingLast="true"/>
-
         <fieldType name="point" class="solr.PointType" dimension="2" subFieldSuffix="_d"/>
 
         <fieldType name="location" class="solr.LatLonType" subFieldSuffix="_coordinate"/>
@@ -147,6 +141,10 @@
         <field name="path_depth" type="tint" indexed="true" stored="false"/>
         <field name="_version_" type="long" indexed="true" stored="true"/>
 
+        <field name="jcr:title" type="text_general" indexed="true" stored="true" multiValued="true" />
+        <field name="jcr:description" type="text_general" indexed="true" stored="true" multiValued="true" />
+        <field name="text" type="text_general" indexed="true" stored="true" multiValued="true" />
+
         <!-- facet fields -->
         <dynamicField name="*_facet" type="string" indexed="false" stored="false" docValues="true" multiValued="true"/>
 
@@ -155,7 +153,7 @@
         <dynamicField name="*_string_sort" type="string" indexed="false" stored="false" multiValued="false" docValues="true"/>
         <dynamicField name="*_binary_sort" type="string" indexed="true" stored="false" multiValued="false" omitNorms="true"/>
 
-        <dynamicField name="*" type="text_general" indexed="true" stored="true" multiValued="true"/>
+        <dynamicField name="*" type="text_general" indexed="true" stored="false" multiValued="true"/>
     </fields>
     <uniqueKey>path_exact</uniqueKey>
     <copyField source="path_exact" dest="path_anc"/>
