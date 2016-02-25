@@ -18,6 +18,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.standby.client;
 
+import java.io.Closeable;
+import java.lang.management.ManagementFactory;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import javax.management.StandardMBean;
+import javax.net.ssl.SSLException;
+
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -35,13 +46,6 @@ import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.util.CharsetUtil;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import io.netty.util.concurrent.EventExecutorGroup;
-
-import java.io.Closeable;
-import java.lang.management.ManagementFactory;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.standby.codec.RecordIdDecoder;
 import org.apache.jackrabbit.oak.plugins.segment.standby.jmx.ClientStandbyStatusMBean;
@@ -50,11 +54,6 @@ import org.apache.jackrabbit.oak.plugins.segment.standby.store.CommunicationObse
 import org.apache.jackrabbit.oak.plugins.segment.standby.store.StandbyStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.management.MBeanServer;
-import javax.management.ObjectName;
-import javax.management.StandardMBean;
-import javax.net.ssl.SSLException;
 
 public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, Closeable {
     public static final String CLIENT_ID_PROPERTY_NAME = "standbyID";
@@ -197,17 +196,17 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
     }
 
     private void shutdownNetty() {
-        if (group != null && !group.isShuttingDown()) {
-            group.shutdownGracefully(0, 1, TimeUnit.SECONDS)
-                    .syncUninterruptibly();
+        if (handler != null) {
+            handler.close();
+            handler = null;
         }
         if (executor != null && !executor.isShuttingDown()) {
             executor.shutdownGracefully(0, 1, TimeUnit.SECONDS)
                     .syncUninterruptibly();
         }
-        if (handler != null) {
-            handler.close();
-            handler = null;
+        if (group != null && !group.isShuttingDown()) {
+            group.shutdownGracefully(0, 1, TimeUnit.SECONDS)
+                    .syncUninterruptibly();
         }
     }
 
