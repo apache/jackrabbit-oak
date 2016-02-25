@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.InMe
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.TCPBroadcaster;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.UDPBroadcaster;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.h2.mvstore.FileStore;
 import org.h2.mvstore.MVMap;
 import org.h2.mvstore.MVMap.Builder;
@@ -381,6 +382,14 @@ public class PersistentCache implements Broadcaster.Listener {
             DocumentNodeStore docNodeStore, 
             DocumentStore docStore,
             Cache<K, V> base, CacheType type) {
+       return wrap(docNodeStore, docStore, base, type, StatisticsProvider.NOOP);
+    }
+
+    public synchronized <K, V> Cache<K, V> wrap(
+            DocumentNodeStore docNodeStore,
+            DocumentStore docStore,
+            Cache<K, V> base, CacheType type,
+            StatisticsProvider statisticsProvider) {
         boolean wrap;
         switch (type) {
         case NODE:
@@ -410,7 +419,8 @@ public class PersistentCache implements Broadcaster.Listener {
         }
         if (wrap) {
             NodeCache<K, V> c = new NodeCache<K, V>(this, 
-                    base, docNodeStore, docStore, type, writeDispatcher);
+                    base, docNodeStore, docStore,
+                    type, writeDispatcher, statisticsProvider);
             initGenerationCache(c);
             return c;
         }
@@ -530,6 +540,15 @@ public class PersistentCache implements Broadcaster.Listener {
         buff.position(end);
     }
     
+    public static PersistentCacheStats getPersistentCacheStats(Cache cache) {
+        if (cache instanceof NodeCache) {
+            return ((NodeCache) cache).getPersistentCacheStats();
+        }
+        else {
+            return null;
+        }
+    }
+
     private void receiveMessage(ByteBuffer buff) {
         CacheType type = CacheType.VALUES[buff.get()];
         GenerationCache cache = caches.get(type);

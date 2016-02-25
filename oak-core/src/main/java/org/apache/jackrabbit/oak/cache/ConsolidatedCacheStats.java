@@ -37,6 +37,7 @@ import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.api.jmx.ConsolidatedCacheStatsMBean;
+import org.apache.jackrabbit.oak.api.jmx.PersistentCacheStatsMBean;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
@@ -51,6 +52,7 @@ import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerM
 public class ConsolidatedCacheStats implements ConsolidatedCacheStatsMBean {
 
     private Tracker<CacheStatsMBean> cacheStats;
+    private Tracker<PersistentCacheStatsMBean> persistentCacheStats;
 
     private Registration mbeanReg;
 
@@ -64,6 +66,9 @@ public class ConsolidatedCacheStats implements ConsolidatedCacheStatsMBean {
             for(CacheStatsMBean stats : cacheStats.getServices()){
                 tds.put(new CacheStatsData(stats).toCompositeData());
             }
+            for(CacheStatsMBean stats : persistentCacheStats.getServices()){
+                tds.put(new CacheStatsData(stats).toCompositeData());
+            }
         } catch (OpenDataException e) {
             throw new IllegalStateException(e);
         }
@@ -74,6 +79,7 @@ public class ConsolidatedCacheStats implements ConsolidatedCacheStatsMBean {
     private void activate(BundleContext context){
         Whiteboard wb = new OsgiWhiteboard(context);
         cacheStats = wb.track(CacheStatsMBean.class);
+        persistentCacheStats = wb.track(PersistentCacheStatsMBean.class);
         mbeanReg = registerMBean(wb,
                 ConsolidatedCacheStatsMBean.class,
                 this,
@@ -89,6 +95,10 @@ public class ConsolidatedCacheStats implements ConsolidatedCacheStatsMBean {
 
         if(cacheStats != null){
             cacheStats.stop();
+        }
+
+        if(persistentCacheStats != null) {
+            persistentCacheStats.stop();
         }
     }
 
