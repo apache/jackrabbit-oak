@@ -22,12 +22,19 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
+import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText.ExtractionResult;
+import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 public class ExtractedTextCacheTest {
 
@@ -46,7 +53,7 @@ public class ExtractedTextCacheTest {
         String text = cache.get("/a", "foo", b, false);
         assertNull(text);
 
-        cache.put(b, new ExtractedText(ExtractedText.ExtractionResult.SUCCESS, "test hello"));
+        cache.put(b, new ExtractedText(ExtractionResult.SUCCESS, "test hello"));
 
         text = cache.get("/a", "foo", b, false);
         assertEquals("test hello", text);
@@ -60,7 +67,7 @@ public class ExtractedTextCacheTest {
         String text = cache.get("/a", "foo", b, false);
         assertNull(text);
 
-        cache.put(b, new ExtractedText(ExtractedText.ExtractionResult.SUCCESS, "test hello"));
+        cache.put(b, new ExtractedText(ExtractionResult.SUCCESS, "test hello"));
 
         text = cache.get("/a", "foo", b, false);
         assertNull(text);
@@ -74,12 +81,59 @@ public class ExtractedTextCacheTest {
         String text = cache.get("/a", "foo", b, false);
         assertNull(text);
 
-        cache.put(b, new ExtractedText(ExtractedText.ExtractionResult.ERROR, "test hello"));
+        cache.put(b, new ExtractedText(ExtractionResult.ERROR, "test hello"));
 
         text = cache.get("/a", "foo", b, false);
         assertNull(text);
     }
 
+    @Test
+    public void preExtractionNoReindexNoProvider() throws Exception{
+        ExtractedTextCache cache = new ExtractedTextCache(10 * FileUtils.ONE_MB, 100);
+
+        Blob b = new IdBlob("hello", "a");
+        String text = cache.get("/a", "foo", b, true);
+        assertNull(text);
+    }
+
+    @Test
+    public void preExtractionNoReindex() throws Exception{
+        ExtractedTextCache cache = new ExtractedTextCache(10 * FileUtils.ONE_MB, 100);
+        PreExtractedTextProvider provider = mock(PreExtractedTextProvider.class);
+
+        cache.setExtractedTextProvider(provider);
+        Blob b = new IdBlob("hello", "a");
+        String text = cache.get("/a", "foo", b, false);
+        assertNull(text);
+
+        verifyZeroInteractions(provider);
+    }
+
+    @Test
+    public void preExtractionReindex() throws Exception{
+        ExtractedTextCache cache = new ExtractedTextCache(10 * FileUtils.ONE_MB, 100);
+        PreExtractedTextProvider provider = mock(PreExtractedTextProvider.class);
+
+        cache.setExtractedTextProvider(provider);
+        when(provider.getText(anyString(), any(Blob.class)))
+                .thenReturn(new ExtractedText(ExtractionResult.SUCCESS, "bar"));
+        Blob b = new IdBlob("hello", "a");
+        String text = cache.get("/a", "foo", b, true);
+        assertEquals("bar", text);
+    }
+
+    @Test
+    public void preExtractionAlwaysUse() throws Exception{
+        ExtractedTextCache cache = new ExtractedTextCache(10 * FileUtils.ONE_MB, 100, true);
+        PreExtractedTextProvider provider = mock(PreExtractedTextProvider.class);
+
+        cache.setExtractedTextProvider(provider);
+        when(provider.getText(anyString(), any(Blob.class)))
+                .thenReturn(new ExtractedText(ExtractionResult.SUCCESS, "bar"));
+        Blob b = new IdBlob("hello", "a");
+        String text = cache.get("/a", "foo", b, false);
+        assertEquals("bar", text);
+    }
 
     private static class IdBlob extends ArrayBasedBlob {
         final String id;
