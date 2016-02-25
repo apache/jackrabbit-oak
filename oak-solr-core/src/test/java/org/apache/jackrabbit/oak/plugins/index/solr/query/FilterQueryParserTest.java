@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.solr.query;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.junit.Test;
 
@@ -31,7 +32,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Testcase for {@link org.apache.jackrabbit.oak.plugins.index.solr.query.FilterQueryParser}
+ * Testcase for {@link FilterQueryParser}
  */
 public class FilterQueryParserTest {
 
@@ -39,7 +40,8 @@ public class FilterQueryParserTest {
     public void testMatchAllConversionWithNoConstraints() throws Exception {
         Filter filter = mock(Filter.class);
         OakSolrConfiguration configuration = mock(OakSolrConfiguration.class);
-        SolrQuery solrQuery = FilterQueryParser.getQuery(filter, null, configuration);
+        QueryIndex.IndexPlan plan = mock(QueryIndex.IndexPlan.class);
+        SolrQuery solrQuery = FilterQueryParser.getQuery(filter, plan, configuration);
         assertNotNull(solrQuery);
         assertEquals("*:*", solrQuery.getQuery());
     }
@@ -58,7 +60,8 @@ public class FilterQueryParserTest {
         Filter.PathRestriction pathRestriction = Filter.PathRestriction.ALL_CHILDREN;
         when(filter.getPathRestriction()).thenReturn(pathRestriction);
         when(filter.getPath()).thenReturn("/");
-        SolrQuery solrQuery = FilterQueryParser.getQuery(filter, null, configuration);
+        QueryIndex.IndexPlan plan = mock(QueryIndex.IndexPlan.class);
+        SolrQuery solrQuery = FilterQueryParser.getQuery(filter, plan, configuration);
         assertNotNull(solrQuery);
         String[] filterQueries = solrQuery.getFilterQueries();
         assertTrue(Arrays.asList(filterQueries).contains(configuration.getFieldForPathRestriction(pathRestriction) + ":\\/"));
@@ -76,7 +79,8 @@ public class FilterQueryParserTest {
             }
         };
         when(filter.getQueryStatement()).thenReturn(query);
-        SolrQuery solrQuery = FilterQueryParser.getQuery(filter, null, configuration);
+        QueryIndex.IndexPlan plan = mock(QueryIndex.IndexPlan.class);
+        SolrQuery solrQuery = FilterQueryParser.getQuery(filter, plan, configuration);
         assertNotNull(solrQuery);
         String[] filterQueries = solrQuery.getFilterQueries();
         assertTrue(Arrays.asList(filterQueries).contains("{!collapse field=" + configuration.getCollapsedPathField()

@@ -43,9 +43,6 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
 
     private final RemoteSolrServerConfiguration remoteSolrServerConfiguration;
 
-    private SolrServer searchingSolrServer;
-    private SolrServer indexingSolrServer;
-
     public RemoteSolrServerProvider(RemoteSolrServerConfiguration remoteSolrServerConfiguration) {
         this.remoteSolrServerConfiguration = remoteSolrServerConfiguration;
     }
@@ -204,15 +201,6 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
 
     @Override
     public void close() throws IOException {
-        try {
-            searchingSolrServer.shutdown();
-        } catch (Exception e) {
-            // do nothing
-        }
-        try {
-            indexingSolrServer.shutdown();
-        } catch (Exception e) {
-            // do nothing
-        }
+        // do nothing
     }
 }

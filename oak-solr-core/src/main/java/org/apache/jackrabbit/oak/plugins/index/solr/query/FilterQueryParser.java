@@ -40,14 +40,14 @@ import static org.apache.jackrabbit.oak.plugins.index.solr.util.SolrUtils.getSor
 import static org.apache.jackrabbit.oak.plugins.index.solr.util.SolrUtils.partialEscape;
 
 /**
- * the {@link org.apache.jackrabbit.oak.plugins.index.solr.query.FilterQueryParser} can parse {@link org.apache.jackrabbit.oak.spi.query.Filter}s
+ * the {@link FilterQueryParser} can parse {@link org.apache.jackrabbit.oak.spi.query.Filter}s
  * and transform them into {@link org.apache.solr.client.solrj.SolrQuery}s and / or Solr query {@code String}s.
  */
 class FilterQueryParser {
 
     private static final Logger log = LoggerFactory.getLogger(FilterQueryParser.class);
 
-    static SolrQuery getQuery(Filter filter, List<QueryIndex.OrderEntry> sortOrder, OakSolrConfiguration configuration) {
+    static SolrQuery getQuery(Filter filter, QueryIndex.IndexPlan plan, OakSolrConfiguration configuration) {
 
         SolrQuery solrQuery = new SolrQuery();
         setDefaults(solrQuery, configuration);
@@ -65,6 +65,7 @@ class FilterQueryParser {
             }
         }
 
+        List<QueryIndex.OrderEntry> sortOrder = plan.getSortOrder();
         if (sortOrder != null) {
             for (QueryIndex.OrderEntry orderEntry : sortOrder) {
                 SolrQuery.ORDER order;
@@ -248,7 +249,7 @@ class FilterQueryParser {
         if (configuration.useForPathRestrictions()) {
             Filter.PathRestriction pathRestriction = filter.getPathRestriction();
             if (pathRestriction != null) {
-                String path = purgePath(filter);
+                String path = purgePath(filter, plan.getPathPrefix());
                 String fieldName = configuration.getFieldForPathRestriction(pathRestriction);
                 if (fieldName != null) {
                     if (pathRestriction.equals(Filter.PathRestriction.ALL_CHILDREN)) {
@@ -377,8 +378,15 @@ class FilterQueryParser {
         return "[" + (first != null ? first : "*") + " TO " + (last != null ? last : "*") + "]";
     }
 
-    private static String purgePath(Filter filter) {
-        return partialEscape(filter.getPath()).toString();
+    private static String purgePath(Filter filter, String pathPrefix) {
+        String path = filter.getPath();
+        if (pathPrefix != null && pathPrefix.length() > 1 && path.startsWith(pathPrefix)) {
+            path = path.substring(pathPrefix.length());
+            if (path.length() == 0) {
+                path = "/";
+            }
+        }
+        return partialEscape(path).toString();
     }
 
 }
