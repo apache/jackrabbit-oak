@@ -99,7 +99,8 @@ public class MultiPropertyOrTest extends AbstractQueryTest {
                 Query.JCR_SQL2);
         assertEquals(1, lines.size());
         // make sure it used the property index
-        assertTrue(lines.get(0), lines.get(0).contains("property xyz IN (foo, bar)"));
+        assertTrue(lines.get(0), lines.get(0).contains("property xyz = foo"));
+        assertTrue(lines.get(0), lines.get(0).contains("property xyz = bar"));
 
         assertQuery(
                 "select [jcr:path] from [nt:base] where [x] = 'foo' OR [y] = 'foo'",

@@ -192,7 +192,7 @@ class PropertyIndex implements QueryIndex {
             // not an appropriate index for native search
             return Double.POSITIVE_INFINITY;
         }
-        if (filter.getPropertyRestrictions().isEmpty() && filter.getSelector().getSelectorConstraints().isEmpty()) {
+        if (filter.getPropertyRestrictions().isEmpty()) {
             // not an appropriate index for no property restrictions & selector constraints
             return Double.POSITIVE_INFINITY;
         }

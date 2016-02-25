@@ -35,14 +35,6 @@ import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorSt
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.UniqueEntryStoreStrategy;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
-import org.apache.jackrabbit.oak.query.ast.ComparisonImpl;
-import org.apache.jackrabbit.oak.query.ast.ConstraintImpl;
-import org.apache.jackrabbit.oak.query.ast.DynamicOperandImpl;
-import org.apache.jackrabbit.oak.query.ast.InImpl;
-import org.apache.jackrabbit.oak.query.ast.Operator;
-import org.apache.jackrabbit.oak.query.ast.OrImpl;
-import org.apache.jackrabbit.oak.query.ast.PropertyValueImpl;
-import org.apache.jackrabbit.oak.query.ast.StaticOperandImpl;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Cursors;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -72,8 +64,6 @@ public class PropertyIndexPlan {
     private static final IndexStoreStrategy UNIQUE =
             new UniqueEntryStoreStrategy();
 
-    private final NodeState root;
-
     private final NodeState definition;
 
     private final String name;
@@ -98,7 +88,6 @@ public class PropertyIndexPlan {
 
     PropertyIndexPlan(String name, NodeState root, NodeState definition, Filter filter) {
         this.name = name;
-        this.root = root;
         this.definition = definition;
         this.properties = newHashSet(definition.getNames(PROPERTY_NAMES));
         pathFilter = PathFilter.from(definition.builder());
@@ -162,69 +151,11 @@ public class PropertyIndexPlan {
                     }
                 }
             }
-
-            // OAK-1965: let's see if we can find a (x='...' OR y='...')
-            // constraint where both x and y are covered by this index
-            // TODO: avoid repeated scans through the constraints
-            for (ConstraintImpl constraint
-                    : filter.getSelector().getSelectorConstraints()) {
-                if (constraint instanceof OrImpl) {
-                    Set<String> values = findMultiProperty((OrImpl) constraint);
-                    if (values != null) {
-                        double cost = strategy.count(filter, root, definition, values, MAX_COST);
-                        if (cost < bestCost) {
-                            bestDepth = 1;
-                            bestValues = values;
-                            bestCost = cost;
-                        }
-                    }
-                }
-            }
         }
 
         this.depth = bestDepth;
         this.values = bestValues;
         this.cost = COST_OVERHEAD + bestCost;
-    }
-
-    private Set<String> findMultiProperty(OrImpl or) {
-        Set<String> values = newLinkedHashSet();
-        for (ConstraintImpl constraint : or.getConstraints()) {
-            if (constraint instanceof ComparisonImpl) {
-                ComparisonImpl comparison = (ComparisonImpl) constraint;
-                if (isIndexed(comparison.getOperand1())
-                        && comparison.getOperator() == Operator.EQUAL) {
-                    values.addAll(encode(comparison.getOperand2().currentValue()));
-                } else {
-                    return null;
-                }
-            } else if (constraint instanceof InImpl) {
-                InImpl in = (InImpl) constraint;
-                if (isIndexed(in.getOperand1())) {
-                    for (StaticOperandImpl operand : in.getOperand2()) {
-                        values.addAll(encode(operand.currentValue()));
-                    }
-                } else {
-                    return null;
-                }
-            } else {
-                return null;
-            }
-        }
-        return values;
-    }
-
-    /**
-     * Checks whether the given dynamic operand is a property
-     * covered by this index.
-     */
-    private boolean isIndexed(DynamicOperandImpl operand) {
-        if (operand instanceof PropertyValueImpl) {
-            PropertyValueImpl property = (PropertyValueImpl) operand;
-            return properties.contains(property.getPropertyName());
-        } else {
-            return false;
-        }
     }
 
     private static Set<String> getValues(PropertyRestriction restriction) {
