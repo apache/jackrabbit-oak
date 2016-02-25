@@ -17,15 +17,12 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.cache.RemovalCause.COLLECTED;
-import static com.google.common.cache.RemovalCause.EXPIRED;
-import static com.google.common.cache.RemovalCause.SIZE;
 
 import java.io.InputStream;
-import java.lang.ref.Reference;
 import java.net.UnknownHostException;
-import java.util.EnumSet;
+import java.util.EnumMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Executor;
@@ -71,6 +68,7 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.MongoVersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.CacheType;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.EvictionListener;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
+import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCacheStats;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
@@ -534,6 +532,8 @@ public class DocumentMK {
         private BlobStoreStats blobStoreStats;
         private CacheStats blobStoreCacheStats;
         private DocumentStoreStatsCollector documentStoreStatsCollector;
+        private Map<CacheType, PersistentCacheStats> persistentCacheStats =
+                new EnumMap<CacheType, PersistentCacheStats>(CacheType.class);
 
         public Builder() {
         }
@@ -895,6 +895,9 @@ public class DocumentMK {
             return this;
         }
 
+        public StatisticsProvider getStatisticsProvider() {
+            return this.statisticsProvider;
+        }
         public DocumentStoreStatsCollector getDocumentStoreStatsCollector() {
             if (documentStoreStatsCollector == null) {
                 documentStoreStatsCollector = new DocumentStoreStats(statisticsProvider);
@@ -905,6 +908,11 @@ public class DocumentMK {
         public Builder setDocumentStoreStatsCollector(DocumentStoreStatsCollector documentStoreStatsCollector) {
             this.documentStoreStatsCollector = documentStoreStatsCollector;
             return this;
+        }
+
+        @Nonnull
+        public Map<CacheType, PersistentCacheStats> getPersistenceCacheStats() {
+            return persistentCacheStats;
         }
 
         @CheckForNull
@@ -1033,9 +1041,13 @@ public class DocumentMK {
                 if (docNodeStore != null) {
                     docNodeStore.setPersistentCache(p);
                 }
-                cache = p.wrap(docNodeStore, docStore, cache, cacheType);
+                cache = p.wrap(docNodeStore, docStore, cache, cacheType, statisticsProvider);
                 if (cache instanceof EvictionListener) {
                     listeners.add((EvictionListener<K, V>) cache);
+                }
+                PersistentCacheStats stats = PersistentCache.getPersistentCacheStats(cache);
+                if (stats != null) {
+                    persistentCacheStats.put(cacheType, stats);
                 }
             }
             return cache;
