@@ -16,6 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import javax.jcr.Node;
+import javax.jcr.Repository;
+import javax.jcr.Session;
+import javax.jcr.SimpleCredentials;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryManager;
+import javax.jcr.query.QueryResult;
+import javax.jcr.query.Row;
+import javax.jcr.query.RowIterator;
+import javax.jcr.security.Privilege;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
@@ -28,26 +39,10 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import javax.jcr.Node;
-import javax.jcr.Repository;
-import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
-import javax.jcr.query.Query;
-import javax.jcr.query.QueryManager;
-import javax.jcr.query.QueryResult;
-import javax.jcr.query.Row;
-import javax.jcr.query.RowIterator;
-import javax.jcr.security.Privilege;
-
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.*;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_RULES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.shutdown;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.*;
 
 @SuppressWarnings("ConstantConditions")
 public class LuceneIndexSuggestionTest {
@@ -70,7 +65,7 @@ public class LuceneIndexSuggestionTest {
                 .with(new LuceneIndexEditorProvider());
 
         repository = jcr.createRepository();
-        session = (JackrabbitSession)repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
+        session = (JackrabbitSession) repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
         root = session.getRootNode();
     }
 
@@ -139,12 +134,17 @@ public class LuceneIndexSuggestionTest {
         createSuggestIndex("lucene-suggest", indexNodeType, indexPropName, addFullText, suggestAnalyzed);
 
         Node indexedNode = root.addNode("indexedNode1", queryNodeType);
-        indexedNode.setProperty(indexPropName, indexPropValue + " 1");
-        indexedNode = root.addNode("indexedNode2", queryNodeType);
-        indexedNode.setProperty(indexPropName, indexPropValue + " 2");
+
+        if (indexPropValue != null) {
+            indexedNode.setProperty(indexPropName, indexPropValue + " 1");
+            indexedNode = root.addNode("indexedNode2", queryNodeType);
+            indexedNode.setProperty(indexPropName, indexPropValue + " 2");
+        }
+
         if (useUserSession) {
             session.getUserManager().createUser(TEST_USER_NAME, TEST_USER_NAME);
         }
+
         session.save();
 
         Session userSession = session;
@@ -305,5 +305,19 @@ public class LuceneIndexSuggestionTest {
                 indexPropName, indexPropValue,
                 true, true,
                 suggestQueryText, true, false);
+    }
+
+    //OAK-4067
+    @Test
+    public void emptySuggestWithNothingIndexed() throws Exception {
+        final String nodeType = "nt:unstructured";
+        final String indexPropName = "description";
+        final String indexPropValue = null;
+        final String suggestQueryText = null;
+
+        checkSuggestions(nodeType,
+                indexPropName, indexPropValue,
+                true, true,
+                suggestQueryText, false, false);
     }
 }

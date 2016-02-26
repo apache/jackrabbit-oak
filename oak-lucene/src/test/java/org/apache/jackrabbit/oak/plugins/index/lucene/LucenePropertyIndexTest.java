@@ -2074,18 +2074,18 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     }
 
-    @Ignore("OAK-4067")
     @Test
     public void emptySuggestDictionary() throws Exception{
         Tree idx = createIndex("test1", of("propa", "propb"));
         Tree props = TestUtil.newRulePropTree(idx, "nt:base");
         Tree prop1 = props.addChild(TestUtil.unique("prop"));
+        prop1.setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true);
         prop1.setProperty(LuceneIndexConstants.PROP_NAME, "tag");
         prop1.setProperty(LuceneIndexConstants.PROP_INDEX, true);
         prop1.setProperty(LuceneIndexConstants.PROP_USE_IN_SUGGEST, true);
         root.commit();
 
-        String query = "select * from [nt:base] where tag='foo'";
+        String query = "select * from [nt:base] where [tag] = 'foo'";
         assertPlanAndQuery(query, "lucene:test1(/oak:index/test1)", Collections.<String>emptyList());
     }
 
