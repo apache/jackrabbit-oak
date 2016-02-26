@@ -95,6 +95,7 @@ Below is the canonical index definition structure
       - compatVersion (long) = 2
       - includedPaths (string) multiple
       - excludedPaths (string) multiple
+      - queryPaths (string) multiple = ['/']
       - indexPath (string)
       - codec (string)
       + indexRules (nt:unstructured)
@@ -129,6 +130,11 @@ includedPaths
 excludedPaths
 : Optional multi value property. Defaults to empty
 : List of paths which should be [excluded](#include-exclude) from indexing. 
+
+queryPaths
+: Optional multi value property. Defaults to '/'
+: List of paths for which the index can be used to perform queries. Refer to
+[Path Includes/Excludes](#include-exclude) for more details
 
 indexPath
 : Optional string property to specify [index path](#copy-on-write)
@@ -416,6 +422,45 @@ In majority of case `excludedPaths` only makes sense. However in some cases
 it might be required to also specify explicit set of path which should be 
 indexed. In that case make use of `includedPaths`
 
+Note that `excludedPaths` and `includedPaths` *does not* affect the index
+selection logic for a query i.e. if a query has any path restriction specified
+then that would not be checked against the `excludedPaths` and `includedPaths`.
+
+<a name="query-paths"></a>
+**queryPaths**
+
+If you need to ensure that a given index only gets used for query with specific
+path restrictions then you need to specify those paths in `queryPaths`. 
+
+For example if `includedPaths` and `queryPaths` are set to _[ "/content/a", "/content/b" ]_. 
+The index would be used for queries below "/content/a" as well as for queries below 
+"/content/b". But not for queries without path restriction, or for queries below 
+"/content/c".
+
+**Usage**
+
+Key points to consider while using `excludedPaths`, `includedPaths` and `queryPaths`
+
+1. Reduce what gets indexed in global fulltext index - For 
+   setups where a global fulltext index is configured say at /oak:index/lucene which
+   indexes everything then `excludedPaths` can be used to avoid indexing transient
+   repository state like in '/var' or '/tmp'. This would help in improving indexing 
+   rate. By far this is the primary usecase
+   
+2. Reduce reindexing time - If its known that certain type of data is stored under specific
+   subtree only but the query is not specifying that path restriction then `includedPaths`
+   can be used to reduce reindexing time for existing content by ensuring that indexing
+   logic only traverses that path for building up the index
+   
+3. Use `excludedPaths`, `includedPaths` with caution - When paths are excluded or included
+   then query engine is not aware of that. If wrong paths get excluded then its possible
+   that nodes which should have been part of query result get excluded as they are not indexed.
+   So only exclude those paths which do not have node matching given nodeType or nodes which
+   are known to be not part of any query result
+
+In most cases use of `queryPaths` would not be required as index definition should not have
+any overlap. 
+    
 Refer to [OAK-2599][OAK-2599] for more details.
 
 <a name="aggregation"></a>
@@ -1157,6 +1202,14 @@ While defining the index definition do consider the following aspects
     only those properties. So `ordering`  should be enabled only when sorting is
     being performed for those properties and `evaluatePathRestrictions` should
     only be enabled if you are going to specify path restrictions.
+    
+8. **Avoid overlapping index definition** - Do not have overlapping index definition 
+    indexing same nodetype but having different `includedPaths` and `excludedPaths`.
+    Index selection logic does not make use of the `includedPaths` and `excludedPaths` 
+    for index selection. Index selection is done only on cost basis and `queryPaths`. 
+    Having multiple definition for same type would cause ambiguity in index selection 
+    and may lead to unexpected results. Instead have a single index definition for same 
+    type.
    
 Following analogy might be helpful to people coming from RDBMS world. Treat your
 nodetype as Table in your DB and all the direct or relative properties as columns
