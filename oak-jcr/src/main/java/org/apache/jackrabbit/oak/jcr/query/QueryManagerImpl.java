@@ -50,12 +50,14 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.TimerStats;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The implementation of the corresponding JCR interface.
  */
 public class QueryManagerImpl implements QueryManager {
-
+    private static final Logger queryOpsLogger = LoggerFactory.getLogger("org.apache.jackrabbit.oak.jcr.operations.query");
     private final SessionDelegate sessionDelegate;
     private final SessionContext sessionContext;
     private final QueryObjectModelFactoryImpl qomFactory;
@@ -135,9 +137,10 @@ public class QueryManagerImpl implements QueryManager {
                     statement, language, limit, offset, bindMap,
                     sessionContext.getSessionLocalMappings());
             queryCount.mark();
-            long nanos = context.stop();
+            long millis = TimeUnit.NANOSECONDS.toMillis(context.stop());
+            queryOpsLogger.debug("Executed query [{}] in [{}] ms", statement, millis);
             sessionContext.getStatisticManager()
-                    .logQueryEvaluationTime(language, statement, TimeUnit.NANOSECONDS.toMillis(nanos));
+                    .logQueryEvaluationTime(language, statement, millis);
             return new QueryResultImpl(sessionContext, r);
         } catch (IllegalArgumentException e) {
             throw new InvalidQueryException(e);

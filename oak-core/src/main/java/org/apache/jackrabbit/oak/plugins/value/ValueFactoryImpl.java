@@ -56,13 +56,16 @@ import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.apache.jackrabbit.util.ISO8601;
+import org.slf4j.LoggerFactory;
 
 /**
  * Implementation of {@link ValueFactory} interface.
  */
 public class ValueFactoryImpl implements ValueFactory {
-
+    private static final PerfLogger binOpsLogger = new PerfLogger(
+            LoggerFactory.getLogger("org.apache.jackrabbit.oak.jcr.operations.binary.perf"));
     private final Root root;
     private final NamePathMapper namePathMapper;
 
@@ -290,7 +293,10 @@ public class ValueFactoryImpl implements ValueFactory {
     }
 
     private ValueImpl createBinaryValue(InputStream value) throws IOException, RepositoryException {
-        return createBinaryValue(root.createBlob(value));
+        long start = binOpsLogger.start();
+        Blob blob = root.createBlob(value);
+        binOpsLogger.end(start, -1, "Created binary property of size [{}]", blob.length());
+        return createBinaryValue(blob);
     }
 
     private ValueImpl createBinaryValue(Blob blob) throws RepositoryException {
