@@ -41,7 +41,7 @@ public class PersistentCacheStats extends AnnotatedStandardMBean implements Pers
     private static final Boolean ENABLE_READ_TIMER;
     private static final Boolean ENABLE_LOAD_TIMER;
     static {
-        String enableReadTimer = System.getProperty("PersistentCacheStats.readTimer", "true");
+        String enableReadTimer = System.getProperty("PersistentCacheStats.readTimer", "false");
         String enableLoadTimer = System.getProperty("PersistentCacheStats.loadTimer", "false");
         ENABLE_READ_TIMER = Boolean.parseBoolean(enableReadTimer);
         ENABLE_LOAD_TIMER = Boolean.parseBoolean(enableLoadTimer);

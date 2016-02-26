@@ -116,11 +116,6 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
     }
 
     private void broadcast(final K key, final V value) {
-        long memory = 0L;
-        memory += (key == null ? 0L: keyType.getMemory(key));
-        memory += (value == null ? 0L: valueType.getMemory(value));
-        stats.markBytesWritten(memory);
-
         cache.broadcast(type, new Function<WriteBuffer, Void>() {
             @Override
             @Nullable
@@ -189,7 +184,6 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
     public void put(K key, V value) {
         memCache.put(key, value);
         broadcast(key, value);
-        stats.markPut();
     }
 
     @SuppressWarnings("unchecked")
@@ -261,6 +255,12 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
         if (EVICTION_CAUSES.contains(cause) && value != null) { 
             // invalidations are handled separately
             writerQueue.addPut(key, value);
+
+            long memory = 0L;
+            memory += (key == null ? 0L: keyType.getMemory(key));
+            memory += (value == null ? 0L: valueType.getMemory(value));
+            stats.markBytesWritten(memory);
+            stats.markPut();
         }
     }
 
