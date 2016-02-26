@@ -48,7 +48,7 @@ import org.slf4j.LoggerFactory;
  * The implementation of the corresponding JCR interface.
  */
 public class QueryResultImpl implements QueryResult {
-
+    private static final Logger queryOpsLogger = LoggerFactory.getLogger("org.apache.jackrabbit.oak.jcr.operations.query");
     static final Logger LOG = LoggerFactory.getLogger(QueryResultImpl.class);
 
     protected final SessionContext sessionContext;
@@ -80,6 +80,9 @@ public class QueryResultImpl implements QueryResult {
             private final Iterator<? extends ResultRow> it = result.getRows().iterator();
             private final String pathSelector;
             private RowImpl current;
+            private int rowCount;
+            //Avoid log check for every row access
+            private final boolean debugEnabled = queryOpsLogger.isDebugEnabled();
 
             {
                 String[] columnSelectorNames = result.getColumnSelectorNames();
@@ -95,6 +98,12 @@ public class QueryResultImpl implements QueryResult {
                 if (it.hasNext()) {
                     current = new RowImpl(
                             QueryResultImpl.this, it.next(), pathSelector);
+                    if (debugEnabled) {
+                        rowCount++;
+                        if (rowCount % 100 == 0) {
+                            queryOpsLogger.debug("Iterated over [{}] results so far", rowCount);
+                        }
+                    }
                 } else {
                     current = null;
                 }
