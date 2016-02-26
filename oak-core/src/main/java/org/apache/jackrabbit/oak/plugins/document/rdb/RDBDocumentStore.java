@@ -589,7 +589,7 @@ public class RDBDocumentStore implements DocumentStore {
                 .build();
         String versionDiags = dbInfo.checkVersion(md);
         if (!versionDiags.isEmpty()) {
-            LOG.info(versionDiags);
+            LOG.error(versionDiags);
         }
 
         if (! "".equals(dbInfo.getInitializationStatement())) {
