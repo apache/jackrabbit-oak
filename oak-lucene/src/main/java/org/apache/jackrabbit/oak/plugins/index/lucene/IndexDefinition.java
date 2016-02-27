@@ -130,6 +130,11 @@ class IndexDefinition implements Aggregate.AggregateMapper {
     static final int TYPES_ALLOW_ALL = -1;
 
     /**
+     * Deafult suggesterUpdateFrequencyMinutes
+     */
+    static final int DEFAULT_SUGGESTER_UPDATE_FREQUENCY_MINUTES = 10;
+
+    /**
      * native sort order
      */
     static final OrderEntry NATIVE_SORT_ORDER = new OrderEntry(JCR_SCORE, Type.UNDEFINED,
@@ -270,7 +275,8 @@ class IndexDefinition implements Aggregate.AggregateMapper {
         this.analyzer = createAnalyzer();
         this.hasCustomTikaConfig = getTikaConfigNode().exists();
         this.maxExtractLength = determineMaxExtractLength();
-        this.suggesterUpdateFrequencyMinutes = evaluateSuggesterUpdateFrequencyMinutes(defn, 60);
+        this.suggesterUpdateFrequencyMinutes = evaluateSuggesterUpdateFrequencyMinutes(defn,
+                DEFAULT_SUGGESTER_UPDATE_FREQUENCY_MINUTES);
         this.scorerProviderName = getOptionalValue(defn, LuceneIndexConstants.PROP_SCORER_PROVIDER, null);
         this.reindexCount = determineReindexCount(defn, defnb);
         this.pathFilter = PathFilter.from(new ReadOnlyBuilder(defn));
