@@ -18,25 +18,22 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.api.JackrabbitSession;
-import org.apache.jackrabbit.oak.jcr.Jcr;
+import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.QueryEngine;
+import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.api.ResultRow;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
-import javax.jcr.Node;
-import javax.jcr.Repository;
-import javax.jcr.SimpleCredentials;
 import javax.jcr.query.Query;
-import javax.jcr.query.QueryManager;
-import javax.jcr.query.QueryResult;
-import javax.jcr.query.Row;
-import javax.jcr.query.RowIterator;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -45,76 +42,73 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_RULES;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.shutdown;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
-public class SuggestionIntervalTest {
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder();
-
-    private Repository repository = null;
-    private JackrabbitSession session = null;
-    private Node root = null;
+public class SuggestionIntervalTest extends AbstractQueryTest {
 
     private Clock clock = null;
 
-    @Before
-    public void before() throws Exception {
+    @Override
+    protected ContentRepository createRepository() {
         LuceneIndexProvider provider = new LuceneIndexProvider();
 
-        Jcr jcr = new Jcr()
-                .with(((QueryIndexProvider) provider))
+        ContentRepository repository = new Oak()
+                .with(new InitialContent())
+                .with(new OpenSecurityProvider())
+                .with((QueryIndexProvider) provider)
                 .with((Observer) provider)
-                .with(new LuceneIndexEditorProvider());
-
-        repository = jcr.createRepository();
-        session = (JackrabbitSession) repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
-        root = session.getRootNode();
+                .with(new LuceneIndexEditorProvider())
+                .createContentRepository();
 
         clock = new Clock.Virtual();
-        clock.waitUntil(System.currentTimeMillis());
+        try {
+            clock.waitUntil(System.currentTimeMillis());
+        } catch (Exception e) {
+            //eat exception if clock couldn't wait... that was just courteous anyway!
+        }
         LuceneIndexEditorContext.setClock(clock);
+
+        return repository;
     }
 
     @After
-    public void after() {
+    public void after() throws Exception {
         LuceneIndexEditorContext.setClock(Clock.SIMPLE);
-
-        session.logout();
-        shutdown(repository);
     }
 
-    private void createSuggestIndex(String indexedNodeType)
+    private Tree createSuggestIndex(String indexedNodeType)
             throws Exception {
         String indexName = "lucene-suggest";
-        Node def = root.getNode(INDEX_DEFINITIONS_NAME)
-                .addNode(indexName, INDEX_DEFINITIONS_NODE_TYPE);
+        Tree def = root.getTree("/" + INDEX_DEFINITIONS_NAME)
+                .addChild(indexName);
+        def.setProperty(JcrConstants.JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE);
         def.setProperty(TYPE_PROPERTY_NAME, LuceneIndexConstants.TYPE_LUCENE);
         def.setProperty(REINDEX_PROPERTY_NAME, true);
         def.setProperty("name", indexName);
         def.setProperty(LuceneIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
 
-        Node propertyIdxDef = def.addNode(INDEX_RULES, JcrConstants.NT_UNSTRUCTURED)
-                .addNode(indexedNodeType, JcrConstants.NT_UNSTRUCTURED)
-                .addNode(LuceneIndexConstants.PROP_NODE, JcrConstants.NT_UNSTRUCTURED)
-                .addNode("indexedProperty", JcrConstants.NT_UNSTRUCTURED);
+        Tree propertyIdxDef = def.addChild(INDEX_RULES)
+                .addChild(indexedNodeType)
+                .addChild(LuceneIndexConstants.PROP_NODE)
+                .addChild("indexedProperty");
         propertyIdxDef.setProperty("propertyIndex", true);
         propertyIdxDef.setProperty("analyzed", true);
         propertyIdxDef.setProperty("useInSuggest", true);
         propertyIdxDef.setProperty("name", LuceneIndexConstants.PROPDEF_PROP_NODE_NAME);
+
+        return def;
     }
 
     Set<String> getSuggestions(String nodeType, String suggestFor) throws Exception {
         Set<String> ret = Sets.newHashSet();
 
         String suggQuery = createSuggestQuery(nodeType, suggestFor);
-        QueryManager queryManager = session.getWorkspace().getQueryManager();
-        QueryResult result = queryManager.createQuery(suggQuery, Query.JCR_SQL2).execute();
-        RowIterator rows = result.getRows();
+        QueryEngine qe = root.getQueryEngine();
+        Result result = qe.executeQuery(suggQuery, Query.JCR_SQL2, null, null);
 
-        while (rows.hasNext()) {
-            Row firstRow = rows.nextRow();
-            ret.add(firstRow.getValue("suggestion").getString());
+        for (ResultRow row : result.getRows()) {
+            ret.add(row.getValue("suggestion").toString());
         }
 
         return ret;
@@ -129,19 +123,94 @@ public class SuggestionIntervalTest {
     public void defaultSuggestInterval() throws Exception {
         final String nodeType = "nt:unstructured";
 
+        //initial data
         createSuggestIndex(nodeType);
-        session.save();
+        root.commit();
 
         //wait for documented time before suggestions are refreshed
         clock.waitUntil(clock.getTime() + TimeUnit.MINUTES.toMillis(10));
         clock.getTime();//get one more tick
 
-        root.addNode("indexedNode", nodeType);
-        session.save();
+        //add a node... this should kick in a suggestions udpate too as enough time has passed
+        root.getTree("/").addChild("indexedNode")
+                .setProperty(JcrConstants.JCR_PRIMARYTYPE, nodeType);
+        root.commit();
 
         Set<String> suggestions = getSuggestions(nodeType, "indexedn");
 
         assertEquals(1, suggestions.size());
         assertEquals("indexedNode", suggestions.iterator().next());
+    }
+
+    //OAK-4066
+    @Test
+    public void suggestionUpdateWithoutIndexChange() throws Exception {
+        final String nodeType = "nt:unstructured";
+
+        createSuggestIndex(nodeType);
+        root.commit();
+
+        long currTime = clock.getTime();
+        long toTime = currTime + TimeUnit.MINUTES.toMillis(IndexDefinition.DEFAULT_SUGGESTER_UPDATE_FREQUENCY_MINUTES);
+
+        //add a node that get part in the index
+        root.getTree("/").addChild("indexedNode")
+                .setProperty(JcrConstants.JCR_PRIMARYTYPE, nodeType);
+        root.commit();
+
+        //wait for suggestions refresh time
+        clock.waitUntil(toTime);
+        clock.getTime();//get one more tick
+
+        //push a change which should not make any change in the index but yet should help update suggestions
+        root.getTree("/").addChild("some-non-index-change")
+                .setProperty(JcrConstants.JCR_PRIMARYTYPE, "oak:Unstructured");
+        root.commit();
+
+        Set<String> suggestions = getSuggestions(nodeType, "indexedn");
+
+        assertEquals(1, suggestions.size());
+        assertEquals("indexedNode", suggestions.iterator().next());
+    }
+
+    //OAK-4066
+    @Test
+    public void avoidRedundantSuggestionBuildOnNonIndexUpdate() throws Exception {
+        final String nodeType = "nt:unstructured";
+
+        //initial content which also updates suggestions with "indexedNode"
+        Tree indexDef = createSuggestIndex(nodeType);
+        root.getTree("/").addChild("indexedNode")
+                .setProperty(JcrConstants.JCR_PRIMARYTYPE, nodeType);
+        root.commit();
+        String suggUpdateTime1 = getSuggestionLastUpdated(indexDef);
+
+        assertNotNull("Suggestions update timestamp couldn't be read", suggUpdateTime1);
+
+        long currTime = clock.getTime();
+        long toTime = currTime + TimeUnit.MINUTES.toMillis(IndexDefinition.DEFAULT_SUGGESTER_UPDATE_FREQUENCY_MINUTES);
+
+        //wait for suggestions refresh time
+        clock.waitUntil(toTime);
+        clock.getTime();//get one more tick
+
+        //push a change which should not make any change in the index but would kick in suggestion logic
+        //YET, suggestion logic shouldn't do any change
+        root.getTree("/").addChild("some-non-index-change")
+                .setProperty(JcrConstants.JCR_PRIMARYTYPE, "oak:Unstructured");
+        root.commit();
+
+        String suggUpdateTime2 = getSuggestionLastUpdated(indexDef);
+
+        assertEquals("Suggestions shouldn't rebuild un-necessarily. Update times are different",
+                suggUpdateTime1, suggUpdateTime2);
+    }
+
+    private String getSuggestionLastUpdated(Tree indexDef) {
+        Tree suggStat = root.getTree(indexDef.getPath() + "/" + ":suggesterStatus");
+        if (!suggStat.hasProperty("lastUpdated")) {
+            return null;
+        }
+        return suggStat.getProperty("lastUpdated").toString();
     }
 }
