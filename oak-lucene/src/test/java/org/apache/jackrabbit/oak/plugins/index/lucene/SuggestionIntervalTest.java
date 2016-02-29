@@ -144,4 +144,32 @@ public class SuggestionIntervalTest {
         assertEquals(1, suggestions.size());
         assertEquals("indexedNode", suggestions.iterator().next());
     }
+
+    //OAK-4068
+    @Test
+    public void suggestionUpdateWithoutIndexChange() throws Exception {
+        final String nodeType = "nt:unstructured";
+
+        createSuggestIndex(nodeType);
+        session.save();
+
+        long currTime = clock.getTime();
+        long toTime = currTime + TimeUnit.MINUTES.toMillis(IndexDefinition.DEFAULT_SUGGESTER_UPDATE_FREQUENCY_MINUTES);
+
+        root.addNode("indexedNode", nodeType);
+        session.save();
+
+        //wait for suggestions refresh time
+        clock.waitUntil(toTime);
+        clock.getTime();//get one more tick
+
+        //push a change which should not make any change in the index but yet should help update suggestions
+        root.addNode("some-non-index-change", "oak:Unstructured");
+        session.save();
+
+        Set<String> suggestions = getSuggestions(nodeType, "indexedn");
+
+        assertEquals(1, suggestions.size());
+        assertEquals("indexedNode", suggestions.iterator().next());
+    }
 }
