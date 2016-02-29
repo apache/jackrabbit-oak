@@ -245,13 +245,6 @@ public class LuceneIndexEditorContext {
             getWriter();
         }
 
-        boolean updateSuggestions = shouldUpdateSuggestions();
-        boolean forcedUpdateSuggester = false;
-        if (writer == null && updateSuggestions) {
-            forcedUpdateSuggester = true;
-            getWriter();
-        }
-
         if (writer != null) {
             if (log.isTraceEnabled()) {
                 trackIndexSizeInfo(writer, definition, directory);
@@ -259,10 +252,8 @@ public class LuceneIndexEditorContext {
 
             final long start = PERF_LOGGER.start();
 
-            if (updateSuggestions) {
-                updateSuggester(writer.getAnalyzer());
-                PERF_LOGGER.end(start, -1, "Completed suggester for directory {}", definition);
-            }
+            updateSuggester(writer.getAnalyzer());
+            PERF_LOGGER.end(start, -1, "Completed suggester for directory {}", definition);
 
             writer.close();
             PERF_LOGGER.end(start, -1, "Closed writer for directory {}", definition);
@@ -270,21 +261,16 @@ public class LuceneIndexEditorContext {
             directory.close();
             PERF_LOGGER.end(start, -1, "Closed directory for directory {}", definition);
 
-            if (!forcedUpdateSuggester) {
-                //OAK-2029 Record the last updated status so
-                //as to make IndexTracker detect changes when index
-                //is stored in file system
-                NodeBuilder status = definitionBuilder.child(":status");
-                status.setProperty("lastUpdated", ISO8601.format(getCalendar()), Type.DATE);
-                status.setProperty("indexedNodes", indexedNodes);
-            }
-
+            //OAK-2029 Record the last updated status so
+            //as to make IndexTracker detect changes when index
+            //is stored in file system
+            NodeBuilder status = definitionBuilder.child(":status");
+            status.setProperty("lastUpdated", ISO8601.format(getCalendar()), Type.DATE);
+            status.setProperty("indexedNodes",indexedNodes);
             PERF_LOGGER.end(start, -1, "Overall Closed IndexWriter for directory {}", definition);
 
-            if (!forcedUpdateSuggester) {
-                textExtractionStats.log(reindex);
-                textExtractionStats.collectStats(extractedTextCache);
-            }
+            textExtractionStats.log(reindex);
+            textExtractionStats.collectStats(extractedTextCache);
         }
     }
 
@@ -294,24 +280,10 @@ public class LuceneIndexEditorContext {
      * @param analyzer the analyzer used to update the suggester
      */
     private void updateSuggester(Analyzer analyzer) throws IOException {
-        NodeBuilder suggesterStatus = definitionBuilder.child(":suggesterStatus");
-        DirectoryReader reader = DirectoryReader.open(writer, false);
-        final OakDirectory suggestDirectory = new OakDirectory(definitionBuilder, ":suggest-data", definition, false);
-        try {
-            SuggestHelper.updateSuggester(suggestDirectory, analyzer, reader);
-            suggesterStatus.setProperty("lastUpdated", ISO8601.format(getCalendar()), Type.DATE);
-        } catch (Throwable e) {
-            log.warn("could not update suggester", e);
-        } finally {
-            suggestDirectory.close();
-            reader.close();
-        }
-    }
-
-    private boolean shouldUpdateSuggestions() {
-        boolean updateSuggestions = false;
 
         if (definition.isSuggestEnabled()) {
+
+            boolean updateSuggester = false;
             NodeBuilder suggesterStatus = definitionBuilder.child(":suggesterStatus");
             if (suggesterStatus.hasProperty("lastUpdated")) {
                 PropertyState suggesterLastUpdatedValue = suggesterStatus.getProperty("lastUpdated");
@@ -319,14 +291,26 @@ public class LuceneIndexEditorContext {
                 int updateFrequency = definition.getSuggesterUpdateFrequencyMinutes();
                 suggesterLastUpdatedTime.add(Calendar.MINUTE, updateFrequency);
                 if (getCalendar().after(suggesterLastUpdatedTime)) {
-                    updateSuggestions = true;
+                    updateSuggester = true;
                 }
             } else {
-                updateSuggestions = true;
+                updateSuggester = true;
+            }
+
+            if (updateSuggester) {
+                DirectoryReader reader = DirectoryReader.open(writer, false);
+                final OakDirectory suggestDirectory = new OakDirectory(definitionBuilder, ":suggest-data", definition, false);
+                try {
+                    SuggestHelper.updateSuggester(suggestDirectory, analyzer, reader);
+                    suggesterStatus.setProperty("lastUpdated", ISO8601.format(getCalendar()), Type.DATE);
+                } catch (Throwable e) {
+                    log.warn("could not update suggester", e);
+                } finally {
+                    suggestDirectory.close();
+                    reader.close();
+                }
             }
         }
-
-        return updateSuggestions;
     }
 
     /** Only set for testing */
