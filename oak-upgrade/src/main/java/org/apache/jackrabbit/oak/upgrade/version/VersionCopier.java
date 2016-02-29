@@ -97,10 +97,10 @@ public class VersionCopier {
 
     private boolean doCopyVersionHistory(String versionableUuid, Calendar minDate) {
         final String versionHistoryPath = getVersionHistoryPath(versionableUuid);
-        final NodeState versionHistory = getVersionHistoryNodeState(sourceRoot, versionableUuid);
-        final Calendar lastModified = getVersionHistoryLastModified(versionHistory);
+        final NodeState sourceVersionHistory = getVersionHistoryNodeState(sourceRoot, versionableUuid);
+        final Calendar lastModified = getVersionHistoryLastModified(sourceVersionHistory);
 
-        if (lastModified.after(minDate) || minDate.getTimeInMillis() == 0) {
+        if (sourceVersionHistory.exists() && (lastModified.after(minDate) || minDate.getTimeInMillis() == 0)) {
             NodeStateCopier.builder()
                     .include(versionHistoryPath)
                     .merge(VERSION_STORE_PATH)
