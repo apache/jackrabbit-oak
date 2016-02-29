@@ -628,7 +628,7 @@ public class IndexDefinitionTest {
         //default config
         NodeBuilder indexRoot = builder;
         IndexDefinition idxDefn = new IndexDefinition(root, indexRoot.getNodeState());
-        assertEquals("Default config", 10, idxDefn.getSuggesterUpdateFrequencyMinutes());
+        assertEquals("Default config", 60, idxDefn.getSuggesterUpdateFrequencyMinutes());
 
         //namespaced config shadows old method
         indexRoot = builder.child("shadowConfigRoot");
@@ -636,7 +636,7 @@ public class IndexDefinitionTest {
         indexRoot.child(LuceneIndexConstants.SUGGESTION_CONFIG);
         idxDefn = new IndexDefinition(root, indexRoot.getNodeState());
         assertEquals("Namespaced config node should shadow global config",
-                10, idxDefn.getSuggesterUpdateFrequencyMinutes());
+                60, idxDefn.getSuggesterUpdateFrequencyMinutes());
 
         //config for backward config
         indexRoot = builder.child("backwardCompatibilityRoot");
