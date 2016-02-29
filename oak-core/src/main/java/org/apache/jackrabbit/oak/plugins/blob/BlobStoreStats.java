@@ -34,12 +34,15 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.stats.TimeSeriesAverage;
 import org.apache.jackrabbit.stats.TimeSeriesStatsUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
 @SuppressWarnings("Duplicates")
 public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreStatsMBean, BlobStatsCollector {
+    private final Logger opsLogger = LoggerFactory.getLogger("org.apache.jackrabbit.oak.operations.blobs");
     private static final String BLOB_DOWNLOAD_COUNT = "BLOB_DOWNLOAD_COUNT";
     private static final String BLOB_UPLOADS = "BLOB_UPLOADS";
     private static final String BLOB_DOWNLOADS = "BLOB_DOWNLOADS";
@@ -89,6 +92,7 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
         //it got completed. So acts like a rough approximation
         uploadSizeSeries.mark(size);
         uploadTimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
+        opsLogger.debug("Uploaded {} bytes in {} ms", size, unit.toMillis(timeTaken));
     }
 
     @Override
@@ -97,16 +101,19 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
 
         downloadSizeSeries.mark(size);
         downloadTimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
+        opsLogger.debug("Downloaded {} - {} bytes in {} ms", blobId, size, unit.toMillis(timeTaken));
     }
 
     @Override
     public void uploadCompleted(String blobId) {
         uploadCount.mark();
+        opsLogger.debug("Upload completed - {}", blobId);
     }
 
     @Override
     public void downloadCompleted(String blobId) {
         downloadCount.mark();
+        opsLogger.debug("Download completed - {}", blobId);
     }
 
     //~--------------------------------------< BlobStoreMBean >
