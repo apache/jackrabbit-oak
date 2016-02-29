@@ -38,6 +38,14 @@ public class VersionHistoryUtil {
                 singleton(versionableUuid)));
     }
 
+    /**
+     * Constructs the version history path based on the versionable's UUID.
+     *
+     * @param root The root NodeState below which to look for the version.
+     * @param versionableUuid The String representation of the versionable's UUID.
+     * @return The NodeState corresponding to the version history, or {@code null}
+     *         if it does not exist.
+     */
     static NodeState getVersionHistoryNodeState(NodeState root, String versionableUuid) {
         NodeState historyParent = root;
         for (String segment : getVersionHistoryPathSegments(versionableUuid)) {

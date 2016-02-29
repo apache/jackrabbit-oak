@@ -26,6 +26,8 @@ import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Set;
 
@@ -113,20 +115,17 @@ public class VersionableEditor extends DefaultEditor {
         final VersionCopyConfiguration c = provider.config;
         if (isVersionable.apply(after)) {
             final String versionableUuid = getProperty(after, JCR_UUID, Type.STRING);
-            boolean versionHistoryExists = isVersionHistoryExists(versionableUuid);
             if (c.isCopyVersions() && c.skipOrphanedVersionsCopy()) {
-                versionHistoryExists = copyVersionHistory(after);
+                copyVersionHistory(after);
             } else if (c.isCopyVersions() && !c.skipOrphanedVersionsCopy()) {
                 // all version histories have been copied, but maybe the date
                 // range for orphaned entries is narrower
                 if (c.getOrphanedMinDate().after(c.getVersionsMinDate())) {
-                    versionHistoryExists = copyVersionHistory(after);
+                    copyVersionHistory(after);
                 }
-            } else {
-                versionHistoryExists = false;
             }
 
-            if (versionHistoryExists) {
+            if (isVersionHistoryExists(versionableUuid)) {
                 setVersionablePath(versionableUuid);
             } else {
                 removeVersionProperties(getNodeBuilder(rootBuilder, this.path));
