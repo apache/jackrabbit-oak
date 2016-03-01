@@ -144,9 +144,12 @@ You may also exclude specific paths from being copied. Following command will co
 By default, the source repository replaces the destination repository (if there's one). For instance, in the first example if the `/content/site` node already exists in the destination repository, it'll be removed and replaced by the source node. It's also possible to merge content from the source repository with `--merge-paths`:
 
     java -jar oak-upgrade-*.jar \
+        --include-paths=/content/site \
         --merge-paths=/content/site \
         /old/repository \
         /new/repository
+
+Please notice that in the last example it's necessary to narrow the migration scope using `--include-paths` parameter.
 
 ### Version history copying
 
