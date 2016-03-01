@@ -35,7 +35,7 @@
   <description>Web application that hosts and serves a Jackrabbit Oak content repository</description>
 
   <properties>
-    <oak.version>1.4-SNAPSHOT</oak.version>
+    <oak.version>${project.version}</oak.version>
     <tomcat.version>7.0.40</tomcat.version>
     <tika.version>1.7</tika.version>
     <skip.deployment>true</skip.deployment>
