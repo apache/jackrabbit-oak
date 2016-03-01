@@ -35,7 +35,7 @@
   <description>Standalone application based on Spring Boot then embeds a Jackrabbit Oak content repository</description>
 
   <properties>
-    <oak.version>1.3.16</oak.version>
+    <oak.version>1.4-SNAPSHOT</oak.version>
     <tika.version>1.7</tika.version>
     <skip.deployment>true</skip.deployment>
     <spring.boot.version>1.3.0.RELEASE</spring.boot.version>
