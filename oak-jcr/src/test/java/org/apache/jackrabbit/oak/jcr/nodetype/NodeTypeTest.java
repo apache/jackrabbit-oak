@@ -18,8 +18,10 @@
  */
 package org.apache.jackrabbit.oak.jcr.nodetype;
 
+import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.fail;
 
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -35,8 +37,10 @@ import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class NodeTypeTest extends AbstractRepositoryTest {
@@ -237,6 +241,46 @@ public class NodeTypeTest extends AbstractRepositoryTest {
         Node c = session.getNode("/").addNode("c" + System.currentTimeMillis());
         c.setProperty("jcr:uuid", UUID.randomUUID().toString());      // Doesn't fail as jcr:uuid is not protected yet
         c.addMixin(JcrConstants.MIX_REFERENCEABLE);
+        session.save();
+    }
+
+    @Ignore("OAK-4077")
+    @Test
+    public void removeMandatoryProperty() throws Exception {
+        Session session = getAdminSession();
+        Node root = session.getRootNode();
+        NodeTypeManager manager = session.getWorkspace().getNodeTypeManager();
+
+        String cnd = "<'test'='http://www.apache.org/jackrabbit/test'>\n" +
+                "[test:MyType] > nt:unstructured\n" +
+                " - test:mandatory (string) mandatory";
+
+        CndImporter.registerNodeTypes(new StringReader(cnd), session);
+
+        Node n = root.addNode("test", "test:MyType");
+        n.setProperty("test:mandatory", "value");
+        session.save();
+
+        try {
+            n.getProperty("test:mandatory").remove();
+            session.save();
+            fail("Must fail with ConstraintViolationException");
+        } catch (ConstraintViolationException e) {
+            // expected
+            session.refresh(false);
+        }
+
+        // remove the mandatory property
+        cnd = "<'test'='http://www.apache.org/jackrabbit/test'>\n" +
+                "[test:MyType] > nt:unstructured";
+        CndImporter.registerNodeTypes(new StringReader(cnd), session, true);
+
+        // check node type
+        NodeTypeDefinition ntd = manager.getNodeType("test:MyType");
+        assertEquals(0, ntd.getDeclaredPropertyDefinitions().length);
+
+        // now we should be able to remove the property
+        n.getProperty("test:mandatory").remove();
         session.save();
     }
 }
