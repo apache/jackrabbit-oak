@@ -26,7 +26,7 @@ This tool supports maintenance operations such as backup and compaction.
 To back up a repository, use:
 
     java -mx4g -jar oak-run-*.jar backup <repository> <backup>
-    
+
 When using the (default) Tar storage, the `<repository>` setting is the path to the directory
 that contains the segment  (data*.tar) files.
 The `<backup>` option is the target directory.
@@ -36,15 +36,30 @@ The `<backup>` option is the target directory.
 To list the checkpoints of a repository, use:
 
     java -mx4g -jar oak-run-*.jar checkpoint <repository>
-    
+
 When using the (default) Tar storage, the `<repository>` setting is the path to the directory
 that contains the segment  (data*.tar) files.
 
-#### Using Memory Mapped Files
+#### Compaction
 
-When using the Tar storage, some operations, for example backup and checkpoint, 
-allow to use memory mapped files to reduce memory usage.
-To use this option, set the system property `tar.memoryMapped` to `true`.
+The oak-run compact operation may be used to perform an offline compaction:
+
+    java -mx4g -jar oak-run-*.jar compact <repository> [--force]
+
+It makes sense to find and remove the old checkpoints, using the `checkpoint`
+command described above.
+
+#### System properties supported by the oak-run
+
+When performing operations on the SegmentNodeStore (eg. backup, checkpoint, compact), it's
+possible to tweak various system properties to get the optimal performance. These are:
+
+* `cache` - cache size for the SegmentNodeStore (default: `256`),
+* `compaction-progress-log` - how many entries should be compacted between log messages (default: `150000`),
+* `compress-interval` - number of map entries to keep until compressing this map (default: `100000`),
+* `update.limit` - threshold for the flush of a temporary transaction to disk (default: `10000`),
+* `tar.memoryMapped` - allow to use memory mapped files to reduce memory usage (default: `false`),
+
 Example:
 
     java -Dtar.memoryMapped=true -mx4g -jar oak-run-*.jar checkpoint <repository>
